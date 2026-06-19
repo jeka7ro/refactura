@@ -1,0 +1,348 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* GetApp Smart Invoice — Professional Data Management System
+ * Font: Segoe UI, Roboto (System fonts only)
+ * Primary: Blue-600 | Clean, professional design
+ */
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  /* macOS Tahoe Palette */
+  --primary: #0071E3;
+  --primary-foreground: #F5F5F7;
+  --sidebar-primary: #0071E3;
+  --sidebar-primary-foreground: #F5F5F7;
+  --chart-1: #34C759;
+  --chart-2: #0071E3;
+  --chart-3: #FF9500;
+  --chart-4: #AF52DE;
+  --chart-5: #FF3B30;
+  --radius: 0.75rem;
+  
+  /* Light Mode - Tahoe */
+  --background: #FFFFFF;
+  --foreground: #1D1D1F;
+  --card: rgba(255, 255, 255, 0.7);
+  --card-foreground: #1D1D1F;
+  --popover: rgba(255, 255, 255, 0.8);
+  --popover-foreground: #1D1D1F;
+  --secondary: #F5F5F7;
+  --secondary-foreground: #555555;
+  --muted: #E8E8ED;
+  --muted-foreground: #86868B;
+  --accent: #0071E3;
+  --accent-foreground: #FFFFFF;
+  --destructive: #FF3B30;
+  --destructive-foreground: #FFFFFF;
+  --border: #E5E5EA;
+  --input: #F5F5F7;
+  --ring: #0071E3;
+  --sidebar: #F5F5F7;
+  --sidebar-foreground: #1D1D1F;
+  --sidebar-accent: #0071E3;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #E5E5EA;
+  --sidebar-ring: #0071E3;
+}
+
+.dark {
+  /* Dark Mode - Tahoe */
+  --primary: #0A84FF;
+  --primary-foreground: #F5F5F7;
+  --sidebar-primary: #0A84FF;
+  --sidebar-primary-foreground: #F5F5F7;
+  --background: #000000;
+  --foreground: #F5F5F7;
+  --card: rgba(255, 255, 255, 0.08);
+  --card-foreground: #F5F5F7;
+  --popover: rgba(255, 255, 255, 0.1);
+  --popover-foreground: #F5F5F7;
+  --secondary: rgba(255, 255, 255, 0.06);
+  --secondary-foreground: #A1A1A6;
+  --muted: rgba(255, 255, 255, 0.1);
+  --muted-foreground: #86868B;
+  --accent: #0A84FF;
+  --accent-foreground: #000000;
+  --destructive: #FF453A;
+  --destructive-foreground: #000000;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.08);
+  --ring: #0A84FF;
+  --sidebar: rgba(255, 255, 255, 0.05);
+  --sidebar-foreground: #F5F5F7;
+  --sidebar-accent: #0A84FF;
+  --sidebar-accent-foreground: #000000;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: #0A84FF;
+}
+
+/* Base Styles */
+* {
+  @apply border-border;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  @apply bg-background text-foreground;
+  font-family: 'Segoe UI', 'Roboto', sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+/* Glassmorphism Utilities */
+.glass {
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(40px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dark .glass {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.glass-sm {
+  background-color: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(30px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.dark .glass-sm {
+  background-color: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.glass-lg {
+  background-color: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(50px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.dark .glass-lg {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* KPI Cards - Apple Style */
+.kpi-card {
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(40px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.dark .kpi-card {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.kpi-card:hover {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  transform: scale(1.02);
+}
+
+.dark .kpi-card:hover {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.kpi-value {
+  font-size: 2.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+  font-family: 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.kpi-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted-foreground);
+}
+
+/* Chart Cards */
+.chart-card {
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(40px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
+
+.dark .chart-card {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Buttons */
+button {
+  @apply transition-all duration-200;
+  font-family: 'Segoe UI', 'Roboto', sans-serif;
+}
+
+button:active {
+  @apply scale-95;
+}
+
+/* Input Fields */
+input, textarea, select {
+  @apply bg-input/50 dark:bg-input border border-border rounded-lg px-4 py-2 transition-colors;
+  font-family: 'Segoe UI', 'Roboto', sans-serif;
+}
+
+input:focus, textarea:focus, select:focus {
+  @apply outline-none ring-2 ring-primary/50 border-primary;
+}
+
+/* Animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 dark:bg-slate-600 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-400 dark:bg-slate-500;
+}
+
+/* Container */
+.container {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+/* Flex defaults */
+.flex {
+  @apply min-w-0 min-h-0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SMARTDEVIZE GLOBAL UI RULES — aplicate pe TOATĂ aplicația
+   rounded-lg (12px) OBLIGATORIU. rounded-xl/2xl = INTERZIS.
+═══════════════════════════════════════════════════════════════ */
+
+/* Override global: orice element cu rounded-xl → 12px */
+.rounded-xl,
+[class*="rounded-xl"] {
+  border-radius: 12px !important;
+}
+
+/* Override global: orice element cu rounded-2xl → 12px */
+.rounded-2xl,
+[class*="rounded-2xl"] {
+  border-radius: 12px !important;
+}
+
+/* rounded-full PERMIS DOAR pe: avatare, badge-uri, scrollbar, toggle-uri */
+/* Pe carduri, butoane, inputuri = FORȚAT la 12px */
+.card,
+[class*="card"],
+.glass-card,
+.glass-input,
+.modal,
+[role="dialog"] > div {
+  border-radius: 12px !important;
+}
+
+/* Inputuri: 8px (nu pill, nu xl) */
+input:not([type="range"]):not([type="checkbox"]):not([type="radio"]),
+textarea,
+select {
+  border-radius: 8px;
+}
+
+/* Butoane: 8px standard */
+button:not(.btn-icon):not([class*="rounded-full"]) {
+  border-radius: 8px;
+}
+
+/* Excepție explicită: pill pentru elemente mici de control */
+.pill, .badge, [class*="badge"],
+input[class*="pill"], select[class*="pill"],
+.switch, [role="switch"],
+[class*="toggle"] {
+  border-radius: 9999px !important;
+}

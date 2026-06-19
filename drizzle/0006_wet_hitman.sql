@@ -1,0 +1,42 @@
+CREATE TABLE `reInvoiceLines` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`reInvoiceId` int NOT NULL,
+	`description` varchar(500) NOT NULL,
+	`quantity` decimal(10,2) NOT NULL,
+	`originalUnitPrice` decimal(12,2),
+	`unitPrice` decimal(12,2) NOT NULL,
+	`unit` varchar(20) DEFAULT 'buc',
+	`vatRate` decimal(5,2) DEFAULT '19.00',
+	`markupPercent` decimal(7,2),
+	`total` decimal(12,2) NOT NULL,
+	`lineOrder` int DEFAULT 0,
+	CONSTRAINT `reInvoiceLines_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `reInvoices` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`tenantId` int NOT NULL,
+	`number` varchar(100) NOT NULL,
+	`sourceInvoiceId` varchar(100),
+	`sourceInvoiceNumber` varchar(100),
+	`sourceSupplierName` varchar(255),
+	`clientId` int,
+	`clientName` varchar(255) NOT NULL,
+	`clientCUI` varchar(20),
+	`clientAddress` text,
+	`clientCity` varchar(100),
+	`clientEmail` varchar(320),
+	`clientPhone` varchar(20),
+	`issueDate` varchar(20) NOT NULL,
+	`dueDate` varchar(20),
+	`subtotal` decimal(12,2) NOT NULL,
+	`totalVAT` decimal(12,2) NOT NULL,
+	`total` decimal(12,2) NOT NULL,
+	`currency` varchar(3) DEFAULT 'RON',
+	`status` enum('draft','sent','paid','overdue','cancelled') DEFAULT 'draft',
+	`notes` text,
+	`pdfUrl` varchar(512),
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `reInvoices_id` PRIMARY KEY(`id`)
+);
