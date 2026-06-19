@@ -121,7 +121,7 @@ export default function Login() {
               <label htmlFor="login-email" className="block text-sm font-semibold text-slate-700 mb-2">
                 Adresă email
               </label>
-              <div className="flex items-center border border-slate-200 bg-white rounded-lg focus-within:ring-2 focus-within:ring-blue-500 transition-all">
+              <div className="flex items-center border border-slate-200 bg-white rounded-[8px] focus-within:ring-2 focus-within:ring-blue-500 transition-all overflow-hidden">
                 <Mail className="ml-3.5 w-4 h-4 text-slate-400 flex-shrink-0" />
                 <input
                   id="login-email"
@@ -133,7 +133,7 @@ export default function Login() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="email@companie.ro"
                   disabled={isLoading}
-                  className="flex-1 py-3.5 pl-2.5 pr-4 bg-transparent text-slate-900 placeholder-slate-400 text-sm font-medium focus:outline-none disabled:opacity-60"
+                  className="flex-1 py-3.5 pl-2.5 pr-4 bg-transparent text-slate-900 placeholder-slate-400 text-sm font-medium focus:outline-none disabled:opacity-60 border-none"
                 />
               </div>
             </div>
@@ -148,7 +148,7 @@ export default function Login() {
                   Ai uitat parola?
                 </button>
               </div>
-              <div className="flex items-center border border-slate-200 bg-white rounded-lg focus-within:ring-2 focus-within:ring-blue-500 transition-all">
+              <div className="flex items-center border border-slate-200 bg-white rounded-[8px] focus-within:ring-2 focus-within:ring-blue-500 transition-all overflow-hidden">
                 <Lock className="ml-3.5 w-4 h-4 text-slate-400 flex-shrink-0" />
                 <input
                   id="login-password"
@@ -160,7 +160,7 @@ export default function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   disabled={isLoading}
-                  className="flex-1 py-3.5 pl-2.5 pr-2 bg-transparent text-slate-900 placeholder-slate-400 text-sm font-medium focus:outline-none disabled:opacity-60"
+                  className="flex-1 py-3.5 pl-2.5 pr-2 bg-transparent text-slate-900 placeholder-slate-400 text-sm font-medium focus:outline-none disabled:opacity-60 border-none"
                 />
                 <button
                   type="button"
@@ -179,7 +179,7 @@ export default function Login() {
                 type="button"
                 id="remember-me"
                 onClick={() => setRememberMe(!rememberMe)}
-                className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all flex-shrink-0 ${
+                className={`w-5 h-5 rounded-[6px] border-2 flex items-center justify-center transition-all flex-shrink-0 ${
                   rememberMe ? "bg-blue-600 border-blue-600" : "border-slate-300 bg-white hover:border-blue-400"
                 }`}
               >
@@ -197,7 +197,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full h-13 py-3.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold text-sm rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-500/30 mt-2"
+              className="w-full h-13 py-3.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold text-sm rounded-[8px] flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-500/30 mt-2"
             >
               {isLoading ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> Se autentifică...</>
