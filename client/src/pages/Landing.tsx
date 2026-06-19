@@ -176,14 +176,14 @@ export default function Landing() {
             </div>
           </motion.div>
 
-          <div className="w-full max-w-7xl mt-4 mb-10 relative z-30 px-4 flex gap-6" style={{height: '520px'}}>
+          <div className="w-full max-w-7xl mt-4 mb-10 relative z-30 px-4 flex flex-col lg:flex-row gap-6 lg:h-[520px]">
             {/* Mockup - mare pe stanga, aceeasi inaltime */}
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 1, delay: 0.3 }} className="flex-[3] relative z-20 min-w-0 h-full overflow-hidden rounded-2xl">
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 1, delay: 0.3 }} className="flex-[3] relative z-20 min-w-0 h-[450px] lg:h-full overflow-hidden rounded-2xl">
               <HeroMockup />
             </motion.div>
 
             {/* 3 carduri stivuite vertical pe dreapta - aceeasi inaltime totala */}
-            <div className="flex-[2] flex flex-col gap-3 min-w-0" style={{height: '520px', flexShrink: 0}}>
+            <div className="flex-[2] flex flex-col gap-3 min-w-0 h-[600px] lg:h-[520px] shrink-0">
               {domains.map((domain, i) => (
                 <motion.div key={domain.title} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.15 }} className="group relative rounded-2xl overflow-hidden bg-slate-900 shadow-2xl hover:-translate-x-1 transition-transform duration-300 cursor-pointer" style={{flex: 1}}>
                   <div className="absolute inset-0">
