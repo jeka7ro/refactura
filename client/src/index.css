@@ -234,12 +234,14 @@ button:active {
 
 /* Input Fields */
 input, textarea, select {
-  @apply bg-input/50 dark:bg-input border border-border rounded-lg px-4 py-2 transition-colors;
+  @apply bg-input/50 dark:bg-input px-4 py-2 transition-colors;
   font-family: 'Segoe UI', 'Roboto', sans-serif;
+  /* Eliminat border-border pentru a evita conflictele cu Shadcn (InputGroup/Input) */
 }
 
 input:focus, textarea:focus, select:focus {
-  @apply outline-none ring-2 ring-primary/50 border-primary;
+  @apply outline-none;
+  /* Eliminat ring-2 ring-primary/50 border-primary pentru a nu suprapune ring-uri la autofill */
 }
 
 /* Animations */
@@ -300,49 +302,24 @@ input:focus, textarea:focus, select:focus {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   SMARTDEVIZE GLOBAL UI RULES — aplicate pe TOATĂ aplicația
-   rounded-lg (12px) OBLIGATORIU. rounded-xl/2xl = INTERZIS.
+   SMARTDEVIZE GLOBAL UI RULES — MAC OS TAHOE STYLE
+   Toate butoanele, input-urile și barele de căutare = PILL SHAPE
 ═══════════════════════════════════════════════════════════════ */
 
-/* Override global: orice element cu rounded-xl → 12px */
-.rounded-xl,
-[class*="rounded-xl"] {
-  border-radius: 12px !important;
+/* Override global: Toate elementele interactive au border-radius extrem (pill) */
+input:not([type="range"]):not([type="checkbox"]):not([type="radio"]),
+textarea,
+select,
+button:not(.btn-icon) {
+  border-radius: 9999px !important;
 }
 
-/* Override global: orice element cu rounded-2xl → 12px */
-.rounded-2xl,
-[class*="rounded-2xl"] {
-  border-radius: 12px !important;
-}
-
-/* rounded-full PERMIS DOAR pe: avatare, badge-uri, scrollbar, toggle-uri */
-/* Pe carduri, butoane, inputuri = FORȚAT la 12px */
+/* Container-ele mari rămân rounded, dar fin (macOS style) */
 .card,
 [class*="card"],
 .glass-card,
 .glass-input,
 .modal,
 [role="dialog"] > div {
-  border-radius: 12px !important;
-}
-
-/* Inputuri: 8px (nu pill, nu xl) */
-input:not([type="range"]):not([type="checkbox"]):not([type="radio"]),
-textarea,
-select {
-  border-radius: 8px;
-}
-
-/* Butoane: 8px standard */
-button:not(.btn-icon):not([class*="rounded-full"]) {
-  border-radius: 8px;
-}
-
-/* Excepție explicită: pill pentru elemente mici de control */
-.pill, .badge, [class*="badge"],
-input[class*="pill"], select[class*="pill"],
-.switch, [role="switch"],
-[class*="toggle"] {
-  border-radius: 9999px !important;
+  border-radius: 20px !important;
 }
