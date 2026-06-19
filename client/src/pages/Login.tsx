@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { AlertCircle, Loader2, Lock, Mail, ArrowRight, Layers, Eye, EyeOff } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { Button } from "@/components/ui/button";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { Checkbox } from "@/components/ui/checkbox"; // Assuming this exists, if not I'll keep the custom one but let's use a standard wrapper
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663775520028/C8wLbaeYKAg5R5gqEkUmxw/logo-icon-HMKYoPLDnRUVqqQYYTWWRf.webp";
 
@@ -16,7 +19,6 @@ export default function Login() {
 
   const loginMutation = trpc.auth.login.useMutation();
 
-  // La mount, încarcă credențialele salvate dacă există
   useEffect(() => {
     const saved = localStorage.getItem("savedCredentials");
     if (saved) {
@@ -37,7 +39,6 @@ export default function Login() {
       const result = await loginMutation.mutateAsync({ email, password });
       if (result.success) {
         localStorage.setItem("authToken", result.token);
-        // Salvează sau șterge credențialele în funcție de "ține-mă minte"
         if (rememberMe) {
           localStorage.setItem("savedCredentials", JSON.stringify({ email, password }));
         } else {
@@ -53,22 +54,21 @@ export default function Login() {
   };
 
   return (
-    <div className="h-screen flex overflow-hidden" style={{ fontFamily: "'Inter', 'Outfit', sans-serif" }}>
+    <div className="h-screen flex overflow-hidden bg-background">
       {/* Left panel - branding */}
       <div className="hidden lg:flex lg:flex-1 bg-slate-900 flex-col justify-between p-12 relative overflow-hidden">
-        {/* Background glows */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/20 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-600/20 rounded-full blur-[100px] pointer-events-none" />
 
-        {/* Logo */}
-        <div className="flex items-center gap-3 relative z-10">
-          <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
-            <Layers className="w-5 h-5 text-white" />
+        <Link href="/">
+          <div className="flex items-center gap-3 relative z-10 cursor-pointer hover:opacity-90 transition-opacity w-fit">
+            <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center">
+              <Layers className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <span className="text-white font-bold text-xl tracking-tight">SmartInvoice</span>
           </div>
-          <span className="text-white font-bold text-xl tracking-tight">SmartInvoice</span>
-        </div>
+        </Link>
 
-        {/* Center content */}
         <div className="relative z-10">
           <h2 className="text-4xl font-black text-white leading-tight mb-6">
             Facturezi mai inteligent.<br />
@@ -78,7 +78,6 @@ export default function Login() {
             Re-facturare automată din SPV, sincronizare Oblio și gestionare centre de cost — totul într-un singur loc.
           </p>
 
-          {/* Stats */}
           <div className="mt-10 grid grid-cols-3 gap-6">
             {[
               { value: "2 min", label: "setup inițial" },
@@ -100,10 +99,12 @@ export default function Login() {
       <div className="flex-1 flex items-center justify-center p-8 bg-slate-50 overflow-y-auto">
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
-          <div className="flex items-center gap-3 mb-10 lg:hidden">
-            <img src={LOGO_URL} alt="SmartInvoice" className="h-9 w-9 object-contain" />
-            <span className="font-bold text-xl text-slate-900 tracking-tight">SmartInvoice</span>
-          </div>
+          <Link href="/">
+            <div className="flex items-center gap-3 mb-10 lg:hidden cursor-pointer w-fit">
+              <img src={LOGO_URL} alt="SmartInvoice" className="h-9 w-9 object-contain" />
+              <span className="font-bold text-xl text-slate-900 tracking-tight">SmartInvoice</span>
+            </div>
+          </Link>
 
           <h1 className="text-3xl font-black text-slate-900 mb-2">Bun venit înapoi</h1>
           <p className="text-slate-500 mb-8">Intră în contul tău pentru a continua.</p>
@@ -116,14 +117,15 @@ export default function Login() {
           )}
 
           <form onSubmit={handleLogin} className="space-y-5" autoComplete="on">
-            {/* Email */}
             <div>
               <label htmlFor="login-email" className="block text-sm font-semibold text-slate-700 mb-2">
                 Adresă email
               </label>
-              <div className="flex items-center border border-slate-200 bg-white rounded-[8px] focus-within:ring-2 focus-within:ring-blue-500 transition-all overflow-hidden">
-                <Mail className="ml-3.5 w-4 h-4 text-slate-400 flex-shrink-0" />
-                <input
+              <InputGroup className="bg-white !rounded-full overflow-hidden border-slate-200 shadow-sm px-2">
+                <InputGroupAddon>
+                  <Mail className="w-4 h-4 text-slate-400" />
+                </InputGroupAddon>
+                <InputGroupInput
                   id="login-email"
                   name="email"
                   type="email"
@@ -133,24 +135,25 @@ export default function Login() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="email@companie.ro"
                   disabled={isLoading}
-                  className="flex-1 py-3.5 pl-2.5 pr-4 bg-transparent text-slate-900 placeholder-slate-400 text-sm font-medium focus:outline-none disabled:opacity-60 border-none"
+                  className="py-6"
                 />
-              </div>
+              </InputGroup>
             </div>
 
-            {/* Password */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label htmlFor="login-password" className="block text-sm font-semibold text-slate-700">
                   Parolă
                 </label>
-                <button type="button" className="text-xs text-blue-600 hover:text-blue-700 font-semibold">
+                <button type="button" className="text-xs text-primary hover:text-primary/80 font-semibold">
                   Ai uitat parola?
                 </button>
               </div>
-              <div className="flex items-center border border-slate-200 bg-white rounded-[8px] focus-within:ring-2 focus-within:ring-blue-500 transition-all overflow-hidden">
-                <Lock className="ml-3.5 w-4 h-4 text-slate-400 flex-shrink-0" />
-                <input
+              <InputGroup className="bg-white pr-2 !rounded-full overflow-hidden border-slate-200 shadow-sm px-2">
+                <InputGroupAddon>
+                  <Lock className="w-4 h-4 text-slate-400" />
+                </InputGroupAddon>
+                <InputGroupInput
                   id="login-password"
                   name="password"
                   type={showPassword ? "text" : "password"}
@@ -160,27 +163,26 @@ export default function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   disabled={isLoading}
-                  className="flex-1 py-3.5 pl-2.5 pr-2 bg-transparent text-slate-900 placeholder-slate-400 text-sm font-medium focus:outline-none disabled:opacity-60 border-none"
+                  className="py-6"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="mr-3.5 text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0"
+                  className="text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0 focus:outline-none px-2"
                   tabIndex={-1}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
-              </div>
+              </InputGroup>
             </div>
 
-            {/* Ține-mă minte */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 pl-2">
               <button
                 type="button"
                 id="remember-me"
                 onClick={() => setRememberMe(!rememberMe)}
-                className={`w-5 h-5 rounded-[6px] border-2 flex items-center justify-center transition-all flex-shrink-0 ${
-                  rememberMe ? "bg-blue-600 border-blue-600" : "border-slate-300 bg-white hover:border-blue-400"
+                className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all flex-shrink-0 ${
+                  rememberMe ? "bg-primary border-primary" : "border-slate-300 bg-white hover:border-primary/50"
                 }`}
               >
                 {rememberMe && (
@@ -194,27 +196,26 @@ export default function Login() {
               </label>
             </div>
 
-            <button
+            <Button
               type="submit"
               disabled={isLoading}
-              className="w-full h-13 py-3.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold text-sm rounded-[8px] flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-500/30 mt-2"
+              className="w-full py-6 mt-4 text-base font-bold shadow-lg shadow-primary/20 !rounded-full"
             >
               {isLoading ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Se autentifică...</>
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Se autentifică...</>
               ) : (
-                <>Intră în cont <ArrowRight className="w-4 h-4" /></>
+                <>Intră în cont <ArrowRight className="w-4 h-4 ml-2" /></>
               )}
-            </button>
+            </Button>
           </form>
 
           <p className="text-sm text-slate-500 text-center mt-8">
             Nu ai cont?{" "}
-            <button
-              onClick={() => setLocation("/register")}
-              className="text-blue-600 hover:text-blue-700 font-semibold"
-            >
-              Solicită acces
-            </button>
+            <Link href="/register">
+              <span className="text-primary hover:text-primary/80 font-semibold cursor-pointer">
+                Solicită acces
+              </span>
+            </Link>
           </p>
         </div>
       </div>

@@ -116,8 +116,8 @@ export default function Register() {
 
           <form onSubmit={handleRegister} className="space-y-4" autoComplete="on">
             <div>
-              <label htmlFor="reg-name" className="block text-sm font-semibold text-slate-700 mb-2">Nume complet</label>
-              <InputGroup className="bg-white">
+              <label htmlFor="reg-name" className="block text-sm font-semibold text-slate-700 mb-2 pl-2">Nume complet</label>
+              <InputGroup className="bg-white !rounded-full overflow-hidden border-slate-200 shadow-sm px-2">
                 <InputGroupAddon>
                   <User className="w-4 h-4 text-slate-400" />
                 </InputGroupAddon>
@@ -131,13 +131,14 @@ export default function Register() {
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Ion Popescu"
                   disabled={isLoading}
+                  className="py-6"
                 />
               </InputGroup>
             </div>
 
             <div>
-              <label htmlFor="reg-email" className="block text-sm font-semibold text-slate-700 mb-2">Adresă email</label>
-              <InputGroup className="bg-white">
+              <label htmlFor="reg-email" className="block text-sm font-semibold text-slate-700 mb-2 pl-2">Adresă email</label>
+              <InputGroup className="bg-white !rounded-full overflow-hidden border-slate-200 shadow-sm px-2">
                 <InputGroupAddon>
                   <Mail className="w-4 h-4 text-slate-400" />
                 </InputGroupAddon>
@@ -151,13 +152,14 @@ export default function Register() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="email@companie.ro"
                   disabled={isLoading}
+                  className="py-6"
                 />
               </InputGroup>
             </div>
 
             <div>
-              <label htmlFor="reg-password" className="block text-sm font-semibold text-slate-700 mb-2">Parolă</label>
-              <InputGroup className="bg-white pr-2">
+              <label htmlFor="reg-password" className="block text-sm font-semibold text-slate-700 mb-2 pl-2">Parolă</label>
+              <InputGroup className="bg-white pr-2 !rounded-full overflow-hidden border-slate-200 shadow-sm px-2">
                 <InputGroupAddon>
                   <Lock className="w-4 h-4 text-slate-400" />
                 </InputGroupAddon>
@@ -171,13 +173,14 @@ export default function Register() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Minim 8 caractere"
                   disabled={isLoading}
+                  className="py-6"
                 />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} tabIndex={-1} className="text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0 focus:outline-none">
+                <button type="button" onClick={() => setShowPassword(!showPassword)} tabIndex={-1} className="text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0 focus:outline-none px-2">
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </InputGroup>
               {password.length > 0 && (
-                <div className="mt-2 flex items-center gap-2">
+                <div className="mt-2 flex items-center gap-2 pl-2">
                   <div className="flex gap-1 flex-1">
                     {[1, 2, 3].map((i) => (
                       <div key={i} className={`h-1.5 flex-1 rounded-full transition-all ${i <= passwordStrength ? strengthColor[passwordStrength] : "bg-slate-200"}`} />
@@ -189,8 +192,8 @@ export default function Register() {
             </div>
 
             <div>
-              <label htmlFor="reg-confirm" className="block text-sm font-semibold text-slate-700 mb-2">Confirmă parola</label>
-              <InputGroup className={`bg-white pr-2 ${confirmPassword.length > 0 && confirmPassword !== password ? "!border-red-300 has-[[data-slot=input-group-control]:focus-visible]:!ring-red-400" : ""}`}>
+              <label htmlFor="reg-confirm" className="block text-sm font-semibold text-slate-700 mb-2 pl-2">Confirmă parola</label>
+              <InputGroup className={`bg-white pr-2 !rounded-full overflow-hidden border-slate-200 shadow-sm px-2 ${confirmPassword.length > 0 && confirmPassword !== password ? "!border-red-300 has-[[data-slot=input-group-control]:focus-visible]:!ring-red-400" : ""}`}>
                 <InputGroupAddon>
                   <Lock className="w-4 h-4 text-slate-400" />
                 </InputGroupAddon>
@@ -204,8 +207,9 @@ export default function Register() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Repetă parola"
                   disabled={isLoading}
+                  className="py-6"
                 />
-                <button type="button" onClick={() => setShowConfirm(!showConfirm)} tabIndex={-1} className="text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0 focus:outline-none">
+                <button type="button" onClick={() => setShowConfirm(!showConfirm)} tabIndex={-1} className="text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0 focus:outline-none px-2">
                   {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </InputGroup>
@@ -214,7 +218,7 @@ export default function Register() {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full py-6 mt-2 text-base font-bold shadow-lg shadow-primary/20"
+              className="w-full py-6 mt-4 text-base font-bold shadow-lg shadow-primary/20 !rounded-full"
             >
               {isLoading ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Se creează contul...</>
@@ -237,7 +241,7 @@ export default function Register() {
               <Button
                 type="button"
                 variant="outline"
-                className="w-full py-5 text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50"
+                className="w-full py-6 text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 !rounded-full"
                 onClick={() => alert('Integrarea Google Auth va fi adăugată în curând.')}
               >
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
@@ -251,7 +255,7 @@ export default function Register() {
               </Button>
               <Button
                 type="button"
-                className="w-full py-5 text-sm font-semibold bg-slate-900 hover:bg-slate-800 text-white"
+                className="w-full py-6 text-sm font-semibold bg-slate-900 hover:bg-slate-800 text-white !rounded-full"
                 onClick={() => alert('Integrarea Apple Auth va fi adăugată în curând.')}
               >
                 <svg className="w-5 h-5 mr-2 text-white" fill="currentColor" viewBox="0 0 24 24">
