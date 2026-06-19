@@ -178,12 +178,12 @@ export default function Landing() {
 
           <div className="w-full max-w-7xl mt-4 mb-10 relative z-30 px-4 flex flex-col lg:flex-row gap-6 lg:h-[520px]">
             {/* Mockup - mare pe stanga, aceeasi inaltime */}
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 1, delay: 0.3 }} className="flex-[3] relative z-20 min-w-0 h-[450px] lg:h-full overflow-hidden rounded-2xl">
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 1, delay: 0.3 }} className="w-full lg:flex-[3] relative z-20 min-w-0 h-[450px] lg:h-full overflow-hidden rounded-2xl">
               <HeroMockup />
             </motion.div>
 
             {/* 3 carduri stivuite vertical pe dreapta - aceeasi inaltime totala */}
-            <div className="flex-[2] flex flex-col gap-6 lg:gap-3 min-w-0 h-auto lg:h-[520px] shrink-0">
+            <div className="w-full lg:flex-[2] flex flex-col gap-6 lg:gap-3 min-w-0 h-auto lg:h-[520px] shrink-0">
               {domains.map((domain, i) => (
                 <motion.div key={domain.title} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.15 }} className="group relative rounded-2xl overflow-hidden bg-slate-900 shadow-2xl hover:-translate-x-1 transition-transform duration-300 cursor-pointer h-[250px] lg:h-auto lg:flex-1">
                   <div className="absolute inset-0">
@@ -464,7 +464,7 @@ function HeroMockup() {
       {/* App Body */}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <div className="w-44 bg-slate-900 border-r border-slate-800 p-3 flex flex-col gap-1 flex-shrink-0">
+        <div className="hidden sm:flex w-44 bg-slate-900 border-r border-slate-800 p-3 flex-col gap-1 flex-shrink-0">
           <div className="flex items-center gap-2 mb-4 px-2">
             <div className="w-5 h-5 rounded bg-blue-600 flex items-center justify-center">
               <Layers className="w-3 h-3 text-white" />
