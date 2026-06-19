@@ -234,9 +234,18 @@ button:active {
 
 /* Input Fields */
 input, textarea, select {
-  @apply bg-input/50 dark:bg-input px-4 py-2 transition-colors;
+  @apply px-4 py-2 transition-colors;
   font-family: 'Segoe UI', 'Roboto', sans-serif;
   /* Eliminat border-border pentru a evita conflictele cu Shadcn (InputGroup/Input) */
+}
+
+/* Fix Chrome Autofill breaking transparent inputs inside rounded groups */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+    transition: background-color 9999s ease-in-out 0s !important;
+    -webkit-text-fill-color: var(--foreground) !important;
 }
 
 input:focus, textarea:focus, select:focus {
