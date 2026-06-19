@@ -201,7 +201,7 @@ export default function Landing() {
         </div>
       </section>
       {/* Features Grid */}
-      <section id="features" className="py-32 bg-slate-50 border-t border-slate-100">
+      <section id="features" className="py-16 md:py-24 bg-slate-50 border-t border-slate-100">
         <div className="max-w-7xl mx-auto px-6">
           <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="grid md:grid-cols-3 gap-8">
             {[
@@ -222,7 +222,7 @@ export default function Landing() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="py-32 bg-slate-50 border-t border-slate-100">
+      <section id="pricing" className="py-16 md:py-24 bg-slate-50 border-t border-slate-100">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-4xl md:text-5xl font-black tracking-tight text-slate-900 mb-6">Alege pachetul potrivit afacerii tale.</h2>
@@ -491,28 +491,28 @@ function HeroMockup() {
           <motion.div
             initial={false}
             animate={{ opacity: activeTab === 0 ? 1 : 0, x: activeTab === 0 ? 0 : 30 }}
-            className="absolute inset-0 p-4 flex flex-col gap-3 pointer-events-none"
+            className="absolute inset-0 p-4 flex flex-col gap-3 overflow-y-auto"
             style={{ zIndex: activeTab === 0 ? 10 : 0 }}
           >
             <h3 className="text-base font-bold text-slate-900">Dashboard Financiar</h3>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+            <div className="flex flex-col sm:grid sm:grid-cols-3 gap-3">
+              <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col">
                 <div className="text-[10px] text-slate-500 mb-1">Încasări luna curentă</div>
                 <div className="text-base font-black text-slate-900">124.500 RON</div>
                 <div className="text-[10px] text-green-500 mt-1 font-medium flex items-center gap-1"><TrendingUp className="w-2.5 h-2.5"/> +12%</div>
               </div>
-              <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+              <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col">
                 <div className="text-[10px] text-slate-500 mb-1">Facturi neîncasate</div>
                 <div className="text-base font-black text-orange-500">32.100 RON</div>
                 <div className="text-[10px] text-slate-400 mt-1 font-medium">14 facturi active</div>
               </div>
-              <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+              <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col">
                 <div className="text-[10px] text-slate-500 mb-1">Profit Net (Adaos)</div>
                 <div className="text-base font-black text-blue-600">45.200 RON</div>
                 <div className="text-[10px] text-green-500 mt-1 font-medium flex items-center gap-1"><TrendingUp className="w-2.5 h-2.5"/> +8%</div>
               </div>
             </div>
-            <div className="flex-1 bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+            <div className="min-h-[150px] flex-1 bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col">
               <div className="text-xs font-bold text-slate-800 mb-3">Evoluție Venituri vs. Cheltuieli</div>
               <div className="flex-1 flex items-end justify-between gap-1 px-1">
                 {[40, 60, 45, 80, 65, 90, 100].map((h, i) => (
@@ -532,37 +532,37 @@ function HeroMockup() {
           <motion.div
             initial={false}
             animate={{ opacity: activeTab === 1 ? 1 : 0, x: activeTab === 1 ? 0 : 30 }}
-            className="absolute inset-0 p-4 flex flex-col pointer-events-none"
+            className="absolute inset-0 p-4 flex flex-col overflow-y-auto"
             style={{ zIndex: activeTab === 1 ? 10 : 0 }}
           >
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
               <h3 className="text-base font-bold text-slate-900">Automatizare Re-facturare</h3>
               <div className="bg-blue-600 text-white text-[10px] px-3 py-1.5 rounded-lg font-bold flex items-center gap-1">
-                Sincronizare SPV & Oblio <ArrowRight className="w-3 h-3" />
+                Sincronizare SPV <ArrowRight className="w-3 h-3" />
               </div>
             </div>
-            <div className="flex flex-col gap-4 flex-1">
+            <div className="flex flex-col gap-4 flex-1 pb-4">
               {[
                 { f: "Dedeman SRL", item: "Materiale construcții SPV", vIn: 4500, margin: 15, c: "Proiect Rezidențial" },
                 { f: "Arabesque", item: "Ciment și oțel fasonat", vIn: 12200, margin: 20, c: "Șantier Nord" }
               ].map((row, i) => (
-                <div key={i} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex items-center justify-between relative overflow-hidden">
-                  <div className="flex flex-col gap-0.5 w-1/3">
-                    <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-orange-500 inline-block"></span>Factură Furnizor (SPV)</div>
+                <div key={i} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between relative overflow-hidden gap-3">
+                  <div className="flex flex-col gap-0.5 w-full sm:w-1/3">
+                    <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-orange-500 inline-block"></span>Furnizor (SPV)</div>
                     <div className="font-bold text-slate-900 text-sm">{row.f}</div>
                     <div className="text-xs text-slate-500">{row.item}</div>
                     <div className="text-sm font-black text-slate-700 mt-1">{row.vIn.toLocaleString("ro-RO")} RON</div>
                   </div>
-                  <div className="flex flex-col items-center gap-1">
+                  <div className="flex flex-row sm:flex-col items-center gap-2 w-full sm:w-auto bg-slate-50 sm:bg-transparent p-2 sm:p-0 rounded-lg">
                     <div className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-black">+{row.margin}% Adaos</div>
-                    <div className="w-16 h-0.5 bg-slate-200 relative rounded-full">
+                    <div className="hidden sm:block w-16 h-0.5 bg-slate-200 relative rounded-full">
                       <motion.div initial={{ left: 0, opacity: 0 }} animate={{ left: "100%", opacity: [0, 1, 0] }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} className="absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-blue-500 rounded-full" />
                     </div>
                   </div>
-                  <div className="flex flex-col gap-0.5 w-1/3 text-right">
-                    <div className="text-[9px] text-green-500 font-bold uppercase tracking-wider flex items-center justify-end gap-1">Factură Generată <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span></div>
+                  <div className="flex flex-col gap-0.5 w-full sm:w-1/3 text-left sm:text-right border-t sm:border-t-0 border-slate-100 pt-2 sm:pt-0">
+                    <div className="text-[9px] text-green-500 font-bold uppercase tracking-wider flex items-center sm:justify-end gap-1">Client Final <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span></div>
                     <div className="font-bold text-slate-900 text-sm">{row.c}</div>
-                    <div className="text-xs text-slate-500">Generare automată în Oblio</div>
+                    <div className="text-xs text-slate-500">Generare automată</div>
                     <div className="text-sm font-black text-green-600 mt-1">{(row.vIn * (1 + row.margin/100)).toLocaleString("ro-RO")} RON</div>
                   </div>
                 </div>
@@ -574,17 +574,17 @@ function HeroMockup() {
           <motion.div
             initial={false}
             animate={{ opacity: activeTab === 2 ? 1 : 0, x: activeTab === 2 ? 0 : 30 }}
-            className="absolute inset-0 p-4 flex flex-col pointer-events-none bg-slate-50"
+            className="absolute inset-0 p-4 flex flex-col bg-slate-50 overflow-y-auto"
             style={{ zIndex: activeTab === 2 ? 10 : 0 }}
           >
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
               <h3 className="text-base font-bold text-slate-900">Performanță Centre de Cost</h3>
               <div className="bg-slate-900 text-white text-[10px] px-3 py-1.5 rounded-lg font-bold flex items-center gap-1">
                 <BarChart3 className="w-3 h-3 text-blue-400" /> Raport Global
               </div>
             </div>
-            <div className="flex gap-4 flex-1">
-              <div className="flex-1 bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col">
+            <div className="flex flex-col sm:flex-row gap-4 flex-1 pb-4">
+              <div className="flex-1 bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col min-h-[200px]">
                 <div className="text-[9px] font-black text-blue-600 uppercase tracking-wider mb-0.5">PROIECT ACTIV</div>
                 <div className="text-sm font-black text-slate-900 mb-3">Șantier Nord</div>
                 <div className="mb-3">
@@ -596,7 +596,7 @@ function HeroMockup() {
                     <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full w-[76%]"></div>
                   </div>
                 </div>
-                <div className="flex-1 flex flex-col gap-2">
+                <div className="flex-1 flex flex-col gap-2 mt-2">
                   {[
                     { c: "Materiale", v: "185.000", color: "bg-blue-500" },
                     { c: "Echipamente", v: "95.000", color: "bg-indigo-400" },
@@ -612,22 +612,22 @@ function HeroMockup() {
                   ))}
                 </div>
               </div>
-              <div className="flex-1 bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl border border-slate-700 shadow-sm p-4 flex flex-col text-white">
+              <div className="flex-1 bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl border border-slate-700 shadow-sm p-4 flex flex-col text-white min-h-[220px]">
                 <div className="text-[9px] font-black text-purple-400 uppercase tracking-wider mb-0.5">PROIECT ÎN DERULARE</div>
                 <div className="text-sm font-black mb-3">Rezidențial Sud</div>
-                <div className="flex-1 flex items-center justify-center">
+                <div className="flex-1 flex items-center justify-center py-4">
                   <div className="relative flex items-center justify-center">
-                    <svg className="w-24 h-24 -rotate-90">
-                      <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="10" fill="transparent" className="text-slate-700" />
-                      <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="10" fill="transparent" strokeDasharray="251" strokeDashoffset="105" className="text-purple-500" strokeLinecap="round" />
+                    <svg className="w-20 h-20 -rotate-90">
+                      <circle cx="40" cy="40" r="34" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-700" />
+                      <circle cx="40" cy="40" r="34" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray="213" strokeDashoffset="89" className="text-purple-500" strokeLinecap="round" />
                     </svg>
                     <div className="absolute flex flex-col items-center">
-                      <span className="text-2xl font-black">58%</span>
+                      <span className="text-xl font-black">58%</span>
                       <span className="text-[8px] text-slate-400 uppercase tracking-widest">Marjă</span>
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2 border-t border-white/10 pt-3">
+                <div className="grid grid-cols-2 gap-2 border-t border-white/10 pt-3 mt-auto">
                   <div>
                     <div className="text-[9px] text-slate-400 uppercase mb-0.5">Venituri</div>
                     <div className="text-xs font-bold text-green-400">890.000 RON</div>
