@@ -180,8 +180,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <Building2 className="w-4 h-4 text-slate-400" />
             </div>
             <div className="min-w-0">
-              <div className="text-white text-xs font-semibold truncate">ConstructMaster SRL</div>
-              <div className="text-slate-500 text-[11px] truncate">RO12345678</div>
+              <div className="text-white text-xs font-semibold truncate">
+                {(user as any)?.tenantName || user?.name || "—"}
+              </div>
+              <div className="text-slate-500 text-[11px] truncate">
+                {(user as any)?.tenantCUI ? `RO${(user as any).tenantCUI}` : user?.email || ""}
+              </div>
             </div>
           </div>
         </div>

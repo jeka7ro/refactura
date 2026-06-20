@@ -13,7 +13,23 @@ import { invoiceArchive, invoiceArchiveLines } from "../drizzle/schema";
 export const appRouter = router({
   system: systemRouter,
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
+    me: publicProcedure.query(async (opts) => {
+      const user = opts.ctx.user;
+      if (!user) return null;
+      // Attach tenant name + CUI for sidebar display
+      if (user.tenantId) {
+        try {
+          const db = await getDb();
+          if (db) {
+            const { tenants } = await import("../drizzle/schema");
+            const [tenant] = await db.select({ name: tenants.name, cui: tenants.cui })
+              .from(tenants).where(eq(tenants.id, user.tenantId));
+            if (tenant) return { ...user, tenantName: tenant.name, tenantCUI: tenant.cui };
+          }
+        } catch (_) {}
+      }
+      return user;
+    }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
