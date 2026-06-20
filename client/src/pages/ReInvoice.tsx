@@ -23,8 +23,15 @@ export default function ReInvoice() {
   const [currency, setCurrency] = useState<Currency>("RON");
   const [dueDate, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
-  const [globalMarkup, setGlobalMarkup] = useState(15);
-  const [lines, setLines] = useState<ReInvoiceLine[]>([]);
+  const [globalMarkup, setGlobalMarkup] = useState<number | string>(15);
+  
+  // Local interface to allow empty strings while typing
+  interface EditableLine extends Omit<ReInvoiceLine, "quantity" | "unitPrice" | "markupPercent"> {
+    quantity: number | string;
+    unitPrice: number | string;
+    markupPercent?: number | string;
+  }
+  const [lines, setLines] = useState<EditableLine[]>([]);
   const [saving, setSaving] = useState(false);
   const [downloadingPDF, setDownloadingPDF] = useState(false);
 
@@ -66,41 +73,46 @@ export default function ReInvoice() {
   }
 
   const applyGlobalMarkupToAll = () => {
+    const markupVal = Number(globalMarkup) || 0;
     setLines((prev) =>
       prev.map((l) => ({
         ...l,
-        markupPercent: globalMarkup,
-        unitPrice: +(l.originalUnitPrice * (1 + globalMarkup / 100)).toFixed(2),
+        markupPercent: markupVal,
+        unitPrice: +(l.originalUnitPrice * (1 + markupVal / 100)).toFixed(2),
       }))
     );
-    toast.success(`Adaos de ${globalMarkup}% aplicat pe toate liniile`);
+    toast.success(`Adaos de ${markupVal}% aplicat pe toate liniile`);
   };
 
-  const updateLineMarkup = (lineId: string, markup: number) => {
+  const updateLineMarkup = (lineId: string, markup: string | number) => {
     setLines((prev) =>
-      prev.map((l) =>
-        l.id === lineId
-          ? { ...l, markupPercent: markup, unitPrice: +(l.originalUnitPrice * (1 + markup / 100)).toFixed(2) }
-          : l
-      )
+      prev.map((l) => {
+        if (l.id === lineId) {
+          const m = Number(markup) || 0;
+          return { ...l, markupPercent: markup, unitPrice: +(l.originalUnitPrice * (1 + m / 100)).toFixed(2) };
+        }
+        return l;
+      })
     );
   };
 
-  const updateLinePrice = (lineId: string, price: number) => {
+  const updateLinePrice = (lineId: string, price: string | number) => {
     setLines((prev) =>
-      prev.map((l) =>
-        l.id === lineId
-          ? {
-              ...l,
-              unitPrice: price,
-              markupPercent: +((((price - l.originalUnitPrice) / l.originalUnitPrice) * 100)).toFixed(1),
-            }
-          : l
-      )
+      prev.map((l) => {
+        if (l.id === lineId) {
+          const p = Number(price) || 0;
+          return {
+            ...l,
+            unitPrice: price,
+            markupPercent: +((((p - l.originalUnitPrice) / l.originalUnitPrice) * 100)).toFixed(1),
+          };
+        }
+        return l;
+      })
     );
   };
 
-  const updateLineQty = (lineId: string, qty: number) => {
+  const updateLineQty = (lineId: string, qty: string | number) => {
     setLines((prev) => prev.map((l) => (l.id === lineId ? { ...l, quantity: qty } : l)));
   };
 
@@ -125,8 +137,8 @@ export default function ReInvoice() {
     ]);
   };
 
-  const subtotal = lines.reduce((s, l) => s + l.quantity * l.unitPrice, 0);
-  const totalVAT = lines.reduce((s, l) => s + l.quantity * l.unitPrice * (l.vatRate / 100), 0);
+  const subtotal = lines.reduce((s, l) => s + (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0), 0);
+  const totalVAT = lines.reduce((s, l) => s + (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0) * (l.vatRate / 100), 0);
   const total = subtotal + totalVAT;
   const originalTotal = invoice.total;
   const margin = subtotal - invoice.lines.reduce((s, l) => s + l.quantity * l.unitPrice, 0);
@@ -170,13 +182,13 @@ export default function ReInvoice() {
         notes: notes || undefined,
         lines: lines.map((l, idx) => ({
           description: l.description,
-          quantity: l.quantity,
+          quantity: Number(l.quantity) || 0,
           originalUnitPrice: l.originalUnitPrice,
-          unitPrice: l.unitPrice,
+          unitPrice: Number(l.unitPrice) || 0,
           unit: l.unit,
           vatRate: l.vatRate,
-          markupPercent: l.markupPercent,
-          total: l.quantity * l.unitPrice * (1 + (l.vatRate ?? 21) / 100),
+          markupPercent: Number(l.markupPercent) || 0,
+          total: (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0) * (1 + (l.vatRate ?? 21) / 100),
           lineOrder: idx,
         })),
       });
@@ -306,7 +318,7 @@ export default function ReInvoice() {
                 <input
                   type="number"
                   value={globalMarkup}
-                  onChange={(e) => setGlobalMarkup(+e.target.value)}
+                  onChange={(e) => setGlobalMarkup(e.target.value)}
                   className="w-20 h-9 px-3 text-sm rounded-full border border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-center"
                   min={0}
                   max={500}
@@ -366,7 +378,7 @@ export default function ReInvoice() {
                         <input
                           type="number"
                           value={line.quantity}
-                          onChange={(e) => updateLineQty(line.id, +e.target.value)}
+                          onChange={(e) => updateLineQty(line.id, e.target.value)}
                           className="w-16 text-sm text-right text-slate-900 dark:text-white bg-transparent border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500"
                           min={0}
                         />
@@ -379,7 +391,7 @@ export default function ReInvoice() {
                           <input
                             type="number"
                             value={line.markupPercent ?? 0}
-                            onChange={(e) => updateLineMarkup(line.id, +e.target.value)}
+                            onChange={(e) => updateLineMarkup(line.id, e.target.value)}
                             className="w-16 text-sm text-right text-slate-900 dark:text-white bg-transparent border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500"
                             min={-100}
                             max={1000}
@@ -391,14 +403,14 @@ export default function ReInvoice() {
                         <input
                           type="number"
                           value={line.unitPrice}
-                          onChange={(e) => updateLinePrice(line.id, +e.target.value)}
+                          onChange={(e) => updateLinePrice(line.id, e.target.value)}
                           className="w-24 text-sm text-right text-blue-600 bg-transparent border border-blue-200 dark:border-blue-800 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500"
                           min={0}
                           step={0.01}
                         />
                       </td>
                       <td className="px-3 py-3 text-right text-sm text-slate-900 dark:text-white">
-                        {formatCurrency(line.quantity * line.unitPrice, line.currency)}
+                        {formatCurrency((Number(line.quantity) || 0) * (Number(line.unitPrice) || 0), line.currency)}
                       </td>
                       <td className="px-4 py-3">
                         <button

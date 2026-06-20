@@ -1,19 +1,23 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { FileOutput, Plus, Eye, Download } from "lucide-react";
+import { Plus, Loader2, Eye, Download } from "lucide-react";
 import { DataTable, DataTableColumn } from "@/components/DataTable";
-import { mockReInvoices, formatCurrency, formatDate, reInvoiceStatusLabels, reInvoiceStatusColors, type ReInvoiceStatus } from "@/lib/store";
+import { formatCurrency, formatDate, reInvoiceStatusLabels, reInvoiceStatusColors, type ReInvoiceStatus } from "@/lib/store";
 import { Button } from "@/components/ui/button";
+import { trpc } from "@/lib/trpc";
 
 export default function ReInvoicesSent() {
   const [statusFilter, setStatusFilter] = useState<ReInvoiceStatus | "all">("all");
+  
+  const { data: dbReInvoices, isLoading } = trpc.reinvoice.list.useQuery();
+  const reInvoices = dbReInvoices || [];
 
-  const filtered = mockReInvoices.filter((ri) => {
+  const filtered = reInvoices.filter((ri) => {
     const matchStatus = statusFilter === "all" || ri.status === statusFilter;
     return matchStatus;
   });
 
-  const totalValue = filtered.reduce((s, r) => s + r.total, 0);
+  const totalValue = filtered.reduce((s, r) => s + Number(r.total), 0);
 
   const columns: DataTableColumn<any>[] = [
     {
@@ -83,60 +87,77 @@ export default function ReInvoicesSent() {
       <div className="flex flex-wrap items-center gap-3 mt-2 mb-2">
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100/80 border border-slate-200/60 backdrop-blur-sm text-sm">
           <span className="text-slate-600 font-medium">TOTAL EMISE:</span>
-          <span className="font-bold text-slate-800">{mockReInvoices.length}</span>
+          <span className="font-bold text-slate-800">{reInvoices.length}</span>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50/80 border border-emerald-100/60 backdrop-blur-sm text-sm">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
           <span className="text-slate-600 font-medium">ACHITATE:</span>
-          <span className="font-bold text-emerald-700">{mockReInvoices.filter((r) => r.status === "paid").length}</span>
+          <span className="font-bold text-emerald-700">{reInvoices.filter((r) => r.status === "paid").length}</span>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50/80 border border-blue-100/60 backdrop-blur-sm text-sm">
           <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
           <span className="text-slate-600 font-medium">TRIMISE:</span>
-          <span className="font-bold text-blue-700">{mockReInvoices.filter((r) => r.status === "sent").length}</span>
+          <span className="font-bold text-blue-700">{reInvoices.filter((r) => r.status === "sent").length}</span>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50/80 border border-slate-200/60 backdrop-blur-sm text-sm">
           <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
           <span className="text-slate-600 font-medium">CIORNĂ:</span>
-          <span className="font-bold text-slate-600">{mockReInvoices.filter((r) => r.status === "draft").length}</span>
+          <span className="font-bold text-slate-700">{reInvoices.filter((r) => r.status === "draft").length}</span>
+        </div>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-50/80 border border-rose-100/60 backdrop-blur-sm text-sm">
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+          <span className="text-slate-600 font-medium">RESTANȚE:</span>
+          <span className="font-bold text-rose-700">{reInvoices.filter((r) => r.status === "overdue").length}</span>
         </div>
       </div>
 
-      {/* Status Filter */}
-      <div className="flex gap-2 mb-4">
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as any)}
-          className="px-4 py-2 rounded-full border border-slate-200 bg-white/50 backdrop-blur-sm text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm"
-        >
-          <option value="all">Toate statusurile</option>
-          <option value="draft">Ciornă</option>
-          <option value="sent">Trimisă</option>
-          <option value="paid">Achitată</option>
-          <option value="overdue">Restantă</option>
-        </select>
-        <div className="ml-auto flex items-center px-4 py-1.5 rounded-full bg-white border border-slate-200 shadow-sm text-sm font-medium text-slate-700">
-          {filtered.length} re-facturi · {formatCurrency(totalValue, "RON")}
-        </div>
-      </div>
-
-      {/* Data Table */}
-      <DataTable
-        columns={columns}
-        data={filtered}
-        rowKey="id"
-        isLoading={false}
-        actions={(row) => (
-          <div className="flex items-center justify-end gap-2">
-            <button className="w-8 h-8 rounded-full border border-slate-200 bg-white text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center" title="Previzualizare">
-              <Eye className="w-4 h-4" />
-            </button>
-            <button className="w-8 h-8 rounded-full border border-slate-200 bg-white text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center" title="Descarca">
-              <Download className="w-4 h-4" />
-            </button>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col h-[calc(100vh-280px)] min-h-[500px]">
+        {/* Table Toolbar */}
+        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">Filtrare:</span>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as any)}
+              className="h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-medium text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">Toate statusurile</option>
+              <option value="draft">Ciorne</option>
+              <option value="sent">Trimise</option>
+              <option value="paid">Achitate</option>
+              <option value="overdue">Restanțe</option>
+            </select>
           </div>
-        )}
-      />
+        </div>
+
+        <DataTable 
+          columns={columns} 
+          data={filtered} 
+          rowKey="id" 
+          searchable={true} 
+          isLoading={isLoading}
+          actions={(row) => (
+            <div className="flex items-center justify-end gap-2">
+              <button className="w-8 h-8 rounded-full border border-slate-200 bg-white text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center" title="Previzualizare">
+                <Eye className="w-4 h-4" />
+              </button>
+              <button className="w-8 h-8 rounded-full border border-slate-200 bg-white text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center" title="Descarca">
+                <Download className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        />
+        
+        {/* Footer Totals */}
+        <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex justify-end">
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Total Afișat</span>
+            <span className="text-xl font-bold text-slate-900 dark:text-white">
+              {formatCurrency(totalValue, "RON")}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
