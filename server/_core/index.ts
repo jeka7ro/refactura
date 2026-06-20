@@ -40,6 +40,13 @@ async function startServer() {
   registerOAuthRoutes(app);
   registerUploadRoute(app);
   registerAnafProxy(app);
+  
+  const { registerSpvAuth } = await import("../spvAuth");
+  registerSpvAuth(app);
+  
+  const { startSpvCron } = await import("../spvCron");
+  startSpvCron();
+
   // tRPC API
   app.use(
     "/api/trpc",

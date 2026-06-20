@@ -39,6 +39,7 @@ export const tenants = mysqlTable("tenants", {
   subscriptionStatus: mysqlEnum("subscriptionStatus", ["active", "inactive", "cancelled", "expired"]).default("active"),
   subscriptionStartDate: timestamp("subscriptionStartDate"),
   subscriptionEndDate: timestamp("subscriptionEndDate"),
+  settings: text("settings"), // JSON stringified company settings
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -74,6 +75,27 @@ export const userTenants = mysqlTable("userTenants", {
   isActive: int("isActive").default(1),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
+
+/**
+ * Integrations table for SmartBill, SPV, Oblio, etc.
+ */
+export const integrations = mysqlTable("integrations", {
+  id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId").notNull(),
+  provider: mysqlEnum("provider", ["smartbill", "spv", "oblio"]).notNull(),
+  apiKey: text("apiKey"), // Can hold long access tokens
+  apiSecret: text("apiSecret"), // Can hold long refresh tokens
+  tokenExpiresAt: timestamp("tokenExpiresAt"), // For OAuth token expiry
+  config: text("config"), // JSON: provider-specific config (email, cif, etc.)
+  status: mysqlEnum("status", ["active", "inactive", "error"]).default("inactive"),
+  lastSyncAt: timestamp("lastSyncAt"),
+  syncCount: int("syncCount").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Integration = typeof integrations.$inferSelect;
+export type InsertIntegration = typeof integrations.$inferInsert;
 
 export type UserTenant = typeof userTenants.$inferSelect;
 

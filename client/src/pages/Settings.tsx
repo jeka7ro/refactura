@@ -1,7 +1,7 @@
 // Settings — RefacturaRO
 // Company profile, multi-currency, multi-language, multi-country, invoice defaults
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Building2, Globe, FileText, Bell, Shield, Check, ChevronRight, Search, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -14,6 +14,7 @@ import {
   type Country,
   type CompanySettings,
 } from "@/lib/store";
+import { trpc } from "@/lib/trpc";
 
 const tabs = [
   { id: "company", label: "Firmă", icon: Building2 },
@@ -25,7 +26,52 @@ const tabs = [
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState("company");
-  const [settings, setSettings] = useState<CompanySettings>(mockCompanySettings);
+  const { data: userTenants = [], isLoading: isLoadingTenants } = trpc.tenants.list.useQuery();
+  const currentTenant = userTenants[0];
+
+  const [settings, setSettings] = useState<CompanySettings>(() => ({
+    name: "",
+    cui: "",
+    regCom: "",
+    address: "",
+    city: "",
+    county: "",
+    country: "România",
+    email: "",
+    phone: "",
+    iban: "",
+    bank: "",
+    defaultCurrency: "RON",
+    defaultLanguage: "RO",
+    defaultVatRate: 19,
+    invoicePrefix: "INV",
+    invoiceStartNumber: 1,
+    defaultDueDays: 15,
+    defaultMarkupPercent: 20
+  }));
+
+  // Update settings when tenant data is loaded
+  useEffect(() => {
+    if (currentTenant) {
+      let parsedSettings = {};
+      try {
+        if (currentTenant.settings) {
+          parsedSettings = JSON.parse(currentTenant.settings);
+        }
+      } catch (e) {}
+
+      setSettings(prev => ({
+        ...prev,
+        name: currentTenant.name || "",
+        email: currentTenant.email || "",
+        phone: currentTenant.phone || "",
+        address: currentTenant.address || "",
+        cui: currentTenant.cui || "",
+        ...parsedSettings
+      }));
+    }
+  }, [currentTenant]);
+
   const [saving, setSaving] = useState(false);
   const [cuiLookupLoading, setCuiLookupLoading] = useState(false);
   const [cuiLookupError, setCuiLookupError] = useState("");
@@ -56,12 +102,42 @@ export default function Settings() {
   };
 
 
-  const handleSave = () => {
+  const updateSettingsMutation = trpc.tenants.updateSettings.useMutation();
+
+  const handleSave = async () => {
     setSaving(true);
-    setTimeout(() => {
-      setSaving(false);
+    try {
+      const settingsStr = JSON.stringify({
+        regCom: settings.regCom,
+        city: settings.city,
+        county: settings.county,
+        country: settings.country,
+        iban: settings.iban,
+        bank: settings.bank,
+        defaultCurrency: settings.defaultCurrency,
+        defaultLanguage: settings.defaultLanguage,
+        defaultVatRate: settings.defaultVatRate,
+        invoicePrefix: settings.invoicePrefix,
+        invoiceStartNumber: settings.invoiceStartNumber,
+        defaultDueDays: settings.defaultDueDays,
+        defaultMarkupPercent: settings.defaultMarkupPercent
+      });
+
+      await updateSettingsMutation.mutateAsync({
+        name: settings.name,
+        cui: settings.cui,
+        email: settings.email,
+        phone: settings.phone,
+        address: settings.address,
+        settings: settingsStr,
+      });
+
       toast.success("Setări salvate", { description: "Modificările au fost aplicate" });
-    }, 1000);
+    } catch (e: any) {
+      toast.error("Eroare la salvare", { description: e.message });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const update = (key: keyof CompanySettings, value: any) => {

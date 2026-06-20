@@ -1,7 +1,7 @@
 // Dashboard — RefacturaRO
 // Design: Slate Command Center — KPI cards + recent activity + charts
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import {
   TrendingUp,
@@ -16,12 +16,10 @@ import {
   Plus,
   Download,
   RefreshCw,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
-  mockInvoices,
-  mockReInvoices,
-  mockClients,
   formatCurrency,
   formatDate,
   invoiceStatusLabels,
@@ -31,6 +29,7 @@ import {
   sourceColors,
 } from "@/lib/store";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
+import { trpc } from "@/lib/trpc";
 
 const chartData = [
   { luna: "Iun", facturi: 4200, refacturi: 5100 },
@@ -41,38 +40,68 @@ const chartData = [
   { luna: "Nov", facturi: 18750, refacturi: 22890 },
 ];
 
-// Only compare invoices that have been re-invoiced
-const reInvoicedSourceIds = new Set(mockReInvoices.map(r => r.sourceInvoiceId));
-const importedForReInvoiced = mockInvoices
-  .filter(i => reInvoicedSourceIds.has(i.id))
-  .reduce((s, i) => s + i.total, 0);
-const totalImported = mockInvoices.reduce((s, i) => s + i.total, 0);
-const totalReInvoiced = mockReInvoices.reduce((s, r) => s + r.total, 0);
-const margin = totalReInvoiced - importedForReInvoiced;
-const marginPct = importedForReInvoiced > 0 ? ((margin / importedForReInvoiced) * 100).toFixed(1) : "0.0";
-
 export default function Dashboard() {
   const [syncing, setSyncing] = useState(false);
+
+  const { data: dbInvoices = [], isLoading: loadingInv } = trpc.invoices.list.useQuery();
+  const { data: dbReInvoices = [], isLoading: loadingReInv } = trpc.reinvoice.list.useQuery();
+  const { data: dbClients = [], isLoading: loadingClients } = trpc.clients.list.useQuery();
+
+  const {
+    totalImported,
+    totalReInvoiced,
+    margin,
+    marginPct,
+    overdueReInvoices,
+    upcomingReInvoices
+  } = useMemo(() => {
+    // Basic mapping
+    const invoices = dbInvoices.map((i: any) => ({ ...i, total: parseFloat(i.total || '0') }));
+    const reInvoices = dbReInvoices.map((r: any) => ({ ...r, total: parseFloat(r.total || '0') }));
+
+    const reInvoicedSourceIds = new Set(reInvoices.map(r => r.sourceInvoiceId));
+    const importedForReInvoiced = invoices
+      .filter(i => reInvoicedSourceIds.has(i.id))
+      .reduce((s, i) => s + i.total, 0);
+    
+    const tImported = invoices.reduce((s, i) => s + i.total, 0);
+    const tReInvoiced = reInvoices.reduce((s, r) => s + r.total, 0);
+    const mrg = tReInvoiced - importedForReInvoiced;
+    const mrgPct = importedForReInvoiced > 0 ? ((mrg / importedForReInvoiced) * 100).toFixed(1) : "0.0";
+
+    const now = new Date();
+    const overdue = reInvoices.filter(r => {
+      if (!r.dueDate && !r.issueDate) return false;
+      const dueDate = new Date(r.dueDate || r.issueDate);
+      if (isNaN(dueDate.getTime())) return false;
+      return dueDate < now && r.status !== 'paid';
+    });
+    const upcoming = reInvoices.filter(r => {
+      if (!r.dueDate && !r.issueDate) return false;
+      const dueDate = new Date(r.dueDate || r.issueDate);
+      if (isNaN(dueDate.getTime())) return false;
+      const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      return daysUntilDue > 0 && daysUntilDue <= 7 && r.status !== 'paid';
+    });
+
+    return { totalImported: tImported, totalReInvoiced: tReInvoiced, margin: mrg, marginPct: mrgPct, overdueReInvoices: overdue, upcomingReInvoices: upcoming };
+  }, [dbInvoices, dbReInvoices]);
 
   const handleSync = () => {
     setSyncing(true);
     setTimeout(() => {
       setSyncing(false);
-      toast.success("Sincronizare completă", { description: "3 facturi noi importate din SmartBill" });
+      toast.success("Sincronizare completă", { description: "Sincronizare manuală încheiată." });
     }, 2000);
   };
 
-  // Calculate due-date alerts
-  const now = new Date();
-  const overdueReInvoices = mockReInvoices.filter(r => {
-    const dueDate = new Date(r.dueDate);
-    return dueDate < now && r.status !== 'paid';
-  });
-  const upcomingReInvoices = mockReInvoices.filter(r => {
-    const dueDate = new Date(r.dueDate);
-    const daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    return daysUntilDue > 0 && daysUntilDue <= 7 && r.status !== 'paid';
-  });
+  if (loadingInv || loadingReInv || loadingClients) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
@@ -137,7 +166,7 @@ export default function Dashboard() {
           positive={true}
           icon={<FileText className="w-5 h-5 text-blue-600" />}
           iconBg="bg-blue-50 dark:bg-blue-900/30"
-          sub={`${mockInvoices.length} facturi`}
+          sub={`${dbInvoices.length} facturi`}
         />
         <KPICard
           title="Total Re-Facturat"
@@ -146,7 +175,7 @@ export default function Dashboard() {
           positive={true}
           icon={<FileOutput className="w-5 h-5 text-emerald-600" />}
           iconBg="bg-emerald-50 dark:bg-emerald-900/30"
-          sub={`${mockReInvoices.length} re-facturi`}
+          sub={`${dbReInvoices.length} re-facturi`}
         />
         <KPICard
           title="Adaos Comercial"
@@ -159,7 +188,7 @@ export default function Dashboard() {
         />
         <KPICard
           title="Clienți Activi"
-          value={mockClients.length.toString()}
+          value={dbClients.length.toString()}
           change="+1 luna aceasta"
           positive={true}
           icon={<Users className="w-5 h-5 text-amber-600" />}
@@ -259,19 +288,19 @@ export default function Dashboard() {
             </Link>
           </div>
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
-            {mockInvoices.slice(0, 4).map((inv) => (
+            {dbInvoices.slice(0, 4).map((inv: any) => (
               <Link key={inv.id} href={`/facturi-primite/${inv.id}`}>
                 <div className="px-6 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <div className="text-sm text-slate-900 dark:text-white truncate group-hover:text-blue-600 transition-colors">{inv.supplierName}</div>
-                      <div className="text-xs text-slate-500 mt-0.5">{inv.number} · {formatDate(inv.date)}</div>
+                      <div className="text-xs text-slate-500 mt-0.5">{inv.invoiceNumber} · {formatDate(inv.issueDate)}</div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-normal border ${invoiceStatusColors[inv.status]}`}>
-                        {invoiceStatusLabels[inv.status]}
+                      <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-normal border ${invoiceStatusColors[(inv.status as any) || 'pending']}`}>
+                        {invoiceStatusLabels[(inv.status as any) || 'pending']}
                       </span>
-                      <span className="text-sm text-slate-900 dark:text-white">{formatCurrency(inv.total, inv.currency)}</span>
+                      <span className="text-sm text-slate-900 dark:text-white">{formatCurrency(parseFloat(inv.total), inv.currency)}</span>
                     </div>
                   </div>
                 </div>
@@ -289,18 +318,18 @@ export default function Dashboard() {
             </Link>
           </div>
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
-            {mockReInvoices.map((ri) => (
+            {dbReInvoices.slice(0, 4).map((ri: any) => (
               <div key={ri.id} className="px-6 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="text-sm text-slate-900 dark:text-white truncate">{ri.clientName}</div>
-                    <div className="text-xs text-slate-500 mt-0.5">{ri.number} · {formatDate(ri.date)}</div>
+                    <div className="text-sm text-slate-900 dark:text-white truncate">{ri.clientName || 'Client'}</div>
+                    <div className="text-xs text-slate-500 mt-0.5">{ri.number} · {formatDate(ri.issueDate || ri.date)}</div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-normal border ${reInvoiceStatusColors[ri.status]}`}>
-                      {reInvoiceStatusLabels[ri.status]}
+                    <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-normal border ${reInvoiceStatusColors[(ri.status as any) || 'draft']}`}>
+                      {reInvoiceStatusLabels[(ri.status as any) || 'draft']}
                     </span>
-                    <span className="text-sm text-slate-900 dark:text-white">{formatCurrency(ri.total, ri.currency)}</span>
+                    <span className="text-sm text-slate-900 dark:text-white">{formatCurrency(parseFloat(ri.total), ri.currency || "RON")}</span>
                   </div>
                 </div>
               </div>

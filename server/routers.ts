@@ -4,7 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { generateReInvoicePDF } from "./pdf";
-import { getDb, getTenantsByUser, getUserRole, createTenant, createCostCenter, getCostCentersByTenant, updateCostCenter, deleteCostCenter, getCostCenterById, getClientsByTenant, createClient, updateClient, deleteClient, getClientById, createLead, getAllLeads, updateLeadStatus, deleteLead, getAllSubscriptionPlans, createSubscriptionPlan, updateSubscriptionPlan, deleteSubscriptionPlan, getCmsSettings, upsertCmsSetting, getAdminStats, getAllAccounts, getAllTenants, recordPageVisit, getPageVisitStats, getAllModules, getActiveModulesWithPricing, upsertModule, deleteModule, upsertModulePricing, deleteModulePricing, createReInvoice, getReInvoicesByTenant, getReInvoiceById, updateReInvoiceStatus, deleteReInvoice, getNextReInvoiceNumber, getInvoiceArchiveList, createInvoiceArchiveEntry, getInvoiceArchiveById, updateInvoiceArchiveEntry, deleteInvoiceArchiveEntry, getInvoiceArchiveStats } from "./db";
+import { getDb, getTenantsByUser, getUserRole, createTenant, updateTenantSettings, createCostCenter, getCostCentersByTenant, updateCostCenter, deleteCostCenter, getCostCenterById, getClientsByTenant, createClient, updateClient, deleteClient, getClientById, createLead, getAllLeads, updateLeadStatus, deleteLead, getAllSubscriptionPlans, createSubscriptionPlan, updateSubscriptionPlan, deleteSubscriptionPlan, getCmsSettings, upsertCmsSetting, getAdminStats, getAllAccounts, getAllTenants, recordPageVisit, getPageVisitStats, getAllModules, getActiveModulesWithPricing, upsertModule, deleteModule, upsertModulePricing, deleteModulePricing, createReInvoice, getReInvoicesByTenant, getReInvoiceById, updateReInvoiceStatus, deleteReInvoice, getNextReInvoiceNumber, getInvoiceArchiveList, createInvoiceArchiveEntry, getInvoiceArchiveById, updateInvoiceArchiveEntry, deleteInvoiceArchiveEntry, getInvoiceArchiveStats, getIntegrations, upsertIntegration } from "./db";
 import { authenticateAccount, createAccount, getAccountByEmail } from "./auth";
 import { createSessionToken } from "./session";
 import { eq, desc } from "drizzle-orm";
@@ -724,6 +724,36 @@ export const appRouter = router({
         await deleteInvoiceArchiveEntry(input.id, ctx.user.tenantId);
         return { success: true };
       }),
+  }),
+
+  // ─── Integrations Router ─────────────────────────────────────────────────────
+  integrations: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      if (!ctx.user?.tenantId) throw new Error('No tenant context');
+      return getIntegrations(ctx.user.tenantId);
+    }),
+    upsert: protectedProcedure
+      .input(z.object({
+        provider: z.enum(['smartbill', 'spv', 'oblio']),
+        apiKey: z.string().optional(),
+        apiSecret: z.string().optional(),
+        status: z.enum(['active', 'inactive', 'error']).optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error('No tenant context');
+        await upsertIntegration(ctx.user.tenantId, input.provider, {
+          apiKey: input.apiKey,
+          apiSecret: input.apiSecret,
+          status: input.status,
+        });
+        return { success: true };
+      }),
+    syncOblio: protectedProcedure.mutation(async ({ ctx }) => {
+      if (!ctx.user?.tenantId) throw new Error('No tenant context');
+      const { syncOblioInvoices } = await import('./oblioSync');
+      const result = await syncOblioInvoices(ctx.user.tenantId);
+      return result;
+    }),
   }),
 });
 export type AppRouter = typeof appRouter;

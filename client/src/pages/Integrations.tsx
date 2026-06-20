@@ -1,328 +1,450 @@
 // Integrations — RefacturaRO
 // Connect SmartBill, SPV, Oblio and other accounting systems
 
-import { useState } from "react";
-import { Plug, Check, X, RefreshCw, AlertCircle, ExternalLink, Eye, EyeOff, Zap } from "lucide-react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { Plug, Check, X, RefreshCw, AlertCircle, ExternalLink, Eye, EyeOff, Zap, Loader2, Bot, Send, ChevronDown, ChevronUp, Settings } from "lucide-react";
 import { toast } from "sonner";
-import { mockIntegrations, type Integration } from "@/lib/store";
 import { trpc } from "@/lib/trpc";
 
-export default function Integrations() {
-  const [integrations, setIntegrations] = useState<Integration[]>(mockIntegrations);
-  const [showKey, setShowKey] = useState<Record<string, boolean>>({});
-  const [testing, setTesting] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [apiKeyDraft, setApiKeyDraft] = useState("");
+// ── AI Assistant for setup guidance ────────────────────────────────────────
 
-  const importSpvMutation = trpc.invoices.importSpv.useMutation();
+type Message = { role: "user" | "ai"; text: string };
 
-  const toggleEnabled = (id: string) => {
-    setIntegrations((prev) =>
-      prev.map((i) =>
-        i.id === id
-          ? { ...i, enabled: !i.enabled, status: !i.enabled ? "connected" : "disconnected" }
-          : i
-      )
-    );
-    const integration = integrations.find((i) => i.id === id);
-    if (integration) {
-      toast.success(integration.enabled ? `${integration.name} dezactivat` : `${integration.name} activat`);
-    }
-  };
+type SetupStep = "greeting" | "provider" | "oblio_email" | "oblio_secret" | "oblio_cif" | "done";
 
-  const testConnection = (id: string) => {
-    setTesting(id);
-    setTimeout(() => {
-      setTesting(null);
-      const integration = integrations.find((i) => i.id === id);
-      if (integration?.status === "connected") {
-        toast.success(`${integration.name} — Conexiune OK`, { description: "API-ul răspunde corect" });
+function useSetupAssistant(onConfigSave: (provider: string, config: Record<string, string>) => void) {
+  const [messages, setMessages] = useState<Message[]>([
+    { role: "ai", text: "👋 Salut! Sunt asistentul tău de configurare. Te ajut să conectezi rapid o platformă de facturare.\n\nCe platformă vrei să conectezi?\n• **Oblio** — introdu `oblio`\n• **SmartBill** — introdu `smartbill`\n• **SPV ANAF** — introdu `spv`" }
+  ]);
+  const [step, setStep] = useState<SetupStep>("provider");
+  const [draft, setDraft] = useState<Record<string, string>>({});
+  const [selectedProvider, setSelectedProvider] = useState("");
+
+  const respond = (userText: string) => {
+    const trimmed = userText.trim().toLowerCase();
+    const newMessages: Message[] = [...messages, { role: "user", text: userText }];
+
+    if (step === "provider") {
+      if (trimmed.includes("oblio")) {
+        setSelectedProvider("oblio");
+        setStep("oblio_email");
+        newMessages.push({ role: "ai", text: "Perfect! Oblio este o alegere excelentă 🧡\n\n**Pasul 1/3** — Care este adresa de email cu care ești logat pe oblio.eu?" });
+      } else if (trimmed.includes("smartbill")) {
+        setSelectedProvider("smartbill");
+        newMessages.push({ role: "ai", text: "SmartBill vine în curând! 🔜\n\nDeocamdată poți configura **Oblio** sau **SPV ANAF**. Care preferi?" });
+      } else if (trimmed.includes("spv")) {
+        setSelectedProvider("spv");
+        newMessages.push({ role: "ai", text: "Integrarea SPV ANAF necesită un certificat digital calificat și înregistrarea aplicației pe portalul ANAF. Contactează-ne pentru asistență sau alege **Oblio** pentru o configurare rapidă." });
       } else {
-        toast.error(`${integration?.name} — Conexiune eșuată`, { description: "Verifică cheia API" });
+        newMessages.push({ role: "ai", text: "Nu am recunoscut platforma. Te rog scrie `oblio`, `smartbill` sau `spv`." });
       }
-    }, 2000);
+    } else if (step === "oblio_email") {
+      if (!userText.includes("@")) {
+        newMessages.push({ role: "ai", text: "Hm, ăsta nu pare un email valid. Încearcă din nou — ex: `emailul_tau@gmail.com`" });
+      } else {
+        setDraft(d => ({ ...d, email: userText.trim() }));
+        setStep("oblio_secret");
+        newMessages.push({ role: "ai", text: `Email salvat ✅\n\n**Pasul 2/3** — Acum am nevoie de **API Secret**.\n\nÎl găsești în Oblio la:\n🔗 Setări → Date Cont → câmpul **API secret**\n\nCopiază-l și paste-uiește-l aici.` });
+      }
+    } else if (step === "oblio_secret") {
+      if (userText.trim().length < 20) {
+        newMessages.push({ role: "ai", text: "Cheia pare prea scurtă. Asigură-te că ai copiat tot textul din câmpul API Secret (fără spații la capăt)." });
+      } else {
+        setDraft(d => ({ ...d, apiSecret: userText.trim() }));
+        setStep("oblio_cif");
+        newMessages.push({ role: "ai", text: `API Secret salvat ✅\n\n**Pasul 3/3** — Ultimul pas! Am nevoie de **CUI-ul (CIF-ul) firmei** tale din Oblio.\n\nÎl găsești la:\n🔗 Setări → Date Firmă → câmpul **Cod Fiscal**\n\nEx: \`42322117\`` });
+      }
+    } else if (step === "oblio_cif") {
+      const cifClean = userText.trim().replace(/^RO/i, "");
+      if (!/^\d{6,10}$/.test(cifClean)) {
+        newMessages.push({ role: "ai", text: "CIF-ul trebuie să fie format din 6-10 cifre (ex: `42322117`). Încearcă din nou." });
+      } else {
+        const finalConfig = { ...draft, cif: cifClean };
+        setDraft(finalConfig);
+        setStep("done");
+        newMessages.push({ role: "ai", text: `✅ **Configurare completă!**\n\n📧 Email: ${finalConfig.email}\n🔑 API Secret: ${"•".repeat(Math.min(finalConfig.apiSecret?.length || 0, 20))}\n🏢 CIF: ${cifClean}\n\nSalvez acum configurarea și pornesc sincronizarea...` });
+        onConfigSave("oblio", finalConfig);
+      }
+    } else if (step === "done") {
+      newMessages.push({ role: "ai", text: "Configurarea e gata! Apasă **Sincronizează acum** pe cardul Oblio pentru a importa facturile." });
+    }
+
+    setMessages(newMessages);
   };
 
-  const saveApiKey = (id: string) => {
-    setIntegrations((prev) =>
-      prev.map((i) =>
-        i.id === id ? { ...i, apiKey: apiKeyDraft, status: "connected", enabled: true } : i
-      )
-    );
-    setEditingId(null);
-    toast.success("Cheie API salvată", { description: "Integrarea a fost configurată" });
+  return { messages, respond, step };
+}
+
+// ── Provider config form ────────────────────────────────────────────────────
+
+function OblioConfigForm({ onSave, saving }: { onSave: (cfg: Record<string, string>) => void; saving: boolean }) {
+  const [email, setEmail] = useState("");
+  const [apiSecret, setApiSecret] = useState("");
+  const [cif, setCif] = useState("");
+  const [showSecret, setShowSecret] = useState(false);
+
+  return (
+    <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
+      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Configurare Oblio</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <input
+          type="email"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          placeholder="Email cont Oblio"
+          className="h-9 px-3 text-sm rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+        />
+        <div className="relative">
+          <input
+            type={showSecret ? "text" : "password"}
+            value={apiSecret}
+            onChange={e => setApiSecret(e.target.value)}
+            placeholder="API Secret"
+            className="w-full h-9 px-3 pr-9 text-sm rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+          <button
+            type="button"
+            onClick={() => setShowSecret(s => !s)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+          >
+            {showSecret ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+          </button>
+        </div>
+        <input
+          type="text"
+          value={cif}
+          onChange={e => setCif(e.target.value)}
+          placeholder="CIF firmă (ex: 42322117)"
+          className="h-9 px-3 text-sm rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+        />
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => {
+            if (!email || !apiSecret || !cif) { toast.error("Completează toate câmpurile"); return; }
+            onSave({ email, apiSecret, cif: cif.replace(/^RO/i, "") });
+          }}
+          disabled={saving}
+          className="flex items-center gap-1.5 px-4 h-8 rounded-full bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition-all disabled:opacity-60"
+        >
+          {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+          Salvează configurarea
+        </button>
+        <a
+          href="https://www.oblio.eu/account/settings"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1 text-xs text-slate-500 hover:text-orange-600 transition-colors"
+        >
+          <ExternalLink className="w-3 h-3" /> Oblio → Date Cont
+        </a>
+      </div>
+    </div>
+  );
+}
+
+// ── Main component ──────────────────────────────────────────────────────────
+
+const PROVIDERS = [
+  {
+    id: "smartbill",
+    name: "SmartBill",
+    description: "Importă automat facturile emise și primite din SmartBill.",
+    logoColor: "#2563eb",
+    comingSoon: true,
+  },
+  {
+    id: "spv",
+    name: "SPV ANAF",
+    description: "Importă e-Factura din spațiul privat virtual prin OAuth2 sau XML manual.",
+    logoColor: "#3730a3",
+    comingSoon: false,
+  },
+  {
+    id: "oblio",
+    name: "Oblio",
+    description: "Conectare Oblio pentru import facturi și sincronizare automată clienți.",
+    logoColor: "#f97316",
+    comingSoon: false,
+  },
+];
+
+export default function Integrations() {
+  const [showAI, setShowAI] = useState(false);
+  const [aiInput, setAiInput] = useState("");
+  const [configuringId, setConfiguringId] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState<string | null>(null);
+  const aiEndRef = useRef<HTMLDivElement>(null);
+
+  const { data: dbIntegrations = [], isLoading, refetch } = trpc.integrations.list.useQuery();
+  const upsertMutation = trpc.integrations.upsert.useMutation({
+    onSuccess: () => refetch(),
+  });
+  const syncOblioMutation = trpc.integrations.syncOblio.useMutation({
+    onSuccess: (result) => {
+      const msg = `✅ Sync complet: ${result.imported} facturi noi, ${result.clientsImported} clienți noi`;
+      toast.success(msg);
+      refetch();
+      setSyncing(null);
+    },
+    onError: (e) => {
+      toast.error("Eroare sync Oblio: " + e.message);
+      setSyncing(null);
+    }
+  });
+
+  const getDbIntegration = (id: string) => dbIntegrations.find((i: any) => i.provider === id);
+
+  const saveOblioConfig = async (config: Record<string, string>) => {
+    await upsertMutation.mutateAsync({
+      provider: "oblio",
+      apiKey: config.apiSecret,
+      apiSecret: JSON.stringify({ email: config.email, cif: config.cif }),
+      status: "active",
+    });
+    toast.success("Oblio configurat cu succes! 🎉");
+    setConfiguringId(null);
   };
 
-  const importSpvMutation = trpc.invoices.importSpv.useMutation();
+  const handleSyncOblio = () => {
+    setSyncing("oblio");
+    syncOblioMutation.mutate();
+  };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // AI setup assistant
+  const { messages, respond, step } = useSetupAssistant(async (provider, config) => {
+    if (provider === "oblio") {
+      await saveOblioConfig(config);
+    }
+  });
+
+  const handleAISend = () => {
+    if (!aiInput.trim()) return;
+    respond(aiInput);
+    setAiInput("");
+  };
+
+  useEffect(() => {
+    aiEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // SPV file upload handler
+  const importSpvMutation = trpc.invoices.importFromSpv.useMutation({
+    onSuccess: (r) => toast.success(`${r.count} facturi importate din SPV`),
+    onError: (e) => toast.error(e.message),
+  });
+
+  const handleSpvXml = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files || files.length === 0) return;
-    
-    toast.loading("Procesare fișiere XML...", { id: "spv-sync" });
-    
+    if (!files?.length) return;
+    toast.loading("Procesare XML...", { id: "spv" });
     try {
       const parsedInvoices = [];
-      
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         if (!file.name.endsWith(".xml")) continue;
-        
         const text = await file.text();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(text, "text/xml");
-        
-        // Basic UBL XML parsing
-        const getTagValue = (tagName: string) => doc.getElementsByTagName(tagName)[0]?.textContent || "";
-        
-        const supplierName = getTagValue("cbc:RegistrationName") || getTagValue("cbc:Name");
-        const supplierCUI = getTagValue("cbc:CompanyID");
-        const invoiceNumber = getTagValue("cbc:ID");
-        const issueDate = getTagValue("cbc:IssueDate");
-        const dueDate = getTagValue("cbc:DueDate") || issueDate;
-        
-        const total = parseFloat(doc.getElementsByTagName("cac:LegalMonetaryTotal")[0]?.getElementsByTagName("cbc:TaxInclusiveAmount")[0]?.textContent || "0");
-        const totalVAT = parseFloat(doc.getElementsByTagName("cac:TaxTotal")[0]?.getElementsByTagName("cbc:TaxAmount")[0]?.textContent || "0");
-        const currency = doc.getElementsByTagName("cbc:DocumentCurrencyCode")[0]?.textContent || "RON";
-        
-        const lineNodes = doc.getElementsByTagName("cac:InvoiceLine");
-        const lines = [];
-        for (let j = 0; j < lineNodes.length; j++) {
-          const node = lineNodes[j];
-          const qtyNode = node.getElementsByTagName("cbc:InvoicedQuantity")[0];
-          const qty = parseFloat(qtyNode?.textContent || "1");
-          const unit = qtyNode?.getAttribute("unitCode") || "buc";
-          
-          const price = parseFloat(node.getElementsByTagName("cac:Price")[0]?.getElementsByTagName("cbc:PriceAmount")[0]?.textContent || "0");
-          const description = node.getElementsByTagName("cac:Item")[0]?.getElementsByTagName("cbc:Name")[0]?.textContent || "Articol";
-          const vatRate = parseFloat(node.getElementsByTagName("cac:Item")[0]?.getElementsByTagName("cac:ClassifiedTaxCategory")[0]?.getElementsByTagName("cbc:Percent")[0]?.textContent || "19");
-          
-          lines.push({ description, quantity: qty, unitPrice: price, unit, vatRate });
-        }
-        
+        const doc = new DOMParser().parseFromString(text, "text/xml");
+        const get = (t: string) => doc.getElementsByTagName(t)[0]?.textContent || "";
         parsedInvoices.push({
-          invoiceNumber,
-          supplierName,
-          supplierCUI,
-          issueDate,
-          dueDate,
-          total,
-          totalVAT,
-          currency,
-          lines
+          invoiceNumber: get("cbc:ID"),
+          supplierName: get("cbc:RegistrationName") || get("cbc:Name"),
+          supplierCUI: get("cbc:CompanyID"),
+          issueDate: get("cbc:IssueDate"),
+          dueDate: get("cbc:DueDate") || get("cbc:IssueDate"),
+          total: parseFloat(doc.getElementsByTagName("cac:LegalMonetaryTotal")[0]?.getElementsByTagName("cbc:TaxInclusiveAmount")[0]?.textContent || "0"),
+          totalVAT: parseFloat(doc.getElementsByTagName("cac:TaxTotal")[0]?.getElementsByTagName("cbc:TaxAmount")[0]?.textContent || "0"),
+          currency: get("cbc:DocumentCurrencyCode") || "RON",
+          lines: [],
         });
       }
-      
-      if (parsedInvoices.length === 0) {
-        toast.error("Nu s-au găsit facturi valide în fișierele selectate", { id: "spv-sync" });
-        return;
-      }
-      
+      if (!parsedInvoices.length) { toast.error("Niciun XML valid", { id: "spv" }); return; }
       await importSpvMutation.mutateAsync(parsedInvoices);
-      toast.success(`${parsedInvoices.length} facturi importate cu succes din SPV!`, { id: "spv-sync" });
-      
+      toast.success(`${parsedInvoices.length} facturi importate!`, { id: "spv" });
     } catch (err: any) {
-      toast.error("Eroare la procesarea XML: " + err.message, { id: "spv-sync" });
+      toast.error(err.message, { id: "spv" });
     }
-    
-    // Reset file input
-    e.target.value = '';
-  };
-
-  const syncNow = (id: string) => {
-    if (id === "spv") {
-      document.getElementById("spv-file-input")?.click();
-      return;
-    }
-    
-    const integration = integrations.find((i) => i.id === id);
-    toast.promise(
-      new Promise((resolve) => setTimeout(resolve, 2500)),
-      {
-        loading: `Sincronizare ${integration?.name}...`,
-        success: `${integration?.name} sincronizat — 3 facturi noi`,
-        error: "Eroare la sincronizare",
-      }
-    );
+    e.target.value = "";
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
-      <input 
-        type="file" 
-        id="spv-file-input" 
-        multiple 
-        accept=".xml" 
-        className="hidden" 
-        onChange={handleFileUpload} 
-      />
+    <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-6">
+      <input type="file" id="spv-file-input" multiple accept=".xml" className="hidden" onChange={handleSpvXml} />
+
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold text-slate-900 dark:text-white">Integrări</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-          Conectează-te la SmartBill, SPV ANAF, Oblio și alte sisteme de contabilitate
-        </p>
-      </div>
-
-      {/* Info banner */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-200 dark:border-blue-800 p-4 flex items-start gap-3">
-        <Zap className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+      <div className="flex items-center justify-between">
         <div>
-          <div className="text-sm font-bold text-blue-900 dark:text-blue-200">Import automat activat</div>
-          <div className="text-xs text-blue-700 dark:text-blue-400 mt-0.5">
-            Facturile sunt sincronizate automat la fiecare 4 ore. Poți declanșa o sincronizare manuală oricând.
-          </div>
+          <h1 className="text-xl font-bold text-slate-900">Integrări</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Conectează platformele tale de facturare</p>
         </div>
+        <button
+          onClick={() => setShowAI(v => !v)}
+          className="flex items-center gap-2 px-4 h-9 rounded-full bg-gradient-to-r from-violet-600 to-blue-600 text-white text-xs font-bold shadow hover:opacity-90 transition-opacity"
+        >
+          <Bot className="w-3.5 h-3.5" />
+          Asistent AI Setup
+        </button>
       </div>
 
-      {/* Integrations list */}
-      <div className="space-y-4">
-        {integrations.map((integration) => (
-          <div key={integration.id} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-            <div className="p-6">
-              <div className="flex items-start justify-between gap-4 flex-wrap">
-                <div className="flex items-center gap-4">
-                  {/* Logo placeholder */}
-                  <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0"
-                    style={{ backgroundColor: integration.logoColor }}
-                  >
-                    {integration.name.slice(0, 2).toUpperCase()}
+      {/* AI Assistant Panel */}
+      {showAI && (
+        <div className="bg-white rounded-2xl border border-violet-200 shadow-lg overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-violet-600 to-blue-600">
+            <Bot className="w-4 h-4 text-white" />
+            <span className="text-sm font-bold text-white">Asistent AI — Configurare integrări</span>
+            <button onClick={() => setShowAI(false)} className="ml-auto text-white/70 hover:text-white">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="h-64 overflow-y-auto p-4 space-y-3 bg-slate-50">
+            {messages.map((m, i) => (
+              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                {m.role === "ai" && (
+                  <div className="w-6 h-6 rounded-full bg-violet-600 flex items-center justify-center flex-shrink-0 mt-1 mr-2">
+                    <Bot className="w-3 h-3 text-white" />
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-base font-bold text-slate-900 dark:text-white">{integration.name}</h3>
-                      <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
-                        integration.status === "connected"
-                          ? "bg-emerald-50 text-emerald-600 border-emerald-200"
-                          : integration.status === "error"
-                          ? "bg-rose-50 text-rose-600 border-rose-200"
-                          : "bg-slate-50 text-slate-500 border-slate-200"
-                      }`}>
-                        {integration.status === "connected" ? "Conectat" : integration.status === "error" ? "Eroare" : "Deconectat"}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-1 max-w-md">{integration.description}</p>
-                  </div>
-                </div>
-
-                {/* Toggle */}
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-semibold text-slate-500">{integration.enabled ? "Activ" : "Inactiv"}</span>
-                  <button
-                    onClick={() => toggleEnabled(integration.id)}
-                    className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${
-                      integration.enabled ? "bg-blue-600" : "bg-slate-200 dark:bg-slate-700"
-                    }`}
-                  >
-                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ${
-                      integration.enabled ? "translate-x-5" : "translate-x-0"
-                    }`} />
-                  </button>
+                )}
+                <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm whitespace-pre-line ${
+                  m.role === "ai"
+                    ? "bg-white border border-slate-200 text-slate-700 rounded-tl-sm"
+                    : "bg-violet-600 text-white rounded-tr-sm"
+                }`}>
+                  {m.text.replace(/\*\*(.*?)\*\*/g, "$1")}
                 </div>
               </div>
+            ))}
+            <div ref={aiEndRef} />
+          </div>
+          <div className="p-3 border-t border-slate-100 flex gap-2">
+            <input
+              value={aiInput}
+              onChange={e => setAiInput(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleAISend()}
+              placeholder={step === "done" ? "Configurare completă!" : "Scrie răspunsul tău..."}
+              disabled={step === "done"}
+              className="flex-1 h-9 px-3 text-sm rounded-full border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-violet-400 disabled:opacity-50"
+            />
+            <button
+              onClick={handleAISend}
+              disabled={!aiInput.trim() || step === "done"}
+              className="w-9 h-9 rounded-full bg-violet-600 hover:bg-violet-700 text-white flex items-center justify-center transition-colors disabled:opacity-50"
+            >
+              <Send className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
-              {/* Stats row */}
-              {integration.status === "connected" && (
-                <div className="mt-4 flex items-center gap-6 text-xs text-slate-500">
-                  {integration.lastSync && (
-                    <span>Ultima sincronizare: <strong className="text-slate-700 dark:text-slate-300">{new Date(integration.lastSync).toLocaleString("ro-RO")}</strong></span>
-                  )}
-                  {integration.syncCount !== undefined && (
-                    <span>Facturi importate: <strong className="text-slate-700 dark:text-slate-300">{integration.syncCount}</strong></span>
+      {/* Integration Cards */}
+      <div className="space-y-4">
+        {PROVIDERS.map((provider) => {
+          const db = getDbIntegration(provider.id);
+          const isActive = db?.status === "active";
+          const isConfiguring = configuringId === provider.id;
+          let parsedMeta: any = {};
+          try { parsedMeta = db?.apiSecret ? JSON.parse(db.apiSecret) : {}; } catch {}
+
+          return (
+            <div key={provider.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="p-5">
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div className="flex items-center gap-4">
+                    <div
+                      className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0"
+                      style={{ backgroundColor: provider.logoColor }}
+                    >
+                      {provider.name.slice(0, 2)}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base font-bold text-slate-900">{provider.name}</h3>
+                        {provider.comingSoon ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200">
+                            În curând
+                          </span>
+                        ) : isActive ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Activ
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-50 text-slate-500 border border-slate-200">
+                            Neconectat
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 mt-0.5 max-w-sm">{provider.description}</p>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  {!provider.comingSoon && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Oblio specific actions */}
+                      {provider.id === "oblio" && isActive && (
+                        <button
+                          onClick={handleSyncOblio}
+                          disabled={syncing === "oblio"}
+                          className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition-all disabled:opacity-60"
+                        >
+                          {syncing === "oblio" ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                          Sincronizează acum
+                        </button>
+                      )}
+                      {/* SPV: XML upload */}
+                      {provider.id === "spv" && (
+                        <button
+                          onClick={() => document.getElementById("spv-file-input")?.click()}
+                          className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all"
+                        >
+                          <RefreshCw className="w-3 h-3" /> Import XML SPV
+                        </button>
+                      )}
+                      {/* Config toggle */}
+                      {provider.id !== "spv" && (
+                        <button
+                          onClick={() => setConfiguringId(isConfiguring ? null : provider.id)}
+                          className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
+                        >
+                          <Settings className="w-3 h-3" />
+                          {isActive ? "Configurare" : "Conectează"}
+                          {isConfiguring ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
 
-              {/* API Key section */}
-              <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                {editingId === integration.id ? (
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={apiKeyDraft}
-                      onChange={(e) => setApiKeyDraft(e.target.value)}
-                      placeholder="Introdu cheia API..."
-                      className="flex-1 h-9 px-4 text-sm rounded-full border border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <button onClick={() => saveApiKey(integration.id)} className="px-4 h-9 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all">
-                      Salvează
-                    </button>
-                    <button onClick={() => setEditingId(null)} className="px-4 h-9 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-colors">
-                      Anulează
-                    </button>
+                {/* Stats if active */}
+                {isActive && db?.lastSyncAt && (
+                  <div className="mt-3 flex items-center gap-4 text-xs text-slate-500">
+                    <span>Ultima sincronizare: <strong className="text-slate-700">{db.lastSyncAt ? new Date(db.lastSyncAt).toLocaleString("ro-RO") : "—"}</strong></span>
+                    {db.syncCount > 0 && <span>Facturi importate: <strong className="text-slate-700">{db.syncCount}</strong></span>}
+                    {parsedMeta.email && <span>Cont: <strong className="text-slate-700">{parsedMeta.email}</strong></span>}
                   </div>
-                ) : (
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-2">
-                      {integration.apiKey ? (
-                        <>
-                          <span className="text-xs text-slate-500">
-                            {showKey[integration.id] ? integration.apiKey : "••••••••••••••••••••"}
-                          </span>
-                          <button
-                            onClick={() => setShowKey((prev) => ({ ...prev, [integration.id]: !prev[integration.id] }))}
-                            className="w-6 h-6 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition-colors"
-                          >
-                            {showKey[integration.id] ? <EyeOff className="w-3 h-3 text-slate-400" /> : <Eye className="w-3 h-3 text-slate-400" />}
-                          </button>
-                        </>
-                      ) : (
-                        <span className="text-xs text-slate-400">Nicio cheie API configurată</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => { setEditingId(integration.id); setApiKeyDraft(integration.apiKey || ""); }}
-                        className="px-3 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-colors"
-                      >
-                        {integration.apiKey ? "Modifică cheie" : "Configurează"}
-                      </button>
-                      {integration.enabled && (
-                        <>
-                          <button
-                            onClick={() => testConnection(integration.id)}
-                            disabled={testing === integration.id}
-                            className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-colors disabled:opacity-60"
-                          >
-                            {testing === integration.id ? (
-                              <span className="w-3 h-3 border-2 border-slate-400 border-t-slate-700 rounded-full animate-spin" />
-                            ) : (
-                              <Check className="w-3 h-3" />
-                            )}
-                            Testează
-                          </button>
-                          <button
-                            onClick={() => syncNow(integration.id)}
-                            className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all active:scale-[0.97]"
-                          >
-                            <RefreshCw className="w-3 h-3" />
-                            Sincronizează
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
+                )}
+
+                {/* Configuration form */}
+                {isConfiguring && provider.id === "oblio" && (
+                  <OblioConfigForm onSave={saveOblioConfig} saving={upsertMutation.isPending} />
                 )}
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* Coming soon */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-dashed border-slate-300 dark:border-slate-700 p-6">
-        <div className="text-center">
-          <Plug className="w-8 h-8 text-slate-300 mx-auto mb-3" />
-          <div className="text-sm font-bold text-slate-500">Mai multe integrări în curând</div>
-          <div className="text-xs text-slate-400 mt-1">Saga, WinMentor, Ciel, Nexus, QuickBooks, Xero...</div>
-          <button
-            onClick={() => toast.info("Cerere înregistrată", { description: "Te vom notifica când integrarea va fi disponibilă" })}
-            className="mt-4 px-5 h-9 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-colors"
-          >
-            Solicită integrare
-          </button>
-        </div>
+      {/* Coming soon more */}
+      <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-6 text-center">
+        <Plug className="w-7 h-7 text-slate-300 mx-auto mb-2" />
+        <div className="text-sm font-bold text-slate-500">Mai multe integrări în curând</div>
+        <div className="text-xs text-slate-400 mt-1">SmartBill, Saga, WinMentor, Ciel, QuickBooks...</div>
+        <button
+          onClick={() => toast.info("Cerere înregistrată", { description: "Te vom notifica la lansare" })}
+          className="mt-3 px-4 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
+        >
+          Solicită integrare
+        </button>
       </div>
     </div>
   );

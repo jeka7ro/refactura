@@ -15,68 +15,26 @@ import {
   Clock,
 } from "lucide-react";
 
-interface Client {
-  id: number;
-  name: string;
-  email: string;
-  plan: "Basic" | "Pro" | "Enterprise";
-  status: "active" | "inactive" | "cancelled";
-  monthlyPrice: number;
-  costCenters: number;
-  createdAt: string;
-  expiresAt: string;
-}
-
-const mockClients: Client[] = [
-  {
-    id: 1,
-    name: "ConstructMaster SRL",
-    email: "contact@constructmaster.ro",
-    plan: "Pro",
-    status: "active",
-    monthlyPrice: 99,
-    costCenters: 3,
-    createdAt: "2025-01-15",
-    expiresAt: "2026-07-15",
-  },
-  {
-    id: 2,
-    name: "TechFlow Solutions",
-    email: "admin@techflow.ro",
-    plan: "Enterprise",
-    status: "active",
-    monthlyPrice: 299,
-    costCenters: 10,
-    createdAt: "2024-06-01",
-    expiresAt: "2026-06-01",
-  },
-  {
-    id: 3,
-    name: "EcoGreen Ltd",
-    email: "info@ecogreen.ro",
-    plan: "Basic",
-    status: "inactive",
-    monthlyPrice: 29,
-    costCenters: 1,
-    createdAt: "2025-03-10",
-    expiresAt: "2026-03-10",
-  },
-];
+import { trpc } from "@/lib/trpc";
+import { Loader2 } from "lucide-react";
 
 export default function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showNewClient, setShowNewClient] = useState(false);
 
-  const filteredClients = mockClients.filter(
-    (client) =>
+  const { data: tenants = [], isLoading } = trpc.admin.tenants.useQuery();
+
+  const filteredClients = tenants.filter(
+    (client: any) =>
       client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       client.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const activeClients = mockClients.filter((c) => c.status === "active").length;
-  const totalRevenue = mockClients
-    .filter((c) => c.status === "active")
-    .reduce((sum, c) => sum + c.monthlyPrice, 0);
+  const activeClients = tenants.filter((c: any) => c.subscriptionStatus === "active").length;
+  // Estimate revenue roughly if we don't join plans
+  const totalRevenue = tenants
+    .filter((c: any) => c.subscriptionStatus === "active")
+    .reduce((sum: number, c: any) => sum + (c.subscriptionPlanId ? 99 : 29), 0);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -139,7 +97,7 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Total Clients</p>
-                <p className="text-3xl font-bold text-gray-900">{mockClients.length}</p>
+                <p className="text-3xl font-bold text-gray-900">{tenants.length}</p>
               </div>
               <TrendingUp className="h-12 w-12 text-purple-600 opacity-20" />
             </div>
@@ -194,20 +152,20 @@ export default function AdminDashboard() {
                       </div>
                     </td>
                     <td className="py-4 px-4">
-                      <Badge variant="outline">{client.plan}</Badge>
+                      <Badge variant="outline">{client.subscriptionPlanId ? `Plan ID: ${client.subscriptionPlanId}` : 'Basic'}</Badge>
                     </td>
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-2">
-                        {getStatusIcon(client.status)}
-                        {getStatusBadge(client.status)}
+                        {getStatusIcon(client.subscriptionStatus)}
+                        {getStatusBadge(client.subscriptionStatus)}
                       </div>
                     </td>
-                    <td className="py-4 px-4 font-medium text-gray-900">${client.monthlyPrice}</td>
-                    <td className="py-4 px-4 text-gray-600">{client.costCenters}</td>
+                    <td className="py-4 px-4 font-medium text-gray-900">${client.subscriptionPlanId ? 99 : 29}</td>
+                    <td className="py-4 px-4 text-gray-600">N/A</td>
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-1 text-gray-600">
                         <Clock className="h-4 w-4" />
-                        {new Date(client.expiresAt).toLocaleDateString()}
+                        {client.subscriptionEndDate ? new Date(client.subscriptionEndDate).toLocaleDateString() : 'N/A'}
                       </div>
                     </td>
                     <td className="py-4 px-4">

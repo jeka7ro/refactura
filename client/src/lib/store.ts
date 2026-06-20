@@ -424,8 +424,11 @@ export function formatCurrency(amount: number, currency: Currency): string {
   return formatters[currency].format(amount);
 }
 
-export function formatDate(dateStr: string): string {
-  return new Intl.DateTimeFormat("ro-RO", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(dateStr));
+export function formatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  return new Intl.DateTimeFormat("ro-RO", { day: "2-digit", month: "short", year: "numeric" }).format(d);
 }
 
 export const invoiceStatusLabels: Record<InvoiceStatus, string> = {

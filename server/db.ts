@@ -1,6 +1,6 @@
 import { eq, and, desc, count, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, tenants, userTenants, costCenters, subscriptionPlans, clients, leads, cmsSettings, pageVisits, accounts, modules, modulePricing, reInvoices, reInvoiceLines, invoiceArchive, InsertInvoiceArchive } from "../drizzle/schema";
+import { InsertUser, users, tenants, userTenants, costCenters, subscriptionPlans, clients, leads, cmsSettings, pageVisits, accounts, modules, modulePricing, reInvoices, reInvoiceLines, invoiceArchive, InsertInvoiceArchive, integrations } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -610,6 +610,31 @@ export async function getReInvoiceById(id: number, tenantId: number) {
     .where(eq(reInvoiceLines.reInvoiceId, id))
     .orderBy(reInvoiceLines.lineOrder);
   return { ...inv, lines };
+}
+
+// ─── Integrations ──────────────────────────────────────────────────────────────
+
+export async function getIntegrations(tenantId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(integrations).where(eq(integrations.tenantId, tenantId));
+}
+
+export async function upsertIntegration(
+  tenantId: number,
+  provider: "smartbill" | "spv" | "oblio",
+  data: { apiKey?: string; apiSecret?: string; tokenExpiresAt?: Date; status?: "active" | "inactive" | "error" }
+) {
+  const db = await getDb();
+  if (!db) return;
+  
+  const [existing] = await db.select().from(integrations).where(and(eq(integrations.tenantId, tenantId), eq(integrations.provider, provider)));
+  
+  if (existing) {
+    return db.update(integrations).set({ ...data }).where(eq(integrations.id, existing.id));
+  } else {
+    return db.insert(integrations).values({ tenantId, provider, ...data, status: data.status || "active" });
+  }
 }
 
 export async function updateReInvoiceStatus(

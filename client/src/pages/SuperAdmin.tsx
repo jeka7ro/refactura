@@ -274,7 +274,7 @@ function RegistrationsTab() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Calendar className="w-3 h-3 text-slate-400" />
-                  <span className="text-sm text-slate-500">{new Date(lead.createdAt).toLocaleDateString("ro-RO")}</span>
+                  <span className="text-sm text-slate-500">{lead.createdAt ? new Date(lead.createdAt).toLocaleDateString("ro-RO") : "—"}</span>
                 </div>
                 <select
                   value={lead.status}
@@ -327,7 +327,7 @@ function UsersTab() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-slate-800 truncate">{acc.email}</p>
-                    <p className="text-xs text-slate-400">{new Date(acc.createdAt).toLocaleDateString("ro-RO")}</p>
+                    <p className="text-xs text-slate-400">{acc.createdAt ? new Date(acc.createdAt).toLocaleDateString("ro-RO") : "—"}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${

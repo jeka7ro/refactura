@@ -38,12 +38,10 @@ function formatBytes(bytes: number) {
 }
 
 function formatDate(str: string | null | undefined) {
-  if (!str) return "-";
-  try {
-    return new Date(str).toLocaleDateString("ro-RO");
-  } catch {
-    return str;
-  }
+  if (!str) return "—";
+  const d = new Date(str);
+  if (isNaN(d.getTime())) return str;
+  return d.toLocaleDateString("ro-RO");
 }
 
 function formatAmount(val: string | null | undefined, currency = "RON") {
