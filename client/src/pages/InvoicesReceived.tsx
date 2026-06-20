@@ -3,11 +3,10 @@
 
 import { useState } from "react";
 import { Link } from "wouter";
-import { Upload, RefreshCw, Plus, Eye, ArrowRight } from "lucide-react";
+import { Upload, RefreshCw, Plus, Eye, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { DataTable, type DataTableColumn } from "@/components/DataTable";
 import {
-  mockInvoices,
   formatCurrency,
   formatDate,
   invoiceStatusLabels,
@@ -16,11 +15,12 @@ import {
   type InvoiceStatus,
   type IntegrationSource,
 } from "@/lib/store";
+import { trpc } from "@/lib/trpc";
 
 const ALL = "all";
 
 interface InvoiceRow {
-  id: string;
+  id: number | string;
   number: string;
   supplierName: string;
   date: string;
@@ -38,7 +38,22 @@ export default function InvoicesReceived() {
   const [syncing, setSyncing] = useState(false);
   const [selectedRows, setSelectedRows] = useState<InvoiceRow[]>([]);
 
-  const filtered = mockInvoices.filter((inv) => {
+  const { data: dbInvoices, isLoading } = trpc.invoices.list.useQuery();
+  
+  const invoicesList: InvoiceRow[] = (dbInvoices || []).map((inv: any) => ({
+    id: inv.id,
+    number: inv.invoiceNumber,
+    supplierName: inv.supplierName,
+    date: inv.issueDate,
+    dueDate: inv.dueDate || inv.issueDate,
+    total: parseFloat(inv.total),
+    totalVAT: parseFloat(inv.totalVAT),
+    currency: inv.currency,
+    status: inv.status as InvoiceStatus,
+    source: inv.source as IntegrationSource,
+  }));
+
+  const filtered = invoicesList.filter((inv) => {
     const matchStatus = statusFilter === ALL || inv.status === statusFilter;
     const matchSource = sourceFilter === ALL || inv.source === sourceFilter;
     return matchStatus && matchSource;
@@ -207,7 +222,7 @@ export default function InvoicesReceived() {
         rowKey="id"
         selectable={true}
         onSelectionChange={setSelectedRows}
-        isLoading={false}
+        isLoading={isLoading}
       />
     </div>
   );

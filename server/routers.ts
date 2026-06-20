@@ -4,9 +4,11 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { generateReInvoicePDF } from "./pdf";
-import { getTenantsByUser, getUserRole, createTenant, createCostCenter, getCostCentersByTenant, updateCostCenter, deleteCostCenter, getCostCenterById, getClientsByTenant, createClient, updateClient, deleteClient, getClientById, createLead, getAllLeads, updateLeadStatus, deleteLead, getAllSubscriptionPlans, createSubscriptionPlan, updateSubscriptionPlan, deleteSubscriptionPlan, getCmsSettings, upsertCmsSetting, getAdminStats, getAllAccounts, getAllTenants, recordPageVisit, getPageVisitStats, getAllModules, getActiveModulesWithPricing, upsertModule, deleteModule, upsertModulePricing, deleteModulePricing, createReInvoice, getReInvoicesByTenant, getReInvoiceById, updateReInvoiceStatus, deleteReInvoice, getNextReInvoiceNumber, getInvoiceArchiveList, createInvoiceArchiveEntry, getInvoiceArchiveById, updateInvoiceArchiveEntry, deleteInvoiceArchiveEntry, getInvoiceArchiveStats } from "./db";
+import { getDb, getTenantsByUser, getUserRole, createTenant, createCostCenter, getCostCentersByTenant, updateCostCenter, deleteCostCenter, getCostCenterById, getClientsByTenant, createClient, updateClient, deleteClient, getClientById, createLead, getAllLeads, updateLeadStatus, deleteLead, getAllSubscriptionPlans, createSubscriptionPlan, updateSubscriptionPlan, deleteSubscriptionPlan, getCmsSettings, upsertCmsSetting, getAdminStats, getAllAccounts, getAllTenants, recordPageVisit, getPageVisitStats, getAllModules, getActiveModulesWithPricing, upsertModule, deleteModule, upsertModulePricing, deleteModulePricing, createReInvoice, getReInvoicesByTenant, getReInvoiceById, updateReInvoiceStatus, deleteReInvoice, getNextReInvoiceNumber, getInvoiceArchiveList, createInvoiceArchiveEntry, getInvoiceArchiveById, updateInvoiceArchiveEntry, deleteInvoiceArchiveEntry, getInvoiceArchiveStats } from "./db";
 import { authenticateAccount, createAccount, getAccountByEmail } from "./auth";
 import { createSessionToken } from "./session";
+import { eq, desc } from "drizzle-orm";
+import { invoiceArchive, invoiceArchiveLines } from "../drizzle/schema";
 
 export const appRouter = router({
   system: systemRouter,
@@ -97,6 +99,77 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         return createTenant(input);
+      }),
+  }),
+
+  invoices: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      if (!ctx.user?.tenantId) throw new Error("No tenant context");
+      const db = await getDb();
+      if (!db) return [];
+      const res = await db.select().from(invoiceArchive).where(eq(invoiceArchive.tenantId, ctx.user.tenantId)).orderBy(desc(invoiceArchive.createdAt));
+      return res;
+    }),
+    importSpv: protectedProcedure
+      .input(z.array(z.object({
+        invoiceNumber: z.string(),
+        supplierName: z.string(),
+        supplierCUI: z.string(),
+        issueDate: z.string(),
+        dueDate: z.string().optional(),
+        total: z.number(),
+        totalVAT: z.number(),
+        currency: z.string().default("RON"),
+        lines: z.array(z.object({
+          description: z.string(),
+          quantity: z.number(),
+          unitPrice: z.number(),
+          unit: z.string().default("buc"),
+          vatRate: z.number().optional(),
+        }))
+      })))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        if (!db) throw new Error("DB not connected");
+        
+        const tenantId = ctx.user.tenantId;
+        const insertedIds: number[] = [];
+        
+        for (const inv of input) {
+          const [result] = await db.insert(invoiceArchive).values({
+            tenantId,
+            fileKey: "spv_import",
+            fileUrl: "spv_import",
+            fileName: `Factura_${inv.invoiceNumber}.xml`,
+            fileType: "xml",
+            invoiceNumber: inv.invoiceNumber,
+            supplierName: inv.supplierName,
+            supplierCUI: inv.supplierCUI,
+            issueDate: inv.issueDate,
+            dueDate: inv.dueDate,
+            total: inv.total.toString() as any,
+            totalVAT: inv.totalVAT.toString() as any,
+            currency: inv.currency,
+            source: "spv_anaf",
+            status: "pending",
+          });
+          
+          if (inv.lines.length > 0) {
+            await db.insert(invoiceArchiveLines).values(inv.lines.map(l => ({
+              invoiceArchiveId: result.insertId,
+              description: l.description,
+              quantity: l.quantity.toString() as any,
+              unitPrice: l.unitPrice.toString() as any,
+              unit: l.unit,
+              vatRate: l.vatRate?.toString() as any,
+              total: (l.quantity * l.unitPrice).toString() as any,
+              currency: inv.currency,
+            })));
+          }
+          insertedIds.push(result.insertId);
+        }
+        return insertedIds;
       }),
   }),
 

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Plug, Check, X, RefreshCw, AlertCircle, ExternalLink, Eye, EyeOff, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { mockIntegrations, type Integration } from "@/lib/store";
+import { trpc } from "@/lib/trpc";
 
 export default function Integrations() {
   const [integrations, setIntegrations] = useState<Integration[]>(mockIntegrations);
@@ -12,6 +13,8 @@ export default function Integrations() {
   const [testing, setTesting] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [apiKeyDraft, setApiKeyDraft] = useState("");
+
+  const importSpvMutation = trpc.invoices.importSpv.useMutation();
 
   const toggleEnabled = (id: string) => {
     setIntegrations((prev) =>
@@ -50,7 +53,88 @@ export default function Integrations() {
     toast.success("Cheie API salvată", { description: "Integrarea a fost configurată" });
   };
 
+  const importSpvMutation = trpc.invoices.importSpv.useMutation();
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    toast.loading("Procesare fișiere XML...", { id: "spv-sync" });
+    
+    try {
+      const parsedInvoices = [];
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (!file.name.endsWith(".xml")) continue;
+        
+        const text = await file.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, "text/xml");
+        
+        // Basic UBL XML parsing
+        const getTagValue = (tagName: string) => doc.getElementsByTagName(tagName)[0]?.textContent || "";
+        
+        const supplierName = getTagValue("cbc:RegistrationName") || getTagValue("cbc:Name");
+        const supplierCUI = getTagValue("cbc:CompanyID");
+        const invoiceNumber = getTagValue("cbc:ID");
+        const issueDate = getTagValue("cbc:IssueDate");
+        const dueDate = getTagValue("cbc:DueDate") || issueDate;
+        
+        const total = parseFloat(doc.getElementsByTagName("cac:LegalMonetaryTotal")[0]?.getElementsByTagName("cbc:TaxInclusiveAmount")[0]?.textContent || "0");
+        const totalVAT = parseFloat(doc.getElementsByTagName("cac:TaxTotal")[0]?.getElementsByTagName("cbc:TaxAmount")[0]?.textContent || "0");
+        const currency = doc.getElementsByTagName("cbc:DocumentCurrencyCode")[0]?.textContent || "RON";
+        
+        const lineNodes = doc.getElementsByTagName("cac:InvoiceLine");
+        const lines = [];
+        for (let j = 0; j < lineNodes.length; j++) {
+          const node = lineNodes[j];
+          const qtyNode = node.getElementsByTagName("cbc:InvoicedQuantity")[0];
+          const qty = parseFloat(qtyNode?.textContent || "1");
+          const unit = qtyNode?.getAttribute("unitCode") || "buc";
+          
+          const price = parseFloat(node.getElementsByTagName("cac:Price")[0]?.getElementsByTagName("cbc:PriceAmount")[0]?.textContent || "0");
+          const description = node.getElementsByTagName("cac:Item")[0]?.getElementsByTagName("cbc:Name")[0]?.textContent || "Articol";
+          const vatRate = parseFloat(node.getElementsByTagName("cac:Item")[0]?.getElementsByTagName("cac:ClassifiedTaxCategory")[0]?.getElementsByTagName("cbc:Percent")[0]?.textContent || "19");
+          
+          lines.push({ description, quantity: qty, unitPrice: price, unit, vatRate });
+        }
+        
+        parsedInvoices.push({
+          invoiceNumber,
+          supplierName,
+          supplierCUI,
+          issueDate,
+          dueDate,
+          total,
+          totalVAT,
+          currency,
+          lines
+        });
+      }
+      
+      if (parsedInvoices.length === 0) {
+        toast.error("Nu s-au găsit facturi valide în fișierele selectate", { id: "spv-sync" });
+        return;
+      }
+      
+      await importSpvMutation.mutateAsync(parsedInvoices);
+      toast.success(`${parsedInvoices.length} facturi importate cu succes din SPV!`, { id: "spv-sync" });
+      
+    } catch (err: any) {
+      toast.error("Eroare la procesarea XML: " + err.message, { id: "spv-sync" });
+    }
+    
+    // Reset file input
+    e.target.value = '';
+  };
+
   const syncNow = (id: string) => {
+    if (id === "spv") {
+      document.getElementById("spv-file-input")?.click();
+      return;
+    }
+    
     const integration = integrations.find((i) => i.id === id);
     toast.promise(
       new Promise((resolve) => setTimeout(resolve, 2500)),
@@ -64,6 +148,14 @@ export default function Integrations() {
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
+      <input 
+        type="file" 
+        id="spv-file-input" 
+        multiple 
+        accept=".xml" 
+        className="hidden" 
+        onChange={handleFileUpload} 
+      />
       {/* Header */}
       <div>
         <h1 className="text-xl font-bold text-slate-900 dark:text-white">Integrări</h1>

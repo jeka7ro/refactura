@@ -354,10 +354,10 @@ export type InsertReInvoiceLine = typeof reInvoiceLines.$inferInsert;
 export const invoiceArchive = mysqlTable("invoiceArchive", {
   id: int("id").autoincrement().primaryKey(),
   tenantId: int("tenantId").notNull(),
-  // File storage
-  fileKey: varchar("fileKey", { length: 512 }).notNull(), // S3 key
-  fileUrl: varchar("fileUrl", { length: 512 }).notNull(), // /manus-storage/... URL
-  fileName: varchar("fileName", { length: 255 }).notNull(),
+  // File storage (made optional for direct XML imports without S3)
+  fileKey: varchar("fileKey", { length: 512 }),
+  fileUrl: varchar("fileUrl", { length: 512 }),
+  fileName: varchar("fileName", { length: 255 }),
   fileType: mysqlEnum("fileType", ["pdf", "xml", "efactura", "other"]).default("pdf"),
   fileSize: int("fileSize"), // bytes
   // Invoice metadata (extracted or manually entered)
@@ -383,3 +383,18 @@ export const invoiceArchive = mysqlTable("invoiceArchive", {
 
 export type InvoiceArchive = typeof invoiceArchive.$inferSelect;
 export type InsertInvoiceArchive = typeof invoiceArchive.$inferInsert;
+
+export const invoiceArchiveLines = mysqlTable("invoiceArchiveLines", {
+  id: int("id").autoincrement().primaryKey(),
+  invoiceArchiveId: int("invoiceArchiveId").notNull(), // Foreign key to invoiceArchive
+  description: varchar("description", { length: 512 }).notNull(),
+  quantity: decimal("quantity", { precision: 12, scale: 2 }).notNull(),
+  unitPrice: decimal("unitPrice", { precision: 12, scale: 2 }).notNull(),
+  unit: varchar("unit", { length: 50 }).notNull().default("buc"),
+  vatRate: decimal("vatRate", { precision: 5, scale: 2 }), // Percentage (e.g. 19.00)
+  total: decimal("total", { precision: 12, scale: 2 }),
+  currency: varchar("currency", { length: 3 }).default("RON"),
+});
+
+export type InvoiceArchiveLine = typeof invoiceArchiveLines.$inferSelect;
+export type InsertInvoiceArchiveLine = typeof invoiceArchiveLines.$inferInsert;
