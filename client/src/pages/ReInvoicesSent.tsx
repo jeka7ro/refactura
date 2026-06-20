@@ -79,35 +79,35 @@ export default function ReInvoicesSent() {
         </Link>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-shadow">
-          <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">TOTAL EMISE</p>
-          <p className="text-3xl font-bold text-slate-900 dark:text-white mt-2">{mockReInvoices.length}</p>
+      {/* Micro KPI Headers */}
+      <div className="flex flex-wrap items-center gap-3 mt-2 mb-2">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100/80 border border-slate-200/60 backdrop-blur-sm text-sm">
+          <span className="text-slate-600 font-medium">TOTAL EMISE:</span>
+          <span className="font-bold text-slate-800">{mockReInvoices.length}</span>
         </div>
-
-        <div className="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-shadow">
-          <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">ACHITATE</p>
-          <p className="text-3xl font-bold text-emerald-600 mt-2">{mockReInvoices.filter((r) => r.status === "paid").length}</p>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50/80 border border-emerald-100/60 backdrop-blur-sm text-sm">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          <span className="text-slate-600 font-medium">ACHITATE:</span>
+          <span className="font-bold text-emerald-700">{mockReInvoices.filter((r) => r.status === "paid").length}</span>
         </div>
-
-        <div className="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-shadow">
-          <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">TRIMISE</p>
-          <p className="text-3xl font-bold text-blue-600 mt-2">{mockReInvoices.filter((r) => r.status === "sent").length}</p>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50/80 border border-blue-100/60 backdrop-blur-sm text-sm">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+          <span className="text-slate-600 font-medium">TRIMISE:</span>
+          <span className="font-bold text-blue-700">{mockReInvoices.filter((r) => r.status === "sent").length}</span>
         </div>
-
-        <div className="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-shadow">
-          <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">CIORNĂ</p>
-          <p className="text-3xl font-bold text-slate-500 mt-2">{mockReInvoices.filter((r) => r.status === "draft").length}</p>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50/80 border border-slate-200/60 backdrop-blur-sm text-sm">
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+          <span className="text-slate-600 font-medium">CIORNĂ:</span>
+          <span className="font-bold text-slate-600">{mockReInvoices.filter((r) => r.status === "draft").length}</span>
         </div>
       </div>
 
       {/* Status Filter */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 mb-4">
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as any)}
-          className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+          className="px-4 py-2 rounded-full border border-slate-200 bg-white/50 backdrop-blur-sm text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm"
         >
           <option value="all">Toate statusurile</option>
           <option value="draft">Ciornă</option>
@@ -115,34 +115,28 @@ export default function ReInvoicesSent() {
           <option value="paid">Achitată</option>
           <option value="overdue">Restantă</option>
         </select>
-        <div className="ml-auto text-sm text-slate-600 dark:text-slate-400">
+        <div className="ml-auto flex items-center px-4 py-1.5 rounded-full bg-white border border-slate-200 shadow-sm text-sm font-medium text-slate-700">
           {filtered.length} re-facturi · {formatCurrency(totalValue, "RON")}
         </div>
       </div>
 
       {/* Data Table */}
-      {filtered.length === 0 ? (
-        <div className="p-8 text-center text-slate-500">
-          <FileOutput className="w-10 h-10 mx-auto mb-3 opacity-50" />
-          Nicio re-factură găsită
-        </div>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={filtered}
-          rowKey="id"
-          actions={(row) => (
-            <div className="flex gap-2 justify-end">
-              <button className="p-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 transition-colors" title="Previzualizare">
-                <Eye className="w-4 h-4" />
-              </button>
-              <button className="p-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 transition-colors" title="Descarca">
-                <Download className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-        />
-      )}
+      <DataTable
+        columns={columns}
+        data={filtered}
+        rowKey="id"
+        isLoading={false}
+        actions={(row) => (
+          <div className="flex items-center justify-end gap-2">
+            <button className="w-8 h-8 rounded-full border border-slate-200 bg-white text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center" title="Previzualizare">
+              <Eye className="w-4 h-4" />
+            </button>
+            <button className="w-8 h-8 rounded-full border border-slate-200 bg-white text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center" title="Descarca">
+              <Download className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+      />
     </div>
   );
 }

@@ -201,15 +201,14 @@ export default function InvoicesReceived() {
       </div>
 
       {/* DataTable */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4">
-        <DataTable
-          columns={columns}
-          data={filtered}
-          rowKey="id"
-          selectable={true}
-          onSelectionChange={setSelectedRows}
-        />
-      </div>
+      <DataTable
+        columns={columns}
+        data={filtered}
+        rowKey="id"
+        selectable={true}
+        onSelectionChange={setSelectedRows}
+        isLoading={false}
+      />
     </div>
   );
 }

@@ -333,6 +333,46 @@ export const appRouter = router({
         if (!ctx.user?.tenantId) throw new Error("No tenant context");
         return getClientById(input.id, ctx.user.tenantId);
       }),
+    getDetails: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const client = await getClientById(input.id, ctx.user.tenantId);
+        if (!client) throw new Error("Client not found");
+
+        const db = await import("./db").then(m => m.getDb());
+        if (!db) throw new Error("DB not available");
+
+        const { eq, or, and } = await import("drizzle-orm");
+        const { reInvoices, invoiceArchive } = await import("../drizzle/schema");
+
+        // Facturi emise către client
+        const sentInvoices = await db.select()
+          .from(reInvoices)
+          .where(
+            and(
+              eq(reInvoices.tenantId, ctx.user.tenantId),
+              eq(reInvoices.clientId, client.id)
+            )
+          )
+          .orderBy(reInvoices.issueDate);
+
+        // Facturi primite de la client (după CUI)
+        let receivedInvoices: any[] = [];
+        if (client.cui) {
+          receivedInvoices = await db.select()
+            .from(invoiceArchive)
+            .where(
+              and(
+                eq(invoiceArchive.tenantId, ctx.user.tenantId),
+                eq(invoiceArchive.supplierCUI, client.cui)
+              )
+            )
+            .orderBy(invoiceArchive.issueDate);
+        }
+
+        return { client, sentInvoices, receivedInvoices };
+      }),
   }),
 
   // ─── Public endpoints (no auth needed) ─────────────────────────────────────

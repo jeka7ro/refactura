@@ -21,6 +21,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Landing from "./pages/Landing";
 import SuperAdmin from "./pages/SuperAdmin";
 import InvoiceArchive from "./pages/InvoiceArchive";
+import ClientDetails from "./pages/ClientDetails";
 
 function Router() {
   return (
@@ -66,6 +67,11 @@ function Router() {
       <Route path="/clienti">
         <DashboardLayout>
           <Clients />
+        </DashboardLayout>
+      </Route>
+      <Route path="/client/:id">
+        <DashboardLayout>
+          <ClientDetails />
         </DashboardLayout>
       </Route>
       <Route path="/integrari">

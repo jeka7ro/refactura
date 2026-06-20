@@ -133,38 +133,26 @@ export default function CostCenters() {
         </Button>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-shadow">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">Total Centre</p>
-              <p className="text-3xl font-bold text-slate-900 dark:text-white mt-2">{costCenters.length}</p>
-            </div>
-            <MapPin className="w-8 h-8 text-blue-400 opacity-50" />
-          </div>
+      {/* Micro KPI Headers */}
+      <div className="flex items-center gap-3 mt-2 mb-2">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50/50 border border-blue-100/50 backdrop-blur-sm text-sm">
+          <MapPin className="w-4 h-4 text-blue-500" />
+          <span className="text-slate-600 font-medium">Total Centre:</span>
+          <span className="font-bold text-blue-700">{costCenters.length}</span>
         </div>
-
-        <div className="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-shadow">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">Activ</p>
-              <p className="text-3xl font-bold text-green-600 dark:text-green-400 mt-2">{activeCount}</p>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30" />
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-50/50 border border-green-100/50 backdrop-blur-sm text-sm">
+          <div className="w-4 h-4 rounded-md bg-green-500/20 flex items-center justify-center">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-600"></span>
           </div>
+          <span className="text-slate-600 font-medium">Activ:</span>
+          <span className="font-bold text-green-700">{activeCount}</span>
         </div>
-
-        <div className="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-shadow">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">Orașe</p>
-              <p className="text-3xl font-bold text-purple-600 dark:text-purple-400 mt-2">
-                {new Set(costCenters.map((c: any) => c.city)).size}
-              </p>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30" />
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-50/50 border border-purple-100/50 backdrop-blur-sm text-sm">
+          <div className="w-4 h-4 rounded-md bg-purple-500/20 flex items-center justify-center">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-600"></span>
           </div>
+          <span className="text-slate-600 font-medium">Orașe:</span>
+          <span className="font-bold text-purple-700">{new Set(costCenters.map((c: any) => c.city).filter(Boolean)).size}</span>
         </div>
       </div>
 
@@ -246,33 +234,28 @@ export default function CostCenters() {
       )}
 
       {/* Data Table */}
-      {isLoading ? (
-        <div className="p-8 text-center text-slate-500">Încarcă...</div>
-      ) : costCenters.length === 0 ? (
-        <div className="p-8 text-center text-slate-500">Nu ai centre de cost. Adaugă unul pentru a începe.</div>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={costCenters}
-          rowKey="id"
-          actions={(row) => (
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => handleEdit(row)}
-                className="p-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 transition-colors"
-              >
-                <Edit2 className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => handleDelete(row.id)}
-                className="p-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-        />
-      )}
+      <DataTable
+        columns={columns}
+        data={costCenters}
+        rowKey="id"
+        isLoading={isLoading}
+        actions={(row) => (
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={() => handleEdit(row)}
+              className="p-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 transition-colors"
+            >
+              <Edit2 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => handleDelete(row.id)}
+              className="p-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+      />
     </div>
   );
 }

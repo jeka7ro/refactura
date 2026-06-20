@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUpDown, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUpDown, Search, Loader2 } from "lucide-react";
 
 export interface DataTableColumn<T> {
   key: keyof T;
@@ -17,6 +17,7 @@ interface DataTableProps<T> {
   selectable?: boolean;
   onSelectionChange?: (selectedRows: T[]) => void;
   actions?: (row: T) => React.ReactNode;
+  isLoading?: boolean;
 }
 
 export function DataTable<T>({
@@ -27,6 +28,7 @@ export function DataTable<T>({
   selectable = false,
   onSelectionChange,
   actions,
+  isLoading = false,
 }: DataTableProps<T>) {
   const [sortColumn, setSortColumn] = useState<keyof T | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
@@ -102,121 +104,104 @@ export function DataTable<T>({
   return (
     <div>
       {/* ── SEARCH BAR ── */}
-      <div style={{ position: 'relative', marginBottom: 12 }}>
-        <Search className="w-4 h-4" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', zIndex: 1, color: '#94a3b8' }} />
+      <div className="relative mb-4">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
         <input
-          style={{
-            width: '100%',
-            paddingLeft: 36,
-            paddingRight: search ? 80 : 16,
-            paddingTop: 8,
-            paddingBottom: 8,
-            borderRadius: 9999,
-            border: '1px solid #cbd5e1',
-            background: '#fff',
-            color: '#1e293b',
-            fontSize: 14,
-            outline: 'none',
-          }}
-          placeholder="Caută..."
+          className="w-full pl-10 pr-4 py-2.5 bg-white/50 backdrop-blur-md border border-slate-200/60 rounded-full text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all shadow-sm"
+          placeholder="Caută în tabel..."
           value={search}
           onChange={e => { setSearch(e.target.value); setPage(1); }}
         />
         {search && (
-          <div style={{
-            position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-            background: '#3b82f6', color: 'white', borderRadius: 9999,
-            padding: '2px 10px', fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
-          }}>
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm">
             {filtered} / {data.length}
           </div>
         )}
       </div>
 
       {/* ── TABLE ── */}
-      <div style={{ borderRadius: 12, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm text-left">
+          <thead className="bg-slate-50/50 text-slate-500 font-medium border-b border-slate-200">
+            <tr>
               {selectable && (
-                <th style={{ padding: '12px 16px', width: 48 }}>
+                <th className="px-4 py-3 w-12">
                   <input
                     type="checkbox"
                     checked={selectedRows.size === paginatedData.length && paginatedData.length > 0}
                     onChange={handleSelectAll}
+                    className="rounded border-slate-300 text-primary focus:ring-primary"
                   />
                 </th>
               )}
-              <th style={{ width: 50, textAlign: 'center', padding: '12px 8px', fontSize: 12, fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>
-                Nr.
-              </th>
+              <th className="px-4 py-3 w-16 text-center">Nr.</th>
               {columns.map((col) => (
                 <th
                   key={String(col.key)}
-                  style={{
-                    padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 600,
-                    color: '#64748b', textTransform: 'uppercase',
-                    cursor: col.sortable ? 'pointer' : 'default',
-                  }}
+                  className={`px-4 py-3 cursor-pointer hover:text-slate-700 transition-colors ${col.className || ''}`}
                   onClick={() => col.sortable && handleSort(col.key)}
-                  className={col.className}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <div className="flex items-center gap-2">
                     {col.label}
-                    {col.sortable && <ArrowUpDown className="w-3.5 h-3.5" style={{ opacity: 0.4 }} />}
+                    {col.sortable && <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />}
                   </div>
                 </th>
               ))}
               {actions && (
-                <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 12, fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>
-                  ACȚIUNI
-                </th>
+                <th className="px-4 py-3 text-right">ACȚIUNI</th>
               )}
             </tr>
           </thead>
-          <tbody>
-            {paginatedData.length === 0 ? (
+          <tbody className="divide-y divide-slate-100">
+            {isLoading ? (
+              <tr>
+                <td colSpan={columns.length + (selectable ? 1 : 0) + (actions ? 1 : 0) + 1} className="p-8 text-center">
+                  <div className="flex flex-col items-center justify-center text-slate-400">
+                    <Loader2 className="w-6 h-6 animate-spin mb-2" />
+                    <span className="text-sm">Se încarcă datele...</span>
+                  </div>
+                </td>
+              </tr>
+            ) : paginatedData.length === 0 ? (
               <tr>
                 <td
                   colSpan={columns.length + (selectable ? 1 : 0) + (actions ? 1 : 0) + 1}
-                  style={{ padding: '32px 16px', textAlign: 'center', color: '#94a3b8', fontSize: 14 }}
+                  className="p-8 text-center text-slate-500 text-sm"
                 >
-                  Nicio înregistrare
+                  Nicio înregistrare găsită
                 </td>
               </tr>
             ) : (
               paginatedData.map((row, idx) => (
                 <tr
                   key={String(row[rowKey])}
-                  style={{ borderBottom: '1px solid #f1f5f9', cursor: onRowClick ? 'pointer' : 'default' }}
+                  className={`hover:bg-slate-50/50 transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
                   onClick={() => onRowClick?.(row)}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
                   {selectable && (
-                    <td style={{ padding: '12px 16px' }}>
+                    <td className="px-4 py-3">
                       <input
                         type="checkbox"
                         checked={selectedRows.has(row[rowKey])}
-                        onChange={() => handleSelectRow(row)}
-                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleSelectRow(row);
+                        }}
+                        className="rounded border-slate-300 text-primary focus:ring-primary"
                       />
                     </td>
                   )}
-                  <td style={{ textAlign: 'center', color: '#94a3b8', fontSize: 13, padding: '12px 8px' }}>
+                  <td className="px-4 py-3 text-center text-slate-500 font-medium">
                     {(page - 1) * rowsPerPage + idx + 1}
                   </td>
                   {columns.map((col) => (
-                    <td
-                      key={String(col.key)}
-                      style={{ padding: '12px 16px', fontSize: 14, color: '#1e293b' }}
-                      className={col.className}
-                    >
-                      {col.render ? col.render(row[col.key], row) : String(row[col.key] ?? "")}
+                    <td key={String(col.key)} className={`px-4 py-3 ${col.className || ''}`}>
+                      {col.render ? col.render(row[col.key], row) : String(row[col.key] || "")}
                     </td>
                   ))}
                   {actions && (
-                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                       {actions(row)}
                     </td>
                   )}
@@ -225,28 +210,20 @@ export function DataTable<T>({
             )}
           </tbody>
         </table>
+        </div>
 
-        {/* ── FOOTER PAGINARE ── */}
-        <div style={{
-          padding: '12px 20px',
-          borderTop: '1px solid #e2e8f0',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          background: '#f8fafc',
-          borderBottomLeftRadius: 12, borderBottomRightRadius: 12,
-          flexWrap: 'wrap', gap: 8,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <span style={{ whiteSpace: 'nowrap', fontSize: 13 }}>
-              Afișează&nbsp;
+        {/* ── PAGINATION ── */}
+        <div className="flex items-center justify-between px-4 py-3 bg-slate-50/50 border-t border-slate-200">
+          <div className="flex items-center gap-4 text-sm text-slate-500">
+            <div className="flex items-center gap-2">
+              Afișează
               <select
                 value={rowsPerPage}
-                onChange={e => { setRowsPerPage(Number(e.target.value)); setPage(1); }}
-                style={{
-                  background: '#fff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: 9999, padding: '2px 8px', fontSize: 13,
-                  color: '#1e293b',
+                onChange={(e) => {
+                  setRowsPerPage(Number(e.target.value));
+                  setPage(1);
                 }}
+                className="bg-white border border-slate-200 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30"
               >
                 <option value={10}>10</option>
                 <option value={15}>15</option>
@@ -254,43 +231,44 @@ export function DataTable<T>({
                 <option value={50}>50</option>
                 <option value={9999}>Toți</option>
               </select>
-            </span>
-            <span style={{ whiteSpace: 'nowrap', fontSize: 13 }}>
-              Total înregistrări: <strong>{total}</strong>
-            </span>
+            </div>
+            <span>Total înregistrări: <span className="font-semibold text-slate-700">{filtered}</span></span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ whiteSpace: 'nowrap', fontSize: 13 }}>
-              Pagina {page} din {totalPages}
+
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-slate-500">
+              Pagina <span className="font-semibold text-slate-700">{page}</span> din {totalPages}
             </span>
-            <button
-              onClick={() => setPage(1)}
-              disabled={page === 1}
-              style={{ padding: '4px 8px', borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff', cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.35 : 1, display: 'inline-flex', alignItems: 'center' }}
-            >
-              <ChevronsLeft className="w-4 h-4" style={{ color: '#475569' }} />
-            </button>
-            <button
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-              style={{ padding: '4px 8px', borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff', cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.35 : 1, display: 'inline-flex', alignItems: 'center' }}
-            >
-              <ChevronLeft className="w-4 h-4" style={{ color: '#475569' }} />
-            </button>
-            <button
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages}
-              style={{ padding: '4px 8px', borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff', cursor: page >= totalPages ? 'not-allowed' : 'pointer', opacity: page >= totalPages ? 0.35 : 1, display: 'inline-flex', alignItems: 'center' }}
-            >
-              <ChevronRight className="w-4 h-4" style={{ color: '#475569' }} />
-            </button>
-            <button
-              onClick={() => setPage(totalPages)}
-              disabled={page >= totalPages}
-              style={{ padding: '4px 8px', borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff', cursor: page >= totalPages ? 'not-allowed' : 'pointer', opacity: page >= totalPages ? 0.35 : 1, display: 'inline-flex', alignItems: 'center' }}
-            >
-              <ChevronsRight className="w-4 h-4" style={{ color: '#475569' }} />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                disabled={page === 1}
+                onClick={() => setPage(1)}
+                className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 disabled:opacity-50 transition-colors"
+              >
+                <ChevronsLeft className="w-4 h-4" />
+              </button>
+              <button
+                disabled={page === 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 disabled:opacity-50 transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 disabled:opacity-50 transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              <button
+                disabled={page >= totalPages}
+                onClick={() => setPage(totalPages)}
+                className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 disabled:opacity-50 transition-colors"
+              >
+                <ChevronsRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </div>

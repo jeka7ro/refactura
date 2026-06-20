@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { DataTable, DataTableColumn } from "@/components/DataTable";
-import { Building2, Edit2, Trash2, Plus, Search, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Building2, Edit2, Trash2, Plus, Search, Loader2, AlertCircle, CheckCircle2, Eye } from "lucide-react";
 
 export default function Clients() {
   const [showForm, setShowForm] = useState(false);
@@ -96,6 +97,11 @@ export default function Clients() {
       key: "name",
       label: "NUME CLIENT",
       sortable: true,
+      render: (val: string, row: any) => (
+        <Link href={`/client/${row.id}`} className="font-semibold text-blue-600 hover:underline">
+          {val}
+        </Link>
+      ),
     },
     {
       key: "cui",
@@ -111,6 +117,11 @@ export default function Clients() {
       key: "address",
       label: "ADRESĂ",
       sortable: true,
+      render: (val: string) => (
+        <div className="truncate max-w-[200px]" title={val}>
+          {val || "-"}
+        </div>
+      ),
     },
     {
       key: "email",
@@ -161,27 +172,19 @@ export default function Clients() {
             </Button>
           </div>
 
-          {/* KPI Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-shadow">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">Total Clienți</p>
-                  <p className="text-3xl font-bold text-slate-900 dark:text-white mt-2">{clients.length}</p>
-                </div>
-                <Building2 className="w-8 h-8 text-blue-400 opacity-50" />
-              </div>
+          {/* Micro KPI Headers */}
+          <div className="flex items-center gap-3 mt-4 mb-2">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50/50 border border-blue-100/50 backdrop-blur-sm text-sm">
+              <Building2 className="w-4 h-4 text-blue-500" />
+              <span className="text-slate-600 font-medium">Total Clienți:</span>
+              <span className="font-bold text-blue-700">{clients.length}</span>
             </div>
-            <div className="p-4 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-shadow">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">Oraşe Unice</p>
-                  <p className="text-3xl font-bold text-purple-600 dark:text-purple-400 mt-2">
-                    {new Set(clients.map((c: any) => c.city)).size}
-                  </p>
-                </div>
-                <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30" />
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-50/50 border border-purple-100/50 backdrop-blur-sm text-sm">
+              <div className="w-4 h-4 rounded-md bg-purple-500/20 flex items-center justify-center">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-600"></span>
               </div>
+              <span className="text-slate-600 font-medium">Orașe Unice:</span>
+              <span className="font-bold text-purple-700">{new Set(clients.map((c: any) => c.city).filter(Boolean)).size}</span>
             </div>
           </div>
         </>
@@ -214,33 +217,35 @@ export default function Clients() {
         />
       )}
 
-      {/* Data Table — mereu vizibil */}
+      {/* Tabel */}
       {!showForm && (
-        isLoading ? (
-          <div className="p-8 text-center text-slate-500">Încarcă...</div>
-        ) : (
+        <div className="mt-4">
           <DataTable
             columns={columns}
             data={clients}
             rowKey="id"
+            isLoading={isLoading}
             actions={(row) => (
               <div className="flex gap-2 justify-end">
+                <Link href={`/client/${row.id}`} className="p-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900/20 text-slate-600 dark:text-slate-400 transition-colors">
+                  <Eye className="w-4 h-4" />
+                </Link>
                 <button
                   onClick={() => handleEdit(row)}
-                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 transition-colors"
+                  className="p-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 transition-colors"
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => handleDelete(row.id)}
-                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors"
+                  className="p-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             )}
           />
-        )
+        </div>
       )}
 
     </div>
@@ -379,34 +384,34 @@ function ClientForm({ editingId, initial, onSubmit, onCancel, isPending }: {
           <input className={inp} placeholder="Str. Exemplu nr. 1" value={data.address} onChange={e => set("address", e.target.value)} />
         </div>
 
-        {/* Oraș + Țară */}
-        <div>
-          <label className={lbl}>Județ / Oraș</label>
-          <input className={inp} placeholder="București" value={data.city} onChange={e => set("city", e.target.value)} />
-        </div>
-        <div>
-          <label className={lbl}>Țară</label>
-          <input className={inp} placeholder="România" value={data.country} onChange={e => set("country", e.target.value)} />
+        {/* Oraș + Țară + Monedă (pe același rând) */}
+        <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className={lbl}>Județ / Oraș</label>
+            <input className={inp} placeholder="București" value={data.city} onChange={e => set("city", e.target.value)} />
+          </div>
+          <div>
+            <label className={lbl}>Țară</label>
+            <input className={inp} placeholder="România" value={data.country} onChange={e => set("country", e.target.value)} />
+          </div>
+          <div>
+            <label className={lbl}>Monedă</label>
+            <select className={inp} value={data.currency} onChange={e => set("currency", e.target.value)}>
+              <option value="RON">RON — Leu românesc</option>
+              <option value="EUR">EUR — Euro</option>
+              <option value="USD">USD — Dolar</option>
+            </select>
+          </div>
         </div>
 
         {/* Email + Telefon */}
         <div>
           <label className={lbl}>Email</label>
-          <input className={inp} type="email" placeholder="office@firma.ro" value={data.email} onChange={e => set("email", e.target.value)} />
+          <input className={inp} type="email" autoComplete="email" placeholder="office@firma.ro" value={data.email} onChange={e => set("email", e.target.value)} />
         </div>
         <div>
           <label className={lbl}>Telefon</label>
-          <input className={inp} type="tel" placeholder="+40 21 123 4567" value={data.phone} onChange={e => set("phone", e.target.value)} />
-        </div>
-
-        {/* Monedă */}
-        <div>
-          <label className={lbl}>Monedă</label>
-          <select className={inp} value={data.currency} onChange={e => set("currency", e.target.value)}>
-            <option value="RON">RON — Leu românesc</option>
-            <option value="EUR">EUR — Euro</option>
-            <option value="USD">USD — Dolar</option>
-          </select>
+          <input className={inp} type="tel" autoComplete="tel" placeholder="+40 21 123 4567" value={data.phone} onChange={e => set("phone", e.target.value)} />
         </div>
       </div>
 

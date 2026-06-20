@@ -1,0 +1,12 @@
+# RESTRICȚIE CRITICĂ IMPUSĂ DE UTILIZATOR (USER_GLOBAL_RULE)
+
+**1. REGULA PENTRU ÎNTREBĂRI ("?" SAU ÎNTREBĂRI DIRECTE):**
+- **AGENTUL TREBUIE SĂ RĂSPUNDĂ EXCLUSIV PRIN TEXT.**
+- **ESTE STRICT INTERZIS SĂ RULEZE COMENZI, SĂ MODIFICE FIȘIERE SAU SĂ "SE APUCE DE TREABĂ".**
+- Răspunde clar la întrebare, explică problema (dacă este cazul) și AȘTEAPTĂ instrucțiuni clare de acțiune.
+- Fără excepții. Orice acțiune luată înainte de a răspunde la o întrebare directă va fi considerată o încălcare gravă a instrucțiunilor.
+
+**2. REGULA PENTRU INTERFAȚĂ (UI/UX):**
+- **ORICE ACȚIUNE, TASK NOU SAU MODIFICARE FRONTEND TREBUIE SĂ FIE VERIFICATĂ OBLIGATORIU DACĂ CORESPUNDE CU REGULILE UI ALE PROIECTULUI.**
+- Orice componentă nouă sau modificată se face **DOAR** respectând clar regulile UI globale definite (ex. `rounded-lg` / `8px` pe inputuri/butoane, utilizarea componentelor standard Shadcn, culorile primare).
+- Nu se aplică "cârpeli" sau stiluri inline care contrazic design-ul general al aplicației.
