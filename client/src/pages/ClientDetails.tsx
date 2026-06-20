@@ -63,8 +63,8 @@ export default function ClientDetails() {
   ];
 
   return (
-    <div className="p-6 space-y-6">
-      <Link href="/clients" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
+    <div className="p-6 space-y-8">
+      <Link href="/clienti" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
         <ArrowLeft className="w-4 h-4" /> Înapoi la clienți
       </Link>
 
@@ -120,43 +120,39 @@ export default function ClientDetails() {
       </div>
 
       {/* Tables Section */}
-      <div className="space-y-6">
+      <div className="space-y-8">
         {/* Sent Invoices */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">
-          <div className="p-5 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3 bg-slate-50/50 dark:bg-slate-800/50">
+        <div>
+          <div className="flex items-center gap-3 mb-4">
             <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
               <ArrowUpRight className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             </div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Facturi Emise Către Client</h2>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Facturi Emise Către Client</h2>
           </div>
-          <div className="p-4">
-            {sentInvoices.length > 0 ? (
-              <DataTable columns={sentColumns} data={sentInvoices} rowKey="id" isLoading={false} />
-            ) : (
-              <div className="text-center py-12 text-slate-500 dark:text-slate-400 text-sm font-medium">
-                Nu ai emis nicio factură către acest client.
-              </div>
-            )}
-          </div>
+          {sentInvoices.length > 0 ? (
+            <DataTable columns={sentColumns} data={sentInvoices} rowKey="id" isLoading={false} />
+          ) : (
+            <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-sm font-medium">
+              Nu ai emis nicio factură către acest client.
+            </div>
+          )}
         </div>
 
         {/* Received Invoices */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">
-          <div className="p-5 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3 bg-slate-50/50 dark:bg-slate-800/50">
+        <div>
+          <div className="flex items-center gap-3 mb-4">
             <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
               <ArrowDownRight className="w-4 h-4 text-purple-600 dark:text-purple-400" />
             </div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Facturi Primite De La Client (Furnizor)</h2>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Facturi Primite De La Client (Furnizor)</h2>
           </div>
-          <div className="p-4">
-            {receivedInvoices.length > 0 ? (
-              <DataTable columns={receivedColumns} data={receivedInvoices} rowKey="id" isLoading={false} />
-            ) : (
-              <div className="text-center py-12 text-slate-500 dark:text-slate-400 text-sm font-medium">
-                Nu ai primit/arhivare nicio factură de la acest CUI.
-              </div>
-            )}
-          </div>
+          {receivedInvoices.length > 0 ? (
+            <DataTable columns={receivedColumns} data={receivedInvoices} rowKey="id" isLoading={false} />
+          ) : (
+            <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-sm font-medium">
+              Nu ai primit/arhivare nicio factură de la acest CUI.
+            </div>
+          )}
         </div>
       </div>
     </div>
