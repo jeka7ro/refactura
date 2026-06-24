@@ -548,14 +548,31 @@ export default function Integrations() {
                       {provider.id === "spv" && (
                         <div className="flex items-center gap-2">
                           {isActive ? (
-                            <button
-                              onClick={() => syncSpvMutation.mutate()}
-                              disabled={syncSpvMutation.isPending}
-                              className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all disabled:opacity-60"
-                            >
-                              {syncSpvMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                              Sincronizează din SPV
-                            </button>
+                            <div className="flex items-center gap-1.5">
+                              <select
+                                id="spv-zile"
+                                defaultValue="60"
+                                className="h-8 px-2 rounded-lg border border-slate-200 text-xs bg-white dark:bg-slate-800"
+                              >
+                                <option value="7">7 zile</option>
+                                <option value="30">30 zile</option>
+                                <option value="60">60 zile</option>
+                                <option value="90">90 zile</option>
+                                <option value="180">6 luni</option>
+                                <option value="365">1 an</option>
+                              </select>
+                              <button
+                                onClick={() => {
+                                  const zile = parseInt((document.getElementById("spv-zile") as HTMLSelectElement)?.value || "60");
+                                  syncSpvMutation.mutate({ zile });
+                                }}
+                                disabled={syncSpvMutation.isPending}
+                                className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all disabled:opacity-60"
+                              >
+                                {syncSpvMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                                Sincronizează din SPV
+                              </button>
+                            </div>
                           ) : (
                             <button
                               onClick={() => {

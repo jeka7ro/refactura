@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
-import { Search, ChevronLeft, ChevronRight, Plus, RefreshCw, Loader2, Send, FileDown, X, Eye, Pencil, Trash2 } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Plus, RefreshCw, Loader2, Send, FileDown, X, Eye, Pencil, Trash2, Calendar } from "lucide-react";
 import { formatCurrency, formatDate, type Currency } from "@/lib/store";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -66,6 +66,40 @@ export default function AllInvoices() {
   const [typeFilter, setTypeFilter]   = useState<InvoiceType | "all">("all");
   const [deleteTarget, setDeleteTarget] = useState<UnifiedRow | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [period, setPeriod] = useState<string>("all");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+
+  // Period date range helper
+  const getDateRange = (p: string): [string, string] | null => {
+    const now = new Date();
+    const fmt = (d: Date) => d.toISOString().split("T")[0];
+    const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    switch (p) {
+      case "today": { const t = fmt(now); return [t, t]; }
+      case "week": {
+        const d = startOfDay(now);
+        const day = d.getDay() || 7;
+        d.setDate(d.getDate() - day + 1);
+        const end = new Date(d); end.setDate(end.getDate() + 6);
+        return [fmt(d), fmt(end)];
+      }
+      case "month": {
+        const s = new Date(now.getFullYear(), now.getMonth(), 1);
+        const e = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        return [fmt(s), fmt(e)];
+      }
+      case "lastMonth": {
+        const s = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const e = new Date(now.getFullYear(), now.getMonth(), 0);
+        return [fmt(s), fmt(e)];
+      }
+      case "year": return [`${now.getFullYear()}-01-01`, `${now.getFullYear()}-12-31`];
+      case "lastYear": return [`${now.getFullYear() - 1}-01-01`, `${now.getFullYear() - 1}-12-31`];
+      case "custom": return customFrom && customTo ? [customFrom, customTo] : null;
+      default: return null;
+    }
+  };
 
   const toggleSelect = (rowKey: string) => {
     setSelectedIds(prev => {
@@ -158,6 +192,15 @@ export default function AllInvoices() {
 
   const filtered = useMemo(() => {
     let rows = typeFilter === "all" ? allRows : allRows.filter(r => r.type === typeFilter);
+    // Period filter
+    const range = getDateRange(period);
+    if (range) {
+      const [from, to] = range;
+      rows = rows.filter(r => {
+        const d = (r.date || "").slice(0, 10);
+        return d >= from && d <= to;
+      });
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       rows = rows.filter(r =>
@@ -167,7 +210,7 @@ export default function AllInvoices() {
       );
     }
     return rows;
-  }, [allRows, search, typeFilter]);
+  }, [allRows, search, typeFilter, period, customFrom, customTo]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
   const paginated  = filtered.slice((page - 1) * rowsPerPage, page * rowsPerPage);
@@ -297,6 +340,42 @@ export default function AllInvoices() {
             {f.label} <span className="font-bold">{counts[f.id]}</span>
           </button>
         ))}
+      </div>
+
+      {/* Filtre perioadă */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Calendar className="w-3.5 h-3.5 text-slate-400" />
+        {([
+          { id: "all",       label: "Toate" },
+          { id: "today",     label: "Azi" },
+          { id: "week",      label: "Săpt. curentă" },
+          { id: "month",     label: "Luna curentă" },
+          { id: "lastMonth", label: "Luna trecută" },
+          { id: "year",      label: "Anul curent" },
+          { id: "lastYear",  label: "Anul trecut" },
+          { id: "custom",    label: "Custom" },
+        ] as const).map(f => (
+          <button
+            key={f.id}
+            onClick={() => { setPeriod(f.id); setPage(1); }}
+            className={`px-2.5 h-6 rounded-lg text-[10px] font-semibold border transition-all ${
+              period === f.id
+                ? "bg-blue-50 text-blue-700 border-blue-200 ring-1 ring-offset-1 ring-blue-400"
+                : "border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300"
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+        {period === "custom" && (
+          <div className="flex items-center gap-1.5 ml-1">
+            <input type="date" value={customFrom} onChange={e => { setCustomFrom(e.target.value); setPage(1); }}
+              className="h-6 px-2 rounded-lg border border-slate-200 text-[10px] bg-white dark:bg-slate-800" />
+            <span className="text-[10px] text-slate-400">→</span>
+            <input type="date" value={customTo} onChange={e => { setCustomTo(e.target.value); setPage(1); }}
+              className="h-6 px-2 rounded-lg border border-slate-200 text-[10px] bg-white dark:bg-slate-800" />
+          </div>
+        )}
       </div>
 
       {/* Card tabel */}

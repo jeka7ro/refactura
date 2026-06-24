@@ -807,10 +807,10 @@ export const appRouter = router({
       authUrl.searchParams.append("state", String(ctx.user.tenantId));
       return { url: authUrl.toString() };
     }),
-    syncSpv: protectedProcedure.mutation(async ({ ctx }) => {
+    syncSpv: protectedProcedure.input(z.object({ zile: z.number().min(1).max(365).optional() }).optional()).mutation(async ({ ctx, input }) => {
       if (!ctx.user?.tenantId) throw new Error('No tenant context');
       const { syncAllSpv } = await import('./spvCron');
-      await syncAllSpv();
+      await syncAllSpv(input?.zile || 60);
       return { success: true };
     }),
     syncSmartBill: protectedProcedure.mutation(async ({ ctx }) => {

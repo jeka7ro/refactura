@@ -10,6 +10,13 @@ export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
       _db = drizzle(process.env.DATABASE_URL);
+      // Safe migration: add rawXml column if missing
+      try {
+        await _db.execute(sql`ALTER TABLE invoiceArchive ADD COLUMN rawXml LONGTEXT NULL`);
+        console.log("[DB] Added rawXml column to invoiceArchive");
+      } catch {
+        // Column already exists — ignore
+      }
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;

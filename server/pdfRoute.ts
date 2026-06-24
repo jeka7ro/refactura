@@ -93,5 +93,55 @@ export function registerPdfRoute(app: any) {
     }
   });
 
+  // GET /api/pdf/archive/:id — Convert stored XML to PDF on-the-fly via ANAF
+  router.get("/archive/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) { res.status(400).json({ error: "ID invalid" }); return; }
+
+      const db = await getDb();
+      if (!db) { res.status(500).json({ error: "DB unavailable" }); return; }
+
+      const { invoiceArchive } = await import("../drizzle/schema");
+      const [inv] = await db.select().from(invoiceArchive).where(eq(invoiceArchive.id, id));
+      if (!inv) { res.status(404).json({ error: "Factura nu a fost găsită" }); return; }
+
+      if (!inv.rawXml) {
+        res.status(404).json({ error: "XML-ul original nu este disponibil pentru această factură" });
+        return;
+      }
+
+      // Convert XML to PDF using ANAF service
+      const anafRes = await fetch("https://webservicesp.anaf.ro/prod/FCTEL/rest/transformare/FACT1/DA", {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: inv.rawXml,
+        signal: AbortSignal.timeout(30000),
+      });
+
+      if (!anafRes.ok) {
+        const txt = await anafRes.text().catch(() => "");
+        res.status(502).json({ error: `ANAF PDF conversion failed: ${anafRes.status} ${txt}` });
+        return;
+      }
+
+      const pdfBuffer = await anafRes.arrayBuffer();
+      const header = Buffer.from(pdfBuffer.slice(0, 5)).toString("utf8");
+      if (!header.includes("%PDF")) {
+        res.status(502).json({ error: "ANAF nu a returnat un PDF valid" });
+        return;
+      }
+
+      const filename = `Factura_${inv.invoiceNumber || id}.pdf`;
+      const isDownload = req.query.download === "1";
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `${isDownload ? "attachment" : "inline"}; filename="${filename}"`);
+      res.send(Buffer.from(pdfBuffer));
+    } catch (e: any) {
+      console.error("[PDF Archive Route] Error:", e.message);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.use("/api/pdf", router);
 }

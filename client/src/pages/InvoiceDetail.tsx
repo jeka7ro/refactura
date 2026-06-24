@@ -145,45 +145,56 @@ export default function InvoiceDetail() {
       </div>
 
       {/* PDF View / Actions */}
-      {invoice.fileUrl && invoice.fileUrl !== "spv_import" ? (
-        <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col h-[700px] overflow-hidden">
-          <div className="flex items-center justify-between p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Vizualizare Factură PDF
-            </h3>
-            <div className="flex items-center gap-2">
-              <a
-                href={invoice.fileUrl}
-                download
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold transition-colors"
-              >
-                Descarcă
-              </a>
-              <a
-                href={`mailto:?subject=Factura ${invoice.invoiceNumber}&body=Regăsiți atașată factura ${invoice.invoiceNumber}.%0D%0A%0D%0ALink: ${encodeURIComponent(invoice.fileUrl)}`}
-                className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors"
-              >
-                Trimite pe Email
-              </a>
+      {(() => {
+        // Determine PDF URL — either stored file or on-demand ANAF conversion
+        const hasPdf = invoice.fileUrl && invoice.fileUrl !== "spv_import";
+        const pdfUrl = hasPdf ? invoice.fileUrl : (invoice.source === "spv_anaf" ? `/api/pdf/archive/${invoiceId}` : null);
+
+        if (pdfUrl) {
+          return (
+            <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col h-[700px] overflow-hidden">
+              <div className="flex items-center justify-between p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Vizualizare Factură PDF
+                  {!hasPdf && <span className="text-[10px] font-normal text-purple-600 bg-purple-50 px-2 py-0.5 rounded-lg border border-purple-200">via ANAF</span>}
+                </h3>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={`${pdfUrl}${pdfUrl.includes("?") ? "&" : "?"}download=1`}
+                    download
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold transition-colors"
+                  >
+                    Descarcă
+                  </a>
+                  <a
+                    href={`mailto:?subject=Factura ${invoice.invoiceNumber}&body=Regăsiți atașată factura ${invoice.invoiceNumber}.`}
+                    className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors"
+                  >
+                    Trimite pe Email
+                  </a>
+                </div>
+              </div>
+              <iframe
+                src={pdfUrl}
+                className="w-full flex-1 bg-slate-100 dark:bg-slate-900/50"
+                title="Factura PDF"
+              />
             </div>
+          );
+        }
+
+        return (
+          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-8 text-center">
+            <FileText className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+            <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">
+              Fișierul PDF nu este disponibil pentru această factură.
+            </p>
           </div>
-          <iframe
-            src={invoice.fileUrl}
-            className="w-full flex-1 bg-slate-100 dark:bg-slate-900/50"
-            title="Factura PDF"
-          />
-        </div>
-      ) : (
-        <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-8 text-center">
-          <FileText className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">
-            Fișierul PDF nu este disponibil pentru această factură.
-          </p>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

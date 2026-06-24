@@ -18,7 +18,7 @@ export function startSpvCron() {
   });
 }
 
-export async function syncAllSpv() {
+export async function syncAllSpv(zile: number = 60) {
   const db = await getDb();
   if (!db) return;
 
@@ -29,11 +29,11 @@ export async function syncAllSpv() {
     if (!intg.apiKey) continue;
 
     const cif = process.env.SPV_CUI || "42322117";
-    console.log(`[SPV Cron] Syncing for tenant ${intg.tenantId}, CIF ${cif}`);
+    console.log(`[SPV Cron] Syncing for tenant ${intg.tenantId}, CIF ${cif}, zile=${zile}`);
 
     try {
       // 1. Fetch invoice messages from ANAF e-Factura (last 60 days)
-      const listUrl = `${ANAF_LIST_URL}?zile=60&cif=${cif}`;
+      const listUrl = `${ANAF_LIST_URL}?zile=${zile}&cif=${cif}`;
       console.log(`[SPV Cron] Fetching: ${listUrl}`);
 
       const response = await fetch(listUrl, {
@@ -160,7 +160,7 @@ export async function syncAllSpv() {
         const direction = msg.tip?.includes("PRIMITA") ? "in" : "out";
 
         // Check for duplicate by invoice number + supplier
-        const [dup] = await db.select({ id: invoiceArchive.id })
+        const [dup] = await db.select({ id: invoiceArchive.id, rawXml: invoiceArchive.rawXml })
           .from(invoiceArchive)
           .where(and(
             eq(invoiceArchive.tenantId, intg.tenantId),
@@ -169,7 +169,13 @@ export async function syncAllSpv() {
           ));
 
         if (dup) {
-          console.log(`[SPV Cron] Duplicate: ${invoiceNumber} from ${supplierName}, skipping`);
+          // If duplicate exists but has no XML stored, update it
+          if (!dup.rawXml) {
+            await db.update(invoiceArchive)
+              .set({ rawXml: xmlString })
+              .where(eq(invoiceArchive.id, dup.id));
+            console.log(`[SPV Cron] Updated XML for existing invoice ${invoiceNumber}`);
+          }
           skipped++;
           continue;
         }
@@ -183,7 +189,7 @@ export async function syncAllSpv() {
           console.warn(`[SPV Cron] PDF conversion failed for ${invoiceNumber}: ${pdfErr.message}`);
         }
 
-        // Save to invoiceArchive
+        // Save to invoiceArchive (with raw XML for PDF conversion)
         await createInvoiceArchiveEntry({
           tenantId: intg.tenantId,
           source: "spv_anaf",
@@ -200,6 +206,7 @@ export async function syncAllSpv() {
           totalVAT: String(totalVAT),
           currency,
           status: "pending",
+          rawXml: xmlString,
         });
 
         imported++;
