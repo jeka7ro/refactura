@@ -192,8 +192,9 @@ export const appRouter = router({
             totalVAT: inv.totalVAT.toString() as any,
             currency: inv.currency,
             source: "spv_anaf",
-            direction: "in",   // SPV = facturi primite de la furnizori
+            direction: "in",
             status: "pending",
+            rawXml: inv.xmlContent || null,
           });
           
           if (inv.lines.length > 0) {
@@ -817,6 +818,62 @@ export const appRouter = router({
       if (!ctx.user?.tenantId) throw new Error('No tenant context');
       const { syncSmartBillInvoices } = await import('./smartbillSync');
       return syncSmartBillInvoices(ctx.user.tenantId);
+    }),
+    // Backfill rawXml for existing SPV invoices
+    repopulateXml: protectedProcedure.mutation(async ({ ctx }) => {
+      if (!ctx.user?.tenantId) throw new Error('No tenant context');
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+
+      // Find all SPV invoices without rawXml
+      const missing = await db.select({ id: invoiceArchive.id, fileName: invoiceArchive.fileName, tenantId: invoiceArchive.tenantId })
+        .from(invoiceArchive)
+        .where(and(
+          eq(invoiceArchive.tenantId, ctx.user.tenantId),
+          eq(invoiceArchive.source, 'spv_anaf'),
+          sql`rawXml IS NULL`
+        ));
+
+      if (!missing.length) return { updated: 0 };
+
+      // Get SPV token
+      const [spvIntg] = await db.select().from(integrations)
+        .where(and(
+          eq(integrations.tenantId, ctx.user.tenantId),
+          eq(integrations.provider, 'spv'),
+          eq(integrations.status, 'active')
+        ));
+
+      if (!spvIntg?.apiKey) throw new Error('SPV nu este conectat');
+
+      const AdmZip = (await import('adm-zip')).default;
+      let updated = 0;
+
+      for (const inv of missing) {
+        // Try to extract download ID from fileName
+        const match = inv.fileName?.match(/SPV_(\d+)/);
+        if (!match) continue;
+
+        try {
+          const zipRes = await fetch(`https://api.anaf.ro/prod/FCTEL/rest/descarcare?id=${match[1]}`, {
+            headers: { 'Authorization': `Bearer ${spvIntg.apiKey}` },
+            signal: AbortSignal.timeout(30000),
+          });
+          if (!zipRes.ok) continue;
+
+          const buffer = await zipRes.arrayBuffer();
+          const zip = new AdmZip(Buffer.from(buffer));
+          const xmlEntry = zip.getEntries().find(e =>
+            e.entryName.toLowerCase().endsWith('.xml') && !e.entryName.toLowerCase().includes('semnatura')
+          );
+          if (xmlEntry) {
+            const xmlContent = xmlEntry.getData().toString('utf8');
+            await db.update(invoiceArchive).set({ rawXml: xmlContent }).where(eq(invoiceArchive.id, inv.id));
+            updated++;
+          }
+        } catch {}
+      }
+      return { updated, total: missing.length };
     }),
   }),
 });
