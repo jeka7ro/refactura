@@ -106,70 +106,129 @@ function drawTotals(doc: PDFKit.PDFDocument, data: ReInvoiceData, afterY: number
   return y + 34;
 }
 
-// ─── TEMPLATE 1: CLASSIC ─────────────────────────────────────────────────────
-// Aspect profesional clasic: header text centrat, linie separator, tabel cu borduri
-
 function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   const leftX = 40;
   const pageWidth = doc.page.width - 80;
-  const now = new Date();
+  let y = 40;
 
-  // Logo
-  let headerY = 40;
-  if (data.logoBase64) { drawLogo(doc, data.logoBase64, leftX, headerY, 100, 50); }
+  // Header: Left "Factura", Right "Seria și numărul"
+  doc.fontSize(24).font("Helvetica-Bold").fillColor("#000000").text("Factura", leftX, y);
+  
+  const rightColX = leftX + pageWidth - 180;
+  doc.fontSize(16).font("Helvetica-Bold").text(data.number, rightColX, y, { width: 180, align: "right" });
+  
+  y += 30;
+  doc.fontSize(9).font("Helvetica-Bold");
+  doc.text("Data emiterii:", rightColX, y, { width: 80 });
+  doc.font("Helvetica").text(new Date(data.date).toLocaleDateString("ro-RO"), rightColX + 80, y, { width: 100, align: "right" });
+  
+  y += 12;
+  doc.font("Helvetica-Bold").text("Termen plata:", rightColX, y, { width: 80 });
+  doc.font("Helvetica").text(new Date(data.dueDate).toLocaleDateString("ro-RO"), rightColX + 80, y, { width: 100, align: "right" });
 
-  // Title
-  doc.fontSize(22).font("Helvetica-Bold").fillColor("#1e293b")
-    .text("RE-FACTURĂ FISCALĂ", 0, 45, { align: "center" });
-  doc.fontSize(10).font("Helvetica").fillColor("#64748b")
-    .text(`Nr. ${data.number}  |  Data: ${new Date(data.date).toLocaleDateString("ro-RO")}  |  Scadență: ${new Date(data.dueDate).toLocaleDateString("ro-RO")}`, 0, 72, { align: "center" });
+  y += 30;
+  doc.moveTo(leftX, y).lineTo(leftX + pageWidth, y).strokeColor("#000000").lineWidth(1).stroke();
+  y += 15;
 
-  doc.moveTo(leftX, 92).lineTo(leftX + pageWidth, 92).strokeColor("#cbd5e1").lineWidth(1).stroke();
-  doc.moveDown(0.5);
+  // Furnizor / Client columns
+  const colW = pageWidth / 2 - 20;
+  
+  // Furnizor Column
+  doc.fontSize(9).font("Helvetica-Bold").text("Furnizor:", leftX, y);
+  doc.fontSize(11).text(data.companyName, leftX, y + 12, { width: colW });
+  
+  let leftInfoY = y + 30;
+  const addInfo = (label: string, val: string, x: number, currY: number) => {
+    if (!val) return currY;
+    doc.fontSize(8).font("Helvetica-Bold").text(label, x, currY, { width: 60 });
+    doc.font("Helvetica").text(val, x + 60, currY, { width: colW - 60 });
+    return currY + 12;
+  };
 
-  // Emitent / Client columns
-  const colW = pageWidth / 2 - 10;
-  let y = 105;
-  doc.fontSize(8).font("Helvetica-Bold").fillColor("#64748b")
-    .text("EMITENT", leftX, y).text("DESTINATAR", leftX + colW + 20, y);
-  y += 14;
-  const infoLines = (name: string, cui: string, addr: string, city: string, phone: string, email: string, iban: string, bank: string) =>
-    [`${name}`, `CUI: ${cui}`, `${addr}`, `${city}`, `Tel: ${phone}`, `Email: ${email}`, `IBAN: ${iban}`, `Banca: ${bank}`];
+  leftInfoY = addInfo("CIF:", data.companyCUI, leftX, leftInfoY);
+  leftInfoY = addInfo("Adresa:", `${data.companyAddress}, ${data.companyCity}`, leftX, leftInfoY);
+  leftInfoY = addInfo("IBAN (RON):", data.companyIBAN, leftX, leftInfoY);
+  leftInfoY = addInfo("Banca:", data.companyBank, leftX, leftInfoY);
+  leftInfoY = addInfo("Tel.:", data.companyPhone, leftX, leftInfoY);
+  leftInfoY = addInfo("Email:", data.companyEmail, leftX, leftInfoY);
 
-  const emitentLines = infoLines(data.companyName, data.companyCUI, data.companyAddress, `${data.companyCity} ${data.companyCounty}`, data.companyPhone, data.companyEmail, data.companyIBAN, data.companyBank);
-  const clientLines  = infoLines(data.clientName, data.clientCUI, data.clientAddress, `${data.clientCity} ${data.clientCounty}`, data.clientPhone, data.clientEmail, "", "");
+  // Client Column
+  doc.fontSize(9).font("Helvetica-Bold").text("Client:", leftX + colW + 20, y);
+  doc.fontSize(11).text(data.clientName, leftX + colW + 20, y + 12, { width: colW });
+  
+  let rightInfoY = y + 30;
+  rightInfoY = addInfo("CIF:", data.clientCUI, leftX + colW + 20, rightInfoY);
+  rightInfoY = addInfo("Adresa:", `${data.clientAddress}, ${data.clientCity}`, leftX + colW + 20, rightInfoY);
+  rightInfoY = addInfo("Tel.:", data.clientPhone, leftX + colW + 20, rightInfoY);
+  rightInfoY = addInfo("Email:", data.clientEmail, leftX + colW + 20, rightInfoY);
 
-  doc.fontSize(9).font("Helvetica").fillColor("#1e293b");
-  emitentLines.forEach((l, i) => { if (l.trim() !== "IBAN: " && l.trim() !== "Banca: ") doc.text(l, leftX, y + i * 13, { width: colW }); });
-  clientLines.forEach((l, i)  => { if (l.trim() !== "IBAN: " && l.trim() !== "Banca: ") doc.text(l, leftX + colW + 20, y + i * 13, { width: colW }); });
-
-  y += 115;
-  doc.moveTo(leftX, y).lineTo(leftX + pageWidth, y).strokeColor("#cbd5e1").lineWidth(0.5).stroke();
-  y += 10;
+  y = Math.max(leftInfoY, rightInfoY) + 20;
 
   // Table header
-  const colWidths = { desc: 210, qty: 55, price: 85, vat: 45, total: 85 };
-  doc.rect(leftX, y, pageWidth, 22).fillColor("#1e293b").fill();
-  doc.fontSize(8).font("Helvetica-Bold").fillColor("#ffffff");
-  doc.text("DESCRIERE", leftX + 5, y + 6, { width: colWidths.desc - 8 });
-  doc.text("CANT.", leftX + colWidths.desc, y + 6, { width: colWidths.qty - 4, align: "right" });
-  doc.text("PREȚ/U", leftX + colWidths.desc + colWidths.qty, y + 6, { width: colWidths.price - 4, align: "right" });
-  doc.text("TVA", leftX + colWidths.desc + colWidths.qty + colWidths.price, y + 6, { width: colWidths.vat - 4, align: "right" });
-  doc.text("TOTAL", leftX + colWidths.desc + colWidths.qty + colWidths.price + colWidths.vat, y + 6, { width: colWidths.total - 4, align: "right" });
-  y += 22;
+  doc.moveTo(leftX, y).lineTo(leftX + pageWidth, y).lineWidth(1.5).stroke();
+  y += 6;
+  
+  const colWidths = { crt: 30, desc: 180, um: 30, qty: 50, price: 70, val: 70, vat: 50 };
+  doc.fontSize(8).font("Helvetica-Bold");
+  
+  let curX = leftX;
+  doc.text("Nr.", curX, y, { width: colWidths.crt }); curX += colWidths.crt;
+  doc.text("Denumire produse / servicii", curX, y, { width: colWidths.desc }); curX += colWidths.desc;
+  doc.text("UM", curX, y, { width: colWidths.um, align: "center" }); curX += colWidths.um;
+  doc.text("Cantitate", curX, y, { width: colWidths.qty, align: "center" }); curX += colWidths.qty;
+  doc.text("Preț unitar", curX, y, { width: colWidths.price, align: "right" }); curX += colWidths.price;
+  doc.text("Valoare", curX, y, { width: colWidths.val, align: "right" }); curX += colWidths.val;
+  doc.text("Valoare TVA", curX, y, { width: colWidths.vat, align: "right" });
+  
+  y += 15;
+  doc.moveTo(leftX, y).lineTo(leftX + pageWidth, y).lineWidth(1.5).stroke();
+  y += 8;
 
-  y = drawTableRows(doc, data, y, leftX, pageWidth, "#f8fafc", "#ffffff");
-  y = drawTotals(doc, data, y, leftX, pageWidth, "#1e293b");
+  // Table rows
+  doc.font("Helvetica").fontSize(8);
+  data.lines.forEach((line, idx) => {
+    if (y > doc.page.height - 100) { doc.addPage(); y = 50; }
+    
+    curX = leftX;
+    const rowH = doc.heightOfString(line.description, { width: colWidths.desc }) + 5;
+    
+    doc.text((idx + 1).toString(), curX, y, { width: colWidths.crt }); curX += colWidths.crt;
+    doc.text(line.description, curX, y, { width: colWidths.desc }); curX += colWidths.desc;
+    doc.text(line.unit, curX, y, { width: colWidths.um, align: "center" }); curX += colWidths.um;
+    doc.text(line.quantity.toString(), curX, y, { width: colWidths.qty, align: "center" }); curX += colWidths.qty;
+    doc.text(line.unitPrice.toFixed(2), curX, y, { width: colWidths.price, align: "right" }); curX += colWidths.price;
+    doc.text((line.quantity * line.unitPrice).toFixed(2), curX, y, { width: colWidths.val, align: "right" }); curX += colWidths.val;
+    doc.text(line.total.toFixed(2), curX, y, { width: colWidths.vat, align: "right" });
+    
+    y += Math.max(rowH, 15);
+  });
+
+  y += 10;
+  doc.moveTo(leftX, y).lineTo(leftX + pageWidth, y).lineWidth(1).strokeColor("#cccccc").stroke();
+  y += 10;
+
+  // Footer Totals
+  const totW = 200;
+  const totX = leftX + pageWidth - totW;
+  
+  doc.font("Helvetica-Bold").fontSize(9);
+  doc.text("Total fără TVA:", totX, y, { width: 100 });
+  doc.font("Helvetica").text(`${data.subtotal.toFixed(2)} ${data.currency}`, totX + 100, y, { width: 100, align: "right" });
+  y += 15;
+  
+  doc.font("Helvetica-Bold").text("Total TVA:", totX, y, { width: 100 });
+  doc.font("Helvetica").text(`${data.totalVAT.toFixed(2)} ${data.currency}`, totX + 100, y, { width: 100, align: "right" });
+  y += 15;
+
+  doc.rect(totX, y, totW, 25).fillColor("#f1f5f9").fill();
+  doc.fillColor("#000000").font("Helvetica-Bold").fontSize(11);
+  doc.text("TOTAL DE PLATĂ:", totX + 5, y + 8, { width: 100 });
+  doc.text(`${data.total.toFixed(2)} ${data.currency}`, totX + 95, y + 8, { width: 100, align: "right" });
 
   if (data.notes) {
-    y += 12;
-    doc.fontSize(9).font("Helvetica-Bold").fillColor("#64748b").text("Observații:", leftX, y);
-    doc.fontSize(9).font("Helvetica").fillColor("#1e293b").text(data.notes, leftX, y + 13, { width: pageWidth });
+    doc.fontSize(8).font("Helvetica-Bold").text("Observații:", leftX, y + 35);
+    doc.font("Helvetica").text(data.notes, leftX, y + 47, { width: pageWidth });
   }
-
-  const footerY = doc.page.height - 35;
-  doc.fontSize(7.5).font("Helvetica").fillColor("#94a3b8")
-    .text(`Generat de RefacturaRO • ${now.toLocaleDateString("ro-RO")} ${now.toLocaleTimeString("ro-RO")}`, leftX, footerY, { width: pageWidth, align: "center" });
 }
 
 // ─── TEMPLATE 2: MODERN ──────────────────────────────────────────────────────
