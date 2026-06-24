@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUpDown, Search, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, Loader2 } from "lucide-react";
 
 export interface DataTableColumn<T> {
   key: keyof T;
@@ -18,6 +18,7 @@ interface DataTableProps<T> {
   onSelectionChange?: (selectedRows: T[]) => void;
   actions?: (row: T) => React.ReactNode;
   isLoading?: boolean;
+  searchable?: boolean;
 }
 
 export function DataTable<T>({
@@ -29,11 +30,12 @@ export function DataTable<T>({
   onSelectionChange,
   actions,
   isLoading = false,
+  searchable = true,
 }: DataTableProps<T>) {
   const [sortColumn, setSortColumn] = useState<keyof T | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(15);
   const [selectedRows, setSelectedRows] = useState<Set<any>>(new Set());
   const [search, setSearch] = useState("");
 
@@ -59,9 +61,8 @@ export function DataTable<T>({
     });
   }, [filteredData, sortColumn, sortDirection]);
 
-  // Paginate data
+  // Paginate
   const total = sortedData.length;
-  const filtered = filteredData.length;
   const totalPages = Math.max(1, Math.ceil(total / rowsPerPage));
   const paginatedData = useMemo(() => {
     const start = (page - 1) * rowsPerPage;
@@ -101,129 +102,123 @@ export function DataTable<T>({
     onSelectionChange?.(selectedRowsData);
   };
 
-  return (
-    <div>
-      {/* ── SEARCH BAR ── */}
-      <div className="relative mb-4">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-        <input
-          className="w-full pl-10 pr-4 py-2.5 bg-white/50 backdrop-blur-md border border-slate-200/60 rounded-full text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all shadow-sm"
-          placeholder="Caută în tabel..."
-          value={search}
-          onChange={e => { setSearch(e.target.value); setPage(1); }}
-        />
-        {search && (
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm">
-            {filtered} / {data.length}
-          </div>
-        )}
-      </div>
+  const colCount = columns.length + (selectable ? 1 : 0) + (actions ? 1 : 0) + 1;
 
-      {/* ── TABLE ── */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+  return (
+    <div className="space-y-2">
+      {/* Search */}
+      {searchable && (
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="relative px-3 py-2">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            <input
+              className="w-full sm:w-64 pl-7 pr-3 h-8 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
+              placeholder="Caută număr, partener..."
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1); }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Table card */}
+      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-slate-50/50 text-slate-500 font-medium border-b border-slate-200">
-            <tr>
-              {selectable && (
-                <th className="px-4 py-3 w-12">
-                  <input
-                    type="checkbox"
-                    checked={selectedRows.size === paginatedData.length && paginatedData.length > 0}
-                    onChange={handleSelectAll}
-                    className="rounded border-slate-300 text-primary focus:ring-primary"
-                  />
-                </th>
-              )}
-              <th className="px-4 py-3 w-16 text-center">Nr.</th>
-              {columns.map((col) => (
-                <th
-                  key={String(col.key)}
-                  className={`px-4 py-3 cursor-pointer hover:text-slate-700 transition-colors ${col.className || ''}`}
-                  onClick={() => col.sortable && handleSort(col.key)}
-                >
-                  <div className="flex items-center gap-2">
-                    {col.label}
-                    {col.sortable && <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />}
-                  </div>
-                </th>
-              ))}
-              {actions && (
-                <th className="px-4 py-3 text-right">ACȚIUNI</th>
-              )}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {isLoading ? (
-              <tr>
-                <td colSpan={columns.length + (selectable ? 1 : 0) + (actions ? 1 : 0) + 1} className="p-8 text-center">
-                  <div className="flex flex-col items-center justify-center text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin mb-2" />
-                    <span className="text-sm">Se încarcă datele...</span>
-                  </div>
-                </td>
+          <table className="w-full text-xs text-left">
+            <thead>
+              <tr className="border-b border-slate-200 dark:border-slate-800">
+                {selectable && (
+                  <th className="px-3 py-2 w-8">
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.size === paginatedData.length && paginatedData.length > 0}
+                      onChange={handleSelectAll}
+                      className="w-3 h-3 rounded border-slate-300"
+                    />
+                  </th>
+                )}
+                <th className="px-3 py-2 w-10 text-[10px] font-bold uppercase tracking-wider text-slate-400">Nr.</th>
+                {columns.map((col) => (
+                  <th
+                    key={String(col.key)}
+                    className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 ${col.sortable ? 'cursor-pointer hover:text-slate-600' : ''} ${col.className || ''}`}
+                    onClick={() => col.sortable && handleSort(col.key)}
+                  >
+                    <div className="flex items-center gap-1">
+                      {col.label}
+                      {col.sortable && sortColumn === col.key && (
+                        <span className="text-blue-500">{sortDirection === "asc" ? "↑" : "↓"}</span>
+                      )}
+                    </div>
+                  </th>
+                ))}
+                {actions && (
+                  <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right">ACȚIUNI</th>
+                )}
               </tr>
-            ) : paginatedData.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={columns.length + (selectable ? 1 : 0) + (actions ? 1 : 0) + 1}
-                  className="p-8 text-center text-slate-500 text-sm"
-                >
-                  Nicio înregistrare găsită
-                </td>
-              </tr>
-            ) : (
-              paginatedData.map((row, idx) => (
-                <tr
-                  key={String(row[rowKey])}
-                  className={`hover:bg-slate-50/50 transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
-                  onClick={() => onRowClick?.(row)}
-                >
-                  {selectable && (
-                    <td className="px-4 py-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedRows.has(row[rowKey])}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          handleSelectRow(row);
-                        }}
-                        className="rounded border-slate-300 text-primary focus:ring-primary"
-                      />
-                    </td>
-                  )}
-                  <td className="px-4 py-3 text-center text-slate-500 font-medium">
-                    {(page - 1) * rowsPerPage + idx + 1}
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {isLoading ? (
+                <tr>
+                  <td colSpan={colCount} className="p-8 text-center">
+                    <div className="flex flex-col items-center justify-center text-slate-400">
+                      <Loader2 className="w-5 h-5 animate-spin mb-1" />
+                      <span className="text-xs">Se încarcă...</span>
+                    </div>
                   </td>
-                  {columns.map((col) => (
-                    <td key={String(col.key)} className={`px-4 py-3 ${col.className || ''}`}>
-                      {col.render ? col.render(row[col.key], row) : String(row[col.key] || "")}
-                    </td>
-                  ))}
-                  {actions && (
-                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                      {actions(row)}
-                    </td>
-                  )}
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : paginatedData.length === 0 ? (
+                <tr>
+                  <td colSpan={colCount} className="p-8 text-center text-slate-400 text-xs">
+                    Nicio înregistrare găsită
+                  </td>
+                </tr>
+              ) : (
+                paginatedData.map((row, idx) => (
+                  <tr
+                    key={String(row[rowKey])}
+                    className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
+                    onClick={() => onRowClick?.(row)}
+                  >
+                    {selectable && (
+                      <td className="px-3 py-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedRows.has(row[rowKey])}
+                          onChange={(e) => { e.stopPropagation(); handleSelectRow(row); }}
+                          className="w-3 h-3 rounded border-slate-300"
+                        />
+                      </td>
+                    )}
+                    <td className="px-3 py-2 text-center text-[10px] text-slate-400 font-medium">
+                      {(page - 1) * rowsPerPage + idx + 1}
+                    </td>
+                    {columns.map((col) => (
+                      <td key={String(col.key)} className={`px-3 py-2 ${col.className || ''}`}>
+                        {col.render ? col.render(row[col.key], row) : String(row[col.key] || "")}
+                      </td>
+                    ))}
+                    {actions && (
+                      <td className="px-3 py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                        {actions(row)}
+                      </td>
+                    )}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
 
-        {/* ── PAGINATION ── */}
-        <div className="flex items-center justify-between px-4 py-3 bg-slate-50/50 border-t border-slate-200">
-          <div className="flex items-center gap-4 text-sm text-slate-500">
-            <div className="flex items-center gap-2">
+        {/* Pagination — compact, matching AllInvoices */}
+        <div className="flex items-center justify-between px-3 py-2 bg-slate-50/50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 text-[10px] text-slate-500">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
               Afișează
               <select
                 value={rowsPerPage}
-                onChange={(e) => {
-                  setRowsPerPage(Number(e.target.value));
-                  setPage(1);
-                }}
-                className="bg-white border border-slate-200 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30"
+                onChange={(e) => { setRowsPerPage(Number(e.target.value)); setPage(1); }}
+                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-1.5 py-0.5 text-[10px] focus:outline-none"
               >
                 <option value={10}>10</option>
                 <option value={15}>15</option>
@@ -232,41 +227,25 @@ export function DataTable<T>({
                 <option value={9999}>Toți</option>
               </select>
             </div>
-            <span>Total înregistrări: <span className="font-semibold text-slate-700">{filtered}</span></span>
+            <span>Total înregistrări: <strong className="text-slate-700 dark:text-slate-300">{filteredData.length}</strong></span>
           </div>
 
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-slate-500">
-              Pagina <span className="font-semibold text-slate-700">{page}</span> din {totalPages}
-            </span>
-            <div className="flex items-center gap-1">
-              <button
-                disabled={page === 1}
-                onClick={() => setPage(1)}
-                className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 disabled:opacity-50 transition-colors"
-              >
-                <ChevronsLeft className="w-4 h-4" />
-              </button>
+          <div className="flex items-center gap-2">
+            <span>Pg. <strong className="text-slate-700 dark:text-slate-300">{page}/{totalPages}</strong></span>
+            <div className="flex items-center gap-0.5">
               <button
                 disabled={page === 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 disabled:opacity-50 transition-colors"
+                className="w-5 h-5 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 disabled:opacity-30 transition-colors"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-3 h-3" />
               </button>
               <button
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 disabled:opacity-50 transition-colors"
+                className="w-5 h-5 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 disabled:opacity-30 transition-colors"
               >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-              <button
-                disabled={page >= totalPages}
-                onClick={() => setPage(totalPages)}
-                className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 disabled:opacity-50 transition-colors"
-              >
-                <ChevronsRight className="w-4 h-4" />
+                <ChevronRight className="w-3 h-3" />
               </button>
             </div>
           </div>

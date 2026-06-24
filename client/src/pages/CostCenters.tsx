@@ -113,47 +113,37 @@ export default function CostCenters() {
   ];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-5 max-w-full space-y-3">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Centre de Cost</h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">Gestionează locații și departamente separate</p>
+          <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">Centre de Cost</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Total: <strong>{costCenters.length}</strong> centre</p>
         </div>
-        <Button
+        <button
           onClick={() => {
             setEditingId(null);
             setFormData({ name: "", address: "", cui: "", email: "", phone: "", city: "", country: "" });
             setShowForm(!showForm);
           }}
-          className="gap-2"
+          className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors shadow-sm"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-3.5 h-3.5" />
           Adaugă Centru
-        </Button>
+        </button>
       </div>
 
-      {/* Micro KPI Headers */}
-      <div className="flex items-center gap-3 mt-2 mb-2">
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50/50 border border-blue-100/50 backdrop-blur-sm text-sm">
-          <MapPin className="w-4 h-4 text-blue-500" />
-          <span className="text-slate-600 font-medium">Total Centre:</span>
-          <span className="font-bold text-blue-700">{costCenters.length}</span>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-50/50 border border-green-100/50 backdrop-blur-sm text-sm">
-          <div className="w-4 h-4 rounded-md bg-green-500/20 flex items-center justify-center">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-600"></span>
-          </div>
-          <span className="text-slate-600 font-medium">Activ:</span>
-          <span className="font-bold text-green-700">{activeCount}</span>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-50/50 border border-purple-100/50 backdrop-blur-sm text-sm">
-          <div className="w-4 h-4 rounded-md bg-purple-500/20 flex items-center justify-center">
-            <span className="w-1.5 h-1.5 rounded-full bg-purple-600"></span>
-          </div>
-          <span className="text-slate-600 font-medium">Orașe:</span>
-          <span className="font-bold text-purple-700">{new Set(costCenters.map((c: any) => c.city).filter(Boolean)).size}</span>
-        </div>
+      {/* KPI pills */}
+      <div className="flex flex-wrap gap-1.5">
+        <span className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-xs font-semibold border bg-blue-50 text-blue-700 border-blue-200">
+          <MapPin className="w-3 h-3" /> Centre <strong>{costCenters.length}</strong>
+        </span>
+        <span className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-xs font-semibold border bg-emerald-50 text-emerald-700 border-emerald-200">
+          Activ <strong>{activeCount}</strong>
+        </span>
+        <span className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-xs font-semibold border bg-purple-50 text-purple-700 border-purple-200">
+          Orașe <strong>{new Set(costCenters.map((c: any) => c.city).filter(Boolean)).size}</strong>
+        </span>
       </div>
 
       {/* Form */}
@@ -240,18 +230,18 @@ export default function CostCenters() {
         rowKey="id"
         isLoading={isLoading}
         actions={(row) => (
-          <div className="flex gap-2 justify-end">
+          <div className="flex gap-1 justify-end">
             <button
               onClick={() => handleEdit(row)}
-              className="p-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 transition-colors"
+              className="w-6 h-6 rounded-lg border border-slate-200 bg-white hover:bg-blue-50 text-blue-600 transition-colors flex items-center justify-center"
             >
-              <Edit2 className="w-4 h-4" />
+              <Edit2 className="w-3 h-3" />
             </button>
             <button
               onClick={() => handleDelete(row.id)}
-              className="p-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors"
+              className="w-6 h-6 rounded-lg border border-slate-200 bg-white hover:bg-red-50 text-red-600 transition-colors flex items-center justify-center"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-3 h-3" />
             </button>
           </div>
         )}

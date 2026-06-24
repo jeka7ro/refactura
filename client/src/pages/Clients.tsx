@@ -146,16 +146,16 @@ export default function Clients() {
   ];
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header + KPI Cards — ascunse când formularul e deschis */}
+    <div className="p-3 sm:p-5 max-w-full space-y-3">
+      {/* Header + KPI — ascunse când formularul e deschis */}
       {!showForm && (
         <>
-          <div className="flex items-start justify-between">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Clienți</h1>
-              <p className="text-slate-600 dark:text-slate-400 mt-1">Gestionează clienții și contactele lor</p>
+              <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">Clienți</h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Total: <strong>{clients.length}</strong> clienți</p>
             </div>
-            <Button
+            <button
               onClick={() => {
                 setEditingId(null);
                 setFormData({
@@ -165,27 +165,21 @@ export default function Clients() {
                 });
                 setShowForm(true);
               }}
-              className="gap-2 rounded-lg"
+              className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors shadow-sm"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3.5 h-3.5" />
               Client nou
-            </Button>
+            </button>
           </div>
 
-          {/* Micro KPI Headers */}
-          <div className="flex items-center gap-3 mt-4 mb-2">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50/50 border border-blue-100/50 backdrop-blur-sm text-sm">
-              <Building2 className="w-4 h-4 text-blue-500" />
-              <span className="text-slate-600 font-medium">Total Clienți:</span>
-              <span className="font-bold text-blue-700">{clients.length}</span>
-            </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-50/50 border border-purple-100/50 backdrop-blur-sm text-sm">
-              <div className="w-4 h-4 rounded-md bg-purple-500/20 flex items-center justify-center">
-                <span className="w-1.5 h-1.5 rounded-full bg-purple-600"></span>
-              </div>
-              <span className="text-slate-600 font-medium">Orașe Unice:</span>
-              <span className="font-bold text-purple-700">{new Set(clients.map((c: any) => c.city).filter(Boolean)).size}</span>
-            </div>
+          {/* KPI pills — compact, matching AllInvoices */}
+          <div className="flex flex-wrap gap-1.5">
+            <span className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-xs font-semibold border bg-blue-50 text-blue-700 border-blue-200">
+              <Building2 className="w-3 h-3" /> Clienți <strong>{clients.length}</strong>
+            </span>
+            <span className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-xs font-semibold border bg-purple-50 text-purple-700 border-purple-200">
+              Orașe Unice <strong>{new Set(clients.map((c: any) => c.city).filter(Boolean)).size}</strong>
+            </span>
           </div>
         </>
       )}
@@ -193,9 +187,7 @@ export default function Clients() {
       {/* Titlu compact când form e deschis */}
       {showForm && (
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white">Clienți</h1>
-          </div>
+          <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">Clienți</h1>
         </div>
       )}
 
@@ -219,33 +211,31 @@ export default function Clients() {
 
       {/* Tabel */}
       {!showForm && (
-        <div className="mt-4">
-          <DataTable
-            columns={columns}
-            data={clients}
-            rowKey="id"
-            isLoading={isLoading}
-            actions={(row) => (
-              <div className="flex gap-2 justify-end">
-                <Link href={`/client/${row.id}`} className="p-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900/20 text-slate-600 dark:text-slate-400 transition-colors">
-                  <Eye className="w-4 h-4" />
-                </Link>
-                <button
-                  onClick={() => handleEdit(row)}
-                  className="p-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 transition-colors"
-                >
-                  <Edit2 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDelete(row.id)}
-                  className="p-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-          />
-        </div>
+        <DataTable
+          columns={columns}
+          data={clients}
+          rowKey="id"
+          isLoading={isLoading}
+          actions={(row) => (
+            <div className="flex gap-1 justify-end">
+              <Link href={`/client/${row.id}`} className="w-6 h-6 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition-colors flex items-center justify-center">
+                <Eye className="w-3 h-3" />
+              </Link>
+              <button
+                onClick={() => handleEdit(row)}
+                className="w-6 h-6 rounded-lg border border-slate-200 bg-white hover:bg-blue-50 text-blue-600 transition-colors flex items-center justify-center"
+              >
+                <Edit2 className="w-3 h-3" />
+              </button>
+              <button
+                onClick={() => handleDelete(row.id)}
+                className="w-6 h-6 rounded-lg border border-slate-200 bg-white hover:bg-red-50 text-red-600 transition-colors flex items-center justify-center"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+        />
       )}
 
     </div>

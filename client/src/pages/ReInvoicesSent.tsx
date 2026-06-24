@@ -100,131 +100,92 @@ export default function ReInvoicesSent() {
   ];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-5 max-w-full space-y-3">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Re-Facturi Emise</h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">Facturi generate către clienții finali</p>
+          <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">Re-Facturi Emise</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Total: <strong>{reInvoices.length}</strong> înregistrări</p>
         </div>
         <Link href="/facturi-primite">
-          <Button className="gap-2">
-            <Plus className="w-4 h-4" />
+          <button className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors shadow-sm">
+            <Plus className="w-3.5 h-3.5" />
             Re-Factură nouă
-          </Button>
+          </button>
         </Link>
       </div>
 
-      {/* Micro KPI Headers */}
-      <div className="flex flex-wrap items-center gap-3 mt-2 mb-2">
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100/80 border border-slate-200/60 backdrop-blur-sm text-sm">
-          <span className="text-slate-600 font-medium">TOTAL EMISE:</span>
-          <span className="font-bold text-slate-800">{reInvoices.length}</span>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50/80 border border-emerald-100/60 backdrop-blur-sm text-sm">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-          <span className="text-slate-600 font-medium">ACHITATE:</span>
-          <span className="font-bold text-emerald-700">{reInvoices.filter((r) => r.status === "paid").length}</span>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50/80 border border-blue-100/60 backdrop-blur-sm text-sm">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-          <span className="text-slate-600 font-medium">TRIMISE:</span>
-          <span className="font-bold text-blue-700">{reInvoices.filter((r) => r.status === "sent").length}</span>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50/80 border border-slate-200/60 backdrop-blur-sm text-sm">
-          <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-          <span className="text-slate-600 font-medium">CIORNĂ:</span>
-          <span className="font-bold text-slate-700">{reInvoices.filter((r) => r.status === "draft").length}</span>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-50/80 border border-rose-100/60 backdrop-blur-sm text-sm">
-          <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-          <span className="text-slate-600 font-medium">RESTANȚE:</span>
-          <span className="font-bold text-rose-700">{reInvoices.filter((r) => r.status === "overdue").length}</span>
-        </div>
+      {/* Filtre tip — matching AllInvoices style */}
+      <div className="flex flex-wrap gap-1.5">
+        {([
+          { id: "all",     label: "Toate",    count: reInvoices.length, cls: "bg-slate-100 text-slate-700 border-slate-300" },
+          { id: "paid",    label: "Achitate", count: reInvoices.filter((r) => r.status === "paid").length, cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+          { id: "sent",    label: "Trimise",  count: reInvoices.filter((r) => r.status === "sent").length, cls: "bg-blue-50 text-blue-700 border-blue-200" },
+          { id: "draft",   label: "Ciornă",   count: reInvoices.filter((r) => r.status === "draft").length, cls: "bg-slate-50 text-slate-600 border-slate-200" },
+          { id: "overdue", label: "Restanțe", count: reInvoices.filter((r) => r.status === "overdue").length, cls: "bg-rose-50 text-rose-700 border-rose-200" },
+        ] as const).map(f => (
+          <button
+            key={f.id}
+            onClick={() => setStatusFilter(f.id as any)}
+            className={`flex items-center gap-1.5 px-3 h-7 rounded-lg text-xs font-semibold border transition-all ${
+              statusFilter === f.id ? f.cls + " ring-1 ring-offset-1 ring-current" : "border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300"
+            }`}
+          >
+            {f.label} <span className="font-bold">{f.count}</span>
+          </button>
+        ))}
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col h-[calc(100vh-280px)] min-h-[500px]">
-        {/* Table Toolbar */}
-        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">Filtrare:</span>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-medium text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500"
+      <DataTable 
+        columns={columns} 
+        data={filtered} 
+        rowKey="id" 
+        searchable={true} 
+        isLoading={isLoading}
+        actions={(row) => (
+          <div className="flex items-center justify-end gap-1">
+            <a
+              href={`/api/pdf/reinvoice/${row.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-6 h-6 rounded-lg border border-slate-200 bg-white text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center"
+              title="Previzualizare PDF"
             >
-              <option value="all">Toate statusurile</option>
-              <option value="draft">Ciorne</option>
-              <option value="sent">Trimise</option>
-              <option value="paid">Achitate</option>
-              <option value="overdue">Restanțe</option>
-            </select>
+              <Eye className="w-3 h-3" />
+            </a>
+            <a
+              href={`/api/pdf/reinvoice/${row.id}?download=1`}
+              download
+              className="w-6 h-6 rounded-lg border border-slate-200 bg-white text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center"
+              title="Descarcă PDF"
+            >
+              <Download className="w-3 h-3" />
+            </a>
+            <a
+              href={`mailto:${row.clientEmail || ''}?subject=Factura ${row.number}&body=Regăsiți atașată factura ${row.number}.`}
+              className="w-6 h-6 rounded-lg border border-slate-200 bg-white text-emerald-600 hover:bg-emerald-50 transition-colors flex items-center justify-center"
+              title="Trimite pe Email"
+            >
+              <Mail className="w-3 h-3" />
+            </a>
+            <button
+              onClick={handleSPV}
+              className="w-6 h-6 rounded-lg border border-slate-200 bg-white text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center justify-center"
+              title="Trimite în SPV"
+            >
+              <Send className="w-3 h-3" />
+            </button>
+            <button
+              onClick={() => setDeleteId(row.id)}
+              disabled={deleteReInvoice.isPending && deleteId === row.id}
+              className="w-6 h-6 rounded-lg border border-slate-200 bg-white text-rose-600 hover:bg-rose-50 transition-colors flex items-center justify-center disabled:opacity-50"
+              title="Șterge"
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
           </div>
-        </div>
-
-        <DataTable 
-          columns={columns} 
-          data={filtered} 
-          rowKey="id" 
-          searchable={true} 
-          isLoading={isLoading}
-          actions={(row) => (
-            <div className="flex items-center justify-end gap-2">
-              {/* Ochi = previzualizare PDF în tab nou (inline) */}
-              <a
-                href={`/api/pdf/reinvoice/${row.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center"
-                title="Previzualizare PDF"
-              >
-                <Eye className="w-4 h-4" />
-              </a>
-              {/* Download = descarcă PDF ca fișier */}
-              <a
-                href={`/api/pdf/reinvoice/${row.id}?download=1`}
-                download
-                className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center"
-                title="Descarcă PDF"
-              >
-                <Download className="w-4 h-4" />
-              </a>
-              <a
-                href={`mailto:${row.clientEmail || ''}?subject=Factura ${row.number}&body=Regăsiți atașată factura ${row.number}.%0D%0A%0D%0ALink: ${encodeURIComponent(window.location.origin + '/api/pdf/reinvoice/' + row.id)}`}
-                className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-emerald-600 hover:bg-emerald-50 transition-colors flex items-center justify-center"
-                title="Trimite pe Email"
-              >
-                <Mail className="w-4 h-4" />
-              </a>
-              <button
-                onClick={handleSPV}
-                className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center justify-center"
-                title="Trimite în SPV"
-              >
-                <Send className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setDeleteId(row.id)}
-                disabled={deleteReInvoice.isPending && deleteId === row.id}
-                className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-rose-600 hover:bg-rose-50 transition-colors flex items-center justify-center disabled:opacity-50"
-                title="Șterge"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-        />
-        
-        {/* Footer Totals */}
-        <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex justify-end">
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Total Afișat</span>
-            <span className="text-xl font-bold text-slate-900 dark:text-white">
-              {formatCurrency(totalValue, "RON")}
-            </span>
-          </div>
-        </div>
-      </div>
+        )}
+      />
 
       <AlertDialog open={deleteId !== null} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
