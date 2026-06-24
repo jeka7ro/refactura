@@ -249,6 +249,7 @@ export default function ReInvoicesSent() {
         data={filtered} 
         rowKey="id" 
         searchable={true} 
+        onRowClick={(row) => { window.location.href = `/re-facturi/${row.id}` }}
         headerContent={
           <>
             {([
@@ -273,15 +274,13 @@ export default function ReInvoicesSent() {
         isLoading={isLoading}
         actions={(row) => (
           <div className="flex items-center justify-end gap-1">
-            <a
-              href={`/api/pdf/reinvoice/${row.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={() => window.location.href = `/re-facturi/${row.id}`}
               className="w-6 h-6 rounded-lg border border-slate-200 bg-white text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center"
-              title="Previzualizare PDF"
+              title="Vizualizare Detaliată"
             >
               <Eye className="w-3 h-3" />
-            </a>
+            </button>
             <a
               href={`/api/pdf/reinvoice/${row.id}?download=1`}
               download

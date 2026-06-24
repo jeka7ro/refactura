@@ -11,6 +11,7 @@ import InvoicesEmitted from "./pages/InvoicesEmitted";
 import InvoiceDetail from "./pages/InvoiceDetail";
 import ReInvoice from "./pages/ReInvoice";
 import ReInvoicesSent from "./pages/ReInvoicesSent";
+import ReInvoiceDetail from "./pages/ReInvoiceDetail";
 import Clients from "./pages/Clients";
 import Integrations from "./pages/Integrations";
 import Settings from "./pages/Settings";
@@ -69,6 +70,11 @@ function Router() {
       <Route path="/re-facturi">
         <DashboardLayout>
           <ReInvoicesSent />
+        </DashboardLayout>
+      </Route>
+      <Route path="/re-facturi/:id">
+        <DashboardLayout>
+          <ReInvoiceDetail />
         </DashboardLayout>
       </Route>
       <Route path="/rapoarte">
