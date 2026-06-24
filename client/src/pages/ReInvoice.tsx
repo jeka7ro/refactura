@@ -39,7 +39,7 @@ export default function ReInvoice() {
       ? invoiceData.lines 
       : [{
           id: "line-auto-1",
-          name: `Refacturare prestări / bunuri conf. ${invoiceData.invoiceNumber || `INV-${invoiceData.id}`} (${invoiceData.supplierName || "Furnizor"})`,
+          description: `Refacturare prestări / bunuri conf. ${invoiceData.invoiceNumber || `INV-${invoiceData.id}`} (${invoiceData.supplierName || "Furnizor"})`,
           quantity: 1,
           unitPrice: parseFloat(String(invoiceData.totalVAT ? parseFloat(String(invoiceData.total)) - parseFloat(String(invoiceData.totalVAT)) : invoiceData.total || "0")),
           originalUnitPrice: parseFloat(String(invoiceData.totalVAT ? parseFloat(String(invoiceData.total)) - parseFloat(String(invoiceData.totalVAT)) : invoiceData.total || "0")),
@@ -79,12 +79,15 @@ export default function ReInvoice() {
       due.setDate(due.getDate() + 30);
       setDueDate(due.toISOString().split("T")[0]);
       setLines(
-        invoice.lines.map((l) => ({
-          ...l,
-          originalUnitPrice: l.unitPrice,
-          markupPercent: 15,
-          unitPrice: +(l.unitPrice * 1.15).toFixed(2),
-        }))
+        invoice.lines.map((l) => {
+          const uPrice = parseFloat(String(l.unitPrice || 0));
+          return {
+            ...l,
+            originalUnitPrice: uPrice,
+            markupPercent: 15,
+            unitPrice: +(uPrice * 1.15).toFixed(2),
+          };
+        })
       );
     }
   }, [invoice?.id]);
@@ -455,7 +458,7 @@ export default function ReInvoice() {
                       <td className="px-4 py-3">
                         <button
                           onClick={() => removeLine(line.id)}
-                          className="w-7 h-7 rounded-full hover:bg-rose-50 hover:text-rose-600 flex items-center justify-center transition-colors text-slate-400"
+                          className="w-7 h-7 rounded-lg hover:bg-rose-50 hover:text-rose-600 flex items-center justify-center transition-colors text-slate-400"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>

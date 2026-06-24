@@ -147,8 +147,9 @@ export default function InvoiceDetail() {
       {/* PDF View / Actions */}
       {(() => {
         // Determine PDF URL — either stored file or on-demand ANAF conversion
-        const hasPdf = invoice.fileUrl && invoice.fileUrl !== "spv_import";
-        const pdfUrl = hasPdf ? invoice.fileUrl : (invoice.source === "spv_anaf" ? `/api/pdf/archive/${invoiceId}` : null);
+        const isSpv = invoice.source === "spv_anaf";
+        const hasPdf = isSpv || (invoice.fileUrl && invoice.fileUrl !== "spv_import");
+        const pdfUrl = isSpv ? `/api/pdf/archive/${invoiceId}` : invoice.fileUrl;
 
         if (pdfUrl) {
           return (

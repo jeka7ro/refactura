@@ -335,7 +335,7 @@ export default function InvoiceArchive() {
                             href={item.fileUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="w-7 h-7 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-colors"
+                            className="w-7 h-7 rounded-lg border border-slate-200 bg-white flex items-center justify-center hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-colors"
                             title="Descarcă"
                           >
                             <Download className="w-3.5 h-3.5" />
@@ -343,18 +343,18 @@ export default function InvoiceArchive() {
                         )}
                         <button
                           onClick={() => openMetaModal(item)}
-                          className="w-7 h-7 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-amber-50 hover:border-amber-200 hover:text-amber-600 transition-colors"
+                          className="w-7 h-7 rounded-lg border border-slate-200 bg-white flex items-center justify-center hover:bg-amber-50 hover:border-amber-200 hover:text-amber-600 transition-colors"
                           title="Editează metadate"
                         >
                           <Tag className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => {
-                            if (confirm("Ștergi această factură din arhivă?")) {
+                            if (window.confirm("Sigur ștergi această înregistrare?")) {
                               deleteMutation.mutate({ id: item.id });
                             }
                           }}
-                          className="w-7 h-7 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors"
+                          className="w-7 h-7 rounded-lg border border-slate-200 bg-white flex items-center justify-center hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors"
                           title="Șterge"
                         >
                           <Trash2 className="w-3.5 h-3.5" />

@@ -344,7 +344,7 @@ export default function AllInvoices() {
 
       {/* Filtre perioadă */}
       <div className="flex flex-wrap items-center gap-1.5">
-        <Calendar className="w-3.5 h-3.5 text-slate-400" />
+        <Calendar className="w-4 h-4 text-slate-400" />
         {([
           { id: "all",       label: "Toate" },
           { id: "today",     label: "Azi" },
@@ -358,10 +358,10 @@ export default function AllInvoices() {
           <button
             key={f.id}
             onClick={() => { setPeriod(f.id); setPage(1); }}
-            className={`px-2.5 h-6 rounded-lg text-[10px] font-semibold border transition-all ${
+            className={`px-3 h-7 rounded-lg text-xs font-semibold border transition-all ${
               period === f.id
                 ? "bg-blue-50 text-blue-700 border-blue-200 ring-1 ring-offset-1 ring-blue-400"
-                : "border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300"
+                : "bg-white border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300"
             }`}
           >
             {f.label}
