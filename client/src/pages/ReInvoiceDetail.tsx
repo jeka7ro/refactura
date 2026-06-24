@@ -1,16 +1,28 @@
 import { Link, useParams } from "wouter";
-import { ArrowLeft, FileText, Building2, Calendar, Hash, Globe, Loader2, Download, Mail } from "lucide-react";
+import { ArrowLeft, FileText, Building2, Calendar, Hash, Globe, Loader2, Download, Mail, Send, AlertCircle } from "lucide-react";
 import { formatCurrency, formatDate, invoiceStatusLabels, invoiceStatusColors } from "@/lib/store";
 import { trpc } from "@/lib/trpc";
+import { toast } from "react-hot-toast";
 
 export default function ReInvoiceDetail() {
   const { id } = useParams<{ id: string }>();
   const invoiceId = parseInt(id || "0");
+  const utils = trpc.useContext();
 
   const { data: invoice, isLoading } = trpc.reinvoice.getById.useQuery(
     { id: invoiceId },
     { enabled: !!id && !isNaN(invoiceId) }
   );
+
+  const sendToSpv = trpc.reinvoice.sendToSpv.useMutation({
+    onSuccess: () => {
+      toast.success("Factura a fost trimisă în SPV cu succes!");
+      utils.reinvoice.getById.invalidate({ id: invoiceId });
+    },
+    onError: (err) => {
+      toast.error(err.message || "Eroare la trimiterea în SPV");
+    }
+  });
 
   if (isLoading) {
     return (
@@ -57,11 +69,43 @@ export default function ReInvoiceDetail() {
         </div>
         
         <div className="flex items-center gap-2">
+          {(!invoice.spvStatus || invoice.spvStatus === "nesincronizat" || invoice.spvStatus === "eroare") && (
+            <button
+              onClick={() => sendToSpv.mutate({ id: invoiceId })}
+              disabled={sendToSpv.isLoading}
+              className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-colors border border-indigo-200"
+            >
+              {sendToSpv.isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+              Trimite în SPV
+            </button>
+          )}
+          {invoice.spvStatus === "in_procesare" && (
+            <div className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold border border-blue-200">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              Procesare SPV
+            </div>
+          )}
+          {invoice.spvStatus === "validat" && (
+            <div className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
+              <FileText className="w-3.5 h-3.5" />
+              Validat SPV
+            </div>
+          )}
           <div className={`px-2.5 py-1 rounded-full text-xs font-bold border ${(invoiceStatusColors as any)[status] || "bg-slate-100 text-slate-600"}`}>
             {(invoiceStatusLabels as any)[status] || status}
           </div>
         </div>
       </div>
+
+      {invoice.spvStatus === "eroare" && invoice.spvError && (
+        <div className="bg-rose-50 border border-rose-200 rounded-lg p-4 flex gap-3 text-rose-700">
+          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <h4 className="font-bold mb-1">Eroare validare SPV ANAF</h4>
+            <p className="whitespace-pre-wrap font-mono text-xs opacity-90">{invoice.spvError}</p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Col - Details */}

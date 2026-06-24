@@ -277,6 +277,35 @@ export const appRouter = router({
           ...input,
         });
       }),
+    
+    sendToSpv: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        
+        // 1. Get invoice and lines
+        const invoiceData = await getReInvoiceById(input.id, ctx.user.tenantId);
+        if (!invoiceData) throw new Error("Invoice not found");
+        
+        // 2. Get tenant
+        const { tenants } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const tenantData = await db.select().from(tenants).where(eq(tenants.id, ctx.user.tenantId)).limit(1);
+        if (tenantData.length === 0) throw new Error("Tenant not found");
+        
+        // 3. Generate XML
+        const { generateUblXml } = await import("./anafXmlGenerator");
+        const xmlContent = generateUblXml(invoiceData as any, invoiceData.lines as any, tenantData[0]);
+        
+        // 4. Upload to ANAF
+        const { uploadInvoiceToSPV } = await import("./anafApi");
+        const result = await uploadInvoiceToSPV(ctx.user.tenantId, input.id, xmlContent, tenantData[0].cui || "");
+        
+        return result;
+      }),
+      
     // Update status
     updateStatus: protectedProcedure
       .input(z.object({

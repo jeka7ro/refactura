@@ -168,6 +168,18 @@ export default function ReInvoicesSent() {
         </span>
       ),
     },
+    {
+      key: "spvStatus",
+      label: "SPV",
+      sortable: true,
+      render: (value: string) => {
+        if (!value || value === "nesincronizat") return <span className="text-[10px] font-bold text-slate-400">Nesincronizat</span>;
+        if (value === "in_procesare") return <span className="text-[10px] font-bold text-blue-500">În Procesare</span>;
+        if (value === "validat") return <span className="text-[10px] font-bold text-emerald-500">Validat</span>;
+        if (value === "eroare") return <span className="text-[10px] font-bold text-rose-500">Eroare</span>;
+        return <span>{value}</span>;
+      }
+    }
   ];
 
   return (

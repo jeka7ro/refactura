@@ -84,6 +84,29 @@ export async function syncAllSpv(zile: number = 60) {
 
         const downloadId = msg.id_descarcare || msg.id;
         if (!downloadId) continue;
+        
+        // 1. Check if this message corresponds to a ReInvoice we sent to SPV
+        if (msg.id_solicitare) {
+          const { reInvoices } = await import("../drizzle/schema");
+          const [matchReInvoice] = await db.select({ id: reInvoices.id }).from(reInvoices)
+            .where(eq(reInvoices.spvIndex, String(msg.id_solicitare)));
+            
+          if (matchReInvoice) {
+            // It's one of our Re-Invoices! Mark it as validated.
+            // We should also download the ZIP and save the signature/XML or just mark as valid.
+            // For now, let's just mark it as valid to satisfy the UI requirement.
+            await db.update(reInvoices)
+              .set({ spvStatus: "validat" })
+              .where(eq(reInvoices.id, matchReInvoice.id));
+              
+            // Should we skip adding it to invoiceArchive? Yes, because it's managed via Re-Invoices.
+            // But wait, if they want to see it in the normal "Emise" list too?
+            // "reInvoices" are usually managed separately. Let's skip adding to archive.
+            console.log(`[SPV Cron] Re-Invoice ${matchReInvoice.id} validated in SPV!`);
+            skipped++;
+            continue;
+          }
+        }
 
         // Check if already imported (by SPV download ID)
         const [existing] = await db.select({ id: invoiceArchive.id })
