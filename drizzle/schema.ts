@@ -393,6 +393,8 @@ export const invoiceArchive = mysqlTable("invoiceArchive", {
   currency: varchar("currency", { length: 3 }).default("RON"),
   // Source tracking
   source: mysqlEnum("source", ["smartbill", "oblio", "fgo", "spv_anaf", "efactura", "pdf_manual", "xml_manual", "other"]).default("pdf_manual"),
+  // Direction: 'out' = emise de tine catre clienti, 'in' = primite de la furnizori
+  direction: mysqlEnum("direction", ["in", "out"]).default("in"),
   // Status
   status: mysqlEnum("status", ["pending", "processed", "refactured", "archived"]).default("pending"),
   // Link to re-invoice if refactured

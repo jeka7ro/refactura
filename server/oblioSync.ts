@@ -1,6 +1,9 @@
 /**
- * Oblio API Sync — TRADE INVEST NETWORK S.R.L. (CIF 42322117)
+ * Oblio API Sync — facturi EMISE (invoice/list) + descărcare e-Factura XML
  * Auth: email + API Secret → Bearer token → fetch invoices → save to invoiceArchive
+ *
+ * NOTĂ: Oblio API nu expune facturile PRIMITE (de la furnizori).
+ * Facturile primite se importă manual din SPV → pagina Integrări → Import XML e-Factura.
  */
 import { createInvoiceArchiveEntry, getDb } from "./db";
 import { integrations, invoiceArchive, clients } from "../drizzle/schema";
@@ -19,7 +22,6 @@ async function getOblioToken(): Promise<string> {
     throw new Error("OBLIO_EMAIL sau OBLIO_API_SECRET lipsesc din .env");
   }
 
-  // Return cached token if still valid (with 60s buffer)
   if (cachedToken && Date.now() < cachedToken.expiresAt - 60_000) {
     return cachedToken.token;
   }
@@ -66,7 +68,6 @@ export async function syncOblioInvoices(tenantId: number): Promise<{ imported: n
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
 
-    // Fetch all pages of invoices
     let offset = 0;
     const limit = 50;
     let hasMore = true;
@@ -86,20 +87,17 @@ export async function syncOblioInvoices(tenantId: number): Promise<{ imported: n
 
       const data = await res.json();
       const invoices = data.data || [];
-      
+
       console.log(`[Oblio] Fetched ${invoices.length} invoices (offset=${offset})`);
-      
+
       if (invoices.length < limit) {
         hasMore = false;
       }
 
       for (const inv of invoices) {
         try {
-          // Build a unique identifier to avoid duplicates
           const invoiceNumber = `${inv.seriesName}-${inv.number}`;
-          const oblioId = inv.id;
 
-          // Check if already imported using oblio ID stored in notes
           const [existing] = await db
             .select({ id: invoiceArchive.id })
             .from(invoiceArchive)
@@ -114,7 +112,6 @@ export async function syncOblioInvoices(tenantId: number): Promise<{ imported: n
             continue;
           }
 
-          // Skip draft invoices
           if (inv.draft === "1") {
             skipped++;
             continue;
@@ -124,7 +121,6 @@ export async function syncOblioInvoices(tenantId: number): Promise<{ imported: n
           if (inv.client?.name && inv.client.name.trim()) {
             try {
               const clientCui = inv.client.cif || "";
-              // Check if client already exists (by CUI or by name for this tenant)
               let clientExists = false;
               if (clientCui) {
                 const [existingClient] = await db
@@ -133,7 +129,7 @@ export async function syncOblioInvoices(tenantId: number): Promise<{ imported: n
                   .where(and(eq(clients.tenantId, tenantId), eq(clients.cui, clientCui)));
                 clientExists = !!existingClient;
               }
-              
+
               if (!clientExists) {
                 await db.insert(clients).values({
                   tenantId,
@@ -152,20 +148,20 @@ export async function syncOblioInvoices(tenantId: number): Promise<{ imported: n
                 console.log(`[Oblio] New client added: ${inv.client.name}`);
               }
             } catch (e: any) {
-              // Don't fail the invoice import if client upsert fails
               console.warn(`[Oblio] Could not upsert client ${inv.client.name}: ${e.message}`);
             }
           }
 
-          const total = Math.abs(parseFloat(inv.total || "0"));
-          // For storno invoices, total is negative — we keep abs value and note it
-          const isStorno = inv.storno === "1";
+          const totalRaw = parseFloat(inv.total || "0");
+          const isStorno = inv.storno === "1" || totalRaw < 0;
           const isCanceled = inv.canceled === "1";
+          const total = isStorno ? -Math.abs(totalRaw) : Math.abs(totalRaw);
 
           await createInvoiceArchiveEntry({
             tenantId,
             source: "oblio",
-            fileType: "other",
+            direction: "out",
+            fileType: "pdf",
             fileName: `Oblio_${invoiceNumber}.pdf`,
             fileUrl: inv.link || undefined,
             invoiceNumber,
@@ -174,11 +170,11 @@ export async function syncOblioInvoices(tenantId: number): Promise<{ imported: n
             issueDate: inv.issueDate || "",
             dueDate: inv.dueDate || "",
             total: String(total),
-            totalVAT: String(Math.round(total * 0.19 * 100) / 100),
+            totalVAT: String(Math.round(Math.abs(total) * 0.19 * 100) / 100 * (isStorno ? -1 : 1)),
             currency: inv.currency || "RON",
-            status: isCanceled ? "archived" : "pending",
+            status: isStorno ? "storno" : (isCanceled ? "archived" : "pending"),
             notes: [
-              `Oblio ID: ${oblioId}`,
+              `Oblio ID: ${inv.id}`,
               isStorno ? "STORNO" : "",
               isCanceled ? "ANULATĂ" : "",
               inv.collected === "1" ? "Încasată" : "",

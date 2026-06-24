@@ -18,7 +18,8 @@ export default function Reports() {
   // Date reale
   const { data: reInvoices = [], isLoading: loadingRI } = trpc.reinvoice.list.useQuery();
   const { data: dbClients = [], isLoading: loadingCl } = trpc.clients.list.useQuery();
-  const { data: archiveInvoices = [], isLoading: loadingAI } = trpc.invoiceArchive.list.useQuery();
+  const { data: archiveData, isLoading: loadingAI } = trpc.invoiceArchive.list.useQuery();
+  const archiveInvoices = (archiveData as any)?.items ?? [];
 
   const loading = loadingRI || loadingCl || loadingAI;
 
@@ -143,7 +144,7 @@ export default function Reports() {
 
       {/* Chart evoluție lunară */}
       {monthlyData.length > 0 && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+        <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-6">
           <div className="flex items-center gap-2 mb-6">
             <LineChartIcon className="w-5 h-5 text-blue-600" />
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">Evoluție Venituri (ultimele 6 luni)</h2>
@@ -163,7 +164,7 @@ export default function Reports() {
       )}
 
       {/* Top Clienți */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+      <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-6">
         <div className="flex items-center gap-2 mb-6">
           <BarChart3 className="w-5 h-5 text-violet-600" />
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">Top Clienți după venituri</h2>
@@ -205,7 +206,7 @@ export default function Reports() {
 
       {/* Facturi din arhivă */}
       {archiveInvoices.length > 0 && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+        <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-6">
           <div className="flex items-center gap-2 mb-4">
             <Users className="w-5 h-5 text-blue-600" />
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">Facturi în arhivă</h2>
@@ -246,7 +247,7 @@ export default function Reports() {
 
 function KPICard({ title, value, icon, iconBg, sub }: { title: string; value: string; icon: React.ReactNode; iconBg: string; sub?: string }) {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 space-y-3">
+    <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-5 space-y-3">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-wider text-slate-500">{title}</p>

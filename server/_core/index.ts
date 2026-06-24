@@ -10,6 +10,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { registerAnafProxy } from "../anafProxy";
+import { registerPdfRoute } from "../pdfRoute";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -40,6 +41,7 @@ async function startServer() {
   registerOAuthRoutes(app);
   registerUploadRoute(app);
   registerAnafProxy(app);
+  registerPdfRoute(app);
   
   const { registerSpvAuth } = await import("../spvAuth");
   registerSpvAuth(app);

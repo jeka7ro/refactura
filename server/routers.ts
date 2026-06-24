@@ -7,8 +7,9 @@ import { generateReInvoicePDF } from "./pdf";
 import { getDb, getTenantsByUser, getUserRole, createTenant, updateTenantSettings, createCostCenter, getCostCentersByTenant, updateCostCenter, deleteCostCenter, getCostCenterById, getClientsByTenant, createClient, updateClient, deleteClient, getClientById, createLead, getAllLeads, updateLeadStatus, deleteLead, getAllSubscriptionPlans, createSubscriptionPlan, updateSubscriptionPlan, deleteSubscriptionPlan, getCmsSettings, upsertCmsSetting, getAdminStats, getAllAccounts, getAllTenants, recordPageVisit, getPageVisitStats, getAllModules, getActiveModulesWithPricing, upsertModule, deleteModule, upsertModulePricing, deleteModulePricing, createReInvoice, getReInvoicesByTenant, getReInvoiceById, updateReInvoiceStatus, deleteReInvoice, getNextReInvoiceNumber, getInvoiceArchiveList, createInvoiceArchiveEntry, getInvoiceArchiveById, updateInvoiceArchiveEntry, deleteInvoiceArchiveEntry, getInvoiceArchiveStats, getIntegrations, upsertIntegration } from "./db";
 import { authenticateAccount, createAccount, getAccountByEmail } from "./auth";
 import { createSessionToken } from "./session";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { invoiceArchive, invoiceArchiveLines } from "../drizzle/schema";
+import { convertXmlToPdf } from "./anafPdf";
 
 export const appRouter = router({
   system: systemRouter,
@@ -119,11 +120,24 @@ export const appRouter = router({
   }),
 
   invoices: router({
+    // Facturi PRIMITE (de la furnizori) — direction = 'in'
     list: protectedProcedure.query(async ({ ctx }) => {
       if (!ctx.user?.tenantId) throw new Error("No tenant context");
       const db = await getDb();
       if (!db) return [];
-      const res = await db.select().from(invoiceArchive).where(eq(invoiceArchive.tenantId, ctx.user.tenantId)).orderBy(desc(invoiceArchive.createdAt));
+      const res = await db.select().from(invoiceArchive)
+        .where(and(eq(invoiceArchive.tenantId, ctx.user.tenantId), eq(invoiceArchive.direction, "in")))
+        .orderBy(desc(invoiceArchive.createdAt));
+      return res;
+    }),
+    // Facturi EMISE (catre clienti) — direction = 'out'
+    listEmise: protectedProcedure.query(async ({ ctx }) => {
+      if (!ctx.user?.tenantId) throw new Error("No tenant context");
+      const db = await getDb();
+      if (!db) return [];
+      const res = await db.select().from(invoiceArchive)
+        .where(and(eq(invoiceArchive.tenantId, ctx.user.tenantId), eq(invoiceArchive.direction, "out")))
+        .orderBy(desc(invoiceArchive.createdAt));
       return res;
     }),
     importSpv: protectedProcedure
@@ -136,6 +150,7 @@ export const appRouter = router({
         total: z.number(),
         totalVAT: z.number(),
         currency: z.string().default("RON"),
+        xmlContent: z.string().optional(),
         lines: z.array(z.object({
           description: z.string(),
           quantity: z.number(),
@@ -153,10 +168,19 @@ export const appRouter = router({
         const insertedIds: number[] = [];
         
         for (const inv of input) {
+          let finalFileUrl = (inv as any).pdfUrl || "spv_import";
+          
+          if (inv.xmlContent) {
+            const pdfRes = await convertXmlToPdf(inv.xmlContent, `Factura_${inv.invoiceNumber}_${Date.now()}`);
+            if (pdfRes) {
+              finalFileUrl = pdfRes.url;
+            }
+          }
+
           const [result] = await db.insert(invoiceArchive).values({
             tenantId,
             fileKey: "spv_import",
-            fileUrl: "spv_import",
+            fileUrl: finalFileUrl,
             fileName: `Factura_${inv.invoiceNumber}.xml`,
             fileType: "xml",
             invoiceNumber: inv.invoiceNumber,
@@ -168,6 +192,7 @@ export const appRouter = router({
             totalVAT: inv.totalVAT.toString() as any,
             currency: inv.currency,
             source: "spv_anaf",
+            direction: "in",   // SPV = facturi primite de la furnizori
             status: "pending",
           });
           
@@ -303,6 +328,8 @@ export const appRouter = router({
         total: z.number(),
         currency: z.string(),
         notes: z.string().optional(),
+        logoBase64: z.string().optional(),
+        template: z.enum(["classic", "modern", "minimal"]).optional(),
       }))
       .mutation(({ input, ctx }) => {
         const pdfStream = generateReInvoicePDF(input);
@@ -767,8 +794,29 @@ export const appRouter = router({
     syncOblio: protectedProcedure.mutation(async ({ ctx }) => {
       if (!ctx.user?.tenantId) throw new Error('No tenant context');
       const { syncOblioInvoices } = await import('./oblioSync');
-      const result = await syncOblioInvoices(ctx.user.tenantId);
-      return result;
+      return syncOblioInvoices(ctx.user.tenantId);
+    }),
+    getSpvOAuthUrl: protectedProcedure.query(async ({ ctx }) => {
+      if (!ctx.user?.tenantId) throw new Error('No tenant context');
+      const clientId = process.env.SPV_CLIENT_ID;
+      const redirectUri = process.env.SPV_CALLBACK_URL || "https://refactura.up.railway.app/api/spv/callback";
+      const authUrl = new URL("https://logincert.anaf.ro/anaf-oauth2/v1/authorize");
+      authUrl.searchParams.append("response_type", "code");
+      authUrl.searchParams.append("client_id", clientId || "");
+      authUrl.searchParams.append("redirect_uri", redirectUri);
+      authUrl.searchParams.append("state", String(ctx.user.tenantId));
+      return { url: authUrl.toString() };
+    }),
+    syncSpv: protectedProcedure.mutation(async ({ ctx }) => {
+      if (!ctx.user?.tenantId) throw new Error('No tenant context');
+      const { syncAllSpv } = await import('./spvCron');
+      await syncAllSpv();
+      return { success: true };
+    }),
+    syncSmartBill: protectedProcedure.mutation(async ({ ctx }) => {
+      if (!ctx.user?.tenantId) throw new Error('No tenant context');
+      const { syncSmartBillInvoices } = await import('./smartbillSync');
+      return syncSmartBillInvoices(ctx.user.tenantId);
     }),
   }),
 });

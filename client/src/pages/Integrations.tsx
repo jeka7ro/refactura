@@ -2,9 +2,11 @@
 // Connect SmartBill, SPV, Oblio and other accounting systems
 
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Plug, Check, X, RefreshCw, AlertCircle, ExternalLink, Eye, EyeOff, Zap, Loader2, Bot, Send, ChevronDown, ChevronUp, Settings } from "lucide-react";
+import { Plug, Check, X, RefreshCw, AlertCircle, ExternalLink, Eye, EyeOff, Zap, Loader2, Bot, Send, ChevronDown, ChevronUp, Settings, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { parseEfacturaXML } from "@/lib/efactura";
+import JSZip from "jszip";
 
 // ── AI Assistant for setup guidance ────────────────────────────────────────
 
@@ -14,7 +16,7 @@ type SetupStep = "greeting" | "provider" | "oblio_email" | "oblio_secret" | "obl
 
 function useSetupAssistant(onConfigSave: (provider: string, config: Record<string, string>) => void) {
   const [messages, setMessages] = useState<Message[]>([
-    { role: "ai", text: "👋 Salut! Sunt asistentul tău de configurare. Te ajut să conectezi rapid o platformă de facturare.\n\nCe platformă vrei să conectezi?\n• **Oblio** — introdu `oblio`\n• **SmartBill** — introdu `smartbill`\n• **SPV ANAF** — introdu `spv`" }
+    { role: "ai", text: "Salut! Sunt asistentul de configurare. Te ajut sa conectezi rapid o platforma de facturare.\n\nCe platforma vrei sa conectezi?\n- **Oblio** — scrie `oblio`\n- **SmartBill** — scrie `smartbill`\n- **SPV ANAF** — scrie `spv`" }
   ]);
   const [step, setStep] = useState<SetupStep>("provider");
   const [draft, setDraft] = useState<Record<string, string>>({});
@@ -28,10 +30,10 @@ function useSetupAssistant(onConfigSave: (provider: string, config: Record<strin
       if (trimmed.includes("oblio")) {
         setSelectedProvider("oblio");
         setStep("oblio_email");
-        newMessages.push({ role: "ai", text: "Perfect! Oblio este o alegere excelentă 🧡\n\n**Pasul 1/3** — Care este adresa de email cu care ești logat pe oblio.eu?" });
+        newMessages.push({ role: "ai", text: "Perfect! **Pasul 1/3** — Care este adresa de email cu care esti logat pe oblio.eu?" });
       } else if (trimmed.includes("smartbill")) {
         setSelectedProvider("smartbill");
-        newMessages.push({ role: "ai", text: "SmartBill vine în curând! 🔜\n\nDeocamdată poți configura **Oblio** sau **SPV ANAF**. Care preferi?" });
+        newMessages.push({ role: "ai", text: "SmartBill vine in curand!\n\nDeocamdata poti configura **Oblio** sau **SPV ANAF**. Care preferi?" });
       } else if (trimmed.includes("spv")) {
         setSelectedProvider("spv");
         newMessages.push({ role: "ai", text: "Integrarea SPV ANAF necesită un certificat digital calificat și înregistrarea aplicației pe portalul ANAF. Contactează-ne pentru asistență sau alege **Oblio** pentru o configurare rapidă." });
@@ -44,7 +46,7 @@ function useSetupAssistant(onConfigSave: (provider: string, config: Record<strin
       } else {
         setDraft(d => ({ ...d, email: userText.trim() }));
         setStep("oblio_secret");
-        newMessages.push({ role: "ai", text: `Email salvat ✅\n\n**Pasul 2/3** — Acum am nevoie de **API Secret**.\n\nÎl găsești în Oblio la:\n🔗 Setări → Date Cont → câmpul **API secret**\n\nCopiază-l și paste-uiește-l aici.` });
+        newMessages.push({ role: "ai", text: `Email salvat.\n\n**Pasul 2/3** — Acum am nevoie de **API Secret**.\n\nIl gasesti in Oblio la:\nSetari → Date Cont → campul **API secret**\n\nCopiaza-l si paste-uieste-l aici.` });
       }
     } else if (step === "oblio_secret") {
       if (userText.trim().length < 20) {
@@ -52,7 +54,7 @@ function useSetupAssistant(onConfigSave: (provider: string, config: Record<strin
       } else {
         setDraft(d => ({ ...d, apiSecret: userText.trim() }));
         setStep("oblio_cif");
-        newMessages.push({ role: "ai", text: `API Secret salvat ✅\n\n**Pasul 3/3** — Ultimul pas! Am nevoie de **CUI-ul (CIF-ul) firmei** tale din Oblio.\n\nÎl găsești la:\n🔗 Setări → Date Firmă → câmpul **Cod Fiscal**\n\nEx: \`42322117\`` });
+        newMessages.push({ role: "ai", text: `API Secret salvat.\n\n**Pasul 3/3** — Ultimul pas! Am nevoie de **CUI-ul (CIF-ul) firmei** tale din Oblio.\n\nIl gasesti la:\nSetari → Date Firma → campul **Cod Fiscal**\n\nEx: \`42322117\`` });
       }
     } else if (step === "oblio_cif") {
       const cifClean = userText.trim().replace(/^RO/i, "");
@@ -62,7 +64,7 @@ function useSetupAssistant(onConfigSave: (provider: string, config: Record<strin
         const finalConfig = { ...draft, cif: cifClean };
         setDraft(finalConfig);
         setStep("done");
-        newMessages.push({ role: "ai", text: `✅ **Configurare completă!**\n\n📧 Email: ${finalConfig.email}\n🔑 API Secret: ${"•".repeat(Math.min(finalConfig.apiSecret?.length || 0, 20))}\n🏢 CIF: ${cifClean}\n\nSalvez acum configurarea și pornesc sincronizarea...` });
+        newMessages.push({ role: "ai", text: `Configurare completa!\n\nEmail: ${finalConfig.email}\nAPI Secret: ${"•".repeat(Math.min(finalConfig.apiSecret?.length || 0, 20))}\nCIF: ${cifClean}\n\nSalvez acum configurarea si pornesc sincronizarea...` });
         onConfigSave("oblio", finalConfig);
       }
     } else if (step === "done") {
@@ -143,28 +145,94 @@ function OblioConfigForm({ onSave, saving }: { onSave: (cfg: Record<string, stri
   );
 }
 
+function SmartBillConfigForm({ onSave, saving }: { onSave: (cfg: Record<string, string>) => void; saving: boolean }) {
+  const [email, setEmail] = useState("");
+  const [token, setToken] = useState("");
+  const [cif, setCif] = useState("");
+  const [showToken, setShowToken] = useState(false);
+
+  return (
+    <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
+      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Configurare SmartBill</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <input
+          type="email"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          placeholder="Email cont SmartBill"
+          className="h-9 px-3 text-sm rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+        />
+        <div className="relative">
+          <input
+            type={showToken ? "text" : "password"}
+            value={token}
+            onChange={e => setToken(e.target.value)}
+            placeholder="API Token"
+            className="w-full h-9 px-3 pr-9 text-sm rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+          <button
+            type="button"
+            onClick={() => setShowToken(s => !s)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+          >
+            {showToken ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+          </button>
+        </div>
+        <input
+          type="text"
+          value={cif}
+          onChange={e => setCif(e.target.value)}
+          placeholder="CIF firmă (ex: 42322117)"
+          className="h-9 px-3 text-sm rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+        />
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => {
+            if (!email || !token || !cif) { toast.error("Completează toate câmpurile"); return; }
+            onSave({ email, token, cif: cif.replace(/^RO/i, "") });
+          }}
+          disabled={saving}
+          className="flex items-center gap-1.5 px-4 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all disabled:opacity-60"
+        >
+          {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+          Salvează configurarea
+        </button>
+        <a
+          href="https://cloud.smartbill.ro/core/configurare/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1 text-xs text-slate-500 hover:text-blue-600 transition-colors"
+        >
+          <ExternalLink className="w-3 h-3" /> SmartBill → Setări API
+        </a>
+      </div>
+    </div>
+  );
+}
+
 // ── Main component ──────────────────────────────────────────────────────────
 
 const PROVIDERS = [
   {
-    id: "smartbill",
-    name: "SmartBill",
-    description: "Importă automat facturile emise și primite din SmartBill.",
-    logoColor: "#2563eb",
-    comingSoon: true,
-  },
-  {
     id: "spv",
     name: "SPV ANAF",
-    description: "Importă e-Factura din spațiul privat virtual prin OAuth2 sau XML manual.",
+    description: "Importă facturi primite (e-Factura XML) din spațiul privat virtual ANAF.",
     logoColor: "#3730a3",
     comingSoon: false,
   },
   {
     id: "oblio",
     name: "Oblio",
-    description: "Conectare Oblio pentru import facturi și sincronizare automată clienți.",
+    description: "Sincronizează facturi emise și clienți din Oblio.",
     logoColor: "#f97316",
+    comingSoon: false,
+  },
+  {
+    id: "smartbill",
+    name: "SmartBill",
+    description: "Importă automat facturile emise și primite din SmartBill.",
+    logoColor: "#2563eb",
     comingSoon: false,
   },
 ];
@@ -182,7 +250,7 @@ export default function Integrations() {
   });
   const syncOblioMutation = trpc.integrations.syncOblio.useMutation({
     onSuccess: (result) => {
-      const msg = `✅ Sync complet: ${result.imported} facturi noi, ${result.clientsImported} clienți noi`;
+      const msg = `Sync complet: ${result.imported} facturi noi, ${result.clientsImported} clienti noi`;
       toast.success(msg);
       refetch();
       setSyncing(null);
@@ -194,6 +262,29 @@ export default function Integrations() {
   });
 
   const getDbIntegration = (id: string) => dbIntegrations.find((i: any) => i.provider === id);
+  const getSpvOAuthUrl = trpc.integrations.getSpvOAuthUrl.useQuery();
+  const syncSpvMutation = trpc.integrations.syncSpv.useMutation({
+    onSuccess: () => {
+      toast.success("SPV sincronizat!");
+      refetch();
+    },
+    onError: (e) => {
+      toast.error("Eroare SPV: " + e.message);
+    }
+  });
+
+  const syncSmartBillMutation = trpc.integrations.syncSmartBill.useMutation({
+    onSuccess: (result) => {
+      const msg = `SmartBill sync complet: ${result.imported} facturi noi, ${result.clientsImported} clienți noi`;
+      toast.success(msg);
+      refetch();
+      setSyncing(null);
+    },
+    onError: (e) => {
+      toast.error("Eroare sync SmartBill: " + e.message);
+      setSyncing(null);
+    }
+  });
 
   const saveOblioConfig = async (config: Record<string, string>) => {
     await upsertMutation.mutateAsync({
@@ -202,13 +293,29 @@ export default function Integrations() {
       apiSecret: JSON.stringify({ email: config.email, cif: config.cif }),
       status: "active",
     });
-    toast.success("Oblio configurat cu succes! 🎉");
+    toast.success("Oblio configurat cu succes!");
     setConfiguringId(null);
   };
 
   const handleSyncOblio = () => {
     setSyncing("oblio");
     syncOblioMutation.mutate();
+  };
+
+  const handleSyncSmartBill = () => {
+    setSyncing("smartbill");
+    syncSmartBillMutation.mutate();
+  };
+
+  const saveSmartBillConfig = async (config: Record<string, string>) => {
+    await upsertMutation.mutateAsync({
+      provider: "smartbill",
+      apiKey: config.token,
+      apiSecret: JSON.stringify({ email: config.email, cif: config.cif }),
+      status: "active",
+    });
+    toast.success("SmartBill configurat cu succes!");
+    setConfiguringId(null);
   };
 
   // AI setup assistant
@@ -228,48 +335,83 @@ export default function Integrations() {
     aiEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // SPV file upload handler
-  const importSpvMutation = trpc.invoices.importFromSpv.useMutation({
-    onSuccess: (r) => toast.success(`${r.count} facturi importate din SPV`),
-    onError: (e) => toast.error(e.message),
-  });
+  // SPV file upload handler — import manual XML + ZIP e-Factura
+  const importSpvMutation = trpc.invoices.importSpv.useMutation();
+
+  const parseXmlFile = async (xmlText: string): Promise<any | null> => {
+    try {
+      const data = parseEfacturaXML(xmlText);
+      if (!data.issueDate && !data.total && !data.supplierName) return null;
+      if (!data.invoiceNumber) data.invoiceNumber = `XML-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      return { ...data, xmlContent: xmlText };
+    } catch {
+      return null;
+    }
+  };
 
   const handleSpvXml = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files?.length) return;
-    toast.loading("Procesare XML...", { id: "spv" });
-    try {
-      const parsedInvoices = [];
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        if (!file.name.endsWith(".xml")) continue;
-        const text = await file.text();
-        const doc = new DOMParser().parseFromString(text, "text/xml");
-        const get = (t: string) => doc.getElementsByTagName(t)[0]?.textContent || "";
-        parsedInvoices.push({
-          invoiceNumber: get("cbc:ID"),
-          supplierName: get("cbc:RegistrationName") || get("cbc:Name"),
-          supplierCUI: get("cbc:CompanyID"),
-          issueDate: get("cbc:IssueDate"),
-          dueDate: get("cbc:DueDate") || get("cbc:IssueDate"),
-          total: parseFloat(doc.getElementsByTagName("cac:LegalMonetaryTotal")[0]?.getElementsByTagName("cbc:TaxInclusiveAmount")[0]?.textContent || "0"),
-          totalVAT: parseFloat(doc.getElementsByTagName("cac:TaxTotal")[0]?.getElementsByTagName("cbc:TaxAmount")[0]?.textContent || "0"),
-          currency: get("cbc:DocumentCurrencyCode") || "RON",
-          lines: [],
-        });
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    toast.loading("Procesare fișiere SPV...", { id: "spv" });
+
+    const parsedInvoices: any[] = [];
+    let errorCount = 0;
+
+    for (const file of files) {
+      const name = file.name.toLowerCase();
+
+      // Handle ZIP files (SPV downloads)
+      if (name.endsWith(".zip")) {
+        try {
+          const zip = await JSZip.loadAsync(await file.arrayBuffer());
+          const xmlEntries = Object.values(zip.files).filter(
+            (f) => f.name.toLowerCase().endsWith(".xml") && !f.name.toLowerCase().includes("semnatura")
+          );
+          for (const entry of xmlEntries) {
+            const xmlText = await entry.async("text");
+            const parsed = await parseXmlFile(xmlText);
+            if (parsed) parsedInvoices.push(parsed);
+            else errorCount++;
+          }
+        } catch {
+          errorCount++;
+        }
+        continue;
       }
-      if (!parsedInvoices.length) { toast.error("Niciun XML valid", { id: "spv" }); return; }
+
+      // Handle bare XML files
+      if (name.endsWith(".xml")) {
+        const xmlText = await file.text();
+        const parsed = await parseXmlFile(xmlText);
+        if (parsed) parsedInvoices.push(parsed);
+        else errorCount++;
+        continue;
+      }
+
+      errorCount++;
+    }
+
+    if (!parsedInvoices.length) {
+      toast.error("Niciun fișier e-Factura valid", { id: "spv" });
+      e.target.value = "";
+      return;
+    }
+
+    try {
       await importSpvMutation.mutateAsync(parsedInvoices);
-      toast.success(`${parsedInvoices.length} facturi importate!`, { id: "spv" });
+      toast.success(
+        `${parsedInvoices.length} facturi importate!${errorCount ? ` (${errorCount} fișiere ignorate)` : ""}`,
+        { id: "spv" },
+      );
     } catch (err: any) {
-      toast.error(err.message, { id: "spv" });
+      toast.error(err?.message || "Eroare import", { id: "spv" });
     }
     e.target.value = "";
   };
 
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-6">
-      <input type="file" id="spv-file-input" multiple accept=".xml" className="hidden" onChange={handleSpvXml} />
+      <input type="file" id="spv-file-input" multiple accept=".xml,.zip" className="hidden" onChange={handleSpvXml} />
 
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -288,7 +430,7 @@ export default function Integrations() {
 
       {/* AI Assistant Panel */}
       {showAI && (
-        <div className="bg-white rounded-2xl border border-violet-200 shadow-lg overflow-hidden">
+        <div className="bg-white rounded-lg border border-violet-200 shadow-lg overflow-hidden">
           <div className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-violet-600 to-blue-600">
             <Bot className="w-4 h-4 text-white" />
             <span className="text-sm font-bold text-white">Asistent AI — Configurare integrări</span>
@@ -304,7 +446,7 @@ export default function Integrations() {
                     <Bot className="w-3 h-3 text-white" />
                   </div>
                 )}
-                <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm whitespace-pre-line ${
+                <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm whitespace-pre-line ${
                   m.role === "ai"
                     ? "bg-white border border-slate-200 text-slate-700 rounded-tl-sm"
                     : "bg-violet-600 text-white rounded-tr-sm"
@@ -345,12 +487,12 @@ export default function Integrations() {
           try { parsedMeta = db?.apiSecret ? JSON.parse(db.apiSecret) : {}; } catch {}
 
           return (
-            <div key={provider.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div key={provider.id} className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
               <div className="p-5">
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div className="flex items-center gap-4">
                     <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0"
+                      className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0"
                       style={{ backgroundColor: provider.logoColor }}
                     >
                       {provider.name.slice(0, 2)}
@@ -391,14 +533,52 @@ export default function Integrations() {
                           Sincronizează acum
                         </button>
                       )}
-                      {/* SPV: XML upload */}
-                      {provider.id === "spv" && (
+                      {/* SmartBill specific actions */}
+                      {provider.id === "smartbill" && isActive && (
                         <button
-                          onClick={() => document.getElementById("spv-file-input")?.click()}
-                          className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all"
+                          onClick={handleSyncSmartBill}
+                          disabled={syncing === "smartbill"}
+                          className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all disabled:opacity-60"
                         >
-                          <RefreshCw className="w-3 h-3" /> Import XML SPV
+                          {syncing === "smartbill" ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                          Sincronizează acum
                         </button>
+                      )}
+                      {/* SPV: OAuth & sync */}
+                      {provider.id === "spv" && (
+                        <div className="flex items-center gap-2">
+                          {isActive ? (
+                            <button
+                              onClick={() => syncSpvMutation.mutate()}
+                              disabled={syncSpvMutation.isPending}
+                              className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all disabled:opacity-60"
+                            >
+                              {syncSpvMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                              Sincronizează din SPV
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                if (getSpvOAuthUrl.data?.url) {
+                                  window.location.href = getSpvOAuthUrl.data.url;
+                                }
+                              }}
+                              disabled={getSpvOAuthUrl.isLoading}
+                              className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all disabled:opacity-60"
+                            >
+                              <Check className="w-3 h-3" />
+                              Conectează SPV
+                            </button>
+                          )}
+                          <button
+                            onClick={() => document.getElementById("spv-file-input")?.click()}
+                            disabled={importSpvMutation.isPending}
+                            className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-slate-600 hover:bg-slate-700 text-white text-xs font-bold transition-all disabled:opacity-60"
+                          >
+                            {importSpvMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                            Import ZIP/XML
+                          </button>
+                        </div>
                       )}
                       {/* Config toggle */}
                       {provider.id !== "spv" && (
@@ -424,9 +604,20 @@ export default function Integrations() {
                   </div>
                 )}
 
+                {/* Oblio info: doar facturi emise */}
+                {provider.id === "oblio" && isActive && (
+                  <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-700">
+                    <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span>Oblio API sincronizează doar <strong>facturile emise</strong>. Pentru facturi primite, folosește <strong>SPV ANAF → Import XML e-Factura</strong> (mai sus).</span>
+                  </div>
+                )}
+
                 {/* Configuration form */}
                 {isConfiguring && provider.id === "oblio" && (
                   <OblioConfigForm onSave={saveOblioConfig} saving={upsertMutation.isPending} />
+                )}
+                {isConfiguring && provider.id === "smartbill" && (
+                  <SmartBillConfigForm onSave={saveSmartBillConfig} saving={upsertMutation.isPending} />
                 )}
               </div>
             </div>
@@ -435,7 +626,7 @@ export default function Integrations() {
       </div>
 
       {/* Coming soon more */}
-      <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-6 text-center">
+      <div className="bg-white rounded-lg border border-dashed border-slate-300 p-6 text-center">
         <Plug className="w-7 h-7 text-slate-300 mx-auto mb-2" />
         <div className="text-sm font-bold text-slate-500">Mai multe integrări în curând</div>
         <div className="text-xs text-slate-400 mt-1">SmartBill, Saga, WinMentor, Ciel, QuickBooks...</div>

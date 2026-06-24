@@ -4,7 +4,7 @@
 export type Currency = "RON" | "EUR" | "USD" | "GBP" | "CHF";
 export type Language = "ro" | "en" | "de" | "fr";
 export type Country = "RO" | "DE" | "FR" | "GB" | "US";
-export type InvoiceStatus = "imported" | "re-invoiced" | "partial" | "pending";
+export type InvoiceStatus = "imported" | "re-invoiced" | "partial" | "pending" | "storno";
 export type ReInvoiceStatus = "draft" | "sent" | "paid" | "overdue";
 export type IntegrationSource = "SmartBill" | "SPV" | "Oblio" | "Manual";
 
@@ -436,6 +436,7 @@ export const invoiceStatusLabels: Record<InvoiceStatus, string> = {
   "re-invoiced": "Re-facturată",
   partial: "Parțial",
   pending: "În așteptare",
+  storno: "Storno",
 };
 
 export const reInvoiceStatusLabels: Record<ReInvoiceStatus, string> = {
@@ -450,6 +451,7 @@ export const invoiceStatusColors: Record<InvoiceStatus, string> = {
   "re-invoiced": "bg-emerald-50 text-emerald-600 border-emerald-200",
   partial: "bg-amber-50 text-amber-600 border-amber-200",
   pending: "bg-slate-50 text-slate-500 border-slate-200",
+  storno: "bg-rose-50 text-rose-600 border-rose-200",
 };
 
 export const reInvoiceStatusColors: Record<ReInvoiceStatus, string> = {

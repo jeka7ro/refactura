@@ -107,7 +107,7 @@ export default function Register() {
 
           <h1 className="text-3xl font-black text-slate-900 mb-6">Creează cont</h1>
 
-          <div className="bg-white p-8 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100">
+          <div className="bg-white p-8 rounded-lg shadow-xl shadow-slate-200/50 border border-slate-100">
           {error && (
             <div className="mb-5 p-4 bg-red-50 border border-red-200 rounded-lg flex gap-3 items-start">
               <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
@@ -241,7 +241,7 @@ export default function Register() {
               <button
                 type="button"
                 onClick={() => toast.info("Implementare în lucru", { description: "Vă rugăm să utilizați adresa de email temporar." })}
-                className="flex items-center justify-center gap-2 h-11 px-4 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-[0.98]"
+                className="flex items-center justify-center gap-2 h-11 px-4 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-[0.98]"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -254,7 +254,7 @@ export default function Register() {
               <button
                 type="button"
                 onClick={() => toast.info("Implementare în lucru", { description: "Vă rugăm să utilizați adresa de email temporar." })}
-                className="flex items-center justify-center gap-2 h-11 px-4 bg-[#1877F2] text-white rounded-xl text-sm font-semibold hover:bg-[#1865F2] shadow-sm transition-all active:scale-[0.98]"
+                className="flex items-center justify-center gap-2 h-11 px-4 bg-[#1877F2] text-white rounded-lg text-sm font-semibold hover:bg-[#1865F2] shadow-sm transition-all active:scale-[0.98]"
               >
                 <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />

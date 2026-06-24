@@ -1,6 +1,6 @@
 import { eq, and, desc, count, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, tenants, userTenants, costCenters, subscriptionPlans, clients, leads, cmsSettings, pageVisits, accounts, modules, modulePricing, reInvoices, reInvoiceLines, invoiceArchive, InsertInvoiceArchive, integrations } from "../drizzle/schema";
+import { InsertUser, users, tenants, userTenants, costCenters, subscriptionPlans, clients, leads, cmsSettings, pageVisits, accounts, modules, modulePricing, reInvoices, reInvoiceLines, invoiceArchive, invoiceArchiveLines, InsertInvoiceArchive, integrations } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -705,7 +705,10 @@ export async function getInvoiceArchiveById(id: number, tenantId: number) {
   if (!db) return null;
   const [entry] = await db.select().from(invoiceArchive)
     .where(and(eq(invoiceArchive.id, id), eq(invoiceArchive.tenantId, tenantId)));
-  return entry ?? null;
+  if (!entry) return null;
+  const lines = await db.select().from(invoiceArchiveLines)
+    .where(eq(invoiceArchiveLines.invoiceArchiveId, id));
+  return { ...entry, lines } as any;
 }
 
 export async function updateInvoiceArchiveEntry(id: number, tenantId: number, data: Partial<InsertInvoiceArchive>) {

@@ -158,7 +158,7 @@ export default function CostCenters() {
 
       {/* Form */}
       {showForm && (
-        <div className="p-6 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-4">
+        <div className="p-6 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-4">
           <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
             {editingId ? "Editează Centru" : "Adaugă Centru de Cost"}
           </h3>

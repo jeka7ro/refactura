@@ -10,6 +10,11 @@ import "./index.css";
 
 const queryClient = new QueryClient();
 
+// Aplică tema salvată imediat la startup (înainte de primul render)
+const savedTheme = localStorage.getItem("app-theme") ?? "blue";
+document.documentElement.setAttribute("data-theme", savedTheme);
+
+
 const redirectToLoginIfUnauthorized = (error: unknown) => {
   if (!(error instanceof TRPCClientError)) return;
   if (typeof window === "undefined") return;

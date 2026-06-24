@@ -1,16 +1,48 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { Plus, Loader2, Eye, Download } from "lucide-react";
+import { Plus, Loader2, Eye, Download, Trash2, Mail, Send } from "lucide-react";
 import { DataTable, DataTableColumn } from "@/components/DataTable";
 import { formatCurrency, formatDate, reInvoiceStatusLabels, reInvoiceStatusColors, type ReInvoiceStatus } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function ReInvoicesSent() {
   const [statusFilter, setStatusFilter] = useState<ReInvoiceStatus | "all">("all");
+  const [deleteId, setDeleteId] = useState<number | null>(null);
   
   const { data: dbReInvoices, isLoading } = trpc.reinvoice.list.useQuery();
   const reInvoices = dbReInvoices || [];
+  
+  const deleteReInvoice = trpc.reinvoice.delete.useMutation();
+  const utils = trpc.useUtils();
+
+  const handleDelete = async () => {
+    if (deleteId === null) return;
+    try {
+      await deleteReInvoice.mutateAsync({ id: deleteId });
+      await utils.reinvoice.list.invalidate();
+      toast.success("Re-factură ștearsă cu succes");
+    } catch (error: any) {
+      toast.error("Eroare la ștergere", { description: error.message });
+    } finally {
+      setDeleteId(null);
+    }
+  };
+
+  const handleSPV = () => {
+    toast.error("Funcționalitate în lucru", { description: "Trimiterea directă din aplicație în SPV necesită generarea formatului standard UBL XML. Momentan se generează doar formatul PDF." });
+  };
 
   const filtered = reInvoices.filter((ri) => {
     const matchStatus = statusFilter === "all" || ri.status === statusFilter;
@@ -111,7 +143,7 @@ export default function ReInvoicesSent() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col h-[calc(100vh-280px)] min-h-[500px]">
+      <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col h-[calc(100vh-280px)] min-h-[500px]">
         {/* Table Toolbar */}
         <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
@@ -119,7 +151,7 @@ export default function ReInvoicesSent() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-medium text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500"
+              className="h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-medium text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">Toate statusurile</option>
               <option value="draft">Ciorne</option>
@@ -138,11 +170,46 @@ export default function ReInvoicesSent() {
           isLoading={isLoading}
           actions={(row) => (
             <div className="flex items-center justify-end gap-2">
-              <button className="w-8 h-8 rounded-full border border-slate-200 bg-white text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center" title="Previzualizare">
+              {/* Ochi = previzualizare PDF în tab nou (inline) */}
+              <a
+                href={`/api/pdf/reinvoice/${row.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center"
+                title="Previzualizare PDF"
+              >
                 <Eye className="w-4 h-4" />
-              </button>
-              <button className="w-8 h-8 rounded-full border border-slate-200 bg-white text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center" title="Descarca">
+              </a>
+              {/* Download = descarcă PDF ca fișier */}
+              <a
+                href={`/api/pdf/reinvoice/${row.id}?download=1`}
+                download
+                className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center"
+                title="Descarcă PDF"
+              >
                 <Download className="w-4 h-4" />
+              </a>
+              <a
+                href={`mailto:${row.clientEmail || ''}?subject=Factura ${row.number}&body=Regăsiți atașată factura ${row.number}.%0D%0A%0D%0ALink: ${encodeURIComponent(window.location.origin + '/api/pdf/reinvoice/' + row.id)}`}
+                className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-emerald-600 hover:bg-emerald-50 transition-colors flex items-center justify-center"
+                title="Trimite pe Email"
+              >
+                <Mail className="w-4 h-4" />
+              </a>
+              <button
+                onClick={handleSPV}
+                className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center justify-center"
+                title="Trimite în SPV"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setDeleteId(row.id)}
+                disabled={deleteReInvoice.isPending && deleteId === row.id}
+                className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-rose-600 hover:bg-rose-50 transition-colors flex items-center justify-center disabled:opacity-50"
+                title="Șterge"
+              >
+                <Trash2 className="w-4 h-4" />
               </button>
             </div>
           )}
@@ -158,6 +225,30 @@ export default function ReInvoicesSent() {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={deleteId !== null} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ștergere Re-Factură</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ești sigur că vrei să ștergi această re-factură? Acțiunea este ireversibilă și va elimina complet documentul din sistem.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anulează</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+              className="bg-rose-600 hover:bg-rose-700 text-white"
+            >
+              {deleteReInvoice.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}
+              Șterge definitiv
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

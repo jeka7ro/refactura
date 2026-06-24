@@ -1,13 +1,12 @@
 // ReInvoice — RefacturaRO
 // Core re-invoicing workflow: edit lines, set markup/unit price, select client, generate
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useParams, useLocation } from "wouter";
-import { ArrowLeft, Plus, Trash2, Percent, TrendingUp, Users, Check, Info, Download } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Percent, TrendingUp, Users, Check, Info, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import {
-  mockInvoices,
   formatCurrency,
   currencies,
   type Currency,
@@ -17,7 +16,36 @@ import {
 export default function ReInvoice() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
-  const invoice = mockInvoices.find((i) => i.id === id);
+
+  // Date reale din DB
+  const { data: invoiceData, isLoading: loadingInvoice } = trpc.invoiceArchive.getById.useQuery(
+    { id: parseInt(id || "0") },
+    { enabled: !!id && !isNaN(parseInt(id)) }
+  );
+  const { data: tenantsData = [] } = trpc.tenants.list.useQuery();
+  const tenant = tenantsData[0];
+  const tenantSettings = useMemo(() => {
+    try { return JSON.parse(tenant?.settings || "{}"); } catch { return {}; }
+  }, [tenant]);
+
+  // Adaptă invoice archive entry la structura așteptată
+  const invoice = invoiceData ? {
+    id: String(invoiceData.id),
+    number: invoiceData.invoiceNumber || `INV-${invoiceData.id}`,
+    supplierName: invoiceData.supplierName || "",
+    total: parseFloat(String(invoiceData.total || "0")),
+    currency: (invoiceData.currency || "RON") as Currency,
+    lines: (invoiceData.lines && Array.isArray(invoiceData.lines) && invoiceData.lines.length > 0 
+      ? invoiceData.lines 
+      : [{
+          id: "line-auto-1",
+          name: `Refacturare prestări / bunuri conf. ${invoiceData.invoiceNumber || `INV-${invoiceData.id}`} (${invoiceData.supplierName || "Furnizor"})`,
+          quantity: 1,
+          unitPrice: parseFloat(String(invoiceData.totalVAT ? parseFloat(String(invoiceData.total)) - parseFloat(String(invoiceData.totalVAT)) : invoiceData.total || "0")),
+          originalUnitPrice: parseFloat(String(invoiceData.totalVAT ? parseFloat(String(invoiceData.total)) - parseFloat(String(invoiceData.totalVAT)) : invoiceData.total || "0")),
+          vatPercent: 19 // Default, users can change
+        }]) as any[],
+  } : null;
 
   const [selectedClientId, setSelectedClientId] = useState("");
   const [currency, setCurrency] = useState<Currency>("RON");
@@ -61,12 +89,20 @@ export default function ReInvoice() {
     }
   }, [invoice?.id]);
 
+  if (loadingInvoice) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+      </div>
+    );
+  }
+
   if (!invoice) {
     return (
       <div className="p-8 text-center">
-        <div className="text-slate-500">Factura nu a fost găsită.</div>
+        <div className="text-slate-500">Factura nu a fost găsită în arhivă.</div>
         <Link href="/facturi-primite">
-          <button className="mt-4 px-5 h-10 rounded-full bg-blue-600 text-white text-sm font-bold">← Înapoi</button>
+          <button className="mt-4 px-5 h-10 rounded-lg bg-blue-600 text-white text-sm font-bold">← Înapoi</button>
         </Link>
       </div>
     );
@@ -212,7 +248,7 @@ export default function ReInvoice() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
           <Link href={`/facturi-primite/${invoice.id}`}>
-            <button className="w-9 h-9 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+            <button className="flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
               <ArrowLeft className="w-4 h-4 text-slate-600 dark:text-slate-400" />
             </button>
           </Link>
@@ -250,15 +286,17 @@ export default function ReInvoice() {
                   clientCounty: "",
                   clientEmail: client.email ?? "",
                   clientPhone: client.phone ?? "",
-                  companyName: "ConstructMaster SRL",
-                  companyCUI: "RO12345678",
-                  companyAddress: "Str. Constructorilor nr. 25, Sector 3",
-                  companyCity: "București",
-                  companyCounty: "Ilfov",
-                  companyEmail: "office@constructmaster.ro",
-                  companyPhone: "+40 21 987 6543",
-                  companyIBAN: "RO49AAAA1B31007593840000",
-                  companyBank: "BRD",
+                  companyName: tenant?.name || "",
+                  companyCUI: tenant?.cui || "",
+                  companyAddress: tenant?.address || "",
+                  companyCity: tenantSettings.city || "",
+                  companyCounty: tenantSettings.county || "",
+                  companyEmail: tenant?.email || "",
+                  companyPhone: tenant?.phone || "",
+                  companyIBAN: tenantSettings.iban || "",
+                  companyBank: tenantSettings.bank || "",
+                  logoBase64: tenantSettings.logoBase64 || undefined,
+                  template: (localStorage.getItem("invoice-template") as any) || "classic",
                   lines: lines.map((l) => ({
                     description: l.description,
                     quantity: l.quantity,
@@ -281,24 +319,24 @@ export default function ReInvoice() {
               }
             }}
             disabled={downloadingPDF}
-            className="flex items-center gap-2 px-5 h-10 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors disabled:opacity-60"
+            className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-colors disabled:opacity-60"
           >
-            {downloadingPDF ? <span className="w-4 h-4 border-2 border-slate-300 border-t-slate-700 rounded-full animate-spin" /> : <Download className="w-4 h-4" />}
+            {downloadingPDF ? <span className="w-3.5 h-3.5 border-2 border-slate-300 border-t-slate-700 rounded-full animate-spin" /> : <Download className="w-3.5 h-3.5" />}
             Descarcă PDF
           </button>
           <button
             onClick={() => handleSave(true)}
             disabled={saving}
-            className="px-5 h-10 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors disabled:opacity-60"
+            className="px-3 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-colors disabled:opacity-60"
           >
             Salvează ciornă
           </button>
           <button
             onClick={() => handleSave(false)}
             disabled={saving}
-            className="flex items-center gap-2 px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all active:scale-[0.97] disabled:opacity-60"
+            className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.97] disabled:opacity-60"
           >
-            {saving ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Check className="w-4 h-4" />}
+            {saving ? <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Check className="w-3.5 h-3.5" />}
             Generează Re-Factură
           </button>
         </div>
@@ -308,7 +346,7 @@ export default function ReInvoice() {
         {/* Left: Lines editor */}
         <div className="xl:col-span-2 space-y-4">
           {/* Global markup */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-200 dark:border-blue-800 p-4">
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 p-4">
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-2">
                 <Percent className="w-4 h-4 text-blue-600" />
@@ -319,7 +357,7 @@ export default function ReInvoice() {
                   type="number"
                   value={globalMarkup}
                   onChange={(e) => setGlobalMarkup(e.target.value)}
-                  className="w-20 h-9 px-3 text-sm rounded-full border border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-center"
+                  className="w-20 h-9 px-3 text-sm rounded-lg border border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-center"
                   min={0}
                   max={500}
                 />
@@ -327,7 +365,7 @@ export default function ReInvoice() {
               </div>
               <button
                 onClick={applyGlobalMarkupToAll}
-                className="px-4 h-9 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all active:scale-[0.97]"
+                className="px-4 h-9 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all active:scale-[0.97]"
               >
                 Aplică pe toate liniile
               </button>
@@ -339,12 +377,12 @@ export default function ReInvoice() {
           </div>
 
           {/* Lines table */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <h2 className="text-sm font-bold text-slate-900 dark:text-white">Linii Re-Factură</h2>
               <button
                 onClick={addLine}
-                className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-colors"
+                className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Adaugă linie
@@ -384,7 +422,9 @@ export default function ReInvoice() {
                         />
                       </td>
                       <td className="px-3 py-3 text-right text-xs text-slate-400">
-                        {formatCurrency(line.originalUnitPrice, line.currency)}
+                        <div className="text-slate-500 font-medium">
+                          {formatCurrency(line.originalUnitPrice, currency)}
+                        </div>
                       </td>
                       <td className="px-3 py-3">
                         <div className="flex items-center justify-end gap-1">
@@ -410,7 +450,7 @@ export default function ReInvoice() {
                         />
                       </td>
                       <td className="px-3 py-3 text-right text-sm text-slate-900 dark:text-white">
-                        {formatCurrency((Number(line.quantity) || 0) * (Number(line.unitPrice) || 0), line.currency)}
+                        {formatCurrency((Number(line.quantity) || 0) * (Number(line.unitPrice) || 0), currency)}
                       </td>
                       <td className="px-4 py-3">
                         <button
@@ -431,7 +471,7 @@ export default function ReInvoice() {
         {/* Right: Config panel */}
         <div className="space-y-4">
           {/* Client selector */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5">
+          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-5">
             <div className="flex items-center gap-2 mb-4">
               <Users className="w-4 h-4 text-slate-400" />
               <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Client Final</span>
@@ -449,7 +489,7 @@ export default function ReInvoice() {
             {selectedClientId && (() => {
               const client = realClients.find((c) => String(c.id) === selectedClientId);
               return client ? (
-                <div className="mt-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs space-y-1">
+                <div className="mt-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-xs space-y-1">
                   <div className="text-slate-500">{client.address}, {client.city}</div>
                   <div className="text-slate-500">{client.email}</div>
 
@@ -465,7 +505,7 @@ export default function ReInvoice() {
           </div>
 
           {/* Invoice settings */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 space-y-4">
+          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-5 space-y-4">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Setări Re-Factură</span>
 
             <div>
@@ -496,13 +536,13 @@ export default function ReInvoice() {
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
                 placeholder="Mențiuni, condiții de plată..."
-                className="w-full px-4 py-3 text-sm rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                className="w-full px-4 py-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               />
             </div>
           </div>
 
           {/* Summary */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5">
+          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-5">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-4">Sumar</span>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between text-slate-500">
@@ -523,7 +563,7 @@ export default function ReInvoice() {
               </div>
             </div>
             {/* Margin highlight */}
-            <div className={`mt-4 p-3 rounded-xl flex items-center justify-between ${
+            <div className={`mt-4 p-3 rounded-lg flex items-center justify-between ${
               margin >= 0 ? "bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800" : "bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800"
             }`}>
               <div className="flex items-center gap-2">

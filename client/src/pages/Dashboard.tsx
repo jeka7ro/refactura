@@ -44,6 +44,7 @@ export default function Dashboard() {
   const [syncing, setSyncing] = useState(false);
 
   const { data: dbInvoices = [], isLoading: loadingInv } = trpc.invoices.list.useQuery();
+  const { data: dbEmitted = [], isLoading: loadingEmit } = trpc.invoices.listEmise.useQuery();
   const { data: dbReInvoices = [], isLoading: loadingReInv } = trpc.reinvoice.list.useQuery();
   const { data: dbClients = [], isLoading: loadingClients } = trpc.clients.list.useQuery();
 
@@ -95,7 +96,7 @@ export default function Dashboard() {
     }, 2000);
   };
 
-  if (loadingInv || loadingReInv || loadingClients) {
+  if (loadingInv || loadingReInv || loadingClients || loadingEmit) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
@@ -109,7 +110,7 @@ export default function Dashboard() {
       {(overdueReInvoices.length > 0 || upcomingReInvoices.length > 0) && (
         <div className="space-y-3">
           {overdueReInvoices.length > 0 && (
-            <div className="p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex items-start gap-3">
+            <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-500 flex-shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-red-900 dark:text-red-200">Re-facturi restante</h3>
@@ -120,7 +121,7 @@ export default function Dashboard() {
             </div>
           )}
           {upcomingReInvoices.length > 0 && (
-            <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 flex items-start gap-3">
+            <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 flex items-start gap-3">
               <Clock className="w-5 h-5 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-amber-900 dark:text-amber-200">Re-facturi cu scadență apropiată</h3>
@@ -200,7 +201,7 @@ export default function Dashboard() {
       {/* Charts Row */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         {/* Area Chart */}
-        <div className="xl:col-span-2 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+        <div className="xl:col-span-2 bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-sm font-bold text-slate-900 dark:text-white">Evoluție Facturare</h2>
@@ -237,7 +238,7 @@ export default function Dashboard() {
         </div>
 
         {/* Status breakdown */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+        <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-6">
           <h2 className="text-sm font-bold text-slate-900 dark:text-white mb-1">Status Re-Facturi</h2>
           <p className="text-xs text-slate-500 mb-6">Distribuție după stare</p>
           <div className="space-y-3">
@@ -278,9 +279,9 @@ export default function Dashboard() {
       </div>
 
       {/* Recent Invoices */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Recent received */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <h2 className="text-sm font-bold text-slate-900 dark:text-white">Facturi Primite Recente</h2>
             <Link href="/facturi-primite">
@@ -309,8 +310,36 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Recent emitted */}
+        <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">Facturi Emise Recente</h2>
+            <Link href="/facturi-emise">
+              <span className="text-xs text-blue-600 font-semibold hover:underline cursor-pointer">Vezi toate →</span>
+            </Link>
+          </div>
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            {dbEmitted.slice(0, 4).map((inv: any) => (
+              <div key={inv.id} className="px-6 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-sm text-slate-900 dark:text-white truncate group-hover:text-blue-600 transition-colors">{inv.supplierName}</div>
+                    <div className="text-xs text-slate-500 mt-0.5">{inv.invoiceNumber} · {formatDate(inv.issueDate)}</div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-normal border ${invoiceStatusColors[(inv.status as any) || 'pending']}`}>
+                      {invoiceStatusLabels[(inv.status as any) || 'pending']}
+                    </span>
+                    <span className="text-sm text-slate-900 dark:text-white">{formatCurrency(parseFloat(inv.total), inv.currency)}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Recent re-invoices */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <h2 className="text-sm font-bold text-slate-900 dark:text-white">Re-Facturi Emise Recente</h2>
             <Link href="/re-facturi">
@@ -351,9 +380,9 @@ function KPICard({ title, value, change, positive, icon, iconBg, sub }: {
   sub: string;
 }) {
   return (
-    <div className="bg-white/70 dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-white/20 dark:border-white/10 p-6 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
+    <div className="bg-white/70 dark:bg-white/5 backdrop-blur-xl rounded-lg border border-white/20 dark:border-white/10 p-6 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
       <div className="flex items-start justify-between mb-3">
-        <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center`}>
+        <div className={`w-10 h-10 rounded-lg ${iconBg} flex items-center justify-center`}>
           {icon}
         </div>
         <div className={`flex items-center gap-1 text-xs font-semibold ${positive ? "text-emerald-600" : "text-rose-600"}`}>

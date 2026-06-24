@@ -158,7 +158,7 @@ function OverviewTab() {
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {kpis.map(k => (
-          <div key={k.label} className="bg-white rounded-xl border border-slate-200 p-4">
+          <div key={k.label} className="bg-white rounded-lg border border-slate-200 p-4">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs text-slate-500">{k.label}</span>
               <div className={`w-7 h-7 rounded-lg ${k.bg} flex items-center justify-center`}>
@@ -173,7 +173,7 @@ function OverviewTab() {
       {/* Two columns */}
       <div className="grid lg:grid-cols-2 gap-4">
         {/* Recent leads */}
-        <div className="bg-white rounded-xl border border-slate-200">
+        <div className="bg-white rounded-lg border border-slate-200">
           <div className="px-4 py-3 border-b border-slate-100">
             <h3 className="text-sm font-semibold text-slate-800">Ultimele Înregistrări</h3>
           </div>
@@ -198,7 +198,7 @@ function OverviewTab() {
         </div>
 
         {/* Traffic */}
-        <div className="bg-white rounded-xl border border-slate-200">
+        <div className="bg-white rounded-lg border border-slate-200">
           <div className="px-4 py-3 border-b border-slate-100">
             <h3 className="text-sm font-semibold text-slate-800">Trafic Pagini</h3>
           </div>
@@ -240,12 +240,12 @@ function RegistrationsTab() {
       {isLoading ? (
         <div className="text-sm text-slate-400">Se încarcă...</div>
       ) : (leads as any[]).length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
+        <div className="bg-white rounded-lg border border-slate-200 p-12 text-center">
           <UserCheck className="w-10 h-10 text-slate-300 mx-auto mb-3" />
           <p className="text-sm text-slate-400">Nicio înregistrare încă. Leadurile apar când vizitatorii completează formularul de trial.</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
           {/* Table header */}
           <div className="grid grid-cols-[1fr_1fr_1fr_1fr_auto_auto] gap-4 px-4 py-2.5 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
             <span>Nume</span>
@@ -311,7 +311,7 @@ function UsersTab() {
 
       <div className="grid lg:grid-cols-2 gap-4">
         {/* Accounts */}
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
             <Users className="w-4 h-4 text-blue-500" />
             <h3 className="text-sm font-semibold text-slate-800">Conturi ({(accounts as any[]).length})</h3>
@@ -345,7 +345,7 @@ function UsersTab() {
         </div>
 
         {/* Tenants */}
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
             <Building2 className="w-4 h-4 text-violet-500" />
             <h3 className="text-sm font-semibold text-slate-800">Companii ({(tenants as any[]).length})</h3>
@@ -424,7 +424,7 @@ function PricingTab() {
 
       {/* New/Edit Module Form */}
       {(showNewModule || editingModule) && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-5">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-5 mb-5">
           <h3 className="text-sm font-semibold text-slate-800 mb-4">{editingModule ? "Editează Modul" : "Modul Nou"}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <input value={modForm.name} onChange={e => setModForm({ ...modForm, name: e.target.value })} placeholder="Nume modul *" className={inputCls} />
@@ -456,7 +456,7 @@ function PricingTab() {
 
       {/* Price Form */}
       {(editingPrice || newPriceFor) && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-5 mb-5">
+        <div className="bg-green-50 border border-green-200 rounded-lg p-5 mb-5">
           <h3 className="text-sm font-semibold text-slate-800 mb-4">{editingPrice ? "Editează Preț" : "Preț Nou"}</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
@@ -495,7 +495,7 @@ function PricingTab() {
       ) : (
         <div className="space-y-3">
           {(modulesWithPricing as any[]).map(mod => (
-            <div key={mod.id} className="bg-white rounded-xl border border-slate-200">
+            <div key={mod.id} className="bg-white rounded-lg border border-slate-200">
               {/* Module header */}
               <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: (mod.color || "#3B82F6") + "18" }}>
@@ -553,7 +553,7 @@ function PricingTab() {
             </div>
           ))}
           {(modulesWithPricing as any[]).length === 0 && (
-            <div className="bg-white rounded-xl border border-slate-200 p-10 text-center">
+            <div className="bg-white rounded-lg border border-slate-200 p-10 text-center">
               <Layers className="w-10 h-10 text-slate-300 mx-auto mb-3" />
               <p className="text-sm text-slate-400">Niciun modul. Apasă "Modul Nou" pentru a adăuga.</p>
             </div>
@@ -601,7 +601,7 @@ function SeoTab() {
       {isLoading ? (
         <div className="text-sm text-slate-400">Se încarcă...</div>
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
+        <div className="bg-white rounded-lg border border-slate-200 p-5">
           <div className="space-y-4">
             {fields.map(s => (
               <div key={s.key}>

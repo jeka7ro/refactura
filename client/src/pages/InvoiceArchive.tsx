@@ -187,7 +187,7 @@ export default function InvoiceArchive() {
           { label: "Procesate", value: stats?.processed ?? 0, icon: CheckCircle, color: "text-blue-600 bg-blue-50 border-blue-200" },
           { label: "Re-facturate", value: stats?.refactured ?? 0, icon: RefreshCw, color: "text-green-600 bg-green-50 border-green-200" },
         ].map(s => (
-          <div key={s.label} className={`flex items-center gap-3 p-3 rounded-xl border ${s.color}`}>
+          <div key={s.label} className={`flex items-center gap-3 p-3 rounded-lg border ${s.color}`}>
             <s.icon className="w-4 h-4 flex-shrink-0" />
             <div>
               <div className="text-lg leading-none">{s.value}</div>
@@ -203,7 +203,7 @@ export default function InvoiceArchive() {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onClick={() => fileInputRef.current?.click()}
-        className={`relative border-2 border-dashed rounded-xl p-6 mb-6 text-center cursor-pointer transition-all duration-200 ${
+        className={`relative border-2 border-dashed rounded-lg p-6 mb-6 text-center cursor-pointer transition-all duration-200 ${
           isDragging
             ? "border-blue-400 bg-blue-50"
             : "border-slate-200 hover:border-blue-300 hover:bg-slate-50"
@@ -216,7 +216,7 @@ export default function InvoiceArchive() {
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
               <FileUp className="w-5 h-5 text-blue-500" />
             </div>
             <div>
@@ -273,7 +273,7 @@ export default function InvoiceArchive() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center py-16 text-slate-400">
             <Loader2 className="w-5 h-5 animate-spin mr-2" /> Se încarcă...
@@ -404,7 +404,7 @@ export default function InvoiceArchive() {
       {/* Meta Edit Modal */}
       {showMetaModal && selectedEntry && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
               <h2 className="text-base font-semibold text-slate-900">Editează Metadate</h2>
               <button

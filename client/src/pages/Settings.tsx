@@ -1,11 +1,10 @@
 // Settings — RefacturaRO
 // Company profile, multi-currency, multi-language, multi-country, invoice defaults
 
-import { useState, useEffect } from "react";
-import { Building2, Globe, FileText, Bell, Shield, Check, ChevronRight, Search, Loader2, AlertCircle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Building2, Globe, FileText, Bell, Shield, Check, ChevronRight, Search, Loader2, AlertCircle, Upload, X, Palette } from "lucide-react";
 import { toast } from "sonner";
 import {
-  mockCompanySettings,
   currencies,
   languages,
   countries,
@@ -19,6 +18,7 @@ import { trpc } from "@/lib/trpc";
 const tabs = [
   { id: "company", label: "Firmă", icon: Building2 },
   { id: "invoicing", label: "Facturare", icon: FileText },
+  { id: "appearance", label: "Aspect", icon: Palette },
   { id: "localization", label: "Localizare", icon: Globe },
   { id: "notifications", label: "Notificări", icon: Bell },
   { id: "security", label: "Securitate", icon: Shield },
@@ -28,6 +28,42 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState("company");
   const { data: userTenants = [], isLoading: isLoadingTenants } = trpc.tenants.list.useQuery();
   const currentTenant = userTenants[0];
+
+  const [logoBase64, setLogoBase64] = useState<string>("");
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const THEMES = [
+    { id: "blue",   label: "Albastru",       color: "#2563eb" },
+    { id: "teal",   label: "Teal",           color: "#0d9488" },
+    { id: "green",  label: "Verde",          color: "#16a34a" },
+    { id: "rose",   label: "Roz",            color: "#e11d48" },
+    { id: "violet", label: "Violet",         color: "#7c3aed" },
+    { id: "orange", label: "Portocaliu",     color: "#ea580c" },
+  ] as const;
+  type ThemeId = typeof THEMES[number]["id"];
+
+  const INVOICE_TEMPLATES = [
+    { id: "classic", label: "Clasic",   desc: "Header înhăt, tabel cu borduri" },
+    { id: "modern",  label: "Modern",   desc: "Bandă navy, badge albastru" },
+    { id: "minimal", label: "Minimal",  desc: "Design curat, linii subtile" },
+  ] as const;
+  type TemplateId = typeof INVOICE_TEMPLATES[number]["id"];
+
+  const [activeTheme, setActiveTheme] = useState<ThemeId>(() =>
+    (localStorage.getItem("app-theme") as ThemeId) ?? "blue"
+  );
+  const [activeTemplate, setActiveTemplate] = useState<TemplateId>(() =>
+    (localStorage.getItem("invoice-template") as TemplateId) ?? "classic"
+  );
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", activeTheme);
+    localStorage.setItem("app-theme", activeTheme);
+  }, [activeTheme]);
+
+  useEffect(() => {
+    localStorage.setItem("invoice-template", activeTemplate);
+  }, [activeTemplate]);
 
   const [settings, setSettings] = useState<CompanySettings>(() => ({
     name: "",
@@ -69,6 +105,9 @@ export default function Settings() {
         cui: currentTenant.cui || "",
         ...parsedSettings
       }));
+      if ((parsedSettings as any).logoBase64) {
+        setLogoBase64((parsedSettings as any).logoBase64);
+      }
     }
   }, [currentTenant]);
 
@@ -120,7 +159,8 @@ export default function Settings() {
         invoicePrefix: settings.invoicePrefix,
         invoiceStartNumber: settings.invoiceStartNumber,
         defaultDueDays: settings.defaultDueDays,
-        defaultMarkupPercent: settings.defaultMarkupPercent
+        defaultMarkupPercent: settings.defaultMarkupPercent,
+        logoBase64: logoBase64 || ""
       });
 
       await updateSettingsMutation.mutateAsync({
@@ -145,30 +185,30 @@ export default function Settings() {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
+    <div className="p-3 sm:p-5 max-w-4xl mx-auto space-y-3">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-slate-900 dark:text-white">Setări</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Configurează firma, facturarea și preferințele</p>
+        <h1 className="text-base font-bold text-slate-900 dark:text-white">Setări</h1>
+        <p className="text-xs text-slate-500 dark:text-slate-400">Firmă, facturare și preferințe</p>
       </div>
 
-      <div className="flex gap-6 flex-col md:flex-row">
+      <div className="flex gap-4 flex-col md:flex-row">
         {/* Sidebar tabs */}
-        <div className="md:w-48 flex-shrink-0">
-          <nav className="space-y-1">
+        <div className="md:w-40 flex-shrink-0">
+          <nav className="space-y-0.5">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
                     activeTab === tab.id
-                      ? "bg-blue-600 text-white shadow-sm"
-                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+                      ? "bg-blue-600 text-white"
+                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-3.5 h-3.5" />
                   {tab.label}
                 </button>
               );
@@ -177,43 +217,42 @@ export default function Settings() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 space-y-4">
+        <div className="flex-1 space-y-3 min-w-0">
           {/* Company tab */}
           {activeTab === "company" && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-5">
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white">Date Firmă</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 space-y-3">
+              <h2 className="text-xs font-bold text-slate-700 dark:text-white uppercase tracking-wide">Date Firmă</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                 <SettingField label="Denumire firmă" value={settings.name} onChange={(v) => update("name", v)} placeholder="ConstructMaster SRL" autocomplete="organization" />
                 {/* CUI with ANAF lookup */}
                 <div>
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">CUI / CIF</label>
-                  <div className="flex gap-2">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">CUI / CIF</label>
+                  <div className="flex gap-1.5">
                     <input
                       value={settings.cui}
                       onChange={(e) => { update("cui", e.target.value); setCuiLookupError(""); }}
                       onKeyDown={(e) => e.key === "Enter" && lookupCui()}
                       placeholder="RO12345678"
                       autoComplete="off"
-                      className="flex-1 px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none text-slate-900 dark:text-white transition-all"
+                      className="flex-1 px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none text-slate-900 dark:text-white"
                     />
                     <button
                       type="button"
                       onClick={lookupCui}
                       disabled={cuiLookupLoading || !settings.cui}
                       title="Caută date firmă după CUI (ANAF)"
-                      className="flex items-center gap-1.5 px-3 h-10 rounded-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold transition-colors flex-shrink-0"
+                      className="flex items-center gap-1 px-2.5 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-[10px] font-bold transition-colors flex-shrink-0"
                     >
-                      {cuiLookupLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
-                      {cuiLookupLoading ? "Caută..." : "Auto-fill"}
+                      {cuiLookupLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}
+                      Auto-fill
                     </button>
                   </div>
                   {cuiLookupError && (
-                    <div className="flex items-center gap-1.5 mt-1.5 text-xs text-red-500">
+                    <div className="flex items-center gap-1 mt-1 text-[10px] text-red-500">
                       <AlertCircle className="w-3 h-3 flex-shrink-0" />
                       {cuiLookupError}
                     </div>
                   )}
-                  <p className="text-xs text-slate-400 mt-1">Apasă Auto-fill pentru a completa automat datele din ANAF</p>
                 </div>
                 <SettingField label="Reg. Com." value={settings.regCom} onChange={(v) => update("regCom", v)} placeholder="J40/1234/2020" mono />
                 <SettingField label="Email" value={settings.email} onChange={(v) => update("email", v)} placeholder="office@firma.ro" autocomplete="email" />
@@ -223,19 +262,122 @@ export default function Settings() {
                 </div>
                 <SettingField label="Oraș" value={settings.city} onChange={(v) => update("city", v)} placeholder="București" />
                 <div>
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">Țară</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Țară</label>
                   <select value={settings.country} onChange={(e) => update("country", e.target.value as Country)}
-                    className="w-full h-10 px-4 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500">
-                    {countries.map((c) => <option key={c.code} value={c.code}>{c.flag} {c.label}</option>)}
+                    className="w-full h-8 px-3 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500">
+                    {countries.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
                   </select>
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4">Date Bancare</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
+                <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2">Date Bancare</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                   <SettingField label="IBAN" value={settings.iban} onChange={(v) => update("iban", v)} placeholder="RO49AAAA..." mono />
                   <SettingField label="Bancă" value={settings.bank} onChange={(v) => update("bank", v)} placeholder="BCR" />
+                </div>
+              </div>
+
+              {/* Logo firmă */}
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
+                <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2">Logo Firmă</h3>
+                <div className="flex items-center gap-3">
+                  {logoBase64 ? (
+                    <div className="relative">
+                      <img src={logoBase64} alt="Logo" className="h-10 w-auto max-w-[100px] object-contain rounded-lg border border-slate-200 dark:border-slate-700 p-1 bg-white" />
+                      <button
+                        type="button"
+                        onClick={() => setLogoBase64("")}
+                        className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600"
+                      >
+                        <X className="w-2.5 h-2.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="h-10 w-24 rounded-lg border-2 border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 text-[10px]">
+                      Niciun logo
+                    </div>
+                  )}
+                  <div>
+                    <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/svg+xml" className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (file.size > 2 * 1024 * 1024) { alert("Logo prea mare. Max 2MB."); return; }
+                        const reader = new FileReader();
+                        reader.onload = (ev) => setLogoBase64(ev.target?.result as string);
+                        reader.readAsDataURL(file);
+                      }}
+                    />
+                    <button type="button" onClick={() => logoInputRef.current?.click()}
+                      className="flex items-center gap-1.5 px-3 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-medium transition-colors">
+                      <Upload className="w-3 h-3" />
+                      {logoBase64 ? "Schimbă" : "Încarcă"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Appearance tab */}
+          {activeTab === "appearance" && (
+            <div className="space-y-3">
+              {/* Tema culori */}
+              <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4">
+                <h2 className="text-xs font-bold text-slate-700 dark:text-white uppercase tracking-wide mb-3">Culoare interfață</h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  {THEMES.map(t => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setActiveTheme(t.id)}
+                      title={t.label}
+                      style={{ background: t.color }}
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
+                        activeTheme === t.id ? "ring-2 ring-offset-1 ring-slate-400" : "opacity-70 hover:opacity-100"
+                      }`}
+                    >
+                      {activeTheme === t.id && <Check className="w-3.5 h-3.5 text-white" />}
+                    </button>
+                  ))}
+                  <span className="text-xs text-slate-400 ml-1">
+                    {THEMES.find(t => t.id === activeTheme)?.label}
+                  </span>
+                </div>
+              </div>
+
+              {/* Sablon factura */}
+              <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4">
+                <h2 className="text-xs font-bold text-slate-700 dark:text-white uppercase tracking-wide mb-3">Model factură PDF</h2>
+                <div className="grid grid-cols-3 gap-2">
+                  {INVOICE_TEMPLATES.map(tmpl => (
+                    <button
+                      key={tmpl.id}
+                      type="button"
+                      onClick={() => setActiveTemplate(tmpl.id)}
+                      className={`p-3 rounded-lg border-2 text-left transition-all ${
+                        activeTemplate === tmpl.id
+                          ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20"
+                          : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                      }`}
+                    >
+                      {/* Preview compact */}
+                      <div className={`w-full h-10 rounded mb-2 flex items-center justify-center ${
+                        tmpl.id === "classic" ? "bg-slate-900" :
+                        tmpl.id === "modern"  ? "bg-gradient-to-br from-slate-900 to-blue-900" :
+                        "bg-white border border-slate-200"
+                      }`}>
+                        <FileText className={`w-5 h-5 ${
+                          tmpl.id === "minimal" ? "text-slate-400" : "text-white"
+                        }`} />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-900 dark:text-white">{tmpl.label}</span>
+                        {activeTemplate === tmpl.id && <Check className="w-3.5 h-3.5 text-blue-600" />}
+                      </div>
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -243,7 +385,7 @@ export default function Settings() {
 
           {/* Invoicing tab */}
           {activeTab === "invoicing" && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-5">
+            <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-5">
               <h2 className="text-sm font-bold text-slate-900 dark:text-white">Setări Facturare</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <SettingField label="Prefix re-factură" value={settings.invoicePrefix} onChange={(v) => update("invoicePrefix", v)} placeholder="RF" mono />
@@ -276,7 +418,7 @@ export default function Settings() {
 
               <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
                 <div className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Previzualizare numerotare</div>
-                <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
                   <span className="text-sm font-bold text-slate-900 dark:text-white">
                     {settings.invoicePrefix}-2024-{String(settings.invoiceStartNumber).padStart(4, "0")}
                   </span>
@@ -288,7 +430,7 @@ export default function Settings() {
 
           {/* Localization tab */}
           {activeTab === "localization" && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-5">
+            <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-5">
               <h2 className="text-sm font-bold text-slate-900 dark:text-white">Localizare & Multi-Currency</h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -354,7 +496,7 @@ export default function Settings() {
 
           {/* Notifications tab */}
           {activeTab === "notifications" && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-4">
+            <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-4">
               <h2 className="text-sm font-bold text-slate-900 dark:text-white">Notificări</h2>
               {[
                 { label: "Factură nouă importată", desc: "Notificare la fiecare import automat", enabled: true },
@@ -381,7 +523,7 @@ export default function Settings() {
 
           {/* Security tab */}
           {activeTab === "security" && (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-4">
+            <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-4">
               <h2 className="text-sm font-bold text-slate-900 dark:text-white">Securitate</h2>
               {[
                 { label: "Schimbă parola", desc: "Actualizează parola contului tău", action: "Schimbă" },
@@ -412,10 +554,10 @@ export default function Settings() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex items-center gap-2 px-6 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all active:scale-[0.97] disabled:opacity-60"
+                className="flex items-center gap-1.5 px-4 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all disabled:opacity-60"
               >
-                {saving ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Check className="w-4 h-4" />}
-                Salvează setările
+                {saving ? <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Check className="w-3 h-3" />}
+                Salvează
               </button>
             </div>
           )}
@@ -435,13 +577,13 @@ function SettingField({ label, value, onChange, placeholder, mono, autocomplete 
 }) {
   return (
     <div>
-      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">{label}</label>
+      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">{label}</label>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         autoComplete={autocomplete || "on"}
-        className={`w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none text-slate-900 dark:text-white transition-all`}
+        className={`w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none text-slate-900 dark:text-white transition-all${mono ? " font-mono" : ""}`}
       />
     </div>
   );

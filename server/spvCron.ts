@@ -4,6 +4,7 @@ import { XMLParser } from "fast-xml-parser";
 import { getDb, createInvoiceArchiveEntry } from "./db";
 import { integrations } from "../drizzle/schema";
 import { eq, and } from "drizzle-orm";
+import { convertXmlToPdf } from "./anafPdf";
 
 const ANAF_SPV_MESSAGES_URL = "https://logincert.anaf.ro/api/v1/ws/listaMesajeFactura";
 const ANAF_SPV_DOWNLOAD_URL = "https://logincert.anaf.ro/api/v1/ws/descarcare";
@@ -102,12 +103,20 @@ export async function syncAllSpv() {
           
           const currency = invoiceObj["cbc:DocumentCurrencyCode"]?.["#text"] || invoiceObj["cbc:DocumentCurrencyCode"] || "RON";
 
+          // Generate PDF using ANAF API
+          let fileUrl = "spv_import";
+          const pdfRes = await convertXmlToPdf(xmlString, `Factura_${invoiceNumber}_${Date.now()}`);
+          if (pdfRes) {
+            fileUrl = pdfRes.url;
+          }
+
           // Save to invoiceArchive
           await createInvoiceArchiveEntry({
             tenantId: intg.tenantId,
             source: "spv_anaf",
             fileName: `SPV_${msg.id}.xml`,
             fileType: "xml",
+            fileUrl,
             invoiceNumber: String(invoiceNumber),
             supplierName,
             supplierCUI,

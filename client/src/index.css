@@ -332,3 +332,203 @@ button:not(.btn-icon) {
 [role="dialog"] > div {
   border-radius: 20px !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   TEME DE CULORI — aplicat via [data-theme="..."] pe <html>
+   Suprascrie --primary (Shadcn Button/Badge) + clasele bg-blue-600
+═══════════════════════════════════════════════════════════════ */
+
+/* Helper: variabile Shadcn aliniate cu accentul temei */
+[data-theme="blue"] {
+  --app-accent: #2563eb;
+  --app-accent-light: #dbeafe;
+  --app-accent-text: #1d4ed8;
+  --app-accent-sidebar: #1e40af;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --accent: #2563eb;
+  --accent-foreground: #ffffff;
+  --ring: #2563eb;
+  --sidebar-primary: #2563eb;
+  --sidebar-accent: #2563eb;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-ring: #2563eb;
+}
+html.dark[data-theme="blue"] {
+  --primary: #3b82f6;
+  --accent: #3b82f6;
+  --ring: #3b82f6;
+  --sidebar-primary: #3b82f6;
+  --sidebar-accent: #3b82f6;
+  --sidebar-ring: #3b82f6;
+}
+
+[data-theme="teal"] {
+  --app-accent: #0d9488;
+  --app-accent-light: #ccfbf1;
+  --app-accent-text: #0f766e;
+  --app-accent-sidebar: #115e59;
+  --primary: #0d9488;
+  --primary-foreground: #ffffff;
+  --accent: #0d9488;
+  --accent-foreground: #ffffff;
+  --ring: #14b8a6;
+  --sidebar-primary: #0d9488;
+  --sidebar-accent: #0d9488;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-ring: #14b8a6;
+}
+html.dark[data-theme="teal"] {
+  --primary: #2dd4bf;
+  --accent: #2dd4bf;
+  --ring: #2dd4bf;
+  --sidebar-primary: #2dd4bf;
+  --sidebar-accent: #2dd4bf;
+  --sidebar-ring: #2dd4bf;
+}
+
+[data-theme="green"] {
+  --app-accent: #16a34a;
+  --app-accent-light: #dcfce7;
+  --app-accent-text: #15803d;
+  --app-accent-sidebar: #14532d;
+  --primary: #16a34a;
+  --primary-foreground: #ffffff;
+  --accent: #16a34a;
+  --accent-foreground: #ffffff;
+  --ring: #22c55e;
+  --sidebar-primary: #16a34a;
+  --sidebar-accent: #16a34a;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-ring: #22c55e;
+}
+html.dark[data-theme="green"] {
+  --primary: #4ade80;
+  --accent: #4ade80;
+  --ring: #4ade80;
+  --sidebar-primary: #4ade80;
+  --sidebar-accent: #4ade80;
+  --sidebar-ring: #4ade80;
+}
+
+[data-theme="rose"] {
+  --app-accent: #e11d48;
+  --app-accent-light: #ffe4e6;
+  --app-accent-text: #be123c;
+  --app-accent-sidebar: #9f1239;
+  --primary: #e11d48;
+  --primary-foreground: #ffffff;
+  --accent: #e11d48;
+  --accent-foreground: #ffffff;
+  --ring: #f43f5e;
+  --sidebar-primary: #e11d48;
+  --sidebar-accent: #e11d48;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-ring: #f43f5e;
+}
+html.dark[data-theme="rose"] {
+  --primary: #fb7185;
+  --accent: #fb7185;
+  --ring: #fb7185;
+  --sidebar-primary: #fb7185;
+  --sidebar-accent: #fb7185;
+  --sidebar-ring: #fb7185;
+}
+
+[data-theme="violet"] {
+  --app-accent: #7c3aed;
+  --app-accent-light: #ede9fe;
+  --app-accent-text: #6d28d9;
+  --app-accent-sidebar: #4c1d95;
+  --primary: #7c3aed;
+  --primary-foreground: #ffffff;
+  --accent: #7c3aed;
+  --accent-foreground: #ffffff;
+  --ring: #a78bfa;
+  --sidebar-primary: #7c3aed;
+  --sidebar-accent: #7c3aed;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-ring: #a78bfa;
+}
+html.dark[data-theme="violet"] {
+  --primary: #a78bfa;
+  --accent: #a78bfa;
+  --ring: #a78bfa;
+  --sidebar-primary: #a78bfa;
+  --sidebar-accent: #a78bfa;
+  --sidebar-ring: #a78bfa;
+}
+
+[data-theme="orange"] {
+  --app-accent: #ea580c;
+  --app-accent-light: #ffedd5;
+  --app-accent-text: #c2410c;
+  --app-accent-sidebar: #7c2d12;
+  --primary: #ea580c;
+  --primary-foreground: #ffffff;
+  --accent: #ea580c;
+  --accent-foreground: #ffffff;
+  --ring: #fb923c;
+  --sidebar-primary: #ea580c;
+  --sidebar-accent: #ea580c;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-ring: #fb923c;
+}
+html.dark[data-theme="orange"] {
+  --primary: #fb923c;
+  --accent: #fb923c;
+  --ring: #fb923c;
+  --sidebar-primary: #fb923c;
+  --sidebar-accent: #fb923c;
+  --sidebar-ring: #fb923c;
+}
+
+/* Legacy: pagini cu bg-blue-600 hardcodat */
+[data-theme="teal"] .bg-blue-600,
+[data-theme="teal"] .hover\:bg-blue-700:hover { background-color: #0d9488 !important; }
+[data-theme="teal"] .bg-blue-600:hover { background-color: #0f766e !important; }
+[data-theme="teal"] .text-blue-600 { color: #0d9488 !important; }
+[data-theme="teal"] .border-blue-600 { border-color: #0d9488 !important; }
+[data-theme="teal"] .ring-blue-500 { --tw-ring-color: #14b8a6 !important; }
+
+[data-theme="green"] .bg-blue-600,
+[data-theme="green"] .hover\:bg-blue-700:hover { background-color: #16a34a !important; }
+[data-theme="green"] .bg-blue-600:hover { background-color: #15803d !important; }
+[data-theme="green"] .text-blue-600 { color: #16a34a !important; }
+[data-theme="green"] .border-blue-600 { border-color: #16a34a !important; }
+[data-theme="green"] .ring-blue-500 { --tw-ring-color: #22c55e !important; }
+
+[data-theme="rose"] .bg-blue-600,
+[data-theme="rose"] .hover\:bg-blue-700:hover { background-color: #e11d48 !important; }
+[data-theme="rose"] .bg-blue-600:hover { background-color: #be123c !important; }
+[data-theme="rose"] .text-blue-600 { color: #e11d48 !important; }
+[data-theme="rose"] .border-blue-600 { border-color: #e11d48 !important; }
+[data-theme="rose"] .ring-blue-500 { --tw-ring-color: #fb7185 !important; }
+[data-theme="rose"] .text-blue-400 { color: #fb7185 !important; }
+[data-theme="rose"] .from-blue-500 { --tw-gradient-from: #e11d48 !important; }
+[data-theme="rose"] .to-blue-700 { --tw-gradient-to: #be123c !important; }
+[data-theme="rose"] .hover\:bg-blue-50:hover { background-color: #ffe4e6 !important; }
+[data-theme="rose"] .hover\:border-blue-200:hover { border-color: #fecdd3 !important; }
+[data-theme="rose"] .hover\:text-blue-600:hover { color: #e11d48 !important; }
+[data-theme="rose"] .group-hover\:text-blue-600:is(:where(.group):hover *) { color: #e11d48 !important; }
+[data-theme="rose"] .border-t-blue-600 { border-top-color: #e11d48 !important; }
+
+[data-theme="violet"] .bg-blue-600,
+[data-theme="violet"] .hover\:bg-blue-700:hover { background-color: #7c3aed !important; }
+[data-theme="violet"] .bg-blue-600:hover { background-color: #6d28d9 !important; }
+[data-theme="violet"] .text-blue-600 { color: #7c3aed !important; }
+[data-theme="violet"] .border-blue-600 { border-color: #7c3aed !important; }
+[data-theme="violet"] .ring-blue-500 { --tw-ring-color: #a78bfa !important; }
+
+[data-theme="orange"] .bg-blue-600,
+[data-theme="orange"] .hover\:bg-blue-700:hover { background-color: #ea580c !important; }
+[data-theme="orange"] .bg-blue-600:hover { background-color: #c2410c !important; }
+[data-theme="orange"] .text-blue-600 { color: #ea580c !important; }
+[data-theme="orange"] .border-blue-600 { border-color: #ea580c !important; }
+[data-theme="orange"] .ring-blue-500 { --tw-ring-color: #fb923c !important; }
+
+[data-theme="blue"] .bg-blue-600,
+[data-theme="blue"] .hover\:bg-blue-700:hover { background-color: #2563eb !important; }
+[data-theme="blue"] .bg-blue-600:hover { background-color: #1d4ed8 !important; }
+[data-theme="blue"] .text-blue-600 { color: #2563eb !important; }
+[data-theme="blue"] .border-blue-600 { border-color: #2563eb !important; }

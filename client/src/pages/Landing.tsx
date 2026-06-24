@@ -110,7 +110,7 @@ export default function Landing() {
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-white/80 backdrop-blur-md shadow-sm border-b border-white/20" : "bg-transparent"}`}>
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
               <img src={LOGO_URL} alt="Refactura" className="w-6 h-6 object-contain brightness-0 invert" />
             </div>
             <span className="font-extrabold text-xl tracking-tight text-slate-900">Refactura<span className="text-blue-600">.ro</span></span>
@@ -178,14 +178,14 @@ export default function Landing() {
 
           <div className="w-full max-w-7xl mt-4 mb-10 relative z-30 px-4 flex flex-col lg:flex-row gap-6 lg:h-[520px]">
             {/* Mockup - mare pe stanga, aceeasi inaltime */}
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 1, delay: 0.3 }} className="w-full lg:flex-[3] relative z-20 min-w-0 h-[450px] lg:h-full overflow-hidden rounded-2xl">
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 1, delay: 0.3 }} className="w-full lg:flex-[3] relative z-20 min-w-0 h-[450px] lg:h-full overflow-hidden rounded-lg">
               <HeroMockup />
             </motion.div>
 
             {/* 3 carduri stivuite vertical pe dreapta - aceeasi inaltime totala */}
             <div className="w-full lg:flex-[2] flex flex-col gap-6 lg:gap-3 min-w-0 h-auto lg:h-[520px] shrink-0">
               {domains.map((domain, i) => (
-                <motion.div key={domain.title} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.15 }} className="group relative rounded-2xl overflow-hidden bg-slate-900 shadow-2xl hover:-translate-x-1 transition-transform duration-300 cursor-pointer h-[250px] lg:h-auto lg:flex-1">
+                <motion.div key={domain.title} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.15 }} className="group relative rounded-lg overflow-hidden bg-slate-900 shadow-2xl hover:-translate-x-1 transition-transform duration-300 cursor-pointer h-[250px] lg:h-auto lg:flex-1">
                   <div className="absolute inset-0">
                     <img src={domain.img} alt={domain.title} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 ease-out" />
                     <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/65" />
@@ -210,7 +210,7 @@ export default function Landing() {
               { icon: BarChart3, title: "Rapoarte & Grafice", desc: "Vizualizează marginile de profit, veniturile și costurile în timp real pe fiecare client sau centru de cost, direct din dashboard." },
             ].map((f, i) => (
               <motion.div key={f.title} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} className="bg-white rounded-3xl p-10 border border-slate-100 shadow-xl shadow-slate-100/50 hover:-translate-y-2 transition-transform duration-300">
-                <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-6">
+                <div className="w-14 h-14 rounded-lg bg-blue-50 flex items-center justify-center mb-6">
                   <f.icon className="w-7 h-7 text-blue-600" />
                 </div>
                 <h3 className="text-2xl font-bold text-slate-900 mb-4">{f.title}</h3>
@@ -233,12 +233,12 @@ export default function Landing() {
 
           <div className="flex justify-center mb-12">
             {availableCurrencies.length > 1 && (
-              <div className="inline-flex p-1.5 bg-slate-100 rounded-2xl">
+              <div className="inline-flex p-1.5 bg-slate-100 rounded-lg">
                 {availableCurrencies.map(c => (
                   <button
                     key={c}
                     onClick={() => setActiveCurrency(c)}
-                    className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                    className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
                       activeCurrency === c ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-900"
                     }`}
                   >
@@ -345,7 +345,7 @@ function PricingCard({ mod, price, currency, symbol, trialDays, onTrial, highlig
         </>
       )}
       <div className="mb-8 relative z-10">
-        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 ${highlighted ? "bg-white/10" : "bg-blue-50"}`}>
+        <div className={`w-16 h-16 rounded-lg flex items-center justify-center mb-6 ${highlighted ? "bg-white/10" : "bg-blue-50"}`}>
           <IconComp className={`w-8 h-8 ${highlighted ? "text-blue-400" : "text-blue-600"}`} />
         </div>
         <h3 className="font-extrabold text-2xl mb-3">{mod.name}</h3>
@@ -368,7 +368,7 @@ function PricingCard({ mod, price, currency, symbol, trialDays, onTrial, highlig
         ))}
       </ul>
 
-      <Button onClick={onTrial} className={`w-full h-14 rounded-2xl text-base font-bold ${highlighted ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-slate-100 hover:bg-slate-200 text-slate-900"}`}>
+      <Button onClick={onTrial} className={`w-full h-14 rounded-lg text-base font-bold ${highlighted ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-slate-100 hover:bg-slate-200 text-slate-900"}`}>
         Începe {trialDays} zile gratuit
       </Button>
     </motion.div>
@@ -417,19 +417,19 @@ function TrialModal({ selectedPlan, onClose, onSuccess }: any) {
             </div>
             <form onSubmit={handleSubmit} className="space-y-5" autoComplete="on">
               <div>
-                <input id="trial-name" name="name" autoComplete="name" required type="text" placeholder="Nume complet" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full px-5 py-4 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium" />
+                <input id="trial-name" name="name" autoComplete="name" required type="text" placeholder="Nume complet" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full px-5 py-4 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium" />
               </div>
               <div>
-                <input id="trial-email" name="email" autoComplete="email" required type="email" placeholder="Email de companie" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="w-full px-5 py-4 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium" />
+                <input id="trial-email" name="email" autoComplete="email" required type="email" placeholder="Email de companie" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="w-full px-5 py-4 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium" />
               </div>
               <div>
-                <input id="trial-phone" name="phone" autoComplete="tel" type="tel" placeholder="Telefon" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="w-full px-5 py-4 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium" />
+                <input id="trial-phone" name="phone" autoComplete="tel" type="tel" placeholder="Telefon" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="w-full px-5 py-4 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium" />
               </div>
               <div>
-                <input id="trial-company" name="company" autoComplete="organization" type="text" placeholder="Companie" value={form.company} onChange={e => setForm({ ...form, company: e.target.value })} className="w-full px-5 py-4 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium" />
+                <input id="trial-company" name="company" autoComplete="organization" type="text" placeholder="Companie" value={form.company} onChange={e => setForm({ ...form, company: e.target.value })} className="w-full px-5 py-4 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium" />
               </div>
               {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
-              <Button type="submit" disabled={submitLead.isPending} className="w-full h-14 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-base font-bold shadow-lg shadow-blue-500/30 mt-4">
+              <Button type="submit" disabled={submitLead.isPending} className="w-full h-14 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-base font-bold shadow-lg shadow-blue-500/30 mt-4">
                 {submitLead.isPending ? "Se procesează..." : "Solicită Trial"}
               </Button>
             </form>
@@ -452,7 +452,7 @@ function HeroMockup() {
   }, []);
 
   return (
-    <div className="w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-slate-800 bg-slate-50 flex flex-col">
+    <div className="w-full h-full rounded-lg overflow-hidden shadow-2xl border border-slate-800 bg-slate-50 flex flex-col">
       {/* macOS Style Window Controls */}
       <div className="h-9 bg-slate-900 flex items-center px-4 gap-2 flex-shrink-0">
         <div className="w-3 h-3 rounded-full bg-red-500" />
@@ -496,23 +496,23 @@ function HeroMockup() {
           >
             <h3 className="text-base font-bold text-slate-900">Dashboard Financiar</h3>
             <div className="flex flex-col sm:grid sm:grid-cols-3 gap-3">
-              <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+              <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex flex-col">
                 <div className="text-[10px] text-slate-500 mb-1">Încasări luna curentă</div>
                 <div className="text-base font-black text-slate-900">124.500 RON</div>
                 <div className="text-[10px] text-green-500 mt-1 font-medium flex items-center gap-1"><TrendingUp className="w-2.5 h-2.5"/> +12%</div>
               </div>
-              <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+              <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex flex-col">
                 <div className="text-[10px] text-slate-500 mb-1">Facturi neîncasate</div>
                 <div className="text-base font-black text-orange-500">32.100 RON</div>
                 <div className="text-[10px] text-slate-400 mt-1 font-medium">14 facturi active</div>
               </div>
-              <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+              <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex flex-col">
                 <div className="text-[10px] text-slate-500 mb-1">Profit Net (Adaos)</div>
                 <div className="text-base font-black text-blue-600">45.200 RON</div>
                 <div className="text-[10px] text-green-500 mt-1 font-medium flex items-center gap-1"><TrendingUp className="w-2.5 h-2.5"/> +8%</div>
               </div>
             </div>
-            <div className="min-h-[150px] flex-1 bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+            <div className="min-h-[150px] flex-1 bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex flex-col">
               <div className="text-xs font-bold text-slate-800 mb-3">Evoluție Venituri vs. Cheltuieli</div>
               <div className="flex-1 flex items-end justify-between gap-1 px-1">
                 {[40, 60, 45, 80, 65, 90, 100].map((h, i) => (
@@ -546,7 +546,7 @@ function HeroMockup() {
                 { f: "Dedeman SRL", item: "Materiale construcții SPV", vIn: 4500, margin: 15, c: "Proiect Rezidențial" },
                 { f: "Arabesque", item: "Ciment și oțel fasonat", vIn: 12200, margin: 20, c: "Șantier Nord" }
               ].map((row, i) => (
-                <div key={i} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between relative overflow-hidden gap-3">
+                <div key={i} className="bg-white rounded-lg border border-slate-200 shadow-sm p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between relative overflow-hidden gap-3">
                   <div className="flex flex-col gap-0.5 w-full sm:w-1/3">
                     <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-orange-500 inline-block"></span>Furnizor (SPV)</div>
                     <div className="font-bold text-slate-900 text-sm">{row.f}</div>
@@ -584,7 +584,7 @@ function HeroMockup() {
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 flex-1 pb-4">
-              <div className="flex-1 bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col min-h-[200px]">
+              <div className="flex-1 bg-white rounded-lg border border-slate-200 shadow-sm p-4 flex flex-col min-h-[200px]">
                 <div className="text-[9px] font-black text-blue-600 uppercase tracking-wider mb-0.5">PROIECT ACTIV</div>
                 <div className="text-sm font-black text-slate-900 mb-3">Șantier Nord</div>
                 <div className="mb-3">
@@ -612,7 +612,7 @@ function HeroMockup() {
                   ))}
                 </div>
               </div>
-              <div className="flex-1 bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl border border-slate-700 shadow-sm p-4 flex flex-col text-white min-h-[220px]">
+              <div className="flex-1 bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg border border-slate-700 shadow-sm p-4 flex flex-col text-white min-h-[220px]">
                 <div className="text-[9px] font-black text-purple-400 uppercase tracking-wider mb-0.5">PROIECT ÎN DERULARE</div>
                 <div className="text-sm font-black mb-3">Rezidențial Sud</div>
                 <div className="flex-1 flex items-center justify-center py-4">

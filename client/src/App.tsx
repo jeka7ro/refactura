@@ -6,7 +6,8 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import DashboardLayout from "./components/DashboardLayout";
 import Dashboard from "./pages/Dashboard";
-import InvoicesReceived from "./pages/InvoicesReceived";
+import AllInvoices from "./pages/AllInvoices";
+import InvoicesEmitted from "./pages/InvoicesEmitted";
 import InvoiceDetail from "./pages/InvoiceDetail";
 import ReInvoice from "./pages/ReInvoice";
 import ReInvoicesSent from "./pages/ReInvoicesSent";
@@ -39,14 +40,25 @@ function Router() {
           <Dashboard />
         </DashboardLayout>
       </Route>
+      <Route path="/facturi">
+        <DashboardLayout>
+          <AllInvoices />
+        </DashboardLayout>
+      </Route>
+      {/* /facturi-primite redirects to unified page but keep detail route */}
       <Route path="/facturi-primite">
         <DashboardLayout>
-          <InvoicesReceived />
+          <AllInvoices />
         </DashboardLayout>
       </Route>
       <Route path="/facturi-primite/:id">
         <DashboardLayout>
           <InvoiceDetail />
+        </DashboardLayout>
+      </Route>
+      <Route path="/facturi-emise">
+        <DashboardLayout>
+          <InvoicesEmitted />
         </DashboardLayout>
       </Route>
       <Route path="/re-facturare/:id">
