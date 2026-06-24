@@ -102,12 +102,60 @@ export function registerPdfRoute(app: any) {
       const db = await getDb();
       if (!db) { res.status(500).json({ error: "DB unavailable" }); return; }
 
-      const { invoiceArchive } = await import("../drizzle/schema");
+      const { invoiceArchive, integrations } = await import("../drizzle/schema");
+      const { and: andOp } = await import("drizzle-orm");
       const [inv] = await db.select().from(invoiceArchive).where(eq(invoiceArchive.id, id));
       if (!inv) { res.status(404).json({ error: "Factura nu a fost găsită" }); return; }
 
-      if (!inv.rawXml) {
-        res.status(404).json({ error: "XML-ul original nu este disponibil pentru această factură" });
+      let xmlContent = inv.rawXml;
+
+      // If rawXml missing, try to re-download from SPV
+      if (!xmlContent && inv.source === "spv_anaf" && inv.fileName) {
+        console.log(`[PDF Archive] rawXml missing for ${inv.invoiceNumber}, attempting re-download...`);
+        
+        // Extract download ID from fileName (format: SPV_<downloadId>.zip)
+        const match = inv.fileName.match(/SPV_(\d+)\.zip/);
+        if (match) {
+          const downloadId = match[1];
+          
+          // Get SPV access token
+          const [spvIntg] = await db.select().from(integrations)
+            .where(andOp(
+              eq(integrations.tenantId, inv.tenantId),
+              eq(integrations.provider, "spv"),
+              eq(integrations.status, "active")
+            ));
+
+          if (spvIntg?.apiKey) {
+            try {
+              const AdmZip = (await import("adm-zip")).default;
+              const zipRes = await fetch(`https://api.anaf.ro/prod/FCTEL/rest/descarcare?id=${downloadId}`, {
+                headers: { "Authorization": `Bearer ${spvIntg.apiKey}` },
+                signal: AbortSignal.timeout(30000),
+              });
+
+              if (zipRes.ok) {
+                const buffer = await zipRes.arrayBuffer();
+                const zip = new AdmZip(Buffer.from(buffer));
+                const xmlEntry = zip.getEntries().find(e => 
+                  e.entryName.toLowerCase().endsWith(".xml") && !e.entryName.toLowerCase().includes("semnatura")
+                );
+                if (xmlEntry) {
+                  xmlContent = xmlEntry.getData().toString("utf8");
+                  // Store it for future use
+                  await db.update(invoiceArchive).set({ rawXml: xmlContent }).where(eq(invoiceArchive.id, id));
+                  console.log(`[PDF Archive] Re-downloaded and stored XML for ${inv.invoiceNumber}`);
+                }
+              }
+            } catch (dlErr: any) {
+              console.error(`[PDF Archive] Re-download failed: ${dlErr.message}`);
+            }
+          }
+        }
+      }
+
+      if (!xmlContent) {
+        res.status(404).json({ error: "XML-ul original nu este disponibil. Mergi la Integrări → SPV → Sincronizează pentru a re-descărca facturile." });
         return;
       }
 
@@ -115,7 +163,7 @@ export function registerPdfRoute(app: any) {
       const anafRes = await fetch("https://webservicesp.anaf.ro/prod/FCTEL/rest/transformare/FACT1/DA", {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
-        body: inv.rawXml,
+        body: xmlContent,
         signal: AbortSignal.timeout(30000),
       });
 
