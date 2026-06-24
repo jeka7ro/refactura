@@ -94,11 +94,28 @@ export default function Clients() {
 
   const columns: DataTableColumn<any>[] = [
     {
+      key: "type",
+      label: "TIP",
+      render: (_: any, row: any) => (
+        <div className="whitespace-nowrap">
+          {row.isSupplier === 1 ? (
+            <span className="px-1.5 py-0.5 rounded-md bg-orange-100 text-orange-700 border border-orange-200 text-[9px] font-bold uppercase tracking-wider">
+              Furnizor
+            </span>
+          ) : (
+            <span className="px-1.5 py-0.5 rounded-md bg-blue-100 text-blue-700 border border-blue-200 text-[9px] font-bold uppercase tracking-wider">
+              Client
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
       key: "name",
-      label: "NUME CLIENT",
+      label: "NUME PARTENER",
       sortable: true,
       render: (val: string, row: any) => (
-        <Link href={`/client/${row.id}`} className="font-semibold text-blue-600 hover:underline">
+        <Link href={`/client/${row.id}`} className="font-semibold text-blue-600 hover:underline whitespace-nowrap">
           {val}
         </Link>
       ),
@@ -179,6 +196,9 @@ export default function Clients() {
             </span>
             <span className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-xs font-semibold border bg-purple-50 text-purple-700 border-purple-200">
               Orașe Unice <strong>{new Set(clients.map((c: any) => c.city).filter(Boolean)).size}</strong>
+            </span>
+            <span className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-xs font-semibold border bg-orange-50 text-orange-700 border-orange-200">
+              Furnizori <strong>{clients.filter((c: any) => c.isSupplier === 1).length}</strong>
             </span>
           </div>
         </>

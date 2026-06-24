@@ -797,6 +797,30 @@ export const appRouter = router({
       const { syncOblioInvoices } = await import('./oblioSync');
       return syncOblioInvoices(ctx.user.tenantId);
     }),
+    disconnectOblio: protectedProcedure.mutation(async ({ ctx }) => {
+      if (!ctx.user?.tenantId) throw new Error('No tenant context');
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+      const { integrations } = await import('../drizzle/schema');
+      const { and, eq } = await import('drizzle-orm');
+      await db.delete(integrations)
+        .where(and(eq(integrations.tenantId, ctx.user.tenantId), eq(integrations.provider, "oblio")));
+      return { success: true };
+    }),
+    syncSpvManual: protectedProcedure.mutation(async ({ ctx }) => {
+      if (!ctx.user?.tenantId) throw new Error('No tenant context');
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+      const { integrations } = await import('../drizzle/schema');
+      const { and, eq } = await import('drizzle-orm');
+      const [spvIntg] = await db.select().from(integrations)
+        .where(and(eq(integrations.tenantId, ctx.user.tenantId), eq(integrations.provider, "spv_oauth")));
+      if (!spvIntg || !spvIntg.apiKey) {
+        throw new Error('SPV nu este configurat sau lipsește token-ul de acces.');
+      }
+      const { syncSpvInvoices } = await import('./spvSync');
+      return syncSpvInvoices(ctx.user.tenantId, spvIntg.apiKey);
+    }),
     getSpvOAuthUrl: protectedProcedure.query(async ({ ctx }) => {
       if (!ctx.user?.tenantId) throw new Error('No tenant context');
       const clientId = process.env.SPV_CLIENT_ID;

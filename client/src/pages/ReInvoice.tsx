@@ -169,8 +169,7 @@ export default function ReInvoice() {
         unitPrice: 0,
         originalUnitPrice: 0,
         unit: "buc",
-        vatRate: 21,
-        currency,
+        vatRate: 19,
         markupPercent: 0,
       },
     ]);
@@ -222,12 +221,12 @@ export default function ReInvoice() {
         lines: lines.map((l, idx) => ({
           description: l.description,
           quantity: Number(l.quantity) || 0,
-          originalUnitPrice: l.originalUnitPrice,
+          originalUnitPrice: Number(l.originalUnitPrice) || 0,
           unitPrice: Number(l.unitPrice) || 0,
           unit: l.unit,
-          vatRate: l.vatRate,
+          vatRate: Number(l.vatRate) || 0,
           markupPercent: Number(l.markupPercent) || 0,
-          total: (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0) * (1 + (l.vatRate ?? 21) / 100),
+          total: (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0) * (1 + (Number(l.vatRate) || 0) / 100),
           lineOrder: idx,
         })),
       });
@@ -246,7 +245,7 @@ export default function ReInvoice() {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
@@ -345,9 +344,9 @@ export default function ReInvoice() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Left: Lines editor */}
-        <div className="xl:col-span-2 space-y-4">
+      <div className="flex flex-col gap-6">
+        {/* Top: Lines editor */}
+        <div className="w-full space-y-4">
           {/* Global markup */}
           <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 p-4">
             <div className="flex items-center gap-3 flex-wrap">
@@ -395,59 +394,60 @@ export default function ReInvoice() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-slate-100 dark:border-slate-800">
-                    <th className="text-left px-6 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Descriere</th>
-                    <th className="text-right px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Cant.</th>
-                    <th className="text-right px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Preț Orig.</th>
-                    <th className="text-right px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Adaos %</th>
-                    <th className="text-right px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Preț Nou</th>
-                    <th className="text-right px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Total</th>
-                    <th className="px-4 py-3" />
+                    <th className="text-left px-6 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 w-[45%] min-w-[300px]">Descriere</th>
+                    <th className="text-right px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 min-w-[90px]">Cant.</th>
+                    <th className="text-right px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 min-w-[100px]">Preț Orig.</th>
+                    <th className="text-right px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 min-w-[100px]">Adaos %</th>
+                    <th className="text-right px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 min-w-[120px]">Preț Nou</th>
+                    <th className="text-right px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 min-w-[100px]">Total</th>
+                    <th className="px-4 py-3 w-[50px]" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {lines.map((line, idx) => (
                     <tr key={line.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                       <td className="px-6 py-3">
-                        <input
+                        <textarea
                           value={line.description}
                           onChange={(e) => setLines((prev) => prev.map((l) => l.id === line.id ? { ...l, description: e.target.value } : l))}
-                          className="w-full text-sm text-slate-900 dark:text-white bg-transparent border-b border-transparent hover:border-slate-200 dark:hover:border-slate-700 focus:border-blue-500 outline-none py-0.5 transition-colors"
+                          className="w-full text-sm text-slate-900 dark:text-white bg-transparent border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 transition-colors resize-none overflow-hidden"
                           placeholder="Descriere produs/serviciu"
+                          rows={2}
                         />
                       </td>
-                      <td className="px-3 py-3">
+                      <td className="px-3 py-3 align-top pt-4">
                         <input
                           type="number"
                           value={line.quantity}
                           onChange={(e) => updateLineQty(line.id, e.target.value)}
-                          className="w-16 text-sm text-right text-slate-900 dark:text-white bg-transparent border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-20 text-sm text-right text-slate-900 dark:text-white bg-transparent border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-blue-500"
                           min={0}
                         />
                       </td>
-                      <td className="px-3 py-3 text-right text-xs text-slate-400">
-                        <div className="text-slate-500 font-medium">
+                      <td className="px-3 py-3 text-right text-xs text-slate-400 align-top pt-5">
+                        <div className="text-slate-500 font-medium whitespace-nowrap">
                           {formatCurrency(line.originalUnitPrice, currency)}
                         </div>
                       </td>
-                      <td className="px-3 py-3">
+                      <td className="px-3 py-3 align-top pt-4">
                         <div className="flex items-center justify-end gap-1">
                           <input
                             type="number"
                             value={line.markupPercent ?? 0}
                             onChange={(e) => updateLineMarkup(line.id, e.target.value)}
-                            className="w-16 text-sm text-right text-slate-900 dark:text-white bg-transparent border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-20 text-sm text-right text-slate-900 dark:text-white bg-transparent border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-blue-500"
                             min={-100}
                             max={1000}
                           />
                           <span className="text-xs text-slate-400">%</span>
                         </div>
                       </td>
-                      <td className="px-3 py-3">
+                      <td className="px-3 py-3 align-top pt-4">
                         <input
                           type="number"
                           value={line.unitPrice}
                           onChange={(e) => updateLinePrice(line.id, e.target.value)}
-                          className="w-24 text-sm text-right text-blue-600 bg-transparent border border-blue-200 dark:border-blue-800 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full min-w-[90px] text-sm text-right text-blue-600 font-medium bg-transparent border border-blue-200 dark:border-blue-800 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-blue-500"
                           min={0}
                           step={0.01}
                         />
@@ -471,8 +471,8 @@ export default function ReInvoice() {
           </div>
         </div>
 
-        {/* Right: Config panel */}
-        <div className="space-y-4">
+        {/* Bottom: Config panels */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
           {/* Client selector */}
           <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-5">
             <div className="flex items-center gap-2 mb-4">
@@ -557,7 +557,7 @@ export default function ReInvoice() {
                 <span>{formatCurrency(subtotal, currency)}</span>
               </div>
               <div className="flex justify-between text-slate-500">
-                <span>TVA ({lines[0]?.vatRate ?? 21}%):</span>
+                <span>TVA ({lines[0]?.vatRate ?? 19}%):</span>
                 <span>{formatCurrency(totalVAT, currency)}</span>
               </div>
               <div className="flex justify-between text-slate-900 dark:text-white border-t border-slate-100 dark:border-slate-800 pt-2 mt-2">

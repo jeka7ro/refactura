@@ -19,9 +19,10 @@ interface DataTableProps<T> {
   actions?: (row: T) => React.ReactNode;
   isLoading?: boolean;
   searchable?: boolean;
+  headerContent?: React.ReactNode;
 }
 
-export function DataTable<T>({
+export function DataTable<T extends Record<string, any>>({
   columns,
   data,
   rowKey,
@@ -31,6 +32,7 @@ export function DataTable<T>({
   actions,
   isLoading = false,
   searchable = true,
+  headerContent,
 }: DataTableProps<T>) {
   const [sortColumn, setSortColumn] = useState<keyof T | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
@@ -106,18 +108,27 @@ export function DataTable<T>({
 
   return (
     <div className="space-y-2">
-      {/* Search */}
-      {searchable && (
-        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="relative px-3 py-2">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-            <input
-              className="w-full sm:w-64 pl-7 pr-3 h-8 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
-              placeholder="Caută număr, partener..."
-              value={search}
-              onChange={e => { setSearch(e.target.value); setPage(1); }}
-            />
-          </div>
+      {/* Search & Header Content */}
+      {(searchable || headerContent) && (
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm px-3 py-2 flex flex-col sm:flex-row gap-3 justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
+          {searchable ? (
+            <div style={{ position: "relative", width: "100%", maxWidth: 340 }}>
+              <Search className="w-3.5 h-3.5 text-slate-400" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
+              <input
+                style={{ paddingLeft: 30, paddingRight: search ? 72 : 12, borderRadius: 9999, width: "100%", height: 32, border: "1px solid #e2e8f0", outline: "none", fontSize: 13 }}
+                className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white dark:border-slate-700"
+                placeholder="Caută număr, partener..."
+                value={search}
+                onChange={e => { setSearch(e.target.value); setPage(1); }}
+              />
+            </div>
+          ) : <div />}
+          
+          {headerContent && (
+            <div className="flex flex-wrap gap-1.5 justify-end w-full sm:w-auto">
+              {headerContent}
+            </div>
+          )}
         </div>
       )}
 
@@ -169,7 +180,7 @@ export function DataTable<T>({
                 </tr>
               ) : paginatedData.length === 0 ? (
                 <tr>
-                  <td colSpan={colCount} className="p-8 text-center text-slate-400 text-xs">
+                  <td colSpan={colCount} className="py-4 text-center text-slate-400 text-[11px] bg-slate-50/50 dark:bg-slate-800/20 border-b border-dashed border-slate-200 dark:border-slate-800">
                     Nicio înregistrare găsită
                   </td>
                 </tr>

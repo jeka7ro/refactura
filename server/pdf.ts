@@ -1,5 +1,24 @@
 import PDFDocument from "pdfkit";
 import { Readable } from "stream";
+import fs from "fs";
+import path from "path";
+
+function sanitizeData(obj: any): any {
+  if (typeof obj === "string") return obj; // Removed stripDiacritics
+  if (Array.isArray(obj)) return obj.map(sanitizeData);
+  if (obj !== null && typeof obj === "object") {
+    const res: any = {};
+    for (const key of Object.keys(obj)) {
+      if (key === "logoBase64") {
+        res[key] = obj[key];
+      } else {
+        res[key] = sanitizeData(obj[key]);
+      }
+    }
+    return res;
+  }
+  return obj;
+}
 
 export type InvoiceTemplate = "classic" | "modern" | "minimal";
 
@@ -42,11 +61,45 @@ export interface ReInvoiceData {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function drawLogo(doc: PDFKit.PDFDocument, logoBase64: string, x: number, y: number, w = 110, h = 55) {
+function drawLogo(doc: PDFKit.PDFDocument, logoBase64: string, x: number, y: number, w = 150, h = 40) {
+  // Ignorăm logoBase64 din baza de date pentru că utilizatorul vrea exclusiv logoul GetApp peste tot
+  logoBase64 = "DEFAULT_TEXT_LOGO";
+  
+  if (logoBase64 === "DEFAULT_TEXT_LOGO") {
+    // Folosim fix imaginea pusa de user
+    try {
+      const possiblePaths = [
+        path.resolve(process.cwd(), "client/public/logo.png"),
+        path.resolve(process.cwd(), "../client/public/logo.png"),
+        path.resolve(process.cwd(), "dist/public/logo.png"),
+        path.resolve(process.cwd(), "server/assets/logo.png")
+      ];
+      
+      let foundPath = null;
+      for (const p of possiblePaths) {
+        if (fs.existsSync(p)) {
+          foundPath = p;
+          break;
+        }
+      }
+      
+      if (foundPath) {
+         const imgBuffer = fs.readFileSync(foundPath);
+         doc.image(imgBuffer, x, y, { width: 140 }); 
+      }
+    } catch (err) {
+      console.error("[PDF] Failed to draw logo:", err);
+    }
+    
+    // Resetează culorile
+    doc.fillColor("#1e293b");
+    return;
+  }
+
   try {
     const base64Data = logoBase64.replace(/^data:image\/\w+;base64,/, "");
     const imgBuffer = Buffer.from(base64Data, "base64");
-    doc.image(imgBuffer, x, y, { width: w, height: h, fit: [w, h], align: "left", valign: "center" });
+    doc.image(imgBuffer, x, y, { fit: [w, h], align: "left", valign: "center" });
   } catch (_) { /* ignoră logo invalid */ }
 }
 
@@ -111,8 +164,13 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   const pageWidth = doc.page.width - 80;
   let y = 40;
 
+  // Logo
+  if (data.logoBase64) {
+    drawLogo(doc, data.logoBase64, leftX, y, 100, 30);
+  }
+
   // Header: Left "Factura", Right "Seria și numărul"
-  doc.fontSize(24).font("Helvetica-Bold").fillColor("#000000").text("Factura", leftX, y);
+  doc.fontSize(24).font("Helvetica-Bold").fillColor("#000000").text("Factura", leftX + 180, y + 5);
   
   const rightColX = leftX + pageWidth - 180;
   doc.fontSize(16).font("Helvetica-Bold").text(data.number, rightColX, y, { width: 180, align: "right" });
@@ -229,6 +287,11 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     doc.fontSize(8).font("Helvetica-Bold").text("Observații:", leftX, y + 35);
     doc.font("Helvetica").text(data.notes, leftX, y + 47, { width: pageWidth });
   }
+
+  const footerY = doc.page.height - 30;
+  const now = new Date();
+  doc.fontSize(7.5).font("Helvetica").fillColor("#cbd5e1")
+    .text(`www.refactura.ro • ${now.toLocaleDateString("ro-RO")}`, leftX, footerY, { width: pageWidth, align: "center" });
 }
 
 // ─── TEMPLATE 2: MODERN ──────────────────────────────────────────────────────
@@ -308,7 +371,7 @@ function generateModern(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   const footerY = doc.page.height - 35;
   doc.rect(0, footerY - 8, doc.page.width, 45).fillColor("#0f172a").fill();
   doc.fontSize(7.5).font("Helvetica").fillColor("#94a3b8")
-    .text(`RefacturaRO • Generat automat • ${now.toLocaleDateString("ro-RO")} ${now.toLocaleTimeString("ro-RO")}`, 0, footerY + 2, { align: "center", width: doc.page.width });
+    .text(`www.refactura.ro • Generat automat • ${now.toLocaleDateString("ro-RO")} ${now.toLocaleTimeString("ro-RO")}`, 0, footerY + 2, { align: "center", width: doc.page.width });
 }
 
 // ─── TEMPLATE 3: MINIMAL ─────────────────────────────────────────────────────
@@ -402,13 +465,25 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
 
   const footerY = doc.page.height - 30;
   doc.fontSize(7.5).font("Helvetica").fillColor("#cbd5e1")
-    .text(`RefacturaRO • ${now.toLocaleDateString("ro-RO")}`, leftX, footerY, { width: pageWidth, align: "center" });
+    .text(`www.refactura.ro • ${now.toLocaleDateString("ro-RO")}`, leftX, footerY, { width: pageWidth, align: "center" });
 }
 
 // ─── Main export ─────────────────────────────────────────────────────────────
 
-export function generateReInvoicePDF(data: ReInvoiceData): Readable {
+export function generateReInvoicePDF(rawData: ReInvoiceData): Readable {
   const doc = new PDFDocument({ size: "A4", margin: 0 });
+  
+  // Înregistrăm Roboto ca Helvetica pentru a suporta diacriticele fără a rescrie toate template-urile
+  try {
+    const robotoReg = path.resolve(process.cwd(), "server/assets/fonts/Roboto-Regular.ttf");
+    const robotoBold = path.resolve(process.cwd(), "server/assets/fonts/Roboto-Bold.ttf");
+    if (fs.existsSync(robotoReg)) doc.registerFont("Helvetica", robotoReg);
+    if (fs.existsSync(robotoBold)) doc.registerFont("Helvetica-Bold", robotoBold);
+  } catch (err) {
+    console.error("[PDF] Could not load Roboto fonts for diacritics", err);
+  }
+
+  const data = sanitizeData(rawData);
 
   const template: InvoiceTemplate = data.template ?? "classic";
 

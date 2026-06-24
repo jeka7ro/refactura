@@ -1,7 +1,7 @@
 // Reports — date reale din DB via tRPC (zero mock-uri)
 import { useState } from "react";
 import {
-  TrendingUp, Users, DollarSign, Percent, Download,
+  TrendingUp, TrendingDown, Users, DollarSign, Percent, Download,
   Calendar, BarChart3, LineChart as LineChartIcon, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -41,32 +41,53 @@ export default function Reports() {
 
   const topClients = clientStats.slice(0, 5);
 
-  // ── Trend lunar din invoiceArchive ────────────────────────────────────────
-  const monthlyMap: Record<string, { revenue: number; count: number }> = {};
+  // ── Trend lunar din invoiceArchive (Emise vs Primite) ────────────────
+  const monthlyMap: Record<string, { emise: number; primite: number; dateVal: number }> = {};
   archiveInvoices.forEach((inv: any) => {
     if (!inv.issueDate) return;
+    
     const d = new Date(inv.issueDate);
     if (isNaN(d.getTime())) return;
-    const key = d.toLocaleString("ro-RO", { month: "short", year: "2-digit" });
-    if (!monthlyMap[key]) monthlyMap[key] = { revenue: 0, count: 0 };
-    monthlyMap[key].revenue += Number(inv.total || 0);
-    monthlyMap[key].count++;
+    
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const sortKey = `${yyyy}-${mm}`; // ex: 2024-11
+    
+    if (!monthlyMap[sortKey]) monthlyMap[sortKey] = { emise: 0, primite: 0, dateVal: d.getTime() };
+    
+    if (inv.direction === "in") {
+      monthlyMap[sortKey].primite += Number(inv.total || 0);
+    } else {
+      monthlyMap[sortKey].emise += Number(inv.total || 0);
+    }
   });
 
   const monthlyData = Object.entries(monthlyMap)
+    .sort((a, b) => a[0].localeCompare(b[0])) // sortare cronologică garantată YYYY-MM
     .slice(-6)
-    .map(([month, v]) => ({
-      month,
-      revenue: Math.round(v.revenue),
-      margin: Math.round(v.revenue * 0.15),
-      count: v.count,
-    }));
+    .map(([key, v]) => {
+      const d = new Date(v.dateVal);
+      return {
+        month: d.toLocaleString("ro-RO", { month: "short", year: "2-digit" }),
+        emise: Math.round(v.emise),
+        primite: Math.round(v.primite),
+      };
+    });
 
   // ── KPI totale ────────────────────────────────────────────────────────────
-  const totalRevenue = clientStats.reduce((s: number, c: any) => s + c.totalRevenue, 0);
-  const totalMargin = totalRevenue * 0.15;
+  const totalReInvoicesRevenue = clientStats.reduce((s: number, c: any) => s + c.totalRevenue, 0);
+  
+  const totalFacturiEmise = archiveInvoices
+    .filter((inv: any) => inv.direction !== "in")
+    .reduce((s: number, inv: any) => s + Number(inv.total || 0), 0);
+    
+  const totalFacturiPrimite = archiveInvoices
+    .filter((inv: any) => inv.direction === "in")
+    .reduce((s: number, inv: any) => s + Number(inv.total || 0), 0);
+    
+  const totalRevenue = totalReInvoicesRevenue + totalFacturiEmise;
+  const totalExpenses = totalFacturiPrimite;
   const totalReInvoices = reInvoices.length;
-  const avgMarginPct = 15;
   const activeClients = clientStats.length;
 
   // ── Export CSV ────────────────────────────────────────────────────────────
@@ -117,14 +138,14 @@ export default function Reports() {
           value={formatCurrency(totalRevenue, selectedCurrency)}
           icon={<DollarSign className="w-5 h-5 text-blue-600" />}
           iconBg="bg-blue-50"
-          sub={`${totalReInvoices} re-facturi`}
+          sub={`${totalReInvoices} re-facturi + arhiva emise`}
         />
         <KPICard
-          title="Marjă Totală"
-          value={formatCurrency(totalMargin, selectedCurrency)}
-          icon={<TrendingUp className="w-5 h-5 text-emerald-600" />}
-          iconBg="bg-emerald-50"
-          sub={`${avgMarginPct}% estimat`}
+          title="Facturi Primite"
+          value={formatCurrency(totalExpenses, selectedCurrency)}
+          icon={<TrendingDown className="w-5 h-5 text-rose-600" />}
+          iconBg="bg-rose-50"
+          sub="Cheltuieli din SPV"
         />
         <KPICard
           title="Clienți Activi"
@@ -156,8 +177,8 @@ export default function Reports() {
               <YAxis stroke="#94a3b8" />
               <Tooltip contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #475569", borderRadius: "8px", color: "#f1f5f9" }} />
               <Legend />
-              <Line type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={2} dot={{ fill: "#2563eb", r: 4 }} name="Venituri (RON)" />
-              <Line type="monotone" dataKey="margin" stroke="#10b981" strokeWidth={2} dot={{ fill: "#10b981", r: 4 }} name="Marjă (RON)" />
+              <Line type="monotone" dataKey="emise" stroke="#2563eb" strokeWidth={2} dot={{ fill: "#2563eb", r: 4 }} name="Facturi Emise (RON)" />
+              <Line type="monotone" dataKey="primite" stroke="#e11d48" strokeWidth={2} dot={{ fill: "#e11d48", r: 4 }} name="Facturi Primite (RON)" />
             </LineChart>
           </ResponsiveContainer>
         </div>

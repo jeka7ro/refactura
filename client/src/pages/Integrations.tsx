@@ -7,6 +7,16 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { parseEfacturaXML } from "@/lib/efactura";
 import JSZip from "jszip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // ── AI Assistant for setup guidance ────────────────────────────────────────
 
@@ -242,11 +252,23 @@ export default function Integrations() {
   const [aiInput, setAiInput] = useState("");
   const [configuringId, setConfiguringId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState<string | null>(null);
+  const [deleteProviderId, setDeleteProviderId] = useState<string | null>(null);
   const aiEndRef = useRef<HTMLDivElement>(null);
 
   const { data: dbIntegrations = [], isLoading, refetch } = trpc.integrations.list.useQuery();
   const upsertMutation = trpc.integrations.upsert.useMutation({
     onSuccess: () => refetch(),
+  });
+  const disconnectOblioMutation = trpc.integrations.disconnectOblio.useMutation({
+    onSuccess: () => {
+      toast.success("Integrarea Oblio a fost ștearsă/dezactivată");
+      setDeleteProviderId(null);
+      refetch();
+    },
+    onError: (e) => {
+      toast.error("Eroare la ștergere: " + e.message);
+      setDeleteProviderId(null);
+    }
   });
   const syncOblioMutation = trpc.integrations.syncOblio.useMutation({
     onSuccess: (result) => {
@@ -524,14 +546,24 @@ export default function Integrations() {
                     <div className="flex items-center gap-2 flex-wrap">
                       {/* Oblio specific actions */}
                       {provider.id === "oblio" && isActive && (
-                        <button
-                          onClick={handleSyncOblio}
-                          disabled={syncing === "oblio"}
-                          className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition-all disabled:opacity-60"
-                        >
-                          {syncing === "oblio" ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                          Sincronizează acum
-                        </button>
+                        <>
+                          <button
+                            onClick={handleSyncOblio}
+                            disabled={syncing === "oblio"}
+                            className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition-all disabled:opacity-60"
+                          >
+                            {syncing === "oblio" ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                            Sincronizează acum
+                          </button>
+                          <button
+                            onClick={() => setDeleteProviderId("oblio")}
+                            disabled={disconnectOblioMutation.isPending}
+                            className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-red-100 hover:bg-red-200 text-red-600 text-xs font-bold transition-all disabled:opacity-60"
+                          >
+                            {disconnectOblioMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
+                            Dezactivează
+                          </button>
+                        </>
                       )}
                       {/* SmartBill specific actions */}
                       {provider.id === "smartbill" && isActive && (

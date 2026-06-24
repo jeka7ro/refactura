@@ -223,6 +223,7 @@ export const clients = mysqlTable("clients", {
   totalInvoiced: decimal("totalInvoiced", { precision: 12, scale: 2 }).default("0.00"),
   invoiceCount: int("invoiceCount").default(0),
   reInvoiceCount: int("reInvoiceCount").default(0),
+  isSupplier: int("isSupplier").default(0),
   isActive: int("isActive").default(1),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

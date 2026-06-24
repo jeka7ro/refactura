@@ -298,6 +298,48 @@ export async function syncAllSpv(zile: number = 60) {
           rawXml: xmlString,
         });
 
+        // --- ADD CLIENT IF NOT EXISTS ---
+        if (supplierCUI && supplierName && supplierName !== "Client necunoscut") {
+          try {
+            const { clients } = await import("../drizzle/schema");
+            const cleanCUI = String(supplierCUI).replace(/^RO/i, '').trim();
+            
+            const [existingClient] = await db.select({ id: clients.id })
+              .from(clients)
+              .where(and(
+                eq(clients.tenantId, intg.tenantId),
+                sql`REPLACE(UPPER(${clients.cui}), 'RO', '') = ${cleanCUI}`
+              ));
+
+            if (!existingClient) {
+              const party = targetParty?.["cac:Party"];
+              const address = party?.["cac:PostalAddress"]?.["cbc:StreetName"] || "";
+              const city = party?.["cac:PostalAddress"]?.["cbc:CityName"] || "";
+              const county = party?.["cac:PostalAddress"]?.["cbc:CountrySubentity"] || "";
+              const email = party?.["cac:Contact"]?.["cbc:ElectronicMail"] || "";
+              const phone = party?.["cac:Contact"]?.["cbc:Telephone"] || "";
+              const tva = String(supplierCUI).toUpperCase().startsWith("RO");
+
+              await db.insert(clients).values({
+                tenantId: intg.tenantId,
+                name: String(supplierName),
+                cui: String(supplierCUI),
+                regCom: "",
+                address: String(address),
+                city: String(city),
+                country: "RO",
+                email: String(email),
+                phone: String(phone),
+                tva: tva ? 1 : 0
+              });
+              console.log(`[SPV Cron] Added new client: ${supplierName} (${supplierCUI})`);
+            }
+          } catch (err: any) {
+            console.warn(`[SPV Cron] Failed to add client ${supplierName}:`, err.message);
+          }
+        }
+        // --- END ADD CLIENT ---
+
         // Extract and save invoice lines from XML
         try {
           const { invoiceArchiveLines } = await import("../drizzle/schema");

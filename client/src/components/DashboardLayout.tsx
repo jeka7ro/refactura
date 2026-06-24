@@ -40,7 +40,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663775520028/C8wLbaeYKAg5R5gqEkUmxw/getapp-smart-invoice-logo-8jE6iFRK2679M7FEcnTBFN.webp";
+const LOGO_URL = "/logo.png";
 const APP_NAME = "Get App";
 const APP_SUBTITLE = "Smart Invoice";
 
@@ -108,16 +108,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className={cn(
-        "flex items-center gap-2.5 px-3 py-3 border-b border-slate-200 dark:border-slate-800",
-        collapsed && "justify-center px-2"
+        "flex items-center justify-center border-b border-slate-200 dark:border-slate-800 h-16 flex-shrink-0",
+        collapsed ? "px-2" : "px-4"
       )}>
-        <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0 shadow shadow-blue-900/30">
-          <img src={LOGO_URL} alt="RefacturaRO" className="w-4 h-4 object-contain" />
-        </div>
-        {!collapsed && (
-          <div>
-            <div className="text-slate-900 dark:text-white font-bold text-xs leading-tight">{APP_NAME}</div>
-            <div className="text-blue-600 dark:text-blue-400 font-semibold text-[10px]">{APP_SUBTITLE}</div>
+        {collapsed ? (
+          <div className="h-8 w-8 flex-shrink-0">
+            <img src="/favicon.png" alt="GetApp Refactura" className="h-full w-full object-contain" />
+          </div>
+        ) : (
+          <div className="h-12 w-full flex items-center justify-center">
+            <img src="/logo.png" alt="GetApp Refactura" className="h-full object-contain" />
           </div>
         )}
       </div>
@@ -233,7 +233,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Header — compact, aliniat cu logo sidebar */}
-        <header className="h-[52px] bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700/50 flex items-center px-4 gap-3 flex-shrink-0">
+        <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center px-4 gap-3 flex-shrink-0">
           {/* Mobile menu */}
           <button
             className="md:hidden w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"

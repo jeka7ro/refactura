@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
-import { Search, ChevronLeft, ChevronRight, Plus, RefreshCw, Loader2, Send, FileDown, X, Eye, Pencil, Trash2, Calendar } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Plus, RefreshCw, Loader2, Send, FileDown, X, Eye, Pencil, Trash2, Calendar, Download } from "lucide-react";
 import { formatCurrency, formatDate, type Currency } from "@/lib/store";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -67,8 +67,12 @@ export default function AllInvoices() {
   const [deleteTarget, setDeleteTarget] = useState<UnifiedRow | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [period, setPeriod] = useState<string>("all");
-  const [customFrom, setCustomFrom] = useState("");
-  const [customTo, setCustomTo] = useState("");
+  const [customFrom, setCustomFrom] = useState(() => new Date().toISOString().split("T")[0]);
+  const [customTo, setCustomTo] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split("T")[0];
+  });
 
   // Period date range helper
   const getDateRange = (p: string): [string, string] | null => {
@@ -133,6 +137,10 @@ export default function AllInvoices() {
   const syncOblio = trpc.integrations.syncOblio.useMutation({
     onSuccess: () => { r1(); r2(); },
   });
+  const syncSpvManual = trpc.integrations.syncSpvManual.useMutation({
+    onSuccess: () => { r1(); r2(); },
+  });
+  const { data: dbIntegrations = [] } = trpc.integrations.list.useQuery();
 
   const deleteArchive = trpc.invoiceArchive.delete.useMutation({ onSuccess: () => r1() });
   const deleteReinvoice = trpc.reinvoice.delete.useMutation({ onSuccess: () => r2() });
@@ -221,7 +229,31 @@ export default function AllInvoices() {
 
   // Import XML e-Factura: mutat în pagina Integrări → cardul „SPV ANAF".
 
-  // ── Download PDF re-factură ──
+  // ── Export Excel (CSV) ──
+  const exportToExcel = () => {
+    const header = ["Tip", "Număr", "Dată", "Scadență", "Partener", "CUI", "Total", "Monedă", "Status"];
+    const rows = filtered.map(r => [
+      r.type.toUpperCase(),
+      `"${r.number}"`,
+      r.date.slice(0, 10),
+      r.dueDate ? r.dueDate.slice(0, 10) : "",
+      `"${(r.partnerName || "").replace(/"/g, '""')}"`,
+      r.partnerCui || "",
+      r.total,
+      r.currency,
+      STATUS_LBL[r.status] || r.status
+    ]);
+    const csvContent = [header, ...rows].map(e => e.join(";")).join("\n");
+    // BOM for Excel compatibility with UTF-8
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Facturi_Export_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("Export Excel generat cu succes!");
+  };  // ── Download PDF re-factură ──
   const handleDownloadReInvoicePDF = async (row: UnifiedRow) => {
     const ri = (reInvoices as any[]).find(r => r.id === row.id);
     if (!ri) { toast.error("Re-factura nu a fost găsită"); return; }
@@ -257,24 +289,94 @@ export default function AllInvoices() {
   return (
     <div className="p-3 sm:p-5 max-w-full space-y-3">
 
-      {/* Header */}
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div>
-          <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">Facturi</h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Total: <strong>{allRows.length}</strong> înregistrări</p>
+      {/* Header cu Titlu + Export/Sync (Top Row) si Filtre Perioada (Bottom Row) */}
+      <div className="flex flex-col gap-3 mb-4">
+        
+        {/* Top Row: Title & Action Buttons */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">Facturi</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Total: <strong>{allRows.length}</strong> înregistrări</p>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <button
+              onClick={exportToExcel}
+              className="flex items-center gap-1 px-3 h-8 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-medium transition-all"
+              title="Exportă tabelul curent în format Excel (CSV)"
+            >
+              <Download className="w-3 h-3" />
+              <span className="hidden sm:inline">Export Excel</span>
+            </button>
+            <button
+              onClick={async () => {
+                const hasOblio = (dbIntegrations as any[]).some(i => i.provider === "oblio");
+                const hasSpv = (dbIntegrations as any[]).some(i => i.provider === "spv_oauth");
+                let syncedAny = false;
+                
+                if (hasOblio) {
+                  toast.loading("Sincronizare Oblio...", { id: "sync" });
+                  await syncOblio.mutateAsync().catch(() => {});
+                  syncedAny = true;
+                }
+                
+                if (hasSpv && !hasOblio) {
+                  toast.loading("Sincronizare SPV ANAF...", { id: "sync" });
+                  await syncSpvManual.mutateAsync().catch(() => {});
+                  syncedAny = true;
+                }
+                
+                if (!syncedAny) {
+                  toast.error("Nicio integrare activă de sincronizat. Mergi la Integrări.");
+                } else {
+                  toast.success("Sincronizare completă", { id: "sync" });
+                }
+              }}
+              disabled={syncOblio.isPending || syncSpvManual.isPending}
+              className="flex items-center gap-1 px-3 h-8 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-medium transition-all disabled:opacity-60"
+              title="Sincronizează din sursele configurate (Oblio / SPV)"
+            >
+              {syncOblio.isPending || syncSpvManual.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+              <span>Sync</span>
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => syncOblio.mutate()}
-            disabled={syncOblio.isPending}
-            className="flex items-center gap-1 px-3 h-8 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium transition-all disabled:opacity-60"
-            title="Sincronizează din sursă configurată în Integrări"
-          >
-            {syncOblio.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-            <span>Sync</span>
-          </button>
+
+        {/* Bottom Row: Period Filters */}
+        <div className="flex flex-wrap items-center justify-end gap-1.5 border-t border-slate-100 dark:border-slate-800 pt-2">
+          <Calendar className="w-4 h-4 text-slate-400 hidden sm:block" />
+            {([
+              { id: "all",       label: "Toate" },
+              { id: "today",     label: "Azi" },
+              { id: "week",      label: "Săpt. curentă" },
+              { id: "month",     label: "Luna curentă" },
+              { id: "lastMonth", label: "Luna trecută" },
+              { id: "year",      label: "Anul curent" },
+              { id: "lastYear",  label: "Anul trecut" },
+            ] as const).map(f => (
+              <button
+                key={f.id}
+                onClick={() => { setPeriod(f.id); setPage(1); }}
+                className={`px-2.5 sm:px-3 h-8 rounded-lg text-xs font-semibold border transition-all flex items-center justify-center ${
+                  period === f.id
+                    ? "bg-blue-50 text-blue-700 border-blue-200 ring-1 ring-offset-1 ring-blue-400"
+                    : "bg-white border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+            
+            {/* Custom Date Inputs (Always Visible) */}
+            <div className="flex items-center gap-1 ml-1">
+              <input type="date" value={customFrom} onChange={e => { setPeriod("custom"); setCustomFrom(e.target.value); setPage(1); }}
+                className="h-8 px-1.5 rounded-lg border border-slate-200 text-[10px] bg-white dark:bg-slate-800" />
+              <span className="text-[10px] text-slate-400">→</span>
+              <input type="date" value={customTo} onChange={e => { setPeriod("custom"); setCustomTo(e.target.value); setPage(1); }}
+                className="h-8 px-1.5 rounded-lg border border-slate-200 text-[10px] bg-white dark:bg-slate-800" />
+            </div>
+          </div>
         </div>
-      </div>
 
       {/* Banner selectie multipla */}
       {selectedIds.size > 0 && (
@@ -321,69 +423,12 @@ export default function AllInvoices() {
         </div>
       )}
 
-
-      {/* Filtre tip */}
-      <div className="flex flex-wrap gap-1.5">
-        {([
-          { id: "all",        label: "Toate",        cls: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-300" },
-          { id: "primit",     label: "Primite",      cls: "bg-red-50 text-red-700 border-red-200" },
-          { id: "emis",       label: "Emise",        cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-          { id: "refacturat", label: "Re-facturate", cls: "bg-blue-50 text-blue-700 border-blue-200" },
-        ] as const).map(f => (
-          <button
-            key={f.id}
-            onClick={() => { setTypeFilter(f.id as any); setPage(1); }}
-            className={`flex items-center gap-1.5 px-3 h-7 rounded-lg text-xs font-semibold border transition-all ${
-              typeFilter === f.id ? f.cls + " ring-1 ring-offset-1 ring-current" : "border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300 dark:hover:border-slate-600"
-            }`}
-          >
-            {f.label} <span className="font-bold">{counts[f.id]}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Filtre perioadă */}
-      <div className="flex flex-wrap items-center gap-1.5">
-        <Calendar className="w-4 h-4 text-slate-400" />
-        {([
-          { id: "all",       label: "Toate" },
-          { id: "today",     label: "Azi" },
-          { id: "week",      label: "Săpt. curentă" },
-          { id: "month",     label: "Luna curentă" },
-          { id: "lastMonth", label: "Luna trecută" },
-          { id: "year",      label: "Anul curent" },
-          { id: "lastYear",  label: "Anul trecut" },
-          { id: "custom",    label: "Custom" },
-        ] as const).map(f => (
-          <button
-            key={f.id}
-            onClick={() => { setPeriod(f.id); setPage(1); }}
-            className={`px-3 h-7 rounded-lg text-xs font-semibold border transition-all ${
-              period === f.id
-                ? "bg-blue-50 text-blue-700 border-blue-200 ring-1 ring-offset-1 ring-blue-400"
-                : "bg-white border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300"
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
-        {period === "custom" && (
-          <div className="flex items-center gap-1.5 ml-1">
-            <input type="date" value={customFrom} onChange={e => { setCustomFrom(e.target.value); setPage(1); }}
-              className="h-6 px-2 rounded-lg border border-slate-200 text-[10px] bg-white dark:bg-slate-800" />
-            <span className="text-[10px] text-slate-400">→</span>
-            <input type="date" value={customTo} onChange={e => { setCustomTo(e.target.value); setPage(1); }}
-              className="h-6 px-2 rounded-lg border border-slate-200 text-[10px] bg-white dark:bg-slate-800" />
-          </div>
-        )}
-      </div>
-
       {/* Card tabel */}
       <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
 
-        {/* Search */}
-        <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
-          <div style={{ position: "relative", maxWidth: 340 }}>
+        {/* Search & Filtre tip */}
+        <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row gap-3 justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
+          <div style={{ position: "relative", width: "100%", maxWidth: 340 }}>
             <Search className="w-3.5 h-3.5 text-slate-400" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
             <input
               style={{ paddingLeft: 30, paddingRight: search ? 72 : 12, borderRadius: 9999, width: "100%", height: 32, border: "1px solid #e2e8f0", outline: "none", fontSize: 13 }}
@@ -402,6 +447,25 @@ export default function AllInvoices() {
                 </button>
               </>
             )}
+          </div>
+          
+          <div className="flex flex-wrap gap-1.5 justify-end">
+            {([
+              { id: "all",        label: "Toate",        cls: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-300" },
+              { id: "primit",     label: "Primite",      cls: "bg-red-50 text-red-700 border-red-200" },
+              { id: "emis",       label: "Emise",        cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+              { id: "refacturat", label: "Re-facturate", cls: "bg-blue-50 text-blue-700 border-blue-200" },
+            ] as const).map(f => (
+              <button
+                key={f.id}
+                onClick={() => { setTypeFilter(f.id as any); setPage(1); }}
+                className={`flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-semibold border transition-all ${
+                  typeFilter === f.id ? f.cls + " ring-1 ring-offset-1 ring-current" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300 dark:hover:border-slate-600"
+                }`}
+              >
+                {f.label} <span className="font-bold">{counts[f.id]}</span>
+              </button>
+            ))}
           </div>
         </div>
 
@@ -435,7 +499,7 @@ export default function AllInvoices() {
               {isLoading ? (
                 <tr><td colSpan={10} className="py-12 text-center"><Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto" /></td></tr>
               ) : paginated.length === 0 ? (
-                <tr><td colSpan={10} className="py-12 text-center text-xs text-slate-400">
+                <tr><td colSpan={10} className="py-4 text-center text-slate-400 text-[11px] bg-slate-50/50 dark:bg-slate-800/20 border-b border-dashed border-slate-200 dark:border-slate-800">
                   {search || typeFilter !== "all" ? "Nicio factură pentru filtrele aplicate." : "Nu există facturi. Apasă Sync sau importă XML din pagina Integrări."}
                 </td></tr>
               ) : paginated.map((row, i) => {

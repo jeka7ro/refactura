@@ -49,6 +49,8 @@ export function registerPdfRoute(app: any) {
         `${isDownload ? "attachment" : "inline"}; filename="${filename}"`
       );
 
+      let logoBase64 = settings.logoBase64 || "DEFAULT_TEXT_LOGO";
+
       const pdfStream = generateReInvoicePDF({
         number:       ri.number || `RF-${id}`,
         date:         ri.issueDate || new Date().toISOString().split("T")[0],
@@ -69,7 +71,7 @@ export function registerPdfRoute(app: any) {
         companyPhone: tenant?.phone || "",
         companyIBAN:  settings.iban || "",
         companyBank:  settings.bank || "",
-        logoBase64:   settings.logoBase64 || undefined,
+        logoBase64:   logoBase64 || undefined,
         template:     settings.invoiceTemplate || "classic",
         lines: lines.map(l => ({
           description: l.description || "",
@@ -159,32 +161,111 @@ export function registerPdfRoute(app: any) {
         return;
       }
 
-      // Convert XML to PDF using ANAF service
-      const anafRes = await fetch("https://webservicesp.anaf.ro/prod/FCTEL/rest/transformare/FACT1/DA", {
-        method: "POST",
-        headers: { "Content-Type": "text/plain" },
-        body: xmlContent,
-        signal: AbortSignal.timeout(30000),
+      // Parse XML internally instead of calling ANAF
+      const { XMLParser } = await import("fast-xml-parser");
+      const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@_" });
+      const parsed = parser.parse(xmlContent);
+      const invoiceObj = parsed.Invoice || parsed.CreditNote;
+
+      if (!invoiceObj) {
+        res.status(500).json({ error: "Invalid SPV XML format: neither Invoice nor CreditNote found." });
+        return;
+      }
+
+      // Default logo string for the text-based layout
+      let logoBase64 = "DEFAULT_TEXT_LOGO";
+      try {
+        const { tenants } = await import("../drizzle/schema");
+        const [tenant] = await db.select().from(tenants).where(eq(tenants.id, inv.tenantId));
+        if (tenant?.settings) {
+          const settings = JSON.parse(tenant.settings);
+          if (settings.logoBase64) logoBase64 = settings.logoBase64;
+        }
+      } catch (_) {}
+
+      const direction = inv.direction; // 'in' or 'out'
+      const supplierParty = invoiceObj["cac:AccountingSupplierParty"]?.["cac:Party"];
+      const customerParty = invoiceObj["cac:AccountingCustomerParty"]?.["cac:Party"];
+
+      const extractPartyDetails = (party: any) => ({
+        name: party?.["cac:PartyName"]?.["cbc:Name"] || party?.["cac:PartyLegalEntity"]?.["cbc:RegistrationName"] || "",
+        cui: party?.["cac:PartyTaxScheme"]?.["cbc:CompanyID"] || party?.["cac:PartyLegalEntity"]?.["cbc:CompanyID"] || "",
+        address: party?.["cac:PostalAddress"]?.["cbc:StreetName"] || "",
+        city: party?.["cac:PostalAddress"]?.["cbc:CityName"] || "",
+        county: party?.["cac:PostalAddress"]?.["cbc:CountrySubentity"] || "",
+        email: party?.["cac:Contact"]?.["cbc:ElectronicMail"] || "",
+        phone: party?.["cac:Contact"]?.["cbc:Telephone"] || "",
+        iban: party?.["cac:PartyTaxScheme"]?.["cac:TaxScheme"]?.["cbc:ID"] || "" // Simplified, usually IBAN is in PaymentMeans
       });
 
-      if (!anafRes.ok) {
-        const txt = await anafRes.text().catch(() => "");
-        res.status(502).json({ error: `ANAF PDF conversion failed: ${anafRes.status} ${txt}` });
-        return;
-      }
+      const supplierDetails = extractPartyDetails(supplierParty);
+      const customerDetails = extractPartyDetails(customerParty);
 
-      const pdfBuffer = await anafRes.arrayBuffer();
-      const header = Buffer.from(pdfBuffer.slice(0, 5)).toString("utf8");
-      if (!header.includes("%PDF")) {
-        res.status(502).json({ error: "ANAF nu a returnat un PDF valid" });
-        return;
-      }
+      let xmlLines = invoiceObj["cac:InvoiceLine"] || invoiceObj["cac:CreditNoteLine"] || [];
+      if (!Array.isArray(xmlLines)) xmlLines = [xmlLines];
 
-      const filename = `Factura_${inv.invoiceNumber || id}.pdf`;
+      const lines = xmlLines.map((line: any) => {
+        const item = line["cac:Item"];
+        const price = line["cac:Price"];
+        const taxCategory = item?.["cac:ClassifiedTaxCategory"];
+        
+        return {
+          description: String(item?.["cbc:Name"] || item?.["cbc:Description"] || "Articol"),
+          quantity: parseFloat(line["cbc:InvoicedQuantity"]?.["#text"] || line["cbc:InvoicedQuantity"] || line["cbc:CreditedQuantity"]?.["#text"] || line["cbc:CreditedQuantity"] || "1"),
+          unitPrice: parseFloat(price?.["cbc:PriceAmount"]?.["#text"] || price?.["cbc:PriceAmount"] || "0"),
+          unit: String(line["cbc:InvoicedQuantity"]?.["@_unitCode"] || line["cbc:CreditedQuantity"]?.["@_unitCode"] || "buc"),
+          vatRate: parseFloat(taxCategory?.["cbc:Percent"]?.["#text"] || taxCategory?.["cbc:Percent"] || "19"),
+          total: parseFloat(line["cbc:LineExtensionAmount"]?.["#text"] || line["cbc:LineExtensionAmount"] || "0"),
+        };
+      });
+
+      const legalTotal = invoiceObj["cac:LegalMonetaryTotal"];
+      const taxTotal = invoiceObj["cac:TaxTotal"];
+
+      const pdfData = {
+        number: String(invoiceObj["cbc:ID"] || inv.invoiceNumber),
+        date: String(invoiceObj["cbc:IssueDate"] || inv.issueDate),
+        dueDate: String(invoiceObj["cbc:DueDate"] || invoiceObj["cbc:IssueDate"] || inv.dueDate),
+        
+        companyName: supplierDetails.name,
+        companyCUI: supplierDetails.cui,
+        companyAddress: supplierDetails.address,
+        companyCity: supplierDetails.city,
+        companyCounty: supplierDetails.county,
+        companyEmail: supplierDetails.email,
+        companyPhone: supplierDetails.phone,
+        companyIBAN: supplierDetails.iban,
+        companyBank: "",
+        
+        clientName: customerDetails.name,
+        clientCUI: customerDetails.cui,
+        clientAddress: customerDetails.address,
+        clientCity: customerDetails.city,
+        clientCounty: customerDetails.county,
+        clientEmail: customerDetails.email,
+        clientPhone: customerDetails.phone,
+        
+        logoBase64,
+        template: "classic" as any,
+        lines,
+        
+        subtotal: parseFloat(legalTotal?.["cbc:TaxExclusiveAmount"]?.["#text"] || legalTotal?.["cbc:TaxExclusiveAmount"] || "0"),
+        totalVAT: parseFloat(taxTotal?.["cbc:TaxAmount"]?.["#text"] || taxTotal?.["cbc:TaxAmount"] || "0"),
+        total: parseFloat(legalTotal?.["cbc:TaxInclusiveAmount"]?.["#text"] || legalTotal?.["cbc:TaxInclusiveAmount"] || legalTotal?.["cbc:PayableAmount"]?.["#text"] || "0"),
+        currency: String(invoiceObj["cbc:DocumentCurrencyCode"]?.["#text"] || invoiceObj["cbc:DocumentCurrencyCode"] || "RON")
+      };
+
       const isDownload = req.query.download === "1";
+      const filename = `SPV_${pdfData.number}.pdf`;
+
       res.setHeader("Content-Type", "application/pdf");
-      res.setHeader("Content-Disposition", `${isDownload ? "attachment" : "inline"}; filename="${filename}"`);
-      res.send(Buffer.from(pdfBuffer));
+      res.setHeader(
+        "Content-Disposition",
+        `${isDownload ? "attachment" : "inline"}; filename="${filename}"`
+      );
+
+      const pdfStream = generateReInvoicePDF(pdfData);
+      pdfStream.pipe(res);
     } catch (e: any) {
       console.error("[PDF Archive Route] Error:", e.message);
       res.status(500).json({ error: e.message });

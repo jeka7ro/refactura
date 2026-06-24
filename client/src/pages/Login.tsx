@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { toast } from "sonner";
 
-const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663775520028/C8wLbaeYKAg5R5gqEkUmxw/logo-icon-HMKYoPLDnRUVqqQYYTWWRf.webp";
+const LOGO_URL = "/logo.png";
+const APP_NAME = "GetApp Refactura";
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -20,6 +21,13 @@ export default function Login() {
   const loginMutation = trpc.auth.login.useMutation();
 
   useEffect(() => {
+    // Dacă utilizatorul are deja un token (sesiune activă), redirecționează-l automat
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      setLocation("/dashboard");
+      return;
+    }
+
     const saved = localStorage.getItem("savedCredentials");
     if (saved) {
       try {
@@ -29,7 +37,7 @@ export default function Login() {
         setRememberMe(true);
       } catch {}
     }
-  }, []);
+  }, [setLocation]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,11 +69,16 @@ export default function Login() {
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-600/20 rounded-full blur-[100px] pointer-events-none" />
 
         <Link href="/">
-          <div className="flex items-center gap-3 relative z-10 cursor-pointer hover:opacity-90 transition-opacity w-fit">
-            <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center">
-              <Layers className="w-5 h-5 text-primary-foreground" />
+          <div className="flex items-center relative z-10 cursor-pointer hover:opacity-90 transition-opacity w-fit max-w-[80%]">
+            <div className="bg-white px-6 py-4 rounded-2xl shadow-lg border border-white/20 flex-shrink-0 flex items-center justify-center gap-3">
+              <img src="/favicon.png" alt="Icon" className="h-10 w-10 flex-shrink-0" />
+              <div className="flex flex-col pt-1.5 w-fit">
+                <span className="text-3xl font-black leading-none text-[#1e3a8a] tracking-tight" style={{ fontFamily: 'Inter, sans-serif' }}>GetApp</span>
+                <span className="text-[12px] font-black leading-none text-[#ef4444] uppercase mt-0.5 w-full flex justify-between">
+                  <span>R</span><span>E</span><span>F</span><span>A</span><span>C</span><span>T</span><span>U</span><span>R</span><span>A</span>
+                </span>
+              </div>
             </div>
-            <span className="text-white font-bold text-xl tracking-tight">SmartInvoice</span>
           </div>
         </Link>
 
@@ -100,9 +113,16 @@ export default function Login() {
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <Link href="/">
-            <div className="flex items-center gap-3 mb-10 lg:hidden cursor-pointer w-fit">
-              <img src={LOGO_URL} alt="SmartInvoice" className="h-9 w-9 object-contain" />
-              <span className="font-bold text-xl text-slate-900 tracking-tight">SmartInvoice</span>
+            <div className="flex items-center mb-10 lg:hidden cursor-pointer w-fit">
+              <div className="bg-white px-5 py-3 rounded-2xl shadow-lg border border-slate-200 flex items-center justify-center gap-2.5">
+                <img src="/favicon.png" alt="Icon" className="h-8 w-8 flex-shrink-0" />
+                <div className="flex flex-col pt-1 w-fit">
+                  <span className="text-2xl font-black leading-none text-[#1e3a8a] tracking-tight" style={{ fontFamily: 'Inter, sans-serif' }}>GetApp</span>
+                  <span className="text-[10px] font-black leading-none text-[#ef4444] uppercase mt-0.5 w-full flex justify-between">
+                    <span>R</span><span>E</span><span>F</span><span>A</span><span>C</span><span>T</span><span>U</span><span>R</span><span>A</span>
+                  </span>
+                </div>
+              </div>
             </div>
           </Link>
 

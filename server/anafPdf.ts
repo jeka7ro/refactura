@@ -25,19 +25,10 @@ export async function convertXmlToPdf(xmlText: string, fileNameBase: string): Pr
     }
 
     // Wrap PDFKit in a promise to generate the buffer
-    const pdfBuffer: Buffer = await new Promise((resolve, reject) => {
+    const pdfBuffer: Buffer = await new Promise(async (resolve, reject) => {
       try {
-        const doc = new PDFDocument({ margin: 40, size: 'A4' });
-        const buffers: Buffer[] = [];
-        doc.on('data', buffers.push.bind(buffers));
-        doc.on('end', () => resolve(Buffer.concat(buffers)));
-        doc.on('error', reject);
-
-        // Helper to safely get nested properties
-        const getVal = (obj: any, pathStr: string) => {
-          return pathStr.split('.').reduce((acc, part) => acc && acc[part], obj) || "";
-        };
-
+        const { generateReInvoicePDF } = await import("./pdf");
+        
         const invNumber = invoice["cbc:ID"] || "";
         const issueDate = invoice["cbc:IssueDate"] || "";
         const dueDate = invoice["cbc:DueDate"] || issueDate;
@@ -57,87 +48,35 @@ export async function convertXmlToPdf(xmlText: string, fileNameBase: string): Pr
         const cusAddress = cusParty["cac:PostalAddress"]?.["cbc:StreetName"] || "";
         const cusCity = cusParty["cac:PostalAddress"]?.["cbc:CityName"] || "";
 
-        // HEADER
-        doc.fontSize(24).font('Helvetica-Bold').text('FACTURĂ FISCALĂ', { align: 'right' });
-        doc.fontSize(10).font('Helvetica').text(`Seria / Numărul: ${invNumber}`, { align: 'right' });
-        doc.text(`Data emiterii: ${issueDate}`, { align: 'right' });
-        doc.text(`Data scadenței: ${dueDate}`, { align: 'right' });
-        doc.moveDown(2);
-
-        const startY = doc.y;
-
-        // Supplier Box
-        doc.fontSize(12).font('Helvetica-Bold').text('Furnizor', 40, startY);
-        doc.fontSize(10).font('Helvetica').text(supName);
-        doc.text(`CUI: ${supCUI}`);
-        doc.text(`Adresă: ${supAddress}, ${supCity}`);
-
-        // Customer Box
-        doc.fontSize(12).font('Helvetica-Bold').text('Client', 300, startY);
-        doc.fontSize(10).font('Helvetica').text(cusName, 300, startY + 14);
-        doc.text(`CUI: ${cusCUI}`, 300, doc.y);
-        doc.text(`Adresă: ${cusAddress}, ${cusCity}`, 300, doc.y);
-
-        doc.moveDown(3);
-
-        // TABLE
-        const tableTop = Math.max(doc.y, 250);
-        const itemX = 40, umX = 250, qtyX = 300, priceX = 360, valX = 430, tvaX = 490;
-
-        doc.font('Helvetica-Bold').fontSize(9);
-        doc.rect(40, tableTop - 5, 515, 20).fillAndStroke('#f1f5f9', '#cbd5e1');
-        doc.fillColor('#334155');
-        doc.text('Denumire produs / serviciu', itemX + 5, tableTop);
-        doc.text('U.M.', umX, tableTop);
-        doc.text('Cant.', qtyX, tableTop);
-        doc.text('Preț Unitar', priceX, tableTop);
-        doc.text('Valoare', valX, tableTop);
-        doc.text('TVA', tvaX, tableTop);
-
-        doc.moveDown();
-        let y = tableTop + 25;
-        doc.font('Helvetica').fillColor('#0f172a');
-
         let lines = invoice["cac:InvoiceLine"];
         if (!lines) lines = [];
         if (!Array.isArray(lines)) lines = [lines];
 
-        lines.forEach((l: any, index: number) => {
-          // Pagination if needed
-          if (y > 750) {
-            doc.addPage();
-            y = 50;
-          }
-
+        const mappedLines = lines.map((l: any) => {
           const name = l["cac:Item"]?.["cbc:Name"] || l["cac:Item"]?.["cbc:Description"] || "Produs";
           const um = l["cbc:InvoicedQuantity"]?.["@_unitCode"] || "buc";
           const qty = l["cbc:InvoicedQuantity"]?.["#text"] || l["cbc:InvoicedQuantity"] || "0";
           const price = l["cac:Price"]?.["cbc:PriceAmount"]?.["#text"] || l["cac:Price"]?.["cbc:PriceAmount"] || "0";
           const val = l["cbc:LineExtensionAmount"]?.["#text"] || l["cbc:LineExtensionAmount"] || "0";
           
-          const tvaNode = l["cac:TaxTotal"]?.["cac:TaxSubtotal"];
-          let tvaVal = "0.00";
+          const tvaNode = l["cac:Item"]?.["cac:ClassifiedTaxCategory"] || l["cac:TaxTotal"]?.["cac:TaxSubtotal"];
+          let tvaPercent = "19"; // default
           if (Array.isArray(tvaNode)) {
-            tvaVal = tvaNode[0]?.["cbc:TaxAmount"]?.["#text"] || "0";
+            tvaPercent = tvaNode[0]?.["cbc:Percent"] || "19";
           } else if (tvaNode) {
-            tvaVal = tvaNode["cbc:TaxAmount"]?.["#text"] || tvaNode["cbc:TaxAmount"] || "0";
+            tvaPercent = tvaNode["cbc:Percent"] || "19";
           }
 
-          const nameHeight = doc.heightOfString(name, { width: 200 });
-          doc.text(name, itemX + 5, y, { width: 200 });
-          doc.text(um, umX, y);
-          doc.text(qty.toString(), qtyX, y);
-          doc.text(price.toString(), priceX, y);
-          doc.text(val.toString(), valX, y);
-          doc.text(tvaVal.toString(), tvaX, y);
-          
-          y += nameHeight + 10;
+          return {
+            description: name,
+            quantity: parseFloat(qty),
+            unitPrice: parseFloat(price),
+            unit: um,
+            vatRate: parseFloat(tvaPercent),
+            total: parseFloat(val),
+          };
         });
 
-        // Totals
-        if (y > 700) { doc.addPage(); y = 50; }
-        doc.moveDown(2);
-        const totalY = y + 20;
         const legalTotal = invoice["cac:LegalMonetaryTotal"] || {};
         const taxTotal = invoice["cac:TaxTotal"] || {};
         
@@ -151,20 +90,40 @@ export async function convertXmlToPdf(xmlText: string, fileNameBase: string): Pr
         const subTotal = legalTotal["cbc:TaxExclusiveAmount"]?.["#text"] || legalTotal["cbc:TaxExclusiveAmount"] || "0.00";
         const payable = legalTotal["cbc:PayableAmount"]?.["#text"] || legalTotal["cbc:PayableAmount"] || "0.00";
 
-        doc.rect(340, totalY - 10, 215, 90).fillAndStroke('#f8fafc', '#e2e8f0');
-        doc.fillColor('#0f172a');
+        const data: any = {
+          number: invNumber,
+          date: issueDate,
+          dueDate: dueDate,
+          clientName: cusName,
+          clientCUI: cusCUI,
+          clientAddress: cusAddress,
+          clientCity: cusCity,
+          clientCounty: "",
+          clientEmail: "",
+          clientPhone: "",
+          companyName: supName,
+          companyCUI: supCUI,
+          companyAddress: supAddress,
+          companyCity: supCity,
+          companyCounty: "",
+          companyEmail: "",
+          companyPhone: "",
+          companyIBAN: "",
+          companyBank: "",
+          logoBase64: "DEFAULT_TEXT_LOGO",
+          template: "classic",
+          currency: currency,
+          subtotal: parseFloat(subTotal),
+          totalVAT: parseFloat(totalTaxAmt),
+          total: parseFloat(payable),
+          lines: mappedLines,
+        };
 
-        doc.font('Helvetica-Bold').fontSize(10);
-        doc.text('TOTALURI', 350, totalY);
-        doc.font('Helvetica');
-        doc.text(`Valoare fără TVA:`, 350, totalY + 20); doc.text(subTotal.toString(), 450, totalY + 20, { align: 'right' });
-        doc.text(`TVA:`, 350, totalY + 35); doc.text(totalTaxAmt.toString(), 450, totalY + 35, { align: 'right' });
-        
-        doc.font('Helvetica-Bold').fontSize(12);
-        doc.text(`Total de plată:`, 350, totalY + 55); 
-        doc.text(`${payable.toString()} ${currency}`, 450, totalY + 55, { align: 'right' });
-
-        doc.end();
+        const pdfStream = generateReInvoicePDF(data);
+        const buffers: Buffer[] = [];
+        pdfStream.on('data', buffers.push.bind(buffers));
+        pdfStream.on('end', () => resolve(Buffer.concat(buffers)));
+        pdfStream.on('error', reject);
       } catch (err) {
         reject(err);
       }

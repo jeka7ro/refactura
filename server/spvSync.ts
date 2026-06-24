@@ -3,7 +3,7 @@
  * Flow: Utilizator → redirect SPV OAuth → callback token → descarca facturile
  */
 import { createInvoiceArchiveEntry, getDb } from "./db";
-import { integrations } from "../drizzle/schema";
+import { integrations, tenants } from "../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import { XMLParser } from "fast-xml-parser";
 import { convertXmlToPdf } from "./anafPdf";
@@ -65,6 +65,10 @@ export async function syncSpvInvoices(
   try {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
+
+    const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
+    if (!tenant) throw new Error("Tenant not found");
+    const tenantCui = (tenant.cui || "").replace(/[^0-9]/g, "");
 
     // List received documents from SPV
     const res = await fetch(`${SPV_API_URL}/noutati`, {
@@ -154,11 +158,15 @@ export async function syncSpvInvoices(
           fileUrl = pdfRes.url;
         }
 
+        // Determine direction based on CUI matching
+        const cleanSupplierCui = supplierCUI.replace(/[^0-9]/g, "");
+        const direction = (cleanSupplierCui === tenantCui && tenantCui !== "") ? "out" : "in";
+
         // Save invoice
         await createInvoiceArchiveEntry({
           tenantId,
           source: "spv_anaf",
-          direction: "in",
+          direction: direction,
           fileType: "xml",
           fileName: `SPV_${invoiceNumber}.xml`,
           fileUrl: fileUrl,

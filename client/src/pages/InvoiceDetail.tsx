@@ -41,7 +41,7 @@ export default function InvoiceDetail() {
   const source = (invoice.source || "other") as any;
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
@@ -112,9 +112,9 @@ export default function InvoiceDetail() {
             </div>
             {invoice.fileUrl && invoice.fileUrl !== "spv_import" && (
               <div className="flex justify-between">
-                <span className="text-slate-500">Fișier:</span>
+                <span className="text-slate-500">Fișier/Link public:</span>
                 <a href={invoice.fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs">
-                  Descarcă PDF
+                  Deschide Fișier
                 </a>
               </div>
             )}
