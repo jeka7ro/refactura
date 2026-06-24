@@ -26,7 +26,16 @@ interface UnifiedRow {
   currency: string;
   status: string;
   fileUrl?: string | null;
+  source: string;
 }
+
+const SOURCE_BADGE: Record<string, { label: string; cls: string }> = {
+  spv_anaf:  { label: "SPV",     cls: "bg-purple-50 text-purple-700 border-purple-200" },
+  oblio:     { label: "Oblio",   cls: "bg-orange-50 text-orange-700 border-orange-200" },
+  smartbill: { label: "SmartBill", cls: "bg-cyan-50 text-cyan-700 border-cyan-200" },
+  manual:    { label: "Manual",  cls: "bg-slate-50 text-slate-500 border-slate-200" },
+  refactura: { label: "Re-fact", cls: "bg-blue-50 text-blue-700 border-blue-200" },
+};
 
 const TYPE_BADGE: Record<InvoiceType, { label: string; cls: string }> = {
   primit:     { label: "Primit",      cls: "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800" },
@@ -122,7 +131,7 @@ export default function AllInvoices() {
 
   const allRows: UnifiedRow[] = useMemo(() => {
     const rows: UnifiedRow[] = [];
-    archiveItems.forEach(i => {
+    archiveItems.forEach((i: any) => {
       const t = parseFloat(i.total || "0");
       rows.push({
         id: i.id, type: i.direction === "in" ? "primit" : "emis",
@@ -130,6 +139,7 @@ export default function AllInvoices() {
         date: i.issueDate || i.createdAt || "", dueDate: i.dueDate || "",
         total: t, currency: i.currency || "RON",
         status: t < 0 ? "storno" : (i.status || "pending"), fileUrl: i.fileUrl,
+        source: i.source || "manual",
       });
     });
     (Array.isArray(reInvoices) ? reInvoices : []).forEach((i: any) => {
@@ -140,6 +150,7 @@ export default function AllInvoices() {
         date: i.issueDate || i.createdAt || "", dueDate: i.dueDate || "",
         total: t, currency: i.currency || "RON",
         status: t < 0 ? "storno" : (i.status || "draft"), fileUrl: null,
+        source: "refactura",
       });
     });
     return rows.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
@@ -336,15 +347,16 @@ export default function AllInvoices() {
                 <th className="px-3 py-2 text-left text-[10px] font-bold text-slate-400 uppercase">Dată</th>
                 <th className="px-3 py-2 text-left text-[10px] font-bold text-slate-400 uppercase">Scadență</th>
                 <th className="px-3 py-2 text-right text-[10px] font-bold text-slate-400 uppercase">Total</th>
+                <th className="px-3 py-2 text-center text-[10px] font-bold text-slate-400 uppercase">Sursă</th>
                 <th className="px-3 py-2 text-center text-[10px] font-bold text-slate-400 uppercase">Status</th>
                 <th className="px-2 py-2 text-right text-[10px] font-bold text-slate-400 uppercase">Acțiuni</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {isLoading ? (
-                <tr><td colSpan={9} className="py-12 text-center"><Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto" /></td></tr>
+                <tr><td colSpan={10} className="py-12 text-center"><Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto" /></td></tr>
               ) : paginated.length === 0 ? (
-                <tr><td colSpan={9} className="py-12 text-center text-xs text-slate-400">
+                <tr><td colSpan={10} className="py-12 text-center text-xs text-slate-400">
                   {search || typeFilter !== "all" ? "Nicio factură pentru filtrele aplicate." : "Nu există facturi. Apasă Sync sau importă XML din pagina Integrări."}
                 </td></tr>
               ) : paginated.map((row, i) => {
@@ -374,6 +386,11 @@ export default function AllInvoices() {
                     <td className="px-3 py-2 text-[11px] text-slate-400 whitespace-nowrap">{formatDate(row.dueDate)}</td>
                     <td className="px-3 py-2 text-xs text-right font-semibold text-slate-900 dark:text-white whitespace-nowrap">
                       {formatCurrency(row.total, row.currency as Currency)}
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      {(() => { const sb = SOURCE_BADGE[row.source] || SOURCE_BADGE.manual; return (
+                        <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border ${sb.cls}`}>{sb.label}</span>
+                      ); })()}
                     </td>
                     <td className="px-3 py-2 text-center">
                       <span className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold border ${STATUS_CLS[row.status] || STATUS_CLS.pending}`}>
