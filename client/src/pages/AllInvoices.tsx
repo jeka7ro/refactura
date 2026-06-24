@@ -7,6 +7,11 @@ import { Search, ChevronLeft, ChevronRight, Plus, RefreshCw, Loader2, Send, File
 import { formatCurrency, formatDate, type Currency } from "@/lib/store";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type InvoiceType = "primit" | "emis" | "refacturat";
 
@@ -50,6 +55,7 @@ export default function AllInvoices() {
   const [page, setPage]               = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
   const [typeFilter, setTypeFilter]   = useState<InvoiceType | "all">("all");
+  const [deleteTarget, setDeleteTarget] = useState<UnifiedRow | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const toggleSelect = (rowKey: string) => {
@@ -88,19 +94,20 @@ export default function AllInvoices() {
   const deleteArchive = trpc.invoiceArchive.delete.useMutation({ onSuccess: () => r1() });
   const deleteReinvoice = trpc.reinvoice.delete.useMutation({ onSuccess: () => r2() });
 
-  const handleDelete = async (row: UnifiedRow) => {
-    if (!window.confirm(`Ești sigur că vrei să ștergi factura ${row.number}? Această acțiune este definitivă.`)) return;
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     toast.loading("Ștergere în curs...", { id: "delete" });
     try {
-      if (row.type === "refacturat") {
-        await deleteReinvoice.mutateAsync({ id: row.id });
+      if (deleteTarget.type === "refacturat") {
+        await deleteReinvoice.mutateAsync({ id: deleteTarget.id });
       } else {
-        await deleteArchive.mutateAsync({ id: row.id });
+        await deleteArchive.mutateAsync({ id: deleteTarget.id });
       }
       toast.success("Factură ștearsă cu succes!", { id: "delete" });
     } catch (e: any) {
       toast.error("Eroare la ștergere", { id: "delete", description: e?.message });
     }
+    setDeleteTarget(null);
   };
 
   const isLoading = l1 || l2;
@@ -125,7 +132,7 @@ export default function AllInvoices() {
         status: t < 0 ? "storno" : (i.status || "pending"), fileUrl: i.fileUrl,
       });
     });
-    (reInvoices as any[]).forEach(i => {
+    (Array.isArray(reInvoices) ? reInvoices : []).forEach((i: any) => {
       const t = parseFloat(i.total || "0");
       rows.push({
         id: i.id, type: "refacturat",
@@ -227,13 +234,34 @@ export default function AllInvoices() {
               Anulează
             </button>
             <button
+              onClick={async () => {
+                if (!window.confirm(`Ștergi ${selectedIds.size} facturi selectate?`)) return;
+                toast.loading("Ștergere în curs...", { id: "bulk-del" });
+                let ok = 0;
+                for (const key of selectedIds) {
+                  const [type, idStr] = key.split("-");
+                  const id = Number(idStr);
+                  try {
+                    if (type === "refacturat") await deleteReinvoice.mutateAsync({ id });
+                    else await deleteArchive.mutateAsync({ id });
+                    ok++;
+                  } catch {}
+                }
+                setSelectedIds(new Set());
+                toast.success(`${ok} facturi șterse`, { id: "bulk-del" });
+              }}
+              className="px-3 h-7 rounded-lg bg-red-600 text-white hover:bg-red-700 text-xs font-bold transition-colors shadow-sm"
+            >
+              Șterge selectate
+            </button>
+            <button
               onClick={() => {
                 const ids = getSelectedPrimitRows().map(r => r.id).join(",");
                 navigate(`/re-facturare/multiplu?ids=${ids}`);
               }}
               className="px-3 h-7 rounded-lg bg-white text-blue-700 hover:bg-blue-50 text-xs font-bold transition-colors shadow-sm"
             >
-              Re-Facturare Multipla →
+              Re-Facturare Multiplă →
             </button>
           </div>
         </div>
@@ -384,7 +412,7 @@ export default function AllInvoices() {
                             <FileDown className="w-3 h-3" />
                           </button>
                         )}
-                        <button onClick={() => handleDelete(row)}
+                        <button onClick={() => setDeleteTarget(row)}
                           title="Șterge factura"
                           className="flex items-center justify-center w-6 h-6 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-colors">
                           <Trash2 className="w-3 h-3" />
@@ -450,7 +478,7 @@ export default function AllInvoices() {
                         <FileDown className="w-2.5 h-2.5" />
                       </button>
                     )}
-                    <button onClick={() => handleDelete(row)}
+                    <button onClick={() => setDeleteTarget(row)}
                       className="flex items-center justify-center w-5 h-5 rounded bg-red-50 text-red-600 border border-red-200">
                       <Trash2 className="w-2.5 h-2.5" />
                     </button>
@@ -495,6 +523,23 @@ export default function AllInvoices() {
           </div>
         </div>
       </div>
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmă ștergerea</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ești sigur că vrei să ștergi factura <strong>{deleteTarget?.number}</strong>? Această acțiune este definitivă.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anulează</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700 text-white">
+              Șterge definitiv
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
