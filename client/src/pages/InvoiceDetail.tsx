@@ -110,14 +110,23 @@ export default function InvoiceDetail() {
                 {source}
               </span>
             </div>
-            {invoice.fileUrl && invoice.fileUrl !== "spv_import" && (
-              <div className="flex justify-between">
-                <span className="text-slate-500">Fișier/Link public:</span>
-                <a href={invoice.fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs">
-                  Deschide Fișier
-                </a>
-              </div>
-            )}
+            {/* Use dynamic API route for all SPV invoices so they are always up to date and never 404 */}
+            {(() => {
+              const isSpv = invoice.source === "spv_anaf";
+              const pdfUrl = isSpv ? `/api/pdf/archive/${invoiceId}` : invoice.fileUrl;
+              
+              if (pdfUrl && pdfUrl !== "spv_import") {
+                return (
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Fișier/Link public:</span>
+                    <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs">
+                      Deschide Fișier
+                    </a>
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
         </div>
 
