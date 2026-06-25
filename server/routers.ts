@@ -8,7 +8,7 @@ import { getDb, getTenantsByUser, getUserRole, createTenant, updateTenantSetting
 import { authenticateAccount, createAccount, getAccountByEmail } from "./auth";
 import { createSessionToken } from "./session";
 import { eq, desc, and } from "drizzle-orm";
-import { invoiceArchive, invoiceArchiveLines } from "../drizzle/schema";
+import { invoiceArchive, invoiceArchiveLines, products } from "../drizzle/schema";
 import { convertXmlToPdf } from "./anafPdf";
 
 export const appRouter = router({
@@ -927,6 +927,36 @@ export const appRouter = router({
         } catch {}
       }
       return { updated, total: missing.length };
+    }),
+  }),
+
+  products: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      if (!ctx.user?.tenantId) throw new Error("No tenant");
+      const db = await getDb();
+      if (!db) return [];
+      return await db.select()
+        .from(products)
+        .where(eq(products.tenantId, ctx.user.tenantId))
+        .orderBy(desc(products.id));
+    }),
+    create: protectedProcedure.input(z.object({
+      name: z.string(),
+      unit: z.string().optional(),
+      defaultPrice: z.number().optional(),
+      defaultVatRate: z.number().optional(),
+    })).mutation(async ({ ctx, input }) => {
+      if (!ctx.user?.tenantId) throw new Error("No tenant");
+      const db = await getDb();
+      if (!db) throw new Error("No DB");
+      const result = await db.insert(products).values({
+        tenantId: ctx.user.tenantId,
+        name: input.name,
+        unit: input.unit || "buc",
+        defaultPrice: String(input.defaultPrice || 0),
+        defaultVatRate: input.defaultVatRate || 21,
+      });
+      return { id: result[0].insertId };
     }),
   }),
 

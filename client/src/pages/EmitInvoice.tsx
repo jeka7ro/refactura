@@ -83,12 +83,19 @@ export default function EmitInvoice() {
   const [lines, setLines] = useState<Line[]>([defaultLine()]);
   const [saving, setSaving] = useState(false);
   const [showOptional, setShowOptional] = useState(false);
+  const [activeLineDropdown, setActiveLineDropdown] = useState<string | null>(null);
 
   // Data
   const { data: clientsData } = trpc.clients.list.useQuery();
+  const { data: productsData } = trpc.products.list.useQuery();
   const { data: nextNumber } = trpc.emittedInvoice.nextNumber.useQuery({ series });
   const { data: tenantsData = [] } = trpc.tenants.list.useQuery();
   const tenant = tenantsData[0];
+
+  const products = productsData || [];
+  const createProductMutation = trpc.products.create.useMutation({
+    onSuccess: () => utils.products.list.invalidate(),
+  });
 
   const createMutation = trpc.emittedInvoice.create.useMutation({
     onSuccess: (data) => {
@@ -109,6 +116,14 @@ export default function EmitInvoice() {
   useEffect(() => {
     if (nextNumber && !invoiceNumber) setInvoiceNumber(nextNumber);
   }, [nextNumber]);
+
+  const selectProduct = (lineId: string, p: any) => {
+    updateLine(lineId, "description", p.name);
+    updateLine(lineId, "unitPrice", p.defaultPrice);
+    updateLine(lineId, "unit", p.unit);
+    updateLine(lineId, "vatRate", p.defaultVatRate);
+    setActiveLineDropdown(null);
+  };
 
   const selectClient = (c: any) => {
     setSelectedClientId(String(c.id));
@@ -162,6 +177,18 @@ export default function EmitInvoice() {
     if (lines.some(l => !l.description.trim())) { toast.error("Toate liniile trebuie să aibă descriere"); return; }
     setSaving(true);
     try {
+      // Auto-save new products
+      for (const line of lines) {
+        if (!products.some(p => p.name.toLowerCase() === line.description.toLowerCase().trim())) {
+          await createProductMutation.mutateAsync({
+            name: line.description.trim(),
+            unit: line.unit,
+            defaultPrice: parseFloat(String(line.unitPrice)) || 0,
+            defaultVatRate: line.vatRate,
+          }).catch(console.error); // ignore errors
+        }
+      }
+
       await createMutation.mutateAsync({
         number: invoiceNumber, series,
         clientId: selectedClientId ? parseInt(selectedClientId) : undefined,

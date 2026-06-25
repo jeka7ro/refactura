@@ -232,6 +232,21 @@ export const clients = mysqlTable("clients", {
 export type Client = typeof clients.$inferSelect;
 export type InsertClient = typeof clients.$inferInsert;
 
+export const products = mysqlTable("products", {
+  id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  unit: varchar("unit", { length: 20 }).default("buc"),
+  defaultPrice: decimal("defaultPrice", { precision: 12, scale: 2 }).default("0.00"),
+  defaultVatRate: int("defaultVatRate").default(21),
+  currency: varchar("currency", { length: 3 }).default("RON"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Product = typeof products.$inferSelect;
+export type InsertProduct = typeof products.$inferInsert;
+
 /**
  * Product modules (Refacturare, Gestiune Costuri, etc.)
  */
