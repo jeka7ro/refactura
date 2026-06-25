@@ -110,7 +110,7 @@ export default function NIRCreate() {
 
   // Init from next number
   useEffect(() => {
-    if (!isEdit && nextNumber && !loaded) setNirNumber(nextNumber);
+    if (!isEdit && nextNumber && !loaded) setNirNumber(nextNumber.nextNumber);
   }, [nextNumber, isEdit, loaded]);
 
   // Init from existing NIR
@@ -245,7 +245,7 @@ export default function NIRCreate() {
   const totalReceptionat = lines.reduce((s, l) => s + (parseFloat(l.total) || 0), 0);
 
   return (
-    <div className="p-4 md:p-6 space-y-5 max-w-6xl mx-auto">
+    <div className="p-4 md:p-6 space-y-5 max-w-full">
       {/* Header */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">

@@ -542,6 +542,7 @@ export const nirLines = mysqlTable("nirLines", {
   unit: varchar("unit", { length: 50 }).default("buc"),
   cantitateComanda: decimal("cantitateComanda", { precision: 12, scale: 2 }).notNull(),
   cantitateReceptionata: decimal("cantitateReceptionata", { precision: 12, scale: 2 }).notNull(),
+  consumedQty: decimal("consumedQty", { precision: 12, scale: 2 }).default("0"),
   unitPrice: decimal("unitPrice", { precision: 12, scale: 2 }),
   vatRate: decimal("vatRate", { precision: 5, scale: 2 }),
   total: decimal("total", { precision: 12, scale: 2 }),

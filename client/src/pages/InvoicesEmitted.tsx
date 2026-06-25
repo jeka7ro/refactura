@@ -150,7 +150,7 @@ export default function InvoicesEmitted() {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 md:p-8 max-w-full space-y-6">
 
       {/* Header — dispare când formularul e deschis */}
       {!showForm && (

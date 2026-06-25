@@ -55,10 +55,25 @@ export default function NIRList() {
         </div>
         <button
           onClick={() => navigate("/nir/nou")}
-          className="flex items-center gap-1.5 px-4 h-9 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-bold transition-colors shadow-sm"
+          className="flex items-center gap-1.5 px-4 h-9 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" /> NIR Nou
         </button>
+      </div>
+
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "Total NIR-uri", value: nirList.length, cls: "text-slate-900 dark:text-white" },
+          { label: "Finalizate", value: nirList.filter(n => n.status === "finalizat").length, cls: "text-emerald-600" },
+          { label: "Ciorne", value: nirList.filter(n => n.status === "draft").length, cls: "text-amber-600" },
+        ].map(k => (
+          <div key={k.label} className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">{k.label}</p>
+            <p className={`text-xl font-black ${k.cls}`}>{k.value}</p>
+          </div>
+        ))}
       </div>
 
       {/* Search + counter */}
@@ -104,8 +119,10 @@ export default function NIRList() {
                 <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
                   onClick={() => navigate(`/nir/${row.id}`)}>
                   <td className="px-3 py-2.5 text-[11px] text-slate-400">{(page - 1) * rowsPerPage + i + 1}.</td>
-                  <td className="px-3 py-2.5">
-                    <span className="text-sm font-bold text-teal-700 dark:text-teal-400">{row.nirNumber}</span>
+                  <td className="px-3 py-2">
+                    <button onClick={(e) => { e.stopPropagation(); navigate(`/nir/${row.id}`); }} className="text-xs font-bold text-teal-600 hover:underline">
+                      {row.nirNumber}
+                    </button>
                   </td>
                   <td className="px-3 py-2.5 text-xs text-slate-700 dark:text-slate-300 max-w-[180px] truncate">{row.supplierName || "—"}</td>
                   <td className="px-3 py-2.5 text-xs font-mono text-slate-500">{row.invoiceNumber || "—"}</td>
@@ -156,7 +173,8 @@ export default function NIRList() {
           <select
             value={rowsPerPage}
             onChange={e => { setRowsPerPage(Number(e.target.value)); setPage(1); }}
-            className="h-7 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs"
+            style={{ border: "1px solid #e2e8f0", borderRadius: 9999, padding: "1px 6px", fontSize: 12 }}
+            className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 dark:border-slate-700"
           >
             {[10, 15, 25, 50].map(n => <option key={n} value={n}>{n}</option>)}
           </select>

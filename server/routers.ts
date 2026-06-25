@@ -318,8 +318,8 @@ export const appRouter = router({
           markupPercent: z.number().optional(),
           total: z.number(),
           lineOrder: z.number(),
-          devizType: z.string().optional(),
-          devizCode: z.string().optional(),
+          devizType: z.string().nullable().optional(),
+          devizCode: z.string().nullable().optional(),
         })),
       }))
       .mutation(async ({ input, ctx }) => {
@@ -1143,8 +1143,8 @@ export const appRouter = router({
           vatRate: z.number().optional(),
           total: z.number(),
           lineOrder: z.number(),
-          devizCode: z.string().optional(),
-          devizType: z.string().optional(),
+          devizCode: z.string().nullable().optional(),
+          devizType: z.string().nullable().optional(),
         })),
       }))
       .mutation(async ({ input, ctx }) => {
@@ -1283,8 +1283,8 @@ export const appRouter = router({
           vatRate: z.number().optional(),
           total: z.number(),
           lineOrder: z.number(),
-          devizCode: z.string().optional(),
-          devizType: z.string().optional(),
+          devizCode: z.string().nullable().optional(),
+          devizType: z.string().nullable().optional(),
         })).optional(),
       }))
       .mutation(async ({ input, ctx }) => {
@@ -1334,12 +1334,19 @@ export const appRouter = router({
 
           if (lines.length > 0) {
             let finalInvoiceLines = [...lines];
+            // Include TOATE liniile in deviz: cele cu devizType + liniile din NIR (fara devizType = MATERIAL)
+            const devizAllLines = lines
+              .filter(l => l.devizType !== "GROUPED_LABOR")
+              .map(l => ({
+                ...l,
+                devizType: l.devizType || "MATERIAL", // NIR lines fara devizType → MATERIAL
+              }));
             const catalogLines = lines.filter(l => l.devizType && l.devizType !== "GROUPED_LABOR");
-            
-            if (catalogLines.length > 0) {
+
+            if (devizAllLines.length > 0) {
               const devizNum = `DEV-${id}`;
               let tMat = 0; let tLab = 0; let tTot = 0;
-              for (const cl of catalogLines) {
+              for (const cl of devizAllLines) {
                 const lTot = cl.total;
                 tTot += lTot;
                 if (cl.devizType === "MATERIAL") tMat += lTot;
@@ -1357,10 +1364,10 @@ export const appRouter = router({
                 status: "final",
               } as any).$returningId();
 
-              await db.insert(devizeLines).values(catalogLines.map((cl, i) => ({
+              await db.insert(devizeLines).values(devizAllLines.map((cl, i) => ({
                 devizId: dRes.id,
                 type: cl.devizType as any,
-                code: cl.devizCode,
+                code: cl.devizCode || null,
                 description: cl.description,
                 quantity: String(cl.quantity),
                 unitPrice: String(cl.unitPrice),
@@ -1368,7 +1375,8 @@ export const appRouter = router({
                 lineOrder: i
               } as any)));
 
-              const matLines = catalogLines.filter(l => l.devizType === "MATERIAL");
+              // Bonuri consum: toate liniile MATERIAL (catalog + NIR)
+              const matLines = devizAllLines.filter(l => l.devizType === "MATERIAL");
               if (matLines.length > 0) {
                 const [bRes] = await db.insert(bonuriConsum).values({
                   tenantId: ctx.user.tenantId,
@@ -1379,7 +1387,7 @@ export const appRouter = router({
                 } as any).$returningId();
                 await db.insert(bonuriConsumLines).values(matLines.map((ml, i) => ({
                   bonId: bRes.id,
-                  materialCode: ml.devizCode,
+                  materialCode: ml.devizCode || null,
                   description: ml.description,
                   quantity: String(ml.quantity),
                   unitPrice: String(ml.unitPrice),
@@ -1922,6 +1930,59 @@ export const appRouter = router({
         return { id: devizId };
       }),
 
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        notes: z.string().optional(),
+        lines: z.array(z.object({
+          type: z.enum(["MATERIAL", "MANOPERA", "UTILAJ", "NORMA"]),
+          code: z.string().nullable().optional(),
+          description: z.string(),
+          quantity: z.number(),
+          unitPrice: z.number(),
+        })),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { devize, devizeLines } = await import("../drizzle/schema");
+
+        let totalMaterials = 0;
+        let totalLabor = 0;
+        let total = 0;
+        for (const line of input.lines) {
+          const lTotal = line.quantity * line.unitPrice;
+          total += lTotal;
+          if (line.type === "MATERIAL") totalMaterials += lTotal;
+          if (line.type === "MANOPERA" || line.type === "NORMA") totalLabor += lTotal;
+        }
+
+        await db.update(devize)
+          .set({
+            totalMaterials: totalMaterials.toFixed(2),
+            totalLabor: totalLabor.toFixed(2),
+            total: total.toFixed(2),
+            notes: input.notes,
+          })
+          .where(and(eq(devize.id, input.id), eq(devize.tenantId, ctx.user.tenantId)));
+
+        await db.delete(devizeLines).where(eq(devizeLines.devizId, input.id));
+        if (input.lines.length > 0) {
+          await db.insert(devizeLines).values(input.lines.map((l, idx) => ({
+            devizId: input.id,
+            type: l.type,
+            code: l.code || null,
+            description: l.description,
+            quantity: l.quantity.toFixed(2),
+            unitPrice: l.unitPrice.toFixed(2),
+            total: (l.quantity * l.unitPrice).toFixed(2),
+            lineOrder: idx,
+          })));
+        }
+        return { success: true };
+      }),
+
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
@@ -2022,6 +2083,291 @@ export const appRouter = router({
         const { bonuriConsum, bonuriConsumLines } = await import("../drizzle/schema");
         await db.delete(bonuriConsumLines).where(eq(bonuriConsumLines.bonId, input.id));
         await db.delete(bonuriConsum).where(and(eq(bonuriConsum.id, input.id), eq(bonuriConsum.tenantId, ctx.user.tenantId)));
+        return { success: true };
+      }),
+  }),
+
+  // ─── NIR ──────────────────────────────────────────────────────────────────
+  nir: router({
+    list: protectedProcedure
+      .query(async ({ ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { nir } = await import("../drizzle/schema");
+        return await db.select().from(nir)
+          .where(eq(nir.tenantId, ctx.user.tenantId))
+          .orderBy(desc(nir.id));
+      }),
+
+    listWithLines: protectedProcedure
+      .query(async ({ ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { nir, nirLines } = await import("../drizzle/schema");
+        const nirList = await db.select().from(nir)
+          .where(eq(nir.tenantId, ctx.user.tenantId))
+          .orderBy(desc(nir.id));
+
+        const result = await Promise.all(
+          nirList.map(async (n) => {
+            const lines = await db.select().from(nirLines)
+              .where(eq(nirLines.nirId, n.id))
+              .orderBy(nirLines.lineOrder);
+            return { ...n, lines };
+          })
+        );
+        return result;
+      }),
+
+    getById: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { nir, nirLines } = await import("../drizzle/schema");
+        const [nirEntry] = await db.select().from(nir)
+          .where(and(eq(nir.id, input.id), eq(nir.tenantId, ctx.user.tenantId)));
+        if (!nirEntry) throw new Error("NIR negăsit");
+        const lines = await db.select().from(nirLines)
+          .where(eq(nirLines.nirId, nirEntry.id))
+          .orderBy(nirLines.lineOrder);
+        return { ...nirEntry, lines };
+      }),
+
+    consumeLine: protectedProcedure
+      .input(z.object({
+        lines: z.array(z.object({
+          nirLineId: z.number(),
+          qty: z.number(),
+        })),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { nirLines } = await import("../drizzle/schema");
+        for (const item of input.lines) {
+          const [existing] = await db.select({ consumedQty: nirLines.consumedQty, cantitateReceptionata: nirLines.cantitateReceptionata })
+            .from(nirLines).where(eq(nirLines.id, item.nirLineId));
+          if (!existing) continue;
+          const current = parseFloat(String(existing.consumedQty || 0));
+          const max = parseFloat(String(existing.cantitateReceptionata || 0));
+          const newConsumed = Math.min(current + item.qty, max);
+          await db.update(nirLines).set({ consumedQty: String(newConsumed) }).where(eq(nirLines.id, item.nirLineId));
+        }
+        return { success: true };
+      }),
+
+    getNextNumber: protectedProcedure
+      .query(async ({ ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { nir } = await import("../drizzle/schema");
+        const all = await db.select({ nirNumber: nir.nirNumber })
+          .from(nir)
+          .where(eq(nir.tenantId, ctx.user.tenantId));
+        // Find max numeric suffix
+        let maxNum = 0;
+        for (const row of all) {
+          const match = row.nirNumber?.match(/(\d+)$/);
+          if (match) maxNum = Math.max(maxNum, parseInt(match[1]));
+        }
+        const next = maxNum + 1;
+        const padded = String(next).padStart(3, "0");
+        return { nextNumber: `NIR-${padded}`, nextIndex: next };
+      }),
+
+    create: protectedProcedure
+      .input(z.object({
+        nirNumber: z.string(),
+        receiptDate: z.string(),
+        supplierName: z.string().optional(),
+        supplierCUI: z.string().optional(),
+        supplierAddress: z.string().optional(),
+        invoiceNumber: z.string().optional(),
+        avizNumber: z.string().optional(),
+        gestiune: z.string().optional(),
+        notes: z.string().optional(),
+        status: z.enum(["draft", "finalizat"]).optional(),
+        lines: z.array(z.object({
+          description: z.string(),
+          unit: z.string().optional(),
+          cantitateComanda: z.number(),
+          cantitateReceptionata: z.number(),
+          unitPrice: z.number().optional(),
+          vatRate: z.number().optional(),
+          total: z.number().optional(),
+          observations: z.string().optional(),
+          lineOrder: z.number().optional(),
+        })),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { nir, nirLines } = await import("../drizzle/schema");
+        const { lines, ...nirData } = input;
+        const [result] = await db.insert(nir).values({
+          ...nirData,
+          tenantId: ctx.user.tenantId,
+          status: nirData.status || "draft",
+        });
+        const nirId = (result as any).insertId;
+        if (lines.length > 0) {
+          await db.insert(nirLines).values(
+            lines.map((l, idx) => ({
+              nirId,
+              description: l.description,
+              unit: l.unit || "buc",
+              cantitateComanda: String(l.cantitateComanda),
+              cantitateReceptionata: String(l.cantitateReceptionata),
+              unitPrice: l.unitPrice != null ? String(l.unitPrice) : null,
+              vatRate: l.vatRate != null ? String(l.vatRate) : null,
+              total: l.total != null ? String(l.total) : null,
+              observations: l.observations,
+              lineOrder: l.lineOrder ?? idx,
+            }))
+          );
+        }
+        return { id: nirId };
+      }),
+
+    createFromInvoice: protectedProcedure
+      .input(z.object({ invoiceId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { nir, nirLines, emittedInvoices, emittedInvoiceLines } = await import("../drizzle/schema");
+        const [invoice] = await db.select().from(emittedInvoices)
+          .where(and(eq(emittedInvoices.id, input.invoiceId), eq(emittedInvoices.tenantId, ctx.user.tenantId)));
+        if (!invoice) throw new Error("Factura nu a fost găsită");
+        const invLines = await db.select().from(emittedInvoiceLines)
+          .where(eq(emittedInvoiceLines.invoiceId, input.invoiceId));
+        // Get next NIR number
+        const all = await db.select({ nirNumber: nir.nirNumber }).from(nir)
+          .where(eq(nir.tenantId, ctx.user.tenantId));
+        let maxNum = 0;
+        for (const row of all) {
+          const match = row.nirNumber?.match(/(\d+)$/);
+          if (match) maxNum = Math.max(maxNum, parseInt(match[1]));
+        }
+        const nirNumber = `NIR-${String(maxNum + 1).padStart(3, "0")}`;
+        const today = new Date().toISOString().split("T")[0];
+        const [result] = await db.insert(nir).values({
+          tenantId: ctx.user.tenantId,
+          nirNumber,
+          receiptDate: today,
+          invoiceNumber: `${invoice.series || ""} ${invoice.number || ""}`.trim(),
+          status: "draft",
+        });
+        const nirId = (result as any).insertId;
+        if (invLines.length > 0) {
+          await db.insert(nirLines).values(
+            invLines.map((l, idx) => ({
+              nirId,
+              description: l.description || "",
+              unit: l.unit || "buc",
+              cantitateComanda: String(l.quantity || 1),
+              cantitateReceptionata: String(l.quantity || 1),
+              unitPrice: l.unitPrice ? String(l.unitPrice) : null,
+              vatRate: l.vatRate ? String(l.vatRate) : null,
+              total: l.total ? String(l.total) : null,
+              lineOrder: idx,
+            }))
+          );
+        }
+        return { id: nirId, nirNumber };
+      }),
+
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        nirNumber: z.string().optional(),
+        receiptDate: z.string().optional(),
+        supplierName: z.string().optional(),
+        supplierCUI: z.string().optional(),
+        supplierAddress: z.string().optional(),
+        invoiceNumber: z.string().optional(),
+        avizNumber: z.string().optional(),
+        gestiune: z.string().optional(),
+        notes: z.string().optional(),
+        status: z.enum(["draft", "finalizat"]).optional(),
+        member1Name: z.string().optional(),
+        member1Function: z.string().optional(),
+        member2Name: z.string().optional(),
+        member2Function: z.string().optional(),
+        member3Name: z.string().optional(),
+        member3Function: z.string().optional(),
+        hasDifferences: z.number().optional(),
+        differenceNotes: z.string().optional(),
+        lines: z.array(z.object({
+          id: z.number().optional(),
+          description: z.string(),
+          unit: z.string().optional(),
+          cantitateComanda: z.number(),
+          cantitateReceptionata: z.number(),
+          unitPrice: z.number().optional(),
+          vatRate: z.number().optional(),
+          total: z.number().optional(),
+          observations: z.string().optional(),
+          lineOrder: z.number().optional(),
+        })).optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { nir, nirLines } = await import("../drizzle/schema");
+        const { id, lines, ...data } = input;
+        await db.update(nir).set(data).where(and(eq(nir.id, id), eq(nir.tenantId, ctx.user.tenantId)));
+        if (lines !== undefined) {
+          await db.delete(nirLines).where(eq(nirLines.nirId, id));
+          if (lines.length > 0) {
+            await db.insert(nirLines).values(
+              lines.map((l, idx) => ({
+                nirId: id,
+                description: l.description,
+                unit: l.unit || "buc",
+                cantitateComanda: String(l.cantitateComanda),
+                cantitateReceptionata: String(l.cantitateReceptionata),
+                unitPrice: l.unitPrice != null ? String(l.unitPrice) : null,
+                vatRate: l.vatRate != null ? String(l.vatRate) : null,
+                total: l.total != null ? String(l.total) : null,
+                observations: l.observations,
+                lineOrder: l.lineOrder ?? idx,
+              }))
+            );
+          }
+        }
+        return { success: true };
+      }),
+
+    finalize: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { nir } = await import("../drizzle/schema");
+        await db.update(nir).set({ status: "finalizat" })
+          .where(and(eq(nir.id, input.id), eq(nir.tenantId, ctx.user.tenantId)));
+        return { success: true };
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { nir, nirLines } = await import("../drizzle/schema");
+        await db.delete(nirLines).where(eq(nirLines.nirId, input.id));
+        await db.delete(nir).where(and(eq(nir.id, input.id), eq(nir.tenantId, ctx.user.tenantId)));
         return { success: true };
       }),
   }),

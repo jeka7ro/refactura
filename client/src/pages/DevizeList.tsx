@@ -51,6 +51,21 @@ export default function DevizeList() {
         </div>
       </div>
 
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "Total Devize", value: list.length, cls: "text-slate-900 dark:text-white" },
+          { label: "Finalizate", value: list.filter(n => n.status === "final").length, cls: "text-emerald-600" },
+          { label: "Ciorne", value: list.filter(n => n.status === "draft").length, cls: "text-amber-600" },
+          { label: "Valoare Totală", value: `${list.reduce((s, r) => s + (Number(r.total) || 0), 0).toLocaleString("ro-RO", { minimumFractionDigits: 2 })} RON`, cls: "text-sky-600" },
+        ].map(k => (
+          <div key={k.label} className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">{k.label}</p>
+            <p className={`text-xl font-black ${k.cls}`}>{k.value}</p>
+          </div>
+        ))}
+      </div>
+
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="w-3.5 h-3.5 text-slate-400" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
@@ -92,7 +107,11 @@ export default function DevizeList() {
                 paginated.map((row, i) => (
                   <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="px-3 py-2 text-slate-400 text-xs">{(page - 1) * rowsPerPage + i + 1}</td>
-                    <td className="px-3 py-2 font-medium text-slate-900 dark:text-white">{row.number}</td>
+                    <td className="px-3 py-2">
+                      <button onClick={() => navigate(`/devize/${row.id}`)} className="text-xs font-bold text-sky-600 hover:underline">
+                        {row.number}
+                      </button>
+                    </td>
                     <td className="px-3 py-2 text-slate-600 dark:text-slate-300">{formatDate(String(row.date))}</td>
                     <td className="px-3 py-2 text-slate-600 dark:text-slate-300">{row.invoiceId ? `#${row.invoiceId}` : "—"}</td>
                     <td className="px-3 py-2 text-slate-600 dark:text-slate-300 text-right">{Number(row.totalMaterials).toFixed(2)}</td>
@@ -131,7 +150,8 @@ export default function DevizeList() {
               <select
                 value={rowsPerPage}
                 onChange={e => { setRowsPerPage(Number(e.target.value)); setPage(1); }}
-                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-sky-500"
+                style={{ border: "1px solid #e2e8f0", borderRadius: 9999, padding: "1px 6px", fontSize: 12 }}
+                className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 dark:border-slate-700"
               >
                 <option value={10}>10</option>
                 <option value={15}>15</option>

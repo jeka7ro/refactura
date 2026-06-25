@@ -145,7 +145,7 @@ export default function InvoicesReceived() {
   ];
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 md:p-8 max-w-full space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
@@ -176,6 +176,21 @@ export default function InvoicesReceived() {
             Adaugă manual
           </button>
         </div>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {[
+          { label: "Total Facturi", value: invoicesList.length, cls: "text-slate-900 dark:text-white" },
+          { label: "Re-facturate", value: invoicesList.filter(r => r.status === "re-invoiced").length, cls: "text-emerald-600" },
+          { label: "În așteptare", value: invoicesList.filter(r => r.status === "pending" || r.status === "imported").length, cls: "text-amber-600" },
+          { label: "Valoare Totală", value: `${invoicesList.reduce((s, r) => s + (r.total || 0), 0).toLocaleString("ro-RO", { minimumFractionDigits: 2 })} RON`, cls: "text-blue-600" },
+        ].map(k => (
+          <div key={k.label} className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">{k.label}</p>
+            <p className={`text-xl font-black ${k.cls}`}>{k.value}</p>
+          </div>
+        ))}
       </div>
 
       {/* Filters */}

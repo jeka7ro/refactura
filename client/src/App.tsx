@@ -34,6 +34,7 @@ import NIRCreate from "@/pages/NIRCreate";
 import DevizeList from "@/pages/DevizeList";
 import DevizDetail from "@/pages/DevizDetail";
 import BonuriConsumList from "@/pages/BonuriConsumList";
+import BonConsumDetail from "@/pages/BonConsumDetail";
 import Catalog from "@/pages/Catalog";
 function Router() {
   return (
@@ -150,6 +151,11 @@ function Router() {
       <Route path="/devize/:id">
         <DashboardLayout>
           <DevizDetail />
+        </DashboardLayout>
+      </Route>
+      <Route path="/bonuri-consum/:id">
+        <DashboardLayout>
+          <BonConsumDetail />
         </DashboardLayout>
       </Route>
       <Route path="/bonuri-consum">

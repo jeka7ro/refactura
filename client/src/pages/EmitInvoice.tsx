@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { formatCurrency, currencies, type Currency } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import NirSelectorModal from "@/components/NirSelectorModal";
 
 const VAT_RATES = [0, 5, 9, 19, 21];
 const UNITS = ["buc", "ore", "luni", "kg", "m", "m2", "m3", "l", "set", "servicii", "t"];
@@ -21,6 +22,7 @@ interface Line {
   vatRate: number;
   devizCode?: string;
   devizType?: string;
+  maxQuantity?: number; // cantitate maximă din NIR
 }
 
 const defaultLine = (): Line => ({
@@ -87,6 +89,7 @@ export default function EmitInvoice() {
   const [saving, setSaving] = useState(false);
   const [showOptional, setShowOptional] = useState(false);
   const [showCodes, setShowCodes] = useState(false);
+  const [showNirModal, setShowNirModal] = useState(false);
   
   // Autocomplete
   const [focusedLineId, setFocusedLineId] = useState<string | null>(null);
@@ -115,6 +118,12 @@ export default function EmitInvoice() {
     { enabled: !!sourceId }
   );
 
+  // Dacă edităm o factură, verificăm dacă are deviz linked — îl expandăm în linii individuale
+  const { data: linkedDevizForEdit } = trpc.devize.getByInvoiceId.useQuery(
+    { invoiceId: parseInt(editId!) },
+    { enabled: !!editId }
+  );
+
   const products = productsData || [];
   const createProductMutation = trpc.products.create.useMutation({
     onSuccess: () => utils.products.list.invalidate(),
@@ -137,6 +146,9 @@ export default function EmitInvoice() {
     },
     onError: (err) => toast.error("Eroare la actualizare: " + err.message),
   });
+
+  const devizeUpdateMutation = trpc.devize.update.useMutation();
+  const consumeLineMutation = trpc.nir.consumeLine.useMutation();
 
   const clients = clientsData || [];
   const filteredClients = useMemo(() =>
@@ -193,7 +205,23 @@ export default function EmitInvoice() {
           devizCode: (l as any).devizCode,
           devizType: (l as any).devizType,
         }));
-        setLines(editLines.length ? editLines : [defaultLine()]);
+
+        // Dacă există deviz linked și există linii în el, le folosim în loc de linia sumară
+        if (linkedDevizForEdit?.lines && linkedDevizForEdit.lines.length > 0) {
+          const devizExpandedLines = linkedDevizForEdit.lines.map(dl => ({
+            id: crypto.randomUUID(),
+            description: dl.description,
+            quantity: parseFloat(String(dl.quantity)) || 1,
+            unitPrice: parseFloat(String(dl.unitPrice)) || 0,
+            unit: dl.type === "MANOPERA" ? "ore" : "buc",
+            vatRate: 21,
+            devizCode: dl.code || "",
+            devizType: dl.type,
+          }));
+          setLines(devizExpandedLines.length ? devizExpandedLines : editLines);
+        } else {
+          setLines(editLines.length ? editLines : [defaultLine()]);
+        }
         
         let cleanNotes = oldNotes;
         const oblioKeys = ["Întocmit de:", "CNP:", "Delegat:", "Număr aviz:", "Auto:", "Mijloc transport:", "Agent vânzări:", "Punct de lucru:", "Număr comandă:", "Număr contract:"];
@@ -218,7 +246,7 @@ export default function EmitInvoice() {
         });
       }
     }
-  }, [originalInvoice, sourceId, stornoId, editId]);
+  }, [originalInvoice, sourceId, stornoId, editId, linkedDevizForEdit]);
 
   const [cuiLoading, setCuiLoading] = useState(false);
 
@@ -372,6 +400,23 @@ export default function EmitInvoice() {
 
       if (editId) {
         await updateMutation.mutateAsync({ id: parseInt(editId), ...payload });
+        // Sincroniezăm devizul linked dacă există
+        if (linkedDevizForEdit?.deviz?.id) {
+          const devizLines = lines.map(l => ({
+            type: (l.devizType === "MANOPERA" ? "MANOPERA"
+              : l.devizType === "NORMA" ? "NORMA"
+              : l.devizType === "UTILAJ" ? "UTILAJ"
+              : "MATERIAL") as "MATERIAL" | "MANOPERA" | "UTILAJ" | "NORMA",
+            code: l.devizCode || null,
+            description: l.description,
+            quantity: parseFloat(String(l.quantity)) || 1,
+            unitPrice: parseFloat(String(l.unitPrice)) || 0,
+          }));
+          await devizeUpdateMutation.mutateAsync({
+            id: linkedDevizForEdit.deviz.id,
+            lines: devizLines,
+          });
+        }
       } else {
         await createMutation.mutateAsync(payload);
       }
@@ -660,8 +705,25 @@ export default function EmitInvoice() {
                   type="number"
                   min="0"
                   step="0.01"
+                  max={line.maxQuantity}
                   value={line.quantity}
-                  onChange={e => updateLine(line.id, "quantity", e.target.value)}
+                  onChange={e => {
+                    const val = parseFloat(e.target.value) || 0;
+                    if (line.maxQuantity !== undefined && val > line.maxQuantity) {
+                      toast(`⚠️ Stoc insuficient în NIR`, {
+                        description: `„${line.description.slice(0, 45)}" — disponibil: ${line.maxQuantity} ${line.unit}`,
+                        duration: 4000,
+                        style: {
+                          background: "#fff7ed",
+                          border: "1px solid #fb923c",
+                          color: "#9a3412",
+                          borderRadius: 10,
+                          fontSize: 13,
+                        },
+                      });
+                    }
+                    updateLine(line.id, "quantity", e.target.value);
+                  }}
                   className="w-full h-8 px-2 text-sm text-center border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
@@ -704,12 +766,18 @@ export default function EmitInvoice() {
         </div>
 
         <div className="border-t border-slate-200 dark:border-slate-700 grid grid-cols-12">
-          <div className="col-span-7 px-4 py-3 flex gap-2">
+          <div className="col-span-7 px-4 py-3 flex gap-2 flex-wrap">
             <button
               onClick={addLine}
               className="flex items-center gap-1.5 px-3 h-8 text-xs font-semibold text-blue-600 border border-blue-200 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
             >
               <Plus className="w-3.5 h-3.5" /> Adaugă rând liber
+            </button>
+            <button
+              onClick={() => setShowNirModal(true)}
+              className="flex items-center gap-1.5 px-3 h-8 text-xs font-semibold text-sky-700 border border-sky-200 bg-sky-50 hover:bg-sky-100 rounded transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" /> Adaugă din NIR
             </button>
           </div>
           <div className="col-span-5 px-4 py-3 border-l border-slate-200 dark:border-slate-700 space-y-1">
@@ -816,6 +884,36 @@ export default function EmitInvoice() {
           Previzualizare / Emite Factura
         </button>
       </div>
+      {showNirModal && (
+        <NirSelectorModal
+          onClose={() => setShowNirModal(false)}
+          onAdd={async (nirLines) => {
+            const newLines = nirLines.map(nl => ({
+              id: crypto.randomUUID(),
+              description: nl.description,
+              quantity: nl.quantity,
+              unitPrice: nl.unitPrice,
+              unit: nl.unit,
+              vatRate: nl.vatRate || 21,
+              maxQuantity: nl.quantity,
+            }));
+            setLines(prev => {
+              const hasOnlyDefault = prev.length === 1 && !prev[0].description && !parseFloat(String(prev[0].unitPrice));
+              return hasOnlyDefault ? newLines : [...prev, ...newLines];
+            });
+            // Marchează liniile ca consumate în NIR
+            try {
+              await consumeLineMutation.mutateAsync({
+                lines: nirLines.map(nl => ({
+                  nirLineId: nl.nirLineId,
+                  qty: nl.quantity,
+                })),
+              });
+            } catch (e) { console.error("consumeLine error", e); }
+            setShowNirModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }

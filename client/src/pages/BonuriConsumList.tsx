@@ -47,6 +47,20 @@ export default function BonuriConsumList() {
         </div>
       </div>
 
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {[
+          { label: "Total Bonuri de Consum", value: list.length, cls: "text-slate-900 dark:text-white" },
+          { label: "Finalizate", value: list.filter(n => n.status !== "draft").length, cls: "text-emerald-600" },
+          { label: "Ciorne", value: list.filter(n => n.status === "draft").length, cls: "text-amber-600" },
+        ].map(k => (
+          <div key={k.label} className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">{k.label}</p>
+            <p className={`text-xl font-black ${k.cls}`}>{k.value}</p>
+          </div>
+        ))}
+      </div>
+
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="w-3.5 h-3.5 text-slate-400" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
@@ -84,9 +98,9 @@ export default function BonuriConsumList() {
                 <tr><td colSpan={7} className="py-12 text-center text-xs text-slate-400">Niciun bon de consum găsit.</td></tr>
               ) : (
                 paginated.map((row, i) => (
-                  <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                  <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer" onClick={() => navigate(`/bonuri-consum/${row.id}`)}>
                     <td className="px-3 py-2 text-slate-400 text-xs">{(page - 1) * rowsPerPage + i + 1}</td>
-                    <td className="px-3 py-2 font-medium text-slate-900 dark:text-white">{row.number}</td>
+                    <td className="px-3 py-2 font-medium text-amber-600 hover:underline">{row.number}</td>
                     <td className="px-3 py-2 text-slate-600 dark:text-slate-300">{formatDate(String(row.date))}</td>
                     <td className="px-3 py-2 text-slate-600 dark:text-slate-300">{row.gestiune || "—"}</td>
                     <td className="px-3 py-2 text-slate-600 dark:text-slate-300">{row.devizId ? `#${row.devizId}` : "—"}</td>
@@ -119,7 +133,8 @@ export default function BonuriConsumList() {
             <select
               value={rowsPerPage}
               onChange={e => { setRowsPerPage(Number(e.target.value)); setPage(1); }}
-              className="text-xs border-slate-200 rounded px-1 py-0.5 bg-white text-slate-700"
+              style={{ border: "1px solid #e2e8f0", borderRadius: 9999, padding: "1px 6px", fontSize: 12 }}
+              className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 dark:border-slate-700"
             >
               <option value={15}>15</option><option value={50}>50</option><option value={100}>100</option>
             </select>

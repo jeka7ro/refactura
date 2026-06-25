@@ -822,7 +822,7 @@ export function registerPdfRoute(app: any) {
       const db = await getDb();
       if (!db) { res.status(500).json({ error: "DB unavailable" }); return; }
 
-      const { bonuriConsum, bonuriConsumLines } = await import("../drizzle/schema");
+      const { bonuriConsum, bonuriConsumLines, tenants } = await import("../drizzle/schema");
 
       const [bon] = await db.select().from(bonuriConsum).where(eq(bonuriConsum.id, id));
       if (!bon) { res.status(404).json({ error: "Bonul nu a fost găsit" }); return; }

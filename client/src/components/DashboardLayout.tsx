@@ -136,12 +136,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 )}>
                   <Icon className={cn("w-4 h-4 flex-shrink-0", active ? "text-white" : "text-slate-400 group-hover:text-blue-600 dark:group-hover:text-white")} />
                   {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
-                  {/* Badge dinamic — apare DOAR dacă count > 0 */}
-                  {!collapsed && item.href === "/facturi" && pendingCount > 0 && (
-                    <span className="ml-auto min-w-[18px] h-[18px] px-1 bg-blue-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                      {pendingCount}
-                    </span>
-                  )}
+                  {/* Badge eliminat pentru a evita confuzia cu numarul total de facturi */}
                 </div>
               </Link>
               {/* Sub-items indentat */}

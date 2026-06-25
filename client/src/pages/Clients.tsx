@@ -189,17 +189,19 @@ export default function Clients() {
             </button>
           </div>
 
-          {/* KPI pills — compact, matching AllInvoices */}
-          <div className="flex flex-wrap gap-1.5">
-            <span className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-xs font-semibold border bg-blue-50 text-blue-700 border-blue-200">
-              <Building2 className="w-3 h-3" /> Clienți <strong>{clients.length}</strong>
-            </span>
-            <span className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-xs font-semibold border bg-purple-50 text-purple-700 border-purple-200">
-              Orașe Unice <strong>{new Set(clients.map((c: any) => c.city).filter(Boolean)).size}</strong>
-            </span>
-            <span className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-xs font-semibold border bg-orange-50 text-orange-700 border-orange-200">
-              Furnizori <strong>{clients.filter((c: any) => c.isSupplier === 1).length}</strong>
-            </span>
+          {/* KPI Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: "Total Clienți", value: clients.length, cls: "text-slate-900 dark:text-white" },
+              { label: "Cu TVA", value: clients.filter((c: any) => c.tva).length, cls: "text-blue-600" },
+              { label: "Furnizori", value: clients.filter((c: any) => c.isSupplier === 1).length, cls: "text-purple-600" },
+              { label: "Orașe Unice", value: new Set(clients.map((c: any) => c.city).filter(Boolean)).size, cls: "text-amber-600" },
+            ].map(k => (
+              <div key={k.label} className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">{k.label}</p>
+                <p className={`text-xl font-black ${k.cls}`}>{k.value}</p>
+              </div>
+            ))}
           </div>
         </>
       )}

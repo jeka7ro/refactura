@@ -38,7 +38,7 @@ export default function Settings() {
     { id: "green",  label: "Verde",          color: "#16a34a" },
     { id: "rose",   label: "Roz",            color: "#e11d48" },
     { id: "violet", label: "Violet",         color: "#7c3aed" },
-    { id: "orange", label: "Portocaliu",     color: "#ea580c" },
+    { id: "navy",   label: "Navy GetApp",    color: "#003366" },
   ] as const;
   type ThemeId = typeof THEMES[number]["id"];
 
@@ -185,7 +185,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="p-3 sm:p-5 max-w-4xl mx-auto space-y-3">
+    <div className="p-3 sm:p-5 max-w-full space-y-3">
       {/* Header */}
       <div>
         <h1 className="text-base font-bold text-slate-900 dark:text-white">Setări</h1>

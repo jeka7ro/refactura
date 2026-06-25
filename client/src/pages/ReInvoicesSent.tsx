@@ -212,6 +212,21 @@ export default function ReInvoicesSent() {
           </div>
         </div>
 
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { label: "Total Re-Facturi", value: reInvoices.length, cls: "text-slate-900 dark:text-white" },
+            { label: "Achitate", value: reInvoices.filter(r => r.status === "paid").length, cls: "text-emerald-600" },
+            { label: "Restanțe", value: reInvoices.filter(r => r.status === "overdue").length, cls: "text-rose-600" },
+            { label: "Valoare Totală", value: `${totalValue.toLocaleString("ro-RO", { minimumFractionDigits: 2 })} RON`, cls: "text-blue-600" },
+          ].map(k => (
+            <div key={k.label} className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">{k.label}</p>
+              <p className={`text-xl font-black ${k.cls}`}>{k.value}</p>
+            </div>
+          ))}
+        </div>
+
         {/* Bottom Row: Period Filters */}
         <div className="flex flex-wrap items-center justify-end gap-1.5 border-t border-slate-100 dark:border-slate-800 pt-2">
           <Calendar className="w-4 h-4 text-slate-400 hidden sm:block" />

@@ -46,7 +46,7 @@ function useSetupAssistant(onConfigSave: (provider: string, config: Record<strin
         newMessages.push({ role: "ai", text: "SmartBill vine in curand!\n\nDeocamdata poti configura **Oblio** sau **SPV ANAF**. Care preferi?" });
       } else if (trimmed.includes("spv")) {
         setSelectedProvider("spv");
-        newMessages.push({ role: "ai", text: "Integrarea SPV ANAF necesită un certificat digital calificat și înregistrarea aplicației pe portalul ANAF. Contactează-ne pentru asistență sau alege **Oblio** pentru o configurare rapidă." });
+        newMessages.push({ role: "ai", text: "Integrarea SPV ANAF necesită un certificat digital calificat și înregistrarea aplicației pe portalul ANAF.\n\n🔗 [Creează cont / Autentifică-te în SPV ANAF](https://www.anaf.ro/anaf/internet/ANAF/servicii_online/inregistrare_utilizatori)\n\nContactează-ne pentru asistență sau alege **Oblio** pentru o configurare rapidă." });
       } else {
         newMessages.push({ role: "ai", text: "Nu am recunoscut platforma. Te rog scrie `oblio`, `smartbill` sau `spv`." });
       }
@@ -432,7 +432,7 @@ export default function Integrations() {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-6">
+    <div className="p-4 md:p-8 max-w-full space-y-6">
       <input type="file" id="spv-file-input" multiple accept=".xml,.zip" className="hidden" onChange={handleSpvXml} />
 
       {/* Header */}
