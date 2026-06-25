@@ -235,9 +235,17 @@ export default function EmittedInvoices() {
                           <Undo2 className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => window.open(`/api/pdf/emitted/${row.id}?download=1`, '_blank')}
+                          onClick={() => {
+                            const a = document.createElement("a");
+                            a.href = `/api/pdf/emitted/${row.id}?download=1`;
+                            a.download = `${row.series || ''}${row.number}.pdf`;
+                            a.target = "_blank";
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                          }}
                           className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-center transition-colors"
-                          title="Printează PDF"
+                          title="Descarcă PDF"
                         >
                           <Download className="w-3.5 h-3.5" />
                         </button>

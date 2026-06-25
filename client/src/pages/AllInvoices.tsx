@@ -69,6 +69,17 @@ const getStatusLabel = (status: string, type: string) =>
 export default function AllInvoices() {
   const [, navigate] = useLocation();
   const [search, setSearch]           = useState("");
+
+  // Helper: forțează download în loc de preview în browser
+  const downloadFile = (url: string, filename: string) => {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.target = "_blank";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
   const [page, setPage]               = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
   const [typeFilter, setTypeFilter]   = useState<InvoiceType | "all">("all");
@@ -619,11 +630,13 @@ export default function AllInvoices() {
                         ) : (
                           <button onClick={() => {
                               if (row.type === 'emis' && row.source === 'manual') {
-                                window.open(`/api/pdf/emitted/${row.id}?download=1`, '_blank');
+                                downloadFile(`/api/pdf/emitted/${row.id}?download=1`, `${row.number}.pdf`);
                               } else if (row.fileUrl && row.fileUrl !== "spv_import") {
-                                window.open(row.fileUrl, '_blank');
+                                downloadFile(row.fileUrl, `${row.number}.pdf`);
+                              } else if (row.type === 'primit' || (row.type === 'emis' && row.source === 'spv_anaf')) {
+                                downloadFile(`/api/pdf/archive/${row.id}?download=1`, `${row.number}.pdf`);
                               } else {
-                                toast.error("PDF-ul vizual nu este disponibil (factură importată ca XML din SPV).");
+                                toast.error("PDF-ul nu este disponibil.");
                               }
                             }}
                             title="Descarcă PDF"
