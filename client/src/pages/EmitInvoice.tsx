@@ -87,6 +87,7 @@ export default function EmitInvoice() {
 
   const params = useParams<{ id?: string, stornoId?: string }>();
   const stornoId = params?.stornoId;
+  const editId = params?.id && params.id !== "new" ? params.id : null;
 
   // Data
   const { data: clientsData } = trpc.clients.list.useQuery();
@@ -95,9 +96,10 @@ export default function EmitInvoice() {
   const { data: tenantsData = [] } = trpc.tenants.list.useQuery();
   const tenant = tenantsData[0];
 
+  const sourceId = stornoId || editId;
   const { data: originalInvoice } = trpc.emittedInvoice.getById.useQuery(
-    { id: parseInt(stornoId!) },
-    { enabled: !!stornoId }
+    { id: parseInt(sourceId!) },
+    { enabled: !!sourceId }
   );
 
   const products = productsData || [];
@@ -106,12 +108,21 @@ export default function EmitInvoice() {
   });
 
   const createMutation = trpc.emittedInvoice.create.useMutation({
-    onSuccess: (data) => {
+    onSuccess: () => {
       utils.emittedInvoice.list.invalidate();
       toast.success("Factura a fost creată cu succes!");
       navigate("/facturi-emise-nou");
     },
-    onError: (err) => toast.error("Eroare: " + err.message),
+    onError: (err) => toast.error("Eroare la creare: " + err.message),
+  });
+
+  const updateMutation = trpc.emittedInvoice.update.useMutation({
+    onSuccess: () => {
+      utils.emittedInvoice.list.invalidate();
+      toast.success("Factura a fost actualizată!");
+      navigate("/facturi-emise-nou");
+    },
+    onError: (err) => toast.error("Eroare la actualizare: " + err.message),
   });
 
   const clients = clientsData || [];
@@ -125,9 +136,9 @@ export default function EmitInvoice() {
     if (nextNumber && !invoiceNumber) setInvoiceNumber(nextNumber);
   }, [nextNumber]);
 
-  // Pre-fill Storno data
+  // Pre-fill Edit or Storno data
   useEffect(() => {
-    if (originalInvoice && stornoId) {
+    if (originalInvoice && sourceId) {
       if (originalInvoice.clientId) setSelectedClientId(String(originalInvoice.clientId));
       setClientName(originalInvoice.clientName || "");
       setClientCUI(originalInvoice.clientCUI || "");
@@ -138,19 +149,45 @@ export default function EmitInvoice() {
       setClientPhone(originalInvoice.clientPhone || "");
       setCurrency((originalInvoice.currency || "RON") as Currency);
       
-      const stornoLines = originalInvoice.lines.map(l => ({
-        id: crypto.randomUUID(),
-        description: l.description,
-        quantity: -Math.abs(parseFloat(String(l.quantity))), // Negate quantity
-        unitPrice: parseFloat(String(l.unitPrice)),
-        unit: l.unit,
-        vatRate: l.vatRate,
-      }));
-      setLines(stornoLines.length ? stornoLines : [defaultLine()]);
-      
       let oldNotes = originalInvoice.notes || "";
-      const stornoNote = `Storno la factura seria ${originalInvoice.series} nr. ${originalInvoice.number} din ${originalInvoice.issueDate.split("T")[0]}`;
       
+      if (stornoId) {
+        const stornoLines = originalInvoice.lines.map(l => ({
+          id: crypto.randomUUID(),
+          description: l.description,
+          quantity: -Math.abs(parseFloat(String(l.quantity))), // Negate quantity
+          unitPrice: parseFloat(String(l.unitPrice)),
+          unit: l.unit,
+          vatRate: l.vatRate,
+        }));
+        setLines(stornoLines.length ? stornoLines : [defaultLine()]);
+        
+        const stornoNote = `Storno la factura seria ${originalInvoice.series} nr. ${originalInvoice.number} din ${originalInvoice.issueDate.split("T")[0]}`;
+        setMentiuni(stornoNote);
+      } else if (editId) {
+        setSeries(originalInvoice.series || "FACT");
+        setInvoiceNumber(originalInvoice.number);
+        if (originalInvoice.issueDate) setIssueDate(originalInvoice.issueDate.split("T")[0]);
+        if (originalInvoice.dueDate) setDueDate(originalInvoice.dueDate.split("T")[0]);
+        
+        const editLines = originalInvoice.lines.map(l => ({
+          id: crypto.randomUUID(),
+          description: l.description,
+          quantity: parseFloat(String(l.quantity)),
+          unitPrice: parseFloat(String(l.unitPrice)),
+          unit: l.unit,
+          vatRate: l.vatRate,
+        }));
+        setLines(editLines.length ? editLines : [defaultLine()]);
+        
+        // Remove Oblio specific parts from mentiuni if they exist, so we only put the clean text
+        let cleanNotes = oldNotes;
+        const oblioKeys = ["Întocmit de:", "CNP:", "Delegat:", "Număr aviz:", "Auto:", "Mijloc transport:", "Agent vânzări:", "Punct de lucru:", "Număr comandă:", "Număr contract:"];
+        const noteLines = oldNotes.split("\n");
+        const restNotes = noteLines.filter(line => !oblioKeys.some(k => line.startsWith(k)));
+        setMentiuni(restNotes.join("\n").trim());
+      }
+
       // Merge extra fields from notes if they exist (Oblio format)
       if (oldNotes.includes("Întocmit de:")) {
         const parts = oldNotes.split("\n");
@@ -167,9 +204,8 @@ export default function EmitInvoice() {
           if (p.startsWith("Număr contract: ")) setNumarContract(p.replace("Număr contract: ", ""));
         });
       }
-      setMentiuni(stornoNote);
     }
-  }, [originalInvoice, stornoId]);
+  }, [originalInvoice, sourceId, stornoId, editId]);
 
   const selectProduct = (lineId: string, p: any) => {
     updateLine(lineId, "description", p.name);
@@ -269,7 +305,7 @@ export default function EmitInvoice() {
         }
       }
 
-      await createMutation.mutateAsync({
+      const payload = {
         number: invoiceNumber, series,
         clientId: selectedClientId ? parseInt(selectedClientId) : undefined,
         clientName, clientCUI, clientRegCom, clientAddress, clientCity, clientEmail, clientPhone,
@@ -282,7 +318,13 @@ export default function EmitInvoice() {
           unit: l.unit, vatRate: l.vatRate,
           total: computeLineTotal(l), lineOrder: i,
         })),
-      });
+      };
+
+      if (editId) {
+        await updateMutation.mutateAsync({ id: parseInt(editId), ...payload });
+      } else {
+        await createMutation.mutateAsync(payload);
+      }
     } finally {
       setSaving(false);
     }
