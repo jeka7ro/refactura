@@ -35,12 +35,9 @@ function computeLineTotal(line: Line) {
   return Math.round(qty * price * 100) / 100;
 }
 function computeLineVAT(line: Line) {
-  return Math.round(computeLineTotal(line) * (parseFloat(String(line.vatRate)) / 100) * 100) / 100;
-}
-
-const inputCls = "w-full h-9 px-3 text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500";
-const selectCls = "w-full h-9 px-3 text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500";
-const labelCls = "block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1";
+  return Math.round(computeLineTotal(line) * (parseFloat(String(line.vatRate)) / 100) * 100) / 10const inputCls = "w-full h-9 px-3 text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 !rounded-md text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500";
+const selectCls = "w-full h-9 px-3 text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 !rounded-md text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500";
+const labelCls = "block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1";
 
 export default function EmitInvoice() {
   const [, navigate] = useLocation();
@@ -182,13 +179,13 @@ export default function EmitInvoice() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-4 max-w-6xl mx-auto">
+    <div className="p-4 md:p-6 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate("/facturi-emise-nou")}
-            className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="w-8 h-8 flex items-center justify-center !rounded-md border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <ArrowLeft className="w-4 h-4 text-slate-600 dark:text-slate-400" />
           </button>
@@ -205,7 +202,7 @@ export default function EmitInvoice() {
           <button
             onClick={() => handleSave("draft")}
             disabled={saving}
-            className="flex items-center gap-1.5 px-4 h-9 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-60"
+            className="flex items-center gap-1.5 px-4 h-9 !rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-60"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Salvează Ciornă
@@ -213,7 +210,7 @@ export default function EmitInvoice() {
           <button
             onClick={() => handleSave("sent")}
             disabled={saving}
-            className="flex items-center gap-1.5 px-4 h-9 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors disabled:opacity-60"
+            className="flex items-center gap-1.5 px-8 h-9 !rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition-colors disabled:opacity-60"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             Emite Factura
@@ -222,9 +219,10 @@ export default function EmitInvoice() {
       </div>
 
       {/* ── ROW 1: Client + Date + Serie ── */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded p-4">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-          {/* Client — wide */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 !rounded-md p-4 space-y-4">
+        {/* TOP ROW */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+          {/* Client Selection */}
           <div className="md:col-span-4 relative">
             <label className={labelCls}>Nume sau Cod Fiscal Client *</label>
             <div className="relative">
@@ -252,31 +250,6 @@ export default function EmitInvoice() {
                 </div>
               )}
             </div>
-            {/* Sub-fields client */}
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              <div>
-                <label className={labelCls}>CUI / CIF</label>
-                <input value={clientCUI} onChange={e => setClientCUI(e.target.value)} className={inputCls} placeholder="RO12345678" />
-              </div>
-              <div>
-                <label className={labelCls}>Reg. Com.</label>
-                <input value={clientRegCom} onChange={e => setClientRegCom(e.target.value)} className={inputCls} placeholder="J40/..." />
-              </div>
-            </div>
-            <div className="mt-2">
-              <label className={labelCls}>Adresă</label>
-              <input value={clientAddress} onChange={e => setClientAddress(e.target.value)} className={inputCls} placeholder="Str. ..." />
-            </div>
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              <div>
-                <label className={labelCls}>Localitate</label>
-                <input value={clientCity} onChange={e => setClientCity(e.target.value)} className={inputCls} />
-              </div>
-              <div>
-                <label className={labelCls}>Email</label>
-                <input type="email" value={clientEmail} onChange={e => setClientEmail(e.target.value)} className={inputCls} />
-              </div>
-            </div>
           </div>
 
           {/* Dates */}
@@ -290,18 +263,45 @@ export default function EmitInvoice() {
           </div>
 
           {/* Series + Number */}
-          <div className="md:col-span-2">
-            <label className={labelCls}>Serie</label>
-            <input value={series} onChange={e => setSeries(e.target.value.toUpperCase())} className={inputCls} />
-          </div>
-          <div className="md:col-span-2">
-            <label className={labelCls}>Număr</label>
-            <input value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} className={inputCls} />
+          <div className="md:col-span-4 grid grid-cols-2 gap-2">
+            <div>
+              <label className={labelCls}>Serie</label>
+              <input value={series} onChange={e => setSeries(e.target.value.toUpperCase())} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Număr</label>
+              <input value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} className={inputCls} />
+            </div>
           </div>
         </div>
 
-        {/* Row 2: Moneda + Telefon client */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+        {/* BOTTOM ROW (Client details + Moneda) */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+          {/* Client Details Grid */}
+          <div className="md:col-span-4 grid grid-cols-2 gap-2">
+            <div>
+              <label className={labelCls}>CUI / CIF</label>
+              <input value={clientCUI} onChange={e => setClientCUI(e.target.value)} className={inputCls} placeholder="RO12345678" />
+            </div>
+            <div>
+              <label className={labelCls}>Reg. Com.</label>
+              <input value={clientRegCom} onChange={e => setClientRegCom(e.target.value)} className={inputCls} placeholder="J40/..." />
+            </div>
+            <div className="col-span-2">
+              <label className={labelCls}>Adresă</label>
+              <input value={clientAddress} onChange={e => setClientAddress(e.target.value)} className={inputCls} placeholder="Str. ..." />
+            </div>
+            <div>
+              <label className={labelCls}>Localitate</label>
+              <input value={clientCity} onChange={e => setClientCity(e.target.value)} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Email</label>
+              <input type="email" value={clientEmail} onChange={e => setClientEmail(e.target.value)} className={inputCls} />
+            </div>
+          </div>
+
+          {/* Other settings */}
           <div className="md:col-span-2">
             <label className={labelCls}>Moneda Facturii</label>
             <select value={currency} onChange={e => setCurrency(e.target.value as Currency)} className={selectCls}>
@@ -318,7 +318,7 @@ export default function EmitInvoice() {
       {/* ── LINES TABLE — full width ── */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded overflow-hidden">
         {/* Table header */}
-        <div className="grid grid-cols-12 gap-0 bg-slate-800 dark:bg-slate-700 text-white text-[11px] font-bold uppercase tracking-wider">
+        <div className="grid grid-cols-12 gap-0 bg-[#1e1b4b] dark:bg-slate-800 text-white text-[11px] font-bold uppercase tracking-wider">
           <div className="col-span-5 px-4 py-2.5">Denumire Produs sau Serviciu</div>
           <div className="col-span-1 px-3 py-2.5 text-center border-l border-slate-700">U.M.</div>
           <div className="col-span-1 px-3 py-2.5 text-center border-l border-slate-700">Cant.</div>
