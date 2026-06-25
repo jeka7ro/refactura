@@ -31,14 +31,7 @@ import {
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { trpc } from "@/lib/trpc";
 
-const chartData = [
-  { luna: "Iun", facturi: 4200, refacturi: 5100 },
-  { luna: "Iul", facturi: 7800, refacturi: 9200 },
-  { luna: "Aug", facturi: 5600, refacturi: 6800 },
-  { luna: "Sep", facturi: 9100, refacturi: 11200 },
-  { luna: "Oct", facturi: 12400, refacturi: 15600 },
-  { luna: "Nov", facturi: 18750, refacturi: 22890 },
-];
+
 
 export default function Dashboard() {
   const [syncing, setSyncing] = useState(false);
@@ -54,7 +47,9 @@ export default function Dashboard() {
     margin,
     marginPct,
     overdueReInvoices,
-    upcomingReInvoices
+    upcomingReInvoices,
+    chartData,
+    statusData
   } = useMemo(() => {
     // Basic mapping
     const invoices = dbInvoices.map((i: any) => ({ ...i, total: parseFloat(i.total || '0') }));
@@ -85,8 +80,56 @@ export default function Dashboard() {
       return daysUntilDue > 0 && daysUntilDue <= 7 && r.status !== 'paid';
     });
 
-    return { totalImported: tImported, totalReInvoiced: tReInvoiced, margin: mrg, marginPct: mrgPct, overdueReInvoices: overdue, upcomingReInvoices: upcoming };
-  }, [dbInvoices, dbReInvoices]);
+    // Chart Data (Facturi primite vs Facturi emise)
+    const months = ["Ian", "Feb", "Mar", "Apr", "Mai", "Iun", "Iul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const currentYear = now.getFullYear();
+    const monthlyData = Array.from({ length: 12 }, (_, i) => ({ luna: months[i], facturi: 0, refacturi: 0 }));
+    
+    invoices.forEach(i => {
+      if (!i.issueDate) return;
+      const date = new Date(i.issueDate);
+      if (date.getFullYear() === currentYear) monthlyData[date.getMonth()].facturi += i.total;
+    });
+    const emitted = dbEmitted.map((e: any) => ({ ...e, total: parseFloat(e.total || '0') }));
+    emitted.forEach(e => {
+      if (!e.issueDate) return;
+      const date = new Date(e.issueDate);
+      if (date.getFullYear() === currentYear) monthlyData[date.getMonth()].refacturi += e.total;
+    });
+    const currentMonth = now.getMonth();
+    const dynamicChartData = monthlyData.slice(Math.max(0, currentMonth - 5), currentMonth + 1);
+
+    // Status Data
+    let countPaid = 0, countSent = 0, countDraft = 0, countOverdue = 0;
+    emitted.forEach(e => {
+      if (e.status === 'paid') countPaid++;
+      else if (e.status === 'sent') countSent++;
+      else if (e.status === 'draft') countDraft++;
+      
+      // Check overdue
+      if (e.status !== 'paid' && e.dueDate) {
+         if (new Date(e.dueDate) < now) countOverdue++;
+      }
+    });
+    const totalStatus = countPaid + countSent + countDraft + countOverdue || 1;
+    const statusData = [
+      { label: "Achitate", count: countPaid, color: "bg-emerald-500", pct: (countPaid/totalStatus)*100 },
+      { label: "Trimise", count: countSent, color: "bg-blue-500", pct: (countSent/totalStatus)*100 },
+      { label: "Ciornă", count: countDraft, color: "bg-slate-400", pct: (countDraft/totalStatus)*100 },
+      { label: "Restante", count: countOverdue, color: "bg-rose-500", pct: (countOverdue/totalStatus)*100 },
+    ];
+
+    return { 
+      totalImported: tImported, 
+      totalReInvoiced: tReInvoiced, 
+      margin: mrg, 
+      marginPct: mrgPct, 
+      overdueReInvoices: overdue, 
+      upcomingReInvoices: upcoming,
+      chartData: dynamicChartData,
+      statusData
+    };
+  }, [dbInvoices, dbReInvoices, dbEmitted]);
 
   const handleSync = () => {
     setSyncing(true);
@@ -204,12 +247,12 @@ export default function Dashboard() {
         <div className="xl:col-span-2 bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white">Evoluție Facturare</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Facturi primite vs. re-facturi emise (RON)</p>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">Facturi primite vs. Facturi emise</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Evoluție lunară (RON)</p>
             </div>
             <div className="flex items-center gap-4 text-xs">
-              <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-blue-500 inline-block" />Importate</span>
-              <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-emerald-500 inline-block" />Re-facturate</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-blue-500 inline-block" />Primite</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-emerald-500 inline-block" />Emise</span>
             </div>
           </div>
           <ResponsiveContainer width="100%" height={200}>
@@ -239,15 +282,10 @@ export default function Dashboard() {
 
         {/* Status breakdown */}
         <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-6">
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white mb-1">Status Re-Facturi</h2>
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white mb-1">Status Facturi Emise</h2>
           <p className="text-xs text-slate-500 mb-6">Distribuție după stare</p>
           <div className="space-y-3">
-            {[
-              { label: "Achitate", count: 1, color: "bg-emerald-500", pct: 33 },
-              { label: "Trimise", count: 1, color: "bg-blue-500", pct: 33 },
-              { label: "Ciornă", count: 1, color: "bg-slate-400", pct: 33 },
-              { label: "Restante", count: 0, color: "bg-rose-500", pct: 0 },
-            ].map((item) => (
+            {statusData.map((item) => (
               <div key={item.label}>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-slate-600 dark:text-slate-400 font-medium">{item.label}</span>
@@ -258,22 +296,6 @@ export default function Dashboard() {
                 </div>
               </div>
             ))}
-          </div>
-
-          <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
-            <div className="text-xs text-slate-500 mb-2 font-bold uppercase tracking-wider">Surse Conectate</div>
-            <div className="space-y-2">
-              {[
-                { name: "SmartBill", status: "Activ", color: "text-emerald-600" },
-                { name: "SPV ANAF", status: "Activ", color: "text-emerald-600" },
-                { name: "Oblio", status: "Inactiv", color: "text-slate-400" },
-              ].map((src) => (
-                <div key={src.name} className="flex justify-between items-center text-xs">
-                  <span className="text-slate-700 dark:text-slate-300 font-medium">{src.name}</span>
-                  <span className={src.color}>{src.status}</span>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </div>
