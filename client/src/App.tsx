@@ -29,6 +29,8 @@ import EmittedInvoices from "@/pages/EmittedInvoices";
 import EmitInvoice from "./pages/EmitInvoice";
 import PrintInvoice from "@/pages/PrintInvoice";
 import EmittedInvoiceDetail from "@/pages/EmittedInvoiceDetail";
+import NIRList from "@/pages/NIRList";
+import NIRCreate from "@/pages/NIRCreate";
 
 function Router() {
   return (
@@ -109,6 +111,27 @@ function Router() {
       <Route path="/re-facturi/:id">
         <DashboardLayout>
           <ReInvoiceDetail />
+        </DashboardLayout>
+      </Route>
+      {/* NIR Routes */}
+      <Route path="/nir">
+        <DashboardLayout>
+          <NIRList />
+        </DashboardLayout>
+      </Route>
+      <Route path="/nir/nou/:invoiceId">
+        <DashboardLayout>
+          <NIRCreate />
+        </DashboardLayout>
+      </Route>
+      <Route path="/nir/nou">
+        <DashboardLayout>
+          <NIRCreate />
+        </DashboardLayout>
+      </Route>
+      <Route path="/nir/:id">
+        <DashboardLayout>
+          <NIRCreate />
         </DashboardLayout>
       </Route>
       <Route path="/rapoarte">

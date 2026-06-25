@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
-import { Search, ChevronLeft, ChevronRight, Plus, RefreshCw, Loader2, Send, FileDown, X, Eye, Pencil, Trash2, Calendar, Download, CheckCircle } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Plus, RefreshCw, Loader2, Send, FileDown, X, Eye, Pencil, Trash2, Calendar, Download, CheckCircle, ClipboardList } from "lucide-react";
 import { formatCurrency, formatDate, type Currency } from "@/lib/store";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -609,6 +609,14 @@ export default function AllInvoices() {
                           <Link href={`/re-facturare/${row.id}`}>
                             <button title="Re-facturează" className="flex items-center justify-center w-6 h-6 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-colors">
                               <Send className="w-3 h-3" />
+                            </button>
+                          </Link>
+                        )}
+                        {/* Buton NIR — doar facturi primite */}
+                        {row.type === 'primit' && (
+                          <Link href={`/nir/nou/${row.id}`}>
+                            <button title="Creează NIR" className="flex items-center justify-center w-6 h-6 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 transition-colors">
+                              <ClipboardList className="w-3 h-3" />
                             </button>
                           </Link>
                         )}

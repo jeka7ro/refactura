@@ -30,6 +30,7 @@ import {
   ShieldCheck,
   Globe2,
   Archive,
+  ClipboardCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -55,8 +56,9 @@ interface NavItem {
 const navItems: NavItem[] = [
   { href: "/dashboard",          label: "Dashboard",       icon: LayoutDashboard, section: "principal" },
   { href: "/facturi",            label: "Facturi",          icon: FileText,        section: "facturare" },
-  { href: "/facturi-emise-nou",  label: "Facturi Emise",   icon: FileOutput,      section: "facturare" },
+  { href: "/facturi-emise-nou",  label: "Facturi Emise",   icon: FileOutput,       section: "facturare" },
   { href: "/re-facturi",         label: "Re-Facturi",       icon: FileOutput,      section: "facturare" },
+  { href: "/nir",                label: "NIR",              icon: ClipboardCheck,  section: "facturare" },
   { href: "/rapoarte",           label: "Rapoarte",         icon: TrendingUp,      section: "analize" },
   { href: "/clienti",            label: "Clienți",          icon: Users,           section: "gestiune" },
   { href: "/integrari",          label: "Integrări",        icon: Plug,            section: "gestiune" },

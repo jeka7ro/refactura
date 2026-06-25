@@ -498,3 +498,42 @@ export const emittedInvoiceLines = mysqlTable("emittedInvoiceLines", {
 
 export type EmittedInvoiceLine = typeof emittedInvoiceLines.$inferSelect;
 export type InsertEmittedInvoiceLine = typeof emittedInvoiceLines.$inferInsert;
+
+/**
+ * NIR — Nota de Intrare-Recepție
+ * Generat din facturi primite (invoiceArchive)
+ */
+export const nir = mysqlTable("nir", {
+  id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId").notNull(),
+  nirNumber: varchar("nirNumber", { length: 50 }).notNull(), // ex: NIR-2026-0001
+  invoiceArchiveId: int("invoiceArchiveId"), // FK → invoiceArchive.id
+  invoiceNumber: varchar("invoiceNumber", { length: 100 }),  // copiat din factură
+  supplierName: varchar("supplierName", { length: 255 }),
+  supplierCUI: varchar("supplierCUI", { length: 20 }),
+  receiptDate: varchar("receiptDate", { length: 20 }).notNull(), // data recepției
+  status: mysqlEnum("status", ["draft", "finalizat"]).default("draft"),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Nir = typeof nir.$inferSelect;
+export type InsertNir = typeof nir.$inferInsert;
+
+export const nirLines = mysqlTable("nirLines", {
+  id: int("id").autoincrement().primaryKey(),
+  nirId: int("nirId").notNull(),
+  description: varchar("description", { length: 512 }).notNull(),
+  unit: varchar("unit", { length: 50 }).default("buc"),
+  cantitateComanda: decimal("cantitateComanda", { precision: 12, scale: 2 }).notNull(),
+  cantitateReceptionata: decimal("cantitateReceptionata", { precision: 12, scale: 2 }).notNull(),
+  unitPrice: decimal("unitPrice", { precision: 12, scale: 2 }),
+  vatRate: decimal("vatRate", { precision: 5, scale: 2 }),
+  total: decimal("total", { precision: 12, scale: 2 }),
+  observations: text("observations"),
+  lineOrder: int("lineOrder").default(0),
+});
+
+export type NirLine = typeof nirLines.$inferSelect;
+export type InsertNirLine = typeof nirLines.$inferInsert;
