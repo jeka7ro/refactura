@@ -151,7 +151,7 @@ export default function EmittedInvoiceDetail() {
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => window.open(`/api/pdf/emitted/${invoice.id}`, '_blank')}
+              onClick={() => window.open(`/api/pdf/emitted/${invoice.id}?download=1`, '_blank')}
               className="px-3 h-8 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 hover:bg-slate-50"
             >
               Printează / Descarcă

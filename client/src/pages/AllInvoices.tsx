@@ -586,7 +586,7 @@ export default function AllInvoices() {
                         ) : (
                           <button onClick={() => {
                               if (row.type === 'emis' && row.source === 'manual') {
-                                window.open(`/api/pdf/emitted/${row.id}`, '_blank');
+                                window.open(`/api/pdf/emitted/${row.id}?download=1`, '_blank');
                               } else if (row.fileUrl && row.fileUrl !== "spv_import") {
                                 window.open(row.fileUrl, '_blank');
                               } else {

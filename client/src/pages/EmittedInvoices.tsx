@@ -235,7 +235,7 @@ export default function EmittedInvoices() {
                           <Undo2 className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => window.open(`/api/pdf/emitted/${row.id}`, '_blank')}
+                          onClick={() => window.open(`/api/pdf/emitted/${row.id}?download=1`, '_blank')}
                           className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-center transition-colors"
                           title="Printează PDF"
                         >
