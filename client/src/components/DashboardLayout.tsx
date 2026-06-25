@@ -102,7 +102,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return location === "/dashboard";
-    return location.startsWith(href);
+    // Exact match OR starts with href followed by / to avoid /facturi matching /facturi-emise-nou
+    return location === href || location.startsWith(href + "/");
   };
 
   const SidebarContent = () => (
