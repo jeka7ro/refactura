@@ -97,7 +97,7 @@ export default function NIRList() {
                 <tr><td colSpan={7} className="py-12 text-center"><Loader2 className="w-6 h-6 animate-spin text-teal-600 mx-auto" /></td></tr>
               ) : paginated.length === 0 ? (
                 <tr><td colSpan={7} className="py-12 text-center text-xs text-slate-400">
-                  {search ? "Niciun NIR găsit." : "Niciun NIR creat. Apasă „NIR Nou" sau iconița din tabelul Facturi."}
+                  {search ? "Niciun NIR găsit." : "Niciun NIR creat. Apasă butonul NIR Nou sau iconița din tabelul Facturi."}
                 </td></tr>
               ) : paginated.map((row, i) => (
                 <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"

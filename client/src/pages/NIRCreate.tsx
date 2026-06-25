@@ -236,19 +236,19 @@ export default function NIRCreate() {
           {status !== "finalizat" && isEdit && (
             <button
               onClick={() => finalizeNir.mutate({ id: nirId! })}
-              disabled={finalizeNir.isLoading}
+              disabled={finalizeNir.isPending}
               className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 transition-colors"
             >
-              {finalizeNir.isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+              {finalizeNir.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
               Finalizează NIR
             </button>
           )}
           <button
             onClick={handleSave}
-            disabled={createNir.isLoading || updateNir.isLoading}
+            disabled={createNir.isPending || updateNir.isPending}
             className="flex items-center gap-1.5 px-4 h-8 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition-colors shadow-sm disabled:opacity-60"
           >
-            {(createNir.isLoading || updateNir.isLoading) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+            {(createNir.isPending || updateNir.isPending) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
             {isEdit ? "Salvează" : "Creează NIR"}
           </button>
         </div>
@@ -431,17 +431,17 @@ export default function NIRCreate() {
         {isEdit && status !== "finalizat" && (
           <button
             onClick={() => finalizeNir.mutate({ id: nirId! })}
-            disabled={finalizeNir.isLoading}
+            disabled={finalizeNir.isPending}
             className="flex items-center gap-1.5 px-4 h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold transition-colors"
           >
             <CheckCircle className="w-4 h-4" /> Finalizează NIR
           </button>
         )}
         <button onClick={handleSave}
-          disabled={createNir.isLoading || updateNir.isLoading}
+          disabled={createNir.isPending || updateNir.isPending}
           className="flex items-center gap-1.5 px-5 h-9 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-bold transition-colors shadow-sm disabled:opacity-60"
         >
-          {(createNir.isLoading || updateNir.isLoading) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {(createNir.isPending || updateNir.isPending) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           {isEdit ? "Salvează modificările" : "Creează NIR"}
         </button>
       </div>
