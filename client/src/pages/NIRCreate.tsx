@@ -48,14 +48,25 @@ export default function NIRCreate() {
   // Load source invoice
   const { data: sourceInvoice } = trpc.invoiceArchive.getById.useQuery(
     { id: sourceInvoiceId! },
-    { enabled: !!sourceInvoiceId }
+    { enabled: !!sourceInvoiceId, staleTime: 0 }
   );
 
-  // Load archive lines for source invoice
-  const { data: archiveLines = [] } = trpc.invoiceArchive.getLines.useQuery(
+  // Load archive lines for source invoice — staleTime=0 forțează refetch la fiecare navigare
+  const { data: archiveLines = [], isFetched: archiveLinesFetched } = trpc.invoiceArchive.getLines.useQuery(
     { id: sourceInvoiceId! },
-    { enabled: !!sourceInvoiceId }
+    { enabled: !!sourceInvoiceId, staleTime: 0 }
   );
+
+  // Reset toate datele când se schimbă factura sursă (previne cache stale)
+  useEffect(() => {
+    if (!isEdit) {
+      setLoaded(false);
+      setLines([]);
+      setSupplierName("");
+      setSupplierCUI("");
+      setInvoiceNumber("");
+    }
+  }, [sourceInvoiceId, isEdit]);
 
   const utils = trpc.useContext();
 
@@ -119,16 +130,16 @@ export default function NIRCreate() {
     }
   }, [existingNir, isEdit, loaded]);
 
-  // Init from source invoice
+  // Init from source invoice — așteptăm ca AMBELE (sourceInvoice + archiveLines) să fie gata
   useEffect(() => {
-    if (!isEdit && sourceInvoice && !loaded) {
+    if (!isEdit && sourceInvoice && !loaded && archiveLinesFetched) {
       setSupplierName(sourceInvoice.supplierName || "");
       setSupplierCUI(sourceInvoice.supplierCUI || "");
       setInvoiceNumber(sourceInvoice.invoiceNumber || "");
       // Build lines from invoice archive lines or one default line
       const archLns = (archiveLines as any[]);
       if (archLns.length > 0) {
-        setLines(archLns.map((l: any, idx: number) => ({
+        setLines(archLns.map((l: any) => ({
           description: l.description || "",
           unit: l.unit || "buc",
           cantitateComanda: String(l.quantity || "1"),
@@ -139,7 +150,7 @@ export default function NIRCreate() {
           observations: "",
         })));
       } else {
-        // Fallback: one generic line from invoice header
+        // Fallback: o linie generică din header factură
         setLines([{
           description: `Marfă conform factură ${sourceInvoice.invoiceNumber || ""}`,
           unit: "buc",
@@ -153,7 +164,7 @@ export default function NIRCreate() {
       }
       setLoaded(true);
     }
-  }, [sourceInvoice, archiveLines, isEdit, loaded]);
+  }, [sourceInvoice, archiveLines, archiveLinesFetched, isEdit, loaded]);
 
   const addLine = () => setLines(prev => [...prev, {
     description: "", unit: "buc",
