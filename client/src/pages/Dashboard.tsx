@@ -298,8 +298,8 @@ export default function Dashboard() {
                       <div className="text-xs text-slate-500 mt-0.5">{inv.invoiceNumber} · {formatDate(inv.issueDate)}</div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-normal border ${invoiceStatusColors[(inv.status as any) || 'pending']}`}>
-                        {invoiceStatusLabels[(inv.status as any) || 'pending']}
+                      <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-normal border ${(invoiceStatusColors as any)[inv.status || 'pending']}`}>
+                        {(invoiceStatusLabels as any)[inv.status || 'pending']}
                       </span>
                       <span className="text-sm text-slate-900 dark:text-white">{formatCurrency(parseFloat(inv.total), inv.currency)}</span>
                     </div>
@@ -327,8 +327,8 @@ export default function Dashboard() {
                     <div className="text-xs text-slate-500 mt-0.5">{inv.invoiceNumber} · {formatDate(inv.issueDate)}</div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-normal border ${invoiceStatusColors[(inv.status as any) || 'pending']}`}>
-                      {invoiceStatusLabels[(inv.status as any) || 'pending']}
+                    <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-normal border ${(invoiceStatusColors as any)[inv.status || 'pending']}`}>
+                      {(invoiceStatusLabels as any)[inv.status || 'pending']}
                     </span>
                     <span className="text-sm text-slate-900 dark:text-white">{formatCurrency(parseFloat(inv.total), inv.currency)}</span>
                   </div>
@@ -355,8 +355,8 @@ export default function Dashboard() {
                     <div className="text-xs text-slate-500 mt-0.5">{ri.number} · {formatDate(ri.issueDate || ri.date)}</div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-normal border ${reInvoiceStatusColors[(ri.status as any) || 'draft']}`}>
-                      {reInvoiceStatusLabels[(ri.status as any) || 'draft']}
+                    <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-normal border ${(reInvoiceStatusColors as any)[ri.status || 'draft']}`}>
+                      {(reInvoiceStatusLabels as any)[ri.status || 'draft']}
                     </span>
                     <span className="text-sm text-slate-900 dark:text-white">{formatCurrency(parseFloat(ri.total), ri.currency || "RON")}</span>
                   </div>

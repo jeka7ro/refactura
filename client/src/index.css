@@ -532,3 +532,24 @@ html.dark[data-theme="orange"] {
 [data-theme="blue"] .bg-blue-600:hover { background-color: #1d4ed8 !important; }
 [data-theme="blue"] .text-blue-600 { color: #2563eb !important; }
 [data-theme="blue"] .border-blue-600 { border-color: #2563eb !important; }
+
+/* ======================================================
+ * REGULA GLOBALA: Campuri editabile = colturi drepte
+ * Butoane, carduri, filtre = raman rotunjite
+ * ====================================================== */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="tel"],
+input[type="date"],
+input[type="search"],
+input[type="password"],
+textarea,
+select {
+  border-radius: 0 !important;
+}
+
+/* Butoanele din lista dropdown de catalog = colturi drepte */
+.catalog-dropdown-item {
+  border-radius: 0 !important;
+}

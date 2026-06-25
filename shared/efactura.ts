@@ -25,9 +25,9 @@ export function parseEfacturaXML(xmlText: string): ParsedEfactura {
   const parser = new DOMParser();
   const doc = parser.parseFromString(xmlText, "application/xml");
 
-  const find = (names: string[]): string => {
+  const find = (context: Element | Document, names: string[]): string => {
     for (const name of names) {
-      const els = doc.querySelectorAll(`*`);
+      const els = Array.from(context.querySelectorAll(`*`));
       for (const el of els) {
         const tagName = el.tagName.split(":").pop() || "";
         if (tagName === name || el.tagName === name) {
@@ -39,14 +39,14 @@ export function parseEfacturaXML(xmlText: string): ParsedEfactura {
     return "";
   };
 
-  const invoiceNumber = find(["ID", "Number", "InvoiceNumber"]);
-  const issueDate = find(["IssueDate", "DocumentIssueDate", "Date"]);
-  const dueDate = find(["DueDate", "DocumentDueDate"]) || issueDate;
-  const currency = find(["DocumentCurrencyCode", "CurrencyCode"]) || "RON";
+  const invoiceNumber = find(doc, ["ID", "Number", "InvoiceNumber"]);
+  const issueDate = find(doc, ["IssueDate", "DocumentIssueDate", "Date"]);
+  const dueDate = find(doc, ["DueDate", "DocumentDueDate"]) || issueDate;
+  const currency = find(doc, ["DocumentCurrencyCode", "CurrencyCode"]) || "RON";
 
   let supplierName = "";
   let supplierCUI = "";
-  const els = doc.querySelectorAll("*");
+  const els = Array.from(doc.querySelectorAll("*"));
   for (const el of els) {
     const tag = el.tagName.split(":").pop() || "";
     if (tag === "RegistrationName" || tag === "Name") {
@@ -59,7 +59,7 @@ export function parseEfacturaXML(xmlText: string): ParsedEfactura {
 
   let totalVAT = 0;
   let total = 0;
-  for (const el of doc.querySelectorAll("*")) {
+  for (const el of Array.from(doc.querySelectorAll("*"))) {
     const tag = el.tagName.split(":").pop() || "";
     const val = parseFloat(el.textContent || "0");
     if (tag === "TaxAmount") totalVAT = Math.max(totalVAT, val);
@@ -67,13 +67,13 @@ export function parseEfacturaXML(xmlText: string): ParsedEfactura {
   }
 
   const lines: ParsedEfacturaLine[] = [];
-  for (const el of doc.querySelectorAll("*")) {
+  for (const el of Array.from(doc.querySelectorAll("*"))) {
     const tag = el.tagName.split(":").pop() || "";
     if (tag === "InvoiceLine") {
-      const desc = find(["Name", "Description"]) || "Linie";
-      const qty = parseFloat(find(["InvoicedQuantity", "Quantity"]) || "1");
-      const price = parseFloat(find(["PriceAmount", "UnitPrice"]) || "0");
-      const vat = parseFloat(find(["Percent", "TaxPercent"]) || "19");
+      const desc = find(el, ["Name", "Description", "ItemName", "ItemDescription"]) || "Linie";
+      const qty = parseFloat(find(el, ["InvoicedQuantity", "Quantity"]) || "1");
+      const price = parseFloat(find(el, ["PriceAmount", "UnitPrice"]) || "0");
+      const vat = parseFloat(find(el, ["Percent", "TaxPercent"]) || "19");
       if (qty > 0 && price > 0) {
         lines.push({ description: desc, quantity: qty, unitPrice: price, unit: "buc", vatRate: vat });
       }
@@ -81,8 +81,8 @@ export function parseEfacturaXML(xmlText: string): ParsedEfactura {
   }
 
   let pdfUrl: string | undefined;
-  for (const el of doc.querySelectorAll("*")) {
-    for (const attr of el.attributes || []) {
+  for (const el of Array.from(doc.querySelectorAll("*"))) {
+    for (const attr of Array.from(el.attributes || [])) {
       const val = attr.value || "";
       if ((val.includes("pdf") || val.includes("oblio") || val.includes("spv")) && val.includes("http")) {
         pdfUrl = val;

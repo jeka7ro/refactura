@@ -61,8 +61,8 @@ export default function InvoiceDetail() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className={`px-2.5 h-8 flex items-center rounded-lg text-xs font-bold border ${invoiceStatusColors[status] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
-            {invoiceStatusLabels[status] || status}
+          <span className={`px-2.5 h-8 flex items-center rounded-lg text-xs font-bold border ${(invoiceStatusColors as any)[status] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
+            {(invoiceStatusLabels as any)[status] || status}
           </span>
           <Link href={`/re-facturare/${invoice.id}`}>
             <button className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.97]">

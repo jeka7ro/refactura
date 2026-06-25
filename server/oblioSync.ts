@@ -172,7 +172,7 @@ export async function syncOblioInvoices(tenantId: number): Promise<{ imported: n
             total: String(total),
             totalVAT: String(Math.round(Math.abs(total) * 0.19 * 100) / 100 * (isStorno ? -1 : 1)),
             currency: inv.currency || "RON",
-            status: isStorno ? "storno" : (isCanceled ? "archived" : "pending"),
+            status: isCanceled ? "archived" : "pending",
             notes: [
               `Oblio ID: ${inv.id}`,
               isStorno ? "STORNO" : "",

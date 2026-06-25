@@ -156,8 +156,8 @@ export default function AdminDashboard() {
                     </td>
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-2">
-                        {getStatusIcon(client.subscriptionStatus)}
-                        {getStatusBadge(client.subscriptionStatus)}
+                        {getStatusIcon(client.subscriptionStatus || 'active')}
+                        {getStatusBadge(client.subscriptionStatus || 'active')}
                       </div>
                     </td>
                     <td className="py-4 px-4 font-medium text-gray-900">${client.subscriptionPlanId ? 99 : 29}</td>

@@ -13,6 +13,12 @@ export default function EmittedInvoiceDetail() {
     { enabled: !!id && !isNaN(invoiceId) }
   );
 
+  // Deviz legat de aceasta factura (daca exista)
+  const { data: linkedDeviz } = trpc.devize.getByInvoiceId.useQuery(
+    { invoiceId },
+    { enabled: !!invoiceId && !isNaN(invoiceId) }
+  );
+
   const sendToSpv = trpc.emittedInvoice.sendToSpv.useMutation({
     onSuccess: (res) => {
       if (res.success) {
@@ -66,8 +72,8 @@ export default function EmittedInvoiceDetail() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className={`px-2.5 h-8 flex items-center rounded-lg text-xs font-bold border ${invoiceStatusColors[status] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
-            {invoiceStatusLabels[status] || status}
+          <span className={`px-2.5 h-8 flex items-center rounded-lg text-xs font-bold border ${(invoiceStatusColors as any)[status] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
+            {(invoiceStatusLabels as any)[status] || status}
           </span>
           <Link href={`/facturi-emise-nou/${invoice.id}`}>
             <button className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.97]">
@@ -142,39 +148,87 @@ export default function EmittedInvoiceDetail() {
         </div>
       </div>
 
-      {/* PDF View */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4 text-slate-400" />
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white">Vizualizare Factură PDF</h2>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => window.open(`/api/pdf/emitted/${invoice.id}?download=1`, '_blank')}
-              className="px-3 h-8 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 hover:bg-slate-50"
-            >
-              Printează / Descarcă
-            </button>
-            {(!invoice.spvStatus || invoice.spvStatus === "nesincronizat" || invoice.spvStatus === "eroare") && (
+      {/* PDF-uri: Factură + Deviz unul lângă celălalt */}
+      <div className={`flex gap-4 ${linkedDeviz ? "flex-row items-start" : "flex-col"}`}>
+
+        {/* Factură PDF */}
+        <div className={`bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col ${linkedDeviz ? "flex-1 min-w-0" : "w-full"}`}>
+          <div className="flex items-center justify-between p-3 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-slate-400" />
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">Factură PDF</h2>
+            </div>
+            <div className="flex gap-2">
               <button
-                onClick={() => sendToSpv.mutate({ id: invoice.id })}
-                disabled={sendToSpv.isLoading}
-                className="flex items-center gap-1.5 px-3 h-8 text-xs font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+                onClick={() => window.open(`/api/pdf/emitted/${invoice.id}?download=1`, '_blank')}
+                className="px-3 h-7 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 hover:bg-slate-50"
               >
-                {sendToSpv.isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                Trimite SPV
+                Descarcă
               </button>
-            )}
+              {(!invoice.spvStatus || invoice.spvStatus === "nesincronizat" || invoice.spvStatus === "eroare") && (
+                <button
+                  onClick={() => sendToSpv.mutate({ id: invoice.id })}
+                  disabled={sendToSpv.isPending}
+                  className="flex items-center gap-1.5 px-3 h-7 text-xs font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+                >
+                  {sendToSpv.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  Trimite SPV
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="bg-slate-50 dark:bg-slate-900/50 p-3">
+            <iframe
+              src={`/api/pdf/emitted/${invoice.id}`}
+              className="w-full h-[550px] border border-slate-200 dark:border-slate-700 bg-white"
+              title="PDF Viewer"
+            />
           </div>
         </div>
-        <div className="flex-1 min-h-[800px] bg-slate-50 dark:bg-slate-900/50 p-4">
-          <iframe
-            src={`/api/pdf/emitted/${invoice.id}`}
-            className="w-full h-[800px] rounded border border-slate-200 dark:border-slate-700 bg-white"
-            title="PDF Viewer"
-          />
-        </div>
+
+        {/* Deviz PDF (dacă există) */}
+        {linkedDeviz && (
+          <div className="flex-1 min-w-0 bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-sky-200 dark:border-sky-800 flex flex-col">
+            <div className="flex items-center justify-between p-3 border-b border-sky-100 dark:border-sky-800 bg-sky-50 dark:bg-sky-900/20">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-sky-500" />
+                <h2 className="text-sm font-bold text-sky-900 dark:text-sky-300">
+                  Deviz {linkedDeviz.deviz.number}
+                </h2>
+                <span className="text-xs text-sky-600 dark:text-sky-400">
+                  {Number(linkedDeviz.deviz.total).toFixed(2)} RON
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <a
+                  href={`/api/pdf/deviz/${linkedDeviz.deviz.id}?download=1`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1.5 px-3 h-7 text-xs font-bold rounded-lg border border-sky-200 dark:border-sky-700 bg-white dark:bg-slate-800 text-sky-700 dark:text-sky-300 hover:bg-sky-50 transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Descarcă
+                </a>
+                <a
+                  href={`/api/pdf/deviz/${linkedDeviz.deviz.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1.5 px-3 h-7 text-xs font-bold rounded-lg bg-sky-600 hover:bg-sky-700 text-white transition-colors"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  Tab nou
+                </a>
+              </div>
+            </div>
+            <div className="bg-slate-50 dark:bg-slate-900/50 p-3">
+              <iframe
+                src={`/api/pdf/deviz/${linkedDeviz.deviz.id}`}
+                className="w-full h-[550px] border border-slate-200 dark:border-slate-700 bg-white"
+                title="Deviz PDF Viewer"
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

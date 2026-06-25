@@ -346,7 +346,7 @@ export function registerPdfRoute(app: any) {
         totalVAT: parseFloat(inv.totalVAT || "0"),
         total: parseFloat(inv.total || "0"),
         currency: inv.currency || "RON",
-        notes: inv.mentions || undefined,
+        notes: inv.notes || undefined,
       });
 
       pdfStream.on("error", (err: any) => { if (!res.headersSent) res.status(500).json({ error: err.message }); });
@@ -433,7 +433,7 @@ export function registerPdfRoute(app: any) {
         }
       } else {
         try {
-          const imgBuf = Buffer.from(logoBase64.replace(/^data:image\/\w+;base64,/, ""), "base64");
+          const imgBuf = Buffer.from(logoBase64!.replace(/^data:image\/\w+;base64,/, ""), "base64");
           doc.image(imgBuf, 40, 30, { height: 50, fit: [160, 50] });
         } catch { doc.fontSize(14).font("Roboto-Bold").fillColor(BLUE).text(tenant?.name || "Firma", 40, 40); }
       }
@@ -631,5 +631,339 @@ export function registerPdfRoute(app: any) {
     }
   });
 
+  // ─── GET /api/pdf/deviz/:id — PDF Deviz ─────────────────────────────────────
+  router.get("/deviz/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) { res.status(400).json({ error: "ID invalid" }); return; }
+
+      const db = await getDb();
+      if (!db) { res.status(500).json({ error: "DB unavailable" }); return; }
+
+      const { devize, devizeLines } = await import("../drizzle/schema");
+
+      const [deviz] = await db.select().from(devize).where(eq(devize.id, id));
+      if (!deviz) { res.status(404).json({ error: "Devizul nu a fost găsit" }); return; }
+
+      const lines = await db.select().from(devizeLines)
+        .where(eq(devizeLines.devizId, id))
+        .orderBy(devizeLines.lineOrder);
+
+      const [tenant] = await db.select().from(tenants).where(eq(tenants.id, deviz.tenantId));
+      let settings: any = {};
+      try { settings = JSON.parse(tenant?.settings || "{}"); } catch {}
+
+      const isDownload = req.query.download === "1";
+      const showCodes = req.query.showCodes === "1";
+      const filename = `Deviz-${deviz.number || id}.pdf`;
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `${isDownload ? "attachment" : "inline"}; filename="${filename}"`);
+
+      const PDFDocument = (await import("pdfkit")).default;
+      const doc = new PDFDocument({ size: "A4", margin: 40, bufferPages: true });
+      doc.pipe(res);
+
+      // ESM-safe imports
+      const { default: fsModule } = await import("fs");
+      const { default: pathModule } = await import("path");
+      const robotoReg = pathModule.resolve(process.cwd(), "server/assets/fonts/Roboto-Regular.ttf");
+      const robotoBold = pathModule.resolve(process.cwd(), "server/assets/fonts/Roboto-Bold.ttf");
+      if (fsModule.existsSync(robotoReg)) doc.registerFont("Roboto", robotoReg);
+      if (fsModule.existsSync(robotoBold)) doc.registerFont("Roboto-Bold", robotoBold);
+
+      const W = doc.page.width - 80;
+      const BLUE = "#1e6fbf";
+      const TEAL = "#0ea5e9";
+      const GRAY = "#64748b";
+      const LIGHT = "#f8fafc";
+      const BORDER = "#e2e8f0";
+
+      // Logo
+      let logoBase64 = settings.logoBase64 || "DEFAULT_TEXT_LOGO";
+      const activeLogo: string = "DEFAULT_TEXT_LOGO"; 
+      if (activeLogo === "DEFAULT_TEXT_LOGO") {
+        let foundPath = null;
+        try {
+          const possiblePaths = [
+            pathModule.resolve(process.cwd(), "client/public/logo.png"),
+            pathModule.resolve(process.cwd(), "../client/public/logo.png"),
+            pathModule.resolve(process.cwd(), "dist/public/logo.png"),
+            pathModule.resolve(process.cwd(), "server/assets/logo.png")
+          ];
+          for (const p of possiblePaths) {
+            if (fsModule.existsSync(p)) { foundPath = p; break; }
+          }
+          if (foundPath) {
+            const imgBuffer = fsModule.readFileSync(foundPath);
+            doc.image(imgBuffer, 40, 30, { width: 140 }); 
+          } else {
+            doc.fontSize(14).font("Roboto-Bold").fillColor(BLUE).text(tenant?.name || "Firma", 40, 40);
+          }
+        } catch { doc.fontSize(14).font("Roboto-Bold").fillColor(BLUE).text(tenant?.name || "Firma", 40, 40); }
+      } else {
+        try {
+          const imgBuf = Buffer.from(activeLogo.replace(/^data:image\/\w+;base64,/, ""), "base64");
+          doc.image(imgBuf, 40, 30, { height: 50, fit: [160, 50] });
+        } catch { doc.fontSize(14).font("Roboto-Bold").fillColor(BLUE).text(tenant?.name || "Firma", 40, 40); }
+      }
+
+      // Titlu
+      doc.fontSize(18).font("Roboto-Bold").fillColor(TEAL)
+        .text("DEVIZ DE LUCRĂRI", 0, 35, { align: "right" });
+      
+      doc.moveDown(0.3);
+      doc.moveTo(40, 90).lineTo(doc.page.width - 40, 90).strokeColor(TEAL).lineWidth(2).stroke();
+
+      // Info
+      let y = 100;
+      doc.rect(40, y, W, 50).fillColor(LIGHT).fill();
+      doc.rect(40, y, W, 50).strokeColor(BORDER).lineWidth(0.5).stroke();
+
+      doc.fontSize(7).font("Roboto-Bold").fillColor(GRAY).text("DATE DEVIZ", 50, y + 6);
+      doc.fontSize(7).font("Roboto").fillColor(GRAY).text("Nr. Deviz:", 50, y + 20);
+      doc.fontSize(8).font("Roboto-Bold").fillColor("#1e293b").text(deviz.number, 50, y + 30);
+      
+      doc.fontSize(7).font("Roboto").fillColor(GRAY).text("Data:", 150, y + 20);
+      doc.fontSize(8).font("Roboto-Bold").fillColor("#1e293b").text(new Date(deviz.date).toLocaleDateString("ro-RO"), 150, y + 30);
+      
+      doc.fontSize(7).font("Roboto").fillColor(GRAY).text("Factura:", 250, y + 20);
+      doc.fontSize(8).font("Roboto-Bold").fillColor("#1e293b").text(deviz.invoiceId ? `#${deviz.invoiceId}` : "—", 250, y + 30);
+
+      y += 65;
+
+      // Tabel Header
+      doc.rect(40, y, W, 16).fillColor(TEAL).fill();
+      doc.fontSize(7).font("Roboto-Bold").fillColor("white");
+      doc.text("Nr.", 45, y + 4, { width: 20 });
+      doc.text("Denumire / Tip", 70, y + 4, { width: 150 });
+      if (showCodes) doc.text("Cod", 220, y + 4, { width: 50 });
+      const descW = showCodes ? 150 : 200;
+      const qX = showCodes ? 270 : 270;
+      doc.text("Cantitate", qX, y + 4, { width: 60, align: "right" });
+      doc.text("Preț unitar", qX + 60, y + 4, { width: 80, align: "right" });
+      doc.text("Valoare RON", qX + 140, y + 4, { width: 90, align: "right" });
+      y += 16;
+
+      // Linii
+      lines.forEach((l, i) => {
+        if (y > doc.page.height - 80) { doc.addPage(); y = 40; }
+        doc.rect(40, y, W, 16).fillColor(i % 2 === 0 ? "white" : "#f8fafc").fill();
+        doc.rect(40, y, W, 16).strokeColor(BORDER).lineWidth(0.5).stroke();
+        
+        doc.fontSize(7).font("Roboto").fillColor("#1e293b");
+        doc.text(`${i + 1}`, 45, y + 4, { width: 20 });
+        doc.text(`[${l.type}] ${l.description}`, 70, y + 4, { width: descW });
+        if (showCodes) doc.text(l.code || "—", 220, y + 4, { width: 50 });
+        doc.text(Number(l.quantity).toFixed(2), qX, y + 4, { width: 60, align: "right" });
+        doc.text(Number(l.unitPrice).toFixed(2), qX + 60, y + 4, { width: 80, align: "right" });
+        doc.text(Number(l.total).toFixed(2), qX + 140, y + 4, { width: 90, align: "right" });
+        y += 16;
+      });
+
+      // ── Totaluri cu TVA ──────────────────────────────────────────
+      const totalFaraTVA = Number(deviz.total);
+      const vatRate = 21;
+      const totalTVA = totalFaraTVA * (vatRate / 100);
+      const totalCuTVA = totalFaraTVA + totalTVA;
+
+      y += 4;
+      // Total Materiale
+      doc.rect(40, y, W, 15).fillColor(LIGHT).fill();
+      doc.rect(40, y, W, 15).strokeColor(BORDER).lineWidth(0.3).stroke();
+      doc.fontSize(7).font("Roboto-Bold").fillColor(GRAY);
+      doc.text("TOTAL MATERIALE:", 45, y + 4, { width: 350, align: "right" });
+      doc.text(Number(deviz.totalMaterials).toFixed(2) + " RON", 400, y + 4, { width: W - 365, align: "right" });
+      y += 15;
+
+      // Total Manoperă
+      doc.rect(40, y, W, 15).fillColor(LIGHT).fill();
+      doc.rect(40, y, W, 15).strokeColor(BORDER).lineWidth(0.3).stroke();
+      doc.fontSize(7).font("Roboto-Bold").fillColor(GRAY);
+      doc.text("TOTAL MANOPERĂ:", 45, y + 4, { width: 350, align: "right" });
+      doc.text(Number(deviz.totalLabor).toFixed(2) + " RON", 400, y + 4, { width: W - 365, align: "right" });
+      y += 15;
+
+      // Total fara TVA
+      doc.rect(40, y, W, 15).fillColor("#e0f2fe").fill();
+      doc.rect(40, y, W, 15).strokeColor(BORDER).lineWidth(0.3).stroke();
+      doc.fontSize(8).font("Roboto-Bold").fillColor("#0369a1");
+      doc.text("TOTAL FĂRĂ TVA:", 45, y + 4, { width: 350, align: "right" });
+      doc.text(totalFaraTVA.toFixed(2) + " RON", 400, y + 4, { width: W - 365, align: "right" });
+      y += 15;
+
+      // TVA 21%
+      doc.rect(40, y, W, 15).fillColor("#e0f2fe").fill();
+      doc.rect(40, y, W, 15).strokeColor(BORDER).lineWidth(0.3).stroke();
+      doc.fontSize(8).font("Roboto-Bold").fillColor("#0369a1");
+      doc.text(`TVA ${vatRate}%:`, 45, y + 4, { width: 350, align: "right" });
+      doc.text(totalTVA.toFixed(2) + " RON", 400, y + 4, { width: W - 365, align: "right" });
+      y += 15;
+
+      // TOTAL CU TVA
+      doc.rect(40, y, W, 22).fillColor("#0284c7").fill();
+      doc.fontSize(10).font("Roboto-Bold").fillColor("white");
+      doc.text("TOTAL DE PLATĂ (incl. TVA):", 45, y + 6, { width: 350, align: "right" });
+      doc.text(totalCuTVA.toFixed(2) + " RON", 400, y + 6, { width: W - 365, align: "right" });
+
+      doc.end();
+    } catch (e: any) {
+      console.error("[PDF Deviz Route] Error:", e.message);
+      if (!res.headersSent) res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ─── GET /api/pdf/bon-consum/:id — PDF Bon de Consum ─────────────────────
+  router.get("/bon-consum/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) { res.status(400).json({ error: "ID invalid" }); return; }
+
+      const db = await getDb();
+      if (!db) { res.status(500).json({ error: "DB unavailable" }); return; }
+
+      const { bonuriConsum, bonuriConsumLines } = await import("../drizzle/schema");
+
+      const [bon] = await db.select().from(bonuriConsum).where(eq(bonuriConsum.id, id));
+      if (!bon) { res.status(404).json({ error: "Bonul nu a fost găsit" }); return; }
+
+      const lines = await db.select().from(bonuriConsumLines)
+        .where(eq(bonuriConsumLines.bonId, id))
+        .orderBy(bonuriConsumLines.lineOrder);
+
+      const [tenant] = await db.select().from(tenants).where(eq(tenants.id, bon.tenantId));
+      let settings: any = {};
+      try { settings = JSON.parse(tenant?.settings || "{}"); } catch {}
+
+      const isDownload = req.query.download === "1";
+      const filename = `BonConsum-${bon.number || id}.pdf`;
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `${isDownload ? "attachment" : "inline"}; filename="${filename}"`);
+
+      const PDFDocument = (await import("pdfkit")).default;
+      const doc = new PDFDocument({ size: "A4", margin: 40, bufferPages: true });
+      doc.pipe(res);
+
+      const fs = require("fs");
+      const path = require("path");
+      const robotoReg = path.resolve(process.cwd(), "server/assets/fonts/Roboto-Regular.ttf");
+      const robotoBold = path.resolve(process.cwd(), "server/assets/fonts/Roboto-Bold.ttf");
+      if (fs.existsSync(robotoReg)) doc.registerFont("Roboto", robotoReg);
+      if (fs.existsSync(robotoBold)) doc.registerFont("Roboto-Bold", robotoBold);
+
+      const W = doc.page.width - 80;
+      const BLUE = "#1e6fbf";
+      const TEAL = "#f59e0b"; // Orange/Amber pt Bon
+      const GRAY = "#64748b";
+      const LIGHT = "#f8fafc";
+      const BORDER = "#e2e8f0";
+
+      // Logo
+      let logoBase64 = settings.logoBase64 || "DEFAULT_TEXT_LOGO";
+      const activeLogo: string = "DEFAULT_TEXT_LOGO"; 
+      if (activeLogo === "DEFAULT_TEXT_LOGO") {
+        let foundPath = null;
+        try {
+          const possiblePaths = [
+            path.resolve(process.cwd(), "client/public/logo.png"),
+            path.resolve(process.cwd(), "../client/public/logo.png"),
+            path.resolve(process.cwd(), "dist/public/logo.png"),
+            path.resolve(process.cwd(), "server/assets/logo.png")
+          ];
+          for (const p of possiblePaths) {
+            if (fs.existsSync(p)) { foundPath = p; break; }
+          }
+          if (foundPath) {
+            const imgBuffer = fs.readFileSync(foundPath);
+            doc.image(imgBuffer, 40, 30, { width: 140 }); 
+          } else {
+            doc.fontSize(14).font("Roboto-Bold").fillColor(BLUE).text(tenant?.name || "Firma", 40, 40);
+          }
+        } catch { doc.fontSize(14).font("Roboto-Bold").fillColor(BLUE).text(tenant?.name || "Firma", 40, 40); }
+      }
+
+      // Titlu
+      doc.fontSize(18).font("Roboto-Bold").fillColor(TEAL)
+        .text("BON DE CONSUM", 0, 35, { align: "right" });
+      doc.fontSize(9).font("Roboto").fillColor(GRAY)
+        .text("(Cod formular 14-3-4A)", 0, 57, { align: "right" });
+      
+      doc.moveDown(0.3);
+      doc.moveTo(40, 90).lineTo(doc.page.width - 40, 90).strokeColor(TEAL).lineWidth(2).stroke();
+
+      // Info
+      let y = 100;
+      doc.rect(40, y, W, 50).fillColor(LIGHT).fill();
+      doc.rect(40, y, W, 50).strokeColor(BORDER).lineWidth(0.5).stroke();
+
+      doc.fontSize(7).font("Roboto-Bold").fillColor(GRAY).text("DATE BON DE CONSUM", 50, y + 6);
+      doc.fontSize(7).font("Roboto").fillColor(GRAY).text("Nr. Bon:", 50, y + 20);
+      doc.fontSize(8).font("Roboto-Bold").fillColor("#1e293b").text(bon.number, 50, y + 30);
+      
+      doc.fontSize(7).font("Roboto").fillColor(GRAY).text("Data eliberării:", 150, y + 20);
+      doc.fontSize(8).font("Roboto-Bold").fillColor("#1e293b").text(new Date(bon.date).toLocaleDateString("ro-RO"), 150, y + 30);
+      
+      doc.fontSize(7).font("Roboto").fillColor(GRAY).text("Gestiunea:", 250, y + 20);
+      doc.fontSize(8).font("Roboto-Bold").fillColor("#1e293b").text(bon.gestiune || "—", 250, y + 30);
+
+      doc.fontSize(7).font("Roboto").fillColor(GRAY).text("Deviz:", 350, y + 20);
+      doc.fontSize(8).font("Roboto-Bold").fillColor("#1e293b").text(bon.devizId ? `#${bon.devizId}` : "—", 350, y + 30);
+
+      y += 65;
+
+      // Tabel Header
+      doc.rect(40, y, W, 16).fillColor(TEAL).fill();
+      doc.fontSize(7).font("Roboto-Bold").fillColor("white");
+      doc.text("Nr.", 45, y + 4, { width: 20 });
+      doc.text("Denumire material", 70, y + 4, { width: 200 });
+      doc.text("Cantitate", 270, y + 4, { width: 60, align: "right" });
+      doc.text("Preț unitar", 330, y + 4, { width: 80, align: "right" });
+      doc.text("Valoare RON", 410, y + 4, { width: 90, align: "right" });
+      y += 16;
+
+      // Linii
+      let totalBon = 0;
+      lines.forEach((l, i) => {
+        if (y > doc.page.height - 80) { doc.addPage(); y = 40; }
+        doc.rect(40, y, W, 16).fillColor(i % 2 === 0 ? "white" : "#f8fafc").fill();
+        doc.rect(40, y, W, 16).strokeColor(BORDER).lineWidth(0.5).stroke();
+        
+        doc.fontSize(7).font("Roboto").fillColor("#1e293b");
+        doc.text(`${i + 1}`, 45, y + 4, { width: 20 });
+        doc.text(l.description, 70, y + 4, { width: 200 });
+        doc.text(Number(l.quantity).toFixed(2), 270, y + 4, { width: 60, align: "right" });
+        doc.text(Number(l.unitPrice).toFixed(2), 330, y + 4, { width: 80, align: "right" });
+        doc.text(Number(l.total).toFixed(2), 410, y + 4, { width: 90, align: "right" });
+        totalBon += Number(l.total);
+        y += 16;
+      });
+
+      // Totals
+      doc.rect(40, y, W, 20).fillColor("#d97706").fill(); // Darker amber
+      doc.fontSize(10).font("Roboto-Bold").fillColor("white");
+      doc.text("TOTAL BON:", 45, y + 5, { width: 350, align: "right" });
+      doc.text(totalBon.toFixed(2) + " RON", 400, y + 5, { width: W - 365, align: "right" });
+      y += 30;
+
+      // Semnaturi
+      if (y > doc.page.height - 100) { doc.addPage(); y = 40; }
+      const mW = W / 3;
+      ["Eliberator (Gestiune)", "Primit", "Aprobat"].forEach((label, i) => {
+        const mx = 40 + i * mW;
+        doc.rect(mx, y, mW - 8, 55).strokeColor(BORDER).lineWidth(0.5).stroke();
+        doc.fontSize(7).font("Roboto-Bold").fillColor(GRAY).text(label, mx + 6, y + 5);
+        doc.moveTo(mx + 6, y + 46).lineTo(mx + mW - 20, y + 46).strokeColor("#94a3b8").lineWidth(0.5).stroke();
+        doc.fontSize(6).font("Roboto").fillColor(GRAY).text("Semnătura", mx + 6, y + 48);
+      });
+
+      doc.end();
+    } catch (e: any) {
+      console.error("[PDF Bon Consum Route] Error:", e.message);
+      if (!res.headersSent) res.status(500).json({ error: e.message });
+    }
+  });
+
   app.use("/api/pdf", router);
+
 }

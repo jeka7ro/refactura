@@ -101,9 +101,9 @@ export default function PrintInvoice() {
         </div>
       </div>
 
-      {invoice.mentions && (
+      {invoice.notes && (
         <div className="text-sm text-gray-500 border-t border-gray-200 pt-4">
-          <strong>Mențiuni:</strong> {invoice.mentions}
+          <strong>Mențiuni:</strong> {invoice.notes}
         </div>
       )}
     </div>

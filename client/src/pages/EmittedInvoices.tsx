@@ -253,11 +253,11 @@ export default function EmittedInvoices() {
                         {(!row.spvStatus || row.spvStatus === "nesincronizat" || row.spvStatus === "eroare") && (
                           <button
                             onClick={() => sendToSpv.mutate({ id: row.id })}
-                            disabled={sendToSpv.isLoading}
+                            disabled={sendToSpv.isPending}
                             className="w-7 h-7 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 flex items-center justify-center transition-colors"
                             title="Trimite în SPV"
                           >
-                            {sendToSpv.isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                            {sendToSpv.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                           </button>
                         )}
                         <button
@@ -276,7 +276,7 @@ export default function EmittedInvoices() {
           </table>
         </div>
 
-        {/* Footer — Pagination (MANDATORY per UI rules) */}
+        {/* Footer — Pagination */}
         <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30">
           <div className="flex items-center gap-4 text-xs text-slate-600 dark:text-slate-400">
             <span>

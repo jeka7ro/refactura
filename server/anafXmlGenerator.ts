@@ -1,4 +1,4 @@
-import { ReInvoice, ReInvoiceLine, Tenant } from "./drizzle/schema";
+import { ReInvoice, ReInvoiceLine, Tenant } from "../drizzle/schema";
 
 /**
  * Generates an ANAF compliant UBL 2.1 e-Factura XML string.
@@ -29,6 +29,14 @@ export function generateUblXml(
 
   const supplierCui = (tenant.cui || "").replace(/[^A-Z0-9]/g, "");
   const clientCui = (invoice.clientCUI || "").replace(/[^A-Z0-9]/g, "");
+
+  let tenantSettings: any = {};
+  try {
+    if (tenant.settings) tenantSettings = JSON.parse(tenant.settings);
+  } catch (e) {}
+  
+  const tenantCity = tenantSettings.city || "Nesetata";
+  const tenantRegCom = tenantSettings.regCom || "";
 
   // Generate lines
   const xmlLines = lines.map((line, idx) => {
@@ -99,7 +107,7 @@ export function generateUblXml(
             </cac:PartyName>
             <cac:PostalAddress>
                 <cbc:StreetName>${escapeXml(tenant.address || "Nesetata")}</cbc:StreetName>
-                <cbc:CityName>${escapeXml(tenant.city || "Nesetata")}</cbc:CityName>
+                <cbc:CityName>${escapeXml(tenantCity)}</cbc:CityName>
                 <cac:Country>
                     <cbc:IdentificationCode>RO</cbc:IdentificationCode>
                 </cac:Country>
@@ -113,7 +121,7 @@ export function generateUblXml(
             <cac:PartyLegalEntity>
                 <cbc:RegistrationName>${escapeXml(tenant.name)}</cbc:RegistrationName>
                 <cbc:CompanyID>${supplierCui}</cbc:CompanyID>
-                ${tenant.regCom ? `<cbc:CompanyLegalForm>${escapeXml(tenant.regCom)}</cbc:CompanyLegalForm>` : ""}
+                ${tenantRegCom ? `<cbc:CompanyLegalForm>${escapeXml(tenantRegCom)}</cbc:CompanyLegalForm>` : ""}
             </cac:PartyLegalEntity>
         </cac:Party>
     </cac:AccountingSupplierParty>

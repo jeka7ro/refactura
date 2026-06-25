@@ -493,6 +493,8 @@ export const emittedInvoiceLines = mysqlTable("emittedInvoiceLines", {
   unit: varchar("unit", { length: 20 }).default("buc"),
   vatRate: decimal("vatRate", { precision: 5, scale: 2 }).default("19.00"),
   total: decimal("total", { precision: 12, scale: 2 }).notNull(),
+  devizCode: varchar("devizCode", { length: 100 }),
+  devizType: varchar("devizType", { length: 50 }),
   lineOrder: int("lineOrder").default(0),
 });
 
@@ -549,3 +551,71 @@ export const nirLines = mysqlTable("nirLines", {
 
 export type NirLine = typeof nirLines.$inferSelect;
 export type InsertNirLine = typeof nirLines.$inferInsert;
+
+/**
+ * Devize (Estimates/Workmanship)
+ */
+export const devize = mysqlTable("devize", {
+  id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId").notNull(),
+  invoiceId: int("invoiceId"), // Optional link to emittedInvoice or reInvoice
+  number: varchar("number", { length: 50 }).notNull(),
+  date: timestamp("date").notNull(),
+  totalMaterials: decimal("totalMaterials", { precision: 12, scale: 2 }).default("0"),
+  totalLabor: decimal("totalLabor", { precision: 12, scale: 2 }).default("0"),
+  total: decimal("total", { precision: 12, scale: 2 }).default("0"),
+  status: mysqlEnum("status", ["draft", "final"]).default("draft"),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Deviz = typeof devize.$inferSelect;
+export type InsertDeviz = typeof devize.$inferInsert;
+
+export const devizeLines = mysqlTable("devizeLines", {
+  id: int("id").autoincrement().primaryKey(),
+  devizId: int("devizId").notNull(),
+  type: mysqlEnum("type", ["MATERIAL", "MANOPERA", "UTILAJ", "NORMA"]).notNull(),
+  code: varchar("code", { length: 100 }), // From CSV
+  description: text("description").notNull(),
+  quantity: decimal("quantity", { precision: 12, scale: 2 }).notNull(),
+  unitPrice: decimal("unitPrice", { precision: 12, scale: 2 }).notNull(),
+  total: decimal("total", { precision: 12, scale: 2 }).notNull(),
+  lineOrder: int("lineOrder").default(0),
+});
+
+export type DevizLine = typeof devizeLines.$inferSelect;
+export type InsertDevizLine = typeof devizeLines.$inferInsert;
+
+/**
+ * Bonuri de Consum (Consumption Receipts)
+ */
+export const bonuriConsum = mysqlTable("bonuri_consum", {
+  id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId").notNull(),
+  devizId: int("devizId"), // Linked to a Deviz if generated from it
+  number: varchar("number", { length: 50 }).notNull(),
+  date: timestamp("date").notNull(),
+  gestiune: varchar("gestiune", { length: 255 }),
+  status: mysqlEnum("status", ["draft", "final"]).default("draft"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type BonConsum = typeof bonuriConsum.$inferSelect;
+export type InsertBonConsum = typeof bonuriConsum.$inferInsert;
+
+export const bonuriConsumLines = mysqlTable("bonuri_consum_lines", {
+  id: int("id").autoincrement().primaryKey(),
+  bonId: int("bonId").notNull(),
+  materialCode: varchar("materialCode", { length: 100 }), // From CSV
+  description: text("description").notNull(),
+  quantity: decimal("quantity", { precision: 12, scale: 2 }).notNull(),
+  unitPrice: decimal("unitPrice", { precision: 12, scale: 2 }).notNull(),
+  total: decimal("total", { precision: 12, scale: 2 }).notNull(),
+  lineOrder: int("lineOrder").default(0),
+});
+
+export type BonConsumLine = typeof bonuriConsumLines.$inferSelect;
+export type InsertBonConsumLine = typeof bonuriConsumLines.$inferInsert;

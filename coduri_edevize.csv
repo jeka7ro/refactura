@@ -1,0 +1,92 @@
+cod,denumire,tip
+CA01A1,"Turnare beton simplu B250 in fundatii",NORMA
+CD04A,"Zidarie caramida plina grosime 25cm",NORMA
+CN04A,"Zugraveli lavabile interioare, 2 straturi",NORMA
+CF01A,"Tencuieli interioare driscuite, 2cm",NORMA
+Ts01A1,"Sapatura manuala de pamant in spatii intinse",NORMA
+Ts02A1,"Sapatura mecanica cu excavatorul",NORMA
+Ts03A1,"Umplutura de pamant compactata mecanic",NORMA
+Ts04B1,"Transportul pamantului cu autobasculanta la 10 km",NORMA
+CA02A1,"Turnare beton armat B250 in fundatii",NORMA
+CA03A1,"Turnare beton armat B300 in stalpi",NORMA
+CA04A1,"Turnare beton armat B300 in grinzi si plansee",NORMA
+CB01A1,"Cofraje din panouri refolosibile la fundatii",NORMA
+CB02A1,"Cofraje din panouri refolosibile la stalpi",NORMA
+CB03A1,"Cofraje din panouri refolosibile la plansee",NORMA
+CC01A1,"Fasonare si montare armaturi din otel beton OB37 in fundatii",NORMA
+CC02A1,"Fasonare si montare armaturi din otel beton PC52 in stalpi",NORMA
+CC03A1,"Confectionare carcase de armatura",NORMA
+CC04A1,"Plasa sudata pentru armare placi",NORMA
+CD01A1,"Zidarie din caramida plina grosime 25cm",NORMA
+CD02A1,"Zidarie din caramida cu goluri tip GVP",NORMA
+CD03A1,"Zidarie din blocuri BCA grosime 25cm",NORMA
+CD04A1,"Zidarie din blocuri BCA grosime 15cm (compartimentare)",NORMA
+CF01A1,"Tencuieli interioare driscuite, 2cm grosime",NORMA
+CF02A1,"Tencuieli exterioare driscuite, 2.5cm grosime",NORMA
+CG01A1,"Glet de ipsos pe tencuieli interioare, 2 straturi",NORMA
+CN04A1,"Zugraveli lavabile interioare, 2 straturi",NORMA
+CN05A1,"Vopsitorii cu vopsea lavabila la exterior",NORMA
+CI01A1,"Placaje din faianta pe pereti",NORMA
+CI02A1,"Pardoseli din gresie ceramica",NORMA
+CI03A1,"Pardoseli din parchet laminat",NORMA
+CI04A1,"Sapa autonivelanta grosime 5mm",NORMA
+CE01A1,"Sarpanta din lemn de rasinoase",NORMA
+CE02A1,"Invelitoare din tigla metalica",NORMA
+CE03A1,"Invelitoare din tigla ceramica",NORMA
+CE04A1,"Astereala din scandura de rasinoase",NORMA
+CE05A1,"Sistem pluvial (jgheaburi si burlane)",NORMA
+EA01A1,"Tub de protectie PVC montat ingropat",NORMA
+EB01A1,"Cablu electric din cupru CYY-F 3x1.5 mmp",NORMA
+EB02A1,"Cablu electric din cupru CYY-F 3x2.5 mmp",NORMA
+EC01A1,"Doza de derivatie ingropata",NORMA
+EC02A1,"Doza de aparat ingropata",NORMA
+ED01A1,"Montare intrerupator simplu",NORMA
+ED02A1,"Montare priza simpla cu contact de protectie",NORMA
+EE01A1,"Tablou electric de distributie",NORMA
+EF01A1,"Montare corp de iluminat de interior",NORMA
+SA01A1,"Teava PP-R pentru apa rece/calda Dn 20mm",NORMA
+SA02A1,"Teava PP-R pentru apa rece/calda Dn 25mm",NORMA
+SB01A1,"Teava PVC-U pentru canalizare interioara Dn 50mm",NORMA
+SB02A1,"Teava PVC-U pentru canalizare interioara Dn 110mm",NORMA
+SC01A1,"Montare lavoar cu piedestal",NORMA
+SC02A1,"Montare vas WC cu rezervor",NORMA
+SC03A1,"Montare cabina de dus",NORMA
+SD01A1,"Baterie amestecatoare pentru lavoar",NORMA
+SD02A1,"Baterie amestecatoare pentru dus",NORMA
+TA01A1,"Radiator din otel tip panou",NORMA
+TB01A1,"Centrala termica murala in condensatie",NORMA
+TC01A1,"Distribuitor/Colector pentru incalzire",NORMA
+IZ01A1,"Termoizolatie la fatade cu polistiren expandat 10cm",NORMA
+IZ02A1,"Termoizolatie la acoperis cu vata minerala 20cm",NORMA
+IZ03A1,"Hidroizolatie cu membrana bituminoasa la terase",NORMA
+DA01A1,"Strat de fundatie din balast compactat",NORMA
+DB01A1,"Strat de baza din piatra sparta",NORMA
+DC01A1,"Imbracaminte asfaltica din beton asfaltic",NORMA
+DD01A1,"Montare borduri din beton prefabricat",NORMA
+DE01A1,"Pavaj din dale de beton autoblocante",NORMA
+1,"Ciment Portland",MATERIAL
+2,"Nisip sort 0-4 mm",MATERIAL
+3,"Pietris sort 8-16 mm",MATERIAL
+4,"Caramida plina 240x115x63",MATERIAL
+5,"Mortar de zidarie M50",MATERIAL
+6,"Vopsea lavabila alba",MATERIAL
+7,"Amorsa perete",MATERIAL
+8,Zidar,MANOPERA
+9,Betonist,MANOPERA
+10,Zugrav,MANOPERA
+11,"Muncitor necalificat",MANOPERA
+12,"Betoniera 250L",UTILAJ
+13,"Macara turn",UTILAJ
+14,"Otel beton OB37",MATERIAL
+15,"Otel beton PC52",MATERIAL
+16,"Bloc BCA 20x24x60",MATERIAL
+17,"Tigla metalica 0.5mm",MATERIAL
+18,"Cablu electric CYY-F 3x1.5",MATERIAL
+19,"Teava PP-R 20mm",MATERIAL
+20,Balast,MATERIAL
+21,"Fierar betonist",MANOPERA
+22,Electrician,MANOPERA
+23,Instalator,MANOPERA
+24,Dulgher,MANOPERA
+25,"Excavator pe senile",UTILAJ
+26,"Autobasculanta 16t",UTILAJ

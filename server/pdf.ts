@@ -99,7 +99,7 @@ function drawLogo(doc: PDFKit.PDFDocument, logoBase64: string, x: number, y: num
   try {
     const base64Data = logoBase64.replace(/^data:image\/\w+;base64,/, "");
     const imgBuffer = Buffer.from(base64Data, "base64");
-    doc.image(imgBuffer, x, y, { fit: [w, h], align: "left", valign: "center" });
+    doc.image(imgBuffer, x, y, { fit: [w, h] });
   } catch (_) { /* ignoră logo invalid */ }
 }
 

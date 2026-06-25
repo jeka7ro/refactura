@@ -141,7 +141,7 @@ export async function syncSpvInvoices(
           .where(
             and(
               eq(integrations.tenantId, tenantId),
-              eq(integrations.provider, "spv_oauth"),
+              eq(integrations.provider, "spv"),
               eq(integrations.apiKey, String(invoiceNumber))
             )
           );

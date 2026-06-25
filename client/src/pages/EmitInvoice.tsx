@@ -2,11 +2,12 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useLocation, useParams } from "wouter";
 import {
-  ArrowLeft, Plus, Trash2, Save, Send, Loader2, ChevronDown, ChevronUp
+  ArrowLeft, Plus, Trash2, Save, Send, Loader2, ChevronDown, ChevronUp, Search, EyeOff, Eye
 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { formatCurrency, currencies, type Currency } from "@/lib/store";
+import { cn } from "@/lib/utils";
 
 const VAT_RATES = [0, 5, 9, 19, 21];
 const UNITS = ["buc", "ore", "luni", "kg", "m", "m2", "m3", "l", "set", "servicii", "t"];
@@ -18,6 +19,8 @@ interface Line {
   unitPrice: number | string;
   unit: string;
   vatRate: number;
+  devizCode?: string;
+  devizType?: string;
 }
 
 const defaultLine = (): Line => ({
@@ -83,7 +86,16 @@ export default function EmitInvoice() {
   const [lines, setLines] = useState<Line[]>([defaultLine()]);
   const [saving, setSaving] = useState(false);
   const [showOptional, setShowOptional] = useState(false);
-  const [activeLineDropdown, setActiveLineDropdown] = useState<string | null>(null);
+  const [showCodes, setShowCodes] = useState(false);
+  
+  // Autocomplete
+  const [focusedLineId, setFocusedLineId] = useState<string | null>(null);
+  const [catalogQuery, setCatalogQuery] = useState("");
+  const [highlightedIdx, setHighlightedIdx] = useState(-1);
+  const { data: catalogData, isLoading: catalogLoading } = trpc.edevize.search.useQuery(
+    { query: catalogQuery || undefined, limit: 15 },
+    { enabled: !!focusedLineId && catalogQuery.length > 0 }
+  );
 
   const params = useParams<{ id?: string, stornoId?: string }>();
   const stornoId = params?.stornoId;
@@ -94,7 +106,8 @@ export default function EmitInvoice() {
   const { data: productsData } = trpc.products.list.useQuery();
   const { data: nextNumber } = trpc.emittedInvoice.nextNumber.useQuery({ series });
   const { data: tenantsData = [] } = trpc.tenants.list.useQuery();
-  const tenant = tenantsData[0];
+  const tenantObj = tenantsData[0];
+  const tenant = tenantObj?.tenants;
 
   const sourceId = stornoId || editId;
   const { data: originalInvoice } = trpc.emittedInvoice.getById.useQuery(
@@ -155,9 +168,9 @@ export default function EmitInvoice() {
         const stornoLines = originalInvoice.lines.map(l => ({
           id: crypto.randomUUID(),
           description: l.description,
-          quantity: -Math.abs(parseFloat(String(l.quantity))), // Negate quantity
+          quantity: -Math.abs(parseFloat(String(l.quantity))),
           unitPrice: parseFloat(String(l.unitPrice)),
-          unit: l.unit,
+          unit: l.unit || "buc",
           vatRate: !isNaN(parseFloat(String(l.vatRate))) ? parseFloat(String(l.vatRate)) : 21,
         }));
         setLines(stornoLines.length ? stornoLines : [defaultLine()]);
@@ -175,12 +188,13 @@ export default function EmitInvoice() {
           description: l.description,
           quantity: parseFloat(String(l.quantity)),
           unitPrice: parseFloat(String(l.unitPrice)),
-          unit: l.unit,
+          unit: l.unit || "buc",
           vatRate: !isNaN(parseFloat(String(l.vatRate))) ? parseFloat(String(l.vatRate)) : 21,
+          devizCode: (l as any).devizCode,
+          devizType: (l as any).devizType,
         }));
         setLines(editLines.length ? editLines : [defaultLine()]);
         
-        // Remove Oblio specific parts from mentiuni if they exist, so we only put the clean text
         let cleanNotes = oldNotes;
         const oblioKeys = ["Întocmit de:", "CNP:", "Delegat:", "Număr aviz:", "Auto:", "Mijloc transport:", "Agent vânzări:", "Punct de lucru:", "Număr comandă:", "Număr contract:"];
         const noteLines = oldNotes.split("\n");
@@ -188,7 +202,6 @@ export default function EmitInvoice() {
         setMentiuni(restNotes.join("\n").trim());
       }
 
-      // Merge extra fields from notes if they exist (Oblio format)
       if (oldNotes.includes("Întocmit de:")) {
         const parts = oldNotes.split("\n");
         parts.forEach(p => {
@@ -206,14 +219,6 @@ export default function EmitInvoice() {
       }
     }
   }, [originalInvoice, sourceId, stornoId, editId]);
-
-  const selectProduct = (lineId: string, p: any) => {
-    updateLine(lineId, "description", p.name);
-    updateLine(lineId, "unitPrice", p.defaultPrice);
-    updateLine(lineId, "unit", p.unit);
-    updateLine(lineId, "vatRate", p.defaultVatRate);
-    setActiveLineDropdown(null);
-  };
 
   const [cuiLoading, setCuiLoading] = useState(false);
 
@@ -254,17 +259,61 @@ export default function EmitInvoice() {
     }
   };
 
+  const lookupCuiFromSearch = async (searchTerm: string) => {
+    const cui = searchTerm.replace(/^RO/i, "").replace(/\s/g, "");
+    if (!cui || cui.length < 2) return;
+    setCuiLoading(true);
+    try {
+      const res = await fetch(`/api/anaf/${cui}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || "CUI negăsit în ANAF.");
+        return;
+      }
+      const d = await res.json();
+      setClientName(d.denumire || "");
+      setClientAddress(d.adresa || "");
+      setClientCity(d.judet || "");
+      setClientRegCom(d.nrRegCom || "");
+      setClientCUI(d.cui ? `RO${d.cui}` : cui);
+      setClientSearch(d.denumire || "");
+      setShowClientDropdown(false);
+      toast.success("Date extrase din ANAF!");
+    } catch {
+      toast.error("Eroare conexiune la ANAF.");
+    } finally {
+      setCuiLoading(false);
+    }
+  };
+
   const addLine = () => setLines(prev => [...prev, defaultLine()]);
   const removeLine = (id: string) => setLines(prev => prev.filter(l => l.id !== id));
   const updateLine = useCallback((id: string, field: keyof Line, value: any) => {
     setLines(prev => prev.map(l => l.id === id ? { ...l, [field]: value } : l));
   }, []);
 
+  const handleSelectFromCatalog = (lineId: string, item: any) => {
+    setLines(prev => prev.map(l => {
+      if (l.id === lineId) {
+        return {
+          ...l,
+          description: item.denumire || item.description || item.name,
+          unitPrice: item.salePrice || item.price || 0,
+          unit: item.unit || "buc",
+          vatRate: item.vatRate || 21,
+          devizType: item.tip || item.type,
+          devizCode: item.cod || item.code
+        };
+      }
+      return l;
+    }));
+    setFocusedLineId(null);
+  };
+
   const subtotal = useMemo(() => lines.reduce((s, l) => s + computeLineTotal(l), 0), [lines]);
   const totalVAT = useMemo(() => lines.reduce((s, l) => s + computeLineVAT(l), 0), [lines]);
   const total = subtotal + totalVAT;
 
-  // Group VAT by rate
   const vatBreakdown = useMemo(() => {
     const map: Record<number, { base: number; vat: number }> = {};
     lines.forEach(l => {
@@ -293,7 +342,6 @@ export default function EmitInvoice() {
     if (lines.some(l => !l.description.trim())) { toast.error("Toate liniile trebuie să aibă descriere"); return; }
     setSaving(true);
     try {
-      // Auto-save new products
       for (const line of lines) {
         if (!products.some(p => p.name.toLowerCase() === line.description.toLowerCase().trim())) {
           await createProductMutation.mutateAsync({
@@ -301,7 +349,7 @@ export default function EmitInvoice() {
             unit: line.unit,
             defaultPrice: parseFloat(String(line.unitPrice)) || 0,
             defaultVatRate: line.vatRate,
-          }).catch(console.error); // ignore errors
+          }).catch(console.error);
         }
       }
 
@@ -317,6 +365,8 @@ export default function EmitInvoice() {
           unitPrice: parseFloat(String(l.unitPrice)) || 0,
           unit: l.unit, vatRate: parseFloat(String(l.vatRate)) || 0,
           total: computeLineTotal(l), lineOrder: i,
+          devizCode: l.devizCode,
+          devizType: l.devizType
         })),
       };
 
@@ -332,7 +382,6 @@ export default function EmitInvoice() {
 
   return (
     <div className="p-4 md:p-6 space-y-4">
-      {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
           <button
@@ -370,17 +419,14 @@ export default function EmitInvoice() {
         </div>
       </div>
 
-      {/* ── ROW 1: Client + Date + Serie ── */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 !rounded-md p-4 space-y-4">
-        {/* TOP ROW */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
-          {/* Client Selection */}
           <div className="md:col-span-4 relative">
             <label className={labelCls}>Nume sau Cod Fiscal Client *</label>
             <div className="relative">
               <input
                 type="text"
-                placeholder="Caută după nume sau CUI..."
+                placeholder="Nume, CUI sau caută în ANAF..."
                 value={showClientDropdown ? clientSearch : clientName}
                 onChange={e => {
                   if (!showClientDropdown) { setClientName(e.target.value); setSelectedClientId(""); }
@@ -390,21 +436,29 @@ export default function EmitInvoice() {
                 onBlur={() => setTimeout(() => setShowClientDropdown(false), 200)}
                 className={inputCls}
               />
-              {showClientDropdown && filteredClients.length > 0 && (
-                <div className="absolute z-20 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded shadow-lg max-h-48 overflow-y-auto">
-                  {filteredClients.slice(0, 8).map(c => (
+              {showClientDropdown && clientSearch.trim() && (
+                <div className="absolute z-20 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded shadow-lg max-h-64 overflow-y-auto">
+                  {filteredClients.length > 0 && filteredClients.slice(0, 8).map(c => (
                     <button key={c.id} onMouseDown={() => selectClient(c)}
-                      className="w-full text-left px-3 py-2 hover:bg-blue-50 dark:hover:bg-slate-800 text-sm">
+                      className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm border-b border-slate-100 dark:border-slate-800 last:border-0">
                       <div className="font-medium text-slate-900 dark:text-white">{c.name}</div>
                       {c.cui && <div className="text-xs text-slate-400">CUI: {c.cui}</div>}
                     </button>
                   ))}
+                  {clientSearch.replace(/[^0-9]/g, '').length >= 2 && (
+                    <button 
+                      onMouseDown={(e) => { e.preventDefault(); lookupCuiFromSearch(clientSearch); }}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-sm font-semibold transition-colors"
+                    >
+                      <Search className="w-4 h-4" />
+                      <span>Caută CUI "{clientSearch.replace(/[^0-9]/g, '')}" în ANAF</span>
+                      {cuiLoading && <Loader2 className="w-4 h-4 animate-spin ml-auto" />}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
           </div>
-
-          {/* Dates */}
           <div className="md:col-span-2">
             <label className={labelCls}>Data Emiterii *</label>
             <input type="date" value={issueDate} onChange={e => setIssueDate(e.target.value)} className={inputCls} />
@@ -413,8 +467,6 @@ export default function EmitInvoice() {
             <label className={labelCls}>Data Scadenței</label>
             <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className={inputCls} />
           </div>
-
-          {/* Series + Number */}
           <div className="md:col-span-4 grid grid-cols-2 gap-2">
             <div>
               <label className={labelCls}>Serie</label>
@@ -427,9 +479,7 @@ export default function EmitInvoice() {
           </div>
         </div>
 
-        {/* BOTTOM ROW (Client details + Moneda) */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
-          {/* Client Details Grid */}
           <div className="md:col-span-4 grid grid-cols-2 gap-2">
             <div>
               <label className={labelCls}>
@@ -441,46 +491,64 @@ export default function EmitInvoice() {
                 onChange={e => setClientCUI(e.target.value)} 
                 onBlur={lookupCui}
                 className={inputCls} 
-                placeholder="RO12345678" 
               />
             </div>
             <div>
               <label className={labelCls}>Reg. Com.</label>
-              <input value={clientRegCom} onChange={e => setClientRegCom(e.target.value)} className={inputCls} placeholder="J40/..." />
-            </div>
-            <div className="col-span-2">
-              <label className={labelCls}>Adresă</label>
-              <input value={clientAddress} onChange={e => setClientAddress(e.target.value)} className={inputCls} placeholder="Str. ..." />
-            </div>
-            <div>
-              <label className={labelCls}>Localitate</label>
-              <input value={clientCity} onChange={e => setClientCity(e.target.value)} className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>Email</label>
-              <input type="email" value={clientEmail} onChange={e => setClientEmail(e.target.value)} className={inputCls} />
+              <input value={clientRegCom} onChange={e => setClientRegCom(e.target.value)} className={inputCls} />
             </div>
           </div>
-
-          {/* Other settings */}
           <div className="md:col-span-2">
-            <label className={labelCls}>Moneda Facturii</label>
-            <select value={currency} onChange={e => setCurrency(e.target.value as Currency)} className={selectCls}>
-              {currencies.map(c => <option key={c} value={c}>{c}</option>)}
+            <label className={labelCls}>Moneda facturii</label>
+            <select value={currency} onChange={e => setCurrency(e.target.value as Currency)} className={inputCls}>
+              <option value="RON">RON</option>
+              <option value="EUR">EUR</option>
+              <option value="USD">USD</option>
+              <option value="GBP">GBP</option>
             </select>
           </div>
-          <div className="md:col-span-2">
+          <div className="md:col-span-6">
             <label className={labelCls}>Telefon Client</label>
             <input value={clientPhone} onChange={e => setClientPhone(e.target.value)} className={inputCls} />
           </div>
         </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+          <div className="md:col-span-6">
+            <label className={labelCls}>Adresă</label>
+            <input value={clientAddress} onChange={e => setClientAddress(e.target.value)} className={inputCls} />
+          </div>
+          <div className="md:col-span-3">
+            <label className={labelCls}>Localitate</label>
+            <input value={clientCity} onChange={e => setClientCity(e.target.value)} className={inputCls} />
+          </div>
+          <div className="md:col-span-3">
+            <label className={labelCls}>Email</label>
+            <input type="email" value={clientEmail} onChange={e => setClientEmail(e.target.value)} className={inputCls} />
+          </div>
+        </div>
       </div>
 
-      {/* ── LINES TABLE — full width ── */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded overflow-hidden">
-        {/* Table header */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded">
+        <div className="p-3 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Linii Factură</h3>
+          <button
+            onClick={() => setShowCodes(!showCodes)}
+            className="flex items-center gap-1.5 px-3 h-8 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+          >
+            {showCodes ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            {showCodes ? "Ascunde coduri" : "Arată coduri"}
+          </button>
+        </div>
         <div className="grid grid-cols-12 gap-0 bg-[#1e1b4b] dark:bg-slate-800 text-white text-[11px] font-bold uppercase tracking-wider">
-          <div className="col-span-5 px-4 py-2.5">Denumire Produs sau Serviciu</div>
+          {showCodes ? (
+            <>
+              <div className="col-span-1 px-4 py-2.5">Cod</div>
+              <div className="col-span-4 px-4 py-2.5 border-l border-slate-700">Denumire Produs sau Serviciu</div>
+            </>
+          ) : (
+            <div className="col-span-5 px-4 py-2.5">Denumire Produs sau Serviciu</div>
+          )}
           <div className="col-span-1 px-3 py-2.5 text-center border-l border-slate-700">U.M.</div>
           <div className="col-span-1 px-3 py-2.5 text-center border-l border-slate-700">Cant.</div>
           <div className="col-span-1 px-3 py-2.5 text-center border-l border-slate-700">Cotă TVA</div>
@@ -489,20 +557,96 @@ export default function EmitInvoice() {
           <div className="col-span-1 px-3 py-2.5 text-center border-l border-slate-700"></div>
         </div>
 
-        {/* Lines */}
         <div className="divide-y divide-slate-100 dark:divide-slate-800">
           {lines.map((line, idx) => (
-            <div key={line.id} className="grid grid-cols-12 gap-0 items-center hover:bg-slate-50 dark:hover:bg-slate-800/30">
-              <div className="col-span-5 px-3 py-2">
+            <div key={line.id} className="grid grid-cols-12 gap-0 items-start hover:bg-slate-50 dark:hover:bg-slate-800/30">
+              {showCodes && (
+                <div className="col-span-1 px-3 py-2 h-full flex items-center">
+                  <input
+                    type="text"
+                    placeholder="Cod..."
+                    value={line.devizCode || ""}
+                    onChange={e => updateLine(line.id, "devizCode", e.target.value)}
+                    className="w-full h-8 px-2 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                  />
+                </div>
+              )}
+              <div className={cn("px-3 py-2 relative h-full flex flex-col justify-center", showCodes ? "col-span-4 border-l border-slate-100 dark:border-slate-800" : "col-span-5")}>
                 <input
                   type="text"
-                  placeholder={`Denumire produs sau serviciu...`}
+                  placeholder={`Căutare sau denumire liberă...`}
                   value={line.description}
-                  onChange={e => updateLine(line.id, "description", e.target.value)}
+                  onChange={e => {
+                    updateLine(line.id, "description", e.target.value);
+                    setCatalogQuery(e.target.value);
+                    setHighlightedIdx(-1);
+                  }}
+                  onFocus={(e) => {
+                    setFocusedLineId(line.id);
+                    const isDefault = line.description === "" || line.description === "Produs / Serviciu nou";
+                    setCatalogQuery(isDefault ? "" : line.description);
+                    setHighlightedIdx(-1);
+                    e.target.select();
+                  }}
+                  onKeyDown={(e) => {
+                    const items = catalogData?.items ?? [];
+                    if (!items.length) return;
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setHighlightedIdx(i => Math.min(i + 1, items.length - 1));
+                    } else if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setHighlightedIdx(i => Math.max(i - 1, 0));
+                    } else if (e.key === "Enter" && highlightedIdx >= 0) {
+                      e.preventDefault();
+                      handleSelectFromCatalog(line.id, items[highlightedIdx]);
+                      setHighlightedIdx(-1);
+                    } else if (e.key === "Escape") {
+                      setFocusedLineId(null);
+                      setHighlightedIdx(-1);
+                    }
+                  }}
+                  onBlur={() => setTimeout(() => { setFocusedLineId(null); setHighlightedIdx(-1); }, 200)}
                   className="w-full h-8 px-2 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
+                {focusedLineId === line.id && catalogQuery.trim().length > 0 && (
+                  <div className="absolute top-11 left-3 right-3 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl max-h-64 overflow-y-auto">
+                    {catalogLoading ? (
+                      <div className="p-4 flex justify-center"><Loader2 className="w-4 h-4 animate-spin text-slate-400" /></div>
+                    ) : catalogData?.items?.length === 0 ? (
+                      <div className="p-4 text-xs text-slate-500 text-center">Niciun rezultat în catalog.</div>
+                    ) : (
+                      catalogData?.items?.map((item: any, i: number) => (
+                        <button
+                          key={i}
+                          onMouseDown={(e) => { e.preventDefault(); handleSelectFromCatalog(line.id, item); }}
+                          onMouseEnter={() => setHighlightedIdx(i)}
+                          className={cn(
+                            "catalog-dropdown-item w-full text-left px-3 py-2 border-b border-slate-100 dark:border-slate-800 last:border-0 transition-colors",
+                            highlightedIdx === i
+                              ? "bg-blue-600 text-white"
+                              : "hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                          )}
+                        >
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className={cn(
+                              "text-[9px] font-bold px-1.5 py-0.5 uppercase tracking-wider",
+                              highlightedIdx === i
+                                ? "bg-white/20 text-white"
+                                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                            )}>{item.tip}</span>
+                            <span className={cn("text-xs font-mono", highlightedIdx === i ? "text-blue-100" : "text-slate-500")}>{item.cod}</span>
+                          </div>
+                          <div className={cn("text-sm font-medium line-clamp-2 leading-tight", highlightedIdx === i ? "text-white" : "text-slate-900 dark:text-slate-100")}>
+                            {item.denumire}
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
-              <div className="col-span-1 px-2 py-2 border-l border-slate-100 dark:border-slate-800">
+              <div className="col-span-1 px-2 py-2 border-l border-slate-100 dark:border-slate-800 h-full flex items-center">
                 <select
                   value={line.unit}
                   onChange={e => updateLine(line.id, "unit", e.target.value)}
@@ -559,14 +703,13 @@ export default function EmitInvoice() {
           ))}
         </div>
 
-        {/* Add line + Totals */}
         <div className="border-t border-slate-200 dark:border-slate-700 grid grid-cols-12">
-          <div className="col-span-7 px-4 py-3">
+          <div className="col-span-7 px-4 py-3 flex gap-2">
             <button
               onClick={addLine}
               className="flex items-center gap-1.5 px-3 h-8 text-xs font-semibold text-blue-600 border border-blue-200 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
             >
-              <Plus className="w-3.5 h-3.5" /> Adaugă Produs / Serviciu
+              <Plus className="w-3.5 h-3.5" /> Adaugă rând liber
             </button>
           </div>
           <div className="col-span-5 px-4 py-3 border-l border-slate-200 dark:border-slate-700 space-y-1">
@@ -592,7 +735,6 @@ export default function EmitInvoice() {
         </div>
       </div>
 
-      {/* ── OPTIONAL FIELDS — collapsible ── */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded overflow-hidden">
         <button
           onClick={() => setShowOptional(o => !o)}

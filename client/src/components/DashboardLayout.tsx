@@ -8,29 +8,8 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
-import {
-  LayoutDashboard,
-  FileText,
-  FileOutput,
-  Users,
-  Plug,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-  Moon,
-  Sun,
-  Bell,
-  Menu,
-  X,
-  Building2,
-  Globe,
-  LogOut,
-  TrendingUp,
-  MapPin,
-  ShieldCheck,
-  Globe2,
-  Archive,
-  ClipboardCheck,
+import { 
+  LayoutDashboard, FileText, FileOutput, Users, Settings, LogOut, ChevronLeft, ChevronRight, Menu, MapPin, Search, Plus, Archive, ShieldCheck, Globe2, Bell, AlertCircle, RefreshCcw, Plug, TrendingUp, ClipboardCheck, PackageOpen, Globe, Building2, Moon, Sun, X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +30,7 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
   badge?: number;
   section?: string;
+  subItems?: { href: string; label: string; icon: React.ComponentType<{ className?: string }> }[];
 }
 
 const navItems: NavItem[] = [
@@ -59,6 +39,16 @@ const navItems: NavItem[] = [
   { href: "/facturi-emise-nou",  label: "Facturi Emise",   icon: FileOutput,       section: "facturare" },
   { href: "/re-facturi",         label: "Re-Facturi",       icon: FileOutput,      section: "facturare" },
   { href: "/nir",                label: "NIR",              icon: ClipboardCheck,  section: "facturare" },
+  {
+    href: "/devize",
+    label: "Devize",
+    icon: FileText,
+    section: "facturare",
+    subItems: [
+      { href: "/devize/catalog", label: "Catalog Nomenclator", icon: PackageOpen },
+    ],
+  },
+  { href: "/bonuri-consum",      label: "Bonuri Consum",    icon: PackageOpen,     section: "facturare" },
   { href: "/rapoarte",           label: "Rapoarte",         icon: TrendingUp,      section: "analize" },
   { href: "/clienti",            label: "Clienți",          icon: Users,           section: "gestiune" },
   { href: "/integrari",          label: "Integrări",        icon: Plug,            section: "gestiune" },
@@ -104,7 +94,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return location === "/dashboard";
-    // Exact match OR starts with href followed by / to avoid /facturi matching /facturi-emise-nou
+    // /devize is active ONLY if we're exactly on /devize or /devize/<numeric id>, NOT on /devize/catalog
+    if (href === "/devize") return location === "/devize" || (location.startsWith("/devize/") && location !== "/devize/catalog");
+    // Exact match OR starts with href/ for other paths
     return location === href || location.startsWith(href + "/");
   };
 
@@ -131,25 +123,50 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);
+          const hasExpandedSubs = !collapsed && item.subItems && item.subItems.some(s => location === s.href);
           return (
-            <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)}>
-              <div className={cn(
-                "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer group",
-                active
-                  ? "bg-blue-600 text-white shadow-sm shadow-blue-900/30"
-                  : "text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800",
-                collapsed && "justify-center px-2"
-              )}>
-                <Icon className={cn("w-4 h-4 flex-shrink-0", active ? "text-white" : "text-slate-400 group-hover:text-blue-600 dark:group-hover:text-white")} />
-                {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
-                {/* Badge dinamic — apare DOAR dacă count > 0 */}
-                {!collapsed && item.href === "/facturi" && pendingCount > 0 && (
-                  <span className="ml-auto min-w-[18px] h-[18px] px-1 bg-blue-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                    {pendingCount}
-                  </span>
-                )}
-              </div>
-            </Link>
+            <div key={item.href}>
+              <Link href={item.href} onClick={() => setMobileOpen(false)}>
+                <div className={cn(
+                  "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer group",
+                  active
+                    ? "bg-blue-600 text-white shadow-sm shadow-blue-900/30"
+                    : "text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800",
+                  collapsed && "justify-center px-2"
+                )}>
+                  <Icon className={cn("w-4 h-4 flex-shrink-0", active ? "text-white" : "text-slate-400 group-hover:text-blue-600 dark:group-hover:text-white")} />
+                  {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
+                  {/* Badge dinamic — apare DOAR dacă count > 0 */}
+                  {!collapsed && item.href === "/facturi" && pendingCount > 0 && (
+                    <span className="ml-auto min-w-[18px] h-[18px] px-1 bg-blue-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                      {pendingCount}
+                    </span>
+                  )}
+                </div>
+              </Link>
+              {/* Sub-items indentat */}
+              {!collapsed && item.subItems && (active || hasExpandedSubs) && (
+                <div className="ml-3 mt-0.5 pl-3 border-l border-slate-200 dark:border-slate-700 space-y-0.5">
+                  {item.subItems.map(sub => {
+                    const SubIcon = sub.icon;
+                    const subActive = location === sub.href;
+                    return (
+                      <Link key={sub.href} href={sub.href} onClick={() => setMobileOpen(false)}>
+                        <div className={cn(
+                          "flex items-center gap-2 px-2 py-1.5 rounded-md text-xs font-medium transition-all duration-150 cursor-pointer group",
+                          subActive
+                            ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300"
+                            : "text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800"
+                        )}>
+                          <SubIcon className={cn("w-3.5 h-3.5 flex-shrink-0", subActive ? "text-blue-600" : "text-slate-400")} />
+                          <span className="truncate">{sub.label}</span>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           );
         })}
         {/* Admin-only nav items */}

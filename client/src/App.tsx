@@ -31,7 +31,10 @@ import PrintInvoice from "@/pages/PrintInvoice";
 import EmittedInvoiceDetail from "@/pages/EmittedInvoiceDetail";
 import NIRList from "@/pages/NIRList";
 import NIRCreate from "@/pages/NIRCreate";
-
+import DevizeList from "@/pages/DevizeList";
+import DevizDetail from "@/pages/DevizDetail";
+import BonuriConsumList from "@/pages/BonuriConsumList";
+import Catalog from "@/pages/Catalog";
 function Router() {
   return (
     <Switch>
@@ -132,6 +135,26 @@ function Router() {
       <Route path="/nir/:id">
         <DashboardLayout>
           <NIRCreate />
+        </DashboardLayout>
+      </Route>
+      <Route path="/devize">
+        <DashboardLayout>
+          <DevizeList />
+        </DashboardLayout>
+      </Route>
+      <Route path="/devize/catalog">
+        <DashboardLayout>
+          <Catalog />
+        </DashboardLayout>
+      </Route>
+      <Route path="/devize/:id">
+        <DashboardLayout>
+          <DevizDetail />
+        </DashboardLayout>
+      </Route>
+      <Route path="/bonuri-consum">
+        <DashboardLayout>
+          <BonuriConsumList />
         </DashboardLayout>
       </Route>
       <Route path="/rapoarte">

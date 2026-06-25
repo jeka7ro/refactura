@@ -4,11 +4,42 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { generateReInvoicePDF } from "./pdf";
-import { getDb, getTenantsByUser, getUserRole, createTenant, updateTenantSettings, createCostCenter, getCostCentersByTenant, updateCostCenter, deleteCostCenter, getCostCenterById, getClientsByTenant, createClient, updateClient, deleteClient, getClientById, createLead, getAllLeads, updateLeadStatus, deleteLead, getAllSubscriptionPlans, createSubscriptionPlan, updateSubscriptionPlan, deleteSubscriptionPlan, getCmsSettings, upsertCmsSetting, getAdminStats, getAllAccounts, getAllTenants, recordPageVisit, getPageVisitStats, getAllModules, getActiveModulesWithPricing, upsertModule, deleteModule, upsertModulePricing, deleteModulePricing, createReInvoice, getReInvoicesByTenant, getReInvoiceById, updateReInvoiceStatus, deleteReInvoice, getNextReInvoiceNumber, getInvoiceArchiveList, createInvoiceArchiveEntry, getInvoiceArchiveById, updateInvoiceArchiveEntry, deleteInvoiceArchiveEntry, getInvoiceArchiveStats, getIntegrations, upsertIntegration } from "./db";
+import { getDb, getTenantsByUser, getUserRole, createTenant, createCostCenter, getCostCentersByTenant, updateCostCenter, deleteCostCenter, getCostCenterById, getClientsByTenant, createClient, updateClient, deleteClient, getClientById, createLead, getAllLeads, updateLeadStatus, deleteLead, getAllSubscriptionPlans, createSubscriptionPlan, updateSubscriptionPlan, deleteSubscriptionPlan, getCmsSettings, upsertCmsSetting, getAdminStats, getAllAccounts, getAllTenants, recordPageVisit, getPageVisitStats, getAllModules, getActiveModulesWithPricing, upsertModule, deleteModule, upsertModulePricing, deleteModulePricing, createReInvoice, getReInvoicesByTenant, getReInvoiceById, updateReInvoiceStatus, deleteReInvoice, getNextReInvoiceNumber, getInvoiceArchiveList, createInvoiceArchiveEntry, getInvoiceArchiveById, getInvoiceArchiveByIds, updateInvoiceArchiveEntry, deleteInvoiceArchiveEntry, getInvoiceArchiveStats, getIntegrations, upsertIntegration } from "./db";
 import { authenticateAccount, createAccount, getAccountByEmail } from "./auth";
 import { createSessionToken } from "./session";
 import { eq, desc, and } from "drizzle-orm";
-import { invoiceArchive, invoiceArchiveLines, products } from "../drizzle/schema";
+import { invoiceArchive, invoiceArchiveLines, products, integrations } from "../drizzle/schema";
+import { sql } from "drizzle-orm";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+// Pre-parsare catalog eDevize la pornirea serverului
+const _edevizeDir = path.dirname(fileURLToPath(import.meta.url));
+const _edevizeCsvPath = path.resolve(_edevizeDir, "..", "coduri_edevize.csv");
+let _edevizeCache: { cod: string; denumire: string; tip: string }[] = [];
+try {
+  const _csvContent = fs.readFileSync(_edevizeCsvPath, "utf8");
+  const _csvLines = _csvContent.split("\n").filter(l => l.trim() !== "");
+  for (let i = 1; i < _csvLines.length; i++) {
+    const line = _csvLines[i];
+    const firstComma = line.indexOf(",");
+    const lastComma = line.lastIndexOf(",");
+    if (firstComma > 0 && lastComma > firstComma) {
+      const cod = line.substring(0, firstComma).trim();
+      const tip = line.substring(lastComma + 1).trim();
+      let denumire = line.substring(firstComma + 1, lastComma).trim();
+      if (denumire.startsWith('"') && denumire.endsWith('"')) {
+        denumire = denumire.substring(1, denumire.length - 1);
+      }
+      _edevizeCache.push({ cod, denumire, tip });
+    }
+  }
+  console.log(`[edevize] Catalog încărcat: ${_edevizeCache.length} articole din ${_edevizeCsvPath}`);
+} catch (err) {
+  console.error("[edevize] Nu s-a putut încărca catalogul CSV:", err);
+}
+
 import { convertXmlToPdf } from "./anafPdf";
 
 export const appRouter = router({
@@ -116,6 +147,26 @@ export const appRouter = router({
       }))
       .mutation(async ({ input }) => {
         return createTenant(input);
+      }),
+    updateSettings: protectedProcedure
+      .input(z.object({
+        name: z.string().optional(),
+        email: z.string().email().optional(),
+        phone: z.string().optional(),
+        address: z.string().optional(),
+        cui: z.string().optional(),
+        settings: z.string().optional()
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { tenants } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        await db.update(tenants)
+          .set(input)
+          .where(eq(tenants.id, ctx.user.tenantId));
+        return { success: true };
       }),
   }),
 
@@ -239,6 +290,7 @@ export const appRouter = router({
     create: protectedProcedure
       .input(z.object({
         sourceInvoiceId: z.string().optional(),
+        sourceInvoiceIds: z.array(z.number()).optional(),
         sourceInvoiceNumber: z.string().optional(),
         sourceSupplierName: z.string().optional(),
         clientId: z.number().optional(),
@@ -266,16 +318,33 @@ export const appRouter = router({
           markupPercent: z.number().optional(),
           total: z.number(),
           lineOrder: z.number(),
+          devizType: z.string().optional(),
+          devizCode: z.string().optional(),
         })),
       }))
       .mutation(async ({ input, ctx }) => {
         if (!ctx.user?.tenantId) throw new Error("No tenant context");
         const number = await getNextReInvoiceNumber(ctx.user.tenantId);
-        return createReInvoice({
+        
+        const res = await createReInvoice({
           tenantId: ctx.user.tenantId,
           number,
           ...input,
         });
+
+        // Update archive status to refactured
+        const db = await getDb();
+        if (db) {
+          const { invoiceArchive } = await import("../drizzle/schema");
+          const { eq, inArray } = await import("drizzle-orm");
+          if (input.sourceInvoiceId && input.sourceInvoiceId !== "multiplu") {
+            await db.update(invoiceArchive).set({ status: 'refactured' }).where(eq(invoiceArchive.id, parseInt(input.sourceInvoiceId)));
+          } else if (input.sourceInvoiceIds && input.sourceInvoiceIds.length > 0) {
+            await db.update(invoiceArchive).set({ status: 'refactured' }).where(inArray(invoiceArchive.id, input.sourceInvoiceIds));
+          }
+        }
+
+        return res;
       }),
     
     sendToSpv: protectedProcedure
@@ -745,6 +814,13 @@ export const appRouter = router({
         return getInvoiceArchiveById(input.id, ctx.user.tenantId);
       }),
 
+    getByIds: protectedProcedure
+      .input(z.object({ ids: z.array(z.number()) }))
+      .query(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error('No tenant context');
+        return getInvoiceArchiveByIds(input.ids, ctx.user.tenantId);
+      }),
+
     getLines: protectedProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input, ctx }) => {
@@ -869,7 +945,7 @@ export const appRouter = router({
       const { integrations } = await import('../drizzle/schema');
       const { and, eq } = await import('drizzle-orm');
       const [spvIntg] = await db.select().from(integrations)
-        .where(and(eq(integrations.tenantId, ctx.user.tenantId), eq(integrations.provider, "spv_oauth")));
+        .where(and(eq(integrations.tenantId, ctx.user.tenantId), eq(integrations.provider, "spv")));
       if (!spvIntg || !spvIntg.apiKey) {
         throw new Error('SPV nu este configurat sau lipsește token-ul de acces.');
       }
@@ -1067,6 +1143,8 @@ export const appRouter = router({
           vatRate: z.number().optional(),
           total: z.number(),
           lineOrder: z.number(),
+          devizCode: z.string().optional(),
+          devizType: z.string().optional(),
         })),
       }))
       .mutation(async ({ input, ctx }) => {
@@ -1083,9 +1161,83 @@ export const appRouter = router({
           total: String(invoiceData.total),
         } as any).$returningId();
         const invoiceId = result.id;
-        if (lines.length > 0) {
+        
+        let finalInvoiceLines = [...lines];
+        const catalogLines = lines.filter(l => l.devizType && l.devizType !== "GROUPED_LABOR");
+        
+        if (catalogLines.length > 0) {
+          const { devize, devizeLines, bonuriConsum, bonuriConsumLines } = await import("../drizzle/schema");
+          const devizNum = `DEV-${invoiceId}`;
+          let tMat = 0; let tLab = 0; let tTot = 0;
+          for (const cl of catalogLines) {
+            const lTot = cl.total;
+            tTot += lTot;
+            if (cl.devizType === "MATERIAL") tMat += lTot;
+            else if (cl.devizType === "MANOPERA" || cl.devizType === "NORMA" || cl.devizType === "UTILAJ") tLab += lTot;
+          }
+
+          const [dRes] = await db.insert(devize).values({
+            tenantId: ctx.user.tenantId,
+            number: devizNum,
+            date: new Date(),
+            invoiceId,
+            totalMaterials: String(tMat),
+            totalLabor: String(tLab),
+            total: String(tTot),
+            status: "final",
+          } as any).$returningId();
+
+          await db.insert(devizeLines).values(catalogLines.map((cl, i) => ({
+            devizId: dRes.id,
+            type: cl.devizType as any,
+            code: cl.devizCode,
+            description: cl.description,
+            quantity: String(cl.quantity),
+            unitPrice: String(cl.unitPrice),
+            total: String(cl.total),
+            lineOrder: i
+          } as any)));
+
+          const matLines = catalogLines.filter(l => l.devizType === "MATERIAL");
+          if (matLines.length > 0) {
+            const [bRes] = await db.insert(bonuriConsum).values({
+              tenantId: ctx.user.tenantId,
+              devizId: dRes.id,
+              number: `BC-${invoiceId}`,
+              date: new Date(),
+              status: "final",
+            } as any).$returningId();
+            await db.insert(bonuriConsumLines).values(matLines.map((ml, i) => ({
+              bonId: bRes.id,
+              materialCode: ml.devizCode,
+              description: ml.description,
+              quantity: String(ml.quantity),
+              unitPrice: String(ml.unitPrice),
+              total: String(ml.total),
+              lineOrder: i
+            } as any)));
+          }
+
+          const labLines = catalogLines.filter(l => l.devizType === "MANOPERA" || l.devizType === "NORMA" || l.devizType === "UTILAJ");
+          if (labLines.length > 0) {
+             const sumLab = labLines.reduce((acc, curr) => acc + curr.total, 0);
+             finalInvoiceLines = finalInvoiceLines.filter(l => l.devizType !== "MANOPERA" && l.devizType !== "NORMA" && l.devizType !== "UTILAJ");
+             finalInvoiceLines.push({
+               description: `Manoperă conform deviz ${devizNum}`,
+               quantity: 1,
+               unitPrice: sumLab,
+               unit: "buc",
+               vatRate: labLines[0].vatRate || 19,
+               total: sumLab,
+               lineOrder: 9999,
+               devizType: "GROUPED_LABOR"
+             });
+          }
+        }
+
+        if (finalInvoiceLines.length > 0) {
           await db.insert(emittedInvoiceLines).values(
-            lines.map((l, i) => ({
+            finalInvoiceLines.map((l, i) => ({
               emittedInvoiceId: invoiceId,
               description: l.description,
               quantity: String(l.quantity),
@@ -1094,6 +1246,8 @@ export const appRouter = router({
               vatRate: String(l.vatRate ?? 21),
               total: String(l.total),
               lineOrder: l.lineOrder ?? i,
+              devizCode: l.devizCode,
+              devizType: l.devizType,
             } as any))
           );
         }
@@ -1129,6 +1283,8 @@ export const appRouter = router({
           vatRate: z.number().optional(),
           total: z.number(),
           lineOrder: z.number(),
+          devizCode: z.string().optional(),
+          devizType: z.string().optional(),
         })).optional(),
       }))
       .mutation(async ({ input, ctx }) => {
@@ -1160,20 +1316,111 @@ export const appRouter = router({
             .where(and(eq(emittedInvoices.id, id), eq(emittedInvoices.tenantId, ctx.user.tenantId)));
         }
         if (lines) {
+          const { devize, devizeLines, bonuriConsum, bonuriConsumLines } = await import("../drizzle/schema");
+          
           await db.delete(emittedInvoiceLines).where(eq(emittedInvoiceLines.emittedInvoiceId, id));
+          
+          // Delete old devize & bonuri for this invoice to regenerate cleanly
+          const oldDevize = await db.select({ id: devize.id }).from(devize).where(eq(devize.invoiceId, id));
+          for (const od of oldDevize) {
+            await db.delete(devizeLines).where(eq(devizeLines.devizId, od.id));
+            const oldBonuri = await db.select({ id: bonuriConsum.id }).from(bonuriConsum).where(eq(bonuriConsum.devizId, od.id));
+            for (const ob of oldBonuri) {
+              await db.delete(bonuriConsumLines).where(eq(bonuriConsumLines.bonId, ob.id));
+            }
+            await db.delete(bonuriConsum).where(eq(bonuriConsum.devizId, od.id));
+          }
+          await db.delete(devize).where(eq(devize.invoiceId, id));
+
           if (lines.length > 0) {
-            await db.insert(emittedInvoiceLines).values(
-              lines.map((l, i) => ({
-                emittedInvoiceId: id,
-                description: l.description,
-                quantity: String(l.quantity),
-                unitPrice: String(l.unitPrice),
-                unit: l.unit || "buc",
-                vatRate: String(l.vatRate ?? 21),
-                total: String(l.total),
-                lineOrder: l.lineOrder ?? i,
-              } as any))
-            );
+            let finalInvoiceLines = [...lines];
+            const catalogLines = lines.filter(l => l.devizType && l.devizType !== "GROUPED_LABOR");
+            
+            if (catalogLines.length > 0) {
+              const devizNum = `DEV-${id}`;
+              let tMat = 0; let tLab = 0; let tTot = 0;
+              for (const cl of catalogLines) {
+                const lTot = cl.total;
+                tTot += lTot;
+                if (cl.devizType === "MATERIAL") tMat += lTot;
+                else if (cl.devizType === "MANOPERA" || cl.devizType === "NORMA" || cl.devizType === "UTILAJ") tLab += lTot;
+              }
+
+              const [dRes] = await db.insert(devize).values({
+                tenantId: ctx.user.tenantId,
+                number: devizNum,
+                date: new Date(),
+                invoiceId: id,
+                totalMaterials: String(tMat),
+                totalLabor: String(tLab),
+                total: String(tTot),
+                status: "final",
+              } as any).$returningId();
+
+              await db.insert(devizeLines).values(catalogLines.map((cl, i) => ({
+                devizId: dRes.id,
+                type: cl.devizType as any,
+                code: cl.devizCode,
+                description: cl.description,
+                quantity: String(cl.quantity),
+                unitPrice: String(cl.unitPrice),
+                total: String(cl.total),
+                lineOrder: i
+              } as any)));
+
+              const matLines = catalogLines.filter(l => l.devizType === "MATERIAL");
+              if (matLines.length > 0) {
+                const [bRes] = await db.insert(bonuriConsum).values({
+                  tenantId: ctx.user.tenantId,
+                  devizId: dRes.id,
+                  number: `BC-${id}`,
+                  date: new Date(),
+                  status: "final",
+                } as any).$returningId();
+                await db.insert(bonuriConsumLines).values(matLines.map((ml, i) => ({
+                  bonId: bRes.id,
+                  materialCode: ml.devizCode,
+                  description: ml.description,
+                  quantity: String(ml.quantity),
+                  unitPrice: String(ml.unitPrice),
+                  total: String(ml.total),
+                  lineOrder: i
+                } as any)));
+              }
+
+              const labLines = catalogLines.filter(l => l.devizType === "MANOPERA" || l.devizType === "NORMA" || l.devizType === "UTILAJ");
+              if (labLines.length > 0) {
+                 const sumLab = labLines.reduce((acc, curr) => acc + curr.total, 0);
+                 finalInvoiceLines = finalInvoiceLines.filter(l => l.devizType !== "MANOPERA" && l.devizType !== "NORMA" && l.devizType !== "UTILAJ");
+                 finalInvoiceLines.push({
+                   description: `Manoperă conform deviz ${devizNum}`,
+                   quantity: 1,
+                   unitPrice: sumLab,
+                   unit: "buc",
+                   vatRate: labLines[0].vatRate || 19,
+                   total: sumLab,
+                   lineOrder: 9999,
+                   devizType: "GROUPED_LABOR"
+                 });
+              }
+            }
+
+            if (finalInvoiceLines.length > 0) {
+              await db.insert(emittedInvoiceLines).values(
+                finalInvoiceLines.map((l, i) => ({
+                  emittedInvoiceId: id,
+                  description: l.description,
+                  quantity: String(l.quantity),
+                  unitPrice: String(l.unitPrice),
+                  unit: l.unit || "buc",
+                  vatRate: String(l.vatRate ?? 21),
+                  total: String(l.total),
+                  lineOrder: l.lineOrder ?? i,
+                  devizCode: l.devizCode,
+                  devizType: l.devizType,
+                } as any))
+              );
+            }
           }
         }
         return { success: true };
@@ -1471,6 +1718,310 @@ export const appRouter = router({
         const { nir, nirLines } = await import("../drizzle/schema");
         await db.delete(nirLines).where(eq(nirLines.nirId, input.id));
         await db.delete(nir).where(and(eq(nir.id, input.id), eq(nir.tenantId, ctx.user.tenantId)));
+        return { success: true };
+      }),
+  }),
+
+  // =========================================================================
+  // CATALOG E-DEVIZE
+  // =========================================================================
+  edevize: router({
+    search: protectedProcedure
+      .input(z.object({ 
+        query: z.string().optional(),
+        limit: z.number().optional().default(50),
+        offset: z.number().optional().default(0)
+      }))
+      .query(({ input }) => {
+        // Normalizare: scoate diacritice, lowercase
+        const norm = (s: string) =>
+          s.toLowerCase()
+           .normalize("NFD")
+           .replace(/[\u0300-\u036f]/g, "")
+           .replace(/[șş]/g, "s").replace(/[țţ]/g, "t")
+           .replace(/[ăâ]/g, "a").replace(/î/g, "i");
+
+        // Distanta Levenshtein pentru fuzzy matching
+        const levenshtein = (a: string, b: string): number => {
+          const m = a.length, n = b.length;
+          if (m === 0) return n;
+          if (n === 0) return m;
+          const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
+            Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+          );
+          for (let i = 1; i <= m; i++)
+            for (let j = 1; j <= n; j++)
+              dp[i][j] = a[i-1] === b[j-1]
+                ? dp[i-1][j-1]
+                : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+          return dp[m][n];
+        };
+
+        // Verifica daca un cuvant din query se gaseste fuzzy in haystack
+        const fuzzyWordMatch = (word: string, haystack: string): { match: boolean; score: number } => {
+          // Match exact substring - cel mai bun
+          if (haystack.includes(word)) return { match: true, score: 3 };
+          // Cauta in fiecare cuvant din haystack
+          const hWords = haystack.split(/\s+/);
+          for (const hw of hWords) {
+            if (hw.length < 3) continue;
+            // Permite o eroare pentru cuvinte scurte, doua pentru lungi
+            const maxDist = word.length <= 4 ? 1 : word.length <= 7 ? 2 : 3;
+            if (levenshtein(word, hw) <= maxDist) return { match: true, score: 1 };
+            // Verifica si prefix (word e prefix al hw)
+            if (hw.startsWith(word) || word.startsWith(hw.substring(0, word.length))) return { match: true, score: 2 };
+          }
+          return { match: false, score: 0 };
+        };
+
+        let results = _edevizeCache.map(r => ({ ...r, _score: 0 }));
+
+        if (input.query && input.query.trim()) {
+          const words = norm(input.query).split(/\s+/).filter(w => w.length >= 1);
+
+          results = results
+            .map(r => {
+              const haystack = norm(r.cod + " " + r.denumire);
+              let totalScore = 0;
+              let allMatch = true;
+
+              for (const word of words) {
+                const { match, score } = fuzzyWordMatch(word, haystack);
+                if (match) {
+                  totalScore += score;
+                } else {
+                  allMatch = false;
+                  break;
+                }
+              }
+
+              return { ...r, _score: allMatch ? totalScore : -1 };
+            })
+            .filter(r => r._score >= 0)
+            .sort((a, b) => b._score - a._score);
+        }
+
+        const totalCount = results.length;
+        const items = results
+          .slice(input.offset, input.offset + input.limit)
+          .map(({ _score, ...r }) => r);
+        return { items, totalCount };
+      }),
+  }),
+
+  // =========================================================================
+  // DEVIZE
+  // =========================================================================
+  devize: router({
+    list: protectedProcedure
+      .query(async ({ ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { devize } = await import("../drizzle/schema");
+        return await db.select().from(devize)
+          .where(eq(devize.tenantId, ctx.user.tenantId))
+          .orderBy(desc(devize.id));
+      }),
+
+    getById: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { devize, devizeLines } = await import("../drizzle/schema");
+        
+        const [deviz] = await db.select().from(devize)
+          .where(and(eq(devize.id, input.id), eq(devize.tenantId, ctx.user.tenantId)));
+        if (!deviz) throw new Error("Not found");
+        
+        const lines = await db.select().from(devizeLines)
+          .where(eq(devizeLines.devizId, deviz.id))
+          .orderBy(devizeLines.lineOrder);
+          
+        return { deviz, lines };
+      }),
+
+    getByInvoiceId: protectedProcedure
+      .input(z.object({ invoiceId: z.number() }))
+      .query(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { devize, devizeLines } = await import("../drizzle/schema");
+
+        const [deviz] = await db.select().from(devize)
+          .where(and(eq(devize.invoiceId, input.invoiceId), eq(devize.tenantId, ctx.user.tenantId)));
+        if (!deviz) return null;
+
+        const lines = await db.select().from(devizeLines)
+          .where(eq(devizeLines.devizId, deviz.id))
+          .orderBy(devizeLines.lineOrder);
+
+        return { deviz, lines };
+      }),
+
+    create: protectedProcedure
+      .input(z.object({
+        number: z.string(),
+        date: z.string(),
+        invoiceId: z.number().optional(),
+        notes: z.string().optional(),
+        lines: z.array(z.object({
+          type: z.enum(["MATERIAL", "MANOPERA", "UTILAJ", "NORMA"]),
+          code: z.string().optional(),
+          description: z.string(),
+          quantity: z.number(),
+          unitPrice: z.number(),
+        })),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { devize, devizeLines } = await import("../drizzle/schema");
+
+        let totalMaterials = 0;
+        let totalLabor = 0;
+        let total = 0;
+
+        for (const line of input.lines) {
+          const lTotal = line.quantity * line.unitPrice;
+          total += lTotal;
+          if (line.type === "MATERIAL") totalMaterials += lTotal;
+          if (line.type === "MANOPERA" || line.type === "NORMA") totalLabor += lTotal;
+        }
+
+        const [insertResult] = await db.insert(devize).values({
+          tenantId: ctx.user.tenantId,
+          number: input.number,
+          date: new Date(input.date),
+          invoiceId: input.invoiceId,
+          totalMaterials: totalMaterials.toFixed(2),
+          totalLabor: totalLabor.toFixed(2),
+          total: total.toFixed(2),
+          notes: input.notes,
+          status: "final",
+        });
+
+        const devizId = insertResult.insertId;
+
+        if (input.lines.length > 0) {
+          await db.insert(devizeLines).values(input.lines.map((l, idx) => ({
+            devizId,
+            type: l.type,
+            code: l.code || null,
+            description: l.description,
+            quantity: l.quantity.toFixed(2),
+            unitPrice: l.unitPrice.toFixed(2),
+            total: (l.quantity * l.unitPrice).toFixed(2),
+            lineOrder: idx,
+          })));
+        }
+        return { id: devizId };
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { devize, devizeLines } = await import("../drizzle/schema");
+        await db.delete(devizeLines).where(eq(devizeLines.devizId, input.id));
+        await db.delete(devize).where(and(eq(devize.id, input.id), eq(devize.tenantId, ctx.user.tenantId)));
+        return { success: true };
+      }),
+  }),
+
+  // =========================================================================
+  // BONURI CONSUM
+  // =========================================================================
+  bonuriConsum: router({
+    list: protectedProcedure
+      .query(async ({ ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { bonuriConsum } = await import("../drizzle/schema");
+        return await db.select().from(bonuriConsum)
+          .where(eq(bonuriConsum.tenantId, ctx.user.tenantId))
+          .orderBy(desc(bonuriConsum.id));
+      }),
+      
+    getById: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { bonuriConsum, bonuriConsumLines } = await import("../drizzle/schema");
+        
+        const [bon] = await db.select().from(bonuriConsum)
+          .where(and(eq(bonuriConsum.id, input.id), eq(bonuriConsum.tenantId, ctx.user.tenantId)));
+        if (!bon) throw new Error("Not found");
+        
+        const lines = await db.select().from(bonuriConsumLines)
+          .where(eq(bonuriConsumLines.bonId, bon.id))
+          .orderBy(bonuriConsumLines.lineOrder);
+          
+        return { bon, lines };
+      }),
+
+    create: protectedProcedure
+      .input(z.object({
+        number: z.string(),
+        date: z.string(),
+        devizId: z.number().optional(),
+        gestiune: z.string().optional(),
+        lines: z.array(z.object({
+          materialCode: z.string().optional(),
+          description: z.string(),
+          quantity: z.number(),
+          unitPrice: z.number(),
+        })),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { bonuriConsum, bonuriConsumLines } = await import("../drizzle/schema");
+
+        const [insertResult] = await db.insert(bonuriConsum).values({
+          tenantId: ctx.user.tenantId,
+          number: input.number,
+          date: new Date(input.date),
+          devizId: input.devizId,
+          gestiune: input.gestiune,
+          status: "final",
+        });
+
+        const bonId = insertResult.insertId;
+
+        if (input.lines.length > 0) {
+          await db.insert(bonuriConsumLines).values(input.lines.map((l, idx) => ({
+            bonId,
+            materialCode: l.materialCode || null,
+            description: l.description,
+            quantity: l.quantity.toFixed(2),
+            unitPrice: l.unitPrice.toFixed(2),
+            total: (l.quantity * l.unitPrice).toFixed(2),
+            lineOrder: idx,
+          })));
+        }
+        return { id: bonId };
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { bonuriConsum, bonuriConsumLines } = await import("../drizzle/schema");
+        await db.delete(bonuriConsumLines).where(eq(bonuriConsumLines.bonId, input.id));
+        await db.delete(bonuriConsum).where(and(eq(bonuriConsum.id, input.id), eq(bonuriConsum.tenantId, ctx.user.tenantId)));
         return { success: true };
       }),
   }),

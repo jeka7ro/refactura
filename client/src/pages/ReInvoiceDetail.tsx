@@ -72,10 +72,10 @@ export default function ReInvoiceDetail() {
           {(!invoice.spvStatus || invoice.spvStatus === "nesincronizat" || invoice.spvStatus === "eroare") && (
             <button
               onClick={() => sendToSpv.mutate({ id: invoiceId })}
-              disabled={sendToSpv.isLoading}
+              disabled={sendToSpv.isPending}
               className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-colors border border-indigo-200"
             >
-              {sendToSpv.isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+              {sendToSpv.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               Trimite în SPV
             </button>
           )}

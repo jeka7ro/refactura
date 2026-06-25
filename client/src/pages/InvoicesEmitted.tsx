@@ -67,10 +67,11 @@ export default function InvoicesEmitted() {
   const [currency, setCurrency] = useState("RON");
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<NewInvoiceLine[]>([
-    { description: "", quantity: 1, unitPrice: 0, vatRate: 19, unit: "buc" }
+    { description: "", quantity: 1, unitPrice: 0, vatRate: 21, unit: "buc" }
   ]);
 
-  const tenant = tenants[0];
+  const tenantObj = tenants[0];
+  const tenant = tenantObj?.tenants;
   const tenantSettings = useMemo(() => {
     try { return JSON.parse(tenant?.settings || "{}"); } catch { return {}; }
   }, [tenant]);
@@ -112,7 +113,7 @@ export default function InvoicesEmitted() {
   const totalVAT = lines.reduce((s, l) => s + lineTotal(l) * (l.vatRate / 100), 0);
   const total = subtotal + totalVAT;
 
-  const addLine = () => setLines(prev => [...prev, { description: "", quantity: 1, unitPrice: 0, vatRate: 19, unit: "buc" }]);
+  const addLine = () => setLines(prev => [...prev, { description: "", quantity: 1, unitPrice: 0, vatRate: 21, unit: "buc" }]);
   const removeLine = (i: number) => setLines(prev => prev.filter((_, idx) => idx !== i));
   const updateLine = (i: number, field: keyof NewInvoiceLine, value: any) =>
     setLines(prev => prev.map((l, idx) => idx === i ? { ...l, [field]: value } : l));
@@ -142,7 +143,7 @@ export default function InvoicesEmitted() {
 
   const resetForm = () => {
     setSelectedClientId(""); setInvoiceNumber(""); setNotes(""); setSendToSpv(false);
-    setLines([{ description: "", quantity: 1, unitPrice: 0, vatRate: 19, unit: "buc" }]);
+    setLines([{ description: "", quantity: 1, unitPrice: 0, vatRate: 21, unit: "buc" }]);
     setIssueDate(new Date().toISOString().split("T")[0]);
     const d = new Date(); d.setDate(d.getDate() + 30);
     setDueDate(d.toISOString().split("T")[0]);

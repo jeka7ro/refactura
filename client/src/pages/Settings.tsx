@@ -72,13 +72,13 @@ export default function Settings() {
     address: "",
     city: "",
     county: "",
-    country: "România",
+    country: "RO",
     email: "",
     phone: "",
     iban: "",
     bank: "",
     defaultCurrency: "RON",
-    defaultLanguage: "RO",
+    defaultLanguage: "ro",
     defaultVatRate: 19,
     invoicePrefix: "INV",
     invoiceStartNumber: 1,
@@ -88,21 +88,21 @@ export default function Settings() {
 
   // Update settings when tenant data is loaded
   useEffect(() => {
-    if (currentTenant) {
+    if (currentTenant && currentTenant.tenants) {
       let parsedSettings = {};
       try {
-        if (currentTenant.settings) {
-          parsedSettings = JSON.parse(currentTenant.settings);
+        if (currentTenant.tenants.settings) {
+          parsedSettings = JSON.parse(currentTenant.tenants.settings);
         }
       } catch (e) {}
 
       setSettings(prev => ({
         ...prev,
-        name: currentTenant.name || "",
-        email: currentTenant.email || "",
-        phone: currentTenant.phone || "",
-        address: currentTenant.address || "",
-        cui: currentTenant.cui || "",
+        name: currentTenant.tenants.name || "",
+        email: currentTenant.tenants.email || "",
+        phone: currentTenant.tenants.phone || "",
+        address: currentTenant.tenants.address || "",
+        cui: currentTenant.tenants.cui || "",
         ...parsedSettings
       }));
       if ((parsedSettings as any).logoBase64) {

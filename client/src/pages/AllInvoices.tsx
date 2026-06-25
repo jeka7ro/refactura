@@ -20,6 +20,7 @@ interface UnifiedRow {
   type: InvoiceType;
   number: string;
   partnerName: string;
+  partnerCui?: string;
   date: string;
   dueDate: string;
   total: number;
@@ -436,7 +437,7 @@ export default function AllInvoices() {
                 if (!window.confirm(`Ștergi ${selectedIds.size} facturi selectate?`)) return;
                 toast.loading("Ștergere în curs...", { id: "bulk-del" });
                 let ok = 0;
-                for (const key of selectedIds) {
+                for (const key of Array.from(selectedIds)) {
                   const [type, idStr] = key.split("-");
                   const id = Number(idStr);
                   try {
@@ -547,13 +548,13 @@ export default function AllInvoices() {
               ) : paginated.map((row, i) => {
                 const tb = TYPE_BADGE[row.type];
                 return (
-                  <tr key={`${row.source}-${row.type}-${row.id}`} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${selectedIds.has(`${row.source}-${row.type}-${row.id}`) ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
+                  <tr key={`${row.source}-${row.type}-${row.id}`} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${selectedIds.has(`${row.type}-${row.id}`) ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
                     <td className="px-2 py-2 text-center">
                       <input
                         type="checkbox"
                         className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                        checked={selectedIds.has(`${row.source}-${row.type}-${row.id}`)}
-                        onChange={() => toggleSelect(`${row.source}-${row.type}-${row.id}`)}
+                        checked={selectedIds.has(`${row.type}-${row.id}`)}
+                        onChange={() => toggleSelect(`${row.type}-${row.id}`)}
                       />
                     </td>
                     <td className="px-2 py-2 text-center text-[11px] text-slate-400">{(page - 1) * rowsPerPage + i + 1}</td>

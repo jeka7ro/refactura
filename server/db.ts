@@ -1,4 +1,4 @@
-import { eq, and, desc, count, sql } from "drizzle-orm";
+import { eq, and, desc, sql, count, isNull, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, tenants, userTenants, costCenters, subscriptionPlans, clients, leads, cmsSettings, pageVisits, accounts, modules, modulePricing, reInvoices, reInvoiceLines, invoiceArchive, invoiceArchiveLines, InsertInvoiceArchive, integrations } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -566,17 +566,113 @@ export async function createReInvoice(data: {
     console.log("[Dev] Re-Factură creată în memorie:", data.number);
     return { id, number: data.number };
   }
-  const { lines, ...header } = data;
+  const { lines, sourceInvoiceIds, ...header } = data as any;
+  
+  let finalLines = lines;
+  let devizNum = "";
+  let hasDeviz = false;
+
+  const catalogLines = finalLines.filter((l: any) => l.devizType);
+  const normalLines = finalLines.filter((l: any) => !l.devizType);
+
+  if (catalogLines.length > 0) {
+    hasDeviz = true;
+    const baseVat = catalogLines[0]?.vatRate ?? 19;
+    const laborTotal = catalogLines.reduce((sum: number, l: any) => sum + (l.quantity * l.unitPrice), 0);
+    
+    normalLines.push({
+      description: `Manoperă și materiale conform deviz`,
+      quantity: 1,
+      unitPrice: laborTotal,
+      vatRate: baseVat,
+      markupPercent: 0,
+      originalUnitPrice: laborTotal,
+      total: laborTotal * (1 + baseVat / 100),
+      lineOrder: 9999
+    });
+  }
+  
+  finalLines = normalLines;
+
+  let tTotal = 0;
+  let tVat = 0;
+  finalLines.forEach((l: any) => {
+    const rowTotal = l.quantity * l.unitPrice;
+    tVat += rowTotal * ((l.vatRate ?? 19) / 100);
+    tTotal += rowTotal + (rowTotal * ((l.vatRate ?? 19) / 100));
+  });
+
   const [result] = await db.insert(reInvoices).values({
     ...header,
-    subtotal: header.subtotal.toString() as any,
-    totalVAT: header.totalVAT.toString() as any,
-    total: header.total.toString() as any,
+    subtotal: (tTotal - tVat).toString() as any,
+    totalVAT: tVat.toString() as any,
+    total: tTotal.toString() as any,
   });
+  
   const reInvoiceId = (result as any).insertId as number;
-  if (lines.length > 0) {
+
+  if (hasDeviz) {
+    const { devize, devizeLines, bonuriConsum, bonuriConsumLines } = await import("../drizzle/schema");
+    devizNum = `DEV-RF-${reInvoiceId}`;
+    let tMat = 0; let tLab = 0; let tTot = 0;
+    for (const cl of catalogLines) {
+      const lTot = cl.quantity * cl.unitPrice;
+      tTot += lTot;
+      if (cl.devizType === "MATERIAL") tMat += lTot;
+      else if (cl.devizType === "MANOPERA" || cl.devizType === "NORMA" || cl.devizType === "UTILAJ") tLab += lTot;
+    }
+
+    const [dRes] = await db.insert(devize).values({
+      tenantId: header.tenantId,
+      number: devizNum,
+      date: new Date(),
+      invoiceId: reInvoiceId,
+      totalMaterials: String(tMat),
+      totalLabor: String(tLab),
+      total: String(tTot),
+      status: "final",
+    });
+
+    await db.insert(devizeLines).values(catalogLines.map((cl: any, i: number) => ({
+      devizId: dRes.insertId as number,
+      type: cl.devizType as "MATERIAL" | "MANOPERA" | "UTILAJ" | "NORMA",
+      code: cl.devizCode,
+      description: cl.description,
+      quantity: String(cl.quantity),
+      unitPrice: String(cl.unitPrice),
+      total: String(cl.quantity * cl.unitPrice),
+      lineOrder: i
+    })));
+
+    const matLines = catalogLines.filter((l: any) => l.devizType === "MATERIAL");
+    if (matLines.length > 0) {
+      const [bRes] = await db.insert(bonuriConsum).values({
+        tenantId: header.tenantId,
+        devizId: dRes.insertId as number,
+        number: `BC-RF-${reInvoiceId}`,
+        date: new Date(),
+        status: "final",
+      });
+      await db.insert(bonuriConsumLines).values(matLines.map((ml: any, i: number) => ({
+        bonId: bRes.insertId as number,
+        materialCode: ml.devizCode,
+        description: ml.description,
+        quantity: String(ml.quantity),
+        unitPrice: String(ml.unitPrice),
+        total: String(ml.quantity * ml.unitPrice),
+        lineOrder: i
+      } as any)));
+    }
+    
+    const lToModify = finalLines.find((l: any) => l.description === "Manoperă și materiale conform deviz");
+    if(lToModify) {
+      lToModify.description = `Manoperă și materiale conform deviz ${devizNum}`;
+    }
+  }
+
+  if (finalLines.length > 0) {
     await db.insert(reInvoiceLines).values(
-      lines.map((l) => ({
+      finalLines.map((l: any, i: number) => ({
         reInvoiceId,
         description: l.description,
         quantity: l.quantity.toString() as any,
@@ -586,7 +682,7 @@ export async function createReInvoice(data: {
         vatRate: (l.vatRate ?? 21).toString() as any,
         markupPercent: l.markupPercent?.toString() as any,
         total: l.total.toString() as any,
-        lineOrder: l.lineOrder,
+        lineOrder: l.lineOrder ?? i,
       }))
     );
   }
@@ -716,6 +812,21 @@ export async function getInvoiceArchiveById(id: number, tenantId: number) {
   const lines = await db.select().from(invoiceArchiveLines)
     .where(eq(invoiceArchiveLines.invoiceArchiveId, id));
   return { ...entry, lines } as any;
+}
+
+export async function getInvoiceArchiveByIds(ids: number[], tenantId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const entries = await db.select().from(invoiceArchive)
+    .where(and(inArray(invoiceArchive.id, ids), eq(invoiceArchive.tenantId, tenantId)));
+  if (entries.length === 0) return [];
+  const lines = await db.select().from(invoiceArchiveLines)
+    .where(inArray(invoiceArchiveLines.invoiceArchiveId, ids));
+  
+  return entries.map(entry => ({
+    ...entry,
+    lines: lines.filter(l => l.invoiceArchiveId === entry.id)
+  }));
 }
 
 export async function updateInvoiceArchiveEntry(id: number, tenantId: number, data: Partial<InsertInvoiceArchive>) {

@@ -71,7 +71,7 @@ function useSetupAssistant(onConfigSave: (provider: string, config: Record<strin
       if (!/^\d{6,10}$/.test(cifClean)) {
         newMessages.push({ role: "ai", text: "CIF-ul trebuie să fie format din 6-10 cifre (ex: `42322117`). Încearcă din nou." });
       } else {
-        const finalConfig = { ...draft, cif: cifClean };
+        const finalConfig: Record<string, string> = { ...draft, cif: cifClean };
         setDraft(finalConfig);
         setStep("done");
         newMessages.push({ role: "ai", text: `Configurare completa!\n\nEmail: ${finalConfig.email}\nAPI Secret: ${"•".repeat(Math.min(finalConfig.apiSecret?.length || 0, 20))}\nCIF: ${cifClean}\n\nSalvez acum configurarea si pornesc sincronizarea...` });
@@ -648,7 +648,7 @@ export default function Integrations() {
                 {isActive && db?.lastSyncAt && (
                   <div className="mt-3 flex items-center gap-4 text-xs text-slate-500">
                     <span>Ultima sincronizare: <strong className="text-slate-700">{db.lastSyncAt ? new Date(db.lastSyncAt).toLocaleString("ro-RO") : "—"}</strong></span>
-                    {db.syncCount > 0 && <span>Facturi importate: <strong className="text-slate-700">{db.syncCount}</strong></span>}
+                    {(db.syncCount || 0) > 0 && <span>Facturi importate: <strong className="text-slate-700">{db.syncCount}</strong></span>}
                     {parsedMeta.email && <span>Cont: <strong className="text-slate-700">{parsedMeta.email}</strong></span>}
                   </div>
                 )}
