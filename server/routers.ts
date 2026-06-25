@@ -797,6 +797,22 @@ export const appRouter = router({
         await deleteInvoiceArchiveEntry(input.id, ctx.user.tenantId);
         return { success: true };
       }),
+
+    updateStatus: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        status: z.enum(["pending", "processed", "paid", "archived", "refactured"]),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { invoiceArchive } = await import("../drizzle/schema");
+        await db.update(invoiceArchive)
+          .set({ status: input.status })
+          .where(and(eq(invoiceArchive.id, input.id), eq(invoiceArchive.tenantId, ctx.user.tenantId)));
+        return { success: true };
+      }),
   }),
 
   // ─── Integrations Router ─────────────────────────────────────────────────────
@@ -1162,6 +1178,22 @@ export const appRouter = router({
         const { emittedInvoices, emittedInvoiceLines } = await import("../drizzle/schema");
         await db.delete(emittedInvoiceLines).where(eq(emittedInvoiceLines.emittedInvoiceId, input.id));
         await db.delete(emittedInvoices).where(and(eq(emittedInvoices.id, input.id), eq(emittedInvoices.tenantId, ctx.user.tenantId)));
+        return { success: true };
+      }),
+
+    updateStatus: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        status: z.enum(["draft", "sent", "paid", "overdue", "cancelled"]),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { emittedInvoices } = await import("../drizzle/schema");
+        await db.update(emittedInvoices)
+          .set({ status: input.status })
+          .where(and(eq(emittedInvoices.id, input.id), eq(emittedInvoices.tenantId, ctx.user.tenantId)));
         return { success: true };
       }),
 

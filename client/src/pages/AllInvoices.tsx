@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
-import { Search, ChevronLeft, ChevronRight, Plus, RefreshCw, Loader2, Send, FileDown, X, Eye, Pencil, Trash2, Calendar, Download } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Plus, RefreshCw, Loader2, Send, FileDown, X, Eye, Pencil, Trash2, Calendar, Download, CheckCircle } from "lucide-react";
 import { formatCurrency, formatDate, type Currency } from "@/lib/store";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -57,6 +57,14 @@ const STATUS_LBL: Record<string, string> = {
   draft: "Ciornă", sent: "Emis", archived: "Arhivat", overdue: "Restanță",
   storno: "Storno",
 };
+// Pentru facturi PRIMITE: pending = Neachitat (tu trebuie să plătești)
+const STATUS_LBL_PRIMIT: Record<string, string> = {
+  pending: "Neachitat", processed: "Procesat", paid: "Achitat",
+  draft: "Ciornă", sent: "Procesat", archived: "Arhivat", overdue: "Restanță",
+  storno: "Storno",
+};
+const getStatusLabel = (status: string, type: string) =>
+  type === "primit" ? (STATUS_LBL_PRIMIT[status] || status) : (STATUS_LBL[status] || status);
 
 export default function AllInvoices() {
   const [, navigate] = useLocation();
@@ -147,6 +155,15 @@ export default function AllInvoices() {
   const deleteArchive = trpc.invoiceArchive.delete.useMutation({ onSuccess: () => r1() });
   const deleteReinvoice = trpc.reinvoice.delete.useMutation({ onSuccess: () => r2() });
   const deleteEmitted = trpc.emittedInvoice.delete.useMutation({ onSuccess: () => r3() });
+
+  const markEmittedPaid = trpc.emittedInvoice.updateStatus.useMutation({
+    onSuccess: () => { toast.success("Factură marcată ca Încasată!"); r3(); },
+    onError: (e) => toast.error("Eroare: " + e.message),
+  });
+  const markArchivePaid = trpc.invoiceArchive.updateStatus.useMutation({
+    onSuccess: () => { toast.success("Factură marcată ca Achitată!"); r1(); },
+    onError: (e) => toast.error("Eroare: " + e.message),
+  });
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
@@ -555,11 +572,27 @@ export default function AllInvoices() {
                     </td>
                     <td className="px-3 py-2 text-center">
                       <span className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold border ${STATUS_CLS[row.status] || STATUS_CLS.pending}`}>
-                        {STATUS_LBL[row.status] || row.status}
+                        {getStatusLabel(row.status, row.type)}
                       </span>
                     </td>
                     <td className="px-2 py-2">
                       <div className="flex items-center gap-1 justify-end">
+                        {/* Buton Marchează Achitat/Încasat — doar dacă nu e deja plătit */}
+                        {row.status !== 'paid' && row.status !== 'storno' && row.type !== 'refacturat' && (
+                          <button
+                            onClick={() => {
+                              if (row.type === 'emis' && row.source === 'manual') {
+                                markEmittedPaid.mutate({ id: row.id, status: 'paid' });
+                              } else if (row.type === 'primit') {
+                                markArchivePaid.mutate({ id: row.id, status: 'paid' });
+                              }
+                            }}
+                            title={row.type === 'primit' ? "Marchează Achitat" : "Marchează Încasat"}
+                            className="flex items-center justify-center w-6 h-6 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors"
+                          >
+                            <CheckCircle className="w-3 h-3" />
+                          </button>
+                        )}
                         <button onClick={() => {
                             if (row.type === 'refacturat') navigate(`/re-facturi/${row.id}`);
                             else if (row.type === 'emis' && row.source === 'manual') navigate(`/facturi-emise-nou/${row.id}`);
