@@ -406,8 +406,8 @@ export function registerPdfRoute(app: any) {
 
       // ── HEADER ──────────────────────────────────────────────────────────────
       // Logo stânga
-      logoBase64 = "DEFAULT_TEXT_LOGO"; // Ignorăm logoBase64 din baza de date pentru că utilizatorul vrea exclusiv logoul GetApp peste tot
-      if (logoBase64 === "DEFAULT_TEXT_LOGO") {
+      const activeLogo = "DEFAULT_TEXT_LOGO"; // Ignorăm logoBase64 din baza de date pentru că utilizatorul vrea exclusiv logoul GetApp peste tot
+      if (activeLogo === "DEFAULT_TEXT_LOGO") {
         let foundPath = null;
         try {
           const possiblePaths = [
