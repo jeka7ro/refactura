@@ -1306,9 +1306,20 @@ export const appRouter = router({
         invoiceArchiveId: z.number().optional(),
         nirNumber: z.string(),
         invoiceNumber: z.string().optional(),
+        avizNumber: z.string().optional(),
         supplierName: z.string().optional(),
         supplierCUI: z.string().optional(),
+        supplierAddress: z.string().optional(),
+        gestiune: z.string().optional(),
         receiptDate: z.string(),
+        member1Name: z.string().optional(),
+        member1Function: z.string().optional(),
+        member2Name: z.string().optional(),
+        member2Function: z.string().optional(),
+        member3Name: z.string().optional(),
+        member3Function: z.string().optional(),
+        hasDifferences: z.number().optional(),
+        differenceNotes: z.string().optional(),
         notes: z.string().optional(),
         lines: z.array(z.object({
           description: z.string(),
@@ -1332,9 +1343,20 @@ export const appRouter = router({
           nirNumber: input.nirNumber,
           invoiceArchiveId: input.invoiceArchiveId,
           invoiceNumber: input.invoiceNumber,
+          avizNumber: input.avizNumber,
           supplierName: input.supplierName,
           supplierCUI: input.supplierCUI,
+          supplierAddress: input.supplierAddress,
+          gestiune: input.gestiune,
           receiptDate: input.receiptDate,
+          member1Name: input.member1Name,
+          member1Function: input.member1Function,
+          member2Name: input.member2Name,
+          member2Function: input.member2Function,
+          member3Name: input.member3Name,
+          member3Function: input.member3Function,
+          hasDifferences: input.hasDifferences ?? 0,
+          differenceNotes: input.differenceNotes,
           notes: input.notes,
           status: "draft",
         });
@@ -1362,6 +1384,17 @@ export const appRouter = router({
       .input(z.object({
         id: z.number(),
         receiptDate: z.string().optional(),
+        avizNumber: z.string().optional(),
+        gestiune: z.string().optional(),
+        supplierAddress: z.string().optional(),
+        member1Name: z.string().optional(),
+        member1Function: z.string().optional(),
+        member2Name: z.string().optional(),
+        member2Function: z.string().optional(),
+        member3Name: z.string().optional(),
+        member3Function: z.string().optional(),
+        hasDifferences: z.number().optional(),
+        differenceNotes: z.string().optional(),
         notes: z.string().optional(),
         status: z.enum(["draft", "finalizat"]).optional(),
         lines: z.array(z.object({
@@ -1384,9 +1417,13 @@ export const appRouter = router({
         const { nir, nirLines } = await import("../drizzle/schema");
         const { id, lines, ...updateData } = input;
         const filtered: any = {};
-        if (updateData.receiptDate) filtered.receiptDate = updateData.receiptDate;
-        if (updateData.notes !== undefined) filtered.notes = updateData.notes;
-        if (updateData.status) filtered.status = updateData.status;
+        const fields = ["receiptDate","avizNumber","gestiune","supplierAddress",
+          "member1Name","member1Function","member2Name","member2Function",
+          "member3Name","member3Function","hasDifferences","differenceNotes",
+          "notes","status"] as const;
+        for (const f of fields) {
+          if ((updateData as any)[f] !== undefined) filtered[f] = (updateData as any)[f];
+        }
         if (Object.keys(filtered).length > 0) {
           await db.update(nir).set(filtered)
             .where(and(eq(nir.id, id), eq(nir.tenantId, ctx.user.tenantId)));

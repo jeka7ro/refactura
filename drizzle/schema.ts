@@ -500,18 +500,30 @@ export type EmittedInvoiceLine = typeof emittedInvoiceLines.$inferSelect;
 export type InsertEmittedInvoiceLine = typeof emittedInvoiceLines.$inferInsert;
 
 /**
- * NIR — Nota de Intrare-Recepție
- * Generat din facturi primite (invoiceArchive)
+ * NIR — Nota de Intrare-Recepție (OMFP 2634/2015, cod formular 14-3-1/aA)
  */
 export const nir = mysqlTable("nir", {
   id: int("id").autoincrement().primaryKey(),
   tenantId: int("tenantId").notNull(),
-  nirNumber: varchar("nirNumber", { length: 50 }).notNull(), // ex: NIR-2026-0001
-  invoiceArchiveId: int("invoiceArchiveId"), // FK → invoiceArchive.id
-  invoiceNumber: varchar("invoiceNumber", { length: 100 }),  // copiat din factură
+  nirNumber: varchar("nirNumber", { length: 50 }).notNull(),
+  invoiceArchiveId: int("invoiceArchiveId"),
+  invoiceNumber: varchar("invoiceNumber", { length: 100 }),
+  avizNumber: varchar("avizNumber", { length: 100 }),          // Nr. aviz de însoțire
   supplierName: varchar("supplierName", { length: 255 }),
   supplierCUI: varchar("supplierCUI", { length: 20 }),
-  receiptDate: varchar("receiptDate", { length: 20 }).notNull(), // data recepției
+  supplierAddress: text("supplierAddress"),                     // Adresă furnizor
+  gestiune: varchar("gestiune", { length: 255 }),               // Gestiunea destinatară
+  receiptDate: varchar("receiptDate", { length: 20 }).notNull(),
+  // Comisia de recepție — 3 membri
+  member1Name: varchar("member1Name", { length: 150 }),
+  member1Function: varchar("member1Function", { length: 100 }),
+  member2Name: varchar("member2Name", { length: 150 }),
+  member2Function: varchar("member2Function", { length: 100 }),
+  member3Name: varchar("member3Name", { length: 150 }),
+  member3Function: varchar("member3Function", { length: 100 }),
+  // Constatări diferențe
+  hasDifferences: int("hasDifferences").default(0),            // 0=nu, 1=da
+  differenceNotes: text("differenceNotes"),
   status: mysqlEnum("status", ["draft", "finalizat"]).default("draft"),
   notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
