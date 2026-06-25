@@ -604,15 +604,7 @@ export default function AllInvoices() {
                             <CheckCircle className="w-3 h-3" />
                           </button>
                         )}
-                        <button onClick={() => {
-                            if (row.type === 'refacturat') navigate(`/re-facturi/${row.id}`);
-                            else if (row.type === 'emis' && row.source === 'manual') navigate(`/facturi-emise-nou/${row.id}`);
-                            else navigate(`/facturi-primite/${row.id}`);
-                          }}
-                          title={row.type === 'emis' && row.source === 'manual' ? "Editează" : "Vizualizare"}
-                          className="flex items-center justify-center w-6 h-6 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 transition-colors">
-                          <Pencil className="w-3 h-3" />
-                        </button>
+
                         {(row.type === 'primit' || (row.type === 'emis' && row.source === 'spv_anaf')) && (
                           <Link href={`/re-facturare/${row.id}`}>
                             <button title="Re-facturează" className="flex items-center justify-center w-6 h-6 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-colors">
@@ -685,10 +677,7 @@ export default function AllInvoices() {
                     <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold border ${STATUS_CLS[row.status] || STATUS_CLS.pending}`}>
                       {STATUS_LBL[row.status] || row.status}
                     </span>
-                    <button onClick={() => navigate(row.type === 'refacturat' ? `/re-facturare/${row.id}` : `/facturi-primite/${row.id}`)}
-                      className="flex items-center justify-center w-5 h-5 rounded bg-slate-50 text-slate-600 border border-slate-200">
-                      <Pencil className="w-2.5 h-2.5" />
-                    </button>
+
                     <Link href={`/re-facturare/${row.id}`}>
                       <button title="Re-facturează" className="flex items-center justify-center w-5 h-5 rounded bg-blue-50 text-blue-700 border border-blue-200">
                         <Send className="w-2.5 h-2.5" />

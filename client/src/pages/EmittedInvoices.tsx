@@ -249,13 +249,7 @@ export default function EmittedInvoices() {
                         >
                           <Download className="w-3.5 h-3.5" />
                         </button>
-                        <button
-                          onClick={() => navigate(`/facturi-emise-nou/${row.id}`)}
-                          className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-center transition-colors"
-                          title="Editează"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
+
                         {(!row.spvStatus || row.spvStatus === "nesincronizat" || row.spvStatus === "eroare") && (
                           <button
                             onClick={() => sendToSpv.mutate({ id: row.id })}
