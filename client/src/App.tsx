@@ -32,6 +32,7 @@ function Router() {
     <Switch>
       {/* Public pages - no layout */}
       <Route path="/" component={Landing} />
+      <Route path="/landing" component={Landing} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/admin" component={AdminDashboard} />
