@@ -59,7 +59,7 @@ const STATUS_LBL: Record<string, string> = {
 };
 // Pentru facturi PRIMITE: pending = Neachitat (tu trebuie să plătești)
 const STATUS_LBL_PRIMIT: Record<string, string> = {
-  pending: "Neachitat", processed: "Procesat", paid: "Achitat",
+  pending: "Neachitat", processed: "Achitat", paid: "Achitat",
   draft: "Ciornă", sent: "Procesat", archived: "Arhivat", overdue: "Restanță",
   storno: "Storno",
 };
@@ -589,13 +589,13 @@ export default function AllInvoices() {
                     <td className="px-2 py-2">
                       <div className="flex items-center gap-1 justify-end">
                         {/* Buton Marchează Achitat/Încasat — doar dacă nu e deja plătit */}
-                        {row.status !== 'paid' && row.status !== 'storno' && row.type !== 'refacturat' && (
+                        {row.status !== 'paid' && row.status !== 'processed' && row.status !== 'storno' && row.type !== 'refacturat' && (
                           <button
                             onClick={() => {
                               if (row.type === 'emis' && row.source === 'manual') {
                                 markEmittedPaid.mutate({ id: row.id, status: 'paid' });
                               } else if (row.type === 'primit') {
-                                markArchivePaid.mutate({ id: row.id, status: 'paid' });
+                                markArchivePaid.mutate({ id: row.id, status: 'processed' });
                               }
                             }}
                             title={row.type === 'primit' ? "Marchează Achitat" : "Marchează Încasat"}

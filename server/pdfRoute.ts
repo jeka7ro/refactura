@@ -88,10 +88,14 @@ export function registerPdfRoute(app: any) {
         notes:     ri.notes || undefined,
       });
 
+      pdfStream.on("error", (err: any) => {
+        if (!res.headersSent) res.status(500).json({ error: err.message });
+      });
+      res.on("close", () => { try { pdfStream.destroy?.(); } catch {} });
       pdfStream.pipe(res);
     } catch (e: any) {
       console.error("[PDF Route] Error:", e.message);
-      res.status(500).json({ error: e.message });
+      if (!res.headersSent) res.status(500).json({ error: e.message });
     }
   });
 
@@ -265,10 +269,12 @@ export function registerPdfRoute(app: any) {
       );
 
       const pdfStream = generateReInvoicePDF(pdfData);
+      pdfStream.on("error", (err: any) => { if (!res.headersSent) res.status(500).json({ error: err.message }); });
+      res.on("close", () => { try { pdfStream.destroy?.(); } catch {} });
       pdfStream.pipe(res);
     } catch (e: any) {
       console.error("[PDF Archive Route] Error:", e.message);
-      res.status(500).json({ error: e.message });
+      if (!res.headersSent) res.status(500).json({ error: e.message });
     }
   });
 
@@ -341,10 +347,12 @@ export function registerPdfRoute(app: any) {
         notes: inv.mentions || undefined,
       });
 
+      pdfStream.on("error", (err: any) => { if (!res.headersSent) res.status(500).json({ error: err.message }); });
+      res.on("close", () => { try { pdfStream.destroy?.(); } catch {} });
       pdfStream.pipe(res);
     } catch (e: any) {
       console.error("[PDF Emitted Route] Error:", e.message);
-      res.status(500).json({ error: e.message });
+      if (!res.headersSent) res.status(500).json({ error: e.message });
     }
   });
 

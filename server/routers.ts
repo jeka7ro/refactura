@@ -801,7 +801,7 @@ export const appRouter = router({
     updateStatus: protectedProcedure
       .input(z.object({
         id: z.number(),
-        status: z.enum(["pending", "processed", "paid", "archived", "refactured"]),
+        status: z.enum(["pending", "processed", "archived", "refactured"]),
       }))
       .mutation(async ({ input, ctx }) => {
         if (!ctx.user?.tenantId) throw new Error("No tenant context");
