@@ -80,6 +80,11 @@ function Router() {
           <EmitInvoice />
         </DashboardLayout>
       </Route>
+      <Route path="/facturi-emise-nou/storno/:stornoId">
+        <DashboardLayout>
+          <EmitInvoice />
+        </DashboardLayout>
+      </Route>
       <Route path="/re-facturare/:id">
         <DashboardLayout>
           <ReInvoice />

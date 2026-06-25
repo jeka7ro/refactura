@@ -85,12 +85,20 @@ export default function EmitInvoice() {
   const [showOptional, setShowOptional] = useState(false);
   const [activeLineDropdown, setActiveLineDropdown] = useState<string | null>(null);
 
+  const params = useParams<{ id?: string, stornoId?: string }>();
+  const stornoId = params?.stornoId;
+
   // Data
   const { data: clientsData } = trpc.clients.list.useQuery();
   const { data: productsData } = trpc.products.list.useQuery();
   const { data: nextNumber } = trpc.emittedInvoice.nextNumber.useQuery({ series });
   const { data: tenantsData = [] } = trpc.tenants.list.useQuery();
   const tenant = tenantsData[0];
+
+  const { data: originalInvoice } = trpc.emittedInvoice.getById.useQuery(
+    { id: parseInt(stornoId!) },
+    { enabled: !!stornoId }
+  );
 
   const products = productsData || [];
   const createProductMutation = trpc.products.create.useMutation({
@@ -116,6 +124,52 @@ export default function EmitInvoice() {
   useEffect(() => {
     if (nextNumber && !invoiceNumber) setInvoiceNumber(nextNumber);
   }, [nextNumber]);
+
+  // Pre-fill Storno data
+  useEffect(() => {
+    if (originalInvoice && stornoId) {
+      if (originalInvoice.clientId) setSelectedClientId(String(originalInvoice.clientId));
+      setClientName(originalInvoice.clientName || "");
+      setClientCUI(originalInvoice.clientCUI || "");
+      setClientRegCom(originalInvoice.clientRegCom || "");
+      setClientAddress(originalInvoice.clientAddress || "");
+      setClientCity(originalInvoice.clientCity || "");
+      setClientEmail(originalInvoice.clientEmail || "");
+      setClientPhone(originalInvoice.clientPhone || "");
+      setCurrency((originalInvoice.currency || "RON") as Currency);
+      
+      const stornoLines = originalInvoice.lines.map(l => ({
+        id: crypto.randomUUID(),
+        description: l.description,
+        quantity: -Math.abs(parseFloat(String(l.quantity))), // Negate quantity
+        unitPrice: parseFloat(String(l.unitPrice)),
+        unit: l.unit,
+        vatRate: l.vatRate,
+      }));
+      setLines(stornoLines.length ? stornoLines : [defaultLine()]);
+      
+      let oldNotes = originalInvoice.notes || "";
+      const stornoNote = `Storno la factura seria ${originalInvoice.series} nr. ${originalInvoice.number} din ${originalInvoice.issueDate.split("T")[0]}`;
+      
+      // Merge extra fields from notes if they exist (Oblio format)
+      if (oldNotes.includes("Întocmit de:")) {
+        const parts = oldNotes.split("\n");
+        parts.forEach(p => {
+          if (p.startsWith("Întocmit de: ")) setIntocmitDe(p.replace("Întocmit de: ", ""));
+          if (p.startsWith("CNP: ")) setCarteIdentitate(p.replace("CNP: ", ""));
+          if (p.startsWith("Delegat: ")) setDelegat(p.replace("Delegat: ", ""));
+          if (p.startsWith("Număr aviz: ")) setNumarAviz(p.replace("Număr aviz: ", ""));
+          if (p.startsWith("Auto: ")) setAuto(p.replace("Auto: ", ""));
+          if (p.startsWith("Mijloc transport: ")) setAuto(p.replace("Mijloc transport: ", ""));
+          if (p.startsWith("Agent vânzări: ")) setAgentVanzari(p.replace("Agent vânzări: ", ""));
+          if (p.startsWith("Punct de lucru: ")) setPunctLucru(p.replace("Punct de lucru: ", ""));
+          if (p.startsWith("Număr comandă: ")) setNumarComanda(p.replace("Număr comandă: ", ""));
+          if (p.startsWith("Număr contract: ")) setNumarContract(p.replace("Număr contract: ", ""));
+        });
+      }
+      setMentiuni(stornoNote);
+    }
+  }, [originalInvoice, stornoId]);
 
   const selectProduct = (lineId: string, p: any) => {
     updateLine(lineId, "description", p.name);

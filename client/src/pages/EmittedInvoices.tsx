@@ -1,7 +1,7 @@
 // EmittedInvoices.tsx — Lista Facturilor Emise Direct din Platformă
 import { useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
-import { Plus, Eye, Download, Trash2, Send, Loader2, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Eye, Download, Trash2, Send, Loader2, Search, ChevronLeft, ChevronRight, Undo2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { formatCurrency, formatDate } from "@/lib/store";
@@ -226,6 +226,13 @@ export default function EmittedInvoices() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
+                        <button
+                          onClick={() => navigate(`/facturi-emise-nou/storno/${row.id}`)}
+                          className="w-7 h-7 rounded-lg border border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100 flex items-center justify-center transition-colors"
+                          title="Storno Factură"
+                        >
+                          <Undo2 className="w-3.5 h-3.5" />
+                        </button>
                         <button
                           onClick={() => navigate(`/facturi-emise-nou/${row.id}`)}
                           className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-center transition-colors"
