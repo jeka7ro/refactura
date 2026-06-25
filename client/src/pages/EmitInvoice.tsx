@@ -158,7 +158,7 @@ export default function EmitInvoice() {
           quantity: -Math.abs(parseFloat(String(l.quantity))), // Negate quantity
           unitPrice: parseFloat(String(l.unitPrice)),
           unit: l.unit,
-          vatRate: l.vatRate,
+          vatRate: !isNaN(parseFloat(String(l.vatRate))) ? parseFloat(String(l.vatRate)) : 21,
         }));
         setLines(stornoLines.length ? stornoLines : [defaultLine()]);
         
@@ -176,7 +176,7 @@ export default function EmitInvoice() {
           quantity: parseFloat(String(l.quantity)),
           unitPrice: parseFloat(String(l.unitPrice)),
           unit: l.unit,
-          vatRate: l.vatRate,
+          vatRate: !isNaN(parseFloat(String(l.vatRate))) ? parseFloat(String(l.vatRate)) : 21,
         }));
         setLines(editLines.length ? editLines : [defaultLine()]);
         
@@ -315,7 +315,7 @@ export default function EmitInvoice() {
           description: l.description,
           quantity: parseFloat(String(l.quantity)) || 1,
           unitPrice: parseFloat(String(l.unitPrice)) || 0,
-          unit: l.unit, vatRate: l.vatRate,
+          unit: l.unit, vatRate: parseFloat(String(l.vatRate)) || 0,
           total: computeLineTotal(l), lineOrder: i,
         })),
       };

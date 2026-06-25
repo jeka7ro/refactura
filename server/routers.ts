@@ -1065,7 +1065,7 @@ export const appRouter = router({
               quantity: String(l.quantity),
               unitPrice: String(l.unitPrice),
               unit: l.unit || "buc",
-              vatRate: String(l.vatRate ?? 19),
+              vatRate: String(l.vatRate ?? 21),
               total: String(l.total),
               lineOrder: l.lineOrder ?? i,
             } as any))
@@ -1143,7 +1143,7 @@ export const appRouter = router({
                 quantity: String(l.quantity),
                 unitPrice: String(l.unitPrice),
                 unit: l.unit || "buc",
-                vatRate: String(l.vatRate ?? 19),
+                vatRate: String(l.vatRate ?? 21),
                 total: String(l.total),
                 lineOrder: l.lineOrder ?? i,
               } as any))

@@ -272,5 +272,81 @@ export function registerPdfRoute(app: any) {
     }
   });
 
+  // GET /api/pdf/emitted/:id
+  router.get("/emitted/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) { res.status(400).json({ error: "ID invalid" }); return; }
+
+      const db = await getDb();
+      if (!db) { res.status(500).json({ error: "DB unavailable" }); return; }
+
+      const { emittedInvoices, emittedInvoiceLines, tenants } = await import("../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+
+      const [inv] = await db.select().from(emittedInvoices).where(eq(emittedInvoices.id, id));
+      if (!inv) { res.status(404).json({ error: "Factura nu a fost găsită" }); return; }
+
+      const lines = await db.select().from(emittedInvoiceLines).where(eq(emittedInvoiceLines.emittedInvoiceId, id));
+
+      const [tenant] = await db.select().from(tenants).where(eq(tenants.id, inv.tenantId));
+      let settings: any = {};
+      try { settings = JSON.parse(tenant?.settings || "{}"); } catch {}
+
+      const isDownload = req.query.download === "1";
+      const filename = `${inv.series}${inv.number || `FACT-${id}`}.pdf`;
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `${isDownload ? "attachment" : "inline"}; filename="${filename}"`
+      );
+
+      let logoBase64 = settings.logoBase64 || "DEFAULT_TEXT_LOGO";
+
+      const pdfStream = generateReInvoicePDF({
+        number: `${inv.series || ''} ${inv.number || ''}`.trim(),
+        date: inv.issueDate || new Date().toISOString().split("T")[0],
+        dueDate: inv.dueDate || "",
+        clientName: inv.clientName || "",
+        clientCUI: inv.clientCUI || "",
+        clientAddress: inv.clientAddress || "",
+        clientCity: "",
+        clientCounty: "",
+        clientEmail: "",
+        clientPhone: "",
+        companyName: tenant?.name || "",
+        companyCUI: tenant?.cui || "",
+        companyAddress: tenant?.address || "",
+        companyCity: settings.city || "",
+        companyCounty: settings.county || "",
+        companyEmail: tenant?.email || "",
+        companyPhone: tenant?.phone || "",
+        companyIBAN: settings.iban || "",
+        companyBank: settings.bank || "",
+        logoBase64,
+        template: settings.invoiceTemplate || "classic",
+        lines: lines.map(l => ({
+          description: l.description || "",
+          quantity: parseFloat(l.quantity || "1"),
+          unitPrice: parseFloat(l.unitPrice || "0"),
+          unit: l.unit || "buc",
+          vatRate: parseFloat(l.vatRate || "21"),
+          total: parseFloat(l.total || "0"),
+        })),
+        subtotal: parseFloat(inv.subtotal || "0"),
+        totalVAT: parseFloat(inv.totalVAT || "0"),
+        total: parseFloat(inv.total || "0"),
+        currency: inv.currency || "RON",
+        notes: inv.mentions || undefined,
+      });
+
+      pdfStream.pipe(res);
+    } catch (e: any) {
+      console.error("[PDF Emitted Route] Error:", e.message);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   app.use("/api/pdf", router);
 }

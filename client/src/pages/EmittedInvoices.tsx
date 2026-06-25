@@ -1,7 +1,7 @@
 // EmittedInvoices.tsx — Lista Facturilor Emise Direct din Platformă
 import { useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
-import { Plus, Eye, Download, Trash2, Send, Loader2, Search, ChevronLeft, ChevronRight, Undo2 } from "lucide-react";
+import { Plus, Eye, Download, Pencil, Trash2, Send, Loader2, Search, ChevronLeft, ChevronRight, Undo2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { formatCurrency, formatDate } from "@/lib/store";
@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const STATUS_LABELS: Record<string, string> = {
-  draft: "Ciornă", sent: "Trimisă", paid: "Achitată", overdue: "Restanță", cancelled: "Anulată",
+  draft: "Ciornă", sent: "Emisă", paid: "Achitată", overdue: "Restanță", cancelled: "Anulată",
 };
 const STATUS_COLORS: Record<string, string> = {
   draft:     "bg-slate-100 text-slate-600 border-slate-200",
@@ -27,7 +27,7 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: "bg-slate-100 text-slate-500 border-slate-200",
 };
 const SPV_LABELS: Record<string, string> = {
-  nesincronizat: "—", in_procesare: "Procesare", validat: "Validat", eroare: "Eroare",
+  nesincronizat: "Netrimisă", in_procesare: "Procesare", validat: "Validată", eroare: "Eroare",
 };
 const SPV_COLORS: Record<string, string> = {
   nesincronizat: "text-slate-400",
@@ -127,7 +127,7 @@ export default function EmittedInvoices() {
             {[
               { id: "all",     label: "Toate",     count: counts.all },
               { id: "draft",   label: "Ciornă",    count: counts.draft },
-              { id: "sent",    label: "Trimise",   count: counts.sent },
+              { id: "sent",    label: "Emise",   count: counts.sent },
               { id: "paid",    label: "Achitate",  count: counts.paid },
               { id: "overdue", label: "Restanțe",  count: counts.overdue },
             ].map(f => (
@@ -153,7 +153,7 @@ export default function EmittedInvoices() {
               placeholder="Caută factură, client..."
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); }}
-              className="w-full h-8 pl-9 pr-10 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-full text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full h-8 !pl-10 pr-10 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-full text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {search && (
               <span className="absolute right-3 top-1/2 -translate-y-1/2 bg-blue-600 text-white rounded-full px-2 text-[10px] font-bold">
@@ -196,7 +196,7 @@ export default function EmittedInvoices() {
                 paged.map((row, idx) => (
                   <tr
                     key={row.id}
-                    onClick={() => navigate(`/facturi-emise-nou/${row.id}`)}
+                    onClick={() => navigate(`/facturi-emise-nou/view/${row.id}`)}
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
                   >
                     <td className="text-center px-4 py-3 text-slate-400 text-xs">
@@ -234,11 +234,18 @@ export default function EmittedInvoices() {
                           <Undo2 className="w-3.5 h-3.5" />
                         </button>
                         <button
+                          onClick={() => window.open(`/api/pdf/emitted/${row.id}`, '_blank')}
+                          className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-center transition-colors"
+                          title="Printează PDF"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </button>
+                        <button
                           onClick={() => navigate(`/facturi-emise-nou/${row.id}`)}
                           className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-center transition-colors"
-                          title="Vizualizare"
+                          title="Editează"
                         >
-                          <Eye className="w-3.5 h-3.5" />
+                          <Pencil className="w-3.5 h-3.5" />
                         </button>
                         {(!row.spvStatus || row.spvStatus === "nesincronizat" || row.spvStatus === "eroare") && (
                           <button

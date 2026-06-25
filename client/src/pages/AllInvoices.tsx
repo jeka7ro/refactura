@@ -129,21 +129,24 @@ export default function AllInvoices() {
 
   const { data: archiveData, isLoading: l1, refetch: r1 } = trpc.invoiceArchive.list.useQuery({});
   const { data: reInvoices = [], isLoading: l2, refetch: r2 } = trpc.reinvoice.list.useQuery();
+  const { data: emittedInvoices = [], isLoading: l3, refetch: r3 } = trpc.emittedInvoice.list.useQuery();
+  
   const { data: tenantsData = [] } = trpc.tenants.list.useQuery();
   const tenant         = (tenantsData as any[])[0];
   const tenantSettings = useMemo(() => { try { return JSON.parse(tenant?.settings || "{}"); } catch { return {}; } }, [tenant]);
 
   const downloadPDF = trpc.reinvoice.downloadPDF.useMutation();
   const syncOblio = trpc.integrations.syncOblio.useMutation({
-    onSuccess: () => { r1(); r2(); },
+    onSuccess: () => { r1(); r2(); r3(); },
   });
   const syncSpvManual = trpc.integrations.syncSpvManual.useMutation({
-    onSuccess: () => { r1(); r2(); },
+    onSuccess: () => { r1(); r2(); r3(); },
   });
   const { data: dbIntegrations = [] } = trpc.integrations.list.useQuery();
 
   const deleteArchive = trpc.invoiceArchive.delete.useMutation({ onSuccess: () => r1() });
   const deleteReinvoice = trpc.reinvoice.delete.useMutation({ onSuccess: () => r2() });
+  const deleteEmitted = trpc.emittedInvoice.delete.useMutation({ onSuccess: () => r3() });
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
@@ -151,6 +154,8 @@ export default function AllInvoices() {
     try {
       if (deleteTarget.type === "refacturat") {
         await deleteReinvoice.mutateAsync({ id: deleteTarget.id });
+      } else if (deleteTarget.type === "emis" && deleteTarget.source === "manual") {
+        await deleteEmitted.mutateAsync({ id: deleteTarget.id });
       } else {
         await deleteArchive.mutateAsync({ id: deleteTarget.id });
       }
@@ -161,12 +166,10 @@ export default function AllInvoices() {
     setDeleteTarget(null);
   };
 
-  const isLoading = l1 || l2;
+  const isLoading = l1 || l2 || l3;
 
-  const archiveItems: any[] = useMemo(() => {
-    const raw = archiveData as any;
-    if (!raw) return [];
-    if (Array.isArray(raw)) return raw;
+  const archiveItems = useMemo(() => {
+    const raw = archiveData as unknown as { items: any[], metadata: any };
     if (raw?.items) return raw.items;
     return [];
   }, [archiveData]);
@@ -181,7 +184,7 @@ export default function AllInvoices() {
         date: i.issueDate || i.createdAt || "", dueDate: i.dueDate || "",
         total: t, currency: i.currency || "RON",
         status: t < 0 ? "storno" : (i.status || "pending"), fileUrl: i.fileUrl,
-        source: i.source || "manual",
+        source: i.source || "spv_anaf",
       });
     });
     (Array.isArray(reInvoices) ? reInvoices : []).forEach((i: any) => {
@@ -195,8 +198,19 @@ export default function AllInvoices() {
         source: "refactura",
       });
     });
+    (Array.isArray(emittedInvoices) ? emittedInvoices : []).forEach((i: any) => {
+      const t = parseFloat(i.total || "0");
+      rows.push({
+        id: i.id, type: "emis",
+        number: i.number || `FACT-${i.id}`, partnerName: i.clientName || "—",
+        date: i.issueDate || i.createdAt || "", dueDate: i.dueDate || "",
+        total: t, currency: i.currency || "RON",
+        status: t < 0 ? "storno" : (i.status === "sent" ? "sent" : (i.status || "draft")), fileUrl: null,
+        source: "manual",
+      });
+    });
     return rows.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
-  }, [archiveItems, reInvoices]);
+  }, [archiveItems, reInvoices, emittedInvoices]);
 
   const filtered = useMemo(() => {
     let rows = typeFilter === "all" ? allRows : allRows.filter(r => r.type === typeFilter);
@@ -505,18 +519,22 @@ export default function AllInvoices() {
               ) : paginated.map((row, i) => {
                 const tb = TYPE_BADGE[row.type];
                 return (
-                  <tr key={`${row.type}-${row.id}`} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${selectedIds.has(`${row.type}-${row.id}`) ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
+                  <tr key={`${row.source}-${row.type}-${row.id}`} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${selectedIds.has(`${row.source}-${row.type}-${row.id}`) ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
                     <td className="px-2 py-2 text-center">
                       <input
                         type="checkbox"
                         className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                        checked={selectedIds.has(`${row.type}-${row.id}`)}
-                        onChange={() => toggleSelect(`${row.type}-${row.id}`)}
+                        checked={selectedIds.has(`${row.source}-${row.type}-${row.id}`)}
+                        onChange={() => toggleSelect(`${row.source}-${row.type}-${row.id}`)}
                       />
                     </td>
                     <td className="px-2 py-2 text-center text-[11px] text-slate-400">{(page - 1) * rowsPerPage + i + 1}</td>
                     <td className="px-3 py-2">
-                      <button onClick={() => navigate(row.type === 'refacturat' ? `/re-facturare/${row.id}` : `/facturi-primite/${row.id}`)}
+                      <button onClick={() => {
+                          if (row.type === 'refacturat') navigate(`/re-facturi/${row.id}`);
+                          else if (row.type === 'emis' && row.source === 'manual') navigate(`/facturi-emise-nou/view/${row.id}`);
+                          else navigate(`/facturi-primite/${row.id}`);
+                        }}
                         className="text-xs font-bold text-blue-600 hover:underline">
                         {row.number}
                       </button>
@@ -542,16 +560,22 @@ export default function AllInvoices() {
                     </td>
                     <td className="px-2 py-2">
                       <div className="flex items-center gap-1 justify-end">
-                        <button onClick={() => navigate(row.type === 'refacturat' ? `/re-facturare/${row.id}` : `/facturi-primite/${row.id}`)}
-                          title="Editează"
+                        <button onClick={() => {
+                            if (row.type === 'refacturat') navigate(`/re-facturi/${row.id}`);
+                            else if (row.type === 'emis' && row.source === 'manual') navigate(`/facturi-emise-nou/${row.id}`);
+                            else navigate(`/facturi-primite/${row.id}`);
+                          }}
+                          title={row.type === 'emis' && row.source === 'manual' ? "Editează" : "Vizualizare"}
                           className="flex items-center justify-center w-6 h-6 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 transition-colors">
                           <Pencil className="w-3 h-3" />
                         </button>
-                        <Link href={`/re-facturare/${row.id}`}>
-                          <button title="Re-facturează" className="flex items-center justify-center w-6 h-6 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-colors">
-                            <Send className="w-3 h-3" />
-                          </button>
-                        </Link>
+                        {(row.type === 'primit' || (row.type === 'emis' && row.source === 'spv_anaf')) && (
+                          <Link href={`/re-facturare/${row.id}`}>
+                            <button title="Re-facturează" className="flex items-center justify-center w-6 h-6 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-colors">
+                              <Send className="w-3 h-3" />
+                            </button>
+                          </Link>
+                        )}
                         {row.type === "refacturat" ? (
                           <button onClick={() => handleDownloadReInvoicePDF(row)}
                             title="Descarcă PDF"
@@ -561,7 +585,9 @@ export default function AllInvoices() {
                           </button>
                         ) : (
                           <button onClick={() => {
-                              if (row.fileUrl && row.fileUrl !== "spv_import") {
+                              if (row.type === 'emis' && row.source === 'manual') {
+                                window.open(`/api/pdf/emitted/${row.id}`, '_blank');
+                              } else if (row.fileUrl && row.fileUrl !== "spv_import") {
                                 window.open(row.fileUrl, '_blank');
                               } else {
                                 toast.error("PDF-ul vizual nu este disponibil (factură importată ca XML din SPV).");
