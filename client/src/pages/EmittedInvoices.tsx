@@ -41,6 +41,7 @@ export default function EmittedInvoices() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [stornoTarget, setStornoTarget] = useState<{ id: number; number: string } | null>(null);
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
 
@@ -227,7 +228,7 @@ export default function EmittedInvoices() {
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
                         <button
-                          onClick={() => navigate(`/facturi-emise-nou/storno/${row.id}`)}
+                          onClick={() => setStornoTarget({ id: row.id, number: `${row.series || ''} ${row.number}`.trim() })}
                           className="w-7 h-7 rounded-lg border border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100 flex items-center justify-center transition-colors"
                           title="Storno Factură"
                         >
@@ -322,6 +323,28 @@ export default function EmittedInvoices() {
               onClick={() => deleteId && deleteMutation.mutate({ id: deleteId })}
             >
               Șterge
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Storno confirm */}
+      <AlertDialog open={stornoTarget !== null} onOpenChange={() => setStornoTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Emite factură de Storno?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vei emite o factură de storno (cu valori negative) pentru factura <strong>{stornoTarget?.number}</strong>.
+              Factura originală nu va fi modificată. Ești sigur că vrei să continui?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anulează</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-orange-600 hover:bg-orange-700 text-white"
+              onClick={() => { if (stornoTarget) { navigate(`/facturi-emise-nou/storno/${stornoTarget.id}`); setStornoTarget(null); } }}
+            >
+              Da, emite Storno
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
