@@ -1,16 +1,15 @@
-// EmitInvoice.tsx — Creare Factură Nouă Direct din Platformă
+// EmitInvoice.tsx — Creare Factură Nouă — Layout inspirat din Oblio
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useParams } from "wouter";
 import {
-  ArrowLeft, Plus, Trash2, Save, Send, FileText,
-  ChevronDown, ChevronUp, User, Calendar, Hash, AlertCircle, Loader2
+  ArrowLeft, Plus, Trash2, Save, Send, Loader2, ChevronDown, ChevronUp
 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { formatCurrency, currencies, type Currency } from "@/lib/store";
 
 const VAT_RATES = [0, 5, 9, 19];
-const UNITS = ["buc", "ore", "luni", "kg", "m", "m2", "m3", "l", "set", "servicii"];
+const UNITS = ["buc", "ore", "luni", "kg", "m", "m2", "m3", "l", "set", "servicii", "kg", "t"];
 
 interface Line {
   id: string;
@@ -19,7 +18,6 @@ interface Line {
   unitPrice: number | string;
   unit: string;
   vatRate: number;
-  total: number;
 }
 
 const defaultLine = (): Line => ({
@@ -29,21 +27,27 @@ const defaultLine = (): Line => ({
   unitPrice: 0,
   unit: "buc",
   vatRate: 19,
-  total: 0,
 });
 
-function computeLine(line: Line) {
+function computeLineTotal(line: Line) {
   const qty = parseFloat(String(line.quantity)) || 0;
   const price = parseFloat(String(line.unitPrice)) || 0;
   return Math.round(qty * price * 100) / 100;
 }
+function computeLineVAT(line: Line) {
+  return Math.round(computeLineTotal(line) * (parseFloat(String(line.vatRate)) / 100) * 100) / 100;
+}
+
+const inputCls = "w-full h-9 px-3 text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500";
+const selectCls = "w-full h-9 px-3 text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500";
+const labelCls = "block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1";
 
 export default function EmitInvoice() {
   const [, navigate] = useLocation();
   const utils = trpc.useUtils();
 
-  // Client
-  const [selectedClientId, setSelectedClientId] = useState<string>("");
+  // Client fields
+  const [selectedClientId, setSelectedClientId] = useState("");
   const [clientName, setClientName] = useState("");
   const [clientCUI, setClientCUI] = useState("");
   const [clientRegCom, setClientRegCom] = useState("");
@@ -60,15 +64,25 @@ export default function EmitInvoice() {
   const [currency, setCurrency] = useState<Currency>("RON");
   const [issueDate, setIssueDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 30);
-    return d.toISOString().split("T")[0];
+    const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().split("T")[0];
   });
-  const [notes, setNotes] = useState("");
+
+  // Additional fields (like Oblio)
+  const [intocmitDe, setIntocmitDe] = useState("");
+  const [delegat, setDelegat] = useState("");
+  const [carteIdentitate, setCarteIdentitate] = useState("");
+  const [numarAviz, setNumarAviz] = useState("");
+  const [auto, setAuto] = useState("");
+  const [agentVanzari, setAgentVanzari] = useState("");
+  const [punctLucru, setPunctLucru] = useState("");
+  const [numarComanda, setNumarComanda] = useState("");
+  const [numarContract, setNumarContract] = useState("");
+  const [mentiuni, setMentiuni] = useState("");
 
   // Lines
   const [lines, setLines] = useState<Line[]>([defaultLine()]);
   const [saving, setSaving] = useState(false);
+  const [showOptional, setShowOptional] = useState(false);
 
   // Data
   const { data: clientsData } = trpc.clients.list.useQuery();
@@ -80,7 +94,7 @@ export default function EmitInvoice() {
     onSuccess: (data) => {
       utils.emittedInvoice.list.invalidate();
       toast.success("Factura a fost creată cu succes!");
-      navigate(`/facturi-emise-nou/${data.id}`);
+      navigate("/facturi-emise-nou");
     },
     onError: (err) => toast.error("Eroare: " + err.message),
   });
@@ -92,7 +106,6 @@ export default function EmitInvoice() {
       (c.cui || "").includes(clientSearch)
     ), [clients, clientSearch]);
 
-  // Auto fill from nextNumber
   useEffect(() => {
     if (nextNumber && !invoiceNumber) setInvoiceNumber(nextNumber);
   }, [nextNumber]);
@@ -111,56 +124,56 @@ export default function EmitInvoice() {
   };
 
   const addLine = () => setLines(prev => [...prev, defaultLine()]);
-
   const removeLine = (id: string) => setLines(prev => prev.filter(l => l.id !== id));
-
   const updateLine = useCallback((id: string, field: keyof Line, value: any) => {
-    setLines(prev => prev.map(l => {
-      if (l.id !== id) return l;
-      const updated = { ...l, [field]: value };
-      updated.total = computeLine(updated);
-      return updated;
-    }));
+    setLines(prev => prev.map(l => l.id === id ? { ...l, [field]: value } : l));
   }, []);
 
-  const subtotal = useMemo(() => lines.reduce((s, l) => s + computeLine(l), 0), [lines]);
-  const totalVAT = useMemo(() =>
-    lines.reduce((s, l) => s + Math.round(computeLine(l) * (parseFloat(String(l.vatRate)) / 100) * 100) / 100, 0),
-    [lines]);
+  const subtotal = useMemo(() => lines.reduce((s, l) => s + computeLineTotal(l), 0), [lines]);
+  const totalVAT = useMemo(() => lines.reduce((s, l) => s + computeLineVAT(l), 0), [lines]);
   const total = subtotal + totalVAT;
 
+  // Group VAT by rate
+  const vatBreakdown = useMemo(() => {
+    const map: Record<number, { base: number; vat: number }> = {};
+    lines.forEach(l => {
+      const r = parseFloat(String(l.vatRate));
+      if (!map[r]) map[r] = { base: 0, vat: 0 };
+      map[r].base += computeLineTotal(l);
+      map[r].vat += computeLineVAT(l);
+    });
+    return Object.entries(map).map(([rate, v]) => ({ rate: parseFloat(rate), ...v }));
+  }, [lines]);
+
+  const notesForSave = [
+    mentiuni,
+    numarComanda ? `Comanda: ${numarComanda}` : "",
+    numarContract ? `Contract: ${numarContract}` : "",
+    intocmitDe ? `Întocmit de: ${intocmitDe}` : "",
+    delegat ? `Delegat: ${delegat} ${carteIdentitate ? `(CI: ${carteIdentitate})` : ""}` : "",
+    numarAviz ? `Aviz însoțire: ${numarAviz}` : "",
+    auto ? `Auto: ${auto}` : "",
+    agentVanzari ? `Agent vânzări: ${agentVanzari}` : "",
+    punctLucru ? `Punct de lucru: ${punctLucru}` : "",
+  ].filter(Boolean).join("\n");
+
   const handleSave = async (status: "draft" | "sent" = "draft") => {
-    if (!clientName.trim()) { toast.error("Te rog selectează sau introduceți un client"); return; }
-    if (lines.some(l => !l.description.trim())) { toast.error("Toate liniile trebuie să aibă o descriere"); return; }
+    if (!clientName.trim()) { toast.error("Selectați sau introduceți un client"); return; }
+    if (lines.some(l => !l.description.trim())) { toast.error("Toate liniile trebuie să aibă descriere"); return; }
     setSaving(true);
     try {
       await createMutation.mutateAsync({
-        number: invoiceNumber,
-        series,
+        number: invoiceNumber, series,
         clientId: selectedClientId ? parseInt(selectedClientId) : undefined,
-        clientName,
-        clientCUI,
-        clientRegCom,
-        clientAddress,
-        clientCity,
-        clientEmail,
-        clientPhone,
-        issueDate,
-        dueDate,
-        subtotal,
-        totalVAT,
-        total,
-        currency,
-        status,
-        notes,
+        clientName, clientCUI, clientRegCom, clientAddress, clientCity, clientEmail, clientPhone,
+        issueDate, dueDate, subtotal, totalVAT, total, currency, status,
+        notes: notesForSave,
         lines: lines.map((l, i) => ({
           description: l.description,
           quantity: parseFloat(String(l.quantity)) || 1,
           unitPrice: parseFloat(String(l.unitPrice)) || 0,
-          unit: l.unit,
-          vatRate: l.vatRate,
-          total: computeLine(l),
-          lineOrder: i,
+          unit: l.unit, vatRate: l.vatRate,
+          total: computeLineTotal(l), lineOrder: i,
         })),
       });
     } finally {
@@ -169,28 +182,30 @@ export default function EmitInvoice() {
   };
 
   return (
-    <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
+    <div className="p-4 md:p-6 space-y-4 max-w-6xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate("/facturi-emise-nou")}
-            className="flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <ArrowLeft className="w-4 h-4 text-slate-600 dark:text-slate-400" />
           </button>
           <div>
-            <h1 className="text-xl md:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+            <h1 className="text-lg font-black tracking-tight text-slate-900 dark:text-white">
               Emite Factură Nouă
             </h1>
-            <p className="text-sm text-slate-500 font-medium">{invoiceNumber || "Număr nou..."}</p>
+            {tenant && (
+              <p className="text-xs text-slate-500">{tenant.name}{tenant.cui ? ` • CUI: ${tenant.cui}` : ""}</p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => handleSave("draft")}
             disabled={saving}
-            className="flex items-center gap-1.5 px-4 h-9 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-60"
+            className="flex items-center gap-1.5 px-4 h-9 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-60"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Salvează Ciornă
@@ -198,7 +213,7 @@ export default function EmitInvoice() {
           <button
             onClick={() => handleSave("sent")}
             disabled={saving}
-            className="flex items-center gap-1.5 px-4 h-9 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition-colors disabled:opacity-60"
+            className="flex items-center gap-1.5 px-4 h-9 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors disabled:opacity-60"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             Emite Factura
@@ -206,282 +221,297 @@ export default function EmitInvoice() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Left: Client + Invoice Meta */}
-        <div className="lg:col-span-2 space-y-4">
-          {/* Furnizor Info */}
-          {tenant && (
-            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900 rounded-lg p-4">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-blue-500 mb-1.5">Emitent (Furnizor)</p>
-              <p className="font-bold text-sm text-slate-900 dark:text-white">{tenant.name}</p>
-              {tenant.cui && <p className="text-xs text-slate-500 mt-0.5">CUI: {tenant.cui}</p>}
-              {tenant.address && <p className="text-xs text-slate-500">{tenant.address}</p>}
-            </div>
-          )}
-
-          {/* Client Card */}
-          <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 space-y-3">
-            <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
-              <User className="w-4 h-4 text-slate-400" />
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Client (Cumpărător)</span>
-            </div>
-
-            {/* Client search dropdown */}
+      {/* ── ROW 1: Client + Date + Serie ── */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded p-4">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+          {/* Client — wide */}
+          <div className="md:col-span-4 relative">
+            <label className={labelCls}>Nume sau Cod Fiscal Client *</label>
             <div className="relative">
               <input
                 type="text"
-                placeholder="Caută client sau adaugă manual..."
+                placeholder="Caută după nume sau CUI..."
                 value={showClientDropdown ? clientSearch : clientName}
                 onChange={e => {
-                  if (!showClientDropdown) {
-                    setClientName(e.target.value);
-                    setSelectedClientId("");
-                  }
+                  if (!showClientDropdown) { setClientName(e.target.value); setSelectedClientId(""); }
                   setClientSearch(e.target.value);
                 }}
                 onFocus={() => setShowClientDropdown(true)}
                 onBlur={() => setTimeout(() => setShowClientDropdown(false), 200)}
-                className="w-full h-9 px-3 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-md text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={inputCls}
               />
               {showClientDropdown && filteredClients.length > 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                <div className="absolute z-20 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded shadow-lg max-h-48 overflow-y-auto">
                   {filteredClients.slice(0, 8).map(c => (
-                    <button
-                      key={c.id}
-                      onMouseDown={() => selectClient(c)}
-                      className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm text-slate-900 dark:text-white"
-                    >
-                      <div className="font-medium">{c.name}</div>
+                    <button key={c.id} onMouseDown={() => selectClient(c)}
+                      className="w-full text-left px-3 py-2 hover:bg-blue-50 dark:hover:bg-slate-800 text-sm">
+                      <div className="font-medium text-slate-900 dark:text-white">{c.name}</div>
                       {c.cui && <div className="text-xs text-slate-400">CUI: {c.cui}</div>}
                     </button>
                   ))}
                 </div>
               )}
             </div>
-
-            {[
-              { label: "CUI / CIF", value: clientCUI, set: setClientCUI },
-              { label: "Reg. Com.", value: clientRegCom, set: setClientRegCom },
-              { label: "Adresă", value: clientAddress, set: setClientAddress },
-              { label: "Localitate", value: clientCity, set: setClientCity },
-              { label: "Email", value: clientEmail, set: setClientEmail, type: "email" },
-              { label: "Telefon", value: clientPhone, set: setClientPhone },
-            ].map(({ label, value, set, type }) => (
-              <div key={label}>
-                <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">{label}</label>
-                <input
-                  type={type || "text"}
-                  value={value}
-                  onChange={e => set(e.target.value)}
-                  className="w-full h-8 px-3 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-md text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+            {/* Sub-fields client */}
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <div>
+                <label className={labelCls}>CUI / CIF</label>
+                <input value={clientCUI} onChange={e => setClientCUI(e.target.value)} className={inputCls} placeholder="RO12345678" />
               </div>
-            ))}
+              <div>
+                <label className={labelCls}>Reg. Com.</label>
+                <input value={clientRegCom} onChange={e => setClientRegCom(e.target.value)} className={inputCls} placeholder="J40/..." />
+              </div>
+            </div>
+            <div className="mt-2">
+              <label className={labelCls}>Adresă</label>
+              <input value={clientAddress} onChange={e => setClientAddress(e.target.value)} className={inputCls} placeholder="Str. ..." />
+            </div>
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <div>
+                <label className={labelCls}>Localitate</label>
+                <input value={clientCity} onChange={e => setClientCity(e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Email</label>
+                <input type="email" value={clientEmail} onChange={e => setClientEmail(e.target.value)} className={inputCls} />
+              </div>
+            </div>
           </div>
 
-          {/* Invoice Meta */}
-          <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 space-y-3">
-            <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
-              <Hash className="w-4 h-4 text-slate-400" />
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Detalii Factură</span>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Serie</label>
+          {/* Dates */}
+          <div className="md:col-span-2">
+            <label className={labelCls}>Data Emiterii *</label>
+            <input type="date" value={issueDate} onChange={e => setIssueDate(e.target.value)} className={inputCls} />
+          </div>
+          <div className="md:col-span-2">
+            <label className={labelCls}>Data Scadenței</label>
+            <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className={inputCls} />
+          </div>
+
+          {/* Series + Number */}
+          <div className="md:col-span-2">
+            <label className={labelCls}>Serie</label>
+            <input value={series} onChange={e => setSeries(e.target.value.toUpperCase())} className={inputCls} />
+          </div>
+          <div className="md:col-span-2">
+            <label className={labelCls}>Număr</label>
+            <input value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} className={inputCls} />
+          </div>
+        </div>
+
+        {/* Row 2: Moneda + Telefon client */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+          <div className="md:col-span-2">
+            <label className={labelCls}>Moneda Facturii</label>
+            <select value={currency} onChange={e => setCurrency(e.target.value as Currency)} className={selectCls}>
+              {currencies.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="md:col-span-2">
+            <label className={labelCls}>Telefon Client</label>
+            <input value={clientPhone} onChange={e => setClientPhone(e.target.value)} className={inputCls} />
+          </div>
+        </div>
+      </div>
+
+      {/* ── LINES TABLE — full width ── */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded overflow-hidden">
+        {/* Table header */}
+        <div className="grid grid-cols-12 gap-0 bg-slate-800 dark:bg-slate-700 text-white text-[11px] font-bold uppercase tracking-wider">
+          <div className="col-span-5 px-4 py-2.5">Denumire Produs sau Serviciu</div>
+          <div className="col-span-1 px-3 py-2.5 text-center border-l border-slate-700">U.M.</div>
+          <div className="col-span-1 px-3 py-2.5 text-center border-l border-slate-700">Cant.</div>
+          <div className="col-span-1 px-3 py-2.5 text-center border-l border-slate-700">Cotă TVA</div>
+          <div className="col-span-2 px-3 py-2.5 text-right border-l border-slate-700">Preț (fără TVA)</div>
+          <div className="col-span-1 px-3 py-2.5 text-right border-l border-slate-700">Valoare</div>
+          <div className="col-span-1 px-3 py-2.5 text-center border-l border-slate-700"></div>
+        </div>
+
+        {/* Lines */}
+        <div className="divide-y divide-slate-100 dark:divide-slate-800">
+          {lines.map((line, idx) => (
+            <div key={line.id} className="grid grid-cols-12 gap-0 items-center hover:bg-slate-50 dark:hover:bg-slate-800/30">
+              <div className="col-span-5 px-3 py-2">
                 <input
-                  value={series}
-                  onChange={e => setSeries(e.target.value.toUpperCase())}
-                  className="w-full h-8 px-3 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-md text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  type="text"
+                  placeholder={`Denumire produs sau serviciu...`}
+                  value={line.description}
+                  onChange={e => updateLine(line.id, "description", e.target.value)}
+                  className="w-full h-8 px-2 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Număr</label>
+              <div className="col-span-1 px-2 py-2 border-l border-slate-100 dark:border-slate-800">
+                <select
+                  value={line.unit}
+                  onChange={e => updateLine(line.id, "unit", e.target.value)}
+                  className="w-full h-8 px-1 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                </select>
+              </div>
+              <div className="col-span-1 px-2 py-2 border-l border-slate-100 dark:border-slate-800">
                 <input
-                  value={invoiceNumber}
-                  onChange={e => setInvoiceNumber(e.target.value)}
-                  className="w-full h-8 px-3 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-md text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={line.quantity}
+                  onChange={e => updateLine(line.id, "quantity", e.target.value)}
+                  className="w-full h-8 px-2 text-sm text-center border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
-            </div>
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Monedă</label>
-              <select
-                value={currency}
-                onChange={e => setCurrency(e.target.value as Currency)}
-                className="w-full h-8 px-3 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-md text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {currencies.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Data Emiterii</label>
+              <div className="col-span-1 px-2 py-2 border-l border-slate-100 dark:border-slate-800">
+                <select
+                  value={line.vatRate}
+                  onChange={e => updateLine(line.id, "vatRate", parseFloat(e.target.value))}
+                  className="w-full h-8 px-1 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  {VAT_RATES.map(r => <option key={r} value={r}>{r}%</option>)}
+                </select>
+              </div>
+              <div className="col-span-2 px-2 py-2 border-l border-slate-100 dark:border-slate-800">
                 <input
-                  type="date"
-                  value={issueDate}
-                  onChange={e => setIssueDate(e.target.value)}
-                  className="w-full h-8 px-3 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-md text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={line.unitPrice}
+                  onChange={e => updateLine(line.id, "unitPrice", e.target.value)}
+                  className="w-full h-8 px-2 text-sm text-right border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Scadență</label>
-                <input
-                  type="date"
-                  value={dueDate}
-                  onChange={e => setDueDate(e.target.value)}
-                  className="w-full h-8 px-3 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-md text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+              <div className="col-span-1 px-3 py-2 border-l border-slate-100 dark:border-slate-800 text-right">
+                <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                  {formatCurrency(computeLineTotal(line), currency)}
+                </span>
+              </div>
+              <div className="col-span-1 px-2 py-2 border-l border-slate-100 dark:border-slate-800 flex justify-center">
+                {lines.length > 1 && (
+                  <button
+                    onClick={() => removeLine(line.id)}
+                    className="w-7 h-7 flex items-center justify-center rounded text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 hover:text-rose-600 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             </div>
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Observații</label>
+          ))}
+        </div>
+
+        {/* Add line + Totals */}
+        <div className="border-t border-slate-200 dark:border-slate-700 grid grid-cols-12">
+          <div className="col-span-7 px-4 py-3">
+            <button
+              onClick={addLine}
+              className="flex items-center gap-1.5 px-3 h-8 text-xs font-semibold text-blue-600 border border-blue-200 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" /> Adaugă Produs / Serviciu
+            </button>
+          </div>
+          <div className="col-span-5 px-4 py-3 border-l border-slate-200 dark:border-slate-700 space-y-1">
+            {vatBreakdown.map(({ rate, base, vat }) => (
+              <div key={rate} className="flex justify-between text-xs text-slate-500">
+                <span>TVA {rate}% × {formatCurrency(base, currency)}</span>
+                <span className="font-medium">{formatCurrency(vat, currency)}</span>
+              </div>
+            ))}
+            <div className="flex justify-between text-sm text-slate-600 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
+              <span>Total fără TVA:</span>
+              <span className="font-semibold">{formatCurrency(subtotal, currency)}</span>
+            </div>
+            <div className="flex justify-between text-sm text-slate-600 dark:text-slate-400">
+              <span>TVA Total:</span>
+              <span className="font-semibold">{formatCurrency(totalVAT, currency)}</span>
+            </div>
+            <div className="flex justify-between text-base font-black text-slate-900 dark:text-white border-t border-slate-200 dark:border-slate-700 pt-2 mt-1">
+              <span>TOTAL DE PLATĂ:</span>
+              <span className="text-blue-600">{formatCurrency(total, currency)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── OPTIONAL FIELDS — collapsible ── */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded overflow-hidden">
+        <button
+          onClick={() => setShowOptional(o => !o)}
+          className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+        >
+          <span>Câmpuri Opționale <span className="text-slate-400 font-normal">(Delegat, Aviz, Comandă, Mențiuni...)</span></span>
+          {showOptional ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+        </button>
+        {showOptional && (
+          <div className="border-t border-slate-100 dark:border-slate-800 p-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <label className={labelCls}>Întocmit de</label>
+                <input value={intocmitDe} onChange={e => setIntocmitDe(e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Delegat</label>
+                <input value={delegat} onChange={e => setDelegat(e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Carte Identitate</label>
+                <input value={carteIdentitate} onChange={e => setCarteIdentitate(e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Nr. Aviz Însoțire</label>
+                <input value={numarAviz} onChange={e => setNumarAviz(e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Auto (nr. înmatriculare)</label>
+                <input value={auto} onChange={e => setAuto(e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Agent Vânzări</label>
+                <input value={agentVanzari} onChange={e => setAgentVanzari(e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Punct de Lucru Client</label>
+                <input value={punctLucru} onChange={e => setPunctLucru(e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Nr. Comandă</label>
+                <input value={numarComanda} onChange={e => setNumarComanda(e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Nr. Contract</label>
+                <input value={numarContract} onChange={e => setNumarContract(e.target.value)} className={inputCls} />
+              </div>
+            </div>
+            <div className="mt-4">
+              <label className={labelCls}>Mențiuni (apar pe factură)</label>
               <textarea
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                rows={2}
-                className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-md text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                placeholder="Observații opționale..."
+                value={mentiuni}
+                onChange={e => setMentiuni(e.target.value)}
+                rows={3}
+                placeholder={`Exemplu: "Aceasta factură circulă fără semnătură și ștampilă."`}
+                className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
               />
             </div>
           </div>
-        </div>
+        )}
+      </div>
 
-        {/* Right: Lines */}
-        <div className="lg:col-span-3 space-y-4">
-          <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-slate-400" />
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Linii Factură</span>
-              </div>
-              <button
-                onClick={addLine}
-                className="flex items-center gap-1 px-3 h-7 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Adaugă Linie
-              </button>
-            </div>
-
-            {/* Lines table header */}
-            <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-800/30 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-800">
-              <div className="col-span-5">Descriere</div>
-              <div className="col-span-1 text-center">Cant.</div>
-              <div className="col-span-2 text-right">Preț/U</div>
-              <div className="col-span-1 text-center">TVA %</div>
-              <div className="col-span-1 text-center">U.M.</div>
-              <div className="col-span-1 text-right">Total</div>
-              <div className="col-span-1"></div>
-            </div>
-
-            {/* Lines */}
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
-              {lines.map((line, index) => (
-                <div key={line.id} className="grid grid-cols-12 gap-2 px-4 py-3 items-center">
-                  <div className="col-span-12 md:col-span-5">
-                    <input
-                      type="text"
-                      placeholder={`Descriere produs/serviciu ${index + 1}`}
-                      value={line.description}
-                      onChange={e => updateLine(line.id, "description", e.target.value)}
-                      className="w-full h-8 px-2 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-md text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div className="col-span-4 md:col-span-1">
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={line.quantity}
-                      onChange={e => updateLine(line.id, "quantity", e.target.value)}
-                      className="w-full h-8 px-2 text-sm text-center border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div className="col-span-4 md:col-span-2">
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={line.unitPrice}
-                      onChange={e => updateLine(line.id, "unitPrice", e.target.value)}
-                      className="w-full h-8 px-2 text-sm text-right border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div className="col-span-4 md:col-span-1">
-                    <select
-                      value={line.vatRate}
-                      onChange={e => updateLine(line.id, "vatRate", parseFloat(e.target.value))}
-                      className="w-full h-8 px-1 text-xs text-center border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-md text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {VAT_RATES.map(r => <option key={r} value={r}>{r}%</option>)}
-                    </select>
-                  </div>
-                  <div className="col-span-4 md:col-span-1">
-                    <select
-                      value={line.unit}
-                      onChange={e => updateLine(line.id, "unit", e.target.value)}
-                      className="w-full h-8 px-1 text-xs text-center border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-md text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-                    </select>
-                  </div>
-                  <div className="col-span-3 md:col-span-1 text-right">
-                    <span className="text-sm font-bold text-slate-900 dark:text-white">
-                      {formatCurrency(computeLine(line), currency)}
-                    </span>
-                  </div>
-                  <div className="col-span-1 flex justify-end">
-                    {lines.length > 1 && (
-                      <button
-                        onClick={() => removeLine(line.id)}
-                        className="w-7 h-7 flex items-center justify-center rounded-lg text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 hover:text-rose-600 transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Totals */}
-            <div className="border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30 px-4 py-4">
-              <div className="flex flex-col items-end gap-1.5 text-sm">
-                <div className="flex items-center gap-8 text-slate-600 dark:text-slate-400">
-                  <span>Subtotal (fără TVA):</span>
-                  <span className="font-medium w-28 text-right">{formatCurrency(subtotal, currency)}</span>
-                </div>
-                <div className="flex items-center gap-8 text-slate-600 dark:text-slate-400">
-                  <span>TVA:</span>
-                  <span className="font-medium w-28 text-right">{formatCurrency(totalVAT, currency)}</span>
-                </div>
-                <div className="flex items-center gap-8 border-t border-slate-300 dark:border-slate-600 pt-2 mt-1">
-                  <span className="font-black text-base text-slate-900 dark:text-white">TOTAL DE PLATĂ:</span>
-                  <span className="font-black text-base text-blue-600 w-28 text-right">{formatCurrency(total, currency)}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* TVA Breakdown */}
-          {totalVAT > 0 && (
-            <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Detaliu TVA</p>
-              <div className="space-y-1">
-                {[...new Set(lines.map(l => l.vatRate))].sort().map(rate => {
-                  const base = lines.filter(l => l.vatRate === rate).reduce((s, l) => s + computeLine(l), 0);
-                  const vat = Math.round(base * (rate / 100) * 100) / 100;
-                  return (
-                    <div key={rate} className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
-                      <span>TVA {rate}% aplicat la {formatCurrency(base, currency)}</span>
-                      <span className="font-semibold">{formatCurrency(vat, currency)}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
+      {/* Save buttons bottom */}
+      <div className="flex justify-end gap-3 pb-4">
+        <button
+          onClick={() => handleSave("draft")}
+          disabled={saving}
+          className="flex items-center gap-1.5 px-6 h-10 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-50 transition-colors disabled:opacity-60"
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          Salvează Ciornă
+        </button>
+        <button
+          onClick={() => handleSave("sent")}
+          disabled={saving}
+          className="flex items-center gap-1.5 px-8 h-10 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition-colors disabled:opacity-60"
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          Previzualizare / Emite Factura
+        </button>
       </div>
     </div>
   );
