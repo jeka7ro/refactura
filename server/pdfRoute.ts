@@ -4,6 +4,8 @@
  * Poate fi deschis în browser (previzualizare) sau descărcat.
  */
 import { Router, type Request, type Response } from "express";
+import fs from "fs";
+import path from "path";
 import { generateReInvoicePDF } from "./pdf";
 import { getReInvoiceById } from "./db";
 import { getDb } from "./db";
@@ -386,6 +388,11 @@ export function registerPdfRoute(app: any) {
       // ── Generate NIR PDF with PDFKit ──
       const PDFDocument = (await import("pdfkit")).default;
       const doc = new PDFDocument({ size: "A4", margin: 40, bufferPages: true });
+      // Inregistrare fonturi cu diacritice (Roboto)
+      const robotoReg = path.resolve(process.cwd(), "server/assets/fonts/Roboto-Regular.ttf");
+      const robotoBold = path.resolve(process.cwd(), "server/assets/fonts/Roboto-Bold.ttf");
+      if (fs.existsSync(robotoReg)) doc.registerFont("Roboto", robotoReg);
+      if (fs.existsSync(robotoBold)) doc.registerFont("Roboto-Bold", robotoBold);
 
       // Pipe to response
       doc.pipe(res);
@@ -403,15 +410,15 @@ export function registerPdfRoute(app: any) {
         try {
           const imgBuf = Buffer.from(logoBase64.replace(/^data:image\/\w+;base64,/, ""), "base64");
           doc.image(imgBuf, 40, 30, { height: 50, fit: [160, 50] });
-        } catch { doc.fontSize(14).font("Helvetica-Bold").fillColor(BLUE).text(tenant?.name || "Firma", 40, 40); }
+        } catch { doc.fontSize(14).font("Roboto-Bold").fillColor(BLUE).text(tenant?.name || "Firma", 40, 40); }
       } else {
-        doc.fontSize(14).font("Helvetica-Bold").fillColor(BLUE).text(tenant?.name || "Firma", 40, 40);
+        doc.fontSize(14).font("Roboto-Bold").fillColor(BLUE).text(tenant?.name || "Firma", 40, 40);
       }
 
       // Titlu NIR dreapta
-      doc.fontSize(18).font("Helvetica-Bold").fillColor(TEAL)
+      doc.fontSize(18).font("Roboto-Bold").fillColor(TEAL)
         .text("NOTĂ DE INTRARE-RECEPȚIE", 0, 35, { align: "right" });
-      doc.fontSize(9).font("Helvetica").fillColor(GRAY)
+      doc.fontSize(9).font("Roboto").fillColor(GRAY)
         .text("(Cod formular 14-3-1/aA — OMFP 2634/2015)", 0, 57, { align: "right" });
 
       doc.moveDown(0.3);
@@ -422,7 +429,7 @@ export function registerPdfRoute(app: any) {
       doc.rect(40, y, W, 70).fillColor(LIGHT).fill();
       doc.rect(40, y, W, 70).strokeColor(BORDER).lineWidth(0.5).stroke();
 
-      doc.fontSize(7).font("Helvetica-Bold").fillColor(GRAY).text("DATE NIR", 50, y + 6);
+      doc.fontSize(7).font("Roboto-Bold").fillColor(GRAY).text("DATE NIR", 50, y + 6);
       y += 16;
 
       const col = W / 4;
@@ -434,13 +441,13 @@ export function registerPdfRoute(app: any) {
       ];
       fields.forEach(([label, val], i) => {
         const x = 50 + i * col;
-        doc.fontSize(7).font("Helvetica").fillColor(GRAY).text(label, x, y);
-        doc.fontSize(8).font("Helvetica-Bold").fillColor("#1e293b").text(val, x, y + 10);
+        doc.fontSize(7).font("Roboto").fillColor(GRAY).text(label, x, y);
+        doc.fontSize(8).font("Roboto-Bold").fillColor("#1e293b").text(val, x, y + 10);
       });
 
       y += 32;
-      doc.fontSize(7).font("Helvetica").fillColor(GRAY).text("Gestiunea:", 50, y);
-      doc.fontSize(8).font("Helvetica-Bold").fillColor("#1e293b").text(nirRow.gestiune || "—", 50, y + 10);
+      doc.fontSize(7).font("Roboto").fillColor(GRAY).text("Gestiunea:", 50, y);
+      doc.fontSize(8).font("Roboto-Bold").fillColor("#1e293b").text(nirRow.gestiune || "—", 50, y + 10);
 
       // ── FURNIZOR + FIRMA ──────────────────────────────────────────────────────
       y = 180;
@@ -449,9 +456,9 @@ export function registerPdfRoute(app: any) {
       // Furnizor box
       doc.rect(40, y, halfW, 70).fillColor(LIGHT).fill();
       doc.rect(40, y, halfW, 70).strokeColor(BORDER).lineWidth(0.5).stroke();
-      doc.fontSize(7).font("Helvetica-Bold").fillColor(GRAY).text("FURNIZOR", 50, y + 6);
-      doc.fontSize(9).font("Helvetica-Bold").fillColor("#1e293b").text(nirRow.supplierName || "—", 50, y + 18, { width: halfW - 20 });
-      doc.fontSize(7).font("Helvetica").fillColor(GRAY)
+      doc.fontSize(7).font("Roboto-Bold").fillColor(GRAY).text("FURNIZOR", 50, y + 6);
+      doc.fontSize(9).font("Roboto-Bold").fillColor("#1e293b").text(nirRow.supplierName || "—", 50, y + 18, { width: halfW - 20 });
+      doc.fontSize(7).font("Roboto").fillColor(GRAY)
         .text(`CUI: ${nirRow.supplierCUI || "—"}`, 50, y + 31)
         .text(nirRow.supplierAddress || "", 50, y + 42, { width: halfW - 20 });
 
@@ -459,15 +466,15 @@ export function registerPdfRoute(app: any) {
       const x2 = 40 + halfW + 10;
       doc.rect(x2, y, halfW, 70).fillColor(LIGHT).fill();
       doc.rect(x2, y, halfW, 70).strokeColor(BORDER).lineWidth(0.5).stroke();
-      doc.fontSize(7).font("Helvetica-Bold").fillColor(GRAY).text("UNITATEA", x2 + 10, y + 6);
-      doc.fontSize(9).font("Helvetica-Bold").fillColor("#1e293b").text(tenant?.name || "—", x2 + 10, y + 18, { width: halfW - 20 });
-      doc.fontSize(7).font("Helvetica").fillColor(GRAY)
+      doc.fontSize(7).font("Roboto-Bold").fillColor(GRAY).text("UNITATEA", x2 + 10, y + 6);
+      doc.fontSize(9).font("Roboto-Bold").fillColor("#1e293b").text(tenant?.name || "—", x2 + 10, y + 18, { width: halfW - 20 });
+      doc.fontSize(7).font("Roboto").fillColor(GRAY)
         .text(`CUI: ${tenant?.cui || "—"}`, x2 + 10, y + 31)
         .text(tenant?.address || "", x2 + 10, y + 42, { width: halfW - 20 });
 
       // ── TABEL PRODUSE ─────────────────────────────────────────────────────────
       y = 260;
-      doc.fontSize(7).font("Helvetica-Bold").fillColor(GRAY).text("PRODUSE / SERVICII RECEPȚIONATE", 40, y);
+      doc.fontSize(7).font("Roboto-Bold").fillColor(GRAY).text("PRODUSE / SERVICII RECEPȚIONATE", 40, y);
       y += 12;
 
       // Header tabel
@@ -476,7 +483,7 @@ export function registerPdfRoute(app: any) {
       let xOff = 40;
       doc.rect(40, y, W, 16).fillColor(TEAL).fill();
       headers.forEach((h, i) => {
-        doc.fontSize(6.5).font("Helvetica-Bold").fillColor("white")
+        doc.fontSize(6.5).font("Roboto-Bold").fillColor("white")
           .text(h, xOff + 3, y + 5, { width: cols[i] - 4, align: i > 2 ? "right" : "left" });
         xOff += cols[i];
       });
@@ -504,7 +511,7 @@ export function registerPdfRoute(app: any) {
         ];
         cells.forEach((cell, ci) => {
           const color = ci === 4 && hasDiff ? "#b45309" : "#1e293b";
-          doc.fontSize(7).font(ci === 4 && hasDiff ? "Helvetica-Bold" : "Helvetica")
+          doc.fontSize(7).font(ci === 4 && hasDiff ? "Roboto-Bold" : "Roboto")
             .fillColor(color)
             .text(cell.val, xc + 3, y + 5, { width: cols[ci] - 6, align: cell.align, ellipsis: true });
           xc += cols[ci];
@@ -520,7 +527,7 @@ export function registerPdfRoute(app: any) {
 
       // Total row
       doc.rect(40, y, W, 18).fillColor(TEAL).fill();
-      doc.fontSize(8).font("Helvetica-Bold").fillColor("white")
+      doc.fontSize(8).font("Roboto-Bold").fillColor("white")
         .text("TOTAL VALOARE RECEPȚIONATĂ:", 40 + 3, y + 5, { width: W - 65, align: "right" });
       const total = lines.reduce((s, l) => s + parseFloat(l.total || "0"), 0);
       doc.text(`${total.toLocaleString("ro-RO", { minimumFractionDigits: 2 })} RON`, 40 + W - 60, y + 5, { width: 55, align: "right" });
@@ -531,11 +538,11 @@ export function registerPdfRoute(app: any) {
       if (hasDifferences) {
         doc.rect(40, y, W, 24).fillColor("#fef3c7").fill();
         doc.rect(40, y, W, 24).strokeColor("#f59e0b").lineWidth(0.5).stroke();
-        doc.fontSize(8).font("Helvetica-Bold").fillColor("#92400e")
+        doc.fontSize(8).font("Roboto-Bold").fillColor("#92400e")
           .text("⚠ ATENȚIE: Există diferențe cantitative — NIR se întocmește în 3 exemplare (conf. OMFP 2634/2015)", 50, y + 8);
         y += 30;
         if (nirRow.differenceNotes) {
-          doc.fontSize(7).font("Helvetica").fillColor(GRAY).text(`Constatări: ${nirRow.differenceNotes}`, 50, y);
+          doc.fontSize(7).font("Roboto").fillColor(GRAY).text(`Constatări: ${nirRow.differenceNotes}`, 50, y);
           y += 14;
         }
       }
@@ -544,7 +551,7 @@ export function registerPdfRoute(app: any) {
       y += 8;
       if (y > doc.page.height - 120) { doc.addPage(); y = 40; }
 
-      doc.fontSize(8).font("Helvetica-Bold").fillColor(GRAY).text("COMISIA DE RECEPȚIE", 40, y);
+      doc.fontSize(8).font("Roboto-Bold").fillColor(GRAY).text("COMISIA DE RECEPȚIE", 40, y);
       y += 12;
 
       const members = [
@@ -558,11 +565,11 @@ export function registerPdfRoute(app: any) {
         members.forEach((m, i) => {
           const mx = 40 + i * mW;
           doc.rect(mx, y, mW - 8, 55).strokeColor(BORDER).lineWidth(0.5).stroke();
-          doc.fontSize(7).font("Helvetica-Bold").fillColor(GRAY).text(m.func || "Membru", mx + 6, y + 5);
-          doc.fontSize(8).font("Helvetica").fillColor("#1e293b").text(m.name || "", mx + 6, y + 16);
+          doc.fontSize(7).font("Roboto-Bold").fillColor(GRAY).text(m.func || "Membru", mx + 6, y + 5);
+          doc.fontSize(8).font("Roboto").fillColor("#1e293b").text(m.name || "", mx + 6, y + 16);
           // Signature line
           doc.moveTo(mx + 6, y + 46).lineTo(mx + mW - 20, y + 46).strokeColor("#94a3b8").lineWidth(0.5).stroke();
-          doc.fontSize(6).font("Helvetica").fillColor(GRAY).text("Semnătura", mx + 6, y + 48);
+          doc.fontSize(6).font("Roboto").fillColor(GRAY).text("Semnătura", mx + 6, y + 48);
         });
         y += 65;
       } else {
@@ -571,9 +578,9 @@ export function registerPdfRoute(app: any) {
         ["Gestionar", "Contabil", "Șef depozit"].forEach((label, i) => {
           const mx = 40 + i * mW;
           doc.rect(mx, y, mW - 8, 55).strokeColor(BORDER).lineWidth(0.5).stroke();
-          doc.fontSize(7).font("Helvetica-Bold").fillColor(GRAY).text(label, mx + 6, y + 5);
+          doc.fontSize(7).font("Roboto-Bold").fillColor(GRAY).text(label, mx + 6, y + 5);
           doc.moveTo(mx + 6, y + 46).lineTo(mx + mW - 20, y + 46).strokeColor("#94a3b8").lineWidth(0.5).stroke();
-          doc.fontSize(6).font("Helvetica").fillColor(GRAY).text("Semnătura", mx + 6, y + 48);
+          doc.fontSize(6).font("Roboto").fillColor(GRAY).text("Semnătura", mx + 6, y + 48);
         });
         y += 65;
       }
@@ -581,15 +588,15 @@ export function registerPdfRoute(app: any) {
       // Observatii
       if (nirRow.notes) {
         y += 5;
-        doc.fontSize(7).font("Helvetica-Bold").fillColor(GRAY).text("OBSERVAȚII:", 40, y);
-        doc.fontSize(7).font("Helvetica").fillColor("#1e293b").text(nirRow.notes, 110, y, { width: W - 70 });
+        doc.fontSize(7).font("Roboto-Bold").fillColor(GRAY).text("OBSERVAȚII:", 40, y);
+        doc.fontSize(7).font("Roboto").fillColor("#1e293b").text(nirRow.notes, 110, y, { width: W - 70 });
         y += 14;
       }
 
       // Footer
       const footerY = doc.page.height - 35;
       doc.moveTo(40, footerY - 5).lineTo(doc.page.width - 40, footerY - 5).strokeColor(BORDER).lineWidth(0.5).stroke();
-      doc.fontSize(6.5).font("Helvetica").fillColor(GRAY)
+      doc.fontSize(6.5).font("Roboto").fillColor(GRAY)
         .text(`NIR ${nirRow.nirNumber} • Generat: ${new Date().toLocaleDateString("ro-RO")} • ${tenant?.name || ""}`, 40, footerY, { align: "center", width: W });
 
       doc.end();
