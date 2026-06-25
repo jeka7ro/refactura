@@ -8,8 +8,8 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { formatCurrency, currencies, type Currency } from "@/lib/store";
 
-const VAT_RATES = [0, 5, 9, 19];
-const UNITS = ["buc", "ore", "luni", "kg", "m", "m2", "m3", "l", "set", "servicii", "kg", "t"];
+const VAT_RATES = [0, 5, 9, 19, 21];
+const UNITS = ["buc", "ore", "luni", "kg", "m", "m2", "m3", "l", "set", "servicii", "t"];
 
 interface Line {
   id: string;
@@ -26,7 +26,7 @@ const defaultLine = (): Line => ({
   quantity: 1,
   unitPrice: 0,
   unit: "buc",
-  vatRate: 19,
+  vatRate: 21,
 });
 
 function computeLineTotal(line: Line) {
@@ -35,7 +35,10 @@ function computeLineTotal(line: Line) {
   return Math.round(qty * price * 100) / 100;
 }
 function computeLineVAT(line: Line) {
-  return Math.round(computeLineTotal(line) * (parseFloat(String(line.vatRate)) / 100) * 100) / 10const inputCls = "w-full h-9 px-3 text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 !rounded-md text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500";
+  return Math.round(computeLineTotal(line) * (parseFloat(String(line.vatRate)) / 100) * 100) / 100;
+}
+
+const inputCls = "w-full h-9 px-3 text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 !rounded-md text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500";
 const selectCls = "w-full h-9 px-3 text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 !rounded-md text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500";
 const labelCls = "block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1";
 
