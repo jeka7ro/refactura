@@ -54,7 +54,7 @@ const STATUS_CLS: Record<string, string> = {
 };
 const STATUS_LBL: Record<string, string> = {
   pending: "Neîncasat", processed: "Procesat", paid: "Achitat",
-  draft: "Ciornă", sent: "Trimis", archived: "Arhivat", overdue: "Restanță",
+  draft: "Ciornă", sent: "Emis", archived: "Arhivat", overdue: "Restanță",
   storno: "Storno",
 };
 
