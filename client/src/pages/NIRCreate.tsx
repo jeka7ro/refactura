@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "wouter";
-import { ArrowLeft, ClipboardCheck, Plus, Trash2, Loader2, CheckCircle, Save, AlertTriangle } from "lucide-react";
+import { ArrowLeft, ClipboardCheck, Plus, Trash2, Loader2, CheckCircle, Save, AlertTriangle, FileDown } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
@@ -262,6 +262,18 @@ export default function NIRCreate() {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {isEdit && (
+            <a
+              href={`/api/pdf/nir/${nirId}?download=1`}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Descarcă PDF NIR"
+              className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-200 transition-colors"
+            >
+              <FileDown className="w-3.5 h-3.5" />
+              PDF NIR
+            </a>
+          )}
           {status !== "finalizat" && isEdit && (
             <button onClick={() => finalizeNir.mutate({ id: nirId! })} disabled={finalizeNir.isPending}
               className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 transition-colors">
