@@ -53,15 +53,16 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { href: "/dashboard",     label: "Dashboard",      icon: LayoutDashboard, section: "principal" },
-  { href: "/facturi",       label: "Facturi",         icon: FileText,        section: "facturare" },
-  { href: "/re-facturi",    label: "Re-Facturi",      icon: FileOutput,      section: "facturare" },
-  { href: "/rapoarte",      label: "Rapoarte",        icon: TrendingUp,      section: "analize" },
-  { href: "/clienti",       label: "Clienți",         icon: Users,           section: "gestiune" },
-  { href: "/integrari",     label: "Integrări",       icon: Plug,            section: "gestiune" },
-  { href: "/setari",        label: "Setări",          icon: Settings,        section: "cont" },
-  { href: "/centre-cost",   label: "Centre de Cost",  icon: MapPin,          section: "gestiune" },
-  { href: "/arhiva-facturi",label: "Arhivă Facturi",  icon: Archive,         section: "facturare" },
+  { href: "/dashboard",          label: "Dashboard",       icon: LayoutDashboard, section: "principal" },
+  { href: "/facturi",            label: "Facturi",          icon: FileText,        section: "facturare" },
+  { href: "/facturi-emise-nou",  label: "Facturi Emise",   icon: FileOutput,      section: "facturare" },
+  { href: "/re-facturi",         label: "Re-Facturi",       icon: FileOutput,      section: "facturare" },
+  { href: "/rapoarte",           label: "Rapoarte",         icon: TrendingUp,      section: "analize" },
+  { href: "/clienti",            label: "Clienți",          icon: Users,           section: "gestiune" },
+  { href: "/integrari",          label: "Integrări",        icon: Plug,            section: "gestiune" },
+  { href: "/setari",             label: "Setări",           icon: Settings,        section: "cont" },
+  { href: "/centre-cost",        label: "Centre de Cost",   icon: MapPin,          section: "gestiune" },
+  { href: "/arhiva-facturi",     label: "Arhivă Facturi",   icon: Archive,         section: "facturare" },
 ];
 
 const adminNavItems: NavItem[] = [

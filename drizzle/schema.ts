@@ -428,3 +428,58 @@ export const invoiceArchiveLines = mysqlTable("invoiceArchiveLines", {
 
 export type InvoiceArchiveLine = typeof invoiceArchiveLines.$inferSelect;
 export type InsertInvoiceArchiveLine = typeof invoiceArchiveLines.$inferInsert;
+
+/**
+ * Emitted Invoices — Facturi emise direct din platformă (fără legătură cu o factură importată)
+ */
+export const emittedInvoices = mysqlTable("emittedInvoices", {
+  id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId").notNull(),
+  number: varchar("number", { length: 100 }).notNull(),
+  series: varchar("series", { length: 20 }).default("FACT"),
+  clientId: int("clientId"),
+  clientName: varchar("clientName", { length: 255 }).notNull(),
+  clientCUI: varchar("clientCUI", { length: 20 }),
+  clientRegCom: varchar("clientRegCom", { length: 50 }),
+  clientAddress: text("clientAddress"),
+  clientCity: varchar("clientCity", { length: 100 }),
+  clientCountry: varchar("clientCountry", { length: 2 }).default("RO"),
+  clientEmail: varchar("clientEmail", { length: 320 }),
+  clientPhone: varchar("clientPhone", { length: 20 }),
+  issueDate: varchar("issueDate", { length: 20 }).notNull(),
+  dueDate: varchar("dueDate", { length: 20 }),
+  subtotal: decimal("subtotal", { precision: 12, scale: 2 }).notNull(),
+  totalVAT: decimal("totalVAT", { precision: 12, scale: 2 }).notNull(),
+  total: decimal("total", { precision: 12, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 3 }).default("RON"),
+  status: mysqlEnum("status", ["draft", "sent", "paid", "overdue", "cancelled"]).default("draft"),
+  notes: text("notes"),
+  spvIndex: varchar("spvIndex", { length: 100 }),
+  spvStatus: mysqlEnum("spvStatus", ["nesincronizat", "in_procesare", "validat", "eroare"]).default("nesincronizat"),
+  spvError: text("spvError"),
+  rawXml: text("rawXml"),
+  pdfUrl: varchar("pdfUrl", { length: 512 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type EmittedInvoice = typeof emittedInvoices.$inferSelect;
+export type InsertEmittedInvoice = typeof emittedInvoices.$inferInsert;
+
+/**
+ * Emitted Invoice Lines
+ */
+export const emittedInvoiceLines = mysqlTable("emittedInvoiceLines", {
+  id: int("id").autoincrement().primaryKey(),
+  emittedInvoiceId: int("emittedInvoiceId").notNull(),
+  description: varchar("description", { length: 500 }).notNull(),
+  quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull(),
+  unitPrice: decimal("unitPrice", { precision: 12, scale: 2 }).notNull(),
+  unit: varchar("unit", { length: 20 }).default("buc"),
+  vatRate: decimal("vatRate", { precision: 5, scale: 2 }).default("19.00"),
+  total: decimal("total", { precision: 12, scale: 2 }).notNull(),
+  lineOrder: int("lineOrder").default(0),
+});
+
+export type EmittedInvoiceLine = typeof emittedInvoiceLines.$inferSelect;
+export type InsertEmittedInvoiceLine = typeof emittedInvoiceLines.$inferInsert;

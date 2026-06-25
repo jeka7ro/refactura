@@ -929,5 +929,259 @@ export const appRouter = router({
       return { updated, total: missing.length };
     }),
   }),
+
+  emittedInvoice: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      if (!ctx.user?.tenantId) throw new Error("No tenant");
+      const db = await getDb();
+      if (!db) throw new Error("No DB");
+      const { emittedInvoices, emittedInvoiceLines } = await import("../drizzle/schema");
+      const { desc } = await import("drizzle-orm");
+      const rows = await db.select().from(emittedInvoices)
+        .where(eq(emittedInvoices.tenantId, ctx.user.tenantId))
+        .orderBy(desc(emittedInvoices.createdAt));
+      return rows;
+    }),
+
+    getById: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { emittedInvoices, emittedInvoiceLines } = await import("../drizzle/schema");
+        const [inv] = await db.select().from(emittedInvoices)
+          .where(and(eq(emittedInvoices.id, input.id), eq(emittedInvoices.tenantId, ctx.user.tenantId)));
+        if (!inv) throw new Error("Not found");
+        const lines = await db.select().from(emittedInvoiceLines)
+          .where(eq(emittedInvoiceLines.emittedInvoiceId, input.id))
+          .orderBy(emittedInvoiceLines.lineOrder);
+        return { ...inv, lines };
+      }),
+
+    nextNumber: protectedProcedure
+      .input(z.object({ series: z.string().default("FACT") }))
+      .query(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { emittedInvoices } = await import("../drizzle/schema");
+        const { desc } = await import("drizzle-orm");
+        const { sql } = await import("drizzle-orm");
+        const last = await db.select({ number: emittedInvoices.number }).from(emittedInvoices)
+          .where(and(
+            eq(emittedInvoices.tenantId, ctx.user.tenantId),
+            sql`${emittedInvoices.series} = ${input.series}`
+          ))
+          .orderBy(desc(emittedInvoices.id)).limit(1);
+        let nextNum = 1;
+        if (last.length > 0) {
+          const match = last[0].number.match(/(\d+)$/);
+          if (match) nextNum = parseInt(match[1]) + 1;
+        }
+        return `${input.series}-${String(nextNum).padStart(4, "0")}`;
+      }),
+
+    create: protectedProcedure
+      .input(z.object({
+        number: z.string(),
+        series: z.string().optional(),
+        clientId: z.number().optional(),
+        clientName: z.string(),
+        clientCUI: z.string().optional(),
+        clientRegCom: z.string().optional(),
+        clientAddress: z.string().optional(),
+        clientCity: z.string().optional(),
+        clientCountry: z.string().optional(),
+        clientEmail: z.string().optional(),
+        clientPhone: z.string().optional(),
+        issueDate: z.string(),
+        dueDate: z.string().optional(),
+        subtotal: z.number(),
+        totalVAT: z.number(),
+        total: z.number(),
+        currency: z.string().default("RON"),
+        status: z.enum(["draft", "sent", "paid", "overdue", "cancelled"]).default("draft"),
+        notes: z.string().optional(),
+        lines: z.array(z.object({
+          description: z.string(),
+          quantity: z.number(),
+          unitPrice: z.number(),
+          unit: z.string().optional(),
+          vatRate: z.number().optional(),
+          total: z.number(),
+          lineOrder: z.number(),
+        })),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { emittedInvoices, emittedInvoiceLines } = await import("../drizzle/schema");
+        const { lines, ...invoiceData } = input;
+        const [result] = await db.insert(emittedInvoices).values({
+          tenantId: ctx.user.tenantId,
+          ...invoiceData,
+          subtotal: String(invoiceData.subtotal),
+          totalVAT: String(invoiceData.totalVAT),
+          total: String(invoiceData.total),
+        } as any).$returningId();
+        const invoiceId = result.id;
+        if (lines.length > 0) {
+          await db.insert(emittedInvoiceLines).values(
+            lines.map((l, i) => ({
+              emittedInvoiceId: invoiceId,
+              description: l.description,
+              quantity: String(l.quantity),
+              unitPrice: String(l.unitPrice),
+              unit: l.unit || "buc",
+              vatRate: String(l.vatRate ?? 19),
+              total: String(l.total),
+              lineOrder: l.lineOrder ?? i,
+            } as any))
+          );
+        }
+        return { id: invoiceId };
+      }),
+
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        number: z.string().optional(),
+        series: z.string().optional(),
+        clientId: z.number().optional(),
+        clientName: z.string().optional(),
+        clientCUI: z.string().optional(),
+        clientRegCom: z.string().optional(),
+        clientAddress: z.string().optional(),
+        clientCity: z.string().optional(),
+        clientEmail: z.string().optional(),
+        clientPhone: z.string().optional(),
+        issueDate: z.string().optional(),
+        dueDate: z.string().optional(),
+        subtotal: z.number().optional(),
+        totalVAT: z.number().optional(),
+        total: z.number().optional(),
+        currency: z.string().optional(),
+        status: z.enum(["draft", "sent", "paid", "overdue", "cancelled"]).optional(),
+        notes: z.string().optional(),
+        lines: z.array(z.object({
+          description: z.string(),
+          quantity: z.number(),
+          unitPrice: z.number(),
+          unit: z.string().optional(),
+          vatRate: z.number().optional(),
+          total: z.number(),
+          lineOrder: z.number(),
+        })).optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { emittedInvoices, emittedInvoiceLines } = await import("../drizzle/schema");
+        const { id, lines, ...data } = input;
+        const updateData: any = {};
+        if (data.subtotal !== undefined) updateData.subtotal = String(data.subtotal);
+        if (data.totalVAT !== undefined) updateData.totalVAT = String(data.totalVAT);
+        if (data.total !== undefined) updateData.total = String(data.total);
+        if (data.clientName) updateData.clientName = data.clientName;
+        if (data.clientCUI !== undefined) updateData.clientCUI = data.clientCUI;
+        if (data.clientRegCom !== undefined) updateData.clientRegCom = data.clientRegCom;
+        if (data.clientAddress !== undefined) updateData.clientAddress = data.clientAddress;
+        if (data.clientCity !== undefined) updateData.clientCity = data.clientCity;
+        if (data.clientEmail !== undefined) updateData.clientEmail = data.clientEmail;
+        if (data.clientPhone !== undefined) updateData.clientPhone = data.clientPhone;
+        if (data.issueDate) updateData.issueDate = data.issueDate;
+        if (data.dueDate !== undefined) updateData.dueDate = data.dueDate;
+        if (data.currency) updateData.currency = data.currency;
+        if (data.status) updateData.status = data.status;
+        if (data.notes !== undefined) updateData.notes = data.notes;
+        if (data.number) updateData.number = data.number;
+        if (data.series) updateData.series = data.series;
+        if (Object.keys(updateData).length > 0) {
+          await db.update(emittedInvoices).set(updateData)
+            .where(and(eq(emittedInvoices.id, id), eq(emittedInvoices.tenantId, ctx.user.tenantId)));
+        }
+        if (lines) {
+          await db.delete(emittedInvoiceLines).where(eq(emittedInvoiceLines.emittedInvoiceId, id));
+          if (lines.length > 0) {
+            await db.insert(emittedInvoiceLines).values(
+              lines.map((l, i) => ({
+                emittedInvoiceId: id,
+                description: l.description,
+                quantity: String(l.quantity),
+                unitPrice: String(l.unitPrice),
+                unit: l.unit || "buc",
+                vatRate: String(l.vatRate ?? 19),
+                total: String(l.total),
+                lineOrder: l.lineOrder ?? i,
+              } as any))
+            );
+          }
+        }
+        return { success: true };
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { emittedInvoices, emittedInvoiceLines } = await import("../drizzle/schema");
+        await db.delete(emittedInvoiceLines).where(eq(emittedInvoiceLines.emittedInvoiceId, input.id));
+        await db.delete(emittedInvoices).where(and(eq(emittedInvoices.id, input.id), eq(emittedInvoices.tenantId, ctx.user.tenantId)));
+        return { success: true };
+      }),
+
+    sendToSpv: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { emittedInvoices, emittedInvoiceLines, tenants } = await import("../drizzle/schema");
+        const [inv] = await db.select().from(emittedInvoices)
+          .where(and(eq(emittedInvoices.id, input.id), eq(emittedInvoices.tenantId, ctx.user.tenantId)));
+        if (!inv) throw new Error("Invoice not found");
+        const lines = await db.select().from(emittedInvoiceLines)
+          .where(eq(emittedInvoiceLines.emittedInvoiceId, input.id));
+        const [tenantData] = await db.select().from(tenants).where(eq(tenants.id, ctx.user.tenantId));
+        if (!tenantData) throw new Error("Tenant not found");
+        const { generateUblXml } = await import("./anafXmlGenerator");
+        // Map emitted invoice to the same shape generateUblXml expects (ReInvoice-like)
+        const invoiceLike: any = { ...inv };
+        const linesLike: any[] = lines.map(l => ({ ...l, quantity: l.quantity, unitPrice: l.unitPrice, vatRate: l.vatRate }));
+        const xmlContent = generateUblXml(invoiceLike, linesLike, tenantData);
+        const { uploadInvoiceToSPV } = await import("./anafApi");
+        // uploadInvoiceToSPV works on reInvoices; we need a version for emittedInvoices
+        // We'll do the upload inline here and update emittedInvoices directly
+        const { integrations } = await import("../drizzle/schema");
+        const [intg] = await db.select().from(integrations)
+          .where(and(eq(integrations.tenantId, ctx.user.tenantId), eq(integrations.provider, "spv"), eq(integrations.status, "active")));
+        if (!intg?.apiKey) return { success: false, error: "SPV nu este conectat sau token lipsă." };
+        const cui = (tenantData.cui || "").replace(/[^A-Z0-9]/gi, "");
+        const uploadUrl = `https://api.anaf.ro/prod/FCTEL/rest/upload?standard=UBL&cif=${cui}`;
+        const response = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${intg.apiKey}`, "Content-Type": "application/xml" },
+          body: xmlContent,
+        });
+        const responseText = await response.text();
+        const indexMatch = responseText.match(/<index_incarcare>(\d+)<\/index_incarcare>/);
+        if (indexMatch?.[1]) {
+          await db.update(emittedInvoices).set({ spvIndex: indexMatch[1], spvStatus: "in_procesare", rawXml: xmlContent })
+            .where(eq(emittedInvoices.id, input.id));
+          return { success: true, index_incarcare: indexMatch[1] };
+        } else {
+          const errMatch = responseText.match(/<eroare>(.*?)<\/eroare>/i);
+          const errMsg = errMatch?.[1] || responseText;
+          await db.update(emittedInvoices).set({ spvStatus: "eroare", spvError: errMsg, rawXml: xmlContent })
+            .where(eq(emittedInvoices.id, input.id));
+          return { success: false, error: errMsg };
+        }
+      }),
+  }),
 });
 export type AppRouter = typeof appRouter;

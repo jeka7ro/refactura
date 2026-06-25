@@ -2,7 +2,7 @@ import { Link, useParams } from "wouter";
 import { ArrowLeft, FileText, Building2, Calendar, Hash, Globe, Loader2, Download, Mail, Send, AlertCircle } from "lucide-react";
 import { formatCurrency, formatDate, invoiceStatusLabels, invoiceStatusColors } from "@/lib/store";
 import { trpc } from "@/lib/trpc";
-import { toast } from "react-hot-toast";
+import { toast } from "sonner";
 
 export default function ReInvoiceDetail() {
   const { id } = useParams<{ id: string }>();

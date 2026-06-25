@@ -24,6 +24,8 @@ import Landing from "./pages/Landing";
 import SuperAdmin from "./pages/SuperAdmin";
 import InvoiceArchive from "./pages/InvoiceArchive";
 import ClientDetails from "./pages/ClientDetails";
+import EmittedInvoices from "./pages/EmittedInvoices";
+import EmitInvoice from "./pages/EmitInvoice";
 
 function Router() {
   return (
@@ -60,6 +62,21 @@ function Router() {
       <Route path="/facturi-emise">
         <DashboardLayout>
           <InvoicesEmitted />
+        </DashboardLayout>
+      </Route>
+      <Route path="/facturi-emise-nou">
+        <DashboardLayout>
+          <EmittedInvoices />
+        </DashboardLayout>
+      </Route>
+      <Route path="/facturi-emise-nou/new">
+        <DashboardLayout>
+          <EmitInvoice />
+        </DashboardLayout>
+      </Route>
+      <Route path="/facturi-emise-nou/:id">
+        <DashboardLayout>
+          <EmitInvoice />
         </DashboardLayout>
       </Route>
       <Route path="/re-facturare/:id">
