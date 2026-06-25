@@ -406,14 +406,38 @@ export function registerPdfRoute(app: any) {
 
       // ── HEADER ──────────────────────────────────────────────────────────────
       // Logo stânga
-      if (logoBase64 && logoBase64 !== "DEFAULT_TEXT_LOGO") {
+      logoBase64 = "DEFAULT_TEXT_LOGO"; // Ignorăm logoBase64 din baza de date pentru că utilizatorul vrea exclusiv logoul GetApp peste tot
+      if (logoBase64 === "DEFAULT_TEXT_LOGO") {
+        let foundPath = null;
+        try {
+          const possiblePaths = [
+            path.resolve(process.cwd(), "client/public/logo.png"),
+            path.resolve(process.cwd(), "../client/public/logo.png"),
+            path.resolve(process.cwd(), "dist/public/logo.png"),
+            path.resolve(process.cwd(), "server/assets/logo.png")
+          ];
+          for (const p of possiblePaths) {
+            if (fs.existsSync(p)) {
+              foundPath = p;
+              break;
+            }
+          }
+          if (foundPath) {
+            const imgBuffer = fs.readFileSync(foundPath);
+            doc.image(imgBuffer, 40, 30, { width: 140 }); 
+          } else {
+            doc.fontSize(14).font("Roboto-Bold").fillColor(BLUE).text(tenant?.name || "Firma", 40, 40);
+          }
+        } catch {
+           doc.fontSize(14).font("Roboto-Bold").fillColor(BLUE).text(tenant?.name || "Firma", 40, 40);
+        }
+      } else {
         try {
           const imgBuf = Buffer.from(logoBase64.replace(/^data:image\/\w+;base64,/, ""), "base64");
           doc.image(imgBuf, 40, 30, { height: 50, fit: [160, 50] });
         } catch { doc.fontSize(14).font("Roboto-Bold").fillColor(BLUE).text(tenant?.name || "Firma", 40, 40); }
-      } else {
-        doc.fontSize(14).font("Roboto-Bold").fillColor(BLUE).text(tenant?.name || "Firma", 40, 40);
       }
+
 
       // Titlu NIR dreapta
       doc.fontSize(18).font("Roboto-Bold").fillColor(TEAL)
