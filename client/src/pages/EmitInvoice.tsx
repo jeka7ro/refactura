@@ -125,6 +125,8 @@ export default function EmitInvoice() {
     setActiveLineDropdown(null);
   };
 
+  const [cuiLoading, setCuiLoading] = useState(false);
+
   const selectClient = (c: any) => {
     setSelectedClientId(String(c.id));
     setClientName(c.name);
@@ -136,6 +138,30 @@ export default function EmitInvoice() {
     setClientPhone(c.phone || "");
     setShowClientDropdown(false);
     setClientSearch("");
+  };
+
+  const lookupCui = async () => {
+    const cui = clientCUI.replace(/^RO/i, "").replace(/\s/g, "");
+    if (!cui || cui.length < 2) return;
+    setCuiLoading(true);
+    try {
+      const res = await fetch(`/api/anaf/${cui}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || "CUI negăsit în ANAF.");
+        return;
+      }
+      const d = await res.json();
+      setClientName(d.denumire || clientName);
+      setClientAddress(d.adresa || clientAddress);
+      setClientCity(d.judet || clientCity);
+      setClientRegCom(d.nrRegCom || clientRegCom);
+      toast.success("Date extrase de la ANAF cu succes.");
+    } catch {
+      toast.error("Eroare conexiune la ANAF.");
+    } finally {
+      setCuiLoading(false);
+    }
   };
 
   const addLine = () => setLines(prev => [...prev, defaultLine()]);
@@ -310,8 +336,17 @@ export default function EmitInvoice() {
           {/* Client Details Grid */}
           <div className="md:col-span-4 grid grid-cols-2 gap-2">
             <div>
-              <label className={labelCls}>CUI / CIF</label>
-              <input value={clientCUI} onChange={e => setClientCUI(e.target.value)} className={inputCls} placeholder="RO12345678" />
+              <label className={labelCls}>
+                CUI / CIF
+                {cuiLoading && <Loader2 className="w-3 h-3 ml-1 inline animate-spin" />}
+              </label>
+              <input 
+                value={clientCUI} 
+                onChange={e => setClientCUI(e.target.value)} 
+                onBlur={lookupCui}
+                className={inputCls} 
+                placeholder="RO12345678" 
+              />
             </div>
             <div>
               <label className={labelCls}>Reg. Com.</label>
