@@ -45,11 +45,12 @@ export default function InvoiceDetail() {
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
-          <Link href="/facturi-primite">
-            <button className="flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-              <ArrowLeft className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-            </button>
-          </Link>
+          <button
+            onClick={() => window.history.back()}
+            className="flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+          </button>
           <div>
             <h1 className="text-xl font-bold text-slate-900 dark:text-white">
               Factură {invoice.invoiceNumber || `#${invoice.id}`}
