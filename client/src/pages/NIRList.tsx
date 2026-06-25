@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Loader2, Plus, Search, ChevronLeft, ChevronRight, Trash2, Eye, ClipboardCheck } from "lucide-react";
+import { Loader2, Plus, Search, ChevronLeft, ChevronRight, Trash2, Eye, ClipboardCheck, FileDown } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/store";
@@ -83,7 +83,7 @@ export default function NIRList() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400 w-12">Nr. Crt.</th>
+                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400 w-10 whitespace-nowrap">#</th>
                 <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Nr. NIR</th>
                 <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Furnizor</th>
                 <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Factură sursă</th>
@@ -123,6 +123,15 @@ export default function NIRList() {
                       >
                         <Eye className="w-3 h-3" />
                       </button>
+                      <a
+                        href={`/api/pdf/nir/${row.id}?download=1`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Descarcă PDF NIR"
+                        className="flex items-center justify-center w-6 h-6 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 transition-colors"
+                      >
+                        <FileDown className="w-3 h-3" />
+                      </a>
                       <button
                         onClick={() => setDeleteTarget(row.id)}
                         title="Șterge NIR"

@@ -356,5 +356,249 @@ export function registerPdfRoute(app: any) {
     }
   });
 
+  // ─── GET /api/pdf/nir/:id — PDF Nota de Intrare-Recepție ─────────────────────
+  router.get("/nir/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) { res.status(400).json({ error: "ID invalid" }); return; }
+
+      const db = await getDb();
+      if (!db) { res.status(500).json({ error: "DB unavailable" }); return; }
+
+      const { nir, nirLines } = await import("../drizzle/schema");
+      const { eq: eqOp } = await import("drizzle-orm");
+
+      const [nirRow] = await db.select().from(nir).where(eqOp(nir.id, id));
+      if (!nirRow) { res.status(404).json({ error: "NIR nu a fost găsit" }); return; }
+
+      const lines = await db.select().from(nirLines).where(eqOp(nirLines.nirId, id)).orderBy(nirLines.lineOrder);
+      const [tenant] = await db.select().from(tenants).where(eq(tenants.id, nirRow.tenantId));
+      let settings: any = {};
+      try { settings = JSON.parse(tenant?.settings || "{}"); } catch {}
+
+      const logoBase64: string | undefined = settings.logoBase64 || undefined;
+      const isDownload = req.query.download === "1";
+      const filename = `NIR-${nirRow.nirNumber || id}.pdf`;
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `${isDownload ? "attachment" : "inline"}; filename="${filename}"`);
+
+      // ── Generate NIR PDF with PDFKit ──
+      const PDFDocument = (await import("pdfkit")).default;
+      const doc = new PDFDocument({ size: "A4", margin: 40, bufferPages: true });
+
+      // Pipe to response
+      doc.pipe(res);
+
+      const W = doc.page.width - 80; // usable width
+      const BLUE = "#1e6fbf";
+      const TEAL = "#0d9488";
+      const GRAY = "#64748b";
+      const LIGHT = "#f8fafc";
+      const BORDER = "#e2e8f0";
+
+      // ── HEADER ──────────────────────────────────────────────────────────────
+      // Logo stânga
+      if (logoBase64 && logoBase64 !== "DEFAULT_TEXT_LOGO") {
+        try {
+          const imgBuf = Buffer.from(logoBase64.replace(/^data:image\/\w+;base64,/, ""), "base64");
+          doc.image(imgBuf, 40, 30, { height: 50, fit: [160, 50] });
+        } catch { doc.fontSize(14).font("Helvetica-Bold").fillColor(BLUE).text(tenant?.name || "Firma", 40, 40); }
+      } else {
+        doc.fontSize(14).font("Helvetica-Bold").fillColor(BLUE).text(tenant?.name || "Firma", 40, 40);
+      }
+
+      // Titlu NIR dreapta
+      doc.fontSize(18).font("Helvetica-Bold").fillColor(TEAL)
+        .text("NOTĂ DE INTRARE-RECEPȚIE", 0, 35, { align: "right" });
+      doc.fontSize(9).font("Helvetica").fillColor(GRAY)
+        .text("(Cod formular 14-3-1/aA — OMFP 2634/2015)", 0, 57, { align: "right" });
+
+      doc.moveDown(0.3);
+      doc.moveTo(40, 90).lineTo(doc.page.width - 40, 90).strokeColor(TEAL).lineWidth(2).stroke();
+
+      // ── DATE NIR ─────────────────────────────────────────────────────────────
+      let y = 100;
+      doc.rect(40, y, W, 70).fillColor(LIGHT).fill();
+      doc.rect(40, y, W, 70).strokeColor(BORDER).lineWidth(0.5).stroke();
+
+      doc.fontSize(7).font("Helvetica-Bold").fillColor(GRAY).text("DATE NIR", 50, y + 6);
+      y += 16;
+
+      const col = W / 4;
+      const fields: [string, string][] = [
+        ["Nr. NIR:", nirRow.nirNumber],
+        ["Data recepție:", nirRow.receiptDate],
+        ["Nr. factură:", nirRow.invoiceNumber || "—"],
+        ["Nr. aviz:", nirRow.avizNumber || "—"],
+      ];
+      fields.forEach(([label, val], i) => {
+        const x = 50 + i * col;
+        doc.fontSize(7).font("Helvetica").fillColor(GRAY).text(label, x, y);
+        doc.fontSize(8).font("Helvetica-Bold").fillColor("#1e293b").text(val, x, y + 10);
+      });
+
+      y += 32;
+      doc.fontSize(7).font("Helvetica").fillColor(GRAY).text("Gestiunea:", 50, y);
+      doc.fontSize(8).font("Helvetica-Bold").fillColor("#1e293b").text(nirRow.gestiune || "—", 50, y + 10);
+
+      // ── FURNIZOR + FIRMA ──────────────────────────────────────────────────────
+      y = 180;
+      const halfW = (W - 10) / 2;
+
+      // Furnizor box
+      doc.rect(40, y, halfW, 70).fillColor(LIGHT).fill();
+      doc.rect(40, y, halfW, 70).strokeColor(BORDER).lineWidth(0.5).stroke();
+      doc.fontSize(7).font("Helvetica-Bold").fillColor(GRAY).text("FURNIZOR", 50, y + 6);
+      doc.fontSize(9).font("Helvetica-Bold").fillColor("#1e293b").text(nirRow.supplierName || "—", 50, y + 18, { width: halfW - 20 });
+      doc.fontSize(7).font("Helvetica").fillColor(GRAY)
+        .text(`CUI: ${nirRow.supplierCUI || "—"}`, 50, y + 31)
+        .text(nirRow.supplierAddress || "", 50, y + 42, { width: halfW - 20 });
+
+      // Firma box
+      const x2 = 40 + halfW + 10;
+      doc.rect(x2, y, halfW, 70).fillColor(LIGHT).fill();
+      doc.rect(x2, y, halfW, 70).strokeColor(BORDER).lineWidth(0.5).stroke();
+      doc.fontSize(7).font("Helvetica-Bold").fillColor(GRAY).text("UNITATEA", x2 + 10, y + 6);
+      doc.fontSize(9).font("Helvetica-Bold").fillColor("#1e293b").text(tenant?.name || "—", x2 + 10, y + 18, { width: halfW - 20 });
+      doc.fontSize(7).font("Helvetica").fillColor(GRAY)
+        .text(`CUI: ${tenant?.cui || "—"}`, x2 + 10, y + 31)
+        .text(tenant?.address || "", x2 + 10, y + 42, { width: halfW - 20 });
+
+      // ── TABEL PRODUSE ─────────────────────────────────────────────────────────
+      y = 260;
+      doc.fontSize(7).font("Helvetica-Bold").fillColor(GRAY).text("PRODUSE / SERVICII RECEPȚIONATE", 40, y);
+      y += 12;
+
+      // Header tabel
+      const cols = [30, 170, 30, 50, 50, 50, 55]; // widths
+      const headers = ["Nr.", "Denumire produs/serviciu", "U/M", "Cant. doc.", "Cant. recept.", "Preț unit.", "Valoare RON"];
+      let xOff = 40;
+      doc.rect(40, y, W, 16).fillColor(TEAL).fill();
+      headers.forEach((h, i) => {
+        doc.fontSize(6.5).font("Helvetica-Bold").fillColor("white")
+          .text(h, xOff + 3, y + 5, { width: cols[i] - 4, align: i > 2 ? "right" : "left" });
+        xOff += cols[i];
+      });
+      y += 16;
+
+      // Rows
+      lines.forEach((line, idx) => {
+        const rowH = 16;
+        const hasDiff = parseFloat(line.cantitateReceptionata || "0") !== parseFloat(line.cantitateComanda || "0");
+        doc.rect(40, y, W, rowH).fillColor(idx % 2 === 0 ? LIGHT : "white").fill();
+        if (hasDiff) {
+          doc.rect(40, y, W, rowH).fillColor("#fef3c7").fill();
+        }
+        doc.rect(40, y, W, rowH).strokeColor(BORDER).lineWidth(0.3).stroke();
+
+        let xc = 40;
+        const cells = [
+          { val: String(idx + 1), align: "left" as const },
+          { val: line.description, align: "left" as const },
+          { val: line.unit || "buc", align: "left" as const },
+          { val: parseFloat(line.cantitateComanda || "0").toLocaleString("ro-RO"), align: "right" as const },
+          { val: parseFloat(line.cantitateReceptionata || "0").toLocaleString("ro-RO"), align: "right" as const },
+          { val: parseFloat(line.unitPrice || "0").toLocaleString("ro-RO", { minimumFractionDigits: 2 }), align: "right" as const },
+          { val: parseFloat(line.total || "0").toLocaleString("ro-RO", { minimumFractionDigits: 2 }), align: "right" as const },
+        ];
+        cells.forEach((cell, ci) => {
+          const color = ci === 4 && hasDiff ? "#b45309" : "#1e293b";
+          doc.fontSize(7).font(ci === 4 && hasDiff ? "Helvetica-Bold" : "Helvetica")
+            .fillColor(color)
+            .text(cell.val, xc + 3, y + 5, { width: cols[ci] - 6, align: cell.align, ellipsis: true });
+          xc += cols[ci];
+        });
+        y += rowH;
+
+        // New page if needed
+        if (y > doc.page.height - 180) {
+          doc.addPage();
+          y = 40;
+        }
+      });
+
+      // Total row
+      doc.rect(40, y, W, 18).fillColor(TEAL).fill();
+      doc.fontSize(8).font("Helvetica-Bold").fillColor("white")
+        .text("TOTAL VALOARE RECEPȚIONATĂ:", 40 + 3, y + 5, { width: W - 65, align: "right" });
+      const total = lines.reduce((s, l) => s + parseFloat(l.total || "0"), 0);
+      doc.text(`${total.toLocaleString("ro-RO", { minimumFractionDigits: 2 })} RON`, 40 + W - 60, y + 5, { width: 55, align: "right" });
+      y += 26;
+
+      // Diferente alert
+      const hasDifferences = lines.some(l => parseFloat(l.cantitateReceptionata || "0") !== parseFloat(l.cantitateComanda || "0"));
+      if (hasDifferences) {
+        doc.rect(40, y, W, 24).fillColor("#fef3c7").fill();
+        doc.rect(40, y, W, 24).strokeColor("#f59e0b").lineWidth(0.5).stroke();
+        doc.fontSize(8).font("Helvetica-Bold").fillColor("#92400e")
+          .text("⚠ ATENȚIE: Există diferențe cantitative — NIR se întocmește în 3 exemplare (conf. OMFP 2634/2015)", 50, y + 8);
+        y += 30;
+        if (nirRow.differenceNotes) {
+          doc.fontSize(7).font("Helvetica").fillColor(GRAY).text(`Constatări: ${nirRow.differenceNotes}`, 50, y);
+          y += 14;
+        }
+      }
+
+      // ── COMISIA DE RECEPȚIE ───────────────────────────────────────────────────
+      y += 8;
+      if (y > doc.page.height - 120) { doc.addPage(); y = 40; }
+
+      doc.fontSize(8).font("Helvetica-Bold").fillColor(GRAY).text("COMISIA DE RECEPȚIE", 40, y);
+      y += 12;
+
+      const members = [
+        { name: nirRow.member1Name, func: nirRow.member1Function },
+        { name: nirRow.member2Name, func: nirRow.member2Function },
+        { name: nirRow.member3Name, func: nirRow.member3Function },
+      ].filter(m => m.name);
+
+      if (members.length > 0) {
+        const mW = W / 3;
+        members.forEach((m, i) => {
+          const mx = 40 + i * mW;
+          doc.rect(mx, y, mW - 8, 55).strokeColor(BORDER).lineWidth(0.5).stroke();
+          doc.fontSize(7).font("Helvetica-Bold").fillColor(GRAY).text(m.func || "Membru", mx + 6, y + 5);
+          doc.fontSize(8).font("Helvetica").fillColor("#1e293b").text(m.name || "", mx + 6, y + 16);
+          // Signature line
+          doc.moveTo(mx + 6, y + 46).lineTo(mx + mW - 20, y + 46).strokeColor("#94a3b8").lineWidth(0.5).stroke();
+          doc.fontSize(6).font("Helvetica").fillColor(GRAY).text("Semnătura", mx + 6, y + 48);
+        });
+        y += 65;
+      } else {
+        // Empty signature boxes
+        const mW = W / 3;
+        ["Gestionar", "Contabil", "Șef depozit"].forEach((label, i) => {
+          const mx = 40 + i * mW;
+          doc.rect(mx, y, mW - 8, 55).strokeColor(BORDER).lineWidth(0.5).stroke();
+          doc.fontSize(7).font("Helvetica-Bold").fillColor(GRAY).text(label, mx + 6, y + 5);
+          doc.moveTo(mx + 6, y + 46).lineTo(mx + mW - 20, y + 46).strokeColor("#94a3b8").lineWidth(0.5).stroke();
+          doc.fontSize(6).font("Helvetica").fillColor(GRAY).text("Semnătura", mx + 6, y + 48);
+        });
+        y += 65;
+      }
+
+      // Observatii
+      if (nirRow.notes) {
+        y += 5;
+        doc.fontSize(7).font("Helvetica-Bold").fillColor(GRAY).text("OBSERVAȚII:", 40, y);
+        doc.fontSize(7).font("Helvetica").fillColor("#1e293b").text(nirRow.notes, 110, y, { width: W - 70 });
+        y += 14;
+      }
+
+      // Footer
+      const footerY = doc.page.height - 35;
+      doc.moveTo(40, footerY - 5).lineTo(doc.page.width - 40, footerY - 5).strokeColor(BORDER).lineWidth(0.5).stroke();
+      doc.fontSize(6.5).font("Helvetica").fillColor(GRAY)
+        .text(`NIR ${nirRow.nirNumber} • Generat: ${new Date().toLocaleDateString("ro-RO")} • ${tenant?.name || ""}`, 40, footerY, { align: "center", width: W });
+
+      doc.end();
+
+    } catch (e: any) {
+      console.error("[PDF NIR Route] Error:", e.message);
+      if (!res.headersSent) res.status(500).json({ error: e.message });
+    }
+  });
+
   app.use("/api/pdf", router);
 }
