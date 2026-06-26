@@ -57,6 +57,7 @@ export default function InvoiceArchive() {
   const [filterSource, setFilterSource] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [page, setPage] = useState(0);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
@@ -278,6 +279,33 @@ export default function InvoiceArchive() {
 
         {/* Table Content */}
         <div>
+          {selectedIds.size > 0 && (
+            <div className="flex items-center justify-between gap-3 px-4 py-2 bg-blue-600 text-white shadow-md">
+              <span className="text-sm font-semibold">{selectedIds.size} facturi selectate</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setSelectedIds(new Set())}
+                  className="px-3 h-7 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-semibold transition-colors"
+                >
+                  Anulează
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!window.confirm(`Ștergi ${selectedIds.size} facturi selectate?`)) return;
+                    let ok = 0;
+                    for (const id of Array.from(selectedIds)) {
+                      try { await deleteMutation.mutateAsync({ id }); ok++; } catch {}
+                    }
+                    setSelectedIds(new Set());
+                    toast.success(`${ok} facturi șterse`);
+                  }}
+                  className="px-3 h-7 rounded-lg bg-red-600 text-white hover:bg-red-700 text-xs font-bold transition-colors shadow-sm"
+                >
+                  Șterge selectate
+                </button>
+              </div>
+            </div>
+          )}
           {isLoading ? (
             <div className="flex items-center justify-center py-16 text-slate-400">
               <Loader2 className="w-5 h-5 animate-spin mr-2" /> Se încarcă...
@@ -292,6 +320,21 @@ export default function InvoiceArchive() {
             <table className="w-full text-sm text-slate-700 dark:text-slate-300">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+                  <th className="px-4 py-3 w-10 text-center">
+                    <input
+                      type="checkbox"
+                      checked={items.length > 0 && selectedIds.size === items.length}
+                      onChange={e => {
+                        if (e.target.checked) {
+                          setSelectedIds(new Set(items.map((i: any) => i.id)));
+                        } else {
+                          setSelectedIds(new Set());
+                        }
+                      }}
+                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 bg-white"
+                    />
+                  </th>
+                  <th className="text-left px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider w-16">Nr. Crt.</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Fișier</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Furnizor</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Nr. Factură</th>
@@ -303,10 +346,26 @@ export default function InvoiceArchive() {
                 </tr>
               </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {items.map((item: any) => {
+              {items.map((item: any, index: number) => {
                 const st = STATUS_LABELS[item.status] ?? STATUS_LABELS.pending;
                 return (
                   <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors group">
+                    <td className="px-4 py-3 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(item.id)}
+                        onChange={e => {
+                          const newIds = new Set(selectedIds);
+                          if (e.target.checked) newIds.add(item.id);
+                          else newIds.delete(item.id);
+                          setSelectedIds(newIds);
+                        }}
+                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 bg-white"
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-[11px] font-medium text-slate-500">
+                      {page * LIMIT + index + 1}
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${item.fileType === "pdf" ? "bg-red-50 dark:bg-red-900/30" : "bg-blue-50 dark:bg-blue-900/30"}`}>
