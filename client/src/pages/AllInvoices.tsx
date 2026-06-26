@@ -543,13 +543,13 @@ export default function AllInvoices() {
                   />
                 </th>
                 <th className="px-4 py-3 w-16 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nr. Crt.</th>
-                <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">Număr & Partener</th>
-                <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">Tip & Status</th>
-                <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">Dată</th>
-                <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">Scadență</th>
-                <th className="px-4 py-3 text-right text-[10px] font-bold text-slate-500 uppercase tracking-wide">Total</th>
-                <th className="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wide">Sursă</th>
-                <th className="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wide">Acțiuni</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Număr & Partener</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Tip & Status</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Dată</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Scadență</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Total</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">Sursă</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">Acțiuni</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -579,30 +579,30 @@ export default function AllInvoices() {
                             else if (row.type === 'emis' && row.source === 'manual') navigate(`/facturi-emise-nou/view/${row.id}`);
                             else navigate(`/facturi-primite/${row.id}`);
                           }}
-                          className="text-xs font-bold text-blue-600 hover:underline text-left">
+                          className="text-sm font-bold text-blue-600 hover:underline text-left">
                           {row.number}
                         </button>
-                        <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 max-w-[180px] truncate" title={row.partnerName}>
+                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-[180px] truncate" title={row.partnerName}>
                           {row.partnerName}
                         </span>
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col gap-0.5">
-                        <span className={`text-[11px] font-bold ${tb.cls}`}>{tb.label}</span>
-                        <span className={`text-[10px] font-bold ${STATUS_CLS[row.status] || STATUS_CLS.pending}`}>
+                        <span className={`text-sm font-bold ${tb.cls}`}>{tb.label}</span>
+                        <span className={`text-xs font-bold ${STATUS_CLS[row.status] || STATUS_CLS.pending}`}>
                           {getStatusLabel(row.status, row.type)}
                         </span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-[11px] text-slate-500 whitespace-nowrap">{formatDate(row.date)}</td>
-                    <td className="px-4 py-3 text-[11px] text-slate-500 whitespace-nowrap">{formatDate(row.dueDate)}</td>
-                    <td className="px-4 py-3 text-[11px] text-right font-semibold text-slate-900 dark:text-white whitespace-nowrap">
+                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">{formatDate(row.date)}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">{formatDate(row.dueDate)}</td>
+                    <td className="px-4 py-3 text-sm text-right font-semibold text-slate-900 dark:text-white whitespace-nowrap">
                       {formatCurrency(row.total, row.currency as Currency)}
                     </td>
                     <td className="px-4 py-3 text-center">
                       {(() => { const sb = SOURCE_BADGE[row.source] || SOURCE_BADGE.manual; return (
-                        <span className={`text-[10px] font-bold ${sb.cls}`}>{sb.label}</span>
+                        <span className={`text-xs font-bold ${sb.cls}`}>{sb.label}</span>
                       ); })()}
                     </td>
                     <td className="px-4 py-3">
