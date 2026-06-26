@@ -427,7 +427,7 @@ export default function AllInvoices() {
               className="flex items-center gap-1.5 px-4 h-8 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold transition-all"
               title="Exportă tabelul curent în format Excel"
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Export Excel</span>
             </button>
             <button
@@ -435,13 +435,13 @@ export default function AllInvoices() {
               className="flex items-center gap-1.5 px-4 h-8 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition-all"
               title="Exportă tabelul curent în format PDF"
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Export PDF</span>
             </button>
             <button
               onClick={async () => {
                 const hasOblio = (dbIntegrations as any[]).some(i => i.provider === "oblio" && i.status === "active");
-                const hasSpv = (dbIntegrations as any[]).some(i => i.provider === "spv_oauth" && i.status === "active");
+                const hasSpv = (dbIntegrations as any[]).some(i => i.provider === "spv" && i.status === "active");
                 let syncedAny = false;
                 
                 if (hasOblio || hasSpv) {
@@ -463,7 +463,7 @@ export default function AllInvoices() {
               className="flex items-center gap-1.5 px-4 h-8 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-all disabled:opacity-60"
               title="Sincronizează din sursele configurate (Oblio / SPV)"
             >
-              {syncOblio.isPending || syncSpvManual.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+              {syncOblio.isPending || syncSpvManual.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
               <span>Sync</span>
             </button>
           </div>

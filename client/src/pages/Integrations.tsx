@@ -630,8 +630,7 @@ export default function Integrations() {
           </thead>
           <tbody>
             {PROVIDERS.map((provider, idx) => {
-              const dbKey = provider.id === "spv" ? "spv_oauth" : provider.id;
-              const db = (dbIntegrations as any[]).find((i: any) => i.provider === dbKey) ?? getDbIntegration(provider.id);
+              const db = (dbIntegrations as any[]).find((i: any) => i.provider === provider.id) ?? getDbIntegration(provider.id);
               const isActive = db?.status === "active";
               const isConfiguring = configuringId === provider.id;
               let parsedMeta: any = {};
