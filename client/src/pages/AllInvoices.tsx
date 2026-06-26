@@ -839,7 +839,7 @@ export default function AllInvoices() {
           ) : paginated.map((row, i) => {
             const tb = TYPE_BADGE[row.type];
             return (
-              <div key={`${row.type}-${row.id}`} className="px-3 py-2.5">
+              <div key={`${row.source}-${row.type}-${row.id}`} className="px-3 py-2.5">
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="text-[10px] text-slate-400 flex-shrink-0">{(page - 1) * rowsPerPage + i + 1}.</span>

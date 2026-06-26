@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 
@@ -5,12 +6,18 @@ export function useAuth() {
   const [, setLocation] = useLocation();
   const token = localStorage.getItem("authToken");
 
-  // Dacă există token, încearcă să obții datele userului de la server
   const meQuery = trpc.auth.me.useQuery(undefined, {
     enabled: !!token,
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minute cache
   });
+
+  useEffect(() => {
+    if (meQuery.isError) {
+      localStorage.removeItem("authToken");
+      setLocation("/login");
+    }
+  }, [meQuery.isError, setLocation]);
 
   const logoutMutation = trpc.auth.logout.useMutation({
     onSuccess: () => {
