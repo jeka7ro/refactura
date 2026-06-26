@@ -371,6 +371,7 @@ export default function InvoiceArchive() {
             </tbody>
           </table>
         )}
+        </div>
       </div>
 
       {/* Pagination */}

@@ -41,7 +41,7 @@ const navItems: NavItem[] = [
     icon: FileText,        
     section: "facturare",
     subItems: [
-      { href: "/facturi", label: "Facturi Primite", icon: FileText },
+      { href: "/facturi", label: "Evidență Facturi", icon: FileText },
       { href: "/facturi-emise-nou", label: "Facturi Emise", icon: FileOutput },
       { href: "/re-facturi", label: "Re-Facturi", icon: FileOutput },
       { href: "/arhiva-facturi", label: "Arhivă Facturi", icon: Archive },
