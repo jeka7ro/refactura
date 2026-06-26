@@ -24,10 +24,10 @@ const SOURCE_LABELS: Record<string, string> = {
 };
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  pending: { label: "În așteptare", color: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800" },
-  processed: { label: "Procesată", color: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" },
-  refactured: { label: "Re-facturată", color: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800" },
-  archived: { label: "Arhivată", color: "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700" },
+  pending: { label: "În așteptare", color: "text-amber-600 dark:text-amber-500" },
+  processed: { label: "Procesată", color: "text-blue-600 dark:text-blue-400" },
+  refactured: { label: "Re-facturată", color: "text-emerald-600 dark:text-emerald-400" },
+  archived: { label: "Arhivată", color: "text-slate-500 dark:text-slate-400" },
 };
 
 function formatBytes(bytes: number) {
@@ -382,12 +382,12 @@ export default function InvoiceArchive() {
                     <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{formatDate(item.issueDate)}</td>
                     <td className="px-4 py-3 text-right text-slate-800 dark:text-slate-200">{formatAmount(item.total, item.currency)}</td>
                     <td className="px-4 py-3">
-                      <span className="text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
                         {SOURCE_LABELS[item.source] ?? item.source}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full border ${st.color}`}>
+                      <span className={`inline-flex items-center text-xs font-bold ${st.color}`}>
                         {st.label}
                       </span>
                     </td>

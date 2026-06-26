@@ -31,27 +31,27 @@ interface UnifiedRow {
 }
 
 const SOURCE_BADGE: Record<string, { label: string; cls: string }> = {
-  spv_anaf:  { label: "SPV",     cls: "bg-purple-50 text-purple-700 border-purple-200" },
-  oblio:     { label: "Oblio",   cls: "bg-orange-50 text-orange-700 border-orange-200" },
-  smartbill: { label: "SmartBill", cls: "bg-cyan-50 text-cyan-700 border-cyan-200" },
-  manual:    { label: "Manual",  cls: "bg-slate-50 text-slate-500 border-slate-200" },
-  refactura: { label: "Re-fact", cls: "bg-blue-50 text-blue-700 border-blue-200" },
+  spv_anaf:  { label: "SPV",     cls: "text-purple-600 dark:text-purple-400" },
+  oblio:     { label: "Oblio",   cls: "text-orange-600 dark:text-orange-400" },
+  smartbill: { label: "SmartBill", cls: "text-cyan-600 dark:text-cyan-400" },
+  manual:    { label: "Manual",  cls: "text-slate-500 dark:text-slate-400" },
+  refactura: { label: "Re-fact", cls: "text-blue-600 dark:text-blue-400" },
 };
 
 const TYPE_BADGE: Record<InvoiceType, { label: string; cls: string }> = {
-  primit:     { label: "Primit",      cls: "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800" },
-  emis:       { label: "Emis",        cls: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800" },
-  refacturat: { label: "Re-facturat", cls: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800" },
+  primit:     { label: "Primit",      cls: "text-red-600 dark:text-red-400" },
+  emis:       { label: "Emis",        cls: "text-emerald-600 dark:text-emerald-400" },
+  refacturat: { label: "Re-facturat", cls: "text-blue-600 dark:text-blue-400" },
 };
 const STATUS_CLS: Record<string, string> = {
-  pending:   "bg-amber-50 text-amber-700 border-amber-200",
-  processed: "bg-blue-50 text-blue-700 border-blue-200",
-  paid:      "bg-emerald-50 text-emerald-700 border-emerald-200",
-  draft:     "bg-slate-100 text-slate-500 border-slate-200",
-  sent:      "bg-indigo-50 text-indigo-700 border-indigo-200",
-  archived:  "bg-slate-50 text-slate-400 border-slate-200",
-  overdue:   "bg-rose-50 text-rose-700 border-rose-200",
-  storno:    "bg-rose-100 text-rose-700 border-rose-300",
+  pending:   "text-amber-600 dark:text-amber-500",
+  processed: "text-blue-600 dark:text-blue-400",
+  paid:      "text-emerald-600 dark:text-emerald-400",
+  draft:     "text-slate-500 dark:text-slate-400",
+  sent:      "text-indigo-600 dark:text-indigo-400",
+  archived:  "text-slate-400 dark:text-slate-500",
+  overdue:   "text-rose-600 dark:text-rose-500",
+  storno:    "text-rose-600 dark:text-rose-500",
 };
 const STATUS_LBL: Record<string, string> = {
   pending: "Neîncasat", processed: "Procesat", paid: "Achitat",
@@ -533,7 +533,7 @@ export default function AllInvoices() {
           <table className="w-full">
             <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
               <tr>
-                <th style={{ width: 36 }} className="px-2 py-2 text-center">
+                <th className="px-4 py-3 w-10 text-center">
                   <input
                     type="checkbox"
                     className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
@@ -542,30 +542,29 @@ export default function AllInvoices() {
                     title="Selectează/Deselectează toate de pe această pagină"
                   />
                 </th>
-                <th style={{ width: 42, textAlign: "center" }} className="px-2 py-2 text-[10px] font-bold text-slate-400 uppercase">Nr.</th>
-                <th className="px-3 py-2 text-left text-[10px] font-bold text-slate-400 uppercase">Număr</th>
-                <th className="px-3 py-2 text-left text-[10px] font-bold text-slate-400 uppercase">Tip</th>
-                <th className="px-3 py-2 text-left text-[10px] font-bold text-slate-400 uppercase">Partener</th>
-                <th className="px-3 py-2 text-left text-[10px] font-bold text-slate-400 uppercase">Dată</th>
-                <th className="px-3 py-2 text-left text-[10px] font-bold text-slate-400 uppercase">Scadență</th>
-                <th className="px-3 py-2 text-right text-[10px] font-bold text-slate-400 uppercase">Total</th>
-                <th className="px-3 py-2 text-center text-[10px] font-bold text-slate-400 uppercase">Sursă</th>
-                <th className="px-3 py-2 text-center text-[10px] font-bold text-slate-400 uppercase">Status</th>
-                <th className="px-2 py-2 text-right text-[10px] font-bold text-slate-400 uppercase">Acțiuni</th>
+                <th className="px-4 py-3 w-16 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nr. Crt.</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Număr</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Tip & Status</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Partener</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Dată</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Scadență</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Total</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">Sursă</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">Acțiuni</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {isLoading ? (
-                <tr><td colSpan={10} className="py-12 text-center"><Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto" /></td></tr>
+                <tr><td colSpan={9} className="py-12 text-center"><Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto" /></td></tr>
               ) : paginated.length === 0 ? (
-                <tr><td colSpan={10} className="py-4 text-center text-slate-400 text-[11px] bg-slate-50/50 dark:bg-slate-800/20 border-b border-dashed border-slate-200 dark:border-slate-800">
+                <tr><td colSpan={9} className="py-4 text-center text-slate-400 text-[11px] bg-slate-50/50 dark:bg-slate-800/20 border-b border-dashed border-slate-200 dark:border-slate-800">
                   {search || typeFilter !== "all" ? "Nicio factură pentru filtrele aplicate." : "Nu există facturi. Apasă Sync sau importă XML din pagina Integrări."}
                 </td></tr>
               ) : paginated.map((row, i) => {
                 const tb = TYPE_BADGE[row.type];
                 return (
                   <tr key={`${row.source}-${row.type}-${row.id}`} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${selectedIds.has(`${row.type}-${row.id}`) ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
-                    <td className="px-2 py-2 text-center">
+                    <td className="px-4 py-3 text-center">
                       <input
                         type="checkbox"
                         className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
@@ -573,37 +572,37 @@ export default function AllInvoices() {
                         onChange={() => toggleSelect(`${row.type}-${row.id}`)}
                       />
                     </td>
-                    <td className="px-2 py-2 text-center text-[11px] text-slate-400">{(page - 1) * rowsPerPage + i + 1}</td>
-                    <td className="px-3 py-2">
+                    <td className="px-4 py-3 text-center text-[11px] font-medium text-slate-500">{(page - 1) * rowsPerPage + i + 1}</td>
+                    <td className="px-4 py-3">
                       <button onClick={() => {
                           if (row.type === 'refacturat') navigate(`/re-facturi/${row.id}`);
                           else if (row.type === 'emis' && row.source === 'manual') navigate(`/facturi-emise-nou/view/${row.id}`);
                           else navigate(`/facturi-primite/${row.id}`);
                         }}
-                        className="text-xs font-bold text-blue-600 hover:underline">
+                        className="text-sm font-bold text-blue-600 hover:underline">
                         {row.number}
                       </button>
                     </td>
-                    <td className="px-3 py-2">
-                      <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border ${tb.cls}`}>{tb.label}</span>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col gap-0.5">
+                        <span className={`text-sm font-bold ${tb.cls}`}>{tb.label}</span>
+                        <span className={`text-[11px] font-bold ${STATUS_CLS[row.status] || STATUS_CLS.pending}`}>
+                          {getStatusLabel(row.status, row.type)}
+                        </span>
+                      </div>
                     </td>
-                    <td className="px-3 py-2 text-xs text-slate-700 dark:text-slate-300 max-w-[150px] truncate">{row.partnerName}</td>
-                    <td className="px-3 py-2 text-[11px] text-slate-400 whitespace-nowrap">{formatDate(row.date)}</td>
-                    <td className="px-3 py-2 text-[11px] text-slate-400 whitespace-nowrap">{formatDate(row.dueDate)}</td>
-                    <td className="px-3 py-2 text-xs text-right font-semibold text-slate-900 dark:text-white whitespace-nowrap">
+                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 max-w-[150px] truncate">{row.partnerName}</td>
+                    <td className="px-4 py-3 text-sm text-slate-500 whitespace-nowrap">{formatDate(row.date)}</td>
+                    <td className="px-4 py-3 text-sm text-slate-500 whitespace-nowrap">{formatDate(row.dueDate)}</td>
+                    <td className="px-4 py-3 text-sm text-right font-semibold text-slate-900 dark:text-white whitespace-nowrap">
                       {formatCurrency(row.total, row.currency as Currency)}
                     </td>
-                    <td className="px-3 py-2 text-center">
+                    <td className="px-4 py-3 text-center">
                       {(() => { const sb = SOURCE_BADGE[row.source] || SOURCE_BADGE.manual; return (
-                        <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border ${sb.cls}`}>{sb.label}</span>
+                        <span className={`text-[11px] font-bold ${sb.cls}`}>{sb.label}</span>
                       ); })()}
                     </td>
-                    <td className="px-3 py-2 text-center">
-                      <span className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold border ${STATUS_CLS[row.status] || STATUS_CLS.pending}`}>
-                        {getStatusLabel(row.status, row.type)}
-                      </span>
-                    </td>
-                    <td className="px-2 py-2">
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-1 justify-end">
                         {/* Buton Marchează Achitat/Încasat — doar dacă nu e deja plătit */}
                         {row.status !== 'paid' && row.status !== 'processed' && row.status !== 'storno' && row.type !== 'refacturat' && (
