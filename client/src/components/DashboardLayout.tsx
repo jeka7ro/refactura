@@ -137,13 +137,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div key={item.href}>
               <Link href={item.href} onClick={() => setMobileOpen(false)}>
                 <div className={cn(
-                  "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer group",
-                  active
-                    ? "bg-blue-600 text-white shadow-sm shadow-blue-900/30"
-                    : "text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800",
+                  "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150 cursor-pointer group",
+                  active && !item.subItems
+                    ? "bg-blue-600 text-white shadow-sm shadow-blue-900/30 font-medium"
+                    : (active || hasExpandedSubs) && item.subItems
+                      ? "text-slate-900 dark:text-white font-semibold"
+                      : "text-slate-500 font-medium hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800",
                   collapsed && "justify-center px-2"
                 )}>
-                  <Icon className={cn("w-4 h-4 flex-shrink-0", active ? "text-white" : "text-slate-400 group-hover:text-blue-600 dark:group-hover:text-white")} />
+                  <Icon className={cn("w-4 h-4 flex-shrink-0", 
+                    active && !item.subItems ? "text-white" : 
+                    (active || hasExpandedSubs) && item.subItems ? "text-blue-600 dark:text-blue-400" : 
+                    "text-slate-400 group-hover:text-blue-600 dark:group-hover:text-white"
+                  )} />
                   {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
                   {/* Badge eliminat pentru a evita confuzia cu numarul total de facturi */}
                 </div>
