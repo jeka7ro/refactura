@@ -7,8 +7,8 @@ import { generateReInvoicePDF } from "./pdf";
 import { getDb, getTenantsByUser, getUserRole, createTenant, createCostCenter, getCostCentersByTenant, updateCostCenter, deleteCostCenter, getCostCenterById, getClientsByTenant, createClient, updateClient, deleteClient, getClientById, createLead, getAllLeads, updateLeadStatus, deleteLead, getAllSubscriptionPlans, createSubscriptionPlan, updateSubscriptionPlan, deleteSubscriptionPlan, getCmsSettings, upsertCmsSetting, getAdminStats, getAllAccounts, getAllTenants, recordPageVisit, getPageVisitStats, getAllModules, getActiveModulesWithPricing, upsertModule, deleteModule, upsertModulePricing, deleteModulePricing, createReInvoice, getReInvoicesByTenant, getReInvoiceById, updateReInvoiceStatus, deleteReInvoice, getNextReInvoiceNumber, getInvoiceArchiveList, createInvoiceArchiveEntry, getInvoiceArchiveById, getInvoiceArchiveByIds, updateInvoiceArchiveEntry, deleteInvoiceArchiveEntry, getInvoiceArchiveStats, getIntegrations, upsertIntegration } from "./db";
 import { authenticateAccount, createAccount, getAccountByEmail } from "./auth";
 import { createSessionToken } from "./session";
-import { eq, desc, and } from "drizzle-orm";
-import { invoiceArchive, invoiceArchiveLines, products, integrations } from "../drizzle/schema";
+import { eq, desc, and, inArray } from "drizzle-orm";
+import { invoiceArchive, invoiceArchiveLines, products, integrations, emittedInvoices, emittedInvoiceLines } from "../drizzle/schema";
 import { sql } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
@@ -171,7 +171,6 @@ export const appRouter = router({
   }),
 
   invoices: router({
-    // Facturi PRIMITE (de la furnizori) — direction = 'in'
     list: protectedProcedure.query(async ({ ctx }) => {
       if (!ctx.user?.tenantId) throw new Error("No tenant context");
       const db = await getDb();
@@ -179,9 +178,22 @@ export const appRouter = router({
       const res = await db.select().from(invoiceArchive)
         .where(and(eq(invoiceArchive.tenantId, ctx.user.tenantId), eq(invoiceArchive.direction, "in")))
         .orderBy(desc(invoiceArchive.createdAt));
-      return res;
+        
+      if (res.length === 0) return [];
+      const itemIds = res.map(r => r.id);
+      const lines = await db.select().from(invoiceArchiveLines).where(inArray(invoiceArchiveLines.invoiceArchiveId, itemIds));
+      
+      const linesMap = new Map<number, string[]>();
+      for (const l of lines) {
+        if (!linesMap.has(l.invoiceArchiveId)) linesMap.set(l.invoiceArchiveId, []);
+        linesMap.get(l.invoiceArchiveId)!.push(l.description);
+      }
+      
+      return res.map(row => ({
+        ...row,
+        itemsText: (linesMap.get(row.id) || []).join(" ")
+      }));
     }),
-    // Facturi EMISE (catre clienti) — direction = 'out'
     listEmise: protectedProcedure.query(async ({ ctx }) => {
       if (!ctx.user?.tenantId) throw new Error("No tenant context");
       const db = await getDb();
@@ -189,7 +201,21 @@ export const appRouter = router({
       const res = await db.select().from(invoiceArchive)
         .where(and(eq(invoiceArchive.tenantId, ctx.user.tenantId), eq(invoiceArchive.direction, "out")))
         .orderBy(desc(invoiceArchive.createdAt));
-      return res;
+        
+      if (res.length === 0) return [];
+      const itemIds = res.map(r => r.id);
+      const lines = await db.select().from(invoiceArchiveLines).where(inArray(invoiceArchiveLines.invoiceArchiveId, itemIds));
+      
+      const linesMap = new Map<number, string[]>();
+      for (const l of lines) {
+        if (!linesMap.has(l.invoiceArchiveId)) linesMap.set(l.invoiceArchiveId, []);
+        linesMap.get(l.invoiceArchiveId)!.push(l.description);
+      }
+      
+      return res.map(row => ({
+        ...row,
+        itemsText: (linesMap.get(row.id) || []).join(" ")
+      }));
     }),
     importSpv: protectedProcedure
       .input(z.array(z.object({
@@ -1086,12 +1112,25 @@ export const appRouter = router({
       if (!ctx.user?.tenantId) throw new Error("No tenant");
       const db = await getDb();
       if (!db) throw new Error("No DB");
-      const { emittedInvoices, emittedInvoiceLines } = await import("../drizzle/schema");
-      const { desc } = await import("drizzle-orm");
       const rows = await db.select().from(emittedInvoices)
         .where(eq(emittedInvoices.tenantId, ctx.user.tenantId))
         .orderBy(desc(emittedInvoices.createdAt));
-      return rows;
+        
+      if (rows.length === 0) return [];
+      
+      const rowIds = rows.map(r => r.id);
+      const lines = await db.select().from(emittedInvoiceLines).where(inArray(emittedInvoiceLines.emittedInvoiceId, rowIds));
+      
+      const linesMap = new Map<number, string[]>();
+      for (const l of lines) {
+        if (!linesMap.has(l.emittedInvoiceId)) linesMap.set(l.emittedInvoiceId, []);
+        linesMap.get(l.emittedInvoiceId)!.push(l.description);
+      }
+      
+      return rows.map(row => ({
+        ...row,
+        itemsText: (linesMap.get(row.id) || []).join(" ")
+      }));
     }),
 
     getById: protectedProcedure

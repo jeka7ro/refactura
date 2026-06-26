@@ -6,6 +6,8 @@ import { Link, useLocation } from "wouter";
 import { Search, ChevronLeft, ChevronRight, Plus, RefreshCw, Loader2, Send, FileDown, X, Eye, Pencil, Trash2, Calendar, Download, CheckCircle, ClipboardList } from "lucide-react";
 import { formatCurrency, formatDate, type Currency } from "@/lib/store";
 import { trpc } from "@/lib/trpc";
+import { normalizeText } from "@/lib/utils";
+import { useTableSort } from "@/hooks/useTableSort";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -31,6 +33,7 @@ interface UnifiedRow {
   status: string;
   fileUrl?: string | null;
   source: string;
+  itemsText?: string;
 }
 
 const SOURCE_BADGE: Record<string, { label: string; cls: string }> = {
@@ -230,6 +233,7 @@ export default function AllInvoices() {
         total: t, currency: i.currency || "RON",
         status: t < 0 ? "storno" : (i.status || "pending"), fileUrl: i.fileUrl,
         source: i.source || "spv_anaf",
+        itemsText: i.itemsText || "",
       });
     });
     (Array.isArray(reInvoices) ? reInvoices : []).forEach((i: any) => {
@@ -241,6 +245,7 @@ export default function AllInvoices() {
         total: t, currency: i.currency || "RON",
         status: t < 0 ? "storno" : (i.status || "draft"), fileUrl: null,
         source: "refactura",
+        itemsText: i.itemsText || "",
       });
     });
     (Array.isArray(emittedInvoices) ? emittedInvoices : []).forEach((i: any) => {
@@ -252,6 +257,7 @@ export default function AllInvoices() {
         total: t, currency: i.currency || "RON",
         status: t < 0 ? "storno" : (i.status === "sent" ? "sent" : (i.status || "draft")), fileUrl: null,
         source: "manual",
+        itemsText: i.itemsText || "",
       });
     });
     return rows.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
@@ -279,21 +285,24 @@ export default function AllInvoices() {
       rows = rows.filter(r => r.source === sourceFilter);
     }
     if (search.trim()) {
-      const q = search.toLowerCase();
+      const q = normalizeText(search.trim());
       rows = rows.filter(r =>
-        r.number.toLowerCase().includes(q) ||
-        r.partnerName.toLowerCase().includes(q) ||
-        (STATUS_LBL[r.status] || r.status).toLowerCase().includes(q) ||
+        normalizeText(r.number).includes(q) ||
+        normalizeText(r.partnerName).includes(q) ||
+        normalizeText(STATUS_LBL[r.status] || r.status).includes(q) ||
         r.total.toString().includes(q) ||
-        (SOURCE_BADGE[r.source]?.label || r.source).toLowerCase().includes(q) ||
-        r.source.toLowerCase().includes(q)
+        normalizeText(SOURCE_BADGE[r.source]?.label || r.source).includes(q) ||
+        normalizeText(r.source).includes(q) ||
+        (r.itemsText && normalizeText(r.itemsText).includes(q))
       );
     }
     return rows;
   }, [allRows, search, typeFilter, filterStatus, sourceFilter, period, customFrom, customTo]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
-  const paginated  = filtered.slice((page - 1) * rowsPerPage, page * rowsPerPage);
+  const { sortedData, handleSort, getSortIcon } = useTableSort(filtered, "all_invoices");
+
+  const totalPages = Math.max(1, Math.ceil(sortedData.length / rowsPerPage));
+  const paginated  = sortedData.slice((page - 1) * rowsPerPage, page * rowsPerPage);
   const counts = {
     all: allRows.length, primit: allRows.filter(r => r.type === "primit").length,
     emis: allRows.filter(r => r.type === "emis").length, refacturat: allRows.filter(r => r.type === "refacturat").length,
@@ -420,53 +429,6 @@ export default function AllInvoices() {
             <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">Facturi</h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">Total: <strong>{allRows.length}</strong> înregistrări</p>
           </div>
-          
-          <div className="flex items-center gap-2">
-            <button
-              onClick={exportToExcel}
-              className="flex items-center gap-1.5 px-4 h-8 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold transition-all"
-              title="Exportă tabelul curent în format Excel"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Export Excel</span>
-            </button>
-            <button
-              onClick={exportToPdf}
-              className="flex items-center gap-1.5 px-4 h-8 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition-all"
-              title="Exportă tabelul curent în format PDF"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Export PDF</span>
-            </button>
-            <button
-              onClick={async () => {
-                const hasOblio = (dbIntegrations as any[]).some(i => i.provider === "oblio" && i.status === "active");
-                const hasSpv = (dbIntegrations as any[]).some(i => i.provider === "spv" && i.status === "active");
-                let syncedAny = false;
-                
-                if (hasOblio || hasSpv) {
-                  toast.loading("Sincronizare date în curs...", { id: "sync" });
-                  const tasks = [];
-                  if (hasOblio) tasks.push(syncOblio.mutateAsync().catch(() => {}));
-                  if (hasSpv) tasks.push(syncSpvManual.mutateAsync().catch(() => {}));
-                  await Promise.all(tasks);
-                  syncedAny = true;
-                }
-                
-                if (!syncedAny) {
-                  toast.error("Nicio integrare activă de sincronizat. Verificați Setările.");
-                } else {
-                  toast.success("Sincronizare completă", { id: "sync" });
-                }
-              }}
-              disabled={syncOblio.isPending || syncSpvManual.isPending}
-              className="flex items-center gap-1.5 px-4 h-8 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-all disabled:opacity-60"
-              title="Sincronizează din sursele configurate (Oblio / SPV)"
-            >
-              {syncOblio.isPending || syncSpvManual.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-              <span>Sync</span>
-            </button>
-          </div>
         </div>
 
         {/* KPI Cards */}
@@ -588,8 +550,9 @@ export default function AllInvoices() {
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-6">
 
         {/* Search & Filtre — UN SINGUR RÂND */}
-        <div className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800/50 flex flex-row gap-2 items-center bg-white dark:bg-slate-900 overflow-x-auto">
-          {/* Search */}
+        <div className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800/50 flex flex-row items-center justify-between bg-white dark:bg-slate-900 overflow-x-auto gap-4">
+          
+          {/* Search (Bara de stânga) */}
           <div style={{ position: "relative", flexShrink: 0, width: 200 }}>
             <Search className="w-3.5 h-3.5 text-slate-400" style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)" }} />
             <input
@@ -611,63 +574,112 @@ export default function AllInvoices() {
             )}
           </div>
 
-          <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
+          {/* Restul filtrelor si butoanelor aliniate la dreapta */}
+          <div className="flex flex-row items-center gap-2 flex-shrink-0 ml-auto">
+            {/* Period Filter */}
+            <Select value={period} onValueChange={(val) => { setPeriod(val as any); setPage(1); }}>
+              <SelectTrigger className="h-8 w-fit min-w-[110px] rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 flex-shrink-0">
+                <SelectValue placeholder="Perioadă" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toate</SelectItem>
+                <SelectItem value="today">Azi</SelectItem>
+                <SelectItem value="week">Săpt. curentă</SelectItem>
+                <SelectItem value="month">Luna curentă</SelectItem>
+                <SelectItem value="lastMonth">Luna trecută</SelectItem>
+                <SelectItem value="year">Anul curent</SelectItem>
+                <SelectItem value="lastYear">Anul trecut</SelectItem>
+                <SelectItem value="custom">Custom</SelectItem>
+              </SelectContent>
+            </Select>
 
-          {/* Period Filter */}
-          <Select value={period} onValueChange={(val) => { setPeriod(val as any); setPage(1); }}>
-            <SelectTrigger className="h-8 w-fit min-w-[110px] rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 flex-shrink-0">
-              <SelectValue placeholder="Perioadă" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Toate</SelectItem>
-              <SelectItem value="today">Azi</SelectItem>
-              <SelectItem value="week">Săpt. curentă</SelectItem>
-              <SelectItem value="month">Luna curentă</SelectItem>
-              <SelectItem value="lastMonth">Luna trecută</SelectItem>
-              <SelectItem value="year">Anul curent</SelectItem>
-              <SelectItem value="lastYear">Anul trecut</SelectItem>
-              <SelectItem value="custom">Custom</SelectItem>
-            </SelectContent>
-          </Select>
+            {/* Date pickers inline */}
+            <input type="date" value={customFrom} onChange={e => { setCustomFrom(e.target.value); setPeriod("custom"); setPage(1); }}
+              className="h-8 px-2 rounded-full border border-slate-200 dark:border-slate-600 text-xs bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 outline-none flex-shrink-0" style={{ width: 118 }} />
+            <span className="text-xs text-slate-400 flex-shrink-0">-</span>
+            <input type="date" value={customTo} onChange={e => { setCustomTo(e.target.value); setPeriod("custom"); setPage(1); }}
+              className="h-8 px-2 rounded-full border border-slate-200 dark:border-slate-600 text-xs bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 outline-none flex-shrink-0" style={{ width: 118 }} />
 
-          {/* Date pickers inline */}
-          <input type="date" value={customFrom} onChange={e => { setCustomFrom(e.target.value); setPeriod("custom"); setPage(1); }}
-            className="h-8 px-2 rounded-full border border-slate-200 dark:border-slate-600 text-xs bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 outline-none flex-shrink-0" style={{ width: 118 }} />
-          <span className="text-xs text-slate-400 flex-shrink-0">-</span>
-          <input type="date" value={customTo} onChange={e => { setCustomTo(e.target.value); setPeriod("custom"); setPage(1); }}
-            className="h-8 px-2 rounded-full border border-slate-200 dark:border-slate-600 text-xs bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 outline-none flex-shrink-0" style={{ width: 118 }} />
+            <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
 
-          <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
+            {/* Type Filter */}
+            <Select value={typeFilter} onValueChange={(val) => { setTypeFilter(val as any); setPage(1); }}>
+              <SelectTrigger className="h-8 w-fit min-w-[100px] rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 flex-shrink-0">
+                <SelectValue placeholder="Tip" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toate {counts["all"]}</SelectItem>
+                <SelectItem value="primit">Primite {counts["primit"]}</SelectItem>
+                <SelectItem value="emis">Emise {counts["emis"]}</SelectItem>
+                <SelectItem value="refacturat">Re-fact. {counts["refacturat"]}</SelectItem>
+              </SelectContent>
+            </Select>
 
-          {/* Type Filter */}
-          <Select value={typeFilter} onValueChange={(val) => { setTypeFilter(val as any); setPage(1); }}>
-            <SelectTrigger className="h-8 w-fit min-w-[100px] rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 flex-shrink-0">
-              <SelectValue placeholder="Tip" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Toate {counts["all"]}</SelectItem>
-              <SelectItem value="primit">Primite {counts["primit"]}</SelectItem>
-              <SelectItem value="emis">Emise {counts["emis"]}</SelectItem>
-              <SelectItem value="refacturat">Re-fact. {counts["refacturat"]}</SelectItem>
-            </SelectContent>
-          </Select>
+            <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
 
-          <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
-
-          {/* Source Filter */}
-          <Select value={sourceFilter} onValueChange={(val) => { setSourceFilter(val); setPage(1); }}>
-            <SelectTrigger className="h-8 w-fit min-w-[100px] rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 flex-shrink-0">
-              <SelectValue placeholder="Sursă" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Toate sursele</SelectItem>
-              <SelectItem value="spv_anaf">SPV ANAF</SelectItem>
-              <SelectItem value="oblio">Oblio</SelectItem>
-              <SelectItem value="smartbill">SmartBill</SelectItem>
-              <SelectItem value="manual">Manual</SelectItem>
-              <SelectItem value="refactura">Re-Facturat</SelectItem>
-            </SelectContent>
-          </Select>
+            {/* Source Filter */}
+            <Select value={sourceFilter} onValueChange={(val) => { setSourceFilter(val); setPage(1); }}>
+              <SelectTrigger className="h-8 w-fit min-w-[100px] rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 flex-shrink-0">
+                <SelectValue placeholder="Sursă" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toate sursele</SelectItem>
+                <SelectItem value="spv_anaf">SPV ANAF</SelectItem>
+                <SelectItem value="oblio">Oblio</SelectItem>
+                <SelectItem value="smartbill">SmartBill</SelectItem>
+                <SelectItem value="manual">Manual</SelectItem>
+                <SelectItem value="refactura">Re-Facturat</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
+            
+            {/* Butoane de Actiune */}
+            <button
+              onClick={exportToExcel}
+              className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold transition-all"
+              title="Exportă tabelul curent în format Excel"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Export Excel</span>
+            </button>
+            <button
+              onClick={exportToPdf}
+              className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition-all"
+              title="Exportă tabelul curent în format PDF"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Export PDF</span>
+            </button>
+            <button
+              onClick={async () => {
+                const hasOblio = (dbIntegrations as any[]).some(i => i.provider === "oblio" && i.status === "active");
+                const hasSpv = (dbIntegrations as any[]).some(i => i.provider === "spv" && i.status === "active");
+                let syncedAny = false;
+                
+                if (hasOblio || hasSpv) {
+                  toast.loading("Sincronizare date în curs...", { id: "sync" });
+                  const tasks = [];
+                  if (hasOblio) tasks.push(syncOblio.mutateAsync().catch(() => {}));
+                  if (hasSpv) tasks.push(syncSpvManual.mutateAsync().catch(() => {}));
+                  await Promise.all(tasks);
+                  syncedAny = true;
+                }
+                
+                if (!syncedAny) {
+                  toast.error("Nicio integrare activă de sincronizat. Verificați Setările.");
+                } else {
+                  toast.success("Sincronizare completă", { id: "sync" });
+                }
+              }}
+              disabled={syncOblio.isPending || syncSpvManual.isPending}
+              className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-all disabled:opacity-60"
+              title="Sincronizează din sursele configurate (Oblio / SPV)"
+            >
+              {syncOblio.isPending || syncSpvManual.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              <span>Sync</span>
+            </button>
+          </div>
         </div>
 
         {/* DESKTOP TABLE */}
@@ -685,12 +697,24 @@ export default function AllInvoices() {
                   />
                 </th>
                 <th className="px-4 py-3 w-16 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nr. Crt.</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Număr & Partener</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Tip & Status</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Dată</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Scadență</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Total</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">Sursă</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide cursor-pointer hover:text-slate-700" onClick={() => handleSort('number')}>
+                  <div className="flex items-center gap-1">Număr & Partener <span className="text-blue-500">{getSortIcon('number')}</span></div>
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide cursor-pointer hover:text-slate-700" onClick={() => handleSort('type')}>
+                  <div className="flex items-center gap-1">Tip & Status <span className="text-blue-500">{getSortIcon('type')}</span></div>
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide cursor-pointer hover:text-slate-700" onClick={() => handleSort('date')}>
+                  <div className="flex items-center gap-1">Dată <span className="text-blue-500">{getSortIcon('date')}</span></div>
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide cursor-pointer hover:text-slate-700" onClick={() => handleSort('dueDate')}>
+                  <div className="flex items-center gap-1">Scadență <span className="text-blue-500">{getSortIcon('dueDate')}</span></div>
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide cursor-pointer hover:text-slate-700" onClick={() => handleSort('total')}>
+                  <div className="flex items-center justify-end gap-1">Total <span className="text-blue-500">{getSortIcon('total')}</span></div>
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide cursor-pointer hover:text-slate-700" onClick={() => handleSort('source')}>
+                  <div className="flex items-center justify-center gap-1">Sursă <span className="text-blue-500">{getSortIcon('source')}</span></div>
+                </th>
                 <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">Acțiuni</th>
               </tr>
             </thead>

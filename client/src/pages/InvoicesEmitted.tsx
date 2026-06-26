@@ -1,9 +1,11 @@
 // InvoicesEmitted — Facturi emise proprii + import Oblio
 // UI Rules: Nr. Crt., search+counter, footer paginare, rounded-lg pe butoane actiuni
 import { useState, useMemo } from "react";
+import { useTableSort } from "@/hooks/useTableSort";
 import { Plus, RefreshCw, Loader2, ExternalLink, Trash2, ChevronLeft, ChevronRight, Search, Send, X, FileText } from "lucide-react";
 import { formatCurrency, formatDate, type Currency } from "@/lib/store";
 import { trpc } from "@/lib/trpc";
+import { normalizeText } from "@/lib/utils";
 import { Link } from "wouter";
 import { toast } from "sonner";
 
@@ -18,6 +20,7 @@ interface EmittedInvoiceRow {
   source: string;
   status: string;
   fileUrl?: string | null;
+  itemsText?: string;
 }
 
 interface NewInvoiceLine {
@@ -88,20 +91,24 @@ export default function InvoicesEmitted() {
     source: inv.source || "—",
     status: inv.status || "pending",
     fileUrl: inv.fileUrl,
+    itemsText: inv.itemsText || "",
   }));
 
   const filtered = useMemo(() => {
     if (!search.trim()) return rows;
-    const q = search.toLowerCase();
+    const q = normalizeText(search.trim());
     return rows.filter(r =>
-      r.number.toLowerCase().includes(q) ||
-      r.clientName.toLowerCase().includes(q) ||
-      r.status.toLowerCase().includes(q)
+      normalizeText(r.number).includes(q) ||
+      normalizeText(r.clientName).includes(q) ||
+      normalizeText(r.status).includes(q) ||
+      (r.itemsText && normalizeText(r.itemsText).includes(q))
     );
   }, [rows, search]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
-  const paginated = filtered.slice((page - 1) * rowsPerPage, page * rowsPerPage);
+  const { sortedData, handleSort, getSortIcon } = useTableSort(filtered, "invoices_emitted");
+
+  const totalPages = Math.max(1, Math.ceil(sortedData.length / rowsPerPage));
+  const paginated = sortedData.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
   // Line calculations
   const lineTotal = (l: NewInvoiceLine) => {
@@ -420,13 +427,27 @@ export default function InvoicesEmitted() {
               <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
                 <tr>
                   <th className="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase w-12">Nr.</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Număr</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Client</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Emitere</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Scadență</th>
-                  <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase">Total</th>
-                  <th className="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase">Status</th>
-                  <th className="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase">Sursă</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase cursor-pointer hover:text-slate-700" onClick={() => handleSort('number')}>
+                    <div className="flex items-center gap-1">Număr <span className="text-blue-500">{getSortIcon('number')}</span></div>
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase cursor-pointer hover:text-slate-700" onClick={() => handleSort('clientName')}>
+                    <div className="flex items-center gap-1">Client <span className="text-blue-500">{getSortIcon('clientName')}</span></div>
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase cursor-pointer hover:text-slate-700" onClick={() => handleSort('date')}>
+                    <div className="flex items-center gap-1">Emitere <span className="text-blue-500">{getSortIcon('date')}</span></div>
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase cursor-pointer hover:text-slate-700" onClick={() => handleSort('dueDate')}>
+                    <div className="flex items-center gap-1">Scadență <span className="text-blue-500">{getSortIcon('dueDate')}</span></div>
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase cursor-pointer hover:text-slate-700" onClick={() => handleSort('total')}>
+                    <div className="flex items-center justify-end gap-1">Total <span className="text-blue-500">{getSortIcon('total')}</span></div>
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase cursor-pointer hover:text-slate-700" onClick={() => handleSort('status')}>
+                    <div className="flex items-center justify-center gap-1">Status <span className="text-blue-500">{getSortIcon('status')}</span></div>
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase cursor-pointer hover:text-slate-700" onClick={() => handleSort('source')}>
+                    <div className="flex items-center justify-center gap-1">Sursă <span className="text-blue-500">{getSortIcon('source')}</span></div>
+                  </th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>

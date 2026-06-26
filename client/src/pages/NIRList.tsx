@@ -6,6 +6,7 @@ import { useLocation } from "wouter";
 import { Loader2, Plus, Search, ChevronLeft, ChevronRight, Trash2, Eye, ClipboardCheck, FileDown } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { useTableSort } from "@/hooks/useTableSort";
 import { formatDate } from "@/lib/store";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -34,8 +35,10 @@ export default function NIRList() {
     n.invoiceNumber?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
-  const paginated = filtered.slice((page - 1) * rowsPerPage, page * rowsPerPage);
+  const { sortedData, handleSort, getSortIcon } = useTableSort(filtered, "nir_list");
+
+  const totalPages = Math.max(1, Math.ceil(sortedData.length / rowsPerPage));
+  const paginated = sortedData.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
   const STATUS_CLS: Record<string, string> = {
     draft: "bg-amber-50 text-amber-700 border-amber-200",
@@ -100,11 +103,21 @@ export default function NIRList() {
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
                 <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400 w-10 whitespace-nowrap">#</th>
-                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Nr. NIR</th>
-                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Furnizor</th>
-                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Factură sursă</th>
-                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Dată recepție</th>
-                <th className="px-3 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-slate-400">Status</th>
+                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-slate-700" onClick={() => handleSort('nirNumber')}>
+                  <div className="flex items-center gap-1">Nr. NIR <span className="text-blue-500">{getSortIcon('nirNumber')}</span></div>
+                </th>
+                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-slate-700" onClick={() => handleSort('supplierName')}>
+                  <div className="flex items-center gap-1">Furnizor <span className="text-blue-500">{getSortIcon('supplierName')}</span></div>
+                </th>
+                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-slate-700" onClick={() => handleSort('invoiceNumber')}>
+                  <div className="flex items-center gap-1">Factură sursă <span className="text-blue-500">{getSortIcon('invoiceNumber')}</span></div>
+                </th>
+                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-slate-700" onClick={() => handleSort('receiptDate')}>
+                  <div className="flex items-center gap-1">Dată recepție <span className="text-blue-500">{getSortIcon('receiptDate')}</span></div>
+                </th>
+                <th className="px-3 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-slate-700" onClick={() => handleSort('status')}>
+                  <div className="flex items-center justify-center gap-1">Status <span className="text-blue-500">{getSortIcon('status')}</span></div>
+                </th>
                 <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-slate-400">Acțiuni</th>
               </tr>
             </thead>

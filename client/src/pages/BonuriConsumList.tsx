@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { Loader2, Search, ChevronLeft, ChevronRight, Trash2, Eye, FileDown, PackageOpen } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { useTableSort } from "@/hooks/useTableSort";
 import { formatDate } from "@/lib/store";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -32,8 +33,10 @@ export default function BonuriConsumList() {
     (n.devizId && n.devizId.toString().includes(search.toLowerCase()))
   );
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
-  const paginated = filtered.slice((page - 1) * rowsPerPage, page * rowsPerPage);
+  const { sortedData, handleSort, getSortIcon } = useTableSort(filtered, "bonuri_consum_list");
+
+  const totalPages = Math.max(1, Math.ceil(sortedData.length / rowsPerPage));
+  const paginated = sortedData.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
   return (
     <div className="p-4 md:p-6 space-y-4">
@@ -83,11 +86,21 @@ export default function BonuriConsumList() {
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
                 <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400 w-10">#</th>
-                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Nr. Bon</th>
-                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Dată eliberare</th>
-                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Gestiune</th>
-                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">Deviz asociat</th>
-                <th className="px-3 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-slate-400">Status</th>
+                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-slate-700" onClick={() => handleSort('number')}>
+                  <div className="flex items-center gap-1">Nr. Bon <span className="text-blue-500">{getSortIcon('number')}</span></div>
+                </th>
+                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-slate-700" onClick={() => handleSort('date')}>
+                  <div className="flex items-center gap-1">Dată eliberare <span className="text-blue-500">{getSortIcon('date')}</span></div>
+                </th>
+                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-slate-700" onClick={() => handleSort('gestiune')}>
+                  <div className="flex items-center gap-1">Gestiune <span className="text-blue-500">{getSortIcon('gestiune')}</span></div>
+                </th>
+                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-slate-700" onClick={() => handleSort('devizId')}>
+                  <div className="flex items-center gap-1">Deviz asociat <span className="text-blue-500">{getSortIcon('devizId')}</span></div>
+                </th>
+                <th className="px-3 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-slate-700" onClick={() => handleSort('status')}>
+                  <div className="flex items-center justify-center gap-1">Status <span className="text-blue-500">{getSortIcon('status')}</span></div>
+                </th>
                 <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-slate-400">Acțiuni</th>
               </tr>
             </thead>

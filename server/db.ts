@@ -17,6 +17,11 @@ export async function getDb() {
       } catch {
         // Column already exists — ignore
       }
+      
+      // Safe migrations: add indexes for lines tables to prevent full table scans
+      try { await _db.execute(sql`CREATE INDEX idx_invoiceArchiveId ON invoiceArchiveLines(invoiceArchiveId)`); } catch {}
+      try { await _db.execute(sql`CREATE INDEX idx_reInvoiceId ON reInvoiceLines(reInvoiceId)`); } catch {}
+      try { await _db.execute(sql`CREATE INDEX idx_emittedInvoiceId ON emittedInvoiceLines(emittedInvoiceId)`); } catch {}
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -692,11 +697,27 @@ export async function createReInvoice(data: {
 export async function getReInvoicesByTenant(tenantId: number) {
   const db = await getDb();
   if (!db) return _memReInvoices.filter(r => r.tenantId === tenantId);
-  return db
+  const items = await db
     .select()
     .from(reInvoices)
     .where(eq(reInvoices.tenantId, tenantId))
     .orderBy(desc(reInvoices.createdAt));
+    
+  if (items.length === 0) return [];
+  
+  const itemIds = items.map(i => i.id);
+  const lines = await db.select().from(reInvoiceLines).where(inArray(reInvoiceLines.reInvoiceId, itemIds));
+  
+  const linesMap = new Map<number, string[]>();
+  for (const l of lines) {
+    if (!linesMap.has(l.reInvoiceId)) linesMap.set(l.reInvoiceId, []);
+    linesMap.get(l.reInvoiceId)!.push(l.description);
+  }
+  
+  return items.map(item => ({
+    ...item,
+    itemsText: (linesMap.get(item.id) || []).join(" ")
+  }));
 }
 
 export async function getReInvoiceById(id: number, tenantId: number) {
@@ -788,10 +809,26 @@ export async function getInvoiceArchiveList(tenantId: number, filters?: {
     .limit(limit)
     .offset(offset);
 
+  let itemsWithLines = items.map(item => ({ ...item, itemsText: "" }));
+  if (items.length > 0) {
+    const itemIds = items.map(i => i.id);
+    const lines = await db.select().from(invoiceArchiveLines).where(inArray(invoiceArchiveLines.invoiceArchiveId, itemIds));
+    const linesMap = new Map<number, string[]>();
+    for (const l of lines) {
+      if (!linesMap.has(l.invoiceArchiveId)) linesMap.set(l.invoiceArchiveId, []);
+      linesMap.get(l.invoiceArchiveId)!.push(l.description);
+    }
+    
+    itemsWithLines = items.map(item => ({
+      ...item,
+      itemsText: (linesMap.get(item.id) || []).join(" ")
+    }));
+  }
+
   const [{ total }] = await db.select({ total: count() }).from(invoiceArchive)
     .where(eq(invoiceArchive.tenantId, tenantId));
 
-  return { items, total };
+  return { items: itemsWithLines, total };
 }
 
 export async function createInvoiceArchiveEntry(data: InsertInvoiceArchive) {

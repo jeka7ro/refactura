@@ -8,8 +8,9 @@ import {
   Upload, Search, FileText, Eye, Trash2, RefreshCw,
   Download, Archive, CheckCircle, Clock,
   ChevronLeft, ChevronRight, X, Loader2,
-  FileUp, FolderOpen, Tag
+  FileUp, FolderOpen, Tag, ArrowUpDown
 } from "lucide-react";
+import { useTableSort } from "@/hooks/useTableSort";
 import { useLocation } from "wouter";
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -150,7 +151,8 @@ export default function InvoiceArchive() {
     setShowMetaModal(true);
   };
 
-  const items = data?.items ?? [];
+  const itemsRaw = data?.items ?? [];
+  const { sortedData: items, handleSort, getSortIcon } = useTableSort(itemsRaw, "invoice_archive");
   const total = data?.total ?? 0;
   const totalPages = Math.ceil(total / LIMIT);
 
@@ -306,12 +308,24 @@ export default function InvoiceArchive() {
                     />
                   </th>
                   <th className="text-left px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider w-16">Nr. Crt.</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Furnizor</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Nr. Factură</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Dată</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Total</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Sursă</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Status</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700" onClick={() => handleSort('supplierName')}>
+                    <div className="flex items-center gap-1">Furnizor <span className="text-blue-500">{getSortIcon('supplierName')}</span></div>
+                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700" onClick={() => handleSort('invoiceNumber')}>
+                    <div className="flex items-center gap-1">Nr. Factură <span className="text-blue-500">{getSortIcon('invoiceNumber')}</span></div>
+                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700" onClick={() => handleSort('issueDate')}>
+                    <div className="flex items-center gap-1">Dată <span className="text-blue-500">{getSortIcon('issueDate')}</span></div>
+                  </th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700" onClick={() => handleSort('total')}>
+                    <div className="flex items-center justify-end gap-1">Total <span className="text-blue-500">{getSortIcon('total')}</span></div>
+                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700" onClick={() => handleSort('source')}>
+                    <div className="flex items-center gap-1">Sursă <span className="text-blue-500">{getSortIcon('source')}</span></div>
+                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700" onClick={() => handleSort('status')}>
+                    <div className="flex items-center gap-1">Status <span className="text-blue-500">{getSortIcon('status')}</span></div>
+                  </th>
                   <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Acțiuni</th>
                 </tr>
               </thead>

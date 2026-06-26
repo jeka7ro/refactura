@@ -51,6 +51,7 @@ export default function InvoicesReceived() {
     currency: inv.currency,
     status: inv.status as InvoiceStatus,
     source: inv.source as IntegrationSource,
+    itemsText: inv.itemsText || "",
   }));
 
   const filtered = invoicesList.filter((inv) => {

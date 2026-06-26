@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Search, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { normalizeText } from "@/lib/utils";
+import { useTableSort } from "@/hooks/useTableSort";
 
 export interface DataTableColumn<T> {
   key: keyof T;
@@ -21,6 +23,7 @@ interface DataTableProps<T> {
   isLoading?: boolean;
   searchable?: boolean;
   headerContent?: React.ReactNode;
+  tableId?: string;
 }
 
 export function DataTable<T extends Record<string, any>>({
@@ -34,9 +37,8 @@ export function DataTable<T extends Record<string, any>>({
   isLoading = false,
   searchable = true,
   headerContent,
+  tableId,
 }: DataTableProps<T>) {
-  const [sortColumn, setSortColumn] = useState<keyof T | null>(null);
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
   const [selectedRows, setSelectedRows] = useState<Set<any>>(new Set());
@@ -53,16 +55,7 @@ export function DataTable<T extends Record<string, any>>({
     );
   }, [data, search, columns]);
 
-  // Sort data
-  const sortedData = useMemo(() => {
-    if (!sortColumn) return filteredData;
-    return [...filteredData].sort((a, b) => {
-      const aVal = a[sortColumn];
-      const bVal = b[sortColumn];
-      const comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
-      return sortDirection === "asc" ? comparison : -comparison;
-    });
-  }, [filteredData, sortColumn, sortDirection]);
+  const { sortedData, handleSort, sortColumn, sortDirection, getSortIcon } = useTableSort(filteredData, tableId);
 
   // Paginate
   const total = sortedData.length;
@@ -71,15 +64,6 @@ export function DataTable<T extends Record<string, any>>({
     const start = (page - 1) * rowsPerPage;
     return sortedData.slice(start, start + rowsPerPage);
   }, [sortedData, page, rowsPerPage]);
-
-  const handleSort = (column: keyof T) => {
-    if (sortColumn === column) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortColumn(column);
-      setSortDirection("asc");
-    }
-  };
 
   const handleSelectAll = () => {
     if (selectedRows.size === paginatedData.length) {
@@ -150,20 +134,21 @@ export function DataTable<T extends Record<string, any>>({
                   </th>
                 )}
                 <th className="px-3 py-2 w-10 text-[10px] font-bold uppercase tracking-wider text-slate-400">Nr.</th>
-                {columns.map((col) => (
-                  <th
-                    key={String(col.key)}
-                    className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 ${col.sortable ? 'cursor-pointer hover:text-slate-600' : ''} ${col.className || ''}`}
-                    onClick={() => col.sortable && handleSort(col.key)}
-                  >
-                    <div className="flex items-center gap-1">
-                      {col.label}
-                      {col.sortable && sortColumn === col.key && (
-                        <span className="text-blue-500">{sortDirection === "asc" ? "↑" : "↓"}</span>
-                      )}
-                    </div>
-                  </th>
-                ))}
+                {columns.map((col) => {
+                  const isSortable = col.sortable !== false;
+                  return (
+                    <th
+                      key={String(col.key)}
+                      className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 ${isSortable ? 'cursor-pointer hover:text-slate-600' : ''} ${col.className || ''}`}
+                      onClick={() => isSortable && handleSort(col.key)}
+                    >
+                      <div className="flex items-center gap-1">
+                        {col.label}
+                        <span className="text-blue-500">{getSortIcon(col.key)}</span>
+                      </div>
+                    </th>
+                  );
+                })}
                 {actions && (
                   <th className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right">ACȚIUNI</th>
                 )}
