@@ -239,7 +239,7 @@ export default function InvoiceArchive() {
               placeholder="Caută furnizor, număr factură..."
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(0); }}
-              className="pl-9 h-9 text-sm border-slate-200 dark:border-slate-700 bg-transparent"
+              className="!pl-9 h-9 text-sm border-slate-200 dark:border-slate-700 bg-transparent"
             />
           </div>
           <Select value={filterSource} onValueChange={v => { setFilterSource(v); setPage(0); }}>
