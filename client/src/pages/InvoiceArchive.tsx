@@ -24,10 +24,10 @@ const SOURCE_LABELS: Record<string, string> = {
 };
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  pending: { label: "În așteptare", color: "bg-amber-100 text-amber-700 border-amber-200" },
-  processed: { label: "Procesată", color: "bg-blue-100 text-blue-700 border-blue-200" },
-  refactured: { label: "Re-facturată", color: "bg-green-100 text-green-700 border-green-200" },
-  archived: { label: "Arhivată", color: "bg-slate-100 text-slate-600 border-slate-200" },
+  pending: { label: "În așteptare", color: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800" },
+  processed: { label: "Procesată", color: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" },
+  refactured: { label: "Re-facturată", color: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800" },
+  archived: { label: "Arhivată", color: "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700" },
 };
 
 function formatBytes(bytes: number) {
@@ -154,18 +154,18 @@ export default function InvoiceArchive() {
   const totalPages = Math.ceil(total / LIMIT);
 
   return (
-    <div className="p-6 max-w-full">
+    <div className="p-4 md:p-6 max-w-full space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">Arhivă Facturi</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Evidență și păstrare facturi din orice sursă</p>
+          <h1 className="text-xl font-semibold text-slate-900 dark:text-white">Arhivă Facturi</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Evidență și păstrare facturi din orice sursă</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-1.5">
+          <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-1.5 border-slate-200 dark:border-slate-700">
             <RefreshCw className="w-3.5 h-3.5" /> Reîncarcă
           </Button>
-          <Button size="sm" onClick={() => fileInputRef.current?.click()} className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white">
+          <Button size="sm" onClick={() => fileInputRef.current?.click()} className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
             <Upload className="w-3.5 h-3.5" /> Încarcă Facturi
           </Button>
           <input
@@ -180,18 +180,20 @@ export default function InvoiceArchive() {
       </div>
 
       {/* Stats bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: "Total", value: stats?.total ?? 0, icon: Archive, color: "text-slate-600 bg-slate-50 border-slate-200" },
-          { label: "În așteptare", value: stats?.pending ?? 0, icon: Clock, color: "text-amber-600 bg-amber-50 border-amber-200" },
-          { label: "Procesate", value: stats?.processed ?? 0, icon: CheckCircle, color: "text-blue-600 bg-blue-50 border-blue-200" },
-          { label: "Re-facturate", value: stats?.refactured ?? 0, icon: RefreshCw, color: "text-green-600 bg-green-50 border-green-200" },
+          { label: "Total", value: stats?.total ?? 0, icon: Archive, color: "text-slate-600 bg-slate-100 dark:bg-slate-800 dark:text-slate-300" },
+          { label: "În așteptare", value: stats?.pending ?? 0, icon: Clock, color: "text-amber-600 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-400" },
+          { label: "Procesate", value: stats?.processed ?? 0, icon: CheckCircle, color: "text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400" },
+          { label: "Re-facturate", value: stats?.refactured ?? 0, icon: RefreshCw, color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400" },
         ].map(s => (
-          <div key={s.label} className={`flex items-center gap-3 p-3 rounded-lg border ${s.color}`}>
-            <s.icon className="w-4 h-4 flex-shrink-0" />
+          <div key={s.label} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex items-center gap-4">
+            <div className={`w-10 h-10 flex items-center justify-center rounded-lg ${s.color}`}>
+              <s.icon className="w-5 h-5" />
+            </div>
             <div>
-              <div className="text-lg leading-none">{s.value}</div>
-              <div className="text-xs mt-0.5 opacity-70">{s.label}</div>
+              <div className="text-sm font-medium text-slate-500 dark:text-slate-400">{s.label}</div>
+              <div className="text-xl font-bold text-slate-900 dark:text-white">{s.value}</div>
             </div>
           </div>
         ))}
@@ -203,123 +205,125 @@ export default function InvoiceArchive() {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onClick={() => fileInputRef.current?.click()}
-        className={`relative border-2 border-dashed rounded-lg p-6 mb-6 text-center cursor-pointer transition-all duration-200 ${
+        className={`relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-200 ${
           isDragging
-            ? "border-blue-400 bg-blue-50"
-            : "border-slate-200 hover:border-blue-300 hover:bg-slate-50"
+            ? "border-blue-400 bg-blue-50 dark:bg-blue-900/20"
+            : "border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-500 hover:bg-slate-50 dark:hover:bg-slate-800/50"
         }`}
       >
         {uploading ? (
-          <div className="flex items-center justify-center gap-2 text-blue-600">
+          <div className="flex items-center justify-center gap-2 text-blue-600 dark:text-blue-400">
             <Loader2 className="w-5 h-5 animate-spin" />
             <span className="text-sm">Se încarcă fișierele...</span>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2">
-            <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-              <FileUp className="w-5 h-5 text-blue-500" />
+            <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+              <FileUp className="w-5 h-5 text-blue-500 dark:text-blue-400" />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-700">Trage fișierele aici sau apasă pentru a selecta</p>
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Trage fișierele aici sau apasă pentru a selecta</p>
               <p className="text-xs text-slate-400 mt-0.5">PDF, XML — SmartBill, Oblio, FGO, SPV ANAF, e-Factura, manual</p>
             </div>
           </div>
         )}
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-          <Input
-            placeholder="Caută furnizor, număr factură..."
-            value={search}
-            onChange={e => { setSearch(e.target.value); setPage(0); }}
-            className="pl-8 h-9 text-sm"
-          />
+      {/* Filters and Table in a single card */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-6">
+        {/* Filters */}
+        <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-wrap gap-3">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input
+              placeholder="Caută furnizor, număr factură..."
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(0); }}
+              className="pl-9 h-9 text-sm border-slate-200 dark:border-slate-700 bg-transparent"
+            />
+          </div>
+          <Select value={filterSource} onValueChange={v => { setFilterSource(v); setPage(0); }}>
+            <SelectTrigger className="w-36 h-9 text-sm border-slate-200 dark:border-slate-700">
+              <SelectValue placeholder="Sursă" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toate sursele</SelectItem>
+              {Object.entries(SOURCE_LABELS).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterStatus} onValueChange={v => { setFilterStatus(v); setPage(0); }}>
+            <SelectTrigger className="w-36 h-9 text-sm border-slate-200 dark:border-slate-700">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toate statusurile</SelectItem>
+              {Object.entries(STATUS_LABELS).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {(search || filterSource !== "all" || filterStatus !== "all") && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { setSearch(""); setFilterSource("all"); setFilterStatus("all"); setPage(0); }}
+              className="h-9 gap-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white"
+            >
+              <X className="w-3.5 h-3.5" /> Resetează
+            </Button>
+          )}
         </div>
-        <Select value={filterSource} onValueChange={v => { setFilterSource(v); setPage(0); }}>
-          <SelectTrigger className="w-36 h-9 text-sm">
-            <SelectValue placeholder="Sursă" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Toate sursele</SelectItem>
-            {Object.entries(SOURCE_LABELS).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={filterStatus} onValueChange={v => { setFilterStatus(v); setPage(0); }}>
-          <SelectTrigger className="w-36 h-9 text-sm">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Toate statusurile</SelectItem>
-            {Object.entries(STATUS_LABELS).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {(search || filterSource !== "all" || filterStatus !== "all") && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => { setSearch(""); setFilterSource("all"); setFilterStatus("all"); setPage(0); }}
-            className="h-9 gap-1.5 text-slate-500"
-          >
-            <X className="w-3.5 h-3.5" /> Resetează
-          </Button>
-        )}
-      </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-16 text-slate-400">
-            <Loader2 className="w-5 h-5 animate-spin mr-2" /> Se încarcă...
-          </div>
-        ) : items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-slate-400">
-            <FolderOpen className="w-10 h-10 mb-3 opacity-30" />
-            <p className="text-sm font-medium">Nicio factură în arhivă</p>
-            <p className="text-xs mt-1">Încarcă primul fișier PDF sau XML</p>
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-100 bg-slate-50">
-                <th className="text-left px-4 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide">Fișier</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide">Furnizor</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide">Nr. Factură</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide">Dată</th>
-                <th className="text-right px-4 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide">Total</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide">Sursă</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide">Status</th>
-                <th className="text-center px-4 py-3 text-xs font-medium text-slate-500 uppercase tracking-wide">Acțiuni</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
+        {/* Table Content */}
+        <div>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-16 text-slate-400">
+              <Loader2 className="w-5 h-5 animate-spin mr-2" /> Se încarcă...
+            </div>
+          ) : items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+              <FolderOpen className="w-10 h-10 mb-3 opacity-30" />
+              <p className="text-sm font-medium">Nicio factură în arhivă</p>
+              <p className="text-xs mt-1">Încarcă primul fișier PDF sau XML</p>
+            </div>
+          ) : (
+            <table className="w-full text-sm text-slate-700 dark:text-slate-300">
+              <thead>
+                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Fișier</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Furnizor</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Nr. Factură</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Dată</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Total</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Sursă</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Status</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Acțiuni</th>
+                </tr>
+              </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {items.map((item: any) => {
                 const st = STATUS_LABELS[item.status] ?? STATUS_LABELS.pending;
                 return (
-                  <tr key={item.id} className="hover:bg-slate-50/50 transition-colors group">
+                  <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors group">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${item.fileType === "pdf" ? "bg-red-50" : "bg-blue-50"}`}>
-                          <FileText className={`w-3.5 h-3.5 ${item.fileType === "pdf" ? "text-red-500" : "text-blue-500"}`} />
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${item.fileType === "pdf" ? "bg-red-50 dark:bg-red-900/30" : "bg-blue-50 dark:bg-blue-900/30"}`}>
+                          <FileText className={`w-3.5 h-3.5 ${item.fileType === "pdf" ? "text-red-500 dark:text-red-400" : "text-blue-500 dark:text-blue-400"}`} />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-slate-800 truncate max-w-[140px]">{item.fileName}</p>
-                          <p className="text-slate-400 text-xs">{formatBytes(item.fileSize)}</p>
+                          <p className="text-slate-800 dark:text-slate-200 truncate max-w-[140px]">{item.fileName}</p>
+                          <p className="text-slate-400 dark:text-slate-500 text-xs">{formatBytes(item.fileSize)}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-slate-700">{item.supplierName || <span className="text-slate-300">—</span>}</td>
-                    <td className="px-4 py-3 text-slate-700">{item.invoiceNumber || <span className="text-slate-300">—</span>}</td>
-                    <td className="px-4 py-3 text-slate-600">{formatDate(item.issueDate)}</td>
-                    <td className="px-4 py-3 text-right text-slate-800">{formatAmount(item.total, item.currency)}</td>
+                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300">{item.supplierName || <span className="text-slate-300 dark:text-slate-600">—</span>}</td>
+                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300">{item.invoiceNumber || <span className="text-slate-300 dark:text-slate-600">—</span>}</td>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{formatDate(item.issueDate)}</td>
+                    <td className="px-4 py-3 text-right text-slate-800 dark:text-slate-200">{formatAmount(item.total, item.currency)}</td>
                     <td className="px-4 py-3">
-                      <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                      <span className="text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
                         {SOURCE_LABELS[item.source] ?? item.source}
                       </span>
                     </td>
