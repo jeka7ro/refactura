@@ -392,32 +392,25 @@ export default function InvoiceArchive() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-center gap-1">
                         {item.fileUrl && (
                           <a
                             href={item.fileUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="w-7 h-7 rounded-lg border border-slate-200 bg-white flex items-center justify-center hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-colors"
+                            className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-slate-500 dark:text-slate-400"
                             title="Descarcă"
                           >
                             <Download className="w-3.5 h-3.5" />
                           </a>
                         )}
                         <button
-                          onClick={() => openMetaModal(item)}
-                          className="w-7 h-7 rounded-lg border border-slate-200 bg-white flex items-center justify-center hover:bg-amber-50 hover:border-amber-200 hover:text-amber-600 transition-colors"
-                          title="Editează metadate"
-                        >
-                          <Tag className="w-3.5 h-3.5" />
-                        </button>
-                        <button
                           onClick={() => {
                             if (window.confirm("Sigur ștergi această înregistrare?")) {
                               deleteMutation.mutate({ id: item.id });
                             }
                           }}
-                          className="w-7 h-7 rounded-lg border border-slate-200 bg-white flex items-center justify-center hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors"
+                          className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/30 hover:border-red-200 dark:hover:border-red-800 hover:text-red-600 dark:hover:text-red-400 transition-colors text-slate-500 dark:text-slate-400"
                           title="Șterge"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
