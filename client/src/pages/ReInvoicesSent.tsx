@@ -229,34 +229,31 @@ export default function ReInvoicesSent() {
 
         {/* Bottom Row: Period Filters */}
         <div className="flex flex-wrap items-center justify-end gap-1.5 border-t border-slate-100 dark:border-slate-800 pt-2">
-          <Calendar className="w-4 h-4 text-slate-400 hidden sm:block" />
-            {([
-              { id: "all",       label: "Toate" },
-              { id: "today",     label: "Azi" },
-              { id: "week",      label: "Săpt. curentă" },
-              { id: "month",     label: "Luna curentă" },
-              { id: "lastMonth", label: "Luna trecută" },
-              { id: "year",      label: "Anul curent" },
-              { id: "lastYear",  label: "Anul trecut" },
-            ] as const).map(f => (
-              <button
-                key={f.id}
-                onClick={() => setPeriod(f.id)}
-                className={`px-2.5 sm:px-3 h-8 rounded-lg text-xs font-semibold border transition-all flex items-center justify-center ${
-                  period === f.id
-                    ? "bg-slate-800 text-white border-slate-800 dark:bg-slate-100 dark:text-slate-900"
-                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-700 dark:hover:bg-slate-800"
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-slate-400 hidden sm:block" />
+            <select
+              value={period}
+              onChange={(e) => setPeriod(e.target.value as any)}
+              className="h-8 pl-3 pr-8 rounded-lg text-xs font-semibold border border-slate-200 bg-white text-slate-600 focus:ring-2 focus:ring-slate-800 focus:border-slate-800 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300 dark:focus:ring-slate-400 cursor-pointer"
+            >
+              <option value="all">Toate</option>
+              <option value="today">Azi</option>
+              <option value="week">Săpt. curentă</option>
+              <option value="month">Luna curentă</option>
+              <option value="lastMonth">Luna trecută</option>
+              <option value="year">Anul curent</option>
+              <option value="lastYear">Anul trecut</option>
+              <option value="custom">Perioadă custom</option>
+            </select>
+          </div>
+          
+          {period === "custom" && (
             <div className="flex items-center gap-1 ml-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 h-8">
               <span className="text-xs text-slate-500 font-medium hidden sm:inline">De la:</span>
               <input
                 type="date"
                 value={customFrom}
-                onChange={(e) => { setCustomFrom(e.target.value); setPeriod("custom"); }}
+                onChange={(e) => { setCustomFrom(e.target.value); }}
                 className="text-xs bg-transparent outline-none text-slate-700 dark:text-slate-300 w-24 sm:w-auto"
               />
               <span className="text-xs text-slate-300 dark:text-slate-600 px-1">-</span>
@@ -264,10 +261,11 @@ export default function ReInvoicesSent() {
               <input
                 type="date"
                 value={customTo}
-                onChange={(e) => { setCustomTo(e.target.value); setPeriod("custom"); }}
+                onChange={(e) => { setCustomTo(e.target.value); }}
                 className="text-xs bg-transparent outline-none text-slate-700 dark:text-slate-300 w-24 sm:w-auto"
               />
             </div>
+          )}
         </div>
       </div>
 

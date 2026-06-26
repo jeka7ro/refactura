@@ -403,38 +403,35 @@ export default function AllInvoices() {
 
         {/* Bottom Row: Period Filters */}
         <div className="flex flex-wrap items-center justify-end gap-1.5 border-t border-slate-100 dark:border-slate-800 pt-2">
-          <Calendar className="w-4 h-4 text-slate-400 hidden sm:block" />
-            {([
-              { id: "all",       label: "Toate" },
-              { id: "today",     label: "Azi" },
-              { id: "week",      label: "Săpt. curentă" },
-              { id: "month",     label: "Luna curentă" },
-              { id: "lastMonth", label: "Luna trecută" },
-              { id: "year",      label: "Anul curent" },
-              { id: "lastYear",  label: "Anul trecut" },
-            ] as const).map(f => (
-              <button
-                key={f.id}
-                onClick={() => { setPeriod(f.id); setPage(1); }}
-                className={`px-2.5 sm:px-3 h-8 rounded-lg text-xs font-semibold border transition-all flex items-center justify-center ${
-                  period === f.id
-                    ? "bg-blue-50 text-blue-700 border-blue-200 ring-1 ring-offset-1 ring-blue-400"
-                    : "bg-white border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300"
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-            
-            {/* Custom Date Inputs (Always Visible) */}
-            <div className="flex items-center gap-1 ml-1">
-              <input type="date" value={customFrom} onChange={e => { setPeriod("custom"); setCustomFrom(e.target.value); setPage(1); }}
-                className="h-8 px-1.5 rounded-lg border border-slate-200 text-[10px] bg-white dark:bg-slate-800" />
-              <span className="text-[10px] text-slate-400">→</span>
-              <input type="date" value={customTo} onChange={e => { setPeriod("custom"); setCustomTo(e.target.value); setPage(1); }}
-                className="h-8 px-1.5 rounded-lg border border-slate-200 text-[10px] bg-white dark:bg-slate-800" />
-            </div>
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-slate-400 hidden sm:block" />
+            <select
+              value={period}
+              onChange={(e) => { setPeriod(e.target.value as any); setPage(1); }}
+              className="h-8 pl-3 pr-8 rounded-lg text-xs font-semibold border border-slate-200 bg-white text-slate-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 cursor-pointer"
+            >
+              <option value="all">Toate</option>
+              <option value="today">Azi</option>
+              <option value="week">Săpt. curentă</option>
+              <option value="month">Luna curentă</option>
+              <option value="lastMonth">Luna trecută</option>
+              <option value="year">Anul curent</option>
+              <option value="lastYear">Anul trecut</option>
+              <option value="custom">Perioadă custom</option>
+            </select>
           </div>
+            
+          {/* Custom Date Inputs (Visible only when custom is selected) */}
+          {period === "custom" && (
+            <div className="flex items-center gap-1 ml-1">
+              <input type="date" value={customFrom} onChange={e => { setCustomFrom(e.target.value); setPage(1); }}
+                className="h-8 px-2 rounded-lg border border-slate-200 text-xs bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300" />
+              <span className="text-xs text-slate-400">→</span>
+              <input type="date" value={customTo} onChange={e => { setCustomTo(e.target.value); setPage(1); }}
+                className="h-8 px-2 rounded-lg border border-slate-200 text-xs bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300" />
+            </div>
+          )}
+        </div>
         </div>
 
       {/* Banner selectie multipla */}
