@@ -12,6 +12,9 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from "@/components/ui/select";
 
 type InvoiceType = "primit" | "emis" | "refacturat";
 
@@ -401,37 +404,7 @@ export default function AllInvoices() {
           ))}
         </div>
 
-        {/* Bottom Row: Period Filters */}
-        <div className="flex flex-wrap items-center justify-end gap-1.5 border-t border-slate-100 dark:border-slate-800 pt-2">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-slate-400 hidden sm:block" />
-            <select
-              value={period}
-              onChange={(e) => { setPeriod(e.target.value as any); setPage(1); }}
-              className="h-8 pl-3 pr-8 rounded-lg text-xs font-semibold border border-slate-200 bg-white text-slate-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 cursor-pointer"
-            >
-              <option value="all">Toate</option>
-              <option value="today">Azi</option>
-              <option value="week">Săpt. curentă</option>
-              <option value="month">Luna curentă</option>
-              <option value="lastMonth">Luna trecută</option>
-              <option value="year">Anul curent</option>
-              <option value="lastYear">Anul trecut</option>
-              <option value="custom">Perioadă custom</option>
-            </select>
-          </div>
-            
-          {/* Custom Date Inputs (Visible only when custom is selected) */}
-          {period === "custom" && (
-            <div className="flex items-center gap-1 ml-1">
-              <input type="date" value={customFrom} onChange={e => { setCustomFrom(e.target.value); setPage(1); }}
-                className="h-8 px-2 rounded-lg border border-slate-200 text-xs bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300" />
-              <span className="text-xs text-slate-400">→</span>
-              <input type="date" value={customTo} onChange={e => { setCustomTo(e.target.value); setPage(1); }}
-                className="h-8 px-2 rounded-lg border border-slate-200 text-xs bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300" />
-            </div>
-          )}
-        </div>
+
         </div>
 
       {/* Banner selectie multipla */}
@@ -505,7 +478,39 @@ export default function AllInvoices() {
             )}
           </div>
           
-          <div className="flex flex-wrap gap-1.5 justify-end">
+          <div className="flex flex-wrap gap-2 items-center justify-end">
+            {/* Period Filter */}
+            <div className="flex items-center gap-1.5">
+              <Calendar className="w-4 h-4 text-slate-400 hidden sm:block" />
+              <Select value={period} onValueChange={(val) => { setPeriod(val as any); setPage(1); }}>
+                <SelectTrigger className="h-8 w-fit min-w-[130px] rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">
+                  <SelectValue placeholder="Selectează perioada" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toate</SelectItem>
+                  <SelectItem value="today">Azi</SelectItem>
+                  <SelectItem value="week">Săpt. curentă</SelectItem>
+                  <SelectItem value="month">Luna curentă</SelectItem>
+                  <SelectItem value="lastMonth">Luna trecută</SelectItem>
+                  <SelectItem value="year">Anul curent</SelectItem>
+                  <SelectItem value="lastYear">Anul trecut</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              
+              <div className="flex items-center gap-1 ml-1">
+                <input type="date" value={customFrom} onChange={e => { setCustomFrom(e.target.value); setPeriod("custom"); setPage(1); }}
+                  className="h-8 px-2 rounded-full border border-slate-200 text-xs bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 outline-none" />
+                <span className="text-xs text-slate-400">-</span>
+                <input type="date" value={customTo} onChange={e => { setCustomTo(e.target.value); setPeriod("custom"); setPage(1); }}
+                  className="h-8 px-2 rounded-full border border-slate-200 text-xs bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 outline-none" />
+              </div>
+            </div>
+
+            <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-0.5 hidden sm:block" />
+
+            {/* Type Filters */}
             {([
               { id: "all",        label: "Toate",        cls: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-300" },
               { id: "primit",     label: "Primite",      cls: "bg-red-50 text-red-700 border-red-200" },

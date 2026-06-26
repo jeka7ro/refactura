@@ -16,6 +16,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from "@/components/ui/select";
 
 export default function ReInvoicesSent() {
   const [statusFilter, setStatusFilter] = useState<ReInvoiceStatus | "all">("all");
@@ -227,46 +230,7 @@ export default function ReInvoicesSent() {
           ))}
         </div>
 
-        {/* Bottom Row: Period Filters */}
-        <div className="flex flex-wrap items-center justify-end gap-1.5 border-t border-slate-100 dark:border-slate-800 pt-2">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-slate-400 hidden sm:block" />
-            <select
-              value={period}
-              onChange={(e) => setPeriod(e.target.value as any)}
-              className="h-8 pl-3 pr-8 rounded-lg text-xs font-semibold border border-slate-200 bg-white text-slate-600 focus:ring-2 focus:ring-slate-800 focus:border-slate-800 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300 dark:focus:ring-slate-400 cursor-pointer"
-            >
-              <option value="all">Toate</option>
-              <option value="today">Azi</option>
-              <option value="week">Săpt. curentă</option>
-              <option value="month">Luna curentă</option>
-              <option value="lastMonth">Luna trecută</option>
-              <option value="year">Anul curent</option>
-              <option value="lastYear">Anul trecut</option>
-              <option value="custom">Perioadă custom</option>
-            </select>
-          </div>
-          
-          {period === "custom" && (
-            <div className="flex items-center gap-1 ml-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 h-8">
-              <span className="text-xs text-slate-500 font-medium hidden sm:inline">De la:</span>
-              <input
-                type="date"
-                value={customFrom}
-                onChange={(e) => { setCustomFrom(e.target.value); }}
-                className="text-xs bg-transparent outline-none text-slate-700 dark:text-slate-300 w-24 sm:w-auto"
-              />
-              <span className="text-xs text-slate-300 dark:text-slate-600 px-1">-</span>
-              <span className="text-xs text-slate-500 font-medium hidden sm:inline">Până la:</span>
-              <input
-                type="date"
-                value={customTo}
-                onChange={(e) => { setCustomTo(e.target.value); }}
-                className="text-xs bg-transparent outline-none text-slate-700 dark:text-slate-300 w-24 sm:w-auto"
-              />
-            </div>
-          )}
-        </div>
+
       </div>
 
       <DataTable 
@@ -276,7 +240,48 @@ export default function ReInvoicesSent() {
         searchable={true} 
         onRowClick={(row) => { window.location.href = `/re-facturi/${row.id}` }}
         headerContent={
-          <>
+          <div className="flex flex-wrap gap-2 items-center justify-end w-full">
+            {/* Period Filter */}
+            <div className="flex items-center gap-1.5">
+              <Calendar className="w-4 h-4 text-slate-400 hidden sm:block" />
+              <Select value={period} onValueChange={(val) => setPeriod(val as any)}>
+                <SelectTrigger className="h-8 w-fit min-w-[130px] rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-slate-800 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300">
+                  <SelectValue placeholder="Selectează perioada" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toate</SelectItem>
+                  <SelectItem value="today">Azi</SelectItem>
+                  <SelectItem value="week">Săpt. curentă</SelectItem>
+                  <SelectItem value="month">Luna curentă</SelectItem>
+                  <SelectItem value="lastMonth">Luna trecută</SelectItem>
+                  <SelectItem value="year">Anul curent</SelectItem>
+                  <SelectItem value="lastYear">Anul trecut</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <div className="flex items-center gap-1 ml-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full px-2 h-8">
+                <span className="text-[10px] text-slate-500 font-medium hidden sm:inline">De la:</span>
+                <input
+                  type="date"
+                  value={customFrom}
+                  onChange={(e) => { setCustomFrom(e.target.value); setPeriod("custom"); }}
+                  className="text-xs bg-transparent outline-none text-slate-700 dark:text-slate-300 w-24 sm:w-auto"
+                />
+                <span className="text-xs text-slate-300 dark:text-slate-600 px-1">-</span>
+                <span className="text-[10px] text-slate-500 font-medium hidden sm:inline">Până la:</span>
+                <input
+                  type="date"
+                  value={customTo}
+                  onChange={(e) => { setCustomTo(e.target.value); setPeriod("custom"); }}
+                  className="text-xs bg-transparent outline-none text-slate-700 dark:text-slate-300 w-24 sm:w-auto"
+                />
+              </div>
+            </div>
+
+            <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-0.5 hidden sm:block" />
+
+            {/* Type Filters */}
             {([
               { id: "all",     label: "Toate",    count: reInvoices.length, cls: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-300" },
               { id: "paid",    label: "Achitate", count: reInvoices.filter((r) => r.status === "paid").length, cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
