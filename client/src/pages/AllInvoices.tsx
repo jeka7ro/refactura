@@ -34,7 +34,7 @@ interface UnifiedRow {
 }
 
 const SOURCE_BADGE: Record<string, { label: string; cls: string }> = {
-  spv_anaf:  { label: "SPV",     cls: "text-purple-600 dark:text-purple-400" },
+  spv_anaf:  { label: "SPV",     cls: "text-blue-900 dark:text-blue-400" },
   oblio:     { label: "Oblio",   cls: "text-orange-600 dark:text-orange-400" },
   smartbill: { label: "SmartBill", cls: "text-cyan-600 dark:text-cyan-400" },
   manual:    { label: "Manual",  cls: "text-slate-500 dark:text-slate-400" },
@@ -87,8 +87,21 @@ export default function AllInvoices() {
   const [page, setPage]               = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
   const [typeFilter, setTypeFilter]   = useState<InvoiceType | "all">("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [deleteTarget, setDeleteTarget] = useState<UnifiedRow | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const handleCardFilterClick = (type: InvoiceType, status: string) => {
+    if (typeFilter === type && filterStatus === status) {
+      setTypeFilter("all");
+      setFilterStatus("all");
+    } else {
+      setTypeFilter(type);
+      setFilterStatus(status);
+      setPage(1);
+    }
+  };
   const [period, setPeriod] = useState<string>("all");
   const [customFrom, setCustomFrom] = useState(() => new Date().toISOString().split("T")[0]);
   const [customTo, setCustomTo] = useState(() => {
@@ -246,6 +259,13 @@ export default function AllInvoices() {
 
   const filtered = useMemo(() => {
     let rows = typeFilter === "all" ? allRows : allRows.filter(r => r.type === typeFilter);
+    if (filterStatus !== "all") {
+      if (filterStatus === "paid" || filterStatus === "processed") {
+        rows = rows.filter(r => r.status === "paid" || r.status === "processed");
+      } else if (filterStatus === "pending") {
+        rows = rows.filter(r => r.status !== "paid" && r.status !== "processed");
+      }
+    }
     // Period filter
     const range = getDateRange(period);
     if (range) {
@@ -255,16 +275,22 @@ export default function AllInvoices() {
         return d >= from && d <= to;
       });
     }
+    if (sourceFilter !== "all") {
+      rows = rows.filter(r => r.source === sourceFilter);
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       rows = rows.filter(r =>
         r.number.toLowerCase().includes(q) ||
         r.partnerName.toLowerCase().includes(q) ||
-        (STATUS_LBL[r.status] || r.status).toLowerCase().includes(q)
+        (STATUS_LBL[r.status] || r.status).toLowerCase().includes(q) ||
+        r.total.toString().includes(q) ||
+        (SOURCE_BADGE[r.source]?.label || r.source).toLowerCase().includes(q) ||
+        r.source.toLowerCase().includes(q)
       );
     }
     return rows;
-  }, [allRows, search, typeFilter, period, customFrom, customTo]);
+  }, [allRows, search, typeFilter, filterStatus, sourceFilter, period, customFrom, customTo]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
   const paginated  = filtered.slice((page - 1) * rowsPerPage, page * rowsPerPage);
@@ -332,6 +358,56 @@ export default function AllInvoices() {
     }
   };
 
+  const exportToPdf = () => {
+    const printWindow = window.open('', '', 'height=800,width=1200');
+    if (!printWindow) { toast.error("Pop-up blocat"); return; }
+    
+    const header = ["Tip", "Număr", "Dată", "Scadență", "Partener", "CUI", "Total", "Monedă", "Status"];
+    const rowsHtml = filtered.map(r => `
+      <tr>
+        <td>${r.type.toUpperCase()}</td>
+        <td>${r.number}</td>
+        <td>${r.date.slice(0, 10)}</td>
+        <td>${r.dueDate ? r.dueDate.slice(0, 10) : ""}</td>
+        <td>${(r.partnerName || "")}</td>
+        <td>${r.partnerCui || ""}</td>
+        <td>${r.total}</td>
+        <td>${r.currency}</td>
+        <td>${STATUS_LBL[r.status] || r.status}</td>
+      </tr>
+    `).join('');
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Export Facturi</title>
+          <style>
+            body { font-family: system-ui, sans-serif; padding: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f8fafc; font-weight: bold; }
+            h2 { margin: 0 0 10px 0; font-size: 18px; }
+          </style>
+        </head>
+        <body>
+          <h2>Lista Facturi - ${new Date().toLocaleDateString('ro-RO')}</h2>
+          <table>
+            <thead>
+              <tr>${header.map(h => `<th>${h}</th>`).join('')}</tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+          <script>
+            window.onload = function() { window.print(); window.close(); }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   return (
     <div className="p-3 sm:p-5 max-w-full space-y-3">
 
@@ -348,60 +424,116 @@ export default function AllInvoices() {
           <div className="flex items-center gap-2">
             <button
               onClick={exportToExcel}
-              className="flex items-center gap-1 px-3 h-8 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-medium transition-all"
-              title="Exportă tabelul curent în format Excel (CSV)"
+              className="flex items-center gap-1.5 px-4 h-8 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold transition-all"
+              title="Exportă tabelul curent în format Excel"
             >
-              <Download className="w-3 h-3" />
+              <Download className="w-4 h-4" />
               <span className="hidden sm:inline">Export Excel</span>
             </button>
             <button
+              onClick={exportToPdf}
+              className="flex items-center gap-1.5 px-4 h-8 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition-all"
+              title="Exportă tabelul curent în format PDF"
+            >
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">Export PDF</span>
+            </button>
+            <button
               onClick={async () => {
-                const hasOblio = (dbIntegrations as any[]).some(i => i.provider === "oblio");
-                const hasSpv = (dbIntegrations as any[]).some(i => i.provider === "spv_oauth");
+                const hasOblio = (dbIntegrations as any[]).some(i => i.provider === "oblio" && i.status === "active");
+                const hasSpv = (dbIntegrations as any[]).some(i => i.provider === "spv_oauth" && i.status === "active");
                 let syncedAny = false;
                 
-                if (hasOblio) {
-                  toast.loading("Sincronizare Oblio...", { id: "sync" });
-                  await syncOblio.mutateAsync().catch(() => {});
-                  syncedAny = true;
-                }
-                
-                if (hasSpv && !hasOblio) {
-                  toast.loading("Sincronizare SPV ANAF...", { id: "sync" });
-                  await syncSpvManual.mutateAsync().catch(() => {});
+                if (hasOblio || hasSpv) {
+                  toast.loading("Sincronizare date în curs...", { id: "sync" });
+                  const tasks = [];
+                  if (hasOblio) tasks.push(syncOblio.mutateAsync().catch(() => {}));
+                  if (hasSpv) tasks.push(syncSpvManual.mutateAsync().catch(() => {}));
+                  await Promise.all(tasks);
                   syncedAny = true;
                 }
                 
                 if (!syncedAny) {
-                  toast.error("Nicio integrare activă de sincronizat. Mergi la Integrări.");
+                  toast.error("Nicio integrare activă de sincronizat. Verificați Setările.");
                 } else {
                   toast.success("Sincronizare completă", { id: "sync" });
                 }
               }}
               disabled={syncOblio.isPending || syncSpvManual.isPending}
-              className="flex items-center gap-1 px-3 h-8 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-medium transition-all disabled:opacity-60"
+              className="flex items-center gap-1.5 px-4 h-8 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-all disabled:opacity-60"
               title="Sincronizează din sursele configurate (Oblio / SPV)"
             >
-              {syncOblio.isPending || syncSpvManual.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+              {syncOblio.isPending || syncSpvManual.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
               <span>Sync</span>
             </button>
           </div>
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          {[
-            { label: "Total Facturi", value: allRows.length, cls: "text-slate-900 dark:text-white" },
-            { label: "Emise", value: allRows.filter(r => r.type === "emis").length, cls: "text-blue-600" },
-            { label: "Primite", value: allRows.filter(r => r.type === "primit").length, cls: "text-purple-600" },
-            { label: "Re-facturate", value: allRows.filter(r => r.type === "refacturat").length, cls: "text-emerald-600" },
-            { label: "Valoare Totală", value: `${allRows.reduce((s, r) => s + (Number(r.total) || 0), 0).toLocaleString("ro-RO", { minimumFractionDigits: 2 })} RON`, cls: "text-amber-600" },
-          ].map(k => (
-            <div key={k.label} className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">{k.label}</p>
-              <p className={`text-xl font-black ${k.cls}`}>{k.value}</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {/* TOTAL */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Total Facturi</p>
+              <p className="text-2xl font-black text-slate-800 dark:text-white leading-none">{allRows.length}</p>
             </div>
-          ))}
+            <div className="flex flex-col items-end gap-1 text-[10px] font-semibold">
+              <span className="text-blue-600">
+                Val. Emise: <span className="font-bold">{allRows.filter(r => r.type === "emis" || r.type === "refacturat").reduce((s, r) => s + (Number(r.total) || 0), 0).toLocaleString("ro-RO", { minimumFractionDigits: 2 })} RON</span>
+              </span>
+              <span className="text-blue-900 dark:text-blue-400">
+                Val. Primite: <span className="font-bold">{allRows.filter(r => r.type === "primit").reduce((s, r) => s + (Number(r.total) || 0), 0).toLocaleString("ro-RO", { minimumFractionDigits: 2 })} RON</span>
+              </span>
+            </div>
+          </div>
+          
+          {/* EMISE */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Emise</p>
+              <p className="text-2xl font-black text-slate-800 dark:text-white leading-none">{allRows.filter(r => r.type === "emis").length}</p>
+            </div>
+            <div className="flex flex-col items-end gap-1 text-[10px] font-semibold">
+              <span className={`cursor-pointer transition-colors ${typeFilter === "emis" && filterStatus === "paid" ? "text-emerald-700 dark:text-emerald-400 underline font-extrabold" : "text-emerald-600 dark:text-emerald-500 hover:text-emerald-700"}`} onClick={() => handleCardFilterClick("emis", "paid")}>
+                Încasate: <span className="font-bold">{allRows.filter(r => r.type === "emis" && (r.status === "paid" || r.status === "processed")).length}</span>
+              </span>
+              <span className={`cursor-pointer transition-colors ${typeFilter === "emis" && filterStatus === "pending" ? "text-amber-700 dark:text-amber-400 underline font-extrabold" : "text-amber-600 dark:text-amber-500 hover:text-amber-700"}`} onClick={() => handleCardFilterClick("emis", "pending")}>
+                Neîncasate: <span className="font-bold">{allRows.filter(r => r.type === "emis" && r.status !== "paid" && r.status !== "processed").length}</span>
+              </span>
+            </div>
+          </div>
+
+          {/* PRIMITE */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Primite</p>
+              <p className="text-2xl font-black text-slate-800 dark:text-white leading-none">{allRows.filter(r => r.type === "primit").length}</p>
+            </div>
+            <div className="flex flex-col items-end gap-1 text-[10px] font-semibold">
+              <span className={`cursor-pointer transition-colors ${typeFilter === "primit" && filterStatus === "processed" ? "text-emerald-700 dark:text-emerald-400 underline font-extrabold" : "text-emerald-600 dark:text-emerald-500 hover:text-emerald-700"}`} onClick={() => handleCardFilterClick("primit", "processed")}>
+                Achitate: <span className="font-bold">{allRows.filter(r => r.type === "primit" && (r.status === "paid" || r.status === "processed")).length}</span>
+              </span>
+              <span className={`cursor-pointer transition-colors ${typeFilter === "primit" && filterStatus === "pending" ? "text-amber-700 dark:text-amber-400 underline font-extrabold" : "text-amber-600 dark:text-amber-500 hover:text-amber-700"}`} onClick={() => handleCardFilterClick("primit", "pending")}>
+                Neachitate: <span className="font-bold">{allRows.filter(r => r.type === "primit" && r.status !== "paid" && r.status !== "processed").length}</span>
+              </span>
+            </div>
+          </div>
+
+          {/* RE-FACTURATE */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Re-facturate</p>
+              <p className="text-2xl font-black text-slate-800 dark:text-white leading-none">{allRows.filter(r => r.type === "refacturat").length}</p>
+            </div>
+            <div className="flex flex-col items-end gap-1 text-[10px] font-semibold">
+              <span className={`cursor-pointer transition-colors ${typeFilter === "refacturat" && filterStatus === "paid" ? "text-emerald-700 dark:text-emerald-400 underline font-extrabold" : "text-emerald-600 dark:text-emerald-500 hover:text-emerald-700"}`} onClick={() => handleCardFilterClick("refacturat", "paid")}>
+                Încasate: <span className="font-bold">{allRows.filter(r => r.type === "refacturat" && (r.status === "paid" || r.status === "processed")).length}</span>
+              </span>
+              <span className={`cursor-pointer transition-colors ${typeFilter === "refacturat" && filterStatus === "pending" ? "text-amber-700 dark:text-amber-400 underline font-extrabold" : "text-amber-600 dark:text-amber-500 hover:text-amber-700"}`} onClick={() => handleCardFilterClick("refacturat", "pending")}>
+                Neîncasate: <span className="font-bold">{allRows.filter(r => r.type === "refacturat" && r.status !== "paid" && r.status !== "processed").length}</span>
+              </span>
+            </div>
+          </div>
         </div>
 
 
@@ -453,81 +585,89 @@ export default function AllInvoices() {
       )}
 
       {/* Card tabel */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-6">
 
-        {/* Search & Filtre tip */}
-        <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row gap-3 justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
-          <div style={{ position: "relative", width: "100%", maxWidth: 340 }}>
-            <Search className="w-3.5 h-3.5 text-slate-400" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
+        {/* Search & Filtre — UN SINGUR RÂND */}
+        <div className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800/50 flex flex-row gap-2 items-center bg-white dark:bg-slate-900 overflow-x-auto">
+          {/* Search */}
+          <div style={{ position: "relative", flexShrink: 0, width: 200 }}>
+            <Search className="w-3.5 h-3.5 text-slate-400" style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)" }} />
             <input
-              style={{ paddingLeft: 30, paddingRight: search ? 72 : 12, borderRadius: 9999, width: "100%", height: 32, border: "1px solid #e2e8f0", outline: "none", fontSize: 13 }}
+              style={{ paddingLeft: 26, paddingRight: search ? 60 : 10, borderRadius: 9999, width: "100%", height: 30, border: "1px solid #e2e8f0", outline: "none", fontSize: 12 }}
               className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white dark:border-slate-700"
-              placeholder="Caută număr, partener..."
+              placeholder="Caută..."
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); }}
             />
             {search && (
               <>
-                <div style={{ position: "absolute", right: 28, top: "50%", transform: "translateY(-50%)", background: "#2563eb", color: "white", borderRadius: 9999, padding: "1px 8px", fontSize: 10, fontWeight: 700 }}>
+                <div style={{ position: "absolute", right: 22, top: "50%", transform: "translateY(-50%)", background: "#2563eb", color: "white", borderRadius: 9999, padding: "1px 6px", fontSize: 10, fontWeight: 700 }}>
                   {filtered.length}/{allRows.length}
                 </div>
-                <button onClick={() => setSearch("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)" }}>
+                <button onClick={() => setSearch("")} style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)" }}>
                   <X className="w-3 h-3 text-slate-400 hover:text-slate-700" />
                 </button>
               </>
             )}
           </div>
-          
-          <div className="flex flex-wrap gap-2 items-center justify-end">
-            {/* Period Filter */}
-            <div className="flex items-center gap-1.5">
-              <Calendar className="w-4 h-4 text-slate-400 hidden sm:block" />
-              <Select value={period} onValueChange={(val) => { setPeriod(val as any); setPage(1); }}>
-                <SelectTrigger className="h-8 w-fit min-w-[130px] rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">
-                  <SelectValue placeholder="Selectează perioada" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toate</SelectItem>
-                  <SelectItem value="today">Azi</SelectItem>
-                  <SelectItem value="week">Săpt. curentă</SelectItem>
-                  <SelectItem value="month">Luna curentă</SelectItem>
-                  <SelectItem value="lastMonth">Luna trecută</SelectItem>
-                  <SelectItem value="year">Anul curent</SelectItem>
-                  <SelectItem value="lastYear">Anul trecut</SelectItem>
-                  <SelectItem value="custom">Custom</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              
-              <div className="flex items-center gap-1 ml-1">
-                <input type="date" value={customFrom} onChange={e => { setCustomFrom(e.target.value); setPeriod("custom"); setPage(1); }}
-                  className="h-8 px-2 rounded-full border border-slate-200 text-xs bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 outline-none" />
-                <span className="text-xs text-slate-400">-</span>
-                <input type="date" value={customTo} onChange={e => { setCustomTo(e.target.value); setPeriod("custom"); setPage(1); }}
-                  className="h-8 px-2 rounded-full border border-slate-200 text-xs bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 outline-none" />
-              </div>
-            </div>
 
-            <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-0.5 hidden sm:block" />
+          <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
 
-            {/* Type Filters */}
-            {([
-              { id: "all",        label: "Toate",        cls: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-300" },
-              { id: "primit",     label: "Primite",      cls: "bg-red-50 text-red-700 border-red-200" },
-              { id: "emis",       label: "Emise",        cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-              { id: "refacturat", label: "Re-facturate", cls: "bg-blue-50 text-blue-700 border-blue-200" },
-            ] as const).map(f => (
-              <button
-                key={f.id}
-                onClick={() => { setTypeFilter(f.id as any); setPage(1); }}
-                className={`flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-semibold border transition-all ${
-                  typeFilter === f.id ? f.cls + " ring-1 ring-offset-1 ring-current" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300 dark:hover:border-slate-600"
-                }`}
-              >
-                {f.label} <span className="font-bold">{counts[f.id]}</span>
-              </button>
-            ))}
-          </div>
+          {/* Period Filter */}
+          <Select value={period} onValueChange={(val) => { setPeriod(val as any); setPage(1); }}>
+            <SelectTrigger className="h-8 w-fit min-w-[110px] rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 flex-shrink-0">
+              <SelectValue placeholder="Perioadă" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toate</SelectItem>
+              <SelectItem value="today">Azi</SelectItem>
+              <SelectItem value="week">Săpt. curentă</SelectItem>
+              <SelectItem value="month">Luna curentă</SelectItem>
+              <SelectItem value="lastMonth">Luna trecută</SelectItem>
+              <SelectItem value="year">Anul curent</SelectItem>
+              <SelectItem value="lastYear">Anul trecut</SelectItem>
+              <SelectItem value="custom">Custom</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Date pickers inline */}
+          <input type="date" value={customFrom} onChange={e => { setCustomFrom(e.target.value); setPeriod("custom"); setPage(1); }}
+            className="h-8 px-2 rounded-full border border-slate-200 dark:border-slate-600 text-xs bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 outline-none flex-shrink-0" style={{ width: 118 }} />
+          <span className="text-xs text-slate-400 flex-shrink-0">-</span>
+          <input type="date" value={customTo} onChange={e => { setCustomTo(e.target.value); setPeriod("custom"); setPage(1); }}
+            className="h-8 px-2 rounded-full border border-slate-200 dark:border-slate-600 text-xs bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 outline-none flex-shrink-0" style={{ width: 118 }} />
+
+          <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
+
+          {/* Type Filter */}
+          <Select value={typeFilter} onValueChange={(val) => { setTypeFilter(val as any); setPage(1); }}>
+            <SelectTrigger className="h-8 w-fit min-w-[100px] rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 flex-shrink-0">
+              <SelectValue placeholder="Tip" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toate {counts["all"]}</SelectItem>
+              <SelectItem value="primit">Primite {counts["primit"]}</SelectItem>
+              <SelectItem value="emis">Emise {counts["emis"]}</SelectItem>
+              <SelectItem value="refacturat">Re-fact. {counts["refacturat"]}</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
+
+          {/* Source Filter */}
+          <Select value={sourceFilter} onValueChange={(val) => { setSourceFilter(val); setPage(1); }}>
+            <SelectTrigger className="h-8 w-fit min-w-[100px] rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 flex-shrink-0">
+              <SelectValue placeholder="Sursă" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toate sursele</SelectItem>
+              <SelectItem value="spv_anaf">SPV ANAF</SelectItem>
+              <SelectItem value="oblio">Oblio</SelectItem>
+              <SelectItem value="smartbill">SmartBill</SelectItem>
+              <SelectItem value="manual">Manual</SelectItem>
+              <SelectItem value="refactura">Re-Facturat</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* DESKTOP TABLE */}
@@ -592,7 +732,7 @@ export default function AllInvoices() {
                     <td className="px-4 py-3">
                       <div className="flex flex-col gap-0.5">
                         <span className={`text-sm font-bold ${tb.cls}`}>{tb.label}</span>
-                        <span className={`text-xs font-bold ${STATUS_CLS[row.status] || STATUS_CLS.pending}`}>
+                        <span className={`text-sm font-bold ${STATUS_CLS[row.status] || STATUS_CLS.pending}`}>
                           {getStatusLabel(row.status, row.type)}
                         </span>
                       </div>
@@ -603,9 +743,20 @@ export default function AllInvoices() {
                       {formatCurrency(row.total, row.currency as Currency)}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      {(() => { const sb = SOURCE_BADGE[row.source] || SOURCE_BADGE.manual; return (
-                        <span className={`text-xs font-bold ${sb.cls}`}>{sb.label}</span>
-                      ); })()}
+                      {(() => { 
+                        const sb = SOURCE_BADGE[row.source] || SOURCE_BADGE.manual;
+                        if (row.source === "spv_anaf") {
+                          return (
+                            <div className={`flex flex-col items-center leading-tight text-xs font-bold ${sb.cls}`}>
+                              <span>SPV</span>
+                              <span>ANAF</span>
+                            </div>
+                          );
+                        }
+                        return (
+                          <span className={`text-xs font-bold ${sb.cls}`}>{sb.label}</span>
+                        ); 
+                      })()}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 justify-end">
@@ -613,14 +764,14 @@ export default function AllInvoices() {
                         {row.status !== 'paid' && row.status !== 'processed' && row.status !== 'storno' && row.type !== 'refacturat' && (
                           <button
                             onClick={() => {
-                              if (row.type === 'emis' && row.source === 'manual') {
+                              if (row.source === 'manual') {
                                 markEmittedPaid.mutate({ id: row.id, status: 'paid' });
-                              } else if (row.type === 'primit') {
+                              } else if (row.source === 'spv_anaf' || row.source === 'spv_import') {
                                 markArchivePaid.mutate({ id: row.id, status: 'processed' });
                               }
                             }}
-                            title={row.type === 'primit' ? "Marchează Achitat" : "Marchează Încasat"}
-                            className="flex items-center justify-center w-6 h-6 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors"
+                            title={row.type === 'primit' || (row.type === 'emis' && row.source !== 'manual') ? "Marchează Achitat/Încasat" : "Marchează Încasat"}
+                            className="flex items-center justify-center w-6 h-6 rounded-lg bg-slate-50 hover:bg-slate-100 text-emerald-600 border border-slate-200 transition-colors"
                           >
                             <CheckCircle className="w-3 h-3" />
                           </button>
@@ -628,7 +779,7 @@ export default function AllInvoices() {
 
                         {(row.type === 'primit' || (row.type === 'emis' && row.source === 'spv_anaf')) && (
                           <Link href={`/re-facturare/${row.id}`}>
-                            <button title="Re-facturează" className="flex items-center justify-center w-6 h-6 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-colors">
+                            <button title="Re-facturează" className="flex items-center justify-center w-6 h-6 rounded-lg bg-slate-50 hover:bg-slate-100 text-blue-600 border border-slate-200 transition-colors">
                               <Send className="w-3 h-3" />
                             </button>
                           </Link>
@@ -636,7 +787,7 @@ export default function AllInvoices() {
                         {/* Buton NIR — doar facturi primite */}
                         {row.type === 'primit' && (
                           <Link href={`/nir/nou/${row.id}`}>
-                            <button title="Creează NIR" className="flex items-center justify-center w-6 h-6 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 transition-colors">
+                            <button title="Creează NIR" className="flex items-center justify-center w-6 h-6 rounded-lg bg-slate-50 hover:bg-slate-100 text-teal-600 border border-slate-200 transition-colors">
                               <ClipboardList className="w-3 h-3" />
                             </button>
                           </Link>
@@ -667,7 +818,7 @@ export default function AllInvoices() {
                         )}
                         <button onClick={() => setDeleteTarget(row)}
                           title="Șterge factura"
-                          className="flex items-center justify-center w-6 h-6 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-colors">
+                          className="flex items-center justify-center w-6 h-6 rounded-lg bg-slate-50 hover:bg-slate-100 text-red-600 border border-slate-200 transition-colors">
                           <Trash2 className="w-3 h-3" />
                         </button>
                       </div>
@@ -742,23 +893,23 @@ export default function AllInvoices() {
 
         {/* Footer paginare — obligatoriu */}
         <div className="px-3 py-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 rounded-b-lg flex-wrap gap-2">
-          <div className="flex items-center gap-3 text-xs text-slate-600 dark:text-slate-400">
-            <span className="whitespace-nowrap">
-              Afișează&nbsp;
-              <select
-                value={rowsPerPage}
-                onChange={e => { setRowsPerPage(Number(e.target.value)); setPage(1); }}
-                style={{ border: "1px solid #e2e8f0", borderRadius: 9999, padding: "1px 6px", fontSize: 12 }}
-                className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 dark:border-slate-700"
-              >
-                <option value={10}>10</option>
-                <option value={15}>15</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={9999}>Toți</option>
-              </select>
+          <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+            <span className="flex items-center whitespace-nowrap">
+              Afișează
+              <Select value={rowsPerPage.toString()} onValueChange={(val) => { setRowsPerPage(Number(val)); setPage(1); }}>
+                <SelectTrigger className="h-6 px-2 text-xs border-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700 w-[60px] rounded-lg focus:ring-1 focus:ring-blue-500 mx-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="15">15</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="9999">Toți</SelectItem>
+                </SelectContent>
+              </Select>
             </span>
-            <span className="whitespace-nowrap">Total înregistrări: <strong>{filtered.length}</strong></span>
+            <span className="whitespace-nowrap ml-2">Total înregistrări: <strong>{filtered.length}</strong></span>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
             <span className="whitespace-nowrap">Pg. {page}/{totalPages}</span>

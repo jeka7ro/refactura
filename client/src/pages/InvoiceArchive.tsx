@@ -24,8 +24,8 @@ const SOURCE_LABELS: Record<string, string> = {
 };
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  pending: { label: "În așteptare", color: "text-amber-600 dark:text-amber-500" },
-  processed: { label: "Procesată", color: "text-blue-600 dark:text-blue-400" },
+  pending: { label: "Neîncasate", color: "text-amber-600 dark:text-amber-500" },
+  processed: { label: "Încasate", color: "text-blue-600 dark:text-blue-400" },
   refactured: { label: "Re-facturată", color: "text-emerald-600 dark:text-emerald-400" },
   archived: { label: "Arhivată", color: "text-slate-500 dark:text-slate-400" },
 };
@@ -184,11 +184,11 @@ export default function InvoiceArchive() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
           { label: "Total", value: stats?.total ?? 0, icon: Archive, color: "text-slate-600 bg-slate-100 dark:bg-slate-800 dark:text-slate-300" },
-          { label: "În așteptare", value: stats?.pending ?? 0, icon: Clock, color: "text-amber-600 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-400" },
-          { label: "Procesate", value: stats?.processed ?? 0, icon: CheckCircle, color: "text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400" },
+          { label: "Neîncasate", value: stats?.pending ?? 0, icon: Clock, color: "text-amber-600 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-400" },
+          { label: "Încasate", value: stats?.processed ?? 0, icon: CheckCircle, color: "text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400" },
           { label: "Re-facturate", value: stats?.refactured ?? 0, icon: RefreshCw, color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400" },
         ].map(s => (
-          <div key={s.label} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex items-center gap-4">
+          <div key={s.label} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex items-center gap-4 transition-all hover:shadow-md">
             <div className={`w-10 h-10 flex items-center justify-center rounded-lg ${s.color}`}>
               <s.icon className="w-5 h-5" />
             </div>
@@ -200,38 +200,9 @@ export default function InvoiceArchive() {
         ))}
       </div>
 
-      {/* Upload drop zone */}
-      <div
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onClick={() => fileInputRef.current?.click()}
-        className={`relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-200 ${
-          isDragging
-            ? "border-blue-400 bg-blue-50 dark:bg-blue-900/20"
-            : "border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-500 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-        }`}
-      >
-        {uploading ? (
-          <div className="flex items-center justify-center gap-2 text-blue-600 dark:text-blue-400">
-            <Loader2 className="w-5 h-5 animate-spin" />
-            <span className="text-sm">Se încarcă fișierele...</span>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
-              <FileUp className="w-5 h-5 text-blue-500 dark:text-blue-400" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-slate-700 dark:text-slate-200">Trage fișierele aici sau apasă pentru a selecta</p>
-              <p className="text-xs text-slate-400 mt-0.5">PDF, XML — SmartBill, Oblio, FGO, SPV ANAF, e-Factura, manual</p>
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* Filters and Table in a single card */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-6">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-6">
         {/* Filters */}
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-wrap gap-3">
           <div className="relative flex-1 min-w-[200px]">
@@ -335,7 +306,6 @@ export default function InvoiceArchive() {
                     />
                   </th>
                   <th className="text-left px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider w-16">Nr. Crt.</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Fișier</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Furnizor</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Nr. Factură</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Dată</th>
@@ -367,23 +337,31 @@ export default function InvoiceArchive() {
                       {page * LIMIT + index + 1}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${item.fileType === "pdf" ? "bg-red-50 dark:bg-red-900/30" : "bg-blue-50 dark:bg-blue-900/30"}`}>
-                          <FileText className={`w-3.5 h-3.5 ${item.fileType === "pdf" ? "text-red-500 dark:text-red-400" : "text-blue-500 dark:text-blue-400"}`} />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-slate-800 dark:text-slate-200 truncate max-w-[140px]">{item.fileName}</p>
-                          <p className="text-slate-400 dark:text-slate-500 text-xs">{formatBytes(item.fileSize)}</p>
-                        </div>
-                      </div>
+                      {item.supplierName ? (
+                        <div className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-[180px] truncate" title={item.supplierName}>{item.supplierName}</div>
+                      ) : (
+                        <span className="text-slate-300 dark:text-slate-600">—</span>
+                      )}
                     </td>
-                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300">{item.supplierName || <span className="text-slate-300 dark:text-slate-600">—</span>}</td>
-                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300">{item.invoiceNumber || <span className="text-slate-300 dark:text-slate-600">—</span>}</td>
+                    <td className="px-4 py-3">
+                      {item.invoiceNumber ? (
+                        <span className="text-sm font-bold text-blue-600 hover:underline cursor-pointer">{item.invoiceNumber}</span>
+                      ) : (
+                        <span className="text-slate-300 dark:text-slate-600">—</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{formatDate(item.issueDate)}</td>
                     <td className="px-4 py-3 text-right text-slate-800 dark:text-slate-200">{formatAmount(item.total, item.currency)}</td>
                     <td className="px-4 py-3">
                       <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                        {SOURCE_LABELS[item.source] ?? item.source}
+                        {item.source === "spv_anaf" ? (
+                          <div className="flex flex-col leading-tight">
+                            <span>SPV</span>
+                            <span>ANAF</span>
+                          </div>
+                        ) : (
+                          SOURCE_LABELS[item.source] ?? item.source
+                        )}
                       </span>
                     </td>
                     <td className="px-4 py-3">

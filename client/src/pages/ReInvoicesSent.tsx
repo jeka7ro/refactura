@@ -130,12 +130,13 @@ export default function ReInvoicesSent() {
       key: "number",
       label: "NR. RE-FACTURĂ",
       sortable: true,
-      render: (value: string) => <span>{value}</span>,
+      render: (value: string) => <span className="text-sm font-bold text-blue-600 hover:underline text-left cursor-pointer">{value}</span>,
     },
     {
       key: "clientName",
       label: "CLIENT",
       sortable: true,
+      render: (value: string) => <div className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-[180px] truncate" title={value}>{value}</div>,
     },
     {
       key: "sourceInvoiceNumber",
@@ -281,25 +282,20 @@ export default function ReInvoicesSent() {
 
             <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-0.5 hidden sm:block" />
 
-            {/* Type Filters */}
-            {([
-              { id: "all",     label: "Toate",    count: reInvoices.length, cls: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-300" },
-              { id: "paid",    label: "Achitate", count: reInvoices.filter((r) => r.status === "paid").length, cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-              { id: "sent",    label: "Trimise",  count: reInvoices.filter((r) => r.status === "sent").length, cls: "bg-blue-50 text-blue-700 border-blue-200" },
-              { id: "draft",   label: "Ciornă",   count: reInvoices.filter((r) => r.status === "draft").length, cls: "bg-slate-50 text-slate-600 border-slate-200" },
-              { id: "overdue", label: "Restanțe", count: reInvoices.filter((r) => r.status === "overdue").length, cls: "bg-rose-50 text-rose-700 border-rose-200" },
-            ] as const).map(f => (
-              <button
-                key={f.id}
-                onClick={() => setStatusFilter(f.id as any)}
-                className={`flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-semibold border transition-all ${
-                  statusFilter === f.id ? f.cls + " ring-1 ring-offset-1 ring-current" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300 dark:hover:border-slate-600"
-                }`}
-              >
-                {f.label} <span className="font-bold">{f.count}</span>
-              </button>
-            ))}
-          </>
+            {/* Status Filter */}
+            <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val as any)}>
+              <SelectTrigger className="h-8 w-fit min-w-[130px] rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-slate-800 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300">
+                <SelectValue placeholder="Status factură" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toate {reInvoices.length}</SelectItem>
+                <SelectItem value="paid">Achitate {reInvoices.filter((r) => r.status === "paid").length}</SelectItem>
+                <SelectItem value="sent">Trimise {reInvoices.filter((r) => r.status === "sent").length}</SelectItem>
+                <SelectItem value="draft">Ciornă {reInvoices.filter((r) => r.status === "draft").length}</SelectItem>
+                <SelectItem value="overdue">Restanțe {reInvoices.filter((r) => r.status === "overdue").length}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         }
         isLoading={isLoading}
         actions={(row) => (

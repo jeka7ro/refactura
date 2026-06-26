@@ -303,7 +303,7 @@ export default function NIRCreate() {
           </div>
           <div>
             <label className={LABEL_CLS}>Nr. Factură furnizor</label>
-            <input value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} className={INPUT_CLS} placeholder="ex: 1234" />
+            <input value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} className={INPUT_CLS} placeholder="Nr. factură" />
           </div>
           <div>
             <label className={LABEL_CLS}>Nr. Aviz de însoțire</label>
@@ -311,7 +311,7 @@ export default function NIRCreate() {
           </div>
           <div className="md:col-span-2">
             <label className={LABEL_CLS}>Gestiunea destinatară</label>
-            <input value={gestiune} onChange={e => setGestiune(e.target.value)} className={INPUT_CLS} placeholder="ex: Depozit Central, Magazin București" />
+            <input value={gestiune} onChange={e => setGestiune(e.target.value)} className={INPUT_CLS} placeholder="Gestiune" />
           </div>
         </div>
       </div>
@@ -430,7 +430,7 @@ export default function NIRCreate() {
           <div>
             <label className="text-xs text-amber-700 mb-1 block font-medium">Detalii constatări diferențe</label>
             <textarea value={differenceNotes} onChange={e => setDifferenceNotes(e.target.value)} rows={3}
-              placeholder="Descrieți motivele diferențelor constatate (ex: lipsă cantitate la livrare, produse deteriorate, etc.)"
+              placeholder="Descrieți motivele diferențelor constatate"
               className="w-full px-3 py-2 rounded-lg border border-amber-300 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none" />
           </div>
         </div>
@@ -458,7 +458,7 @@ export default function NIRCreate() {
               <div>
                 <label className={LABEL_CLS}>Funcția</label>
                 <input value={m.func} onChange={e => m.setFunc(e.target.value)}
-                  className={INPUT_CLS} placeholder="ex: Gestionar" />
+                  className={INPUT_CLS} placeholder="Funcție" />
               </div>
               <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
                 <label className="text-[10px] text-slate-400">Semnătură</label>

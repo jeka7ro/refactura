@@ -428,9 +428,9 @@ function PricingTab() {
           <h3 className="text-sm font-semibold text-slate-800 mb-4">{editingModule ? "Editează Modul" : "Modul Nou"}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <input value={modForm.name} onChange={e => setModForm({ ...modForm, name: e.target.value })} placeholder="Nume modul *" className={inputCls} />
-            <input value={modForm.slug} onChange={e => setModForm({ ...modForm, slug: e.target.value })} placeholder="Slug (ex: refacturare) *" className={inputCls} />
+            <input value={modForm.slug} onChange={e => setModForm({ ...modForm, slug: e.target.value })} placeholder="Slug *" className={inputCls} />
             <textarea value={modForm.description} onChange={e => setModForm({ ...modForm, description: e.target.value })} placeholder="Descriere" rows={2} className={`${inputCls} md:col-span-2 resize-none`} />
-            <input value={modForm.icon} onChange={e => setModForm({ ...modForm, icon: e.target.value })} placeholder="Iconiță Lucide (ex: FileOutput)" className={inputCls} />
+            <input value={modForm.icon} onChange={e => setModForm({ ...modForm, icon: e.target.value })} placeholder="Iconică Lucide" className={inputCls} />
             <div className="flex gap-2 items-center">
               <input type="color" value={modForm.color} onChange={e => setModForm({ ...modForm, color: e.target.value })} className="w-10 h-10 rounded-lg border border-slate-200 cursor-pointer flex-shrink-0" />
               <input value={modForm.color} onChange={e => setModForm({ ...modForm, color: e.target.value })} placeholder="#3B82F6" className={`${inputCls} flex-1`} />

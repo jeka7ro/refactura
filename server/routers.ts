@@ -938,6 +938,16 @@ export const appRouter = router({
         .where(and(eq(integrations.tenantId, ctx.user.tenantId), eq(integrations.provider, "oblio")));
       return { success: true };
     }),
+    disconnectSpv: protectedProcedure.mutation(async ({ ctx }) => {
+      if (!ctx.user?.tenantId) throw new Error('No tenant context');
+      const db = await getDb();
+      if (!db) throw new Error('DB unavailable');
+      const { integrations } = await import('../drizzle/schema');
+      const { and, eq } = await import('drizzle-orm');
+      await db.delete(integrations)
+        .where(and(eq(integrations.tenantId, ctx.user.tenantId), eq(integrations.provider, "spv")));
+      return { success: true };
+    }),
     syncSpvManual: protectedProcedure.mutation(async ({ ctx }) => {
       if (!ctx.user?.tenantId) throw new Error('No tenant context');
       const db = await getDb();
@@ -955,13 +965,22 @@ export const appRouter = router({
     getSpvOAuthUrl: protectedProcedure.query(async ({ ctx }) => {
       if (!ctx.user?.tenantId) throw new Error('No tenant context');
       const clientId = process.env.SPV_CLIENT_ID;
+      const clientSecret = process.env.SPV_CLIENT_SECRET;
       const redirectUri = process.env.SPV_CALLBACK_URL || "https://refactura.up.railway.app/api/spv/callback";
       const authUrl = new URL("https://logincert.anaf.ro/anaf-oauth2/v1/authorize");
       authUrl.searchParams.append("response_type", "code");
       authUrl.searchParams.append("client_id", clientId || "");
       authUrl.searchParams.append("redirect_uri", redirectUri);
       authUrl.searchParams.append("state", String(ctx.user.tenantId));
-      return { url: authUrl.toString() };
+      // Fetch tenant CUI
+      const { tenants } = await import("../drizzle/schema");
+      const db = await getDb();
+      const [tenant] = await db!.select({ cui: tenants.cui }).from(tenants).where(eq(tenants.id, ctx.user.tenantId));
+      return {
+        url: authUrl.toString(),
+        serverConfigured: !!(clientId && clientSecret),
+        tenantCui: tenant?.cui || "",
+      };
     }),
     syncSpv: protectedProcedure.input(z.object({ zile: z.number().min(1).max(365).optional() }).optional()).mutation(async ({ ctx, input }) => {
       if (!ctx.user?.tenantId) throw new Error('No tenant context');

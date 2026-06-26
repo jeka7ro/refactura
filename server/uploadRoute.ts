@@ -1,6 +1,7 @@
 import { Express, Request, Response } from "express";
 import multer, { FileFilterCallback } from "multer";
-import { storagePut } from "./storage";
+import fs from "fs";
+import path from "path";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -30,10 +31,16 @@ export function registerUploadRoute(app: Express) {
         const results = [];
         for (const file of files) {
           const ext = file.originalname.split(".").pop()?.toLowerCase() || "bin";
-          const contentType = ext === "pdf" ? "application/pdf" : "text/xml";
-          const key = `invoices/${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-          const { key: fileKey, url: fileUrl } = await storagePut(key, file.buffer, contentType);
-          results.push({ fileKey, fileUrl, fileName: file.originalname, fileSize: file.size });
+          const key = `${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+          const uploadDir = path.join(process.cwd(), "dist", "public", "uploads", "invoices");
+          
+          await fs.promises.mkdir(uploadDir, { recursive: true }).catch(() => {});
+          
+          const filePath = path.join(uploadDir, key);
+          await fs.promises.writeFile(filePath, file.buffer);
+          
+          const fileUrl = `/uploads/invoices/${key}`;
+          results.push({ fileKey: key, fileUrl, fileName: file.originalname, fileSize: file.size });
         }
 
         if (results.length === 1) {

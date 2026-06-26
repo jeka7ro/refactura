@@ -2,6 +2,7 @@
 import { useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { Plus, Eye, Download, Pencil, Trash2, Send, Loader2, Search, ChevronLeft, ChevronRight, Undo2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { formatCurrency, formatDate } from "@/lib/store";
@@ -204,11 +205,11 @@ export default function EmittedInvoices() {
                       {(page - 1) * rowsPerPage + idx + 1}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="font-mono font-semibold text-slate-900 dark:text-white text-xs">{row.number}</span>
+                      <span className="text-sm font-bold text-blue-600 hover:underline text-left">{row.number}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="font-medium text-slate-900 dark:text-white text-xs leading-tight">{row.clientName}</div>
-                      {row.clientCUI && <div className="text-[10px] text-slate-400">CUI: {row.clientCUI}</div>}
+                      <div className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-[180px] truncate" title={row.clientName}>{row.clientName}</div>
+                      {row.clientCUI && <div className="text-[10px] text-slate-400 font-medium">CUI: {row.clientCUI}</div>}
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-500 hidden md:table-cell">{formatDate(row.issueDate)}</td>
                     <td className="px-4 py-3 text-xs text-slate-500 hidden md:table-cell">{formatDate(row.dueDate || "")}</td>
@@ -279,16 +280,21 @@ export default function EmittedInvoices() {
         {/* Footer — Pagination */}
         <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30">
           <div className="flex items-center gap-4 text-xs text-slate-600 dark:text-slate-400">
-            <span>
-              Afișează&nbsp;
-              <select
-                value={rowsPerPage}
-                onChange={e => { setRowsPerPage(Number(e.target.value)); setPage(1); }}
-                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-2 py-0.5 text-xs"
-              >
-                {[10, 15, 25, 50, 9999].map(n => <option key={n} value={n}>{n === 9999 ? "Toți" : n}</option>)}
-              </select>
-            </span>
+            <div className="flex items-center gap-1 whitespace-nowrap">
+              Afișează
+              <Select value={rowsPerPage.toString()} onValueChange={(val) => { setRowsPerPage(Number(val)); setPage(1); }}>
+                <SelectTrigger className="h-6 px-2 text-xs border-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700 w-[60px] rounded-lg focus:ring-1 focus:ring-blue-500 mx-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="15">15</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="9999">Toți</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <span>Total înregistrări: <strong>{filtered.length}</strong></span>
           </div>
           <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">

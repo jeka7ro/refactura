@@ -70,12 +70,12 @@ export default function InvoicesReceived() {
   const columns: DataTableColumn<InvoiceRow>[] = [
     {
       key: "supplierName",
-      label: "Furnizor",
+      label: "Număr & Furnizor",
       sortable: true,
       render: (value, row) => (
-        <div>
-          <div className="text-slate-900 dark:text-white">{value}</div>
-          <div className="text-xs text-slate-500 mt-0.5">{row.number}</div>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-sm font-bold text-blue-600 hover:underline text-left cursor-pointer" onClick={() => window.location.href = `/facturi-primite/${row.id}`}>{row.number}</span>
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-[180px] truncate" title={value}>{value}</span>
         </div>
       ),
     },

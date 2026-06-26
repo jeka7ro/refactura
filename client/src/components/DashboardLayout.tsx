@@ -111,22 +111,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
-      {/* Logo */}
-      <div className={cn(
-        "flex items-center justify-center border-b border-slate-200 dark:border-slate-800 h-16 flex-shrink-0",
-        collapsed ? "px-2" : "px-4"
-      )}>
-        {collapsed ? (
-          <div className="h-8 w-8 flex-shrink-0">
-            <img src="/favicon.png" alt="GetApp Refactura" className="h-full w-full object-contain" />
-          </div>
-        ) : (
-          <div className="h-12 w-full flex items-center justify-center">
-            <img src="/logo.png" alt="GetApp Refactura" className="h-full object-contain" />
-          </div>
-        )}
-      </div>
-
       {/* Nav */}
       <nav className="flex-1 py-4 px-2 space-y-0.5 overflow-y-auto">
         {navItems.map((item) => {
@@ -137,12 +121,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div key={item.href}>
               <Link href={item.href} onClick={() => setMobileOpen(false)}>
                 <div className={cn(
-                  "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150 cursor-pointer group",
+                  "flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all duration-150 cursor-pointer group",
                   active && !item.subItems
-                    ? "bg-blue-600 text-white shadow-sm shadow-blue-900/30 font-medium"
+                    ? "bg-blue-600 text-white shadow-sm font-bold"
                     : (active || hasExpandedSubs) && item.subItems
-                      ? "text-slate-900 dark:text-white font-semibold"
-                      : "text-slate-500 font-medium hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800",
+                      ? "text-slate-900 dark:text-white font-bold"
+                      : "text-slate-700 font-bold hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800",
                   collapsed && "justify-center px-2"
                 )}>
                   <Icon className={cn("w-4 h-4 flex-shrink-0", 
@@ -165,10 +149,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         <div className={cn(
                           "flex items-center gap-2 px-2 py-1.5 rounded-md text-xs font-medium transition-all duration-150 cursor-pointer group",
                           subActive
-                            ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300"
-                            : "text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800"
+                            ? "bg-[var(--color-primary)] text-white shadow-sm font-bold"
+                            : "text-slate-500 font-medium hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800"
                         )}>
-                          <SubIcon className={cn("w-3.5 h-3.5 flex-shrink-0", subActive ? "text-blue-600" : "text-slate-400")} />
+                          <SubIcon className={cn("w-3.5 h-3.5 flex-shrink-0", subActive ? "text-white" : "text-slate-400")} />
                           <span className="truncate">{sub.label}</span>
                         </div>
                       </Link>
@@ -189,10 +173,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               return (
                 <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)}>
                   <div className={cn(
-                    "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer group",
+                    "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150 cursor-pointer group",
                     active
-                      ? "bg-purple-600 text-white shadow-sm"
-                      : "text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800",
+                      ? "bg-purple-600 text-white shadow-sm font-bold"
+                      : "text-slate-700 font-bold hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800",
                     collapsed && "justify-center px-2"
                   )}>
                     <Icon className={cn("w-4 h-4 flex-shrink-0", active ? "text-white" : "text-slate-400 group-hover:text-purple-600 dark:group-hover:text-white")} />
@@ -212,11 +196,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
               <Building2 className="w-4 h-4 text-slate-500 dark:text-slate-400" />
             </div>
-            <div className="min-w-0">
-              <div className="text-slate-900 dark:text-white text-xs font-semibold truncate">
+            <div className="min-w-0 flex-1">
+              <div className="text-slate-900 dark:text-white text-sm font-bold leading-tight break-words">
                 {(user as any)?.tenantName || user?.name || "—"}
               </div>
-              <div className="text-slate-500 text-[11px] truncate">
+              <div className="text-slate-500 font-medium text-xs truncate mt-0.5">
                 {(user as any)?.tenantCUI ? `RO${(user as any).tenantCUI}` : user?.email || ""}
               </div>
             </div>
@@ -225,10 +209,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       )}
 
       {/* Collapse toggle */}
-      <div className={cn("px-2 py-3 border-t border-slate-200 dark:border-slate-800", collapsed && "flex justify-center")}>
+      <div className={cn("px-2 py-3 border-t border-slate-200/50 dark:border-slate-800/50", collapsed && "flex justify-center")}>
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:hover:text-white dark:hover:bg-slate-800 transition-all duration-150 text-xs font-medium"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-blue-600 bg-blue-50/50 hover:bg-blue-100 dark:text-blue-400 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 font-semibold transition-all duration-150 text-xs"
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : (
             <>
@@ -242,38 +226,32 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   );
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden">
-      {/* Desktop Sidebar */}
-      <aside className={cn(
-        "hidden md:flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 flex-shrink-0",
-        collapsed ? "w-16" : "w-60"
-      )}>
-        <SidebarContent />
-      </aside>
-
-      {/* Mobile Sidebar Overlay */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
-          <div className="absolute inset-0 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute left-0 top-0 bottom-0 w-64 bg-white dark:bg-slate-900 flex flex-col">
-            <SidebarContent />
-          </aside>
+    <div className="flex flex-col h-screen bg-slate-100 dark:bg-slate-950 overflow-hidden p-3 sm:p-4 gap-3 sm:gap-4">
+      
+      {/* Top Header — Full width island */}
+      <header className="h-16 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center px-4 sm:px-6 gap-4 flex-shrink-0">
+        {/* Logo */}
+        <div className="h-8 w-auto flex-shrink-0 mr-2">
+          <img src="/logo.png" alt="GetApp Refactura" className="h-full object-contain" />
         </div>
-      )}
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Top Header — compact, aliniat cu logo sidebar */}
-        <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center px-4 gap-3 flex-shrink-0">
-          {/* Mobile menu */}
-          <button
-            className="md:hidden w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-            onClick={() => setMobileOpen(true)}
-          >
-            <Menu className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-          </button>
+        {/* Mobile menu toggle */}
+        <button
+          className="md:hidden w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+          onClick={() => setMobileOpen(true)}
+        >
+          <Menu className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+        </button>
+        
+        {/* Desktop Sidebar collapse toggle (optional, dar vizual cum e in poza cu acel hamburger de langa logo) */}
+        <button
+          className="hidden md:flex w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+          onClick={() => setCollapsed(!collapsed)}
+        >
+          <Menu className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+        </button>
 
-          <div className="flex-1" />
+        <div className="flex-1" />
 
           {/* Multi-currency / country indicator */}
           <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
@@ -315,8 +293,28 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </DropdownMenu>
         </header>
 
+      {/* Bottom Area (Sidebar + Main Content) */}
+      <div className="flex-1 flex min-h-0 gap-3 sm:gap-4">
+        {/* Desktop Sidebar */}
+        <aside className={cn(
+          "hidden md:flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all duration-300 flex-shrink-0",
+          collapsed ? "w-20" : "w-64"
+        )}>
+          <SidebarContent />
+        </aside>
+
+        {/* Mobile Sidebar Overlay */}
+        {mobileOpen && (
+          <div className="fixed inset-0 z-50 md:hidden">
+            <div className="absolute inset-0 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+            <aside className="absolute left-0 top-0 bottom-0 w-64 bg-white dark:bg-slate-900 flex flex-col">
+              <SidebarContent />
+            </aside>
+          </div>
+        )}
+
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto px-1 pb-1 scrollbar-hide">
           {children}
         </main>
       </div>

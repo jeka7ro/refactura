@@ -336,7 +336,7 @@ function ClientForm({ editingId, initial, onSubmit, onCancel, isPending }: {
           <div className="flex gap-2">
             <input
               className={inp + " flex-1"}
-              placeholder="ex: RO42322117"
+              placeholder="CIF / CUI"
               value={data.cui}
               onChange={e => { set("cui", e.target.value); setCuiError(""); setCuiFilled(false); }}
               onKeyDown={e => e.key === "Enter" && (e.preventDefault(), lookupCui())}
@@ -366,13 +366,13 @@ function ClientForm({ editingId, initial, onSubmit, onCancel, isPending }: {
         {/* Nume */}
         <div>
           <label className={lbl}>Denumire firmă *</label>
-          <input className={inp} placeholder="ex: Dedeman SRL" required value={data.name} onChange={e => set("name", e.target.value)} />
+          <input className={inp} placeholder="Denumire firmă" required value={data.name} onChange={e => set("name", e.target.value)} />
         </div>
 
         {/* Reg. Com. + TVA */}
         <div>
           <label className={lbl}>Reg. Com. (J..)</label>
-          <input className={inp} placeholder="ex: J40/1234/2020" value={data.regCom} onChange={e => set("regCom", e.target.value)} />
+          <input className={inp} placeholder="Nr. Reg. Comerț" value={data.regCom} onChange={e => set("regCom", e.target.value)} />
         </div>
         <div>
           <label className={lbl}>Status TVA</label>

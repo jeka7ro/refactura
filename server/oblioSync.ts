@@ -14,12 +14,9 @@ const OBLIO_INVOICE_LIST_URL = "https://www.oblio.eu/api/docs/invoice/list";
 
 let cachedToken: { token: string; expiresAt: number } | null = null;
 
-async function getOblioToken(): Promise<string> {
-  const email = process.env.OBLIO_EMAIL;
-  const secret = process.env.OBLIO_API_SECRET;
-
+async function getOblioToken(email: string, secret: string): Promise<string> {
   if (!email || !secret) {
-    throw new Error("OBLIO_EMAIL sau OBLIO_API_SECRET lipsesc din .env");
+    throw new Error("OBLIO_EMAIL sau OBLIO_API_SECRET lipsesc din DB");
   }
 
   if (cachedToken && Date.now() < cachedToken.expiresAt - 60_000) {
@@ -56,17 +53,28 @@ export async function syncOblioInvoices(tenantId: number): Promise<{ imported: n
   let skipped = 0;
   let clientsImported = 0;
 
-  const cif = process.env.OBLIO_CIF;
-  if (!cif) {
-    throw new Error("OBLIO_CIF lipsește din .env");
-  }
-
   try {
-    const token = await getOblioToken();
-    console.log("[Oblio] Token obtained OK");
-
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
+
+    const [oblioIntg] = await db.select().from(integrations)
+      .where(and(eq(integrations.tenantId, tenantId), eq(integrations.provider, "oblio")));
+
+    if (!oblioIntg || oblioIntg.status !== 'active' || !oblioIntg.apiSecret) {
+      throw new Error("Integrarea Oblio nu este configurată sau este dezactivată");
+    }
+
+    let parsed: any = {};
+    try { parsed = JSON.parse(oblioIntg.apiSecret); } catch {}
+    
+    const email = parsed.email;
+    const secret = parsed.apiSecret || parsed.secret;
+    const cif = parsed.cif;
+
+    if (!cif) throw new Error("CIF firmă lipsește din configurarea Oblio");
+
+    const token = await getOblioToken(email, secret);
+    console.log("[Oblio] Token obtained OK");
 
     let offset = 0;
     const limit = 50;
