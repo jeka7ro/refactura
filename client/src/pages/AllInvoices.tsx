@@ -45,23 +45,23 @@ const TYPE_BADGE: Record<InvoiceType, { label: string; cls: string }> = {
 };
 const STATUS_CLS: Record<string, string> = {
   pending:   "text-amber-600 dark:text-amber-500",
-  processed: "text-blue-600 dark:text-blue-400",
+  processed: "text-emerald-600 dark:text-emerald-400",
   paid:      "text-emerald-600 dark:text-emerald-400",
   draft:     "text-slate-500 dark:text-slate-400",
-  sent:      "text-indigo-600 dark:text-indigo-400",
+  sent:      "text-amber-600 dark:text-amber-500",
   archived:  "text-slate-400 dark:text-slate-500",
   overdue:   "text-rose-600 dark:text-rose-500",
   storno:    "text-rose-600 dark:text-rose-500",
 };
 const STATUS_LBL: Record<string, string> = {
-  pending: "Neîncasat", processed: "Procesat", paid: "Achitat",
-  draft: "Ciornă", sent: "Emis", archived: "Arhivat", overdue: "Restanță",
+  pending: "Neîncasat", processed: "Încasat", paid: "Încasat",
+  draft: "Ciornă", sent: "Neîncasat", archived: "Arhivat", overdue: "Restanță",
   storno: "Storno",
 };
 // Pentru facturi PRIMITE: pending = Neachitat (tu trebuie să plătești)
 const STATUS_LBL_PRIMIT: Record<string, string> = {
   pending: "Neachitat", processed: "Achitat", paid: "Achitat",
-  draft: "Ciornă", sent: "Procesat", archived: "Arhivat", overdue: "Restanță",
+  draft: "Ciornă", sent: "Neachitat", archived: "Arhivat", overdue: "Restanță",
   storno: "Storno",
 };
 const getStatusLabel = (status: string, type: string) =>
@@ -543,21 +543,20 @@ export default function AllInvoices() {
                   />
                 </th>
                 <th className="px-4 py-3 w-16 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nr. Crt.</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Număr</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Tip & Status</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Partener</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Dată</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Scadență</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Total</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">Sursă</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">Acțiuni</th>
+                <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">Număr & Partener</th>
+                <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">Tip & Status</th>
+                <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">Dată</th>
+                <th className="px-4 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide">Scadență</th>
+                <th className="px-4 py-3 text-right text-[10px] font-bold text-slate-500 uppercase tracking-wide">Total</th>
+                <th className="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wide">Sursă</th>
+                <th className="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wide">Acțiuni</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {isLoading ? (
-                <tr><td colSpan={9} className="py-12 text-center"><Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto" /></td></tr>
+                <tr><td colSpan={8} className="py-12 text-center"><Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto" /></td></tr>
               ) : paginated.length === 0 ? (
-                <tr><td colSpan={9} className="py-4 text-center text-slate-400 text-[11px] bg-slate-50/50 dark:bg-slate-800/20 border-b border-dashed border-slate-200 dark:border-slate-800">
+                <tr><td colSpan={8} className="py-4 text-center text-slate-400 text-[11px] bg-slate-50/50 dark:bg-slate-800/20 border-b border-dashed border-slate-200 dark:border-slate-800">
                   {search || typeFilter !== "all" ? "Nicio factură pentru filtrele aplicate." : "Nu există facturi. Apasă Sync sau importă XML din pagina Integrări."}
                 </td></tr>
               ) : paginated.map((row, i) => {
@@ -574,32 +573,36 @@ export default function AllInvoices() {
                     </td>
                     <td className="px-4 py-3 text-center text-[11px] font-medium text-slate-500">{(page - 1) * rowsPerPage + i + 1}</td>
                     <td className="px-4 py-3">
-                      <button onClick={() => {
-                          if (row.type === 'refacturat') navigate(`/re-facturi/${row.id}`);
-                          else if (row.type === 'emis' && row.source === 'manual') navigate(`/facturi-emise-nou/view/${row.id}`);
-                          else navigate(`/facturi-primite/${row.id}`);
-                        }}
-                        className="text-sm font-bold text-blue-600 hover:underline">
-                        {row.number}
-                      </button>
+                      <div className="flex flex-col gap-0.5">
+                        <button onClick={() => {
+                            if (row.type === 'refacturat') navigate(`/re-facturi/${row.id}`);
+                            else if (row.type === 'emis' && row.source === 'manual') navigate(`/facturi-emise-nou/view/${row.id}`);
+                            else navigate(`/facturi-primite/${row.id}`);
+                          }}
+                          className="text-xs font-bold text-blue-600 hover:underline text-left">
+                          {row.number}
+                        </button>
+                        <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 max-w-[180px] truncate" title={row.partnerName}>
+                          {row.partnerName}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col gap-0.5">
-                        <span className={`text-sm font-bold ${tb.cls}`}>{tb.label}</span>
-                        <span className={`text-[11px] font-bold ${STATUS_CLS[row.status] || STATUS_CLS.pending}`}>
+                        <span className={`text-[11px] font-bold ${tb.cls}`}>{tb.label}</span>
+                        <span className={`text-[10px] font-bold ${STATUS_CLS[row.status] || STATUS_CLS.pending}`}>
                           {getStatusLabel(row.status, row.type)}
                         </span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 max-w-[150px] truncate">{row.partnerName}</td>
-                    <td className="px-4 py-3 text-sm text-slate-500 whitespace-nowrap">{formatDate(row.date)}</td>
-                    <td className="px-4 py-3 text-sm text-slate-500 whitespace-nowrap">{formatDate(row.dueDate)}</td>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-slate-900 dark:text-white whitespace-nowrap">
+                    <td className="px-4 py-3 text-[11px] text-slate-500 whitespace-nowrap">{formatDate(row.date)}</td>
+                    <td className="px-4 py-3 text-[11px] text-slate-500 whitespace-nowrap">{formatDate(row.dueDate)}</td>
+                    <td className="px-4 py-3 text-[11px] text-right font-semibold text-slate-900 dark:text-white whitespace-nowrap">
                       {formatCurrency(row.total, row.currency as Currency)}
                     </td>
                     <td className="px-4 py-3 text-center">
                       {(() => { const sb = SOURCE_BADGE[row.source] || SOURCE_BADGE.manual; return (
-                        <span className={`text-[11px] font-bold ${sb.cls}`}>{sb.label}</span>
+                        <span className={`text-[10px] font-bold ${sb.cls}`}>{sb.label}</span>
                       ); })()}
                     </td>
                     <td className="px-4 py-3">
