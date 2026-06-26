@@ -35,26 +35,35 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: "/dashboard",          label: "Dashboard",       icon: LayoutDashboard, section: "principal" },
-  { href: "/facturi",            label: "Facturi",          icon: FileText,        section: "facturare" },
-  { href: "/facturi-emise-nou",  label: "Facturi Emise",   icon: FileOutput,       section: "facturare" },
-  { href: "/re-facturi",         label: "Re-Facturi",       icon: FileOutput,      section: "facturare" },
-  { href: "/nir",                label: "NIR",              icon: ClipboardCheck,  section: "facturare" },
-  {
-    href: "/devize",
-    label: "Devize",
-    icon: FileText,
+  { 
+    href: "/facturi",            
+    label: "Facturi",          
+    icon: FileText,        
     section: "facturare",
     subItems: [
-      { href: "/devize/catalog", label: "Catalog Nomenclator", icon: PackageOpen },
-    ],
+      { href: "/facturi", label: "Facturi Primite", icon: FileText },
+      { href: "/facturi-emise-nou", label: "Facturi Emise", icon: FileOutput },
+      { href: "/re-facturi", label: "Re-Facturi", icon: FileOutput },
+      { href: "/arhiva-facturi", label: "Arhivă Facturi", icon: Archive },
+    ]
   },
-  { href: "/bonuri-consum",      label: "Bonuri Consum",    icon: PackageOpen,     section: "facturare" },
+  {
+    href: "/nir",
+    label: "Gestiune",
+    icon: PackageOpen,
+    section: "gestiune",
+    subItems: [
+      { href: "/nir", label: "NIR", icon: ClipboardCheck },
+      { href: "/bonuri-consum", label: "Bonuri Consum", icon: PackageOpen },
+      { href: "/devize", label: "Devize", icon: FileText },
+      { href: "/devize/catalog", label: "Catalog Nomenclator", icon: PackageOpen },
+    ]
+  },
   { href: "/rapoarte",           label: "Rapoarte",         icon: TrendingUp,      section: "analize" },
   { href: "/clienti",            label: "Clienți",          icon: Users,           section: "gestiune" },
   { href: "/integrari",          label: "Integrări",        icon: Plug,            section: "gestiune" },
-  { href: "/setari",             label: "Setări",           icon: Settings,        section: "cont" },
   { href: "/centre-cost",        label: "Centre de Cost",   icon: MapPin,          section: "gestiune" },
-  { href: "/arhiva-facturi",     label: "Arhivă Facturi",   icon: Archive,         section: "facturare" },
+  { href: "/setari",             label: "Setări",           icon: Settings,        section: "cont" },
 ];
 
 const adminNavItems: NavItem[] = [
