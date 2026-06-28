@@ -2,6 +2,7 @@ import { eq, and, desc, sql, count, isNull, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, tenants, userTenants, costCenters, subscriptionPlans, clients, leads, cmsSettings, pageVisits, accounts, modules, modulePricing, reInvoices, reInvoiceLines, invoiceArchive, invoiceArchiveLines, InsertInvoiceArchive, integrations } from "../drizzle/schema";
 import { ENV } from './_core/env';
+import { runHorecaMigrations } from '../modules/horeca/migrations';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -22,6 +23,8 @@ export async function getDb() {
       try { await _db.execute(sql`CREATE INDEX idx_invoiceArchiveId ON invoiceArchiveLines(invoiceArchiveId)`); } catch {}
       try { await _db.execute(sql`CREATE INDEX idx_reInvoiceId ON reInvoiceLines(reInvoiceId)`); } catch {}
       try { await _db.execute(sql`CREATE INDEX idx_emittedInvoiceId ON emittedInvoiceLines(emittedInvoiceId)`); } catch {}
+      // Module migrations — fiecare modul izolat, safe
+      await runHorecaMigrations(_db as any);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;

@@ -9,7 +9,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { 
-  LayoutDashboard, FileText, FileOutput, Users, Settings, LogOut, ChevronLeft, ChevronRight, Menu, MapPin, Search, Plus, Archive, ShieldCheck, Globe2, Bell, AlertCircle, RefreshCcw, Plug, TrendingUp, ClipboardCheck, PackageOpen, Globe, Building2, Moon, Sun, X
+  LayoutDashboard, FileText, FileOutput, Users, Settings, LogOut, ChevronLeft, ChevronRight, Menu, MapPin, Search, Plus, Archive, ShieldCheck, Globe2, Bell, AlertCircle, RefreshCcw, Plug, TrendingUp, ClipboardCheck, PackageOpen, Globe, Building2, Moon, Sun, X, UtensilsCrossed, Truck, BookOpen, ShoppingBag
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -63,6 +63,19 @@ const navItems: NavItem[] = [
   { href: "/clienti",            label: "Clienți",          icon: Users,           section: "gestiune" },
   { href: "/integrari",          label: "Integrări",        icon: Plug,            section: "gestiune" },
   { href: "/centre-cost",        label: "Centre de Cost",   icon: MapPin,          section: "gestiune" },
+  {
+    href: "/horeca",
+    label: "SmartHORECA",
+    icon: UtensilsCrossed,
+    section: "module",
+    subItems: [
+      { href: "/horeca",          label: "Dashboard HORECA", icon: LayoutDashboard },
+      { href: "/horeca/locatii",  label: "Locații",          icon: MapPin },
+      { href: "/horeca/meniu",    label: "Meniu & Rețete",   icon: BookOpen },
+      { href: "/horeca/comenzi",  label: "Comenzi",          icon: ShoppingBag },
+      { href: "/horeca/delivery", label: "Delivery",         icon: Truck },
+    ]
+  },
   { href: "/setari",             label: "Setări",           icon: Settings,        section: "cont" },
 ];
 

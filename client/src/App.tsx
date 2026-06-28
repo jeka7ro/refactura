@@ -36,6 +36,12 @@ import DevizDetail from "@/pages/DevizDetail";
 import BonuriConsumList from "@/pages/BonuriConsumList";
 import BonConsumDetail from "@/pages/BonConsumDetail";
 import Catalog from "@/pages/Catalog";
+import HorecaDashboard from "@/pages/horeca/HorecaDashboard";
+import HorecaLocations from "@/pages/horeca/HorecaLocations";
+import HorecaMenu from "@/pages/horeca/HorecaMenu";
+import HorecaOrders from "@/pages/horeca/HorecaOrders";
+import HorecaDelivery from "@/pages/horeca/HorecaDelivery";
+
 function Router() {
   return (
     <Switch>
@@ -204,6 +210,23 @@ function Router() {
         </DashboardLayout>
       </Route>
       <Route path="/404" component={NotFound} />
+      {/* ── HORECA MODULE ROUTES ──────────────────────────────── */}
+      <Route path="/horeca">
+        <DashboardLayout><HorecaDashboard /></DashboardLayout>
+      </Route>
+      <Route path="/horeca/locatii">
+        <DashboardLayout><HorecaLocations /></DashboardLayout>
+      </Route>
+      <Route path="/horeca/meniu">
+        <DashboardLayout><HorecaMenu /></DashboardLayout>
+      </Route>
+      <Route path="/horeca/comenzi">
+        <DashboardLayout><HorecaOrders /></DashboardLayout>
+      </Route>
+      <Route path="/horeca/delivery">
+        <DashboardLayout><HorecaDelivery /></DashboardLayout>
+      </Route>
+      {/* ────────────────────────────────────────────────────── */}
       <Route component={NotFound} />
     </Switch>
   );
