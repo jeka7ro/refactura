@@ -9,7 +9,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { 
-  LayoutDashboard, FileText, FileOutput, Users, Settings, LogOut, ChevronLeft, ChevronRight, Menu, MapPin, Search, Plus, Archive, ShieldCheck, Globe2, Bell, AlertCircle, RefreshCcw, Plug, TrendingUp, ClipboardCheck, PackageOpen, Globe, Building2, Moon, Sun, X, UtensilsCrossed, Truck, BookOpen, ShoppingBag
+  LayoutDashboard, FileText, FileOutput, Users, Settings, LogOut, ChevronLeft, ChevronRight, Menu, MapPin, Search, Plus, Archive, ShieldCheck, Globe2, Bell, AlertCircle, RefreshCcw, Plug, TrendingUp, ClipboardCheck, PackageOpen, Globe, Building2, Moon, Sun, X, UtensilsCrossed, Truck, BookOpen, ShoppingBag, Grid3X3, ChefHat
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -71,8 +71,10 @@ const navItems: NavItem[] = [
     subItems: [
       { href: "/horeca",          label: "Dashboard HORECA", icon: LayoutDashboard },
       { href: "/horeca/locatii",  label: "Locații",          icon: MapPin },
+      { href: "/horeca/mese",     label: "Plan Sală",        icon: Grid3X3 },
       { href: "/horeca/meniu",    label: "Meniu & Rețete",   icon: BookOpen },
-      { href: "/horeca/comenzi",  label: "Comenzi",          icon: ShoppingBag },
+      { href: "/horeca/comenzi",  label: "Comenzi POS",      icon: ShoppingBag },
+      { href: "/horeca/kds",      label: "Bucătărie (KDS)",  icon: ChefHat },
       { href: "/horeca/delivery", label: "Delivery",         icon: Truck },
     ]
   },

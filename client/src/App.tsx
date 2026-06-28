@@ -41,6 +41,9 @@ import HorecaLocations from "@/pages/horeca/HorecaLocations";
 import HorecaMenu from "@/pages/horeca/HorecaMenu";
 import HorecaOrders from "@/pages/horeca/HorecaOrders";
 import HorecaDelivery from "@/pages/horeca/HorecaDelivery";
+import HorecaTables from "@/pages/horeca/HorecaTables";
+import HorecaOrderCreate from "@/pages/horeca/HorecaOrderCreate";
+import HorecaKitchenDisplay from "@/pages/horeca/HorecaKitchenDisplay";
 
 function Router() {
   return (
@@ -225,6 +228,15 @@ function Router() {
       </Route>
       <Route path="/horeca/delivery">
         <DashboardLayout><HorecaDelivery /></DashboardLayout>
+      </Route>
+      <Route path="/horeca/mese">
+        <DashboardLayout><HorecaTables /></DashboardLayout>
+      </Route>
+      <Route path="/horeca/comenzi/nou">
+        <DashboardLayout><HorecaOrderCreate /></DashboardLayout>
+      </Route>
+      <Route path="/horeca/kds">
+        <HorecaKitchenDisplay />
       </Route>
       {/* ────────────────────────────────────────────────────── */}
       <Route component={NotFound} />
