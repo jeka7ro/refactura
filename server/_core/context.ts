@@ -22,8 +22,8 @@ export async function createContext(
   try {
     const authHeader = opts.req.headers.authorization;
     const token = extractTokenFromHeader(authHeader);
-    
-        if (token) {
+
+    if (token) {
       const sessionPayload = await verifySessionToken(token);
       if (sessionPayload) {
         const account = await getAccountById(sessionPayload.accountId);
@@ -33,7 +33,9 @@ export async function createContext(
           let tenantId: number | undefined = account.tenantId || undefined;
           if (!tenantId) {
             try {
-              const fallbackTenantId = await getDefaultTenantForUser(account.id);
+              const fallbackTenantId = await getDefaultTenantForUser(
+                account.id
+              );
               if (fallbackTenantId) tenantId = fallbackTenantId;
             } catch (_) {
               // ignore — tenantId stays undefined
@@ -64,7 +66,7 @@ export async function createContext(
   // Fall back to OAuth auth
   try {
     user = await sdk.authenticateRequest(opts.req);
-    
+
     // For OAuth users, look up their default tenant
     if (user && (user as any).id) {
       try {

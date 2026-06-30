@@ -1,6 +1,7 @@
 # RefacturaRO SaaS Transformation TODO
 
 ## URGENT: Table Features (ALL TABLES)
+
 - [x] Search bar (global search on all columns)
 - [x] Row numbers (#) in first column
 - [x] Rows per page selector (10, 15, 25, 50)
@@ -21,6 +22,7 @@
   - [ ] Setări (TODO)
 
 ## URGENT: Logo & Branding
+
 - [x] Add company logo to sidebar/header
 - [x] Logo placement: top-left
 - [x] Logo text: "Get App - Smart Invoice"
@@ -32,6 +34,7 @@
 - [x] BRANDING COMPLETE: Get App - Smart Invoice
 
 ## URGENT: Authentication
+
 - [x] Login page: Email/Password fields VISIBLE
 - [x] Login page: Sign In button WORKING
 - [x] Login page: Demo credentials displayed
@@ -44,6 +47,7 @@
 - [x] AUTHENTICATION COMPLETE: Email/Password login READY
 
 ## Phase 1: Multi-Tenant Architecture & Superadmin
+
 - [x] Update database schema: add `tenants` table
 - [x] Add `tenantId` foreign key to all existing tables
 - [x] Create superadmin account: jeka7ro@gmail.com / 19Iunie2026!$
@@ -54,6 +58,7 @@
 - [x] Frontend ProtectedRoute component with role guards
 
 ## Phase 2: Subscription Management & Billing
+
 - [x] Create `subscriptions` table (plan, status, startDate, endDate, price)
 - [x] Create `subscription_plans` table (Basic, Pro, Enterprise)
 - [ ] Build Subscription Management page for superadmin
@@ -62,6 +67,7 @@
 - [ ] Create invoice/receipt generation for subscriptions
 
 ## Phase 3: Cost Centers (Multiple Locations)
+
 - [x] Create `cost_centers` table (name, address, cui, email, phone, tenant)
 - [x] Build Cost Centers CRUD page
 - [x] Backend tRPC procedures: list, create, update, delete, getById
@@ -78,6 +84,7 @@
 - [ ] Implement cost center filtering in all reports
 
 ## Phase 4: Quotations Module
+
 - [x] Create `quotations` table (from imported invoices)
 - [ ] Build Quotations page (list, create, view, edit)
 - [ ] Implement quotation generation from imported invoices
@@ -86,6 +93,7 @@
 - [ ] Add email delivery for quotations
 
 ## Phase 5: Invoice Tracking & Inventory
+
 - [x] Add `costCenterId` to re-invoices table
 - [ ] Build invoice tracking per cost center
 - [x] Create `inventory_items` table (serial number, description, quantity, cost_center)
@@ -94,6 +102,7 @@
 - [ ] Add inventory reports and analytics
 
 ## Phase 6: Testing & Delivery
+
 - [ ] Test multi-tenant isolation
 - [ ] Test subscription workflows
 - [ ] Test cost center operations

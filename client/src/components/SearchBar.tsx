@@ -21,7 +21,8 @@ export function SearchBar({
   className = "",
 }: SearchBarProps) {
   const hasQuery = value.trim().length > 0;
-  const showBadge = hasQuery && filteredCount !== undefined && totalCount !== undefined;
+  const showBadge =
+    hasQuery && filteredCount !== undefined && totalCount !== undefined;
 
   return (
     <div className={`relative flex items-center ${className}`}>
@@ -31,7 +32,7 @@ export function SearchBar({
       <input
         type="text"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         autoComplete="off"
         className="w-full pl-9 pr-10 h-9 text-sm rounded-full border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-900 placeholder:text-slate-400 transition-all"

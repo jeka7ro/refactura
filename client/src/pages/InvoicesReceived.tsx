@@ -3,7 +3,14 @@
 
 import { useState } from "react";
 import { Link } from "wouter";
-import { Upload, RefreshCw, Plus, Eye, ArrowRight, Loader2 } from "lucide-react";
+import {
+  Upload,
+  RefreshCw,
+  Plus,
+  Eye,
+  ArrowRight,
+  Loader2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { DataTable, type DataTableColumn } from "@/components/DataTable";
 import {
@@ -33,13 +40,17 @@ interface InvoiceRow {
 }
 
 export default function InvoicesReceived() {
-  const [statusFilter, setStatusFilter] = useState<InvoiceStatus | typeof ALL>(ALL);
-  const [sourceFilter, setSourceFilter] = useState<IntegrationSource | typeof ALL>(ALL);
+  const [statusFilter, setStatusFilter] = useState<InvoiceStatus | typeof ALL>(
+    ALL
+  );
+  const [sourceFilter, setSourceFilter] = useState<
+    IntegrationSource | typeof ALL
+  >(ALL);
   const [syncing, setSyncing] = useState(false);
   const [selectedRows, setSelectedRows] = useState<InvoiceRow[]>([]);
 
   const { data: dbInvoices, isLoading } = trpc.invoices.list.useQuery();
-  
+
   const invoicesList: InvoiceRow[] = (dbInvoices || []).map((inv: any) => ({
     id: inv.id,
     number: inv.invoiceNumber,
@@ -54,7 +65,7 @@ export default function InvoicesReceived() {
     itemsText: inv.itemsText || "",
   }));
 
-  const filtered = invoicesList.filter((inv) => {
+  const filtered = invoicesList.filter(inv => {
     const matchStatus = statusFilter === ALL || inv.status === statusFilter;
     const matchSource = sourceFilter === ALL || inv.source === sourceFilter;
     return matchStatus && matchSource;
@@ -64,7 +75,9 @@ export default function InvoicesReceived() {
     setSyncing(true);
     setTimeout(() => {
       setSyncing(false);
-      toast.success("Sincronizare completă", { description: "3 facturi noi importate" });
+      toast.success("Sincronizare completă", {
+        description: "3 facturi noi importate",
+      });
     }, 2000);
   };
 
@@ -75,8 +88,20 @@ export default function InvoicesReceived() {
       sortable: true,
       render: (value, row) => (
         <div className="flex flex-col gap-0.5">
-          <span className="text-sm font-bold text-blue-600 hover:underline text-left cursor-pointer" onClick={() => window.location.href = `/facturi-primite/${row.id}`}>{row.number}</span>
-          <span className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-[180px] truncate" title={value}>{value}</span>
+          <span
+            className="text-sm font-bold text-blue-600 hover:underline text-left cursor-pointer"
+            onClick={() =>
+              (window.location.href = `/facturi-primite/${row.id}`)
+            }
+          >
+            {row.number}
+          </span>
+          <span
+            className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-[180px] truncate"
+            title={value}
+          >
+            {value}
+          </span>
         </div>
       ),
     },
@@ -85,7 +110,9 @@ export default function InvoicesReceived() {
       label: "Sursă",
       sortable: true,
       render: (value: any) => (
-        <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-normal border ${sourceColors[value as IntegrationSource]}`}>
+        <span
+          className={`px-2.5 py-0.5 rounded-full text-[11px] font-normal border ${sourceColors[value as IntegrationSource]}`}
+        >
           {value}
         </span>
       ),
@@ -94,13 +121,13 @@ export default function InvoicesReceived() {
       key: "date",
       label: "Dată",
       sortable: true,
-      render: (value) => formatDate(value),
+      render: value => formatDate(value),
     },
     {
       key: "dueDate",
       label: "Scadență",
       sortable: true,
-      render: (value) => formatDate(value),
+      render: value => formatDate(value),
     },
     {
       key: "total",
@@ -109,8 +136,12 @@ export default function InvoicesReceived() {
       className: "text-right",
       render: (value, row) => (
         <div className="text-right">
-          <div className="text-slate-900 dark:text-white">{formatCurrency(value, row.currency as any)}</div>
-          <div className="text-xs text-slate-400 mt-0.5">TVA: {formatCurrency(row.totalVAT, row.currency as any)}</div>
+          <div className="text-slate-900 dark:text-white">
+            {formatCurrency(value, row.currency as any)}
+          </div>
+          <div className="text-xs text-slate-400 mt-0.5">
+            TVA: {formatCurrency(row.totalVAT, row.currency as any)}
+          </div>
         </div>
       ),
     },
@@ -119,7 +150,9 @@ export default function InvoicesReceived() {
       label: "Status",
       sortable: true,
       render: (value: any) => (
-        <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-normal border ${invoiceStatusColors[value as InvoiceStatus]}`}>
+        <span
+          className={`px-2.5 py-0.5 rounded-full text-[11px] font-normal border ${invoiceStatusColors[value as InvoiceStatus]}`}
+        >
           {invoiceStatusLabels[value as InvoiceStatus]}
         </span>
       ),
@@ -150,8 +183,12 @@ export default function InvoicesReceived() {
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white">Facturi Primite</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Facturi importate din SmartBill, SPV, Oblio</p>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+            Facturi Primite
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            Facturi importate din SmartBill, SPV, Oblio
+          </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button
@@ -163,14 +200,22 @@ export default function InvoicesReceived() {
             Sincronizează
           </button>
           <button
-            onClick={() => toast.info("Import manual", { description: "Funcție disponibilă în curând" })}
+            onClick={() =>
+              toast.info("Import manual", {
+                description: "Funcție disponibilă în curând",
+              })
+            }
             className="flex items-center gap-2 px-4 h-10 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors"
           >
             <Upload className="w-4 h-4" />
             Import XML
           </button>
           <button
-            onClick={() => toast.info("Factură manuală", { description: "Funcție disponibilă în curând" })}
+            onClick={() =>
+              toast.info("Factură manuală", {
+                description: "Funcție disponibilă în curând",
+              })
+            }
             className="flex items-center gap-2 px-5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all active:scale-[0.97]"
           >
             <Plus className="w-4 h-4" />
@@ -182,13 +227,36 @@ export default function InvoicesReceived() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: "Total Facturi", value: invoicesList.length, cls: "text-slate-900 dark:text-white" },
-          { label: "Re-facturate", value: invoicesList.filter(r => r.status === "re-invoiced").length, cls: "text-emerald-600" },
-          { label: "În așteptare", value: invoicesList.filter(r => r.status === "pending" || r.status === "imported").length, cls: "text-amber-600" },
-          { label: "Valoare Totală", value: `${invoicesList.reduce((s, r) => s + (r.total || 0), 0).toLocaleString("ro-RO", { minimumFractionDigits: 2 })} RON`, cls: "text-blue-600" },
+          {
+            label: "Total Facturi",
+            value: invoicesList.length,
+            cls: "text-slate-900 dark:text-white",
+          },
+          {
+            label: "Re-facturate",
+            value: invoicesList.filter(r => r.status === "re-invoiced").length,
+            cls: "text-emerald-600",
+          },
+          {
+            label: "În așteptare",
+            value: invoicesList.filter(
+              r => r.status === "pending" || r.status === "imported"
+            ).length,
+            cls: "text-amber-600",
+          },
+          {
+            label: "Valoare Totală",
+            value: `${invoicesList.reduce((s, r) => s + (r.total || 0), 0).toLocaleString("ro-RO", { minimumFractionDigits: 2 })} RON`,
+            cls: "text-blue-600",
+          },
         ].map(k => (
-          <div key={k.label} className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">{k.label}</p>
+          <div
+            key={k.label}
+            className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4"
+          >
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+              {k.label}
+            </p>
             <p className={`text-xl font-black ${k.cls}`}>{k.value}</p>
           </div>
         ))}
@@ -200,7 +268,7 @@ export default function InvoicesReceived() {
           {/* Status filter */}
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
+            onChange={e => setStatusFilter(e.target.value as any)}
             className="h-10 px-4 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
           >
             <option value={ALL}>Toate statusurile</option>
@@ -213,7 +281,7 @@ export default function InvoicesReceived() {
           {/* Source filter */}
           <select
             value={sourceFilter}
-            onChange={(e) => setSourceFilter(e.target.value as any)}
+            onChange={e => setSourceFilter(e.target.value as any)}
             className="h-10 px-4 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
           >
             <option value={ALL}>Toate sursele</option>

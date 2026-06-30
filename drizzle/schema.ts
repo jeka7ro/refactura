@@ -1,4 +1,12 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal } from "drizzle-orm/mysql-core";
+import {
+  int,
+  mysqlEnum,
+  mysqlTable,
+  text,
+  timestamp,
+  varchar,
+  decimal,
+} from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -16,7 +24,9 @@ export const users = mysqlTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin", "superadmin"]).default("user").notNull(),
+  role: mysqlEnum("role", ["user", "admin", "superadmin"])
+    .default("user")
+    .notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -36,7 +46,12 @@ export const tenants = mysqlTable("tenants", {
   address: text("address"),
   cui: varchar("cui", { length: 20 }).unique(),
   subscriptionPlanId: int("subscriptionPlanId"),
-  subscriptionStatus: mysqlEnum("subscriptionStatus", ["active", "inactive", "cancelled", "expired"]).default("active"),
+  subscriptionStatus: mysqlEnum("subscriptionStatus", [
+    "active",
+    "inactive",
+    "cancelled",
+    "expired",
+  ]).default("active"),
   subscriptionStartDate: timestamp("subscriptionStartDate"),
   subscriptionEndDate: timestamp("subscriptionEndDate"),
   settings: text("settings"), // JSON stringified company settings
@@ -71,7 +86,9 @@ export const userTenants = mysqlTable("userTenants", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   tenantId: int("tenantId").notNull(),
-  role: mysqlEnum("role", ["superadmin", "admin", "user", "viewer"]).default("user").notNull(),
+  role: mysqlEnum("role", ["superadmin", "admin", "user", "viewer"])
+    .default("user")
+    .notNull(),
   isActive: int("isActive").default(1),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
@@ -87,7 +104,9 @@ export const integrations = mysqlTable("integrations", {
   apiSecret: text("apiSecret"), // Can hold long refresh tokens
   tokenExpiresAt: timestamp("tokenExpiresAt"), // For OAuth token expiry
   config: text("config"), // JSON: provider-specific config (email, cif, etc.)
-  status: mysqlEnum("status", ["active", "inactive", "error"]).default("inactive"),
+  status: mysqlEnum("status", ["active", "inactive", "error"]).default(
+    "inactive"
+  ),
   lastSyncAt: timestamp("lastSyncAt"),
   syncCount: int("syncCount").default(0),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -136,7 +155,13 @@ export const quotations = mysqlTable("quotations", {
   vat: decimal("vat", { precision: 12, scale: 2 }).notNull(),
   total: decimal("total", { precision: 12, scale: 2 }).notNull(),
   currency: varchar("currency", { length: 3 }).default("RON"),
-  status: mysqlEnum("status", ["draft", "sent", "accepted", "rejected", "expired"]).default("draft"),
+  status: mysqlEnum("status", [
+    "draft",
+    "sent",
+    "accepted",
+    "rejected",
+    "expired",
+  ]).default("draft"),
   pdfUrl: varchar("pdfUrl", { length: 512 }),
   notes: text("notes"),
   sentAt: timestamp("sentAt"),
@@ -177,7 +202,12 @@ export const inventoryItems = mysqlTable("inventoryItems", {
   totalPrice: decimal("totalPrice", { precision: 12, scale: 2 }).notNull(),
   currency: varchar("currency", { length: 3 }).default("RON"),
   category: varchar("category", { length: 100 }),
-  status: mysqlEnum("status", ["active", "inactive", "damaged", "lost"]).default("active"),
+  status: mysqlEnum("status", [
+    "active",
+    "inactive",
+    "damaged",
+    "lost",
+  ]).default("active"),
   importedInvoiceId: int("importedInvoiceId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -194,7 +224,9 @@ export const accounts = mysqlTable("accounts", {
   email: varchar("email", { length: 320 }).notNull().unique(),
   passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
   tenantId: int("tenantId"),
-  role: mysqlEnum("role", ["superadmin", "admin", "user"]).default("user").notNull(),
+  role: mysqlEnum("role", ["superadmin", "admin", "user"])
+    .default("user")
+    .notNull(),
   isActive: int("isActive").default(1),
   lastLoginAt: timestamp("lastLoginAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -220,7 +252,9 @@ export const clients = mysqlTable("clients", {
   email: varchar("email", { length: 320 }),
   phone: varchar("phone", { length: 20 }),
   currency: varchar("currency", { length: 3 }).default("RON"),
-  totalInvoiced: decimal("totalInvoiced", { precision: 12, scale: 2 }).default("0.00"),
+  totalInvoiced: decimal("totalInvoiced", { precision: 12, scale: 2 }).default(
+    "0.00"
+  ),
   invoiceCount: int("invoiceCount").default(0),
   reInvoiceCount: int("reInvoiceCount").default(0),
   isSupplier: int("isSupplier").default(0),
@@ -237,7 +271,9 @@ export const products = mysqlTable("products", {
   tenantId: int("tenantId").notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   unit: varchar("unit", { length: 20 }).default("buc"),
-  defaultPrice: decimal("defaultPrice", { precision: 12, scale: 2 }).default("0.00"),
+  defaultPrice: decimal("defaultPrice", { precision: 12, scale: 2 }).default(
+    "0.00"
+  ),
   defaultVatRate: int("defaultVatRate").default(21),
   currency: varchar("currency", { length: 3 }).default("RON"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -297,7 +333,12 @@ export const leads = mysqlTable("leads", {
   message: text("message"),
   planId: int("planId"), // which plan they clicked
   source: varchar("source", { length: 100 }).default("landing"),
-  status: mysqlEnum("status", ["new", "contacted", "converted", "lost"]).default("new"),
+  status: mysqlEnum("status", [
+    "new",
+    "contacted",
+    "converted",
+    "lost",
+  ]).default("new"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
@@ -355,10 +396,21 @@ export const reInvoices = mysqlTable("reInvoices", {
   totalVAT: decimal("totalVAT", { precision: 12, scale: 2 }).notNull(),
   total: decimal("total", { precision: 12, scale: 2 }).notNull(),
   currency: varchar("currency", { length: 3 }).default("RON"),
-  status: mysqlEnum("status", ["draft", "sent", "paid", "overdue", "cancelled"]).default("draft"),
+  status: mysqlEnum("status", [
+    "draft",
+    "sent",
+    "paid",
+    "overdue",
+    "cancelled",
+  ]).default("draft"),
   notes: text("notes"),
   spvIndex: varchar("spvIndex", { length: 100 }),
-  spvStatus: mysqlEnum("spvStatus", ["nesincronizat", "in_procesare", "validat", "eroare"]).default("nesincronizat"),
+  spvStatus: mysqlEnum("spvStatus", [
+    "nesincronizat",
+    "in_procesare",
+    "validat",
+    "eroare",
+  ]).default("nesincronizat"),
   spvError: text("spvError"),
   rawXml: text("rawXml"),
   pdfUrl: varchar("pdfUrl", { length: 512 }),
@@ -400,7 +452,9 @@ export const invoiceArchive = mysqlTable("invoiceArchive", {
   fileKey: varchar("fileKey", { length: 512 }),
   fileUrl: varchar("fileUrl", { length: 512 }),
   fileName: varchar("fileName", { length: 255 }),
-  fileType: mysqlEnum("fileType", ["pdf", "xml", "efactura", "other"]).default("pdf"),
+  fileType: mysqlEnum("fileType", ["pdf", "xml", "efactura", "other"]).default(
+    "pdf"
+  ),
   fileSize: int("fileSize"), // bytes
   // Invoice metadata (extracted or manually entered)
   invoiceNumber: varchar("invoiceNumber", { length: 100 }),
@@ -412,11 +466,25 @@ export const invoiceArchive = mysqlTable("invoiceArchive", {
   totalVAT: decimal("totalVAT", { precision: 12, scale: 2 }),
   currency: varchar("currency", { length: 3 }).default("RON"),
   // Source tracking
-  source: mysqlEnum("source", ["smartbill", "oblio", "fgo", "spv_anaf", "efactura", "pdf_manual", "xml_manual", "other"]).default("pdf_manual"),
+  source: mysqlEnum("source", [
+    "smartbill",
+    "oblio",
+    "fgo",
+    "spv_anaf",
+    "efactura",
+    "pdf_manual",
+    "xml_manual",
+    "other",
+  ]).default("pdf_manual"),
   // Direction: 'out' = emise de tine catre clienti, 'in' = primite de la furnizori
   direction: mysqlEnum("direction", ["in", "out"]).default("in"),
   // Status
-  status: mysqlEnum("status", ["pending", "processed", "refactured", "archived"]).default("pending"),
+  status: mysqlEnum("status", [
+    "pending",
+    "processed",
+    "refactured",
+    "archived",
+  ]).default("pending"),
   // Link to re-invoice if refactured
   reInvoiceId: int("reInvoiceId"),
   notes: text("notes"),
@@ -467,10 +535,21 @@ export const emittedInvoices = mysqlTable("emittedInvoices", {
   totalVAT: decimal("totalVAT", { precision: 12, scale: 2 }).notNull(),
   total: decimal("total", { precision: 12, scale: 2 }).notNull(),
   currency: varchar("currency", { length: 3 }).default("RON"),
-  status: mysqlEnum("status", ["draft", "sent", "paid", "overdue", "cancelled"]).default("draft"),
+  status: mysqlEnum("status", [
+    "draft",
+    "sent",
+    "paid",
+    "overdue",
+    "cancelled",
+  ]).default("draft"),
   notes: text("notes"),
   spvIndex: varchar("spvIndex", { length: 100 }),
-  spvStatus: mysqlEnum("spvStatus", ["nesincronizat", "in_procesare", "validat", "eroare"]).default("nesincronizat"),
+  spvStatus: mysqlEnum("spvStatus", [
+    "nesincronizat",
+    "in_procesare",
+    "validat",
+    "eroare",
+  ]).default("nesincronizat"),
   spvError: text("spvError"),
   rawXml: text("rawXml"),
   pdfUrl: varchar("pdfUrl", { length: 512 }),
@@ -510,11 +589,11 @@ export const nir = mysqlTable("nir", {
   nirNumber: varchar("nirNumber", { length: 50 }).notNull(),
   invoiceArchiveId: int("invoiceArchiveId"),
   invoiceNumber: varchar("invoiceNumber", { length: 100 }),
-  avizNumber: varchar("avizNumber", { length: 100 }),          // Nr. aviz de însoțire
+  avizNumber: varchar("avizNumber", { length: 100 }), // Nr. aviz de însoțire
   supplierName: varchar("supplierName", { length: 255 }),
   supplierCUI: varchar("supplierCUI", { length: 20 }),
-  supplierAddress: text("supplierAddress"),                     // Adresă furnizor
-  gestiune: varchar("gestiune", { length: 255 }),               // Gestiunea destinatară
+  supplierAddress: text("supplierAddress"), // Adresă furnizor
+  gestiune: varchar("gestiune", { length: 255 }), // Gestiunea destinatară
   receiptDate: varchar("receiptDate", { length: 20 }).notNull(),
   // Comisia de recepție — 3 membri
   member1Name: varchar("member1Name", { length: 150 }),
@@ -524,7 +603,7 @@ export const nir = mysqlTable("nir", {
   member3Name: varchar("member3Name", { length: 150 }),
   member3Function: varchar("member3Function", { length: 100 }),
   // Constatări diferențe
-  hasDifferences: int("hasDifferences").default(0),            // 0=nu, 1=da
+  hasDifferences: int("hasDifferences").default(0), // 0=nu, 1=da
   differenceNotes: text("differenceNotes"),
   status: mysqlEnum("status", ["draft", "finalizat"]).default("draft"),
   notes: text("notes"),
@@ -540,8 +619,14 @@ export const nirLines = mysqlTable("nirLines", {
   nirId: int("nirId").notNull(),
   description: varchar("description", { length: 512 }).notNull(),
   unit: varchar("unit", { length: 50 }).default("buc"),
-  cantitateComanda: decimal("cantitateComanda", { precision: 12, scale: 2 }).notNull(),
-  cantitateReceptionata: decimal("cantitateReceptionata", { precision: 12, scale: 2 }).notNull(),
+  cantitateComanda: decimal("cantitateComanda", {
+    precision: 12,
+    scale: 2,
+  }).notNull(),
+  cantitateReceptionata: decimal("cantitateReceptionata", {
+    precision: 12,
+    scale: 2,
+  }).notNull(),
   consumedQty: decimal("consumedQty", { precision: 12, scale: 2 }).default("0"),
   unitPrice: decimal("unitPrice", { precision: 12, scale: 2 }),
   vatRate: decimal("vatRate", { precision: 5, scale: 2 }),
@@ -562,7 +647,10 @@ export const devize = mysqlTable("devize", {
   invoiceId: int("invoiceId"), // Optional link to emittedInvoice or reInvoice
   number: varchar("number", { length: 50 }).notNull(),
   date: timestamp("date").notNull(),
-  totalMaterials: decimal("totalMaterials", { precision: 12, scale: 2 }).default("0"),
+  totalMaterials: decimal("totalMaterials", {
+    precision: 12,
+    scale: 2,
+  }).default("0"),
   totalLabor: decimal("totalLabor", { precision: 12, scale: 2 }).default("0"),
   total: decimal("total", { precision: 12, scale: 2 }).default("0"),
   status: mysqlEnum("status", ["draft", "final"]).default("draft"),
@@ -577,7 +665,12 @@ export type InsertDeviz = typeof devize.$inferInsert;
 export const devizeLines = mysqlTable("devizeLines", {
   id: int("id").autoincrement().primaryKey(),
   devizId: int("devizId").notNull(),
-  type: mysqlEnum("type", ["MATERIAL", "MANOPERA", "UTILAJ", "NORMA"]).notNull(),
+  type: mysqlEnum("type", [
+    "MATERIAL",
+    "MANOPERA",
+    "UTILAJ",
+    "NORMA",
+  ]).notNull(),
   code: varchar("code", { length: 100 }), // From CSV
   description: text("description").notNull(),
   quantity: decimal("quantity", { precision: 12, scale: 2 }).notNull(),

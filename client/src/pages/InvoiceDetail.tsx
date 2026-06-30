@@ -1,7 +1,22 @@
 // InvoiceDetail — date reale din DB (zero mock-uri)
 import { Link, useParams } from "wouter";
-import { ArrowLeft, ArrowRight, FileText, Building2, Calendar, Hash, Globe, Loader2 } from "lucide-react";
-import { formatCurrency, formatDate, invoiceStatusLabels, invoiceStatusColors, sourceColors } from "@/lib/store";
+import {
+  ArrowLeft,
+  ArrowRight,
+  FileText,
+  Building2,
+  Calendar,
+  Hash,
+  Globe,
+  Loader2,
+} from "lucide-react";
+import {
+  formatCurrency,
+  formatDate,
+  invoiceStatusLabels,
+  invoiceStatusColors,
+  sourceColors,
+} from "@/lib/store";
 import { trpc } from "@/lib/trpc";
 
 export default function InvoiceDetail() {
@@ -26,7 +41,9 @@ export default function InvoiceDetail() {
       <div className="p-8 text-center">
         <div className="text-slate-500">Factura nu a fost găsită.</div>
         <Link href="/facturi-primite">
-          <button className="mt-4 px-5 h-10 rounded-full bg-blue-600 text-white text-sm font-bold">← Înapoi</button>
+          <button className="mt-4 px-5 h-10 rounded-full bg-blue-600 text-white text-sm font-bold">
+            ← Înapoi
+          </button>
         </Link>
       </div>
     );
@@ -37,7 +54,7 @@ export default function InvoiceDetail() {
   const subtotal = total - totalVAT;
   const currency = (invoice.currency || "RON") as any;
   const isStorno = total < 0;
-  const status = isStorno ? "storno" : (invoice.status || "pending") as any;
+  const status = isStorno ? "storno" : ((invoice.status || "pending") as any);
   const source = (invoice.source || "other") as any;
 
   return (
@@ -56,12 +73,15 @@ export default function InvoiceDetail() {
               Factură {invoice.invoiceNumber || `#${invoice.id}`}
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-              {invoice.supplierName || "—"} · {formatDate(invoice.issueDate || "")}
+              {invoice.supplierName || "—"} ·{" "}
+              {formatDate(invoice.issueDate || "")}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className={`px-2.5 h-8 flex items-center rounded-lg text-xs font-bold border ${(invoiceStatusColors as any)[status] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
+          <span
+            className={`px-2.5 h-8 flex items-center rounded-lg text-xs font-bold border ${(invoiceStatusColors as any)[status] || "bg-slate-50 text-slate-600 border-slate-200"}`}
+          >
             {(invoiceStatusLabels as any)[status] || status}
           </span>
           <Link href={`/re-facturare/${invoice.id}`}>
@@ -78,11 +98,19 @@ export default function InvoiceDetail() {
         <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-5">
           <div className="flex items-center gap-2 mb-4">
             <Building2 className="w-4 h-4 text-slate-400" />
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Furnizor</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Furnizor
+            </span>
           </div>
           <div className="space-y-2">
-            <div className="text-sm font-semibold text-slate-900 dark:text-white">{invoice.supplierName || "—"}</div>
-            {invoice.supplierCUI && <div className="text-xs text-slate-500">CUI: {invoice.supplierCUI}</div>}
+            <div className="text-sm font-semibold text-slate-900 dark:text-white">
+              {invoice.supplierName || "—"}
+            </div>
+            {invoice.supplierCUI && (
+              <div className="text-xs text-slate-500">
+                CUI: {invoice.supplierCUI}
+              </div>
+            )}
           </div>
         </div>
 
@@ -90,37 +118,54 @@ export default function InvoiceDetail() {
         <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-5">
           <div className="flex items-center gap-2 mb-4">
             <Hash className="w-4 h-4 text-slate-400" />
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Detalii Factură</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Detalii Factură
+            </span>
           </div>
           <div className="space-y-2 text-xs">
             <div className="flex justify-between">
               <span className="text-slate-500">Număr:</span>
-              <span className="text-slate-900 dark:text-white font-mono">{invoice.invoiceNumber || "—"}</span>
+              <span className="text-slate-900 dark:text-white font-mono">
+                {invoice.invoiceNumber || "—"}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Dată:</span>
-              <span className="text-slate-900 dark:text-white">{formatDate(invoice.issueDate || "")}</span>
+              <span className="text-slate-900 dark:text-white">
+                {formatDate(invoice.issueDate || "")}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Scadență:</span>
-              <span className="text-slate-900 dark:text-white">{formatDate(invoice.dueDate || "")}</span>
+              <span className="text-slate-900 dark:text-white">
+                {formatDate(invoice.dueDate || "")}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Sursă:</span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${(sourceColors as any)[source] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${(sourceColors as any)[source] || "bg-slate-50 text-slate-600 border-slate-200"}`}
+              >
                 {source}
               </span>
             </div>
             {/* Use dynamic API route for all SPV invoices so they are always up to date and never 404 */}
             {(() => {
               const isSpv = invoice.source === "spv_anaf";
-              const pdfUrl = isSpv ? `/api/pdf/archive/${invoiceId}` : invoice.fileUrl;
-              
+              const pdfUrl = isSpv
+                ? `/api/pdf/archive/${invoiceId}`
+                : invoice.fileUrl;
+
               if (pdfUrl && pdfUrl !== "spv_import") {
                 return (
                   <div className="flex justify-between">
                     <span className="text-slate-500">Fișier/Link public:</span>
-                    <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs">
+                    <a
+                      href={pdfUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline text-xs"
+                    >
                       Deschide Fișier
                     </a>
                   </div>
@@ -135,20 +180,30 @@ export default function InvoiceDetail() {
         <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-5">
           <div className="flex items-center gap-2 mb-4">
             <Globe className="w-4 h-4 text-slate-400" />
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Totaluri</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Totaluri
+            </span>
           </div>
           <div className="space-y-2 text-xs">
             <div className="flex justify-between">
               <span className="text-slate-500">Subtotal:</span>
-              <span className="text-slate-900 dark:text-white">{formatCurrency(subtotal, currency)}</span>
+              <span className="text-slate-900 dark:text-white">
+                {formatCurrency(subtotal, currency)}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">TVA:</span>
-              <span className="text-slate-900 dark:text-white">{formatCurrency(totalVAT, currency)}</span>
+              <span className="text-slate-900 dark:text-white">
+                {formatCurrency(totalVAT, currency)}
+              </span>
             </div>
             <div className="flex justify-between border-t border-slate-100 dark:border-slate-800 pt-2 mt-2">
-              <span className="font-semibold text-slate-900 dark:text-white">Total:</span>
-              <span className="font-bold text-blue-600">{formatCurrency(total, currency)}</span>
+              <span className="font-semibold text-slate-900 dark:text-white">
+                Total:
+              </span>
+              <span className="font-bold text-blue-600">
+                {formatCurrency(total, currency)}
+              </span>
             </div>
           </div>
         </div>
@@ -158,8 +213,11 @@ export default function InvoiceDetail() {
       {(() => {
         // Determine PDF URL — either stored file or on-demand ANAF conversion
         const isSpv = invoice.source === "spv_anaf";
-        const hasPdf = isSpv || (invoice.fileUrl && invoice.fileUrl !== "spv_import");
-        const pdfUrl = isSpv ? `/api/pdf/archive/${invoiceId}` : invoice.fileUrl;
+        const hasPdf =
+          isSpv || (invoice.fileUrl && invoice.fileUrl !== "spv_import");
+        const pdfUrl = isSpv
+          ? `/api/pdf/archive/${invoiceId}`
+          : invoice.fileUrl;
 
         if (pdfUrl) {
           return (
@@ -168,7 +226,11 @@ export default function InvoiceDetail() {
                 <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
                   <FileText className="w-4 h-4" />
                   Vizualizare Factură PDF
-                  {!hasPdf && <span className="text-[10px] font-normal text-purple-600 bg-purple-50 px-2 py-0.5 rounded-lg border border-purple-200">via ANAF</span>}
+                  {!hasPdf && (
+                    <span className="text-[10px] font-normal text-purple-600 bg-purple-50 px-2 py-0.5 rounded-lg border border-purple-200">
+                      via ANAF
+                    </span>
+                  )}
                 </h3>
                 <div className="flex items-center gap-2">
                   <a

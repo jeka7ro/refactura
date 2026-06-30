@@ -49,72 +49,72 @@
 
 :root {
   /* macOS Tahoe Palette */
-  --primary: #0071E3;
-  --primary-foreground: #F5F5F7;
-  --sidebar-primary: #0071E3;
-  --sidebar-primary-foreground: #F5F5F7;
-  --chart-1: #34C759;
-  --chart-2: #0071E3;
-  --chart-3: #FF9500;
-  --chart-4: #AF52DE;
-  --chart-5: #FF3B30;
+  --primary: #0071e3;
+  --primary-foreground: #f5f5f7;
+  --sidebar-primary: #0071e3;
+  --sidebar-primary-foreground: #f5f5f7;
+  --chart-1: #34c759;
+  --chart-2: #0071e3;
+  --chart-3: #ff9500;
+  --chart-4: #af52de;
+  --chart-5: #ff3b30;
   --radius: 0.75rem;
-  
+
   /* Light Mode - Tahoe */
-  --background: #FFFFFF;
-  --foreground: #1D1D1F;
+  --background: #ffffff;
+  --foreground: #1d1d1f;
   --card: rgba(255, 255, 255, 0.7);
-  --card-foreground: #1D1D1F;
+  --card-foreground: #1d1d1f;
   --popover: #ffffff;
-  --popover-foreground: #1D1D1F;
-  --secondary: #F5F5F7;
+  --popover-foreground: #1d1d1f;
+  --secondary: #f5f5f7;
   --secondary-foreground: #555555;
-  --muted: #E8E8ED;
-  --muted-foreground: #86868B;
-  --accent: #0071E3;
-  --accent-foreground: #FFFFFF;
-  --destructive: #FF3B30;
-  --destructive-foreground: #FFFFFF;
-  --border: #E5E5EA;
-  --input: #F5F5F7;
-  --ring: #0071E3;
-  --sidebar: #F5F5F7;
-  --sidebar-foreground: #1D1D1F;
-  --sidebar-accent: #0071E3;
-  --sidebar-accent-foreground: #FFFFFF;
-  --sidebar-border: #E5E5EA;
-  --sidebar-ring: #0071E3;
+  --muted: #e8e8ed;
+  --muted-foreground: #86868b;
+  --accent: #0071e3;
+  --accent-foreground: #ffffff;
+  --destructive: #ff3b30;
+  --destructive-foreground: #ffffff;
+  --border: #e5e5ea;
+  --input: #f5f5f7;
+  --ring: #0071e3;
+  --sidebar: #f5f5f7;
+  --sidebar-foreground: #1d1d1f;
+  --sidebar-accent: #0071e3;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #e5e5ea;
+  --sidebar-ring: #0071e3;
 }
 
 .dark {
   /* Dark Mode - Tahoe */
-  --primary: #0A84FF;
-  --primary-foreground: #F5F5F7;
-  --sidebar-primary: #0A84FF;
-  --sidebar-primary-foreground: #F5F5F7;
+  --primary: #0a84ff;
+  --primary-foreground: #f5f5f7;
+  --sidebar-primary: #0a84ff;
+  --sidebar-primary-foreground: #f5f5f7;
   --background: #000000;
-  --foreground: #F5F5F7;
+  --foreground: #f5f5f7;
   --card: rgba(255, 255, 255, 0.08);
-  --card-foreground: #F5F5F7;
+  --card-foreground: #f5f5f7;
   --popover: #1e293b;
-  --popover-foreground: #F5F5F7;
+  --popover-foreground: #f5f5f7;
   --secondary: rgba(255, 255, 255, 0.06);
-  --secondary-foreground: #A1A1A6;
+  --secondary-foreground: #a1a1a6;
   --muted: rgba(255, 255, 255, 0.1);
-  --muted-foreground: #86868B;
-  --accent: #0A84FF;
+  --muted-foreground: #86868b;
+  --accent: #0a84ff;
   --accent-foreground: #000000;
-  --destructive: #FF453A;
+  --destructive: #ff453a;
   --destructive-foreground: #000000;
   --border: rgba(255, 255, 255, 0.1);
   --input: rgba(255, 255, 255, 0.08);
-  --ring: #0A84FF;
+  --ring: #0a84ff;
   --sidebar: rgba(255, 255, 255, 0.05);
-  --sidebar-foreground: #F5F5F7;
-  --sidebar-accent: #0A84FF;
+  --sidebar-foreground: #f5f5f7;
+  --sidebar-accent: #0a84ff;
   --sidebar-accent-foreground: #000000;
   --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: #0A84FF;
+  --sidebar-ring: #0a84ff;
 }
 
 /* Base Styles */
@@ -129,7 +129,7 @@ html {
 
 body {
   @apply bg-background text-foreground;
-  font-family: 'Segoe UI', 'Roboto', sans-serif;
+  font-family: "Segoe UI", "Roboto", sans-serif;
   font-size: 16px;
   line-height: 1.5;
 }
@@ -197,7 +197,7 @@ body {
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--foreground);
-  font-family: 'Segoe UI', 'Roboto', sans-serif;
+  font-family: "Segoe UI", "Roboto", sans-serif;
 }
 
 .kpi-label {
@@ -225,7 +225,7 @@ body {
 /* Buttons */
 button {
   @apply transition-all duration-200;
-  font-family: 'Segoe UI', 'Roboto', sans-serif;
+  font-family: "Segoe UI", "Roboto", sans-serif;
 }
 
 button:active {
@@ -233,22 +233,26 @@ button:active {
 }
 
 /* Input Fields */
-input, textarea, select {
+input,
+textarea,
+select {
   @apply px-4 py-2 transition-colors;
-  font-family: 'Segoe UI', 'Roboto', sans-serif;
+  font-family: "Segoe UI", "Roboto", sans-serif;
   /* Eliminat border-border pentru a evita conflictele cu Shadcn (InputGroup/Input) */
 }
 
 /* Fix Chrome Autofill breaking transparent inputs inside rounded groups */
 input:-webkit-autofill,
-input:-webkit-autofill:hover, 
-input:-webkit-autofill:focus, 
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
-    transition: background-color 9999s ease-in-out 0s !important;
-    -webkit-text-fill-color: var(--foreground) !important;
+  transition: background-color 9999s ease-in-out 0s !important;
+  -webkit-text-fill-color: var(--foreground) !important;
 }
 
-input:focus, textarea:focus, select:focus {
+input:focus,
+textarea:focus,
+select:focus {
   @apply outline-none;
   /* Eliminat ring-2 ring-primary/50 border-primary pentru a nu suprapune ring-uri la autofill */
 }
@@ -509,59 +513,141 @@ html.dark[data-theme="navy"] {
 
 /* Legacy: pagini cu bg-blue-600 hardcodat */
 [data-theme="teal"] .bg-blue-600,
-[data-theme="teal"] .hover\:bg-blue-700:hover { background-color: #0d9488 !important; }
-[data-theme="teal"] .bg-blue-600:hover { background-color: #0f766e !important; }
-[data-theme="teal"] .text-blue-600 { color: #0d9488 !important; }
-[data-theme="teal"] .border-blue-600 { border-color: #0d9488 !important; }
-[data-theme="teal"] .ring-blue-500 { --tw-ring-color: #14b8a6 !important; }
+[data-theme="teal"] .hover\:bg-blue-700:hover {
+  background-color: #0d9488 !important;
+}
+[data-theme="teal"] .bg-blue-600:hover {
+  background-color: #0f766e !important;
+}
+[data-theme="teal"] .text-blue-600 {
+  color: #0d9488 !important;
+}
+[data-theme="teal"] .border-blue-600 {
+  border-color: #0d9488 !important;
+}
+[data-theme="teal"] .ring-blue-500 {
+  --tw-ring-color: #14b8a6 !important;
+}
 
 [data-theme="green"] .bg-blue-600,
-[data-theme="green"] .hover\:bg-blue-700:hover { background-color: #16a34a !important; }
-[data-theme="green"] .bg-blue-600:hover { background-color: #15803d !important; }
-[data-theme="green"] .text-blue-600 { color: #16a34a !important; }
-[data-theme="green"] .border-blue-600 { border-color: #16a34a !important; }
-[data-theme="green"] .ring-blue-500 { --tw-ring-color: #22c55e !important; }
+[data-theme="green"] .hover\:bg-blue-700:hover {
+  background-color: #16a34a !important;
+}
+[data-theme="green"] .bg-blue-600:hover {
+  background-color: #15803d !important;
+}
+[data-theme="green"] .text-blue-600 {
+  color: #16a34a !important;
+}
+[data-theme="green"] .border-blue-600 {
+  border-color: #16a34a !important;
+}
+[data-theme="green"] .ring-blue-500 {
+  --tw-ring-color: #22c55e !important;
+}
 
 [data-theme="rose"] .bg-blue-600,
-[data-theme="rose"] .hover\:bg-blue-700:hover { background-color: #e11d48 !important; }
-[data-theme="rose"] .bg-blue-600:hover { background-color: #be123c !important; }
-[data-theme="rose"] .text-blue-600 { color: #e11d48 !important; }
-[data-theme="rose"] .border-blue-600 { border-color: #e11d48 !important; }
-[data-theme="rose"] .ring-blue-500 { --tw-ring-color: #fb7185 !important; }
-[data-theme="rose"] .text-blue-400 { color: #fb7185 !important; }
-[data-theme="rose"] .from-blue-500 { --tw-gradient-from: #e11d48 !important; }
-[data-theme="rose"] .to-blue-700 { --tw-gradient-to: #be123c !important; }
-[data-theme="rose"] .hover\:bg-blue-50:hover { background-color: #ffe4e6 !important; }
-[data-theme="rose"] .hover\:border-blue-200:hover { border-color: #fecdd3 !important; }
-[data-theme="rose"] .hover\:text-blue-600:hover { color: #e11d48 !important; }
-[data-theme="rose"] .group-hover\:text-blue-600:is(:where(.group):hover *) { color: #e11d48 !important; }
-[data-theme="rose"] .border-t-blue-600 { border-top-color: #e11d48 !important; }
+[data-theme="rose"] .hover\:bg-blue-700:hover {
+  background-color: #e11d48 !important;
+}
+[data-theme="rose"] .bg-blue-600:hover {
+  background-color: #be123c !important;
+}
+[data-theme="rose"] .text-blue-600 {
+  color: #e11d48 !important;
+}
+[data-theme="rose"] .border-blue-600 {
+  border-color: #e11d48 !important;
+}
+[data-theme="rose"] .ring-blue-500 {
+  --tw-ring-color: #fb7185 !important;
+}
+[data-theme="rose"] .text-blue-400 {
+  color: #fb7185 !important;
+}
+[data-theme="rose"] .from-blue-500 {
+  --tw-gradient-from: #e11d48 !important;
+}
+[data-theme="rose"] .to-blue-700 {
+  --tw-gradient-to: #be123c !important;
+}
+[data-theme="rose"] .hover\:bg-blue-50:hover {
+  background-color: #ffe4e6 !important;
+}
+[data-theme="rose"] .hover\:border-blue-200:hover {
+  border-color: #fecdd3 !important;
+}
+[data-theme="rose"] .hover\:text-blue-600:hover {
+  color: #e11d48 !important;
+}
+[data-theme="rose"] .group-hover\:text-blue-600:is(:where(.group):hover *) {
+  color: #e11d48 !important;
+}
+[data-theme="rose"] .border-t-blue-600 {
+  border-top-color: #e11d48 !important;
+}
 
 [data-theme="violet"] .bg-blue-600,
-[data-theme="violet"] .hover\:bg-blue-700:hover { background-color: #7c3aed !important; }
-[data-theme="violet"] .bg-blue-600:hover { background-color: #6d28d9 !important; }
-[data-theme="violet"] .text-blue-600 { color: #7c3aed !important; }
-[data-theme="violet"] .border-blue-600 { border-color: #7c3aed !important; }
-[data-theme="violet"] .ring-blue-500 { --tw-ring-color: #a78bfa !important; }
+[data-theme="violet"] .hover\:bg-blue-700:hover {
+  background-color: #7c3aed !important;
+}
+[data-theme="violet"] .bg-blue-600:hover {
+  background-color: #6d28d9 !important;
+}
+[data-theme="violet"] .text-blue-600 {
+  color: #7c3aed !important;
+}
+[data-theme="violet"] .border-blue-600 {
+  border-color: #7c3aed !important;
+}
+[data-theme="violet"] .ring-blue-500 {
+  --tw-ring-color: #a78bfa !important;
+}
 
 [data-theme="orange"] .bg-blue-600,
-[data-theme="orange"] .hover\:bg-blue-700:hover { background-color: #ea580c !important; }
-[data-theme="orange"] .bg-blue-600:hover { background-color: #c2410c !important; }
-[data-theme="orange"] .text-blue-600 { color: #ea580c !important; }
-[data-theme="orange"] .border-blue-600 { border-color: #ea580c !important; }
-[data-theme="orange"] .ring-blue-500 { --tw-ring-color: #fb923c !important; }
+[data-theme="orange"] .hover\:bg-blue-700:hover {
+  background-color: #ea580c !important;
+}
+[data-theme="orange"] .bg-blue-600:hover {
+  background-color: #c2410c !important;
+}
+[data-theme="orange"] .text-blue-600 {
+  color: #ea580c !important;
+}
+[data-theme="orange"] .border-blue-600 {
+  border-color: #ea580c !important;
+}
+[data-theme="orange"] .ring-blue-500 {
+  --tw-ring-color: #fb923c !important;
+}
 
 [data-theme="blue"] .bg-blue-600,
-[data-theme="blue"] .hover\:bg-blue-700:hover { background-color: #2563eb !important; }
-[data-theme="blue"] .bg-blue-600:hover { background-color: #1d4ed8 !important; }
-[data-theme="blue"] .text-blue-600 { color: #2563eb !important; }
-[data-theme="blue"] .border-blue-600 { border-color: #2563eb !important; }
+[data-theme="blue"] .hover\:bg-blue-700:hover {
+  background-color: #2563eb !important;
+}
+[data-theme="blue"] .bg-blue-600:hover {
+  background-color: #1d4ed8 !important;
+}
+[data-theme="blue"] .text-blue-600 {
+  color: #2563eb !important;
+}
+[data-theme="blue"] .border-blue-600 {
+  border-color: #2563eb !important;
+}
 
 [data-theme="navy"] .bg-blue-600,
-[data-theme="navy"] .hover\:bg-blue-700:hover { background-color: #003366 !important; }
-[data-theme="navy"] .bg-blue-600:hover { background-color: #002244 !important; }
-[data-theme="navy"] .text-blue-600 { color: #003366 !important; }
-[data-theme="navy"] .border-blue-600 { border-color: #003366 !important; }
+[data-theme="navy"] .hover\:bg-blue-700:hover {
+  background-color: #003366 !important;
+}
+[data-theme="navy"] .bg-blue-600:hover {
+  background-color: #002244 !important;
+}
+[data-theme="navy"] .text-blue-600 {
+  color: #003366 !important;
+}
+[data-theme="navy"] .border-blue-600 {
+  border-color: #003366 !important;
+}
 
 /* ======================================================
  * REGULA GLOBALA: Campuri editabile = colturi drepte

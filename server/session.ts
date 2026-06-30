@@ -1,6 +1,8 @@
 import { SignJWT, jwtVerify } from "jose";
 
-const secret = new TextEncoder().encode(process.env.JWT_SECRET || "your-secret-key-change-in-production");
+const secret = new TextEncoder().encode(
+  process.env.JWT_SECRET || "your-secret-key-change-in-production"
+);
 
 export interface SessionPayload {
   accountId: number;
@@ -15,7 +17,9 @@ export interface SessionPayload {
 /**
  * Create a JWT session token
  */
-export async function createSessionToken(payload: SessionPayload): Promise<string> {
+export async function createSessionToken(
+  payload: SessionPayload
+): Promise<string> {
   const token = await new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
@@ -28,7 +32,9 @@ export async function createSessionToken(payload: SessionPayload): Promise<strin
 /**
  * Verify and decode a JWT session token
  */
-export async function verifySessionToken(token: string): Promise<SessionPayload | null> {
+export async function verifySessionToken(
+  token: string
+): Promise<SessionPayload | null> {
   try {
     const verified = await jwtVerify(token, secret);
     return verified.payload as unknown as SessionPayload;

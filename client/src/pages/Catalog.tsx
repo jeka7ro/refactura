@@ -1,6 +1,12 @@
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
-import { Search, ChevronLeft, ChevronRight, Loader2, PackageOpen } from "lucide-react";
+import {
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  PackageOpen,
+} from "lucide-react";
 
 export default function Catalog() {
   const [search, setSearch] = useState("");
@@ -8,7 +14,11 @@ export default function Catalog() {
   const [rowsPerPage, setRowsPerPage] = useState(15);
 
   const { data: rawData, isLoading } = trpc.edevize.search.useQuery(
-    { query: search || undefined, limit: rowsPerPage, offset: (page - 1) * rowsPerPage },
+    {
+      query: search || undefined,
+      limit: rowsPerPage,
+      offset: (page - 1) * rowsPerPage,
+    },
     { keepPreviousData: true }
   );
 
@@ -37,11 +47,24 @@ export default function Catalog() {
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm">
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
           {/* SEARCH BAR conform regulilor UI */}
-          <div style={{ position: 'relative' }} className="w-full max-w-md">
-            <Search className="w-4 h-4 text-slate-400" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', zIndex: 1 }} />
+          <div style={{ position: "relative" }} className="w-full max-w-md">
+            <Search
+              className="w-4 h-4 text-slate-400"
+              style={{
+                position: "absolute",
+                left: 12,
+                top: "50%",
+                transform: "translateY(-50%)",
+                zIndex: 1,
+              }}
+            />
             <input
               className="w-full h-10 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-slate-900 dark:text-slate-100"
-              style={{ paddingLeft: 36, paddingRight: search ? 80 : 16, borderRadius: 9999 }}
+              style={{
+                paddingLeft: 36,
+                paddingRight: search ? 80 : 16,
+                borderRadius: 9999,
+              }}
               placeholder="Caută după cod sau denumire..."
               value={search}
               onChange={e => {
@@ -50,7 +73,21 @@ export default function Catalog() {
               }}
             />
             {search && (
-              <div style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: '#2563eb', color: 'white', borderRadius: 9999, padding: '2px 10px', fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap' }}>
+              <div
+                style={{
+                  position: "absolute",
+                  right: 10,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "#2563eb",
+                  color: "white",
+                  borderRadius: 9999,
+                  padding: "2px 10px",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {items.length} / {total}
               </div>
             )}
@@ -61,7 +98,12 @@ export default function Catalog() {
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium">
               <tr>
-                <th style={{ width: 50, textAlign: 'center' }} className="px-4 py-3">Nr.</th>
+                <th
+                  style={{ width: 50, textAlign: "center" }}
+                  className="px-4 py-3"
+                >
+                  Nr.
+                </th>
                 <th className="px-4 py-3">Cod</th>
                 <th className="px-4 py-3 w-full">Denumire</th>
                 <th className="px-4 py-3 text-right">Tip</th>
@@ -83,8 +125,18 @@ export default function Catalog() {
                 </tr>
               ) : (
                 items.map((item: any, index: number) => (
-                  <tr key={`${item.cod}-${index}`} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                    <td style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: 13 }} className="px-4 py-3">
+                  <tr
+                    key={`${item.cod}-${index}`}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+                  >
+                    <td
+                      style={{
+                        textAlign: "center",
+                        color: "var(--text-secondary)",
+                        fontSize: 13,
+                      }}
+                      className="px-4 py-3"
+                    >
                       {(page - 1) * rowsPerPage + index + 1}
                     </td>
                     <td className="px-4 py-3 font-mono text-slate-500 text-xs">
@@ -94,11 +146,16 @@ export default function Catalog() {
                       {item.denumire}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide
-                        ${item.tip === 'Materiale' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
-                          item.tip === 'Manopera' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
-                          'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'}`
-                      }>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide
+                        ${
+                          item.tip === "Materiale"
+                            ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                            : item.tip === "Manopera"
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                              : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                        }`}
+                      >
                         {item.tip}
                       </span>
                     </td>
@@ -110,17 +167,32 @@ export default function Catalog() {
         </div>
 
         {/* FOOTER PAGINARE */}
-        <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-secondary)', borderBottomLeftRadius: 12, borderBottomRightRadius: 12 }} className="bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }} className="text-sm text-slate-600 dark:text-slate-400">
-            <span style={{ whiteSpace: 'nowrap' }}>
+        <div
+          style={{
+            padding: "12px 20px",
+            borderTop: "1px solid var(--border-color)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            background: "var(--bg-secondary)",
+            borderBottomLeftRadius: 12,
+            borderBottomRightRadius: 12,
+          }}
+          className="bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800"
+        >
+          <div
+            style={{ display: "flex", alignItems: "center", gap: 16 }}
+            className="text-sm text-slate-600 dark:text-slate-400"
+          >
+            <span style={{ whiteSpace: "nowrap" }}>
               Afișează&nbsp;
-              <select 
-                value={rowsPerPage} 
+              <select
+                value={rowsPerPage}
                 onChange={e => {
                   setRowsPerPage(Number(e.target.value));
                   setPage(1);
-                }} 
-                style={{ borderRadius: 9999, padding: '2px 8px' }}
+                }}
+                style={{ borderRadius: 9999, padding: "2px 8px" }}
                 className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
               >
                 <option value={10}>10</option>
@@ -130,20 +202,30 @@ export default function Catalog() {
                 <option value={100}>100</option>
               </select>
             </span>
-            <span style={{ whiteSpace: 'nowrap' }}>Total înregistrări: <strong className="text-slate-900 dark:text-slate-100">{total}</strong></span>
+            <span style={{ whiteSpace: "nowrap" }}>
+              Total înregistrări:{" "}
+              <strong className="text-slate-900 dark:text-slate-100">
+                {total}
+              </strong>
+            </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} className="text-sm text-slate-600 dark:text-slate-400">
-            <span style={{ whiteSpace: 'nowrap' }}>Pagina {page} din {totalPages}</span>
-            <button 
-              className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 disabled:opacity-50 transition-colors" 
-              onClick={() => setPage(p => p - 1)} 
+          <div
+            style={{ display: "flex", alignItems: "center", gap: 8 }}
+            className="text-sm text-slate-600 dark:text-slate-400"
+          >
+            <span style={{ whiteSpace: "nowrap" }}>
+              Pagina {page} din {totalPages}
+            </span>
+            <button
+              className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 disabled:opacity-50 transition-colors"
+              onClick={() => setPage(p => p - 1)}
               disabled={page === 1}
             >
               <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
             </button>
-            <button 
-              className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 disabled:opacity-50 transition-colors" 
-              onClick={() => setPage(p => p + 1)} 
+            <button
+              className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 disabled:opacity-50 transition-colors"
+              onClick={() => setPage(p => p + 1)}
               disabled={page >= totalPages}
             >
               <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />

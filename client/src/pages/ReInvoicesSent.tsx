@@ -1,8 +1,23 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { Plus, Loader2, Eye, Download, Trash2, Mail, Send, Calendar } from "lucide-react";
+import {
+  Plus,
+  Loader2,
+  Eye,
+  Download,
+  Trash2,
+  Mail,
+  Send,
+  Calendar,
+} from "lucide-react";
 import { DataTable, DataTableColumn } from "@/components/DataTable";
-import { formatCurrency, formatDate, reInvoiceStatusLabels, reInvoiceStatusColors, type ReInvoiceStatus } from "@/lib/store";
+import {
+  formatCurrency,
+  formatDate,
+  reInvoiceStatusLabels,
+  reInvoiceStatusColors,
+  type ReInvoiceStatus,
+} from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -17,23 +32,31 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 
 export default function ReInvoicesSent() {
-  const [statusFilter, setStatusFilter] = useState<ReInvoiceStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<ReInvoiceStatus | "all">(
+    "all"
+  );
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [period, setPeriod] = useState<string>("all");
-  const [customFrom, setCustomFrom] = useState(() => new Date().toISOString().split("T")[0]);
+  const [customFrom, setCustomFrom] = useState(
+    () => new Date().toISOString().split("T")[0]
+  );
   const [customTo, setCustomTo] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 1);
     return d.toISOString().split("T")[0];
   });
-  
+
   const { data: dbReInvoices, isLoading } = trpc.reinvoice.list.useQuery();
   const reInvoices = dbReInvoices || [];
-  
+
   const deleteReInvoice = trpc.reinvoice.delete.useMutation();
   const utils = trpc.useUtils();
 
@@ -51,20 +74,28 @@ export default function ReInvoicesSent() {
   };
 
   const handleSPV = () => {
-    toast.error("Funcționalitate în lucru", { description: "Trimiterea directă din aplicație în SPV necesită generarea formatului standard UBL XML. Momentan se generează doar formatul PDF." });
+    toast.error("Funcționalitate în lucru", {
+      description:
+        "Trimiterea directă din aplicație în SPV necesită generarea formatului standard UBL XML. Momentan se generează doar formatul PDF.",
+    });
   };
 
   const getDateRange = (p: string): [string, string] | null => {
     const now = new Date();
     const fmt = (d: Date) => d.toISOString().split("T")[0];
-    const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const startOfDay = (d: Date) =>
+      new Date(d.getFullYear(), d.getMonth(), d.getDate());
     switch (p) {
-      case "today": { const t = fmt(now); return [t, t]; }
+      case "today": {
+        const t = fmt(now);
+        return [t, t];
+      }
       case "week": {
         const d = startOfDay(now);
         const day = d.getDay() || 7;
         d.setDate(d.getDate() - day + 1);
-        const end = new Date(d); end.setDate(end.getDate() + 6);
+        const end = new Date(d);
+        end.setDate(end.getDate() + 6);
         return [fmt(d), fmt(end)];
       }
       case "month": {
@@ -77,17 +108,24 @@ export default function ReInvoicesSent() {
         const e = new Date(now.getFullYear(), now.getMonth(), 0);
         return [fmt(s), fmt(e)];
       }
-      case "year": return [`${now.getFullYear()}-01-01`, `${now.getFullYear()}-12-31`];
-      case "lastYear": return [`${now.getFullYear() - 1}-01-01`, `${now.getFullYear() - 1}-12-31`];
-      case "custom": return customFrom && customTo ? [customFrom, customTo] : null;
-      default: return null;
+      case "year":
+        return [`${now.getFullYear()}-01-01`, `${now.getFullYear()}-12-31`];
+      case "lastYear":
+        return [
+          `${now.getFullYear() - 1}-01-01`,
+          `${now.getFullYear() - 1}-12-31`,
+        ];
+      case "custom":
+        return customFrom && customTo ? [customFrom, customTo] : null;
+      default:
+        return null;
     }
   };
 
-  const filtered = reInvoices.filter((ri) => {
+  const filtered = reInvoices.filter(ri => {
     const matchStatus = statusFilter === "all" || ri.status === statusFilter;
     if (!matchStatus) return false;
-    
+
     const range = getDateRange(period);
     if (range && ri.issueDate) {
       const rowDate = ri.issueDate.substring(0, 10);
@@ -101,7 +139,16 @@ export default function ReInvoicesSent() {
       toast.error("Nu există date de exportat.");
       return;
     }
-    const header = ["NR. RE-FACTURĂ", "CLIENT", "FACTURĂ SURSĂ", "DATĂ", "SCADENȚĂ", "TOTAL", "MONEDĂ", "STATUS"];
+    const header = [
+      "NR. RE-FACTURĂ",
+      "CLIENT",
+      "FACTURĂ SURSĂ",
+      "DATĂ",
+      "SCADENȚĂ",
+      "TOTAL",
+      "MONEDĂ",
+      "STATUS",
+    ];
     const rows = filtered.map(r => [
       r.number,
       r.clientName || "",
@@ -110,10 +157,12 @@ export default function ReInvoicesSent() {
       r.dueDate ? formatDate(r.dueDate) : "",
       r.total,
       r.currency || "RON",
-      reInvoiceStatusLabels[r.status as ReInvoiceStatus] || r.status
+      reInvoiceStatusLabels[r.status as ReInvoiceStatus] || r.status,
     ]);
     const csvContent = [header, ...rows].map(e => e.join(";")).join("\n");
-    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob(["\uFEFF" + csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -130,13 +179,24 @@ export default function ReInvoicesSent() {
       key: "number",
       label: "NR. RE-FACTURĂ",
       sortable: true,
-      render: (value: string) => <span className="text-sm font-bold text-blue-600 hover:underline text-left cursor-pointer">{value}</span>,
+      render: (value: string) => (
+        <span className="text-sm font-bold text-blue-600 hover:underline text-left cursor-pointer">
+          {value}
+        </span>
+      ),
     },
     {
       key: "clientName",
       label: "CLIENT",
       sortable: true,
-      render: (value: string) => <div className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-[180px] truncate" title={value}>{value}</div>,
+      render: (value: string) => (
+        <div
+          className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-[180px] truncate"
+          title={value}
+        >
+          {value}
+        </div>
+      ),
     },
     {
       key: "sourceInvoiceNumber",
@@ -160,14 +220,18 @@ export default function ReInvoicesSent() {
       key: "total",
       label: "TOTAL",
       sortable: true,
-      render: (value: number, row: any) => <span>{formatCurrency(value, row.currency)}</span>,
+      render: (value: number, row: any) => (
+        <span>{formatCurrency(value, row.currency)}</span>
+      ),
     },
     {
       key: "status",
       label: "STATUS",
       sortable: true,
       render: (value: string) => (
-        <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-normal border ${reInvoiceStatusColors[value as ReInvoiceStatus]}`}>
+        <span
+          className={`px-2.5 py-0.5 rounded-full text-[11px] font-normal border ${reInvoiceStatusColors[value as ReInvoiceStatus]}`}
+        >
           {reInvoiceStatusLabels[value as ReInvoiceStatus]}
         </span>
       ),
@@ -177,27 +241,48 @@ export default function ReInvoicesSent() {
       label: "SPV",
       sortable: true,
       render: (value: string) => {
-        if (!value || value === "nesincronizat") return <span className="text-[10px] font-bold text-slate-400">Nesincronizat</span>;
-        if (value === "in_procesare") return <span className="text-[10px] font-bold text-blue-500">În Procesare</span>;
-        if (value === "validat") return <span className="text-[10px] font-bold text-emerald-500">Validat</span>;
-        if (value === "eroare") return <span className="text-[10px] font-bold text-rose-500">Eroare</span>;
+        if (!value || value === "nesincronizat")
+          return (
+            <span className="text-[10px] font-bold text-slate-400">
+              Nesincronizat
+            </span>
+          );
+        if (value === "in_procesare")
+          return (
+            <span className="text-[10px] font-bold text-blue-500">
+              În Procesare
+            </span>
+          );
+        if (value === "validat")
+          return (
+            <span className="text-[10px] font-bold text-emerald-500">
+              Validat
+            </span>
+          );
+        if (value === "eroare")
+          return (
+            <span className="text-[10px] font-bold text-rose-500">Eroare</span>
+          );
         return <span>{value}</span>;
-      }
-    }
+      },
+    },
   ];
 
   return (
     <div className="p-3 sm:p-5 max-w-full space-y-3">
       {/* Header cu Titlu + Export/Sync (Top Row) si Filtre Perioada (Bottom Row) */}
       <div className="flex flex-col gap-3 mb-4">
-        
         {/* Top Row: Title & Action Buttons */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">Re-Facturi Emise</h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Total: <strong>{reInvoices.length}</strong> înregistrări</p>
+            <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
+              Re-Facturi Emise
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Total: <strong>{reInvoices.length}</strong> înregistrări
+            </p>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <button
               onClick={exportToExcel}
@@ -219,33 +304,57 @@ export default function ReInvoicesSent() {
         {/* KPI Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: "Total Re-Facturi", value: reInvoices.length, cls: "text-slate-900 dark:text-white" },
-            { label: "Achitate", value: reInvoices.filter(r => r.status === "paid").length, cls: "text-emerald-600" },
-            { label: "Restanțe", value: reInvoices.filter(r => r.status === "overdue").length, cls: "text-rose-600" },
-            { label: "Valoare Totală", value: `${totalValue.toLocaleString("ro-RO", { minimumFractionDigits: 2 })} RON`, cls: "text-blue-600" },
+            {
+              label: "Total Re-Facturi",
+              value: reInvoices.length,
+              cls: "text-slate-900 dark:text-white",
+            },
+            {
+              label: "Achitate",
+              value: reInvoices.filter(r => r.status === "paid").length,
+              cls: "text-emerald-600",
+            },
+            {
+              label: "Restanțe",
+              value: reInvoices.filter(r => r.status === "overdue").length,
+              cls: "text-rose-600",
+            },
+            {
+              label: "Valoare Totală",
+              value: `${totalValue.toLocaleString("ro-RO", { minimumFractionDigits: 2 })} RON`,
+              cls: "text-blue-600",
+            },
           ].map(k => (
-            <div key={k.label} className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">{k.label}</p>
+            <div
+              key={k.label}
+              className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4"
+            >
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                {k.label}
+              </p>
               <p className={`text-xl font-black ${k.cls}`}>{k.value}</p>
             </div>
           ))}
         </div>
-
-
       </div>
 
-      <DataTable 
-        columns={columns} 
-        data={filtered} 
-        rowKey="id" 
-        searchable={true} 
-        onRowClick={(row) => { window.location.href = `/re-facturi/${row.id}` }}
+      <DataTable
+        columns={columns}
+        data={filtered}
+        rowKey="id"
+        searchable={true}
+        onRowClick={row => {
+          window.location.href = `/re-facturi/${row.id}`;
+        }}
         headerContent={
           <div className="flex flex-wrap gap-2 items-center justify-end w-full">
             {/* Period Filter */}
             <div className="flex items-center gap-1.5">
               <Calendar className="w-4 h-4 text-slate-400 hidden sm:block" />
-              <Select value={period} onValueChange={(val) => setPeriod(val as any)}>
+              <Select
+                value={period}
+                onValueChange={val => setPeriod(val as any)}
+              >
                 <SelectTrigger className="h-8 w-fit min-w-[130px] rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-slate-800 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300">
                   <SelectValue placeholder="Selectează perioada" />
                 </SelectTrigger>
@@ -260,21 +369,33 @@ export default function ReInvoicesSent() {
                   <SelectItem value="custom">Custom</SelectItem>
                 </SelectContent>
               </Select>
-              
+
               <div className="flex items-center gap-1 ml-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full px-2 h-8">
-                <span className="text-[10px] text-slate-500 font-medium hidden sm:inline">De la:</span>
+                <span className="text-[10px] text-slate-500 font-medium hidden sm:inline">
+                  De la:
+                </span>
                 <input
                   type="date"
                   value={customFrom}
-                  onChange={(e) => { setCustomFrom(e.target.value); setPeriod("custom"); }}
+                  onChange={e => {
+                    setCustomFrom(e.target.value);
+                    setPeriod("custom");
+                  }}
                   className="text-xs bg-transparent outline-none text-slate-700 dark:text-slate-300 w-24 sm:w-auto"
                 />
-                <span className="text-xs text-slate-300 dark:text-slate-600 px-1">-</span>
-                <span className="text-[10px] text-slate-500 font-medium hidden sm:inline">Până la:</span>
+                <span className="text-xs text-slate-300 dark:text-slate-600 px-1">
+                  -
+                </span>
+                <span className="text-[10px] text-slate-500 font-medium hidden sm:inline">
+                  Până la:
+                </span>
                 <input
                   type="date"
                   value={customTo}
-                  onChange={(e) => { setCustomTo(e.target.value); setPeriod("custom"); }}
+                  onChange={e => {
+                    setCustomTo(e.target.value);
+                    setPeriod("custom");
+                  }}
                   className="text-xs bg-transparent outline-none text-slate-700 dark:text-slate-300 w-24 sm:w-auto"
                 />
               </div>
@@ -283,25 +404,37 @@ export default function ReInvoicesSent() {
             <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-0.5 hidden sm:block" />
 
             {/* Status Filter */}
-            <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val as any)}>
+            <Select
+              value={statusFilter}
+              onValueChange={val => setStatusFilter(val as any)}
+            >
               <SelectTrigger className="h-8 w-fit min-w-[130px] rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-slate-800 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300">
                 <SelectValue placeholder="Status factură" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Toate {reInvoices.length}</SelectItem>
-                <SelectItem value="paid">Achitate {reInvoices.filter((r) => r.status === "paid").length}</SelectItem>
-                <SelectItem value="sent">Trimise {reInvoices.filter((r) => r.status === "sent").length}</SelectItem>
-                <SelectItem value="draft">Ciornă {reInvoices.filter((r) => r.status === "draft").length}</SelectItem>
-                <SelectItem value="overdue">Restanțe {reInvoices.filter((r) => r.status === "overdue").length}</SelectItem>
+                <SelectItem value="paid">
+                  Achitate {reInvoices.filter(r => r.status === "paid").length}
+                </SelectItem>
+                <SelectItem value="sent">
+                  Trimise {reInvoices.filter(r => r.status === "sent").length}
+                </SelectItem>
+                <SelectItem value="draft">
+                  Ciornă {reInvoices.filter(r => r.status === "draft").length}
+                </SelectItem>
+                <SelectItem value="overdue">
+                  Restanțe{" "}
+                  {reInvoices.filter(r => r.status === "overdue").length}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
         }
         isLoading={isLoading}
-        actions={(row) => (
+        actions={row => (
           <div className="flex items-center justify-end gap-1">
             <button
-              onClick={() => window.location.href = `/re-facturi/${row.id}`}
+              onClick={() => (window.location.href = `/re-facturi/${row.id}`)}
               className="w-6 h-6 rounded-lg border border-slate-200 bg-white text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center"
               title="Vizualizare Detaliată"
             >
@@ -316,7 +449,7 @@ export default function ReInvoicesSent() {
               <Download className="w-3 h-3" />
             </a>
             <a
-              href={`mailto:${row.clientEmail || ''}?subject=Factura ${row.number}&body=Regăsiți atașată factura ${row.number}.`}
+              href={`mailto:${row.clientEmail || ""}?subject=Factura ${row.number}&body=Regăsiți atașată factura ${row.number}.`}
               className="w-6 h-6 rounded-lg border border-slate-200 bg-white text-emerald-600 hover:bg-emerald-50 transition-colors flex items-center justify-center"
               title="Trimite pe Email"
             >
@@ -341,24 +474,32 @@ export default function ReInvoicesSent() {
         )}
       />
 
-      <AlertDialog open={deleteId !== null} onOpenChange={(open) => !open && setDeleteId(null)}>
+      <AlertDialog
+        open={deleteId !== null}
+        onOpenChange={open => !open && setDeleteId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Ștergere Re-Factură</AlertDialogTitle>
             <AlertDialogDescription>
-              Ești sigur că vrei să ștergi această re-factură? Acțiunea este ireversibilă și va elimina complet documentul din sistem.
+              Ești sigur că vrei să ștergi această re-factură? Acțiunea este
+              ireversibilă și va elimina complet documentul din sistem.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Anulează</AlertDialogCancel>
             <AlertDialogAction
-              onClick={(e) => {
+              onClick={e => {
                 e.preventDefault();
                 handleDelete();
               }}
               className="bg-rose-600 hover:bg-rose-700 text-white"
             >
-              {deleteReInvoice.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}
+              {deleteReInvoice.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <Trash2 className="w-4 h-4 mr-2" />
+              )}
               Șterge definitiv
             </AlertDialogAction>
           </AlertDialogFooter>

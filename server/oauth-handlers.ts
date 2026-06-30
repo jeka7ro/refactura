@@ -5,7 +5,11 @@ import { createSessionToken } from "./session";
  * Handle Google OAuth callback
  * Verify Google token and create/update user account
  */
-export async function handleGoogleAuth(googleToken: string, email: string, name: string) {
+export async function handleGoogleAuth(
+  googleToken: string,
+  email: string,
+  name: string
+) {
   try {
     // TODO: Verify Google token with Google API
     // const verifyUrl = 'https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=' + googleToken;
@@ -44,7 +48,9 @@ export async function handleGoogleAuth(googleToken: string, email: string, name:
       },
     };
   } catch (error) {
-    throw new Error(`Google authentication failed: ${(error as Error).message}`);
+    throw new Error(
+      `Google authentication failed: ${(error as Error).message}`
+    );
   }
 }
 
@@ -52,7 +58,11 @@ export async function handleGoogleAuth(googleToken: string, email: string, name:
  * Handle Apple OAuth callback
  * Verify Apple token and create/update user account
  */
-export async function handleAppleAuth(appleToken: string, email: string, name: string) {
+export async function handleAppleAuth(
+  appleToken: string,
+  email: string,
+  name: string
+) {
   try {
     // TODO: Verify Apple token with Apple API
     // const verifyUrl = 'https://appleid.apple.com/auth/oauth2/v2/token';
@@ -98,7 +108,11 @@ export async function handleAppleAuth(appleToken: string, email: string, name: s
  * Handle Meta/Facebook OAuth callback
  * Verify Meta token and create/update user account
  */
-export async function handleMetaAuth(metaToken: string, email: string, name: string) {
+export async function handleMetaAuth(
+  metaToken: string,
+  email: string,
+  name: string
+) {
   try {
     // TODO: Verify Meta token with Meta API
     // const verifyUrl = `https://graph.instagram.com/me?access_token=${metaToken}`;

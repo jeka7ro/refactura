@@ -1,5 +1,5 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 const p1 = path.resolve(process.cwd(), "client/public/logo.png");
 const p2 = path.resolve(__dirname, "../client/public/logo.png");
 console.log("CWD:", process.cwd());

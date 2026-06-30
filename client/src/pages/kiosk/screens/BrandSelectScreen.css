@@ -1,0 +1,150 @@
+#kiosk-app-root {
+  /* ─── BRAND SELECT SCREEN ─── */
+  .brand-select-screen {
+    width: 100vw;
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg-dark);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 24px;
+    padding: 100px 20px 40px;
+    position: relative;
+  }
+
+  .bss-langs {
+    position: absolute;
+    top: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+    z-index: 10;
+  }
+  .bss-lang-btn {
+    background: rgba(0, 0, 0, 0.06);
+    border: 1.5px solid var(--border);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 7px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .bss-lang-btn.active {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
+  }
+  .bss-lang-btn:hover:not(.active) {
+    border-color: var(--text-muted);
+    color: var(--text);
+  }
+
+  .bss-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text);
+    text-align: center;
+    margin: 0;
+  }
+  .bss-subtitle {
+    font-size: 1rem;
+    color: var(--text-muted);
+    text-align: center;
+    margin: 0 0 12px;
+  }
+
+  .bss-grid {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 700px;
+  }
+
+  .bss-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 32px 40px;
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1.5px solid rgba(255, 255, 255, 0.9);
+    border-radius: 24px;
+    cursor: pointer;
+    transition: all 0.25s;
+    min-width: 200px;
+
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.12),
+      0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+  .bss-card:hover {
+    transform: translateY(-6px);
+    border-color: var(--brand-c);
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow:
+      0 16px 48px color-mix(in srgb, var(--brand-c) 30%, transparent),
+      0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+  .bss-card:active {
+    transform: scale(0.97);
+  }
+
+  .bss-emoji {
+    font-size: 4rem;
+    line-height: 1;
+    margin-bottom: 10px;
+  }
+  .bss-logo-wrapper {
+    height: 64px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.25s;
+  }
+  .bss-logo {
+    max-width: 140px;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  .bss-card:hover .bss-logo-wrapper {
+    transform: scale(1.1) rotate(-2deg);
+  }
+  .bss-label {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--brand-c);
+  }
+  .bss-desc {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-align: center;
+    font-weight: 500;
+  }
+
+  .bss-back {
+    margin-top: 12px;
+    padding: 10px 24px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: transparent;
+    color: var(--text-muted);
+
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .bss-back:hover {
+    color: var(--text);
+    border-color: var(--text);
+  }
+}

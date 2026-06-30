@@ -1,0 +1,815 @@
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useKioskStore } from "../store/kioskStore";
+import { useBrand } from "../context/BrandContext.js";
+import { BRANDS } from "../config/brands.js";
+import { t } from "../i18n/translations.js";
+import { getMenuData } from "../data/mockMenu.js";
+import { useInactivityTimeout } from "../hooks/useInactivityTimeout.js";
+import ProductCard from "../components/ProductCard.jsx";
+import ModifierModal from "../components/ModifierModal.jsx";
+import { proxySyrveImage } from "../utils/imageUtils.js";
+import "./MenuScreen.css";
+import { trpc } from "@/lib/trpc";
+
+// Fallback org ID map (used when no location is loaded)
+const BRAND_ORG_MAP = {
+  smashme: "9c63cff6-1d66-442d-a98d-2302656e3943",
+  sushimaster: "adddb5a0-26e5-4d50-b472-1c74726c3f72",
+};
+
+// Brand display info for tabs
+const BRAND_TAB_INFO = {
+  smashme: { label: "SmashMe", color: "#EE3B24", emoji: "🍔" },
+  sushimaster: { label: "Sushi Master", color: "#E31E24", emoji: "🍣" },
+  ikura: { label: "Ikura", color: "#8b5cf6", emoji: "🍱" },
+  welovesushi: { label: "WeLoveSushi", color: "#ec4899", emoji: "🍣" },
+};
+
+export default function MenuScreen() {
+  useInactivityTimeout(90);
+  const goTo = useKioskStore(s => s.goTo);
+  const setSelectedProduct = useKioskStore(s => s.setSelectedProduct);
+  const addToCart = useKioskStore(s => s.addToCart);
+  const cartCount = useKioskStore(s => s.getCartCount());
+  const cartTotal = useKioskStore(s => s.getCartTotal());
+  const orderType = useKioskStore(s => s.orderType);
+  const tableNumber = useKioskStore(s => s.tableNumber);
+  const lang = useKioskStore(s => s.lang);
+  const locationData = useKioskStore(s => s.locationData);
+  const brand = useBrand();
+
+  const locId = parseInt(localStorage.getItem("kiosk_loc_id") || "1", 10);
+  const { data: serverCategories, isLoading: catLoading } =
+    trpc.horeca.menu.listCategories.useQuery({ locationId: locId });
+  const { data: serverProducts, isLoading: prodLoading } =
+    trpc.horeca.menu.listItems.useQuery({ locationId: locId });
+
+  const setMenuProducts = useKioskStore(s => s.setMenuProducts);
+
+  const [categories, setCategories] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [allProducts, setAllProducts] = useState([]); // all brands combined (for global search)
+  const [activeCategory, setActiveCategory] = useState(null);
+  const [activeDiet, setActiveDiet] = useState(null); // null | 'veg' | 'spicy'
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [search, setSearch] = useState("");
+  const [flyAnim, setFlyAnim] = useState(null);
+  const favorites = useKioskStore(s => s.favorites);
+  const toggleFavoriteStore = useKioskStore(s => s.toggleFavorite);
+  const clearFavorites = useKioskStore(s => s.clearFavorites);
+  const [modifierModalProduct, setModifierModalProduct] = useState(null);
+  const cartBarRef = useRef(null);
+
+  // Multi-brand state
+  const activeBrandId = useKioskStore(s => s.activeBrandId);
+  const setActiveBrandId = useKioskStore(s => s.setActiveBrandId);
+  const [locationBrands, setLocationBrands] = useState([brand.id]); // brands at this location
+  const [locationOrgIds, setLocationOrgIds] = useState({}); // brandId → orgId from location
+
+  const toggleFavorite = useCallback(
+    product => {
+      toggleFavoriteStore(product);
+    },
+    [toggleFavoriteStore]
+  );
+
+  const handleFavQuickAdd = useCallback(
+    (product, btnEl) => {
+      const actualBrandId = product._brand || activeBrandId;
+      addToCart(product, 1, [], product.price, actualBrandId);
+      toggleFavoriteStore(product); // remove from favorites
+
+      // Fly animation from fav bar button to cart
+      if (btnEl && cartBarRef.current) {
+        const btnRect = btnEl.getBoundingClientRect();
+        const cartRect = cartBarRef.current.getBoundingClientRect();
+        setFlyAnim({
+          id: Date.now(),
+          img: product.image,
+          startX: btnRect.left + btnRect.width / 2,
+          startY: btnRect.top + btnRect.height / 2,
+          endX: cartRect.left + cartRect.width / 2,
+          endY: cartRect.top,
+        });
+        setTimeout(() => setFlyAnim(null), 850);
+      }
+    },
+    [addToCart, activeBrandId, toggleFavoriteStore]
+  );
+
+  const handleAddAllFavorites = useCallback(() => {
+    let requiresConfig = false;
+    let addedCount = 0;
+    const toRemove = [];
+
+    favorites.forEach(product => {
+      const hasReqMods = (product.modifierGroups || []).some(
+        gm => gm.required && gm.options?.length > 0
+      );
+      if (hasReqMods) {
+        requiresConfig = true;
+      } else {
+        const actualBrandId = product._brand || activeBrandId;
+        addToCart(product, 1, [], product.price, actualBrandId);
+        toRemove.push(product);
+        addedCount++;
+      }
+    });
+
+    // Remove added items from global store
+    toRemove.forEach(p => toggleFavoriteStore(p));
+
+    // Fly animation from center of fav bar to cart
+    if (addedCount > 0 && cartBarRef.current) {
+      const cartRect = cartBarRef.current.getBoundingClientRect();
+      setFlyAnim({
+        id: Date.now(),
+        img: toRemove[0]?.image,
+        startX: window.innerWidth / 2,
+        startY: cartRect.top - 80,
+        endX: cartRect.left + cartRect.width / 2,
+        endY: cartRect.top,
+      });
+      setTimeout(() => setFlyAnim(null), 850);
+    }
+
+    if (requiresConfig) {
+      // showToast('Adăugate ' + addedCount + '. Unele necesită configurare separată!');
+    } else {
+      // showToast('Toate produsele favorite au fost adăugate!');
+    }
+  }, [favorites, addToCart, activeBrandId, toggleFavoriteStore]);
+
+  // Fetch location to discover multi-brand capability
+  useEffect(() => {
+    const locId =
+      new URLSearchParams(window.location.search).get("loc") ||
+      localStorage.getItem("kiosk_loc_id");
+    if (!locId) return; // no location → single brand mode
+    fetch(`${BACKEND}/api/locations/${locId}`, {
+      headers: {
+        "x-api-key": import.meta.env.VITE_API_KEY || "sk-live-2024-secure",
+      },
+    })
+      .then(r => r.json())
+      .then(loc => {
+        if (loc.brands && loc.brands.length > 0) {
+          setLocationBrands(loc.brands);
+          setLocationOrgIds(loc.orgIds || {});
+          // Keep active brand if it's in the list, otherwise pick first
+          if (!loc.brands.includes(activeBrandId)) {
+            setActiveBrandId(loc.brands[0]);
+          }
+        }
+      })
+      .catch(() => {}); // silently fail — use single brand mode
+  }, [activeBrandId]);
+
+  // Fetch menu via tRPC
+  useEffect(() => {
+    if (serverCategories && serverProducts) {
+      setCategories(serverCategories);
+
+      const prods = serverProducts.map(p => ({
+        id: p.id,
+        name: p.name,
+        description: p.description || "",
+        price: Number(p.price),
+        image: p.image || "",
+        categoryId: p.categoryId,
+        _brand: activeBrandId,
+        isVegetarian: false,
+        isSpicy: false,
+      }));
+
+      setProducts(prods);
+      setMenuProducts(prods);
+
+      const pickDefault = (cats, prods) => {
+        const catWithProds = cats.find(c =>
+          prods.some(p => p.categoryId === c.id)
+        );
+        return catWithProds?.id || cats[0]?.id || null;
+      };
+
+      if (!activeCategory) {
+        setActiveCategory(pickDefault(serverCategories, prods));
+      }
+      setLoading(false);
+    } else {
+      setLoading(catLoading || prodLoading);
+    }
+  }, [
+    serverCategories,
+    serverProducts,
+    activeBrandId,
+    catLoading,
+    prodLoading,
+    activeCategory,
+    setMenuProducts,
+  ]);
+
+  // SMART DIETARY NAVIGATOR: Automatically select categories/brands with matching products
+  useEffect(() => {
+    if (!products.length || !categories.length || !activeDiet) return;
+
+    const currentCatHasProducts = products.some(
+      p =>
+        p.categoryId === activeCategory &&
+        (activeDiet === "veg" ? p.isVegetarian : p.isSpicy)
+    );
+
+    if (!currentCatHasProducts) {
+      const validCat = categories.find(cat =>
+        products.some(
+          p =>
+            p.categoryId === cat.id &&
+            (activeDiet === "veg" ? p.isVegetarian : p.isSpicy)
+        )
+      );
+
+      if (validCat) {
+        setActiveCategory(validCat.id);
+      } else if (locationBrands.length > 1) {
+        const alternateBrand = locationBrands.find(
+          bId =>
+            bId !== activeBrandId &&
+            allProducts.some(
+              p =>
+                p._brand === bId &&
+                (activeDiet === "veg" ? p.isVegetarian : p.isSpicy)
+            )
+        );
+        if (alternateBrand) {
+          setActiveBrandId(alternateBrand);
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeDiet, products, categories]);
+
+  // Build category → first product image map
+  const catImages = useMemo(() => {
+    const map = {};
+    categories.forEach(cat => {
+      const prod = products.find(p => p.categoryId === cat.id && p.image);
+      if (prod) map[cat.id] = prod.image;
+    });
+    return map;
+  }, [categories, products]);
+
+  // Filter products by category + search
+  const filteredProducts = useMemo(() => {
+    // 1. Apply dietary filters to the base pool
+    let baseProds = products;
+    let baseAllProds = allProducts;
+
+    if (activeDiet === "veg") {
+      baseProds = baseProds.filter(p => p.isVegetarian);
+      baseAllProds = baseAllProds.filter(p => p.isVegetarian);
+    } else if (activeDiet === "spicy") {
+      baseProds = baseProds.filter(p => p.isSpicy);
+      baseAllProds = baseAllProds.filter(p => p.isSpicy);
+    }
+
+    if (search) {
+      const q = search.toLowerCase();
+      const matched = baseAllProds.filter(
+        p =>
+          p.name.toLowerCase().includes(q) ||
+          (p.description || "").toLowerCase().includes(q)
+      );
+      // Sort: current brand + current category first → current brand other cats → other brands
+      return matched.sort((a, b) => {
+        const scoreA =
+          a._brand === activeBrandId && a.categoryId === activeCategory
+            ? 3
+            : a._brand === activeBrandId
+              ? 2
+              : 1;
+        const scoreB =
+          b._brand === activeBrandId && b.categoryId === activeCategory
+            ? 3
+            : b._brand === activeBrandId
+              ? 2
+              : 1;
+        return scoreB - scoreA;
+      });
+    }
+
+    return baseProds.filter(
+      p => !activeCategory || activeDiet || p.categoryId === activeCategory
+    );
+  }, [
+    search,
+    products,
+    allProducts,
+    activeCategory,
+    activeBrandId,
+    activeDiet,
+  ]);
+
+  const visibleCategories = useMemo(() => {
+    return categories.filter(cat => {
+      return products.some(
+        p =>
+          p.categoryId === cat.id &&
+          (!activeDiet ||
+            (activeDiet === "veg" && p.isVegetarian) ||
+            (activeDiet === "spicy" && p.isSpicy))
+      );
+    });
+  }, [categories, products, activeDiet]);
+
+  // Quick add to cart with fly animation
+  const handleQuickAdd = useCallback(
+    (product, cardEl) => {
+      // If product has required modifier groups, show the modifier selection modal
+      const hasRequiredModifiers = (product.modifierGroups || []).some(
+        gm => gm.required && gm.options?.length > 0
+      );
+      if (hasRequiredModifiers) {
+        setModifierModalProduct(product);
+        return;
+      }
+      // Fix: Use product._brand for cross-brand search results
+      const actualBrandId = product._brand || activeBrandId;
+      addToCart(product, 1, [], product.price, actualBrandId);
+
+      // Fly animation: get card position and cart bar position
+      if (cardEl && cartBarRef.current) {
+        const cardRect = cardEl.getBoundingClientRect();
+        const cartRect = cartBarRef.current.getBoundingClientRect();
+        setFlyAnim({
+          id: Date.now(),
+          img: product.image,
+          startX: cardRect.left + cardRect.width / 2,
+          startY: cardRect.top + cardRect.height / 3,
+          endX: cartRect.left + cartRect.width / 2,
+          endY: cartRect.top,
+        });
+        setTimeout(() => setFlyAnim(null), 850);
+      }
+    },
+    [addToCart, activeBrandId]
+  );
+
+  if (loading) {
+    return (
+      <div className="menu-screen screen">
+        <div className="menu-loading">
+          <div className="spinner" />
+          <p>{t("loading", lang)}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="menu-screen screen">
+        <div className="menu-loading">
+          <p>{t("error_loading", lang)}</p>
+          <button
+            className="btn btn-primary"
+            onClick={() => window.location.reload()}
+          >
+            {t("retry", lang)}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="menu-screen screen">
+      {/* ─── TOP BAR ──────────────────────────────── */}
+      <header className="menu-header">
+        <div className="menu-header-left">
+          {locationBrands.length <= 1 &&
+            (BRANDS[activeBrandId]?.logoImg ? (
+              <img
+                src={BRANDS[activeBrandId].logoImg}
+                alt={BRANDS[activeBrandId]?.name}
+                className="menu-logo"
+              />
+            ) : (
+              <span className="menu-brand-name">
+                {BRANDS[activeBrandId]?.name || brand.name}
+              </span>
+            ))}
+        </div>
+
+        <div className="menu-search">
+          {allProducts.some(p => p.isVegetarian) && (
+            <button
+              onClick={() => setActiveDiet(activeDiet === "veg" ? null : "veg")}
+              style={{
+                flexShrink: 0,
+                padding: "6px 14px",
+                borderRadius: 40,
+                border: activeDiet === "veg" ? "none" : "1px solid #10b981",
+                background: activeDiet === "veg" ? "#10b981" : "transparent",
+                color: activeDiet === "veg" ? "#fff" : "#10b981",
+                fontWeight: 700,
+                fontSize: "0.95rem",
+                cursor: "pointer",
+                transition: "all 0.2s",
+                whiteSpace: "nowrap",
+                boxShadow:
+                  activeDiet === "veg"
+                    ? "0 3px 10px rgba(16,185,129,0.35)"
+                    : "none",
+              }}
+            >
+              🍃 Vegetarian
+            </button>
+          )}
+          {allProducts.some(p => p.isSpicy) && (
+            <button
+              onClick={() =>
+                setActiveDiet(activeDiet === "spicy" ? null : "spicy")
+              }
+              style={{
+                flexShrink: 0,
+                padding: "6px 14px",
+                borderRadius: 40,
+                border: activeDiet === "spicy" ? "none" : "1px solid #ef4444",
+                background: activeDiet === "spicy" ? "#ef4444" : "transparent",
+                color: activeDiet === "spicy" ? "#fff" : "#ef4444",
+                fontWeight: 700,
+                fontSize: "0.95rem",
+                cursor: "pointer",
+                transition: "all 0.2s",
+                whiteSpace: "nowrap",
+                boxShadow:
+                  activeDiet === "spicy"
+                    ? "0 3px 10px rgba(239,68,68,0.35)"
+                    : "none",
+              }}
+            >
+              🌶️ Picant
+            </button>
+          )}
+          <input
+            type="text"
+            placeholder={t("search", lang) + "..."}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="menu-search-input"
+          />
+          {search && (
+            <button className="menu-search-clear" onClick={() => setSearch("")}>
+              x
+            </button>
+          )}
+        </div>
+
+        <div
+          className="menu-order-info"
+          onClick={() => goTo("orderType")}
+          style={{ cursor: "pointer" }}
+        >
+          {orderType === "dine-in" ? (
+            <span>
+              🍽️ {t("table", lang)} #{tableNumber}
+            </span>
+          ) : (
+            <span>🛍️ {t("takeaway", lang)}</span>
+          )}
+          <span style={{ marginLeft: "4px", opacity: 0.4, fontSize: "0.9em" }}>
+            ✎
+          </span>
+        </div>
+      </header>
+
+      {/* ─── BRAND TABS (multi-brand locations only) ─── */}
+      {locationBrands.length > 1 && (
+        <div className="brand-tabs">
+          {locationBrands.map(bId => {
+            const info = BRAND_TAB_INFO[bId] || {
+              label: bId,
+              color: "#6b7a99",
+              emoji: "",
+            };
+            const brandConfig = BRANDS[bId];
+            const isActive = activeBrandId === bId;
+            return (
+              <button
+                key={bId}
+                className={`brand-tab ${isActive ? "brand-tab--active" : ""}`}
+                style={{
+                  "--brand-color": info.color,
+                  flex: `1 1 ${100 / locationBrands.length}%`,
+                }}
+                onClick={() => {
+                  setActiveBrandId(bId);
+                  setSearch("");
+                  import("../config/brands.js").then(m =>
+                    m.applyBrandTheme(bId)
+                  );
+                }}
+              >
+                <img
+                  src={`/brands/${bId}-logo.png`}
+                  alt={info.label}
+                  className="brand-tab-logo"
+                  style={{ maxHeight: "28px", objectFit: "contain" }}
+                  onError={e => {
+                    e.target.style.display = "none";
+                  }}
+                />
+                <span
+                  className="brand-tab-label"
+                  style={{
+                    fontWeight: 600,
+                    fontSize: "0.9rem",
+                    color: "var(--text)",
+                  }}
+                >
+                  {info.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ─── FAVORITES / WISHLIST BAR ─── */}
+      {favorites.length > 0 && (
+        <div className="favorites-bar">
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px",
+              alignItems: "flex-start",
+            }}
+          >
+            <span className="fav-bar-label">
+              ❤️ {t("saved", lang) || "Salvate"}
+            </span>
+            <button
+              onClick={handleAddAllFavorites}
+              style={{
+                background: "#10b981",
+                color: "#fff",
+                border: "none",
+                borderRadius: "8px",
+                padding: "6px 12px",
+                fontSize: "0.85rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                boxShadow: "0 2px 8px rgba(16,185,129,0.3)",
+                transition: "all 0.2s",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {t("add_all", lang) || "+ Adaugă toate"}
+            </button>
+          </div>
+          <div className="fav-bar-items">
+            {favorites.map(fav => (
+              <div key={fav.id} className="fav-item">
+                <div className="fav-item-img">
+                  {fav.image ? (
+                    <img
+                      src={proxySyrveImage(fav.image)}
+                      alt={fav.name}
+                      onError={e => {
+                        e.target.style.display = "none";
+                        e.target.parentNode.innerHTML =
+                          '<span style=\"font-size:1.2rem\">🍽️</span>';
+                      }}
+                    />
+                  ) : (
+                    <span style={{ fontSize: "1.2rem" }}>🍽️</span>
+                  )}
+                </div>
+                <div className="fav-item-info">
+                  <span className="fav-item-name">{fav.name}</span>
+                  <span className="fav-item-price">
+                    {fav.price} {t("currency", lang) || "lei"}
+                  </span>
+                </div>
+                <div className="fav-item-actions">
+                  <button
+                    className="fav-add-btn"
+                    title={t("add_to_cart", lang) || "Adaugă în coș"}
+                    onClick={e => handleFavQuickAdd(fav, e.currentTarget)}
+                  >
+                    <span
+                      style={{
+                        fontSize: "1.05rem",
+                        lineHeight: 1,
+                        marginTop: "-1px",
+                      }}
+                    >
+                      +
+                    </span>
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{ width: 14, height: 14 }}
+                    >
+                      <circle cx="9" cy="21" r="1" />
+                      <circle cx="20" cy="21" r="1" />
+                      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                    </svg>
+                  </button>
+                  <button
+                    className="fav-del-btn"
+                    title={t("delete_short", lang) || "Șterge"}
+                    onClick={() => toggleFavorite(fav)}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="menu-body">
+        {/* ─── SIDEBAR CATEGORIES ────────────────────── */}
+        <aside className="category-sidebar">
+          {visibleCategories.map(cat => {
+            // Caută imaginea primului produs din această categorie dacă categoria nu are poză
+            const firstProdWithImage = allProducts.find(
+              p => p.categoryId === cat.id && p.image
+            );
+            const displayImage = cat.image || firstProdWithImage?.image;
+
+            return (
+              <button
+                key={cat.id}
+                className={`cat-btn ${activeCategory === cat.id ? "cat-btn--active" : ""}`}
+                onClick={() => {
+                  setActiveCategory(cat.id);
+                  setSearch("");
+                }}
+              >
+                {displayImage ? (
+                  <img
+                    src={proxySyrveImage(displayImage)}
+                    alt={cat.name}
+                    className="cat-btn-img"
+                    onError={e => {
+                      e.target.style.display = "none";
+                    }}
+                  />
+                ) : (
+                  <div
+                    className="cat-btn-img"
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      boxShadow: "none",
+                    }}
+                  />
+                )}
+                <span className="cat-btn-label">{cat.name}</span>
+              </button>
+            );
+          })}
+        </aside>
+
+        {/* ─── PRODUCTS GRID ───────────────────────── */}
+        <main className="products-area">
+          {filteredProducts.length === 0 ? (
+            <div className="empty-cat">
+              <p>{t("cart_empty", lang)}</p>
+            </div>
+          ) : (
+            <div className="products-grid">
+              {filteredProducts.map((product, i) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  delay={i * 0.03}
+                  lang={lang}
+                  activeBrand={activeBrandId}
+                  onQuickAdd={handleQuickAdd}
+                  onInfo={() => setSelectedProduct(product)}
+                  isFavorited={favorites.some(f => f.id === product.id)}
+                  onToggleFavorite={toggleFavorite}
+                />
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
+
+      {/* ─── FLY ANIMATION ──────────────────────────── */}
+      {flyAnim && (
+        <div
+          className="fly-thumb"
+          key={flyAnim.id}
+          style={{
+            "--fly-sx": `${flyAnim.startX}px`,
+            "--fly-sy": `${flyAnim.startY}px`,
+            "--fly-ex": `${flyAnim.endX}px`,
+            "--fly-ey": `${flyAnim.endY}px`,
+          }}
+        >
+          {flyAnim.img && <img src={flyAnim.img} alt="" />}
+        </div>
+      )}
+
+      {/* ─── FLOATING CART BAR ──────────────────────── */}
+      {cartCount > 0 && (
+        <div
+          className="cart-bar"
+          ref={cartBarRef}
+          onClick={() => goTo("cart")}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            padding: "16px 24px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <svg
+              width="28"
+              height="28"
+              viewBox="0 0 24 24"
+              fill="white"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M7 18C5.9 18 5.01 18.9 5.01 20C5.01 21.1 5.9 22 7 22C8.1 22 9 21.1 9 20C9 18.9 8.1 18 7 18ZM1 2V4H3L6.6 11.59L5.24 14.04C5.09 14.32 5 14.65 5 15C5 16.1 5.9 17 7 17H19V15H7.42C7.28 15 7.17 14.89 7.17 14.75L7.2 14.63L8.1 13H15.55C16.3 13 16.96 12.59 17.3 11.97L20.88 5.48C20.96 5.34 21 5.17 21 5C21 4.45 20.55 4 20 4H5.21L4.27 2H1ZM17 18C15.9 18 15.01 18.9 15.01 20C15.01 21.1 15.9 22 17 22C18.1 22 19 21.1 19 20C19 18.9 18.1 18 17 18Z" />
+            </svg>
+            <span
+              className="cart-bar-count"
+              style={{
+                background: "rgba(255,255,255,0.2)",
+                padding: "4px 10px",
+                borderRadius: "16px",
+                fontSize: "0.9rem",
+                fontWeight: 600,
+              }}
+            >
+              {cartCount}{" "}
+              {cartCount > 1 ? t("items_many", lang) : t("item_one", lang)}
+            </span>
+          </div>
+          <span
+            className="cart-bar-label"
+            style={{
+              flex: 1,
+              textAlign: "center",
+              fontSize: "1.2rem",
+              fontWeight: 700,
+            }}
+          >
+            {t("my_cart", lang)}
+          </span>
+          <span
+            className="cart-bar-total"
+            style={{ fontSize: "1.4rem", fontWeight: 800 }}
+          >
+            {cartTotal.toFixed(2)} {t("lei", lang)}
+          </span>
+        </div>
+      )}
+      {/* invisible cart ref when cart is empty (for fly target) */}
+      {cartCount === 0 && (
+        <div
+          ref={cartBarRef}
+          style={{ position: "fixed", bottom: 16, left: "50%" }}
+        />
+      )}
+
+      {/* ─── MODIFIER MODAL (bottom-sheet for required options) ─── */}
+      {modifierModalProduct && (
+        <ModifierModal
+          product={modifierModalProduct}
+          activeBrandId={modifierModalProduct._brand || activeBrandId}
+          onConfirm={(product, qty, mods, unitPrice, brandId) => {
+            addToCart(product, qty, mods, unitPrice, brandId);
+            // Fly animation from center screen to cart
+            if (cartBarRef.current) {
+              const cartRect = cartBarRef.current.getBoundingClientRect();
+              setFlyAnim({
+                id: Date.now(),
+                img: product.image,
+                startX: window.innerWidth / 2,
+                startY: window.innerHeight / 2,
+                endX: cartRect.left + cartRect.width / 2,
+                endY: cartRect.top,
+              });
+              setTimeout(() => setFlyAnim(null), 850);
+            }
+            setModifierModalProduct(null);
+          }}
+          onClose={() => setModifierModalProduct(null)}
+        />
+      )}
+    </div>
+  );
+}

@@ -56,14 +56,20 @@ async function downloadSmartBillPdf(
     );
     return result;
   } catch (e) {
-    console.warn(`[SmartBill] PDF download failed for ${seriesName}-${number}:`, e);
+    console.warn(
+      `[SmartBill] PDF download failed for ${seriesName}-${number}:`,
+      e
+    );
     return null;
   }
 }
 
-export async function syncSmartBillInvoices(
-  tenantId: number
-): Promise<{ imported: number; skipped: number; clientsImported: number; errors: string[] }> {
+export async function syncSmartBillInvoices(tenantId: number): Promise<{
+  imported: number;
+  skipped: number;
+  clientsImported: number;
+  errors: string[];
+}> {
   const errors: string[] = [];
   let imported = 0;
   let skipped = 0;
@@ -74,7 +80,9 @@ export async function syncSmartBillInvoices(
   const cif = process.env.SMARTBILL_CIF;
 
   if (!email || !token || !cif) {
-    throw new Error("SMARTBILL_EMAIL, SMARTBILL_TOKEN sau SMARTBILL_CIF lipsesc din .env");
+    throw new Error(
+      "SMARTBILL_EMAIL, SMARTBILL_TOKEN sau SMARTBILL_CIF lipsesc din .env"
+    );
   }
 
   const auth = getBasicAuth(email, token);
@@ -91,11 +99,17 @@ export async function syncSmartBillInvoices(
         auth
       );
       const emittedInvoices = emittedData.invoices || emittedData.list || [];
-      console.log(`[SmartBill] Found ${emittedInvoices.length} emitted invoices`);
+      console.log(
+        `[SmartBill] Found ${emittedInvoices.length} emitted invoices`
+      );
 
       for (const inv of emittedInvoices) {
         try {
-          const invoiceNumber = `${inv.seriesName || inv.series || ""}-${inv.number || ""}`.replace(/^-/, "");
+          const invoiceNumber =
+            `${inv.seriesName || inv.series || ""}-${inv.number || ""}`.replace(
+              /^-/,
+              ""
+            );
 
           // Check duplicate
           const [existing] = await db
@@ -108,22 +122,38 @@ export async function syncSmartBillInvoices(
                 eq(invoiceArchive.invoiceNumber, invoiceNumber)
               )
             );
-          if (existing) { skipped++; continue; }
+          if (existing) {
+            skipped++;
+            continue;
+          }
 
           // Download PDF
           let fileUrl = "";
-          const pdfResult = await downloadSmartBillPdf(auth, cif, inv.seriesName || inv.series || "", String(inv.number || ""));
+          const pdfResult = await downloadSmartBillPdf(
+            auth,
+            cif,
+            inv.seriesName || inv.series || "",
+            String(inv.number || "")
+          );
           if (pdfResult) fileUrl = pdfResult.url;
 
           // Auto-import client
           const clientName = inv.client?.name || inv.clientName || "";
-          const clientCui = inv.client?.vatCode || inv.client?.cif || inv.clientVatCode || "";
+          const clientCui =
+            inv.client?.vatCode || inv.client?.cif || inv.clientVatCode || "";
           if (clientName) {
             try {
               let clientExists = false;
               if (clientCui) {
-                const [ec] = await db.select({ id: clients.id }).from(clients)
-                  .where(and(eq(clients.tenantId, tenantId), eq(clients.cui, clientCui)));
+                const [ec] = await db
+                  .select({ id: clients.id })
+                  .from(clients)
+                  .where(
+                    and(
+                      eq(clients.tenantId, tenantId),
+                      eq(clients.cui, clientCui)
+                    )
+                  );
                 clientExists = !!ec;
               }
               if (!clientExists) {
@@ -181,11 +211,17 @@ export async function syncSmartBillInvoices(
         auth
       );
       const receivedInvoices = receivedData.invoices || receivedData.list || [];
-      console.log(`[SmartBill] Found ${receivedInvoices.length} received invoices`);
+      console.log(
+        `[SmartBill] Found ${receivedInvoices.length} received invoices`
+      );
 
       for (const inv of receivedInvoices) {
         try {
-          const invoiceNumber = `${inv.seriesName || inv.series || ""}-${inv.number || ""}`.replace(/^-/, "");
+          const invoiceNumber =
+            `${inv.seriesName || inv.series || ""}-${inv.number || ""}`.replace(
+              /^-/,
+              ""
+            );
 
           // Check duplicate
           const [existing] = await db
@@ -199,10 +235,18 @@ export async function syncSmartBillInvoices(
                 eq(invoiceArchive.invoiceNumber, invoiceNumber)
               )
             );
-          if (existing) { skipped++; continue; }
+          if (existing) {
+            skipped++;
+            continue;
+          }
 
-          const supplierName = inv.supplier?.name || inv.supplierName || inv.client?.name || "";
-          const supplierCui = inv.supplier?.vatCode || inv.supplierVatCode || inv.client?.vatCode || "";
+          const supplierName =
+            inv.supplier?.name || inv.supplierName || inv.client?.name || "";
+          const supplierCui =
+            inv.supplier?.vatCode ||
+            inv.supplierVatCode ||
+            inv.client?.vatCode ||
+            "";
 
           await createInvoiceArchiveEntry({
             tenantId,
@@ -232,15 +276,25 @@ export async function syncSmartBillInvoices(
     }
 
     // ── Update integration status ─────────────────────────────────
-    const [existingIntg] = await db.select().from(integrations)
-      .where(and(eq(integrations.tenantId, tenantId), eq(integrations.provider, "smartbill")));
+    const [existingIntg] = await db
+      .select()
+      .from(integrations)
+      .where(
+        and(
+          eq(integrations.tenantId, tenantId),
+          eq(integrations.provider, "smartbill")
+        )
+      );
 
     if (existingIntg) {
-      await db.update(integrations).set({
-        status: "active",
-        lastSyncAt: new Date(),
-        syncCount: (existingIntg.syncCount || 0) + imported,
-      }).where(eq(integrations.id, existingIntg.id));
+      await db
+        .update(integrations)
+        .set({
+          status: "active",
+          lastSyncAt: new Date(),
+          syncCount: (existingIntg.syncCount || 0) + imported,
+        })
+        .where(eq(integrations.id, existingIntg.id));
     } else {
       await db.insert(integrations).values({
         tenantId,
@@ -251,7 +305,9 @@ export async function syncSmartBillInvoices(
       });
     }
 
-    console.log(`[SmartBill] Sync complete: imported=${imported}, skipped=${skipped}, clients=${clientsImported}, errors=${errors.length}`);
+    console.log(
+      `[SmartBill] Sync complete: imported=${imported}, skipped=${skipped}, clients=${clientsImported}, errors=${errors.length}`
+    );
   } catch (e: any) {
     errors.push(e.message);
     console.error("[SmartBill] Sync error:", e.message);

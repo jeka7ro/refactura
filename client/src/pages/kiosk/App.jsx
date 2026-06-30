@@ -1,0 +1,580 @@
+import { createContext, useContext, useEffect, useState } from "react";
+import { useKioskStore } from "./store/kioskStore";
+import { useInactivityTimeout } from "./hooks/useInactivityTimeout";
+import { getBrand } from "./config/brands.js";
+import { BrandContext, useBrand } from "./context/BrandContext.js";
+import { io } from "socket.io-client";
+
+// Re-export so existing imports from App.jsx still work
+export { BrandContext, useBrand };
+
+import WelcomeScreen from "./screens/WelcomeScreen.jsx";
+import OrderTypeScreen from "./screens/OrderTypeScreen.jsx";
+import BrandSelectScreen from "./screens/BrandSelectScreen.jsx";
+import MenuScreen from "./screens/MenuScreen.jsx";
+import ProductScreen from "./screens/ProductScreen.jsx";
+import CartScreen from "./screens/CartScreen.jsx";
+import PaymentScreen from "./screens/PaymentScreen.jsx";
+import ConfirmationScreen from "./screens/ConfirmationScreen.jsx";
+import PinScreen from "./screens/PinScreen.jsx";
+import FortuneWheel from "./components/FortuneWheel.jsx";
+import { proxySyrveImage } from "./utils/imageUtils.js";
+
+const BACKEND =
+  import.meta.env.VITE_BACKEND_URL || "https://smart-kiosk-v7ws.onrender.com";
+
+import { useParams } from "wouter";
+import { trpc } from "@/lib/trpc";
+
+export default function App() {
+  const params = useParams();
+  const screen = useKioskStore(s => s.screen);
+  const cartItems = useKioskStore(s => s.cartItems);
+  const isUnlocking = useKioskStore(s => s.isUnlocking);
+  const setLocationData = useKioskStore(s => s.setLocationData);
+  const setKioskData = useKioskStore(s => s.setKioskData);
+  const locationData = useKioskStore(s => s.locationData);
+
+  const activeBrandId = useKioskStore(s => s.activeBrandId);
+  const setActiveBrandId = useKioskStore(s => s.setActiveBrandId);
+  const brand = getBrand(activeBrandId);
+  const [isLocked, setIsLocked] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Promoții Roată Noroc
+  const [promoData, setPromoData] = useState(null);
+  const showWheel = useKioskStore(s => s.showWheel);
+  const setShowWheel = useKioskStore(s => s.setShowWheel);
+
+  useInactivityTimeout();
+
+  // Pre-load all product images silently into iOS Safari Local Cache while idling on screensaver
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const savedProducts = useKioskStore.getState().menuProducts || [];
+      savedProducts.forEach(p => {
+        if (p.image) {
+          const img = new Image();
+          img.src = proxySyrveImage(p.image);
+        }
+      });
+    }, 4000); // 4 seconds after boot
+    return () => clearTimeout(timer);
+  }, []);
+
+  // ─── Fetch Kiosk Settings using tRPC ────────────────────────────────
+  const locId = params.locationId || localStorage.getItem("kiosk_loc_id");
+  if (params.locationId)
+    localStorage.setItem("kiosk_loc_id", params.locationId);
+
+  const { data: kioskSettings, isLoading: settingsLoading } =
+    trpc.horeca.kioskSettings.get.useQuery(
+      { locationId: Number(locId) },
+      { enabled: !!locId, refetchInterval: 30000 }
+    );
+
+  useEffect(() => {
+    if (kioskSettings) {
+      try {
+        const brands = JSON.parse(kioskSettings.activeBrands || '["smashme"]');
+        const promo = JSON.parse(kioskSettings.promoConfig || "{}");
+        let adv = {};
+        try {
+          adv = JSON.parse(kioskSettings.advancedConfig || "{}");
+        } catch {}
+
+        const loc = {
+          id: kioskSettings.locationId,
+          brands: brands,
+          topBannerContent: kioskSettings.bannerTopUrl,
+          bottomBannerContent: kioskSettings.bannerBottomUrl,
+          kioskPin: adv.kioskPin || "",
+          posterUrl: adv.posterUrl || "",
+          languages: adv.languages || ["ro"],
+          defaultLanguage: adv.defaultLanguage || "ro",
+          orgIds: adv.orgIds || {},
+        };
+
+        setLocationData(loc);
+
+        if (promo && promo.prizes) {
+          setPromoData(promo);
+        }
+
+        // Apply primary color directly to brand
+        if (kioskSettings.primaryColor) {
+          document.documentElement.style.setProperty(
+            "--primary",
+            kioskSettings.primaryColor
+          );
+        }
+
+        // Set active brand
+        if (brands && brands.length > 0) {
+          setActiveBrandId(brands[0]);
+          const { applyBrandTheme } = require("./config/brands.js");
+          applyBrandTheme(brands[0]);
+        }
+      } catch (e) {
+        console.error("Eroare la parsarea setărilor kiosk", e);
+      }
+      setLoading(false);
+    } else if (!settingsLoading) {
+      setLoading(false);
+    }
+  }, [kioskSettings, setLocationData]);
+
+  // Global Socket.io connection for Remote Management
+  useEffect(() => {
+    if (!locationData?.id) return;
+
+    const locId = locationData.id;
+
+    const socket = io(BACKEND, {
+      transports: ["websocket", "polling"], // allow polling fallback
+      reconnectionDelayMax: 5000,
+      reconnection: true,
+    });
+
+    // Hard reload that also cleans Service Worker cache to avoid PWA stale cache
+    const hardReload = () => {
+      console.log(
+        "[Kiosk] Remote restart signal received! Unregistering SW & reloading..."
+      );
+      // Unregister service worker so the next load fetches fresh code
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker
+          .getRegistrations()
+          .then(regs => {
+            regs.forEach(r => r.unregister());
+          })
+          .finally(() => {
+            // Clear caches and reload
+            if ("caches" in window) {
+              caches
+                .keys()
+                .then(keys => Promise.all(keys.map(k => caches.delete(k))))
+                .finally(() => {
+                  window.location.reload(true);
+                });
+            } else {
+              window.location.reload(true);
+            }
+          });
+      } else {
+        window.location.reload(true);
+      }
+    };
+
+    socket.on("connect", () => {
+      console.log(
+        `[Kiosk] Socket connected (${socket.id}), joining room kiosk-${locId}`
+      );
+      socket.emit("join", { role: "kiosk", locationId: locId });
+    });
+
+    socket.on("reconnect", () => {
+      // Re-join room after reconnect
+      socket.emit("join", { role: "kiosk", locationId: locId });
+    });
+
+    // Room-level restart (when in room kiosk-{id})
+    socket.on("remote_restart", hardReload);
+    // Global fallback restart (before room join completes)
+    socket.on(`remote_restart_${locId}`, hardReload);
+
+    socket.on("location_updated", newData => {
+      console.log("[Kiosk] Live config update received from Admin Panel.");
+      setLocationData(newData);
+    });
+
+    return () => socket.disconnect();
+  }, [locationData?.id, setLocationData]);
+
+  // Auto-fullscreen on first user interaction (for kiosk/tablet mode)
+  useEffect(() => {
+    const goFull = () => {
+      const el = document.documentElement;
+      const rfs =
+        el.requestFullscreen ||
+        el.webkitRequestFullscreen ||
+        el.msRequestFullscreen;
+      if (
+        rfs &&
+        !document.fullscreenElement &&
+        !document.webkitFullscreenElement
+      ) {
+        rfs.call(el).catch(() => {});
+      }
+      document.removeEventListener("touchstart", goFull);
+      document.removeEventListener("click", goFull);
+    };
+    document.addEventListener("touchstart", goFull, { once: true });
+    document.addEventListener("click", goFull, { once: true });
+    return () => {
+      document.removeEventListener("touchstart", goFull);
+      document.removeEventListener("click", goFull);
+    };
+  }, []);
+
+  if (loading) return null;
+
+  if (!locationData) {
+    const locId =
+      new URLSearchParams(window.location.search).get("loc") ||
+      localStorage.getItem("kiosk_loc_id");
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100vh",
+          width: "100vw",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#111827",
+          color: "#fff",
+          gap: "24px",
+          fontFamily: "inherit",
+        }}
+      >
+        {locId ? (
+          <>
+            <div
+              style={{
+                width: 56,
+                height: 56,
+                border: "4px solid rgba(255,255,255,0.15)",
+                borderTopColor: "#fff",
+                borderRadius: "50%",
+                animation: "spin 0.9s linear infinite",
+              }}
+            />
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            <p style={{ fontSize: "1.1rem", opacity: 0.7, margin: 0 }}>
+              Se conectează la server...
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              style={{
+                marginTop: 8,
+                padding: "10px 28px",
+                fontSize: "1rem",
+                borderRadius: "12px",
+                background: "rgba(255,255,255,0.1)",
+                color: "#fff",
+                border: "1px solid rgba(255,255,255,0.2)",
+                cursor: "pointer",
+              }}
+            >
+              Reîncearcă
+            </button>
+          </>
+        ) : (
+          <p style={{ fontSize: "1.2rem", opacity: 0.7 }}>
+            Nicio locație configurată. Adaugă <code>?loc=ID</code> în URL.
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  if (isLocked) {
+    return (
+      <PinScreen
+        loc={locationData}
+        onUnlock={() => {
+          localStorage.setItem(
+            `kiosk_unlocked_${locationData.id}_${locationData.kioskPin}`,
+            "true"
+          );
+          setIsLocked(false);
+        }}
+      />
+    );
+  }
+
+  const activeBrandBannerUrl =
+    locationData?.[`topBannerUrl_${activeBrandId}`] ||
+    locationData?.topBannerUrl;
+  const showBanner = screen !== "welcome" && activeBrandBannerUrl;
+  // Support new split fields AND legacy bottomBannerContent
+  const _bbUrl =
+    locationData?.bottomBannerUrl ||
+    (locationData?.bottomBannerContent?.startsWith("http")
+      ? locationData.bottomBannerContent
+      : "") ||
+    "";
+  const _bbText =
+    locationData?.bottomBannerText ||
+    (!locationData?.bottomBannerContent?.startsWith("http")
+      ? locationData?.bottomBannerContent || ""
+      : "") ||
+    "";
+  const showBottomBanner = screen !== "welcome" && (_bbUrl || _bbText);
+
+  const renderPromoMedia = u => {
+    if (!u) return null;
+    if (/\.(mp4|webm|mov)(\?|$)/i.test(u)) {
+      return (
+        <video
+          src={u}
+          autoPlay
+          muted
+          loop
+          playsInline
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        />
+      );
+    } else if (/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i.test(u)) {
+      return (
+        <img
+          src={u}
+          alt="Promo"
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        />
+      );
+    } else {
+      return (
+        <iframe
+          src={u}
+          title="Promo"
+          style={{
+            width: "100%",
+            height: "100%",
+            border: "none",
+            pointerEvents: "none",
+          }}
+        />
+      );
+    }
+  };
+
+  const renderBottomBanner = () => {
+    const align = locationData?.bottomBannerTextAlign || "center";
+    const logoUrl = locationData?.bottomBannerLogoUrl || "";
+    const justifyMap = {
+      left: "flex-start",
+      center: "center",
+      right: "flex-end",
+    };
+    return (
+      <div style={{ position: "relative", width: "100%", height: "100%" }}>
+        {/* Media layer (full height) */}
+        {_bbUrl && renderPromoMedia(_bbUrl)}
+        {/* Text overlay strip at bottom */}
+        {_bbText &&
+          (() => {
+            const isFixed = locationData?.bottomBannerTextFixed === true;
+            return (
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  padding: "8px 28px",
+                  background: _bbUrl
+                    ? "linear-gradient(0deg,rgba(0,0,0,0.75) 0%,transparent 100%)"
+                    : locationData?.bottomBannerBg || "#1e293b",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: justifyMap[align] || "center",
+                  gap: 12,
+                  minHeight: "40%",
+                  overflow: "hidden",
+                }}
+              >
+                {logoUrl && (
+                  <img
+                    src={logoUrl}
+                    alt=""
+                    style={{ height: 36, objectFit: "contain", flexShrink: 0 }}
+                  />
+                )}
+                {isFixed ? (
+                  <span
+                    style={{
+                      fontSize: "1.35rem",
+                      fontWeight: 700,
+                      color: "#fff",
+                      letterSpacing: "0.5px",
+                      textAlign: align,
+                    }}
+                  >
+                    {_bbText}
+                  </span>
+                ) : (
+                  <marquee
+                    scrollamount="6"
+                    style={{
+                      fontSize: "1.35rem",
+                      fontWeight: 700,
+                      color: "#fff",
+                      letterSpacing: "0.5px",
+                    }}
+                  >
+                    {_bbText}
+                  </marquee>
+                )}
+              </div>
+            );
+          })()}
+      </div>
+    );
+  };
+
+  // Design Config
+  const tH = locationData?.topBannerHeight || 3;
+  const tRadTop = locationData?.topBannerRadiusTop !== false;
+  const tRadBot = locationData?.topBannerRadiusBottom === true;
+
+  const bH = locationData?.bottomBannerHeight || 2;
+  const bRadTop = locationData?.bottomBannerRadiusTop === true;
+  const bRadBot = locationData?.bottomBannerRadiusBottom !== false;
+
+  // Banner height formulas — starts small (size 1 = 5vh, size 5 = 17vh)
+  const tBannerVh = tH * 3 + 2;
+  const bBannerVh = bH * 3 + 2;
+
+  const mainRadTop = showBanner && !tRadBot ? "0" : "24px";
+  const mainRadBot = showBottomBanner && !bRadTop ? "0" : "24px";
+
+  return (
+    <BrandContext.Provider value={brand}>
+      <div id="kiosk-app-root">
+        <div
+          className="app-container"
+          style={{
+            "--primary": brand.colors.primary,
+            "--primary-dark": brand.colors.primaryDark || brand.colors.primary,
+            "--primary-light":
+              brand.colors.primaryLight || brand.colors.primary,
+            display: "flex",
+            flexDirection: "column",
+            height: "100dvh",
+            width: "100vw",
+            overflow: "hidden",
+            background: "var(--bg, #f8fafc)",
+            padding: screen === "welcome" ? "0" : "16px",
+            boxSizing: "border-box",
+            "--kiosk-banner-bottom": showBottomBanner
+              ? `${bBannerVh}vh`
+              : "0px",
+          }}
+        >
+          {showBanner && (
+            <div
+              style={{
+                height: `${tBannerVh}vh`,
+                borderRadius: `${tRadTop ? "24px" : "0"} ${tRadTop ? "24px" : "0"} ${tRadBot ? "24px" : "0"} ${tRadBot ? "24px" : "0"}`,
+                background: "#000",
+                flexShrink: 0,
+                position: "relative",
+                zIndex: 100,
+                overflow: "hidden",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
+              }}
+            >
+              {renderPromoMedia(activeBrandBannerUrl)}
+            </div>
+          )}
+
+          <div
+            style={{
+              flex: 1,
+              width: "100%",
+              position: "relative",
+              overflow: "hidden",
+              borderRadius:
+                screen === "welcome" && !isUnlocking
+                  ? "0"
+                  : `${mainRadTop} ${mainRadTop} ${mainRadBot} ${mainRadBot}`,
+              boxShadow:
+                showBanner || showBottomBanner
+                  ? "0 8px 32px rgba(0,0,0,0.05)"
+                  : "none",
+              background:
+                screen === "welcome" && !isUnlocking ? "transparent" : "#fff",
+              paddingBottom: showBottomBanner ? `${bBannerVh + 2}vh` : 0,
+            }}
+          >
+            {screen === "orderType" && <OrderTypeScreen />}
+            {screen === "brandSelect" && <BrandSelectScreen />}
+            {screen === "menu" && <MenuScreen />}
+            {screen === "product" && <ProductScreen />}
+            {screen === "cart" && <CartScreen />}
+            {screen === "payment" && <PaymentScreen />}
+            {screen === "confirmation" && <ConfirmationScreen />}
+
+            {(screen === "welcome" || isUnlocking) && <WelcomeScreen />}
+          </div>
+
+          {showBottomBanner && (
+            <div
+              style={{
+                position: "fixed",
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: `${bBannerVh}vh`,
+                borderRadius: `${bRadTop ? "24px" : "0"} ${bRadTop ? "24px" : "0"} ${bRadBot ? "24px" : "0"} ${bRadBot ? "24px" : "0"}`,
+                background: locationData.bottomBannerContent.startsWith("http")
+                  ? "#000"
+                  : locationData.bottomBannerBg || "#1e293b",
+                zIndex: 50,
+                overflow: "hidden",
+                boxShadow: "0 -8px 32px rgba(0,0,0,0.15)",
+              }}
+            >
+              {renderBottomBanner()}
+            </div>
+          )}
+
+          {/* Floating Button eliminat complet la cererea clientului */}
+
+          {/* ─── Fortune Wheel Modal (Triggered Internally e.g. from Checkout) ─── */}
+          {showWheel && promoData && promoData.prizes && (
+            <FortuneWheel
+              config={promoData}
+              onClose={() => {
+                setShowWheel(false);
+                if (useKioskStore.getState().promoIntendedRoute === "payment") {
+                  useKioskStore.getState().setPromoIntendedRoute(null);
+                  useKioskStore.getState().goTo("payment");
+                }
+              }}
+              onWin={prize => {
+                if (prize && prize.type !== "nada") {
+                  useKioskStore.getState().addToCart(
+                    {
+                      id: prize.productId || `promo_${Date.now()}`,
+                      name: `🎁 ${prize.name}`,
+                      image: prize.image || "",
+                      isPromo: true,
+                    },
+                    1,
+                    [],
+                    0, // totalPrice per unit
+                    prize.brand_id || activeBrandId
+                  );
+                }
+                setTimeout(() => {
+                  setShowWheel(false);
+                  if (
+                    useKioskStore.getState().promoIntendedRoute === "payment"
+                  ) {
+                    useKioskStore.getState().setPromoIntendedRoute(null);
+                    useKioskStore.getState().goTo("payment");
+                  } else {
+                    useKioskStore.getState().goTo("cart");
+                  }
+                }, 1800);
+              }}
+            />
+          )}
+        </div>
+      </div>
+    </BrandContext.Provider>
+  );
+}

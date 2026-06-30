@@ -7,5 +7,8 @@ export function cn(...inputs: ClassValue[]) {
 
 export function normalizeText(text: string | null | undefined): string {
   if (!text) return "";
-  return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 }

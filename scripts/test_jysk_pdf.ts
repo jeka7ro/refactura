@@ -8,7 +8,10 @@ dotenv.config();
 
 async function run() {
   const db = await getDb();
-  const [inv] = await db.select().from(invoiceArchive).where(eq(invoiceArchive.id, 21));
+  const [inv] = await db
+    .select()
+    .from(invoiceArchive)
+    .where(eq(invoiceArchive.id, 21));
   if (inv && inv.rawXml) {
     console.log("Generating PDF...");
     await convertXmlToPdf(inv.rawXml, "test_jysk_local");

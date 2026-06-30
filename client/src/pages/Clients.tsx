@@ -3,7 +3,17 @@ import { trpc } from "@/lib/trpc";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { DataTable, DataTableColumn } from "@/components/DataTable";
-import { Building2, Edit2, Trash2, Plus, Search, Loader2, AlertCircle, CheckCircle2, Eye } from "lucide-react";
+import {
+  Building2,
+  Edit2,
+  Trash2,
+  Plus,
+  Search,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  Eye,
+} from "lucide-react";
 
 export default function Clients() {
   const [showForm, setShowForm] = useState(false);
@@ -22,16 +32,27 @@ export default function Clients() {
   });
 
   // Fetch clients
-  const { data: clients = [], isLoading, refetch } = trpc.clients.list.useQuery();
-  
+  const {
+    data: clients = [],
+    isLoading,
+    refetch,
+  } = trpc.clients.list.useQuery();
+
   // Create mutation
   const createMutation = trpc.clients.create.useMutation({
     onSuccess: () => {
       refetch();
       setFormData({
-        name: "", cui: "", address: "", city: "",
-        country: "", email: "", phone: "", currency: "RON",
-        regCom: "", tva: false,
+        name: "",
+        cui: "",
+        address: "",
+        city: "",
+        country: "",
+        email: "",
+        phone: "",
+        currency: "RON",
+        regCom: "",
+        tva: false,
       });
       setShowForm(false);
     },
@@ -42,9 +63,16 @@ export default function Clients() {
     onSuccess: () => {
       refetch();
       setFormData({
-        name: "", cui: "", address: "", city: "",
-        country: "", email: "", phone: "", currency: "RON",
-        regCom: "", tva: false,
+        name: "",
+        cui: "",
+        address: "",
+        city: "",
+        country: "",
+        email: "",
+        phone: "",
+        currency: "RON",
+        regCom: "",
+        tva: false,
       });
       setEditingId(null);
       setShowForm(false);
@@ -115,7 +143,10 @@ export default function Clients() {
       label: "NUME PARTENER",
       sortable: true,
       render: (val: string, row: any) => (
-        <Link href={`/client/${row.id}`} className="font-semibold text-blue-600 hover:underline whitespace-nowrap">
+        <Link
+          href={`/client/${row.id}`}
+          className="font-semibold text-blue-600 hover:underline whitespace-nowrap"
+        >
           {val}
         </Link>
       ),
@@ -169,16 +200,27 @@ export default function Clients() {
         <>
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div>
-              <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">Clienți</h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Total: <strong>{clients.length}</strong> clienți</p>
+              <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
+                Clienți
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Total: <strong>{clients.length}</strong> clienți
+              </p>
             </div>
             <button
               onClick={() => {
                 setEditingId(null);
                 setFormData({
-                  name: "", cui: "", address: "", city: "",
-                  country: "", email: "", phone: "", currency: "RON",
-                  regCom: "", tva: false,
+                  name: "",
+                  cui: "",
+                  address: "",
+                  city: "",
+                  country: "",
+                  email: "",
+                  phone: "",
+                  currency: "RON",
+                  regCom: "",
+                  tva: false,
                 });
                 setShowForm(true);
               }}
@@ -192,13 +234,35 @@ export default function Clients() {
           {/* KPI Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: "Total Clienți", value: clients.length, cls: "text-slate-900 dark:text-white" },
-              { label: "Cu TVA", value: clients.filter((c: any) => c.tva).length, cls: "text-blue-600" },
-              { label: "Furnizori", value: clients.filter((c: any) => c.isSupplier === 1).length, cls: "text-purple-600" },
-              { label: "Orașe Unice", value: new Set(clients.map((c: any) => c.city).filter(Boolean)).size, cls: "text-amber-600" },
+              {
+                label: "Total Clienți",
+                value: clients.length,
+                cls: "text-slate-900 dark:text-white",
+              },
+              {
+                label: "Cu TVA",
+                value: clients.filter((c: any) => c.tva).length,
+                cls: "text-blue-600",
+              },
+              {
+                label: "Furnizori",
+                value: clients.filter((c: any) => c.isSupplier === 1).length,
+                cls: "text-purple-600",
+              },
+              {
+                label: "Orașe Unice",
+                value: new Set(clients.map((c: any) => c.city).filter(Boolean))
+                  .size,
+                cls: "text-amber-600",
+              },
             ].map(k => (
-              <div key={k.label} className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">{k.label}</p>
+              <div
+                key={k.label}
+                className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4"
+              >
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                  {k.label}
+                </p>
                 <p className={`text-xl font-black ${k.cls}`}>{k.value}</p>
               </div>
             ))}
@@ -209,7 +273,9 @@ export default function Clients() {
       {/* Titlu compact când form e deschis */}
       {showForm && (
         <div className="flex items-center justify-between">
-          <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">Clienți</h1>
+          <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
+            Clienți
+          </h1>
         </div>
       )}
 
@@ -219,14 +285,17 @@ export default function Clients() {
           key={editingId ?? "new"}
           editingId={editingId}
           initial={formData}
-          onSubmit={(data) => {
+          onSubmit={data => {
             if (editingId) {
               updateMutation.mutate({ id: editingId, ...data });
             } else {
               createMutation.mutate(data);
             }
           }}
-          onCancel={() => { setShowForm(false); setEditingId(null); }}
+          onCancel={() => {
+            setShowForm(false);
+            setEditingId(null);
+          }}
           isPending={createMutation.isPending || updateMutation.isPending}
         />
       )}
@@ -238,9 +307,12 @@ export default function Clients() {
           data={clients}
           rowKey="id"
           isLoading={isLoading}
-          actions={(row) => (
+          actions={row => (
             <div className="flex gap-1 justify-end">
-              <Link href={`/client/${row.id}`} className="w-6 h-6 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition-colors flex items-center justify-center">
+              <Link
+                href={`/client/${row.id}`}
+                className="w-6 h-6 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition-colors flex items-center justify-center"
+              >
                 <Eye className="w-3 h-3" />
               </Link>
               <button
@@ -259,19 +331,31 @@ export default function Clients() {
           )}
         />
       )}
-
     </div>
   );
 }
 
 // ── Formular Client cu ANAF auto-fill ──────────────────────────────
 type ClientFormData = {
-  name: string; cui: string; address: string; city: string;
-  country: string; email: string; phone: string; currency: string;
-  regCom: string; tva: boolean;
+  name: string;
+  cui: string;
+  address: string;
+  city: string;
+  country: string;
+  email: string;
+  phone: string;
+  currency: string;
+  regCom: string;
+  tva: boolean;
 };
 
-function ClientForm({ editingId, initial, onSubmit, onCancel, isPending }: {
+function ClientForm({
+  editingId,
+  initial,
+  onSubmit,
+  onCancel,
+  isPending,
+}: {
   editingId: number | null;
   initial: ClientFormData;
   onSubmit: (data: ClientFormData) => void;
@@ -287,7 +371,8 @@ function ClientForm({ editingId, initial, onSubmit, onCancel, isPending }: {
   const [cuiError, setCuiError] = useState("");
   const [cuiFilled, setCuiFilled] = useState(false);
 
-  const set = (k: keyof ClientFormData, v: string) => setData(p => ({ ...p, [k]: v }));
+  const set = (k: keyof ClientFormData, v: string) =>
+    setData(p => ({ ...p, [k]: v }));
 
   const lookupCui = async () => {
     const cui = data.cui.replace(/^RO/i, "").replace(/\s/g, "");
@@ -320,8 +405,10 @@ function ClientForm({ editingId, initial, onSubmit, onCancel, isPending }: {
     }
   };
 
-  const inp = "w-full px-3 h-10 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all";
-  const lbl = "block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5";
+  const inp =
+    "w-full px-3 h-10 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all";
+  const lbl =
+    "block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5";
 
   return (
     <div className="p-6 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-5">
@@ -338,8 +425,14 @@ function ClientForm({ editingId, initial, onSubmit, onCancel, isPending }: {
               className={inp + " flex-1"}
               placeholder="CIF / CUI"
               value={data.cui}
-              onChange={e => { set("cui", e.target.value); setCuiError(""); setCuiFilled(false); }}
-              onKeyDown={e => e.key === "Enter" && (e.preventDefault(), lookupCui())}
+              onChange={e => {
+                set("cui", e.target.value);
+                setCuiError("");
+                setCuiFilled(false);
+              }}
+              onKeyDown={e =>
+                e.key === "Enter" && (e.preventDefault(), lookupCui())
+              }
             />
             <button
               type="button"
@@ -347,7 +440,11 @@ function ClientForm({ editingId, initial, onSubmit, onCancel, isPending }: {
               disabled={cuiLoading || !data.cui}
               className="flex items-center gap-1.5 px-3 h-10 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold transition-colors flex-shrink-0"
             >
-              {cuiLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+              {cuiLoading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Search className="w-3.5 h-3.5" />
+              )}
               {cuiLoading ? "Caută..." : "Auto-fill"}
             </button>
           </div>
@@ -366,13 +463,24 @@ function ClientForm({ editingId, initial, onSubmit, onCancel, isPending }: {
         {/* Nume */}
         <div>
           <label className={lbl}>Denumire firmă *</label>
-          <input className={inp} placeholder="Denumire firmă" required value={data.name} onChange={e => set("name", e.target.value)} />
+          <input
+            className={inp}
+            placeholder="Denumire firmă"
+            required
+            value={data.name}
+            onChange={e => set("name", e.target.value)}
+          />
         </div>
 
         {/* Reg. Com. + TVA */}
         <div>
           <label className={lbl}>Reg. Com. (J..)</label>
-          <input className={inp} placeholder="Nr. Reg. Comerț" value={data.regCom} onChange={e => set("regCom", e.target.value)} />
+          <input
+            className={inp}
+            placeholder="Nr. Reg. Comerț"
+            value={data.regCom}
+            onChange={e => set("regCom", e.target.value)}
+          />
         </div>
         <div>
           <label className={lbl}>Status TVA</label>
@@ -385,7 +493,9 @@ function ClientForm({ editingId, initial, onSubmit, onCancel, isPending }: {
                 : "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
             }`}
           >
-            <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${data.tva ? "bg-green-500" : "bg-slate-400"}`} />
+            <span
+              className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${data.tva ? "bg-green-500" : "bg-slate-400"}`}
+            />
             {data.tva ? "Plătitor TVA" : "Neplătitor TVA"}
           </button>
         </div>
@@ -393,22 +503,41 @@ function ClientForm({ editingId, initial, onSubmit, onCancel, isPending }: {
         {/* Adresă */}
         <div className="md:col-span-2">
           <label className={lbl}>Adresă</label>
-          <input className={inp} placeholder="Str. Exemplu nr. 1" value={data.address} onChange={e => set("address", e.target.value)} />
+          <input
+            className={inp}
+            placeholder="Str. Exemplu nr. 1"
+            value={data.address}
+            onChange={e => set("address", e.target.value)}
+          />
         </div>
 
         {/* Oraș + Țară + Monedă (pe același rând) */}
         <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className={lbl}>Județ / Oraș</label>
-            <input className={inp} placeholder="București" value={data.city} onChange={e => set("city", e.target.value)} />
+            <input
+              className={inp}
+              placeholder="București"
+              value={data.city}
+              onChange={e => set("city", e.target.value)}
+            />
           </div>
           <div>
             <label className={lbl}>Țară</label>
-            <input className={inp} placeholder="România" value={data.country} onChange={e => set("country", e.target.value)} />
+            <input
+              className={inp}
+              placeholder="România"
+              value={data.country}
+              onChange={e => set("country", e.target.value)}
+            />
           </div>
           <div>
             <label className={lbl}>Monedă</label>
-            <select className={inp} value={data.currency} onChange={e => set("currency", e.target.value)}>
+            <select
+              className={inp}
+              value={data.currency}
+              onChange={e => set("currency", e.target.value)}
+            >
               <option value="RON">RON — Leu românesc</option>
               <option value="EUR">EUR — Euro</option>
               <option value="USD">USD — Dolar</option>
@@ -419,16 +548,32 @@ function ClientForm({ editingId, initial, onSubmit, onCancel, isPending }: {
         {/* Email + Telefon */}
         <div>
           <label className={lbl}>Email</label>
-          <input className={inp} type="email" autoComplete="email" placeholder="office@firma.ro" value={data.email} onChange={e => set("email", e.target.value)} />
+          <input
+            className={inp}
+            type="email"
+            autoComplete="email"
+            placeholder="office@firma.ro"
+            value={data.email}
+            onChange={e => set("email", e.target.value)}
+          />
         </div>
         <div>
           <label className={lbl}>Telefon</label>
-          <input className={inp} type="tel" autoComplete="tel" placeholder="+40 21 123 4567" value={data.phone} onChange={e => set("phone", e.target.value)} />
+          <input
+            className={inp}
+            type="tel"
+            autoComplete="tel"
+            placeholder="+40 21 123 4567"
+            value={data.phone}
+            onChange={e => set("phone", e.target.value)}
+          />
         </div>
       </div>
 
       <div className="flex gap-2 justify-end pt-2 border-t border-slate-100 dark:border-slate-700">
-        <Button type="button" variant="outline" onClick={onCancel}>Anulează</Button>
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Anulează
+        </Button>
         <Button
           type="button"
           disabled={isPending || !data.name.trim()}

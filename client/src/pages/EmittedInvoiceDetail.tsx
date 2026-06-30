@@ -1,6 +1,22 @@
 import { Link, useParams } from "wouter";
-import { ArrowLeft, ArrowRight, FileText, Building2, Calendar, Hash, Globe, Loader2, Download, Send } from "lucide-react";
-import { formatCurrency, formatDate, invoiceStatusLabels, invoiceStatusColors } from "@/lib/store";
+import {
+  ArrowLeft,
+  ArrowRight,
+  FileText,
+  Building2,
+  Calendar,
+  Hash,
+  Globe,
+  Loader2,
+  Download,
+  Send,
+} from "lucide-react";
+import {
+  formatCurrency,
+  formatDate,
+  invoiceStatusLabels,
+  invoiceStatusColors,
+} from "@/lib/store";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
@@ -20,14 +36,14 @@ export default function EmittedInvoiceDetail() {
   );
 
   const sendToSpv = trpc.emittedInvoice.sendToSpv.useMutation({
-    onSuccess: (res) => {
+    onSuccess: res => {
       if (res.success) {
         toast.success("Trimisă în SPV! Index: " + res.index_incarcare);
       } else {
         toast.error("Eroare SPV: " + res.error);
       }
     },
-    onError: (e) => toast.error("Eroare SPV: " + e.message),
+    onError: e => toast.error("Eroare SPV: " + e.message),
   });
 
   if (isLoading) {
@@ -43,7 +59,9 @@ export default function EmittedInvoiceDetail() {
       <div className="p-8 text-center">
         <div className="text-slate-500">Factura nu a fost găsită.</div>
         <Link href="/facturi">
-          <button className="mt-4 px-5 h-10 rounded-full bg-blue-600 text-white text-sm font-bold">← Înapoi la Facturi</button>
+          <button className="mt-4 px-5 h-10 rounded-full bg-blue-600 text-white text-sm font-bold">
+            ← Înapoi la Facturi
+          </button>
         </Link>
       </div>
     );
@@ -67,12 +85,15 @@ export default function EmittedInvoiceDetail() {
               Factură {invoice.series} {invoice.number}
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-              {invoice.clientName || "—"} · {formatDate(invoice.issueDate || "")}
+              {invoice.clientName || "—"} ·{" "}
+              {formatDate(invoice.issueDate || "")}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className={`px-2.5 h-8 flex items-center rounded-lg text-xs font-bold border ${(invoiceStatusColors as any)[status] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
+          <span
+            className={`px-2.5 h-8 flex items-center rounded-lg text-xs font-bold border ${(invoiceStatusColors as any)[status] || "bg-slate-50 text-slate-600 border-slate-200"}`}
+          >
             {(invoiceStatusLabels as any)[status] || status}
           </span>
           <Link href={`/facturi-emise-nou/${invoice.id}`}>
@@ -89,11 +110,19 @@ export default function EmittedInvoiceDetail() {
         <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-5">
           <div className="flex items-center gap-2 mb-4">
             <Building2 className="w-4 h-4 text-slate-400" />
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Client</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Client
+            </span>
           </div>
           <div className="space-y-2">
-            <div className="text-sm font-semibold text-slate-900 dark:text-white">{invoice.clientName || "—"}</div>
-            {invoice.clientCUI && <div className="text-xs text-slate-500">CUI: {invoice.clientCUI}</div>}
+            <div className="text-sm font-semibold text-slate-900 dark:text-white">
+              {invoice.clientName || "—"}
+            </div>
+            {invoice.clientCUI && (
+              <div className="text-xs text-slate-500">
+                CUI: {invoice.clientCUI}
+              </div>
+            )}
           </div>
         </div>
 
@@ -101,24 +130,34 @@ export default function EmittedInvoiceDetail() {
         <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-5">
           <div className="flex items-center gap-2 mb-4">
             <Hash className="w-4 h-4 text-slate-400" />
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Detalii Factură</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Detalii Factură
+            </span>
           </div>
           <div className="space-y-2 text-xs">
             <div className="flex justify-between">
               <span className="text-slate-500">Număr:</span>
-              <span className="text-slate-900 dark:text-white font-mono">{invoice.series} {invoice.number}</span>
+              <span className="text-slate-900 dark:text-white font-mono">
+                {invoice.series} {invoice.number}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Dată:</span>
-              <span className="text-slate-900 dark:text-white font-medium">{formatDate(invoice.issueDate || "")}</span>
+              <span className="text-slate-900 dark:text-white font-medium">
+                {formatDate(invoice.issueDate || "")}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Scadență:</span>
-              <span className="text-slate-900 dark:text-white font-medium">{formatDate(invoice.dueDate || "")}</span>
+              <span className="text-slate-900 dark:text-white font-medium">
+                {formatDate(invoice.dueDate || "")}
+              </span>
             </div>
             <div className="flex justify-between mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
               <span className="text-slate-500 font-bold">Stare SPV:</span>
-              <span className="text-slate-900 dark:text-white font-bold">{invoice.spvStatus || "Netrimisă"}</span>
+              <span className="text-slate-900 dark:text-white font-bold">
+                {invoice.spvStatus || "Netrimisă"}
+              </span>
             </div>
           </div>
         </div>
@@ -127,21 +166,38 @@ export default function EmittedInvoiceDetail() {
         <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-5">
           <div className="flex items-center gap-2 mb-4">
             <Globe className="w-4 h-4 text-slate-400" />
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Totaluri</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Totaluri
+            </span>
           </div>
           <div className="space-y-3 text-xs">
             <div className="flex justify-between">
               <span className="text-slate-500">Subtotal:</span>
-              <span className="text-slate-900 dark:text-white font-medium">{formatCurrency(parseFloat(String(invoice.subtotal)), invoice.currency as any)}</span>
+              <span className="text-slate-900 dark:text-white font-medium">
+                {formatCurrency(
+                  parseFloat(String(invoice.subtotal)),
+                  invoice.currency as any
+                )}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">TVA:</span>
-              <span className="text-slate-900 dark:text-white font-medium">{formatCurrency(parseFloat(String(invoice.totalVAT)), invoice.currency as any)}</span>
+              <span className="text-slate-900 dark:text-white font-medium">
+                {formatCurrency(
+                  parseFloat(String(invoice.totalVAT)),
+                  invoice.currency as any
+                )}
+              </span>
             </div>
             <div className="flex justify-between pt-2 mt-2 border-t border-slate-100 dark:border-slate-800">
-              <span className="font-bold text-slate-900 dark:text-white">Total:</span>
+              <span className="font-bold text-slate-900 dark:text-white">
+                Total:
+              </span>
               <span className="font-black text-rose-600 dark:text-rose-400 text-sm">
-                {formatCurrency(parseFloat(String(invoice.total)), invoice.currency as any)}
+                {formatCurrency(
+                  parseFloat(String(invoice.total)),
+                  invoice.currency as any
+                )}
               </span>
             </div>
           </div>
@@ -149,29 +205,45 @@ export default function EmittedInvoiceDetail() {
       </div>
 
       {/* PDF-uri: Factură + Deviz unul lângă celălalt */}
-      <div className={`flex gap-4 ${linkedDeviz ? "flex-row items-start" : "flex-col"}`}>
-
+      <div
+        className={`flex gap-4 ${linkedDeviz ? "flex-row items-start" : "flex-col"}`}
+      >
         {/* Factură PDF */}
-        <div className={`bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col ${linkedDeviz ? "flex-1 min-w-0" : "w-full"}`}>
+        <div
+          className={`bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col ${linkedDeviz ? "flex-1 min-w-0" : "w-full"}`}
+        >
           <div className="flex items-center justify-between p-3 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2">
               <FileText className="w-4 h-4 text-slate-400" />
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white">Factură PDF</h2>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                Factură PDF
+              </h2>
             </div>
             <div className="flex gap-2">
               <button
-                onClick={() => window.open(`/api/pdf/emitted/${invoice.id}?download=1`, '_blank')}
+                onClick={() =>
+                  window.open(
+                    `/api/pdf/emitted/${invoice.id}?download=1`,
+                    "_blank"
+                  )
+                }
                 className="px-3 h-7 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 hover:bg-slate-50"
               >
                 Descarcă
               </button>
-              {(!invoice.spvStatus || invoice.spvStatus === "nesincronizat" || invoice.spvStatus === "eroare") && (
+              {(!invoice.spvStatus ||
+                invoice.spvStatus === "nesincronizat" ||
+                invoice.spvStatus === "eroare") && (
                 <button
                   onClick={() => sendToSpv.mutate({ id: invoice.id })}
                   disabled={sendToSpv.isPending}
                   className="flex items-center gap-1.5 px-3 h-7 text-xs font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
                 >
-                  {sendToSpv.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  {sendToSpv.isPending ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Send className="w-3.5 h-3.5" />
+                  )}
                   Trimite SPV
                 </button>
               )}

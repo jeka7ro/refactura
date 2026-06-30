@@ -12,7 +12,11 @@ const SPV_OAUTH_URL = "https://logon.anaf.ro/anaf-oauth/oauth/authorize";
 const SPV_TOKEN_URL = "https://logon.anaf.ro/anaf-oauth/oauth/token";
 const SPV_API_URL = "https://ws.anaf.ro/async/DataService/api";
 
-export function getSpvOAuthUrl(clientId: string, redirectUri: string, state: string): string {
+export function getSpvOAuthUrl(
+  clientId: string,
+  redirectUri: string,
+  state: string
+): string {
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
@@ -66,7 +70,10 @@ export async function syncSpvInvoices(
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
 
-    const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
+    const [tenant] = await db
+      .select()
+      .from(tenants)
+      .where(eq(tenants.id, tenantId));
     if (!tenant) throw new Error("Tenant not found");
     const tenantCui = (tenant.cui || "").replace(/[^0-9]/g, "");
 
@@ -104,7 +111,10 @@ export async function syncSpvInvoices(
         }
 
         const xmlText = await xmlRes.text();
-        const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@_" });
+        const parser = new XMLParser({
+          ignoreAttributes: false,
+          attributeNamePrefix: "@_",
+        });
         const parsedDoc = parser.parse(xmlText);
         const invoiceObj = parsedDoc.Invoice || parsedDoc.CreditNote;
         if (!invoiceObj) {
@@ -115,18 +125,32 @@ export async function syncSpvInvoices(
         const invoiceNumber = invoiceObj["cbc:ID"] || `SPV-${doc.id}`;
         const issueDate = invoiceObj["cbc:IssueDate"] || "";
         const legalTotal = invoiceObj["cac:LegalMonetaryTotal"];
-        const total = parseFloat(legalTotal?.["cbc:TaxInclusiveAmount"]?.["#text"] || legalTotal?.["cbc:TaxInclusiveAmount"] || "0");
+        const total = parseFloat(
+          legalTotal?.["cbc:TaxInclusiveAmount"]?.["#text"] ||
+            legalTotal?.["cbc:TaxInclusiveAmount"] ||
+            "0"
+        );
         const taxTotal = invoiceObj["cac:TaxTotal"];
-        const totalVAT = parseFloat(taxTotal?.["cbc:TaxAmount"]?.["#text"] || taxTotal?.["cbc:TaxAmount"] || "0");
-        const currency = invoiceObj["cbc:DocumentCurrencyCode"]?.["#text"] || invoiceObj["cbc:DocumentCurrencyCode"] || "RON";
+        const totalVAT = parseFloat(
+          taxTotal?.["cbc:TaxAmount"]?.["#text"] ||
+            taxTotal?.["cbc:TaxAmount"] ||
+            "0"
+        );
+        const currency =
+          invoiceObj["cbc:DocumentCurrencyCode"]?.["#text"] ||
+          invoiceObj["cbc:DocumentCurrencyCode"] ||
+          "RON";
 
         let supplierName = "";
         let supplierCUI = "";
         const supplierParty = invoiceObj["cac:AccountingSupplierParty"];
         if (supplierParty && supplierParty["cac:Party"]) {
-           const party = supplierParty["cac:Party"];
-           supplierName = party["cac:PartyName"]?.["cbc:Name"] || party["cac:PartyLegalEntity"]?.["cbc:RegistrationName"] || "Unknown Supplier";
-           supplierCUI = party["cac:PartyTaxScheme"]?.["cbc:CompanyID"] || "";
+          const party = supplierParty["cac:Party"];
+          supplierName =
+            party["cac:PartyName"]?.["cbc:Name"] ||
+            party["cac:PartyLegalEntity"]?.["cbc:RegistrationName"] ||
+            "Unknown Supplier";
+          supplierCUI = party["cac:PartyTaxScheme"]?.["cbc:CompanyID"] || "";
         }
 
         if (!invoiceNumber || !issueDate) {
@@ -153,14 +177,18 @@ export async function syncSpvInvoices(
 
         // Generate PDF using ANAF API
         let fileUrl = "spv_import";
-        const pdfRes = await convertXmlToPdf(xmlText, `Factura_${invoiceNumber}_${Date.now()}`);
+        const pdfRes = await convertXmlToPdf(
+          xmlText,
+          `Factura_${invoiceNumber}_${Date.now()}`
+        );
         if (pdfRes) {
           fileUrl = pdfRes.url;
         }
 
         // Determine direction based on CUI matching
         const cleanSupplierCui = supplierCUI.replace(/[^0-9]/g, "");
-        const direction = (cleanSupplierCui === tenantCui && tenantCui !== "") ? "out" : "in";
+        const direction =
+          cleanSupplierCui === tenantCui && tenantCui !== "" ? "out" : "in";
 
         // Save invoice
         await createInvoiceArchiveEntry({
@@ -187,7 +215,9 @@ export async function syncSpvInvoices(
       }
     }
 
-    console.log(`[SPV] Sync complete: imported=${imported}, skipped=${skipped}`);
+    console.log(
+      `[SPV] Sync complete: imported=${imported}, skipped=${skipped}`
+    );
   } catch (e: any) {
     errors.push(e.message);
     console.error("[SPV] Sync error:", e.message);

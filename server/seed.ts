@@ -26,7 +26,12 @@ async function seed() {
         monthlyPrice: 2999, // $29.99
         maxCostCenters: 1,
         maxUsers: 1,
-        features: JSON.stringify(["Up to 1 location", "Up to 1 user", "Basic reports", "Email support"]),
+        features: JSON.stringify([
+          "Up to 1 location",
+          "Up to 1 user",
+          "Basic reports",
+          "Email support",
+        ]),
         isActive: 1,
       },
       {
@@ -63,9 +68,12 @@ async function seed() {
     ];
 
     for (const plan of plans) {
-      await db.insert(subscriptionPlans).values(plan as any).catch(() => {
-        // Plan may already exist
-      });
+      await db
+        .insert(subscriptionPlans)
+        .values(plan as any)
+        .catch(() => {
+          // Plan may already exist
+        });
     }
 
     console.log("✅ Subscription plans seeded");
@@ -77,15 +85,18 @@ async function seed() {
     const passwordHash = await bcrypt.hash(superadminPassword, 10);
 
     // Create superadmin account
-    await db.insert(accounts).values({
-      email: "jeka7ro@gmail.com",
-      passwordHash,
-      tenantId: null, // Superadmin has no tenant
-      role: "superadmin",
-      isActive: 1,
-    } as any).catch(() => {
-      // Account may already exist
-    });
+    await db
+      .insert(accounts)
+      .values({
+        email: "jeka7ro@gmail.com",
+        passwordHash,
+        tenantId: null, // Superadmin has no tenant
+        role: "superadmin",
+        isActive: 1,
+      } as any)
+      .catch(() => {
+        // Account may already exist
+      });
 
     console.log("✅ Superadmin account created: jeka7ro@gmail.com");
 
@@ -120,17 +131,22 @@ async function seed() {
       const demoAdminPassword = "Demo123!@#";
       const demoAdminHash = await bcrypt.hash(demoAdminPassword, 10);
 
-      await db.insert(accounts).values({
-        email: "admin@constructmaster.ro",
-        passwordHash: demoAdminHash,
-        tenantId: demoTenant.id,
-        role: "admin",
-        isActive: 1,
-      } as any).catch(() => {
-        // Account may already exist
-      });
+      await db
+        .insert(accounts)
+        .values({
+          email: "admin@constructmaster.ro",
+          passwordHash: demoAdminHash,
+          tenantId: demoTenant.id,
+          role: "admin",
+          isActive: 1,
+        } as any)
+        .catch(() => {
+          // Account may already exist
+        });
 
-      console.log("✅ Demo tenant admin created: admin@constructmaster.ro / Demo123!@#");
+      console.log(
+        "✅ Demo tenant admin created: admin@constructmaster.ro / Demo123!@#"
+      );
     }
 
     console.log("\n✅ Seeding complete!");

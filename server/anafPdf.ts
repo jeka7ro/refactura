@@ -10,17 +10,25 @@ function ensureDir() {
   }
 }
 
-export async function convertXmlToPdf(xmlText: string, fileNameBase: string): Promise<{ key: string, url: string } | null> {
+export async function convertXmlToPdf(
+  xmlText: string,
+  fileNameBase: string
+): Promise<{ key: string; url: string } | null> {
   try {
     const { XMLParser } = await import("fast-xml-parser");
     const PDFDocument = (await import("pdfkit")).default;
 
-    const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@_" });
+    const parser = new XMLParser({
+      ignoreAttributes: false,
+      attributeNamePrefix: "@_",
+    });
     const parsed = parser.parse(xmlText);
     const invoice = parsed.Invoice || parsed.CreditNote;
-    
+
     if (!invoice) {
-      console.error("[ANAF PDF] Invalid XML: No Invoice or CreditNote node found");
+      console.error(
+        "[ANAF PDF] Invalid XML: No Invoice or CreditNote node found"
+      );
       return null;
     }
 
@@ -28,24 +36,40 @@ export async function convertXmlToPdf(xmlText: string, fileNameBase: string): Pr
     const pdfBuffer: Buffer = await new Promise(async (resolve, reject) => {
       try {
         const { generateReInvoicePDF } = await import("./pdf");
-        
+
         const invNumber = invoice["cbc:ID"] || "";
         const issueDate = invoice["cbc:IssueDate"] || "";
         const dueDate = invoice["cbc:DueDate"] || issueDate;
         const currency = invoice["cbc:DocumentCurrencyCode"] || "RON";
 
         // Supplier
-        const supParty = invoice["cac:AccountingSupplierParty"]?.["cac:Party"] || {};
-        const supName = supParty["cac:PartyName"]?.["cbc:Name"] || supParty["cac:PartyLegalEntity"]?.["cbc:RegistrationName"] || "";
-        const supCUI = supParty["cac:PartyTaxScheme"]?.["cbc:CompanyID"] || supParty["cac:PartyLegalEntity"]?.["cbc:CompanyID"] || "";
-        const supAddress = supParty["cac:PostalAddress"]?.["cbc:StreetName"] || "";
+        const supParty =
+          invoice["cac:AccountingSupplierParty"]?.["cac:Party"] || {};
+        const supName =
+          supParty["cac:PartyName"]?.["cbc:Name"] ||
+          supParty["cac:PartyLegalEntity"]?.["cbc:RegistrationName"] ||
+          "";
+        const supCUI =
+          supParty["cac:PartyTaxScheme"]?.["cbc:CompanyID"] ||
+          supParty["cac:PartyLegalEntity"]?.["cbc:CompanyID"] ||
+          "";
+        const supAddress =
+          supParty["cac:PostalAddress"]?.["cbc:StreetName"] || "";
         const supCity = supParty["cac:PostalAddress"]?.["cbc:CityName"] || "";
 
         // Customer
-        const cusParty = invoice["cac:AccountingCustomerParty"]?.["cac:Party"] || {};
-        const cusName = cusParty["cac:PartyName"]?.["cbc:Name"] || cusParty["cac:PartyLegalEntity"]?.["cbc:RegistrationName"] || "";
-        const cusCUI = cusParty["cac:PartyTaxScheme"]?.["cbc:CompanyID"] || cusParty["cac:PartyLegalEntity"]?.["cbc:CompanyID"] || "";
-        const cusAddress = cusParty["cac:PostalAddress"]?.["cbc:StreetName"] || "";
+        const cusParty =
+          invoice["cac:AccountingCustomerParty"]?.["cac:Party"] || {};
+        const cusName =
+          cusParty["cac:PartyName"]?.["cbc:Name"] ||
+          cusParty["cac:PartyLegalEntity"]?.["cbc:RegistrationName"] ||
+          "";
+        const cusCUI =
+          cusParty["cac:PartyTaxScheme"]?.["cbc:CompanyID"] ||
+          cusParty["cac:PartyLegalEntity"]?.["cbc:CompanyID"] ||
+          "";
+        const cusAddress =
+          cusParty["cac:PostalAddress"]?.["cbc:StreetName"] || "";
         const cusCity = cusParty["cac:PostalAddress"]?.["cbc:CityName"] || "";
 
         let lines = invoice["cac:InvoiceLine"];
@@ -53,13 +77,27 @@ export async function convertXmlToPdf(xmlText: string, fileNameBase: string): Pr
         if (!Array.isArray(lines)) lines = [lines];
 
         const mappedLines = lines.map((l: any) => {
-          const name = l["cac:Item"]?.["cbc:Name"] || l["cac:Item"]?.["cbc:Description"] || "Produs";
+          const name =
+            l["cac:Item"]?.["cbc:Name"] ||
+            l["cac:Item"]?.["cbc:Description"] ||
+            "Produs";
           const um = l["cbc:InvoicedQuantity"]?.["@_unitCode"] || "buc";
-          const qty = l["cbc:InvoicedQuantity"]?.["#text"] || l["cbc:InvoicedQuantity"] || "0";
-          const price = l["cac:Price"]?.["cbc:PriceAmount"]?.["#text"] || l["cac:Price"]?.["cbc:PriceAmount"] || "0";
-          const val = l["cbc:LineExtensionAmount"]?.["#text"] || l["cbc:LineExtensionAmount"] || "0";
-          
-          const tvaNode = l["cac:Item"]?.["cac:ClassifiedTaxCategory"] || l["cac:TaxTotal"]?.["cac:TaxSubtotal"];
+          const qty =
+            l["cbc:InvoicedQuantity"]?.["#text"] ||
+            l["cbc:InvoicedQuantity"] ||
+            "0";
+          const price =
+            l["cac:Price"]?.["cbc:PriceAmount"]?.["#text"] ||
+            l["cac:Price"]?.["cbc:PriceAmount"] ||
+            "0";
+          const val =
+            l["cbc:LineExtensionAmount"]?.["#text"] ||
+            l["cbc:LineExtensionAmount"] ||
+            "0";
+
+          const tvaNode =
+            l["cac:Item"]?.["cac:ClassifiedTaxCategory"] ||
+            l["cac:TaxTotal"]?.["cac:TaxSubtotal"];
           let tvaPercent = "19"; // default
           if (Array.isArray(tvaNode)) {
             tvaPercent = tvaNode[0]?.["cbc:Percent"] || "19";
@@ -79,16 +117,25 @@ export async function convertXmlToPdf(xmlText: string, fileNameBase: string): Pr
 
         const legalTotal = invoice["cac:LegalMonetaryTotal"] || {};
         const taxTotal = invoice["cac:TaxTotal"] || {};
-        
+
         let totalTaxAmt = "0.00";
         if (Array.isArray(taxTotal)) {
           totalTaxAmt = taxTotal[0]?.["cbc:TaxAmount"]?.["#text"] || "0.00";
         } else {
-          totalTaxAmt = taxTotal["cbc:TaxAmount"]?.["#text"] || taxTotal["cbc:TaxAmount"] || "0.00";
+          totalTaxAmt =
+            taxTotal["cbc:TaxAmount"]?.["#text"] ||
+            taxTotal["cbc:TaxAmount"] ||
+            "0.00";
         }
-        
-        const subTotal = legalTotal["cbc:TaxExclusiveAmount"]?.["#text"] || legalTotal["cbc:TaxExclusiveAmount"] || "0.00";
-        const payable = legalTotal["cbc:PayableAmount"]?.["#text"] || legalTotal["cbc:PayableAmount"] || "0.00";
+
+        const subTotal =
+          legalTotal["cbc:TaxExclusiveAmount"]?.["#text"] ||
+          legalTotal["cbc:TaxExclusiveAmount"] ||
+          "0.00";
+        const payable =
+          legalTotal["cbc:PayableAmount"]?.["#text"] ||
+          legalTotal["cbc:PayableAmount"] ||
+          "0.00";
 
         const data: any = {
           number: invNumber,
@@ -121,9 +168,9 @@ export async function convertXmlToPdf(xmlText: string, fileNameBase: string): Pr
 
         const pdfStream = generateReInvoicePDF(data);
         const buffers: Buffer[] = [];
-        pdfStream.on('data', buffers.push.bind(buffers));
-        pdfStream.on('end', () => resolve(Buffer.concat(buffers)));
-        pdfStream.on('error', reject);
+        pdfStream.on("data", buffers.push.bind(buffers));
+        pdfStream.on("end", () => resolve(Buffer.concat(buffers)));
+        pdfStream.on("error", reject);
       } catch (err) {
         reject(err);
       }
@@ -132,7 +179,11 @@ export async function convertXmlToPdf(xmlText: string, fileNameBase: string): Pr
     // Try Forge storage first
     try {
       const { storagePut } = await import("./storage");
-      const result = await storagePut(`invoices/${fileNameBase}.pdf`, pdfBuffer, "application/pdf");
+      const result = await storagePut(
+        `invoices/${fileNameBase}.pdf`,
+        pdfBuffer,
+        "application/pdf"
+      );
       console.log(`[ANAF PDF] Stored via Forge: ${result.url}`);
       return result;
     } catch (forgeErr) {
@@ -144,7 +195,7 @@ export async function convertXmlToPdf(xmlText: string, fileNameBase: string): Pr
     const fileName = `${fileNameBase.replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`;
     const filePath = path.join(UPLOAD_DIR, fileName);
     fs.writeFileSync(filePath, pdfBuffer);
-    
+
     const url = `/uploads/invoices/${fileName}`;
     console.log(`[ANAF PDF] Stored locally: ${url}`);
     return { key: fileName, url };

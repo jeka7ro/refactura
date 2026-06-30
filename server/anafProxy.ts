@@ -16,12 +16,15 @@ export function registerAnafProxy(app: Express) {
     const today = new Date().toISOString().split("T")[0];
 
     try {
-      const anafRes = await fetch("https://webservicesp.anaf.ro/api/PlatitorTvaRest/v9/tva", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify([{ cui: parseInt(cuiNum), data: today }]),
-        signal: AbortSignal.timeout(10000),
-      });
+      const anafRes = await fetch(
+        "https://webservicesp.anaf.ro/api/PlatitorTvaRest/v9/tva",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify([{ cui: parseInt(cuiNum), data: today }]),
+          signal: AbortSignal.timeout(10000),
+        }
+      );
 
       if (!anafRes.ok) {
         return res.status(502).json({ error: "ANAF indisponibil" });
@@ -39,15 +42,19 @@ export function registerAnafProxy(app: Express) {
       const adresaSediu = found.adresa_sediu_social;
 
       // Adresă completă din ANAF
-      const adresa = dg.adresa || [
-        adresaSediu?.sdenumire_Strada,
-        adresaSediu?.snumar_Strada
-      ].filter(Boolean).join(" ") || "";
+      const adresa =
+        dg.adresa ||
+        [adresaSediu?.sdenumire_Strada, adresaSediu?.snumar_Strada]
+          .filter(Boolean)
+          .join(" ") ||
+        "";
 
       // Localitate / județ
-      const judet = adresaSediu?.sdenumire_Localitate
-        || adresaSediu?.sdenumire_Judet
-        || dg.judet || "";
+      const judet =
+        adresaSediu?.sdenumire_Localitate ||
+        adresaSediu?.sdenumire_Judet ||
+        dg.judet ||
+        "";
 
       return res.json({
         cui: dg.cui,
@@ -61,7 +68,6 @@ export function registerAnafProxy(app: Express) {
         codPostal: dg.codPostal || adresaSediu?.scod_Postal || "",
         activ: found.stare_inactiv?.statusInactivi !== true,
       });
-
     } catch (err: any) {
       console.error("[ANAF Proxy] Error:", err.message);
       return res.status(502).json({ error: "Nu s-a putut contacta ANAF" });

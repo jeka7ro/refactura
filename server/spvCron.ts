@@ -22,14 +22,20 @@ export async function syncAllSpv(zile: number = 60) {
   const db = await getDb();
   if (!db) return;
 
-  const spvIntegrations = await db.select().from(integrations)
-    .where(and(eq(integrations.provider, "spv"), eq(integrations.status, "active")));
+  const spvIntegrations = await db
+    .select()
+    .from(integrations)
+    .where(
+      and(eq(integrations.provider, "spv"), eq(integrations.status, "active"))
+    );
 
   for (const intg of spvIntegrations) {
     if (!intg.apiKey) continue;
 
     const cif = process.env.SPV_CUI || "42322117";
-    console.log(`[SPV Cron] Syncing for tenant ${intg.tenantId}, CIF ${cif}, zile=${zile}`);
+    console.log(
+      `[SPV Cron] Syncing for tenant ${intg.tenantId}, CIF ${cif}, zile=${zile}`
+    );
 
     try {
       const messages: any[] = [];
@@ -39,22 +45,27 @@ export async function syncAllSpv(zile: number = 60) {
 
       while (daysRemaining > 0) {
         const daysToFetch = Math.min(daysRemaining, CHUNK_DAYS);
-        const currentStartTime = currentEndTime - (daysToFetch * 24 * 60 * 60 * 1000);
-        
+        const currentStartTime =
+          currentEndTime - daysToFetch * 24 * 60 * 60 * 1000;
+
         let pagina = 1;
         let totalPagini = 1;
 
         while (pagina <= totalPagini) {
           const listUrl = `https://api.anaf.ro/prod/FCTEL/rest/listaMesajePaginatieFactura?startTime=${currentStartTime}&endTime=${currentEndTime}&cif=${cif}&pagina=${pagina}`;
-          console.log(`[SPV Cron] Fetching: ${listUrl} (days chunk: ${daysToFetch}, page: ${pagina})`);
+          console.log(
+            `[SPV Cron] Fetching: ${listUrl} (days chunk: ${daysToFetch}, page: ${pagina})`
+          );
 
           const response = await fetch(listUrl, {
-            headers: { "Authorization": `Bearer ${intg.apiKey}` }
+            headers: { Authorization: `Bearer ${intg.apiKey}` },
           });
 
           if (!response.ok) {
             const errText = await response.text();
-            console.error(`[SPV Cron] Failed to fetch messages for chunk: ${response.status} ${errText}`);
+            console.error(
+              `[SPV Cron] Failed to fetch messages for chunk: ${response.status} ${errText}`
+            );
             break; // Stop fetching further pages for this chunk if one fails
           }
 
@@ -62,7 +73,7 @@ export async function syncAllSpv(zile: number = 60) {
           if (data.mesaje && Array.isArray(data.mesaje)) {
             messages.push(...data.mesaje);
           }
-          
+
           totalPagini = data.numar_total_pagini || 1;
           pagina++;
         }
@@ -71,50 +82,65 @@ export async function syncAllSpv(zile: number = 60) {
         currentEndTime = currentStartTime;
       }
 
-      console.log(`[SPV Cron] Found total ${messages.length} messages across all chunks`);
+      console.log(
+        `[SPV Cron] Found total ${messages.length} messages across all chunks`
+      );
 
       let imported = 0;
       let skipped = 0;
 
       for (const msg of messages) {
         // Only process FACTURA PRIMITA and FACTURA TRIMISA
-        if (!msg.tip || (!msg.tip.includes("FACTURA") && msg.tip !== "FACTURA PRIMITA" && msg.tip !== "FACTURA TRIMISA")) {
+        if (
+          !msg.tip ||
+          (!msg.tip.includes("FACTURA") &&
+            msg.tip !== "FACTURA PRIMITA" &&
+            msg.tip !== "FACTURA TRIMISA")
+        ) {
           continue;
         }
 
         const downloadId = msg.id_descarcare || msg.id;
         if (!downloadId) continue;
-        
+
         // 1. Check if this message corresponds to a ReInvoice we sent to SPV
         if (msg.id_solicitare) {
           const { reInvoices } = await import("../drizzle/schema");
-          const [matchReInvoice] = await db.select({ id: reInvoices.id }).from(reInvoices)
+          const [matchReInvoice] = await db
+            .select({ id: reInvoices.id })
+            .from(reInvoices)
             .where(eq(reInvoices.spvIndex, String(msg.id_solicitare)));
-            
+
           if (matchReInvoice) {
             // It's one of our Re-Invoices! Mark it as validated.
             // We should also download the ZIP and save the signature/XML or just mark as valid.
             // For now, let's just mark it as valid to satisfy the UI requirement.
-            await db.update(reInvoices)
+            await db
+              .update(reInvoices)
               .set({ spvStatus: "validat" })
               .where(eq(reInvoices.id, matchReInvoice.id));
-              
+
             // Should we skip adding it to invoiceArchive? Yes, because it's managed via Re-Invoices.
             // But wait, if they want to see it in the normal "Emise" list too?
             // "reInvoices" are usually managed separately. Let's skip adding to archive.
-            console.log(`[SPV Cron] Re-Invoice ${matchReInvoice.id} validated in SPV!`);
+            console.log(
+              `[SPV Cron] Re-Invoice ${matchReInvoice.id} validated in SPV!`
+            );
             skipped++;
             continue;
           }
         }
 
         // Check if already imported (by SPV download ID)
-        const [existing] = await db.select({ id: invoiceArchive.id })
+        const [existing] = await db
+          .select({ id: invoiceArchive.id })
           .from(invoiceArchive)
-          .where(and(
-            eq(invoiceArchive.tenantId, intg.tenantId),
-            eq(invoiceArchive.fileName, `SPV_${downloadId}.zip`)
-          ));
+          .where(
+            and(
+              eq(invoiceArchive.tenantId, intg.tenantId),
+              eq(invoiceArchive.fileName, `SPV_${downloadId}.zip`)
+            )
+          );
 
         if (existing) {
           skipped++;
@@ -127,19 +153,24 @@ export async function syncAllSpv(zile: number = 60) {
 
         const zipResponse = await fetch(downloadUrl, {
           headers: {
-            "Authorization": `Bearer ${intg.apiKey}`,
-          }
+            Authorization: `Bearer ${intg.apiKey}`,
+          },
         });
 
         if (!zipResponse.ok) {
-          console.warn(`[SPV Cron] Failed to download ${downloadId}: ${zipResponse.status}`);
+          console.warn(
+            `[SPV Cron] Failed to download ${downloadId}: ${zipResponse.status}`
+          );
           continue;
         }
 
         const contentType = zipResponse.headers.get("content-type");
         if (contentType && contentType.includes("application/json")) {
           const errData = await zipResponse.json();
-          console.warn(`[SPV Cron] ANAF Error for ${downloadId}:`, errData.eroare);
+          console.warn(
+            `[SPV Cron] ANAF Error for ${downloadId}:`,
+            errData.eroare
+          );
           continue;
         }
 
@@ -148,15 +179,19 @@ export async function syncAllSpv(zile: number = 60) {
           const buffer = await zipResponse.arrayBuffer();
           zip = new AdmZip(Buffer.from(buffer));
         } catch (err: any) {
-          console.warn(`[SPV Cron] Failed to parse ZIP for ${downloadId}:`, err.message);
+          console.warn(
+            `[SPV Cron] Failed to parse ZIP for ${downloadId}:`,
+            err.message
+          );
           continue;
         }
         const zipEntries = zip.getEntries();
 
         // Find the XML file (not signature)
-        const xmlEntry = zipEntries.find(e =>
-          e.entryName.toLowerCase().endsWith(".xml") &&
-          !e.entryName.toLowerCase().includes("semnatura")
+        const xmlEntry = zipEntries.find(
+          e =>
+            e.entryName.toLowerCase().endsWith(".xml") &&
+            !e.entryName.toLowerCase().includes("semnatura")
         );
 
         if (!xmlEntry) {
@@ -167,11 +202,16 @@ export async function syncAllSpv(zile: number = 60) {
         const xmlString = xmlEntry.getData().toString("utf8");
 
         // Parse XML
-        const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@_" });
+        const parser = new XMLParser({
+          ignoreAttributes: false,
+          attributeNamePrefix: "@_",
+        });
         const parsed = parser.parse(xmlString);
         const invoiceObj = parsed.Invoice || parsed.CreditNote;
         if (!invoiceObj) {
-          console.warn(`[SPV Cron] No Invoice/CreditNote in XML for ${downloadId}`);
+          console.warn(
+            `[SPV Cron] No Invoice/CreditNote in XML for ${downloadId}`
+          );
           continue;
         }
 
@@ -182,92 +222,133 @@ export async function syncAllSpv(zile: number = 60) {
 
         let supplierName = "";
         let supplierCUI = "";
-        
+
         // Determine direction first so we can map parties correctly
         const direction = msg.tip?.includes("PRIMITA") ? "in" : "out";
 
         // For incoming invoices (Primite), the supplier is the sender.
         // For outgoing invoices (Emise), the supplier is US, but the UI/DB expects the CLIENT's details in supplierName/CUI
-        const targetParty = direction === "in" 
-          ? invoiceObj["cac:AccountingSupplierParty"] 
-          : invoiceObj["cac:AccountingCustomerParty"];
+        const targetParty =
+          direction === "in"
+            ? invoiceObj["cac:AccountingSupplierParty"]
+            : invoiceObj["cac:AccountingCustomerParty"];
 
         if (targetParty?.["cac:Party"]) {
           const party = targetParty["cac:Party"];
-          supplierName = party["cac:PartyName"]?.["cbc:Name"]
-            || party["cac:PartyLegalEntity"]?.["cbc:RegistrationName"]
-            || "Client necunoscut";
-          supplierCUI = party["cac:PartyTaxScheme"]?.["cbc:CompanyID"]
-            || party["cac:PartyLegalEntity"]?.["cbc:CompanyID"]
-            || "";
+          supplierName =
+            party["cac:PartyName"]?.["cbc:Name"] ||
+            party["cac:PartyLegalEntity"]?.["cbc:RegistrationName"] ||
+            "Client necunoscut";
+          supplierCUI =
+            party["cac:PartyTaxScheme"]?.["cbc:CompanyID"] ||
+            party["cac:PartyLegalEntity"]?.["cbc:CompanyID"] ||
+            "";
         }
 
         const legalTotal = invoiceObj["cac:LegalMonetaryTotal"];
         const total = parseFloat(
-          legalTotal?.["cbc:TaxInclusiveAmount"]?.["#text"]
-          || legalTotal?.["cbc:TaxInclusiveAmount"]
-          || legalTotal?.["cbc:PayableAmount"]?.["#text"]
-          || legalTotal?.["cbc:PayableAmount"]
-          || "0"
+          legalTotal?.["cbc:TaxInclusiveAmount"]?.["#text"] ||
+            legalTotal?.["cbc:TaxInclusiveAmount"] ||
+            legalTotal?.["cbc:PayableAmount"]?.["#text"] ||
+            legalTotal?.["cbc:PayableAmount"] ||
+            "0"
         );
 
         const taxTotal = invoiceObj["cac:TaxTotal"];
         const totalVAT = parseFloat(
-          taxTotal?.["cbc:TaxAmount"]?.["#text"]
-          || taxTotal?.["cbc:TaxAmount"]
-          || "0"
+          taxTotal?.["cbc:TaxAmount"]?.["#text"] ||
+            taxTotal?.["cbc:TaxAmount"] ||
+            "0"
         );
 
-        const currency = invoiceObj["cbc:DocumentCurrencyCode"]?.["#text"]
-          || invoiceObj["cbc:DocumentCurrencyCode"]
-          || "RON";
+        const currency =
+          invoiceObj["cbc:DocumentCurrencyCode"]?.["#text"] ||
+          invoiceObj["cbc:DocumentCurrencyCode"] ||
+          "RON";
 
         // Check for duplicate by invoice number + supplier (normalize CUI - strip RO prefix)
-        const normalizedCUI = String(supplierCUI).replace(/^RO/i, '');
-        const cleanInvoiceNumber = String(invoiceNumber).replace(/[^a-zA-Z0-9]/g, '');
-        
+        const normalizedCUI = String(supplierCUI).replace(/^RO/i, "");
+        const cleanInvoiceNumber = String(invoiceNumber).replace(
+          /[^a-zA-Z0-9]/g,
+          ""
+        );
+
         const { sql } = await import("drizzle-orm");
-        
-        const [dup] = await db.select({ id: invoiceArchive.id, rawXml: invoiceArchive.rawXml })
+
+        const [dup] = await db
+          .select({ id: invoiceArchive.id, rawXml: invoiceArchive.rawXml })
           .from(invoiceArchive)
-          .where(and(
-            eq(invoiceArchive.tenantId, intg.tenantId),
-            sql`REPLACE(REPLACE(${invoiceArchive.invoiceNumber}, '-', ''), ' ', '') = ${cleanInvoiceNumber}`,
-            sql`REPLACE(UPPER(${invoiceArchive.supplierCUI}), 'RO', '') = ${normalizedCUI}`
-          ));
+          .where(
+            and(
+              eq(invoiceArchive.tenantId, intg.tenantId),
+              sql`REPLACE(REPLACE(${invoiceArchive.invoiceNumber}, '-', ''), ' ', '') = ${cleanInvoiceNumber}`,
+              sql`REPLACE(UPPER(${invoiceArchive.supplierCUI}), 'RO', '') = ${normalizedCUI}`
+            )
+          );
 
         if (dup) {
           // If duplicate exists but has no XML stored, update it (+ fix fileName for future lookups)
           if (!dup.rawXml) {
-            await db.update(invoiceArchive)
+            await db
+              .update(invoiceArchive)
               .set({ rawXml: xmlString, fileName: `SPV_${downloadId}.zip` })
               .where(eq(invoiceArchive.id, dup.id));
-            console.log(`[SPV Cron] Updated XML + fileName for existing invoice ${invoiceNumber}`);
+            console.log(
+              `[SPV Cron] Updated XML + fileName for existing invoice ${invoiceNumber}`
+            );
           }
 
           // Backfill lines if missing
           try {
             const { invoiceArchiveLines } = await import("../drizzle/schema");
-            const existingLines = await db.select({ id: invoiceArchiveLines.id })
+            const existingLines = await db
+              .select({ id: invoiceArchiveLines.id })
               .from(invoiceArchiveLines)
               .where(eq(invoiceArchiveLines.invoiceArchiveId, dup.id));
 
             if (existingLines.length === 0) {
-              let xmlLines = invoiceObj["cac:InvoiceLine"] || invoiceObj["cac:CreditNoteLine"] || [];
+              let xmlLines =
+                invoiceObj["cac:InvoiceLine"] ||
+                invoiceObj["cac:CreditNoteLine"] ||
+                [];
               if (!Array.isArray(xmlLines)) xmlLines = [xmlLines];
               if (xmlLines.length > 0) {
                 const linesToInsert = xmlLines.map((line: any) => {
                   const item = line["cac:Item"];
                   const price = line["cac:Price"];
-                  const description = item?.["cbc:Name"] || item?.["cbc:Description"] || "Articol";
-                  const qty = parseFloat(line["cbc:InvoicedQuantity"]?.["#text"] || line["cbc:InvoicedQuantity"] || line["cbc:CreditedQuantity"]?.["#text"] || line["cbc:CreditedQuantity"] || "1");
-                  const unitPrice = parseFloat(price?.["cbc:PriceAmount"]?.["#text"] || price?.["cbc:PriceAmount"] || "0");
-                  const unit = line["cbc:InvoicedQuantity"]?.["@_unitCode"] || line["cbc:CreditedQuantity"]?.["@_unitCode"] || "buc";
-                  const lineTotal = parseFloat(line["cbc:LineExtensionAmount"]?.["#text"] || line["cbc:LineExtensionAmount"] || String(qty * unitPrice));
+                  const description =
+                    item?.["cbc:Name"] ||
+                    item?.["cbc:Description"] ||
+                    "Articol";
+                  const qty = parseFloat(
+                    line["cbc:InvoicedQuantity"]?.["#text"] ||
+                      line["cbc:InvoicedQuantity"] ||
+                      line["cbc:CreditedQuantity"]?.["#text"] ||
+                      line["cbc:CreditedQuantity"] ||
+                      "1"
+                  );
+                  const unitPrice = parseFloat(
+                    price?.["cbc:PriceAmount"]?.["#text"] ||
+                      price?.["cbc:PriceAmount"] ||
+                      "0"
+                  );
+                  const unit =
+                    line["cbc:InvoicedQuantity"]?.["@_unitCode"] ||
+                    line["cbc:CreditedQuantity"]?.["@_unitCode"] ||
+                    "buc";
+                  const lineTotal = parseFloat(
+                    line["cbc:LineExtensionAmount"]?.["#text"] ||
+                      line["cbc:LineExtensionAmount"] ||
+                      String(qty * unitPrice)
+                  );
                   let vatRate = 19;
                   const taxCategory = item?.["cac:ClassifiedTaxCategory"];
                   if (taxCategory?.["cbc:Percent"]) {
-                    vatRate = parseFloat(taxCategory["cbc:Percent"]?.["#text"] || taxCategory["cbc:Percent"] || "19");
+                    vatRate = parseFloat(
+                      taxCategory["cbc:Percent"]?.["#text"] ||
+                        taxCategory["cbc:Percent"] ||
+                        "19"
+                    );
                   }
                   return {
                     invoiceArchiveId: dup.id,
@@ -281,11 +362,15 @@ export async function syncAllSpv(zile: number = 60) {
                   };
                 });
                 await db.insert(invoiceArchiveLines).values(linesToInsert);
-                console.log(`[SPV Cron] Backfilled ${linesToInsert.length} lines for existing invoice ${invoiceNumber}`);
+                console.log(
+                  `[SPV Cron] Backfilled ${linesToInsert.length} lines for existing invoice ${invoiceNumber}`
+                );
               }
             }
           } catch (lineErr: any) {
-            console.warn(`[SPV Cron] Failed to backfill lines for ${invoiceNumber}: ${lineErr.message}`);
+            console.warn(
+              `[SPV Cron] Failed to backfill lines for ${invoiceNumber}: ${lineErr.message}`
+            );
           }
 
           skipped++;
@@ -295,10 +380,15 @@ export async function syncAllSpv(zile: number = 60) {
         // Generate PDF
         let fileUrl = "spv_import";
         try {
-          const pdfRes = await convertXmlToPdf(xmlString, `Factura_${invoiceNumber}_${Date.now()}`);
+          const pdfRes = await convertXmlToPdf(
+            xmlString,
+            `Factura_${invoiceNumber}_${Date.now()}`
+          );
           if (pdfRes) fileUrl = pdfRes.url;
         } catch (pdfErr: any) {
-          console.warn(`[SPV Cron] PDF conversion failed for ${invoiceNumber}: ${pdfErr.message}`);
+          console.warn(
+            `[SPV Cron] PDF conversion failed for ${invoiceNumber}: ${pdfErr.message}`
+          );
         }
 
         // Save to invoiceArchive (with raw XML for PDF conversion)
@@ -322,24 +412,34 @@ export async function syncAllSpv(zile: number = 60) {
         });
 
         // --- ADD CLIENT IF NOT EXISTS ---
-        if (supplierCUI && supplierName && supplierName !== "Client necunoscut") {
+        if (
+          supplierCUI &&
+          supplierName &&
+          supplierName !== "Client necunoscut"
+        ) {
           try {
             const { clients } = await import("../drizzle/schema");
-            const cleanCUI = String(supplierCUI).replace(/^RO/i, '').trim();
-            
-            const [existingClient] = await db.select({ id: clients.id })
+            const cleanCUI = String(supplierCUI).replace(/^RO/i, "").trim();
+
+            const [existingClient] = await db
+              .select({ id: clients.id })
               .from(clients)
-              .where(and(
-                eq(clients.tenantId, intg.tenantId),
-                sql`REPLACE(UPPER(${clients.cui}), 'RO', '') = ${cleanCUI}`
-              ));
+              .where(
+                and(
+                  eq(clients.tenantId, intg.tenantId),
+                  sql`REPLACE(UPPER(${clients.cui}), 'RO', '') = ${cleanCUI}`
+                )
+              );
 
             if (!existingClient) {
               const party = targetParty?.["cac:Party"];
-              const address = party?.["cac:PostalAddress"]?.["cbc:StreetName"] || "";
+              const address =
+                party?.["cac:PostalAddress"]?.["cbc:StreetName"] || "";
               const city = party?.["cac:PostalAddress"]?.["cbc:CityName"] || "";
-              const county = party?.["cac:PostalAddress"]?.["cbc:CountrySubentity"] || "";
-              const email = party?.["cac:Contact"]?.["cbc:ElectronicMail"] || "";
+              const county =
+                party?.["cac:PostalAddress"]?.["cbc:CountrySubentity"] || "";
+              const email =
+                party?.["cac:Contact"]?.["cbc:ElectronicMail"] || "";
               const phone = party?.["cac:Contact"]?.["cbc:Telephone"] || "";
               const tva = String(supplierCUI).toUpperCase().startsWith("RO");
 
@@ -353,12 +453,17 @@ export async function syncAllSpv(zile: number = 60) {
                 country: "RO",
                 email: String(email),
                 phone: String(phone),
-                tva: tva ? 1 : 0
+                tva: tva ? 1 : 0,
               });
-              console.log(`[SPV Cron] Added new client: ${supplierName} (${supplierCUI})`);
+              console.log(
+                `[SPV Cron] Added new client: ${supplierName} (${supplierCUI})`
+              );
             }
           } catch (err: any) {
-            console.warn(`[SPV Cron] Failed to add client ${supplierName}:`, err.message);
+            console.warn(
+              `[SPV Cron] Failed to add client ${supplierName}:`,
+              err.message
+            );
           }
         }
         // --- END ADD CLIENT ---
@@ -366,25 +471,51 @@ export async function syncAllSpv(zile: number = 60) {
         // Extract and save invoice lines from XML
         try {
           const { invoiceArchiveLines } = await import("../drizzle/schema");
-          let xmlLines = invoiceObj["cac:InvoiceLine"] || invoiceObj["cac:CreditNoteLine"] || [];
+          let xmlLines =
+            invoiceObj["cac:InvoiceLine"] ||
+            invoiceObj["cac:CreditNoteLine"] ||
+            [];
           if (!Array.isArray(xmlLines)) xmlLines = [xmlLines];
 
-          const archiveId = (archiveResult as any)?.insertId || (archiveResult as any)?.id;
+          const archiveId =
+            (archiveResult as any)?.insertId || (archiveResult as any)?.id;
           if (archiveId && xmlLines.length > 0) {
             const linesToInsert = xmlLines.map((line: any) => {
               const item = line["cac:Item"];
               const price = line["cac:Price"];
-              const description = item?.["cbc:Name"] || item?.["cbc:Description"] || "Articol";
-              const qty = parseFloat(line["cbc:InvoicedQuantity"]?.["#text"] || line["cbc:InvoicedQuantity"] || line["cbc:CreditedQuantity"]?.["#text"] || line["cbc:CreditedQuantity"] || "1");
-              const unitPrice = parseFloat(price?.["cbc:PriceAmount"]?.["#text"] || price?.["cbc:PriceAmount"] || "0");
-              const unit = line["cbc:InvoicedQuantity"]?.["@_unitCode"] || line["cbc:CreditedQuantity"]?.["@_unitCode"] || "buc";
-              const lineTotal = parseFloat(line["cbc:LineExtensionAmount"]?.["#text"] || line["cbc:LineExtensionAmount"] || String(qty * unitPrice));
-              
+              const description =
+                item?.["cbc:Name"] || item?.["cbc:Description"] || "Articol";
+              const qty = parseFloat(
+                line["cbc:InvoicedQuantity"]?.["#text"] ||
+                  line["cbc:InvoicedQuantity"] ||
+                  line["cbc:CreditedQuantity"]?.["#text"] ||
+                  line["cbc:CreditedQuantity"] ||
+                  "1"
+              );
+              const unitPrice = parseFloat(
+                price?.["cbc:PriceAmount"]?.["#text"] ||
+                  price?.["cbc:PriceAmount"] ||
+                  "0"
+              );
+              const unit =
+                line["cbc:InvoicedQuantity"]?.["@_unitCode"] ||
+                line["cbc:CreditedQuantity"]?.["@_unitCode"] ||
+                "buc";
+              const lineTotal = parseFloat(
+                line["cbc:LineExtensionAmount"]?.["#text"] ||
+                  line["cbc:LineExtensionAmount"] ||
+                  String(qty * unitPrice)
+              );
+
               // Extract VAT rate
               let vatRate = 19;
               const taxCategory = item?.["cac:ClassifiedTaxCategory"];
               if (taxCategory?.["cbc:Percent"]) {
-                vatRate = parseFloat(taxCategory["cbc:Percent"]?.["#text"] || taxCategory["cbc:Percent"] || "19");
+                vatRate = parseFloat(
+                  taxCategory["cbc:Percent"]?.["#text"] ||
+                    taxCategory["cbc:Percent"] ||
+                    "19"
+                );
               }
 
               return {
@@ -400,25 +531,39 @@ export async function syncAllSpv(zile: number = 60) {
             });
 
             await db!.insert(invoiceArchiveLines).values(linesToInsert);
-            console.log(`[SPV Cron] Saved ${linesToInsert.length} lines for invoice ${invoiceNumber}`);
+            console.log(
+              `[SPV Cron] Saved ${linesToInsert.length} lines for invoice ${invoiceNumber}`
+            );
           }
         } catch (lineErr: any) {
-          console.warn(`[SPV Cron] Failed to extract lines for ${invoiceNumber}: ${lineErr.message}`);
+          console.warn(
+            `[SPV Cron] Failed to extract lines for ${invoiceNumber}: ${lineErr.message}`
+          );
         }
 
         imported++;
-        console.log(`[SPV Cron] ✓ Imported ${direction === "in" ? "received" : "sent"} invoice ${invoiceNumber} from ${supplierName}`);
+        console.log(
+          `[SPV Cron] ✓ Imported ${direction === "in" ? "received" : "sent"} invoice ${invoiceNumber} from ${supplierName}`
+        );
       }
 
       // Update sync time
-      await db.update(integrations)
-        .set({ lastSyncAt: new Date(), syncCount: (intg.syncCount || 0) + imported })
+      await db
+        .update(integrations)
+        .set({
+          lastSyncAt: new Date(),
+          syncCount: (intg.syncCount || 0) + imported,
+        })
         .where(eq(integrations.id, intg.id));
 
-      console.log(`[SPV Cron] Done for tenant ${intg.tenantId}: imported=${imported}, skipped=${skipped}`);
-
+      console.log(
+        `[SPV Cron] Done for tenant ${intg.tenantId}: imported=${imported}, skipped=${skipped}`
+      );
     } catch (e: any) {
-      console.error(`[SPV Cron] Error syncing for tenant ${intg.tenantId}:`, e.message);
+      console.error(
+        `[SPV Cron] Error syncing for tenant ${intg.tenantId}:`,
+        e.message
+      );
     }
   }
 }

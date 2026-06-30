@@ -1,8 +1,28 @@
 import { eq, and, desc, sql, count, isNull, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, tenants, userTenants, costCenters, subscriptionPlans, clients, leads, cmsSettings, pageVisits, accounts, modules, modulePricing, reInvoices, reInvoiceLines, invoiceArchive, invoiceArchiveLines, InsertInvoiceArchive, integrations } from "../drizzle/schema";
-import { ENV } from './_core/env';
-import { runHorecaMigrations } from '../modules/horeca/migrations';
+import {
+  InsertUser,
+  users,
+  tenants,
+  userTenants,
+  costCenters,
+  subscriptionPlans,
+  clients,
+  leads,
+  cmsSettings,
+  pageVisits,
+  accounts,
+  modules,
+  modulePricing,
+  reInvoices,
+  reInvoiceLines,
+  invoiceArchive,
+  invoiceArchiveLines,
+  InsertInvoiceArchive,
+  integrations,
+} from "../drizzle/schema";
+import { ENV } from "./_core/env";
+import { runHorecaMigrations } from "../modules/horeca/migrations";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -13,16 +33,30 @@ export async function getDb() {
       _db = drizzle(process.env.DATABASE_URL);
       // Safe migration: add rawXml column if missing
       try {
-        await _db.execute(sql`ALTER TABLE invoiceArchive ADD COLUMN rawXml LONGTEXT NULL`);
+        await _db.execute(
+          sql`ALTER TABLE invoiceArchive ADD COLUMN rawXml LONGTEXT NULL`
+        );
         console.log("[DB] Added rawXml column to invoiceArchive");
       } catch {
         // Column already exists — ignore
       }
-      
+
       // Safe migrations: add indexes for lines tables to prevent full table scans
-      try { await _db.execute(sql`CREATE INDEX idx_invoiceArchiveId ON invoiceArchiveLines(invoiceArchiveId)`); } catch {}
-      try { await _db.execute(sql`CREATE INDEX idx_reInvoiceId ON reInvoiceLines(reInvoiceId)`); } catch {}
-      try { await _db.execute(sql`CREATE INDEX idx_emittedInvoiceId ON emittedInvoiceLines(emittedInvoiceId)`); } catch {}
+      try {
+        await _db.execute(
+          sql`CREATE INDEX idx_invoiceArchiveId ON invoiceArchiveLines(invoiceArchiveId)`
+        );
+      } catch {}
+      try {
+        await _db.execute(
+          sql`CREATE INDEX idx_reInvoiceId ON reInvoiceLines(reInvoiceId)`
+        );
+      } catch {}
+      try {
+        await _db.execute(
+          sql`CREATE INDEX idx_emittedInvoiceId ON emittedInvoiceLines(emittedInvoiceId)`
+        );
+      } catch {}
       // Module migrations — fiecare modul izolat, safe
       await runHorecaMigrations(_db as any);
     } catch (error) {
@@ -71,8 +105,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       values.role = user.role;
       updateSet.role = user.role;
     } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
+      values.role = "admin";
+      updateSet.role = "admin";
     }
 
     if (!values.lastSignedIn) {
@@ -99,7 +133,11 @@ export async function getUserByOpenId(openId: string) {
     return undefined;
   }
 
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.openId, openId))
+    .limit(1);
 
   return result.length > 0 ? result[0] : undefined;
 }
@@ -111,8 +149,9 @@ export async function getUserByOpenId(openId: string) {
 export async function getTenantsByUser(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  
-  return db.select()
+
+  return db
+    .select()
     .from(tenants)
     .innerJoin(userTenants, eq(userTenants.tenantId, tenants.id))
     .where(eq(userTenants.userId, userId));
@@ -121,47 +160,67 @@ export async function getTenantsByUser(userId: number) {
 export async function getUserRole(userId: number, tenantId: number) {
   const db = await getDb();
   if (!db) return null;
-  
-  const result = await db.select()
+
+  const result = await db
+    .select()
     .from(userTenants)
-    .where(and(eq(userTenants.userId, userId), eq(userTenants.tenantId, tenantId)))
+    .where(
+      and(eq(userTenants.userId, userId), eq(userTenants.tenantId, tenantId))
+    )
     .limit(1);
-  
+
   return result.length > 0 ? result[0].role : null;
 }
 
 export async function getDefaultTenantForUser(userId: number) {
   const db = await getDb();
   if (!db) return null;
-  
-  const result = await db.select()
+
+  const result = await db
+    .select()
     .from(userTenants)
     .where(eq(userTenants.userId, userId))
     .limit(1);
-  
+
   return result.length > 0 ? result[0].tenantId : null;
 }
 
-export async function createTenant(data: { name: string; email: string; phone?: string; address?: string; cui?: string }) {
+export async function createTenant(data: {
+  name: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  cui?: string;
+}) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   const result = await db.insert(tenants).values(data);
   return result;
 }
 
-export async function createCostCenter(data: { tenantId: number; name: string; address?: string; cui?: string; email?: string; phone?: string; city?: string; country?: string }) {
+export async function createCostCenter(data: {
+  tenantId: number;
+  name: string;
+  address?: string;
+  cui?: string;
+  email?: string;
+  phone?: string;
+  city?: string;
+  country?: string;
+}) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
+
   return db.insert(costCenters).values(data);
 }
 
 export async function getCostCentersByTenant(tenantId: number) {
   const db = await getDb();
   if (!db) return [];
-  
-  return db.select()
+
+  return db
+    .select()
     .from(costCenters)
     .where(eq(costCenters.tenantId, tenantId));
 }
@@ -169,22 +228,36 @@ export async function getCostCentersByTenant(tenantId: number) {
 export async function getSubscriptionPlan(planId: number) {
   const db = await getDb();
   if (!db) return null;
-  
-  const result = await db.select()
+
+  const result = await db
+    .select()
     .from(subscriptionPlans)
     .where(eq(subscriptionPlans.id, planId))
     .limit(1);
-  
+
   return result.length > 0 ? result[0] : null;
 }
 
 // TODO: add more feature queries here as your schema grows.
 
-export async function updateCostCenter(id: number, tenantId: number, data: Partial<{ name: string; address?: string; cui?: string; email?: string; phone?: string; city?: string; country?: string }>) {
+export async function updateCostCenter(
+  id: number,
+  tenantId: number,
+  data: Partial<{
+    name: string;
+    address?: string;
+    cui?: string;
+    email?: string;
+    phone?: string;
+    city?: string;
+    country?: string;
+  }>
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
-  return db.update(costCenters)
+
+  return db
+    .update(costCenters)
     .set(data)
     .where(and(eq(costCenters.id, id), eq(costCenters.tenantId, tenantId)));
 }
@@ -192,31 +265,45 @@ export async function updateCostCenter(id: number, tenantId: number, data: Parti
 export async function deleteCostCenter(id: number, tenantId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  
-  return db.delete(costCenters)
+
+  return db
+    .delete(costCenters)
     .where(and(eq(costCenters.id, id), eq(costCenters.tenantId, tenantId)));
 }
 
 export async function getCostCenterById(id: number, tenantId: number) {
   const db = await getDb();
   if (!db) return null;
-  
-  const result = await db.select()
+
+  const result = await db
+    .select()
     .from(costCenters)
     .where(and(eq(costCenters.id, id), eq(costCenters.tenantId, tenantId)))
     .limit(1);
-  
+
   return result.length > 0 ? result[0] : null;
 }
 
-
 // ─── In-memory fallback for local dev (no DATABASE_URL) ──────────────────────
 type ClientRow = {
-  id: number; tenantId: number; name: string; cui?: string; regCom?: string;
-  tva?: number; address?: string; city?: string; country?: string;
-  email?: string; phone?: string; currency?: string;
-  totalInvoiced?: string; invoiceCount?: number; reInvoiceCount?: number;
-  isActive?: number; createdAt: Date; updatedAt: Date;
+  id: number;
+  tenantId: number;
+  name: string;
+  cui?: string;
+  regCom?: string;
+  tva?: number;
+  address?: string;
+  city?: string;
+  country?: string;
+  email?: string;
+  phone?: string;
+  currency?: string;
+  totalInvoiced?: string;
+  invoiceCount?: number;
+  reInvoiceCount?: number;
+  isActive?: number;
+  createdAt: Date;
+  updatedAt: Date;
 };
 let _memClients: ClientRow[] = [];
 let _memClientSeq = 1;
@@ -224,14 +311,23 @@ let _memClientSeq = 1;
 // Client functions
 export async function getClientsByTenant(tenantId: number) {
   const db = await getDb();
-  if (!db) return _memClients.filter(c => c.tenantId === tenantId && c.isActive !== 0);
+  if (!db)
+    return _memClients.filter(c => c.tenantId === tenantId && c.isActive !== 0);
   return db.select().from(clients).where(eq(clients.tenantId, tenantId));
 }
 
 export async function createClient(data: {
-  tenantId: number; name: string; cui?: string; regCom?: string; tva?: boolean;
-  address?: string; city?: string; country?: string;
-  email?: string; phone?: string; currency?: string;
+  tenantId: number;
+  name: string;
+  cui?: string;
+  regCom?: string;
+  tva?: boolean;
+  address?: string;
+  city?: string;
+  country?: string;
+  email?: string;
+  phone?: string;
+  currency?: string;
 }) {
   const db = await getDb();
   if (!db) {
@@ -247,26 +343,50 @@ export async function createClient(data: {
       updatedAt: new Date(),
     };
     _memClients.push(row);
-    console.log("[Dev] Client creat în memorie:", row.name, "| Total:", _memClients.length);
+    console.log(
+      "[Dev] Client creat în memorie:",
+      row.name,
+      "| Total:",
+      _memClients.length
+    );
     return row;
   }
   return db.insert(clients).values({ ...data, tva: data.tva ? 1 : 0 });
 }
 
-export async function updateClient(id: number, tenantId: number, data: Partial<{
-  name: string; cui: string; regCom: string; tva: boolean;
-  address: string; city: string; country: string;
-  email: string; phone: string; currency: string;
-}>) {
+export async function updateClient(
+  id: number,
+  tenantId: number,
+  data: Partial<{
+    name: string;
+    cui: string;
+    regCom: string;
+    tva: boolean;
+    address: string;
+    city: string;
+    country: string;
+    email: string;
+    phone: string;
+    currency: string;
+  }>
+) {
   const db = await getDb();
   if (!db) {
-    const idx = _memClients.findIndex(c => c.id === id && c.tenantId === tenantId);
+    const idx = _memClients.findIndex(
+      c => c.id === id && c.tenantId === tenantId
+    );
     if (idx !== -1) {
-      _memClients[idx] = { ..._memClients[idx], ...data, tva: data.tva ? 1 : 0, updatedAt: new Date() };
+      _memClients[idx] = {
+        ..._memClients[idx],
+        ...data,
+        tva: data.tva ? 1 : 0,
+        updatedAt: new Date(),
+      };
     }
     return _memClients[idx];
   }
-  return db.update(clients)
+  return db
+    .update(clients)
     .set({ ...data, tva: (data as any).tva ? 1 : 0, updatedAt: new Date() })
     .where(and(eq(clients.id, id), eq(clients.tenantId, tenantId)));
 }
@@ -274,16 +394,24 @@ export async function updateClient(id: number, tenantId: number, data: Partial<{
 export async function deleteClient(id: number, tenantId: number) {
   const db = await getDb();
   if (!db) {
-    _memClients = _memClients.filter(c => !(c.id === id && c.tenantId === tenantId));
+    _memClients = _memClients.filter(
+      c => !(c.id === id && c.tenantId === tenantId)
+    );
     return { success: true };
   }
-  return db.delete(clients).where(and(eq(clients.id, id), eq(clients.tenantId, tenantId)));
+  return db
+    .delete(clients)
+    .where(and(eq(clients.id, id), eq(clients.tenantId, tenantId)));
 }
 
 export async function getClientById(id: number, tenantId: number) {
   const db = await getDb();
-  if (!db) return _memClients.find(c => c.id === id && c.tenantId === tenantId) ?? null;
-  const result = await db.select()
+  if (!db)
+    return (
+      _memClients.find(c => c.id === id && c.tenantId === tenantId) ?? null
+    );
+  const result = await db
+    .select()
     .from(clients)
     .where(and(eq(clients.id, id), eq(clients.tenantId, tenantId)))
     .limit(1);
@@ -315,7 +443,10 @@ export async function getAllLeads() {
   return db.select().from(leads).orderBy(desc(leads.createdAt));
 }
 
-export async function updateLeadStatus(id: number, status: "new" | "contacted" | "converted" | "lost") {
+export async function updateLeadStatus(
+  id: number,
+  status: "new" | "contacted" | "converted" | "lost"
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   return db.update(leads).set({ status }).where(eq(leads.id, id));
@@ -332,7 +463,10 @@ export async function deleteLead(id: number) {
 export async function getAllSubscriptionPlans() {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(subscriptionPlans).orderBy(subscriptionPlans.monthlyPrice);
+  return db
+    .select()
+    .from(subscriptionPlans)
+    .orderBy(subscriptionPlans.monthlyPrice);
 }
 
 export async function createSubscriptionPlan(data: {
@@ -348,18 +482,24 @@ export async function createSubscriptionPlan(data: {
   return db.insert(subscriptionPlans).values({ ...data, isActive: 1 });
 }
 
-export async function updateSubscriptionPlan(id: number, data: Partial<{
-  name: string;
-  description: string;
-  monthlyPrice: number;
-  maxCostCenters: number;
-  maxUsers: number;
-  features: string;
-  isActive: number;
-}>) {
+export async function updateSubscriptionPlan(
+  id: number,
+  data: Partial<{
+    name: string;
+    description: string;
+    monthlyPrice: number;
+    maxCostCenters: number;
+    maxUsers: number;
+    features: string;
+    isActive: number;
+  }>
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return db.update(subscriptionPlans).set(data).where(eq(subscriptionPlans.id, id));
+  return db
+    .update(subscriptionPlans)
+    .set(data)
+    .where(eq(subscriptionPlans.id, id));
 }
 
 export async function deleteSubscriptionPlan(id: number) {
@@ -379,10 +519,16 @@ export async function getCmsSettings(group?: string) {
   return db.select().from(cmsSettings);
 }
 
-export async function upsertCmsSetting(key: string, value: string, label?: string, group?: string) {
+export async function upsertCmsSetting(
+  key: string,
+  value: string,
+  label?: string,
+  group?: string
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return db.insert(cmsSettings)
+  return db
+    .insert(cmsSettings)
     .values({ key, value, label: label ?? key, group: group ?? "general" })
     .onDuplicateKeyUpdate({ set: { value } });
 }
@@ -391,10 +537,14 @@ export async function upsertCmsSetting(key: string, value: string, label?: strin
 
 export async function getAdminStats() {
   const db = await getDb();
-  if (!db) return { totalLeads: 0, newLeads: 0, totalTenants: 0, totalAccounts: 0 };
+  if (!db)
+    return { totalLeads: 0, newLeads: 0, totalTenants: 0, totalAccounts: 0 };
 
   const [leadsCount] = await db.select({ total: count() }).from(leads);
-  const [newLeadsCount] = await db.select({ total: count() }).from(leads).where(eq(leads.status, "new"));
+  const [newLeadsCount] = await db
+    .select({ total: count() })
+    .from(leads)
+    .where(eq(leads.status, "new"));
   const [tenantsCount] = await db.select({ total: count() }).from(tenants);
   const [accountsCount] = await db.select({ total: count() }).from(accounts);
 
@@ -409,15 +559,18 @@ export async function getAdminStats() {
 export async function getAllAccounts() {
   const db = await getDb();
   if (!db) return [];
-  return db.select({
-    id: accounts.id,
-    email: accounts.email,
-    role: accounts.role,
-    isActive: accounts.isActive,
-    tenantId: accounts.tenantId,
-    lastLoginAt: accounts.lastLoginAt,
-    createdAt: accounts.createdAt,
-  }).from(accounts).orderBy(desc(accounts.createdAt));
+  return db
+    .select({
+      id: accounts.id,
+      email: accounts.email,
+      role: accounts.role,
+      isActive: accounts.isActive,
+      tenantId: accounts.tenantId,
+      lastLoginAt: accounts.lastLoginAt,
+      createdAt: accounts.createdAt,
+    })
+    .from(accounts)
+    .orderBy(desc(accounts.createdAt));
 }
 
 export async function getAllTenants() {
@@ -428,7 +581,12 @@ export async function getAllTenants() {
 
 // ─── Page Visits ──────────────────────────────────────────────────────────────
 
-export async function recordPageVisit(data: { path: string; referrer?: string; userAgent?: string; ip?: string }) {
+export async function recordPageVisit(data: {
+  path: string;
+  referrer?: string;
+  userAgent?: string;
+  ip?: string;
+}) {
   const db = await getDb();
   if (!db) return;
   return db.insert(pageVisits).values(data);
@@ -437,10 +595,14 @@ export async function recordPageVisit(data: { path: string; referrer?: string; u
 export async function getPageVisitStats() {
   const db = await getDb();
   if (!db) return [];
-  return db.select({
-    path: pageVisits.path,
-    visits: count(),
-  }).from(pageVisits).groupBy(pageVisits.path).orderBy(desc(count()));
+  return db
+    .select({
+      path: pageVisits.path,
+      visits: count(),
+    })
+    .from(pageVisits)
+    .groupBy(pageVisits.path)
+    .orderBy(desc(count()));
 }
 
 // ─── Modules & Module Pricing ─────────────────────────────────────────────────
@@ -454,8 +616,15 @@ export async function getAllModules() {
 export async function getActiveModulesWithPricing() {
   const db = await getDb();
   if (!db) return [];
-  const mods = await db.select().from(modules).where(eq(modules.isActive, 1)).orderBy(modules.sortOrder);
-  const prices = await db.select().from(modulePricing).where(eq(modulePricing.isActive, 1));
+  const mods = await db
+    .select()
+    .from(modules)
+    .where(eq(modules.isActive, 1))
+    .orderBy(modules.sortOrder);
+  const prices = await db
+    .select()
+    .from(modulePricing)
+    .where(eq(modulePricing.isActive, 1));
   return mods.map(m => ({
     ...m,
     pricing: prices.filter(p => p.moduleId === m.id),
@@ -516,7 +685,9 @@ export async function deleteModulePricing(id: number) {
 
 // ─── Re-Invoices ─────────────────────────────────────────────────────────────
 
-export async function getNextReInvoiceNumber(tenantId: number): Promise<string> {
+export async function getNextReInvoiceNumber(
+  tenantId: number
+): Promise<string> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const year = new Date().getFullYear();
@@ -575,7 +746,7 @@ export async function createReInvoice(data: {
     return { id, number: data.number };
   }
   const { lines, sourceInvoiceIds, ...header } = data as any;
-  
+
   let finalLines = lines;
   let devizNum = "";
   let hasDeviz = false;
@@ -586,8 +757,11 @@ export async function createReInvoice(data: {
   if (catalogLines.length > 0) {
     hasDeviz = true;
     const baseVat = catalogLines[0]?.vatRate ?? 19;
-    const laborTotal = catalogLines.reduce((sum: number, l: any) => sum + (l.quantity * l.unitPrice), 0);
-    
+    const laborTotal = catalogLines.reduce(
+      (sum: number, l: any) => sum + l.quantity * l.unitPrice,
+      0
+    );
+
     normalLines.push({
       description: `Manoperă și materiale conform deviz`,
       quantity: 1,
@@ -596,10 +770,10 @@ export async function createReInvoice(data: {
       markupPercent: 0,
       originalUnitPrice: laborTotal,
       total: laborTotal * (1 + baseVat / 100),
-      lineOrder: 9999
+      lineOrder: 9999,
     });
   }
-  
+
   finalLines = normalLines;
 
   let tTotal = 0;
@@ -607,7 +781,7 @@ export async function createReInvoice(data: {
   finalLines.forEach((l: any) => {
     const rowTotal = l.quantity * l.unitPrice;
     tVat += rowTotal * ((l.vatRate ?? 19) / 100);
-    tTotal += rowTotal + (rowTotal * ((l.vatRate ?? 19) / 100));
+    tTotal += rowTotal + rowTotal * ((l.vatRate ?? 19) / 100);
   });
 
   const [result] = await db.insert(reInvoices).values({
@@ -616,18 +790,26 @@ export async function createReInvoice(data: {
     totalVAT: tVat.toString() as any,
     total: tTotal.toString() as any,
   });
-  
+
   const reInvoiceId = (result as any).insertId as number;
 
   if (hasDeviz) {
-    const { devize, devizeLines, bonuriConsum, bonuriConsumLines } = await import("../drizzle/schema");
+    const { devize, devizeLines, bonuriConsum, bonuriConsumLines } =
+      await import("../drizzle/schema");
     devizNum = `DEV-RF-${reInvoiceId}`;
-    let tMat = 0; let tLab = 0; let tTot = 0;
+    let tMat = 0;
+    let tLab = 0;
+    let tTot = 0;
     for (const cl of catalogLines) {
       const lTot = cl.quantity * cl.unitPrice;
       tTot += lTot;
       if (cl.devizType === "MATERIAL") tMat += lTot;
-      else if (cl.devizType === "MANOPERA" || cl.devizType === "NORMA" || cl.devizType === "UTILAJ") tLab += lTot;
+      else if (
+        cl.devizType === "MANOPERA" ||
+        cl.devizType === "NORMA" ||
+        cl.devizType === "UTILAJ"
+      )
+        tLab += lTot;
     }
 
     const [dRes] = await db.insert(devize).values({
@@ -641,18 +823,22 @@ export async function createReInvoice(data: {
       status: "final",
     });
 
-    await db.insert(devizeLines).values(catalogLines.map((cl: any, i: number) => ({
-      devizId: dRes.insertId as number,
-      type: cl.devizType as "MATERIAL" | "MANOPERA" | "UTILAJ" | "NORMA",
-      code: cl.devizCode,
-      description: cl.description,
-      quantity: String(cl.quantity),
-      unitPrice: String(cl.unitPrice),
-      total: String(cl.quantity * cl.unitPrice),
-      lineOrder: i
-    })));
+    await db.insert(devizeLines).values(
+      catalogLines.map((cl: any, i: number) => ({
+        devizId: dRes.insertId as number,
+        type: cl.devizType as "MATERIAL" | "MANOPERA" | "UTILAJ" | "NORMA",
+        code: cl.devizCode,
+        description: cl.description,
+        quantity: String(cl.quantity),
+        unitPrice: String(cl.unitPrice),
+        total: String(cl.quantity * cl.unitPrice),
+        lineOrder: i,
+      }))
+    );
 
-    const matLines = catalogLines.filter((l: any) => l.devizType === "MATERIAL");
+    const matLines = catalogLines.filter(
+      (l: any) => l.devizType === "MATERIAL"
+    );
     if (matLines.length > 0) {
       const [bRes] = await db.insert(bonuriConsum).values({
         tenantId: header.tenantId,
@@ -661,19 +847,26 @@ export async function createReInvoice(data: {
         date: new Date(),
         status: "final",
       });
-      await db.insert(bonuriConsumLines).values(matLines.map((ml: any, i: number) => ({
-        bonId: bRes.insertId as number,
-        materialCode: ml.devizCode,
-        description: ml.description,
-        quantity: String(ml.quantity),
-        unitPrice: String(ml.unitPrice),
-        total: String(ml.quantity * ml.unitPrice),
-        lineOrder: i
-      } as any)));
+      await db.insert(bonuriConsumLines).values(
+        matLines.map(
+          (ml: any, i: number) =>
+            ({
+              bonId: bRes.insertId as number,
+              materialCode: ml.devizCode,
+              description: ml.description,
+              quantity: String(ml.quantity),
+              unitPrice: String(ml.unitPrice),
+              total: String(ml.quantity * ml.unitPrice),
+              lineOrder: i,
+            }) as any
+        )
+      );
     }
-    
-    const lToModify = finalLines.find((l: any) => l.description === "Manoperă și materiale conform deviz");
-    if(lToModify) {
+
+    const lToModify = finalLines.find(
+      (l: any) => l.description === "Manoperă și materiale conform deviz"
+    );
+    if (lToModify) {
       lToModify.description = `Manoperă și materiale conform deviz ${devizNum}`;
     }
   }
@@ -705,27 +898,33 @@ export async function getReInvoicesByTenant(tenantId: number) {
     .from(reInvoices)
     .where(eq(reInvoices.tenantId, tenantId))
     .orderBy(desc(reInvoices.createdAt));
-    
+
   if (items.length === 0) return [];
-  
+
   const itemIds = items.map(i => i.id);
-  const lines = await db.select().from(reInvoiceLines).where(inArray(reInvoiceLines.reInvoiceId, itemIds));
-  
+  const lines = await db
+    .select()
+    .from(reInvoiceLines)
+    .where(inArray(reInvoiceLines.reInvoiceId, itemIds));
+
   const linesMap = new Map<number, string[]>();
   for (const l of lines) {
     if (!linesMap.has(l.reInvoiceId)) linesMap.set(l.reInvoiceId, []);
     linesMap.get(l.reInvoiceId)!.push(l.description);
   }
-  
+
   return items.map(item => ({
     ...item,
-    itemsText: (linesMap.get(item.id) || []).join(" ")
+    itemsText: (linesMap.get(item.id) || []).join(" "),
   }));
 }
 
 export async function getReInvoiceById(id: number, tenantId: number) {
   const db = await getDb();
-  if (!db) return _memReInvoices.find(r => r.id === id && r.tenantId === tenantId) ?? null;
+  if (!db)
+    return (
+      _memReInvoices.find(r => r.id === id && r.tenantId === tenantId) ?? null
+    );
   const [inv] = await db
     .select()
     .from(reInvoices)
@@ -744,23 +943,44 @@ export async function getReInvoiceById(id: number, tenantId: number) {
 export async function getIntegrations(tenantId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(integrations).where(eq(integrations.tenantId, tenantId));
+  return db
+    .select()
+    .from(integrations)
+    .where(eq(integrations.tenantId, tenantId));
 }
 
 export async function upsertIntegration(
   tenantId: number,
   provider: "smartbill" | "spv" | "oblio",
-  data: { apiKey?: string; apiSecret?: string; tokenExpiresAt?: Date; status?: "active" | "inactive" | "error" }
+  data: {
+    apiKey?: string;
+    apiSecret?: string;
+    tokenExpiresAt?: Date;
+    status?: "active" | "inactive" | "error";
+  }
 ) {
   const db = await getDb();
   if (!db) return;
-  
-  const [existing] = await db.select().from(integrations).where(and(eq(integrations.tenantId, tenantId), eq(integrations.provider, provider)));
-  
+
+  const [existing] = await db
+    .select()
+    .from(integrations)
+    .where(
+      and(
+        eq(integrations.tenantId, tenantId),
+        eq(integrations.provider, provider)
+      )
+    );
+
   if (existing) {
-    return db.update(integrations).set({ ...data }).where(eq(integrations.id, existing.id));
+    return db
+      .update(integrations)
+      .set({ ...data })
+      .where(eq(integrations.id, existing.id));
   } else {
-    return db.insert(integrations).values({ tenantId, provider, ...data, status: data.status || "active" });
+    return db
+      .insert(integrations)
+      .values({ tenantId, provider, ...data, status: data.status || "active" });
   }
 }
 
@@ -784,29 +1004,41 @@ export async function updateReInvoiceStatus(
 export async function deleteReInvoice(id: number, tenantId: number) {
   const db = await getDb();
   if (!db) {
-    _memReInvoices = _memReInvoices.filter(r => !(r.id === id && r.tenantId === tenantId));
+    _memReInvoices = _memReInvoices.filter(
+      r => !(r.id === id && r.tenantId === tenantId)
+    );
     return { success: true };
   }
   await db.delete(reInvoiceLines).where(eq(reInvoiceLines.reInvoiceId, id));
-  return db.delete(reInvoices).where(and(eq(reInvoices.id, id), eq(reInvoices.tenantId, tenantId)));
+  return db
+    .delete(reInvoices)
+    .where(and(eq(reInvoices.id, id), eq(reInvoices.tenantId, tenantId)));
 }
 
 // ─── Invoice Archive helpers ──────────────────────────────────────────────────
 
-export async function getInvoiceArchiveList(tenantId: number, filters?: {
-  source?: string;
-  status?: string;
-  search?: string;
-  limit?: number;
-  offset?: number;
-}) {
+export async function getInvoiceArchiveList(
+  tenantId: number,
+  filters?: {
+    source?: string;
+    status?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }
+) {
   const db = await getDb();
   if (!db) return { items: [], total: 0 };
   const limit = filters?.limit ?? 50;
   const offset = filters?.offset ?? 0;
 
-  let query = db.select().from(invoiceArchive).where(eq(invoiceArchive.tenantId, tenantId));
-  const items = await db.select().from(invoiceArchive)
+  let query = db
+    .select()
+    .from(invoiceArchive)
+    .where(eq(invoiceArchive.tenantId, tenantId));
+  const items = await db
+    .select()
+    .from(invoiceArchive)
     .where(eq(invoiceArchive.tenantId, tenantId))
     .orderBy(desc(invoiceArchive.createdAt))
     .limit(limit)
@@ -815,20 +1047,26 @@ export async function getInvoiceArchiveList(tenantId: number, filters?: {
   let itemsWithLines = items.map(item => ({ ...item, itemsText: "" }));
   if (items.length > 0) {
     const itemIds = items.map(i => i.id);
-    const lines = await db.select().from(invoiceArchiveLines).where(inArray(invoiceArchiveLines.invoiceArchiveId, itemIds));
+    const lines = await db
+      .select()
+      .from(invoiceArchiveLines)
+      .where(inArray(invoiceArchiveLines.invoiceArchiveId, itemIds));
     const linesMap = new Map<number, string[]>();
     for (const l of lines) {
-      if (!linesMap.has(l.invoiceArchiveId)) linesMap.set(l.invoiceArchiveId, []);
+      if (!linesMap.has(l.invoiceArchiveId))
+        linesMap.set(l.invoiceArchiveId, []);
       linesMap.get(l.invoiceArchiveId)!.push(l.description);
     }
-    
+
     itemsWithLines = items.map(item => ({
       ...item,
-      itemsText: (linesMap.get(item.id) || []).join(" ")
+      itemsText: (linesMap.get(item.id) || []).join(" "),
     }));
   }
 
-  const [{ total }] = await db.select({ total: count() }).from(invoiceArchive)
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(invoiceArchive)
     .where(eq(invoiceArchive.tenantId, tenantId));
 
   return { items: itemsWithLines, total };
@@ -839,17 +1077,26 @@ export async function createInvoiceArchiveEntry(data: InsertInvoiceArchive) {
   if (!db) throw new Error("Database not available");
   const [result] = await db.insert(invoiceArchive).values(data);
   const id = (result as any).insertId;
-  const [entry] = await db.select().from(invoiceArchive).where(eq(invoiceArchive.id, id));
+  const [entry] = await db
+    .select()
+    .from(invoiceArchive)
+    .where(eq(invoiceArchive.id, id));
   return entry;
 }
 
 export async function getInvoiceArchiveById(id: number, tenantId: number) {
   const db = await getDb();
   if (!db) return null;
-  const [entry] = await db.select().from(invoiceArchive)
-    .where(and(eq(invoiceArchive.id, id), eq(invoiceArchive.tenantId, tenantId)));
+  const [entry] = await db
+    .select()
+    .from(invoiceArchive)
+    .where(
+      and(eq(invoiceArchive.id, id), eq(invoiceArchive.tenantId, tenantId))
+    );
   if (!entry) return null;
-  const lines = await db.select().from(invoiceArchiveLines)
+  const lines = await db
+    .select()
+    .from(invoiceArchiveLines)
     .where(eq(invoiceArchiveLines.invoiceArchiveId, id));
   return { ...entry, lines } as any;
 }
@@ -857,46 +1104,78 @@ export async function getInvoiceArchiveById(id: number, tenantId: number) {
 export async function getInvoiceArchiveByIds(ids: number[], tenantId: number) {
   const db = await getDb();
   if (!db) return [];
-  const entries = await db.select().from(invoiceArchive)
-    .where(and(inArray(invoiceArchive.id, ids), eq(invoiceArchive.tenantId, tenantId)));
+  const entries = await db
+    .select()
+    .from(invoiceArchive)
+    .where(
+      and(
+        inArray(invoiceArchive.id, ids),
+        eq(invoiceArchive.tenantId, tenantId)
+      )
+    );
   if (entries.length === 0) return [];
-  const lines = await db.select().from(invoiceArchiveLines)
+  const lines = await db
+    .select()
+    .from(invoiceArchiveLines)
     .where(inArray(invoiceArchiveLines.invoiceArchiveId, ids));
-  
+
   return entries.map(entry => ({
     ...entry,
-    lines: lines.filter(l => l.invoiceArchiveId === entry.id)
+    lines: lines.filter(l => l.invoiceArchiveId === entry.id),
   }));
 }
 
-export async function updateInvoiceArchiveEntry(id: number, tenantId: number, data: Partial<InsertInvoiceArchive>) {
+export async function updateInvoiceArchiveEntry(
+  id: number,
+  tenantId: number,
+  data: Partial<InsertInvoiceArchive>
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.update(invoiceArchive).set(data).where(and(eq(invoiceArchive.id, id), eq(invoiceArchive.tenantId, tenantId)));
+  await db
+    .update(invoiceArchive)
+    .set(data)
+    .where(
+      and(eq(invoiceArchive.id, id), eq(invoiceArchive.tenantId, tenantId))
+    );
   return getInvoiceArchiveById(id, tenantId);
 }
 
 export async function deleteInvoiceArchiveEntry(id: number, tenantId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.delete(invoiceArchive).where(and(eq(invoiceArchive.id, id), eq(invoiceArchive.tenantId, tenantId)));
+  await db
+    .delete(invoiceArchive)
+    .where(
+      and(eq(invoiceArchive.id, id), eq(invoiceArchive.tenantId, tenantId))
+    );
 }
 
 export async function getInvoiceArchiveStats(tenantId: number) {
   const db = await getDb();
   if (!db) return { total: 0, pending: 0, processed: 0, refactured: 0 };
-  const rows = await db.select({
-    status: invoiceArchive.status,
-    cnt: count(),
-  }).from(invoiceArchive).where(eq(invoiceArchive.tenantId, tenantId)).groupBy(invoiceArchive.status);
+  const rows = await db
+    .select({
+      status: invoiceArchive.status,
+      cnt: count(),
+    })
+    .from(invoiceArchive)
+    .where(eq(invoiceArchive.tenantId, tenantId))
+    .groupBy(invoiceArchive.status);
 
-  const stats = { total: 0, pending: 0, processed: 0, refactured: 0, archived: 0 };
+  const stats = {
+    total: 0,
+    pending: 0,
+    processed: 0,
+    refactured: 0,
+    archived: 0,
+  };
   for (const r of rows) {
     stats.total += Number(r.cnt);
-    if (r.status === 'pending') stats.pending = Number(r.cnt);
-    if (r.status === 'processed') stats.processed = Number(r.cnt);
-    if (r.status === 'refactured') stats.refactured = Number(r.cnt);
-    if (r.status === 'archived') stats.archived = Number(r.cnt);
+    if (r.status === "pending") stats.pending = Number(r.cnt);
+    if (r.status === "processed") stats.processed = Number(r.cnt);
+    if (r.status === "refactured") stats.refactured = Number(r.cnt);
+    if (r.status === "archived") stats.archived = Number(r.cnt);
   }
   return stats;
 }

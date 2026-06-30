@@ -47,7 +47,12 @@ async function getOblioToken(email: string, secret: string): Promise<string> {
   return cachedToken.token;
 }
 
-export async function syncOblioInvoices(tenantId: number): Promise<{ imported: number; skipped: number; clientsImported: number; errors: string[] }> {
+export async function syncOblioInvoices(tenantId: number): Promise<{
+  imported: number;
+  skipped: number;
+  clientsImported: number;
+  errors: string[];
+}> {
   const errors: string[] = [];
   let imported = 0;
   let skipped = 0;
@@ -57,16 +62,27 @@ export async function syncOblioInvoices(tenantId: number): Promise<{ imported: n
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
 
-    const [oblioIntg] = await db.select().from(integrations)
-      .where(and(eq(integrations.tenantId, tenantId), eq(integrations.provider, "oblio")));
+    const [oblioIntg] = await db
+      .select()
+      .from(integrations)
+      .where(
+        and(
+          eq(integrations.tenantId, tenantId),
+          eq(integrations.provider, "oblio")
+        )
+      );
 
-    if (!oblioIntg || oblioIntg.status !== 'active' || !oblioIntg.apiSecret) {
-      throw new Error("Integrarea Oblio nu este configurată sau este dezactivată");
+    if (!oblioIntg || oblioIntg.status !== "active" || !oblioIntg.apiSecret) {
+      throw new Error(
+        "Integrarea Oblio nu este configurată sau este dezactivată"
+      );
     }
 
     let parsed: any = {};
-    try { parsed = JSON.parse(oblioIntg.apiSecret); } catch {}
-    
+    try {
+      parsed = JSON.parse(oblioIntg.apiSecret);
+    } catch {}
+
     const email = parsed.email;
     const secret = parsed.apiSecret || parsed.secret;
     const cif = parsed.cif;
@@ -81,12 +97,15 @@ export async function syncOblioInvoices(tenantId: number): Promise<{ imported: n
     let hasMore = true;
 
     while (hasMore) {
-      const res = await fetch(`${OBLIO_INVOICE_LIST_URL}?cif=${cif}&limit=${limit}&offset=${offset}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
+      const res = await fetch(
+        `${OBLIO_INVOICE_LIST_URL}?cif=${cif}&limit=${limit}&offset=${offset}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
 
       if (!res.ok) {
         const txt = await res.text();
@@ -96,7 +115,9 @@ export async function syncOblioInvoices(tenantId: number): Promise<{ imported: n
       const data = await res.json();
       const invoices = data.data || [];
 
-      console.log(`[Oblio] Fetched ${invoices.length} invoices (offset=${offset})`);
+      console.log(
+        `[Oblio] Fetched ${invoices.length} invoices (offset=${offset})`
+      );
 
       if (invoices.length < limit) {
         hasMore = false;
@@ -109,11 +130,13 @@ export async function syncOblioInvoices(tenantId: number): Promise<{ imported: n
           const [existing] = await db
             .select({ id: invoiceArchive.id })
             .from(invoiceArchive)
-            .where(and(
-              eq(invoiceArchive.tenantId, tenantId),
-              eq(invoiceArchive.source, "oblio"),
-              eq(invoiceArchive.invoiceNumber, invoiceNumber)
-            ));
+            .where(
+              and(
+                eq(invoiceArchive.tenantId, tenantId),
+                eq(invoiceArchive.source, "oblio"),
+                eq(invoiceArchive.invoiceNumber, invoiceNumber)
+              )
+            );
 
           if (existing) {
             skipped++;
@@ -134,7 +157,12 @@ export async function syncOblioInvoices(tenantId: number): Promise<{ imported: n
                 const [existingClient] = await db
                   .select({ id: clients.id })
                   .from(clients)
-                  .where(and(eq(clients.tenantId, tenantId), eq(clients.cui, clientCui)));
+                  .where(
+                    and(
+                      eq(clients.tenantId, tenantId),
+                      eq(clients.cui, clientCui)
+                    )
+                  );
                 clientExists = !!existingClient;
               }
 
@@ -156,7 +184,9 @@ export async function syncOblioInvoices(tenantId: number): Promise<{ imported: n
                 console.log(`[Oblio] New client added: ${inv.client.name}`);
               }
             } catch (e: any) {
-              console.warn(`[Oblio] Could not upsert client ${inv.client.name}: ${e.message}`);
+              console.warn(
+                `[Oblio] Could not upsert client ${inv.client.name}: ${e.message}`
+              );
             }
           }
 
@@ -178,7 +208,10 @@ export async function syncOblioInvoices(tenantId: number): Promise<{ imported: n
             issueDate: inv.issueDate || "",
             dueDate: inv.dueDate || "",
             total: String(total),
-            totalVAT: String(Math.round(Math.abs(total) * 0.19 * 100) / 100 * (isStorno ? -1 : 1)),
+            totalVAT: String(
+              (Math.round(Math.abs(total) * 0.19 * 100) / 100) *
+                (isStorno ? -1 : 1)
+            ),
             currency: inv.currency || "RON",
             status: isCanceled ? "archived" : "pending",
             notes: [
@@ -186,7 +219,9 @@ export async function syncOblioInvoices(tenantId: number): Promise<{ imported: n
               isStorno ? "STORNO" : "",
               isCanceled ? "ANULATĂ" : "",
               inv.collected === "1" ? "Încasată" : "",
-            ].filter(Boolean).join(" | "),
+            ]
+              .filter(Boolean)
+              .join(" | "),
           });
 
           imported++;
@@ -200,15 +235,25 @@ export async function syncOblioInvoices(tenantId: number): Promise<{ imported: n
     }
 
     // Update integration status in DB
-    const [existing] = await db.select().from(integrations)
-      .where(and(eq(integrations.tenantId, tenantId), eq(integrations.provider, "oblio")));
+    const [existing] = await db
+      .select()
+      .from(integrations)
+      .where(
+        and(
+          eq(integrations.tenantId, tenantId),
+          eq(integrations.provider, "oblio")
+        )
+      );
 
     if (existing) {
-      await db.update(integrations).set({
-        status: "active",
-        lastSyncAt: new Date(),
-        syncCount: (existing.syncCount || 0) + imported,
-      }).where(eq(integrations.id, existing.id));
+      await db
+        .update(integrations)
+        .set({
+          status: "active",
+          lastSyncAt: new Date(),
+          syncCount: (existing.syncCount || 0) + imported,
+        })
+        .where(eq(integrations.id, existing.id));
     } else {
       await db.insert(integrations).values({
         tenantId,
@@ -219,8 +264,9 @@ export async function syncOblioInvoices(tenantId: number): Promise<{ imported: n
       });
     }
 
-    console.log(`[Oblio] Sync complete: imported=${imported}, skipped=${skipped}, clients=${clientsImported}, errors=${errors.length}`);
-
+    console.log(
+      `[Oblio] Sync complete: imported=${imported}, skipped=${skipped}, clients=${clientsImported}, errors=${errors.length}`
+    );
   } catch (e: any) {
     errors.push(e.message);
     console.error("[Oblio] Sync error:", e.message);

@@ -1,0 +1,157 @@
+import { useKioskStore } from "../store/kioskStore";
+import {
+  t,
+  LANGUAGES,
+  LANGUAGE_NAMES,
+  LANGUAGE_FLAGS,
+} from "../i18n/translations.js";
+import { BRANDS } from "../config/brands.js";
+import "./BrandSelectScreen.css";
+
+const BRAND_INFO = {
+  smashme: {
+    label: "SmashMe",
+    color: "#EE3B24",
+    emoji: "🍔",
+    desc: "Burgeri smash suculenți",
+  },
+  crunch: {
+    label: "Crunch",
+    color: "#FFB800",
+    emoji: "🍗",
+    desc: "Pui crispy delicios",
+  },
+  rollmaster: {
+    label: "Roll Master",
+    color: "#E31E24",
+    emoji: "🍣",
+    desc: "Bucătărie japoneză autentică",
+  },
+  lovesushi: {
+    label: "Love Sushi",
+    color: "#E31E24",
+    emoji: "🍣",
+    desc: "Iubim sushi-ul",
+  },
+  pokiwoki: {
+    label: "Poki-Woki",
+    color: "#F97316",
+    emoji: "🥗",
+    desc: "Hawaiian Poke Bowls",
+  },
+};
+
+export default function BrandSelectScreen() {
+  const goTo = useKioskStore(s => s.goTo);
+  const lang = useKioskStore(s => s.lang);
+  const setLang = useKioskStore(s => s.setLang);
+  const locationData = useKioskStore(s => s.locationData);
+  const kioskData = useKioskStore(s => s.kioskData);
+
+  const brands = kioskData?.brands || locationData?.brands || [];
+
+  const setActiveBrandId = useKioskStore(s => s.setActiveBrandId);
+
+  const selectBrand = brandId => {
+    setActiveBrandId(brandId);
+    goTo("orderType");
+  };
+
+  const allowedLangs =
+    locationData?.languages && locationData.languages.length > 0
+      ? locationData.languages
+      : LANGUAGES; // fallback to all if not configured
+
+  const btnColor = locationData?.langButtonColor || "#0f172a";
+  const isLightColor = parseInt(btnColor.replace("#", ""), 16) > 0xaaaaaa;
+  const btnTextColor = isLightColor ? "#111" : "#fff";
+  const showLangSelector =
+    (locationData?.langSelectorPosition || "after") !== "before";
+
+  return (
+    <div className="brand-select-screen screen">
+      {/* Language selector top-right */}
+      {showLangSelector && (
+        <div
+          className="bss-langs"
+          onClick={e => e.stopPropagation()}
+          style={
+            locationData?.langVerticalPosition === "bottom"
+              ? { top: "auto", bottom: "30px" }
+              : {}
+          }
+        >
+          {allowedLangs.map(l => (
+            <button
+              key={l}
+              className={`bss-lang-btn ${lang === l ? "active" : ""}`}
+              onClick={() => setLang(l)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                ...(lang !== l && locationData?.langBgColor
+                  ? { background: locationData.langBgColor }
+                  : {}),
+                ...(lang !== l && locationData?.langBorderColor
+                  ? { borderColor: locationData.langBorderColor }
+                  : {}),
+              }}
+            >
+              <img
+                src={`https://flagcdn.com/w40/${LANGUAGE_FLAGS[l]}.png`}
+                alt={l}
+                style={{ width: 18, borderRadius: 2 }}
+              />
+              {LANGUAGE_NAMES[l]}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <h1 className="bss-title">
+        {t("choose_brand", lang) || "Alege restaurantul"}
+      </h1>
+      <p className="bss-subtitle">
+        {t("choose_brand_sub", lang) ||
+          "Poți comanda de la mai multe restaurante"}
+      </p>
+
+      <div className="bss-grid">
+        {brands.map(bId => {
+          const info = BRAND_INFO[bId] || {
+            label: bId,
+            color: "#6b7a99",
+            emoji: "🍽",
+            desc: "",
+          };
+          const brandConfig = BRANDS[bId];
+          return (
+            <button
+              key={bId}
+              className="bss-card"
+              style={{ "--brand-c": info.color }}
+              onClick={() => selectBrand(bId)}
+            >
+              <div className="bss-logo-wrapper" style={{ height: "120px" }}>
+                <img
+                  src={`/brands/${bId}-logo.png`}
+                  alt={info.label}
+                  className="bss-logo"
+                  style={{ maxHeight: "100%", maxWidth: "200px" }}
+                  onError={e => {
+                    e.target.style.display = "none";
+                  }}
+                />
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <button className="bss-back" onClick={() => goTo("welcome")}>
+        ← {t("back", lang) || "Înapoi"}
+      </button>
+    </div>
+  );
+}

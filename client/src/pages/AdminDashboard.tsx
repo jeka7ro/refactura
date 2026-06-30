@@ -30,7 +30,9 @@ export default function AdminDashboard() {
       client.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const activeClients = tenants.filter((c: any) => c.subscriptionStatus === "active").length;
+  const activeClients = tenants.filter(
+    (c: any) => c.subscriptionStatus === "active"
+  ).length;
   // Estimate revenue roughly if we don't join plans
   const totalRevenue = tenants
     .filter((c: any) => c.subscriptionStatus === "active")
@@ -54,7 +56,9 @@ export default function AdminDashboard() {
       case "active":
         return <Badge className="bg-green-100 text-green-800">Active</Badge>;
       case "inactive":
-        return <Badge className="bg-yellow-100 text-yellow-800">Inactive</Badge>;
+        return (
+          <Badge className="bg-yellow-100 text-yellow-800">Inactive</Badge>
+        );
       case "cancelled":
         return <Badge className="bg-red-100 text-red-800">Cancelled</Badge>;
       default:
@@ -67,7 +71,9 @@ export default function AdminDashboard() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+            Admin Dashboard
+          </h1>
           <p className="text-gray-600">Manage clients and subscriptions</p>
         </div>
 
@@ -77,7 +83,9 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Active Clients</p>
-                <p className="text-3xl font-bold text-gray-900">{activeClients}</p>
+                <p className="text-3xl font-bold text-gray-900">
+                  {activeClients}
+                </p>
               </div>
               <Users className="h-12 w-12 text-blue-600 opacity-20" />
             </div>
@@ -87,7 +95,9 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Monthly Revenue</p>
-                <p className="text-3xl font-bold text-gray-900">${totalRevenue}</p>
+                <p className="text-3xl font-bold text-gray-900">
+                  ${totalRevenue}
+                </p>
               </div>
               <CreditCard className="h-12 w-12 text-green-600 opacity-20" />
             </div>
@@ -97,7 +107,9 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Total Clients</p>
-                <p className="text-3xl font-bold text-gray-900">{tenants.length}</p>
+                <p className="text-3xl font-bold text-gray-900">
+                  {tenants.length}
+                </p>
               </div>
               <TrendingUp className="h-12 w-12 text-purple-600 opacity-20" />
             </div>
@@ -122,7 +134,7 @@ export default function AdminDashboard() {
                 type="text"
                 placeholder="Search by name or email..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -133,39 +145,68 @@ export default function AdminDashboard() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Client</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Plan</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Monthly</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Cost Centers</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Expires</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                    Client
+                  </th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                    Plan
+                  </th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                    Status
+                  </th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                    Monthly
+                  </th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                    Cost Centers
+                  </th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                    Expires
+                  </th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {filteredClients.map((client) => (
-                  <tr key={client.id} className="border-b border-gray-100 hover:bg-gray-50">
+                {filteredClients.map(client => (
+                  <tr
+                    key={client.id}
+                    className="border-b border-gray-100 hover:bg-gray-50"
+                  >
                     <td className="py-4 px-4">
                       <div>
-                        <p className="font-medium text-gray-900">{client.name}</p>
+                        <p className="font-medium text-gray-900">
+                          {client.name}
+                        </p>
                         <p className="text-sm text-gray-500">{client.email}</p>
                       </div>
                     </td>
                     <td className="py-4 px-4">
-                      <Badge variant="outline">{client.subscriptionPlanId ? `Plan ID: ${client.subscriptionPlanId}` : 'Basic'}</Badge>
+                      <Badge variant="outline">
+                        {client.subscriptionPlanId
+                          ? `Plan ID: ${client.subscriptionPlanId}`
+                          : "Basic"}
+                      </Badge>
                     </td>
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-2">
-                        {getStatusIcon(client.subscriptionStatus || 'active')}
-                        {getStatusBadge(client.subscriptionStatus || 'active')}
+                        {getStatusIcon(client.subscriptionStatus || "active")}
+                        {getStatusBadge(client.subscriptionStatus || "active")}
                       </div>
                     </td>
-                    <td className="py-4 px-4 font-medium text-gray-900">${client.subscriptionPlanId ? 99 : 29}</td>
+                    <td className="py-4 px-4 font-medium text-gray-900">
+                      ${client.subscriptionPlanId ? 99 : 29}
+                    </td>
                     <td className="py-4 px-4 text-gray-600">N/A</td>
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-1 text-gray-600">
                         <Clock className="h-4 w-4" />
-                        {client.subscriptionEndDate ? new Date(client.subscriptionEndDate).toLocaleDateString() : 'N/A'}
+                        {client.subscriptionEndDate
+                          ? new Date(
+                              client.subscriptionEndDate
+                            ).toLocaleDateString()
+                          : "N/A"}
                       </div>
                     </td>
                     <td className="py-4 px-4">

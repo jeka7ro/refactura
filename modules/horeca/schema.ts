@@ -1,4 +1,12 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal } from "drizzle-orm/mysql-core";
+import {
+  int,
+  mysqlEnum,
+  mysqlTable,
+  text,
+  timestamp,
+  varchar,
+  decimal,
+} from "drizzle-orm/mysql-core";
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  SMART HORECA MODULE — Schema izolat
@@ -16,7 +24,15 @@ export const horecaLocations = mysqlTable("horecaLocations", {
   address: text("address"),
   city: varchar("city", { length: 100 }),
   phone: varchar("phone", { length: 20 }),
-  type: mysqlEnum("type", ["restaurant", "bar", "cafenea", "fast_food", "pizzerie", "catering", "hotel"]).default("restaurant"),
+  type: mysqlEnum("type", [
+    "restaurant",
+    "bar",
+    "cafenea",
+    "fast_food",
+    "pizzerie",
+    "catering",
+    "hotel",
+  ]).default("restaurant"),
   currency: varchar("currency", { length: 3 }).default("RON"),
   defaultVatFood: int("defaultVatFood").default(9),
   defaultVatAlcohol: int("defaultVatAlcohol").default(19),
@@ -117,7 +133,8 @@ export const horecaModifierGroups = mysqlTable("horecaModifierGroups", {
 });
 
 export type HorecaModifierGroup = typeof horecaModifierGroups.$inferSelect;
-export type InsertHorecaModifierGroup = typeof horecaModifierGroups.$inferInsert;
+export type InsertHorecaModifierGroup =
+  typeof horecaModifierGroups.$inferInsert;
 
 /**
  * HORECA Modifiers — Opțiuni per grup (ex: "Mediu", "Bine făcut", "+Bacon")
@@ -126,7 +143,10 @@ export const horecaModifiers = mysqlTable("horecaModifiers", {
   id: int("id").autoincrement().primaryKey(),
   groupId: int("groupId").notNull(),
   name: varchar("name", { length: 150 }).notNull(),
-  priceAdjustment: decimal("priceAdjustment", { precision: 8, scale: 2 }).default("0.00"),
+  priceAdjustment: decimal("priceAdjustment", {
+    precision: 8,
+    scale: 2,
+  }).default("0.00"),
   isDefault: int("isDefault").default(0),
   isActive: int("isActive").default(1),
   sortOrder: int("sortOrder").default(0),
@@ -147,7 +167,12 @@ export const horecaTables = mysqlTable("horecaTables", {
   zone: varchar("zone", { length: 100 }),
   posX: int("posX").default(0),
   posY: int("posY").default(0),
-  status: mysqlEnum("status", ["free", "occupied", "reserved", "cleaning"]).default("free"),
+  status: mysqlEnum("status", [
+    "free",
+    "occupied",
+    "reserved",
+    "cleaning",
+  ]).default("free"),
   currentOrderId: int("currentOrderId"),
   isActive: int("isActive").default(1),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -165,8 +190,18 @@ export const horecaOrders = mysqlTable("horecaOrders", {
   tenantId: int("tenantId").notNull(),
   locationId: int("locationId").notNull(),
   orderNumber: varchar("orderNumber", { length: 50 }).notNull(),
-  type: mysqlEnum("type", ["dine_in", "takeaway", "delivery"]).notNull().default("dine_in"),
-  status: mysqlEnum("status", ["draft", "sent", "preparing", "ready", "served", "paid", "cancelled"]).default("draft"),
+  type: mysqlEnum("type", ["dine_in", "takeaway", "delivery"])
+    .notNull()
+    .default("dine_in"),
+  status: mysqlEnum("status", [
+    "draft",
+    "sent",
+    "preparing",
+    "ready",
+    "served",
+    "paid",
+    "cancelled",
+  ]).default("draft"),
   tableId: int("tableId"),
   tableNumber: varchar("tableNumber", { length: 20 }),
   guestCount: int("guestCount").default(1),
@@ -177,7 +212,14 @@ export const horecaOrders = mysqlTable("horecaOrders", {
   discount: decimal("discount", { precision: 12, scale: 2 }).default("0.00"),
   tip: decimal("tip", { precision: 12, scale: 2 }).default("0.00"),
   currency: varchar("currency", { length: 3 }).default("RON"),
-  paymentMethod: mysqlEnum("paymentMethod", ["cash", "card", "voucher", "online", "room_charge", "mixed"]),
+  paymentMethod: mysqlEnum("paymentMethod", [
+    "cash",
+    "card",
+    "voucher",
+    "online",
+    "room_charge",
+    "mixed",
+  ]),
   paidAt: timestamp("paidAt"),
   deliveryOrderId: int("deliveryOrderId"),
   deliveryPlatform: varchar("deliveryPlatform", { length: 50 }),
@@ -209,7 +251,14 @@ export const horecaOrderLines = mysqlTable("horecaOrderLines", {
   foodCostUnit: decimal("foodCostUnit", { precision: 10, scale: 4 }),
   modifiers: text("modifiers"), // JSON snapshot modificatori
   notes: text("notes"),
-  status: mysqlEnum("status", ["pending", "sent", "preparing", "ready", "served", "cancelled"]).default("pending"),
+  status: mysqlEnum("status", [
+    "pending",
+    "sent",
+    "preparing",
+    "ready",
+    "served",
+    "cancelled",
+  ]).default("pending"),
   kitchenSection: varchar("kitchenSection", { length: 50 }),
   sentToKitchenAt: timestamp("sentToKitchenAt"),
   preparedAt: timestamp("preparedAt"),
@@ -227,15 +276,36 @@ export const horecaDeliveryOrders = mysqlTable("horecaDeliveryOrders", {
   tenantId: int("tenantId").notNull(),
   locationId: int("locationId").notNull(),
   externalId: varchar("externalId", { length: 100 }),
-  platform: mysqlEnum("platform", ["glovo", "wolt", "bolt_food", "tazz", "manual"]).notNull(),
-  status: mysqlEnum("status", ["new", "accepted", "preparing", "ready", "picked_up", "delivered", "cancelled", "rejected"]).default("new"),
+  platform: mysqlEnum("platform", [
+    "glovo",
+    "wolt",
+    "bolt_food",
+    "tazz",
+    "manual",
+  ]).notNull(),
+  status: mysqlEnum("status", [
+    "new",
+    "accepted",
+    "preparing",
+    "ready",
+    "picked_up",
+    "delivered",
+    "cancelled",
+    "rejected",
+  ]).default("new"),
   customerName: varchar("customerName", { length: 255 }),
   customerPhone: varchar("customerPhone", { length: 20 }),
   deliveryAddress: text("deliveryAddress"),
   subtotal: decimal("subtotal", { precision: 12, scale: 2 }),
-  commission: decimal("commission", { precision: 12, scale: 2 }).default("0.00"),
-  commissionPct: decimal("commissionPct", { precision: 5, scale: 2 }).default("0.00"),
-  deliveryFee: decimal("deliveryFee", { precision: 10, scale: 2 }).default("0.00"),
+  commission: decimal("commission", { precision: 12, scale: 2 }).default(
+    "0.00"
+  ),
+  commissionPct: decimal("commissionPct", { precision: 5, scale: 2 }).default(
+    "0.00"
+  ),
+  deliveryFee: decimal("deliveryFee", { precision: 10, scale: 2 }).default(
+    "0.00"
+  ),
   total: decimal("total", { precision: 12, scale: 2 }),
   currency: varchar("currency", { length: 3 }).default("RON"),
   rawPayload: text("rawPayload"), // JSON raw din API platformă
@@ -247,4 +317,61 @@ export const horecaDeliveryOrders = mysqlTable("horecaDeliveryOrders", {
 });
 
 export type HorecaDeliveryOrder = typeof horecaDeliveryOrders.$inferSelect;
-export type InsertHorecaDeliveryOrder = typeof horecaDeliveryOrders.$inferInsert;
+export type InsertHorecaDeliveryOrder =
+  typeof horecaDeliveryOrders.$inferInsert;
+
+/**
+ * HORECA Shifts — Ture / Închideri de Zi (Raport Z)
+ */
+export const horecaShifts = mysqlTable("horecaShifts", {
+  id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId").notNull(),
+  locationId: int("locationId").notNull(),
+  openedAt: timestamp("openedAt").defaultNow().notNull(),
+  closedAt: timestamp("closedAt"),
+  openedBy: int("openedBy"), // UserId (optional)
+  closedBy: int("closedBy"), // UserId (optional)
+  startCash: decimal("startCash", { precision: 12, scale: 2 }).default("0.00"), // Fond sertar
+  endCashExpected: decimal("endCashExpected", {
+    precision: 12,
+    scale: 2,
+  }).default("0.00"), // Cash calculat
+  endCashActual: decimal("endCashActual", { precision: 12, scale: 2 }).default(
+    "0.00"
+  ), // Cash numărat
+  totalCard: decimal("totalCard", { precision: 12, scale: 2 }).default("0.00"),
+  totalDelivery: decimal("totalDelivery", { precision: 12, scale: 2 }).default(
+    "0.00"
+  ), // Tazz/Glovo/Wolt etc
+  totalSales: decimal("totalSales", { precision: 12, scale: 2 }).default(
+    "0.00"
+  ),
+  totalTips: decimal("totalTips", { precision: 12, scale: 2 }).default("0.00"),
+  status: mysqlEnum("status", ["open", "closed"]).default("open"),
+  notes: text("notes"),
+  zReportData: text("zReportData"), // JSON cu breakdown detaliat, număr bonuri, etc.
+});
+
+export type HorecaShift = typeof horecaShifts.$inferSelect;
+export type InsertHorecaShift = typeof horecaShifts.$inferInsert;
+
+/**
+ * HORECA Kiosk Settings — Configurări vizuale și promoționale pentru interfața Kiosk-ului
+ */
+export const horecaKioskSettings = mysqlTable("horecaKioskSettings", {
+  id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId").notNull(),
+  locationId: int("locationId").notNull().unique(), // Only one settings profile per location
+  bannerTopUrl: varchar("bannerTopUrl", { length: 500 }),
+  bannerBottomUrl: varchar("bannerBottomUrl", { length: 500 }),
+  primaryColor: varchar("primaryColor", { length: 50 }).default("#EE3B24"),
+  secondaryColor: varchar("secondaryColor", { length: 50 }),
+  activeBrands: text("activeBrands"), // JSON array of brand strings e.g., ["smashme", "sushimaster"]
+  promoConfig: text("promoConfig"), // JSON object for Fortune Wheel prizes etc.
+  advancedConfig: text("advancedConfig"), // JSON object for PIN, Languages, Syrve Overrides, Screensaver, etc.
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type HorecaKioskSetting = typeof horecaKioskSettings.$inferSelect;
+export type InsertHorecaKioskSetting = typeof horecaKioskSettings.$inferInsert;

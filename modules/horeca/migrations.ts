@@ -191,6 +191,51 @@ export async function runHorecaMigrations(db: MySql2Database<any>) {
       updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )`);
 
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS horecaShifts (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      tenantId INT NOT NULL,
+      locationId INT NOT NULL,
+      openedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      closedAt TIMESTAMP NULL,
+      openedBy INT,
+      closedBy INT,
+      startCash DECIMAL(12,2) DEFAULT 0.00,
+      endCashExpected DECIMAL(12,2) DEFAULT 0.00,
+      endCashActual DECIMAL(12,2) DEFAULT 0.00,
+      totalCard DECIMAL(12,2) DEFAULT 0.00,
+      totalDelivery DECIMAL(12,2) DEFAULT 0.00,
+      totalSales DECIMAL(12,2) DEFAULT 0.00,
+      totalTips DECIMAL(12,2) DEFAULT 0.00,
+      status ENUM('open','closed') DEFAULT 'open',
+      notes TEXT,
+      zReportData TEXT
+    )`);
+
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS horecaKioskSettings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      tenantId INT NOT NULL,
+      locationId INT NOT NULL UNIQUE,
+      bannerTopUrl VARCHAR(500),
+      bannerBottomUrl VARCHAR(500),
+      primaryColor VARCHAR(50) DEFAULT '#EE3B24',
+      secondaryColor VARCHAR(50),
+      activeBrands TEXT,
+      promoConfig TEXT,
+      advancedConfig TEXT,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )`);
+
+    // Add column if it doesn't exist
+    try {
+      await db.execute(
+        sql`ALTER TABLE horecaKioskSettings ADD COLUMN advancedConfig TEXT`
+      );
+      console.log("[HORECA] Added advancedConfig to horecaKioskSettings");
+    } catch (e) {
+      // Ignore if exists
+    }
+
     console.log("[HORECA] ✓ All tables ensured");
   } catch (err) {
     console.error("[HORECA] Migration error:", err);

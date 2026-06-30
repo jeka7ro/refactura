@@ -1,8 +1,26 @@
 // EmittedInvoices.tsx — Lista Facturilor Emise Direct din Platformă
 import { useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
-import { Plus, Eye, Download, Pencil, Trash2, Send, Loader2, Search, ChevronLeft, ChevronRight, Undo2 } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Plus,
+  Eye,
+  Download,
+  Pencil,
+  Trash2,
+  Send,
+  Loader2,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Undo2,
+} from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { formatCurrency, formatDate } from "@/lib/store";
@@ -18,23 +36,30 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const STATUS_LABELS: Record<string, string> = {
-  draft: "Ciornă", sent: "Emisă", paid: "Achitată", overdue: "Restanță", cancelled: "Anulată",
+  draft: "Ciornă",
+  sent: "Emisă",
+  paid: "Achitată",
+  overdue: "Restanță",
+  cancelled: "Anulată",
 };
 const STATUS_COLORS: Record<string, string> = {
-  draft:     "bg-slate-100 text-slate-600 border-slate-200",
-  sent:      "bg-blue-50 text-blue-700 border-blue-200",
-  paid:      "bg-emerald-50 text-emerald-700 border-emerald-200",
-  overdue:   "bg-rose-50 text-rose-700 border-rose-200",
+  draft: "bg-slate-100 text-slate-600 border-slate-200",
+  sent: "bg-blue-50 text-blue-700 border-blue-200",
+  paid: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  overdue: "bg-rose-50 text-rose-700 border-rose-200",
   cancelled: "bg-slate-100 text-slate-500 border-slate-200",
 };
 const SPV_LABELS: Record<string, string> = {
-  nesincronizat: "Netrimisă", in_procesare: "Procesare", validat: "Validată", eroare: "Eroare",
+  nesincronizat: "Netrimisă",
+  in_procesare: "Procesare",
+  validat: "Validată",
+  eroare: "Eroare",
 };
 const SPV_COLORS: Record<string, string> = {
   nesincronizat: "text-slate-400",
-  in_procesare:  "text-blue-500",
-  validat:       "text-emerald-500 font-bold",
-  eroare:        "text-rose-500",
+  in_procesare: "text-blue-500",
+  validat: "text-emerald-500 font-bold",
+  eroare: "text-rose-500",
 };
 
 export default function EmittedInvoices() {
@@ -42,33 +67,46 @@ export default function EmittedInvoices() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [stornoTarget, setStornoTarget] = useState<{ id: number; number: string } | null>(null);
+  const [stornoTarget, setStornoTarget] = useState<{
+    id: number;
+    number: string;
+  } | null>(null);
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
 
   const { data = [], isLoading, refetch } = trpc.emittedInvoice.list.useQuery();
   const deleteMutation = trpc.emittedInvoice.delete.useMutation({
-    onSuccess: () => { toast.success("Factura ștearsă"); refetch(); setDeleteId(null); },
-    onError: (e) => { toast.error("Eroare: " + e.message); setDeleteId(null); },
+    onSuccess: () => {
+      toast.success("Factura ștearsă");
+      refetch();
+      setDeleteId(null);
+    },
+    onError: e => {
+      toast.error("Eroare: " + e.message);
+      setDeleteId(null);
+    },
   });
   const sendToSpv = trpc.emittedInvoice.sendToSpv.useMutation({
-    onSuccess: (res) => {
-      if (res.success) toast.success("Trimisă în SPV! Index: " + res.index_incarcare);
+    onSuccess: res => {
+      if (res.success)
+        toast.success("Trimisă în SPV! Index: " + res.index_incarcare);
       else toast.error("Eroare SPV: " + res.error);
       refetch();
     },
-    onError: (e) => toast.error("Eroare SPV: " + e.message),
+    onError: e => toast.error("Eroare SPV: " + e.message),
   });
 
   const filtered = useMemo(() => {
     let rows = data;
-    if (statusFilter !== "all") rows = rows.filter(r => r.status === statusFilter);
+    if (statusFilter !== "all")
+      rows = rows.filter(r => r.status === statusFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
-      rows = rows.filter(r =>
-        r.number.toLowerCase().includes(q) ||
-        r.clientName.toLowerCase().includes(q) ||
-        (r.clientCUI || "").includes(q)
+      rows = rows.filter(
+        r =>
+          r.number.toLowerCase().includes(q) ||
+          r.clientName.toLowerCase().includes(q) ||
+          (r.clientCUI || "").includes(q)
       );
     }
     return rows;
@@ -77,15 +115,21 @@ export default function EmittedInvoices() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
   const paged = filtered.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
-  const totalValue = useMemo(() => filtered.reduce((s, r) => s + parseFloat(String(r.total || 0)), 0), [filtered]);
+  const totalValue = useMemo(
+    () => filtered.reduce((s, r) => s + parseFloat(String(r.total || 0)), 0),
+    [filtered]
+  );
 
-  const counts = useMemo(() => ({
-    all: data.length,
-    draft: data.filter(r => r.status === "draft").length,
-    sent: data.filter(r => r.status === "sent").length,
-    paid: data.filter(r => r.status === "paid").length,
-    overdue: data.filter(r => r.status === "overdue").length,
-  }), [data]);
+  const counts = useMemo(
+    () => ({
+      all: data.length,
+      draft: data.filter(r => r.status === "draft").length,
+      sent: data.filter(r => r.status === "sent").length,
+      paid: data.filter(r => r.status === "paid").length,
+      overdue: data.filter(r => r.status === "overdue").length,
+    }),
+    [data]
+  );
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -95,7 +139,9 @@ export default function EmittedInvoices() {
           <h1 className="text-xl md:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
             Facturi Emise
           </h1>
-          <p className="text-sm text-slate-500 font-medium">Facturi emise direct din platformă</p>
+          <p className="text-sm text-slate-500 font-medium">
+            Facturi emise direct din platformă
+          </p>
         </div>
         <Link href="/facturi-emise-nou/new">
           <button className="flex items-center gap-1.5 px-4 h-9 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition-colors">
@@ -108,13 +154,26 @@ export default function EmittedInvoices() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: "Total Facturi", value: data.length, cls: "text-slate-900 dark:text-white" },
+          {
+            label: "Total Facturi",
+            value: data.length,
+            cls: "text-slate-900 dark:text-white",
+          },
           { label: "Achitate", value: counts.paid, cls: "text-emerald-600" },
           { label: "Restanțe", value: counts.overdue, cls: "text-rose-600" },
-          { label: "Valoare Totală", value: formatCurrency(totalValue, "RON"), cls: "text-blue-600" },
+          {
+            label: "Valoare Totală",
+            value: formatCurrency(totalValue, "RON"),
+            cls: "text-blue-600",
+          },
         ].map(k => (
-          <div key={k.label} className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">{k.label}</p>
+          <div
+            key={k.label}
+            className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4"
+          >
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+              {k.label}
+            </p>
             <p className={`text-xl font-black ${k.cls}`}>{k.value}</p>
           </div>
         ))}
@@ -127,15 +186,18 @@ export default function EmittedInvoices() {
           {/* Status Filters */}
           <div className="flex items-center gap-1.5 flex-wrap">
             {[
-              { id: "all",     label: "Toate",     count: counts.all },
-              { id: "draft",   label: "Ciornă",    count: counts.draft },
-              { id: "sent",    label: "Emise",   count: counts.sent },
-              { id: "paid",    label: "Achitate",  count: counts.paid },
-              { id: "overdue", label: "Restanțe",  count: counts.overdue },
+              { id: "all", label: "Toate", count: counts.all },
+              { id: "draft", label: "Ciornă", count: counts.draft },
+              { id: "sent", label: "Emise", count: counts.sent },
+              { id: "paid", label: "Achitate", count: counts.paid },
+              { id: "overdue", label: "Restanțe", count: counts.overdue },
             ].map(f => (
               <button
                 key={f.id}
-                onClick={() => { setStatusFilter(f.id); setPage(1); }}
+                onClick={() => {
+                  setStatusFilter(f.id);
+                  setPage(1);
+                }}
                 className={`flex items-center gap-1 px-3 h-7 rounded-lg text-xs font-semibold border transition-all ${
                   statusFilter === f.id
                     ? "bg-blue-600 text-white border-blue-600"
@@ -154,7 +216,10 @@ export default function EmittedInvoices() {
               type="text"
               placeholder="Caută factură, client..."
               value={search}
-              onChange={e => { setSearch(e.target.value); setPage(1); }}
+              onChange={e => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
               className="w-full h-8 !pl-10 pr-10 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-full text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {search && (
@@ -170,15 +235,33 @@ export default function EmittedInvoices() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-                <th className="text-center w-12 px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Nr.</th>
-                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Număr Factură</th>
-                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Client</th>
-                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden md:table-cell">Dată</th>
-                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden md:table-cell">Scadență</th>
-                <th className="text-right px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Total</th>
-                <th className="text-center px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Status</th>
-                <th className="text-center px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden lg:table-cell">SPV</th>
-                <th className="text-right px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Acțiuni</th>
+                <th className="text-center w-12 px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Nr.
+                </th>
+                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Număr Factură
+                </th>
+                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Client
+                </th>
+                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden md:table-cell">
+                  Dată
+                </th>
+                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden md:table-cell">
+                  Scadență
+                </th>
+                <th className="text-right px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Total
+                </th>
+                <th className="text-center px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Status
+                </th>
+                <th className="text-center px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden lg:table-cell">
+                  SPV
+                </th>
+                <th className="text-right px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Acțiuni
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
@@ -190,46 +273,84 @@ export default function EmittedInvoices() {
                 </tr>
               ) : paged.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-12 text-slate-400 text-sm">
-                    {data.length === 0 ? "Nicio factură emisă încă. Apasă pe «Emite Factură Nouă»." : "Niciun rezultat pentru filtrele selectate."}
+                  <td
+                    colSpan={9}
+                    className="text-center py-12 text-slate-400 text-sm"
+                  >
+                    {data.length === 0
+                      ? "Nicio factură emisă încă. Apasă pe «Emite Factură Nouă»."
+                      : "Niciun rezultat pentru filtrele selectate."}
                   </td>
                 </tr>
               ) : (
                 paged.map((row, idx) => (
                   <tr
                     key={row.id}
-                    onClick={() => navigate(`/facturi-emise-nou/view/${row.id}`)}
+                    onClick={() =>
+                      navigate(`/facturi-emise-nou/view/${row.id}`)
+                    }
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
                   >
                     <td className="text-center px-4 py-3 text-slate-400 text-xs">
                       {(page - 1) * rowsPerPage + idx + 1}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-sm font-bold text-blue-600 hover:underline text-left">{row.number}</span>
+                      <span className="text-sm font-bold text-blue-600 hover:underline text-left">
+                        {row.number}
+                      </span>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-[180px] truncate" title={row.clientName}>{row.clientName}</div>
-                      {row.clientCUI && <div className="text-[10px] text-slate-400 font-medium">CUI: {row.clientCUI}</div>}
+                      <div
+                        className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-[180px] truncate"
+                        title={row.clientName}
+                      >
+                        {row.clientName}
+                      </div>
+                      {row.clientCUI && (
+                        <div className="text-[10px] text-slate-400 font-medium">
+                          CUI: {row.clientCUI}
+                        </div>
+                      )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-500 hidden md:table-cell">{formatDate(row.issueDate)}</td>
-                    <td className="px-4 py-3 text-xs text-slate-500 hidden md:table-cell">{formatDate(row.dueDate || "")}</td>
+                    <td className="px-4 py-3 text-xs text-slate-500 hidden md:table-cell">
+                      {formatDate(row.issueDate)}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-500 hidden md:table-cell">
+                      {formatDate(row.dueDate || "")}
+                    </td>
                     <td className="px-4 py-3 text-right font-bold text-slate-900 dark:text-white text-xs">
-                      {formatCurrency(parseFloat(String(row.total)), (row.currency || "RON") as any)}
+                      {formatCurrency(
+                        parseFloat(String(row.total)),
+                        (row.currency || "RON") as any
+                      )}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${STATUS_COLORS[row.status || "draft"]}`}>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${STATUS_COLORS[row.status || "draft"]}`}
+                      >
                         {STATUS_LABELS[row.status || "draft"]}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center hidden lg:table-cell">
-                      <span className={`text-[10px] font-semibold ${SPV_COLORS[row.spvStatus || "nesincronizat"]}`}>
+                      <span
+                        className={`text-[10px] font-semibold ${SPV_COLORS[row.spvStatus || "nesincronizat"]}`}
+                      >
                         {SPV_LABELS[row.spvStatus || "nesincronizat"]}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
+                      <div
+                        className="flex items-center justify-end gap-1"
+                        onClick={e => e.stopPropagation()}
+                      >
                         <button
-                          onClick={() => setStornoTarget({ id: row.id, number: `${row.series || ''} ${row.number}`.trim() })}
+                          onClick={() =>
+                            setStornoTarget({
+                              id: row.id,
+                              number:
+                                `${row.series || ""} ${row.number}`.trim(),
+                            })
+                          }
                           className="w-7 h-7 rounded-lg border border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100 flex items-center justify-center transition-colors"
                           title="Storno Factură"
                         >
@@ -239,7 +360,7 @@ export default function EmittedInvoices() {
                           onClick={() => {
                             const a = document.createElement("a");
                             a.href = `/api/pdf/emitted/${row.id}?download=1`;
-                            a.download = `${row.series || ''}${row.number}.pdf`;
+                            a.download = `${row.series || ""}${row.number}.pdf`;
                             a.target = "_blank";
                             document.body.appendChild(a);
                             a.click();
@@ -251,14 +372,20 @@ export default function EmittedInvoices() {
                           <Download className="w-3.5 h-3.5" />
                         </button>
 
-                        {(!row.spvStatus || row.spvStatus === "nesincronizat" || row.spvStatus === "eroare") && (
+                        {(!row.spvStatus ||
+                          row.spvStatus === "nesincronizat" ||
+                          row.spvStatus === "eroare") && (
                           <button
                             onClick={() => sendToSpv.mutate({ id: row.id })}
                             disabled={sendToSpv.isPending}
                             className="w-7 h-7 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 flex items-center justify-center transition-colors"
                             title="Trimite în SPV"
                           >
-                            {sendToSpv.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                            {sendToSpv.isPending ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Send className="w-3.5 h-3.5" />
+                            )}
                           </button>
                         )}
                         <button
@@ -282,7 +409,13 @@ export default function EmittedInvoices() {
           <div className="flex items-center gap-4 text-xs text-slate-600 dark:text-slate-400">
             <div className="flex items-center gap-1 whitespace-nowrap">
               Afișează
-              <Select value={rowsPerPage.toString()} onValueChange={(val) => { setRowsPerPage(Number(val)); setPage(1); }}>
+              <Select
+                value={rowsPerPage.toString()}
+                onValueChange={val => {
+                  setRowsPerPage(Number(val));
+                  setPage(1);
+                }}
+              >
                 <SelectTrigger className="h-6 px-2 text-xs border-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700 w-[60px] rounded-lg focus:ring-1 focus:ring-blue-500 mx-1">
                   <SelectValue />
                 </SelectTrigger>
@@ -295,10 +428,14 @@ export default function EmittedInvoices() {
                 </SelectContent>
               </Select>
             </div>
-            <span>Total înregistrări: <strong>{filtered.length}</strong></span>
+            <span>
+              Total înregistrări: <strong>{filtered.length}</strong>
+            </span>
           </div>
           <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-            <span>Pagina {page} din {totalPages}</span>
+            <span>
+              Pagina {page} din {totalPages}
+            </span>
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
@@ -318,17 +455,25 @@ export default function EmittedInvoices() {
       </div>
 
       {/* Delete confirm */}
-      <AlertDialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)}>
+      <AlertDialog
+        open={deleteId !== null}
+        onOpenChange={() => setDeleteId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Șterge Factura?</AlertDialogTitle>
-            <AlertDialogDescription>Acțiunea este ireversibilă. Factura și toate liniile sale vor fi șterse definitiv.</AlertDialogDescription>
+            <AlertDialogDescription>
+              Acțiunea este ireversibilă. Factura și toate liniile sale vor fi
+              șterse definitiv.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Anulează</AlertDialogCancel>
             <AlertDialogAction
               className="bg-rose-600 hover:bg-rose-700 text-white"
-              onClick={() => deleteId && deleteMutation.mutate({ id: deleteId })}
+              onClick={() =>
+                deleteId && deleteMutation.mutate({ id: deleteId })
+              }
             >
               Șterge
             </AlertDialogAction>
@@ -337,20 +482,29 @@ export default function EmittedInvoices() {
       </AlertDialog>
 
       {/* Storno confirm */}
-      <AlertDialog open={stornoTarget !== null} onOpenChange={() => setStornoTarget(null)}>
+      <AlertDialog
+        open={stornoTarget !== null}
+        onOpenChange={() => setStornoTarget(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Emite factură de Storno?</AlertDialogTitle>
             <AlertDialogDescription>
-              Vei emite o factură de storno (cu valori negative) pentru factura <strong>{stornoTarget?.number}</strong>.
-              Factura originală nu va fi modificată. Ești sigur că vrei să continui?
+              Vei emite o factură de storno (cu valori negative) pentru factura{" "}
+              <strong>{stornoTarget?.number}</strong>. Factura originală nu va
+              fi modificată. Ești sigur că vrei să continui?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Anulează</AlertDialogCancel>
             <AlertDialogAction
               className="bg-orange-600 hover:bg-orange-700 text-white"
-              onClick={() => { if (stornoTarget) { navigate(`/facturi-emise-nou/storno/${stornoTarget.id}`); setStornoTarget(null); } }}
+              onClick={() => {
+                if (stornoTarget) {
+                  navigate(`/facturi-emise-nou/storno/${stornoTarget.id}`);
+                  setStornoTarget(null);
+                }
+              }}
             >
               Da, emite Storno
             </AlertDialogAction>

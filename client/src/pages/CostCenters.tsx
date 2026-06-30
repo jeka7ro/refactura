@@ -18,13 +18,25 @@ export default function CostCenters() {
   });
 
   // Fetch cost centers
-  const { data: costCenters = [], isLoading, refetch } = trpc.costCenters.list.useQuery();
-  
+  const {
+    data: costCenters = [],
+    isLoading,
+    refetch,
+  } = trpc.costCenters.list.useQuery();
+
   // Create mutation
   const createMutation = trpc.costCenters.create.useMutation({
     onSuccess: () => {
       refetch();
-      setFormData({ name: "", address: "", cui: "", email: "", phone: "", city: "", country: "" });
+      setFormData({
+        name: "",
+        address: "",
+        cui: "",
+        email: "",
+        phone: "",
+        city: "",
+        country: "",
+      });
       setShowForm(false);
     },
   });
@@ -33,7 +45,15 @@ export default function CostCenters() {
   const updateMutation = trpc.costCenters.update.useMutation({
     onSuccess: () => {
       refetch();
-      setFormData({ name: "", address: "", cui: "", email: "", phone: "", city: "", country: "" });
+      setFormData({
+        name: "",
+        address: "",
+        cui: "",
+        email: "",
+        phone: "",
+        city: "",
+        country: "",
+      });
       setEditingId(null);
       setShowForm(false);
     },
@@ -117,13 +137,25 @@ export default function CostCenters() {
       {/* Header */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
-          <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">Centre de Cost</h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Total: <strong>{costCenters.length}</strong> centre</p>
+          <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
+            Centre de Cost
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Total: <strong>{costCenters.length}</strong> centre
+          </p>
         </div>
         <button
           onClick={() => {
             setEditingId(null);
-            setFormData({ name: "", address: "", cui: "", email: "", phone: "", city: "", country: "" });
+            setFormData({
+              name: "",
+              address: "",
+              cui: "",
+              email: "",
+              phone: "",
+              city: "",
+              country: "",
+            });
             setShowForm(!showForm);
           }}
           className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors shadow-sm"
@@ -136,13 +168,17 @@ export default function CostCenters() {
       {/* KPI pills */}
       <div className="flex flex-wrap gap-1.5">
         <span className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-xs font-semibold border bg-blue-50 text-blue-700 border-blue-200">
-          <MapPin className="w-3 h-3" /> Centre <strong>{costCenters.length}</strong>
+          <MapPin className="w-3 h-3" /> Centre{" "}
+          <strong>{costCenters.length}</strong>
         </span>
         <span className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-xs font-semibold border bg-emerald-50 text-emerald-700 border-emerald-200">
           Activ <strong>{activeCount}</strong>
         </span>
         <span className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-xs font-semibold border bg-purple-50 text-purple-700 border-purple-200">
-          Orașe <strong>{new Set(costCenters.map((c: any) => c.city).filter(Boolean)).size}</strong>
+          Orașe{" "}
+          <strong>
+            {new Set(costCenters.map((c: any) => c.city).filter(Boolean)).size}
+          </strong>
         </span>
       </div>
 
@@ -158,7 +194,9 @@ export default function CostCenters() {
                 type="text"
                 placeholder="Nume Centru *"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
                 className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400"
                 autoComplete="organization"
                 required
@@ -167,7 +205,9 @@ export default function CostCenters() {
                 type="text"
                 placeholder="Oraș"
                 value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, city: e.target.value })
+                }
                 className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400"
                 autoComplete="address-level2"
               />
@@ -175,7 +215,9 @@ export default function CostCenters() {
                 type="text"
                 placeholder="Adresă"
                 value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, address: e.target.value })
+                }
                 className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400"
                 autoComplete="street-address"
               />
@@ -183,7 +225,9 @@ export default function CostCenters() {
                 type="text"
                 placeholder="CUI"
                 value={formData.cui}
-                onChange={(e) => setFormData({ ...formData, cui: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, cui: e.target.value })
+                }
                 className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400"
                 autoComplete="off"
               />
@@ -191,7 +235,9 @@ export default function CostCenters() {
                 type="email"
                 placeholder="Email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
                 className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400"
                 autoComplete="email"
               />
@@ -199,7 +245,9 @@ export default function CostCenters() {
                 type="tel"
                 placeholder="Telefon"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
                 className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400"
                 autoComplete="tel"
               />
@@ -215,7 +263,10 @@ export default function CostCenters() {
               >
                 Anulează
               </Button>
-              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+              <Button
+                type="submit"
+                disabled={createMutation.isPending || updateMutation.isPending}
+              >
                 {editingId ? "Actualizează" : "Adaugă"}
               </Button>
             </div>
@@ -229,7 +280,7 @@ export default function CostCenters() {
         data={costCenters}
         rowKey="id"
         isLoading={isLoading}
-        actions={(row) => (
+        actions={row => (
           <div className="flex gap-1 justify-end">
             <button
               onClick={() => handleEdit(row)}

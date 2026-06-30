@@ -15,14 +15,22 @@ export async function hashPassword(password: string): Promise<string> {
 /**
  * Verify a password against a hash
  */
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+export async function verifyPassword(
+  password: string,
+  hash: string
+): Promise<boolean> {
   return bcrypt.compare(password, hash);
 }
 
 /**
  * Create a new account (register)
  */
-export async function createAccount(email: string, password: string, tenantId?: number, role: "superadmin" | "admin" | "user" = "user") {
+export async function createAccount(
+  email: string,
+  password: string,
+  tenantId?: number,
+  role: "superadmin" | "admin" | "user" = "user"
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -58,11 +66,15 @@ export async function authenticateAccount(email: string, password: string) {
       passwordHash: "mock",
       tenantId: 1,
       role: "admin" as const,
-      isActive: 1
+      isActive: 1,
     };
   }
 
-  const result = await db.select().from(accounts).where(eq(accounts.email, email)).limit(1);
+  const result = await db
+    .select()
+    .from(accounts)
+    .where(eq(accounts.email, email))
+    .limit(1);
 
   if (result.length === 0) {
     throw new Error("Invalid email or password");
@@ -80,7 +92,8 @@ export async function authenticateAccount(email: string, password: string) {
   }
 
   // Update last login
-  await db.update(accounts)
+  await db
+    .update(accounts)
     .set({ lastLoginAt: new Date() })
     .where(eq(accounts.id, account.id));
 
@@ -94,7 +107,11 @@ export async function getAccountByEmail(email: string) {
   const db = await getDb();
   if (!db) return null;
 
-  const result = await db.select().from(accounts).where(eq(accounts.email, email)).limit(1);
+  const result = await db
+    .select()
+    .from(accounts)
+    .where(eq(accounts.email, email))
+    .limit(1);
   return result.length > 0 ? result[0] : null;
 }
 
@@ -118,6 +135,10 @@ export async function getAccountById(id: number) {
     };
   }
 
-  const result = await db.select().from(accounts).where(eq(accounts.id, id)).limit(1);
+  const result = await db
+    .select()
+    .from(accounts)
+    .where(eq(accounts.id, id))
+    .limit(1);
   return result.length > 0 ? result[0] : null;
 }

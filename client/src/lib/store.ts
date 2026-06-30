@@ -4,7 +4,12 @@
 export type Currency = "RON" | "EUR" | "USD" | "GBP" | "CHF";
 export type Language = "ro" | "en" | "de" | "fr";
 export type Country = "RO" | "DE" | "FR" | "GB" | "US";
-export type InvoiceStatus = "imported" | "re-invoiced" | "partial" | "pending" | "storno";
+export type InvoiceStatus =
+  | "imported"
+  | "re-invoiced"
+  | "partial"
+  | "pending"
+  | "storno";
 export type ReInvoiceStatus = "draft" | "sent" | "paid" | "overdue";
 export type IntegrationSource = "SmartBill" | "SPV" | "Oblio" | "Manual";
 
@@ -125,14 +130,38 @@ export const mockInvoices: Invoice[] = [
     date: "2024-11-15",
     dueDate: "2024-12-15",
     currency: "RON",
-    total: 12450.00,
-    totalVAT: 1985.50,
+    total: 12450.0,
+    totalVAT: 1985.5,
     status: "re-invoiced",
     importedAt: "2024-11-16T08:30:00Z",
     lines: [
-      { id: "l1", description: "Ciment Portland CEM I 42.5R, saci 25kg", quantity: 200, unitPrice: 28.50, unit: "sac", vatRate: 19, currency: "RON" },
-      { id: "l2", description: "Nisip de construcții 0-4mm, big bag 1t", quantity: 15, unitPrice: 185.00, unit: "buc", vatRate: 19, currency: "RON" },
-      { id: "l3", description: "Plasă sudată Ø6 2x3m", quantity: 50, unitPrice: 42.00, unit: "buc", vatRate: 19, currency: "RON" },
+      {
+        id: "l1",
+        description: "Ciment Portland CEM I 42.5R, saci 25kg",
+        quantity: 200,
+        unitPrice: 28.5,
+        unit: "sac",
+        vatRate: 19,
+        currency: "RON",
+      },
+      {
+        id: "l2",
+        description: "Nisip de construcții 0-4mm, big bag 1t",
+        quantity: 15,
+        unitPrice: 185.0,
+        unit: "buc",
+        vatRate: 19,
+        currency: "RON",
+      },
+      {
+        id: "l3",
+        description: "Plasă sudată Ø6 2x3m",
+        quantity: 50,
+        unitPrice: 42.0,
+        unit: "buc",
+        vatRate: 19,
+        currency: "RON",
+      },
     ],
   },
   {
@@ -144,14 +173,38 @@ export const mockInvoices: Invoice[] = [
     date: "2024-11-20",
     dueDate: "2024-12-20",
     currency: "RON",
-    total: 8320.00,
+    total: 8320.0,
     totalVAT: 1327.06,
     status: "partial",
     importedAt: "2024-11-21T09:15:00Z",
     lines: [
-      { id: "l4", description: "Vopsea lavabilă albă 15L Dulux", quantity: 30, unitPrice: 145.00, unit: "buc", vatRate: 19, currency: "RON" },
-      { id: "l5", description: "Gresie porțelanată 60x60 Gri Antracit", quantity: 120, unitPrice: 38.50, unit: "mp", vatRate: 19, currency: "RON" },
-      { id: "l6", description: "Adeziv gresie C2TE 25kg", quantity: 40, unitPrice: 52.00, unit: "sac", vatRate: 19, currency: "RON" },
+      {
+        id: "l4",
+        description: "Vopsea lavabilă albă 15L Dulux",
+        quantity: 30,
+        unitPrice: 145.0,
+        unit: "buc",
+        vatRate: 19,
+        currency: "RON",
+      },
+      {
+        id: "l5",
+        description: "Gresie porțelanată 60x60 Gri Antracit",
+        quantity: 120,
+        unitPrice: 38.5,
+        unit: "mp",
+        vatRate: 19,
+        currency: "RON",
+      },
+      {
+        id: "l6",
+        description: "Adeziv gresie C2TE 25kg",
+        quantity: 40,
+        unitPrice: 52.0,
+        unit: "sac",
+        vatRate: 19,
+        currency: "RON",
+      },
     ],
   },
   {
@@ -163,14 +216,38 @@ export const mockInvoices: Invoice[] = [
     date: "2024-11-22",
     dueDate: "2024-12-22",
     currency: "EUR",
-    total: 3200.00,
-    totalVAT: 608.00,
+    total: 3200.0,
+    totalVAT: 608.0,
     status: "pending",
     importedAt: "2024-11-23T10:00:00Z",
     lines: [
-      { id: "l7", description: "Plăci gips-carton GKB 12.5mm 1.2x2.6m", quantity: 100, unitPrice: 18.00, unit: "buc", vatRate: 19, currency: "EUR" },
-      { id: "l8", description: "Profil CW 75/3m", quantity: 200, unitPrice: 4.50, unit: "buc", vatRate: 19, currency: "EUR" },
-      { id: "l9", description: "Profil UW 75/3m", quantity: 100, unitPrice: 4.20, unit: "buc", vatRate: 19, currency: "EUR" },
+      {
+        id: "l7",
+        description: "Plăci gips-carton GKB 12.5mm 1.2x2.6m",
+        quantity: 100,
+        unitPrice: 18.0,
+        unit: "buc",
+        vatRate: 19,
+        currency: "EUR",
+      },
+      {
+        id: "l8",
+        description: "Profil CW 75/3m",
+        quantity: 200,
+        unitPrice: 4.5,
+        unit: "buc",
+        vatRate: 19,
+        currency: "EUR",
+      },
+      {
+        id: "l9",
+        description: "Profil UW 75/3m",
+        quantity: 100,
+        unitPrice: 4.2,
+        unit: "buc",
+        vatRate: 19,
+        currency: "EUR",
+      },
     ],
   },
   {
@@ -182,13 +259,29 @@ export const mockInvoices: Invoice[] = [
     date: "2024-11-25",
     dueDate: "2024-12-25",
     currency: "RON",
-    total: 18750.00,
+    total: 18750.0,
     totalVAT: 2992.44,
     status: "imported",
     importedAt: "2024-11-26T07:45:00Z",
     lines: [
-      { id: "l10", description: "Vată minerală bazaltică 10cm 1.2x0.6m", quantity: 300, unitPrice: 38.50, unit: "buc", vatRate: 19, currency: "RON" },
-      { id: "l11", description: "Polistiren expandat EPS 100 10cm", quantity: 200, unitPrice: 42.00, unit: "buc", vatRate: 19, currency: "RON" },
+      {
+        id: "l10",
+        description: "Vată minerală bazaltică 10cm 1.2x0.6m",
+        quantity: 300,
+        unitPrice: 38.5,
+        unit: "buc",
+        vatRate: 19,
+        currency: "RON",
+      },
+      {
+        id: "l11",
+        description: "Polistiren expandat EPS 100 10cm",
+        quantity: 200,
+        unitPrice: 42.0,
+        unit: "buc",
+        vatRate: 19,
+        currency: "RON",
+      },
     ],
   },
   {
@@ -200,13 +293,29 @@ export const mockInvoices: Invoice[] = [
     date: "2024-11-28",
     dueDate: "2024-12-28",
     currency: "RON",
-    total: 5600.00,
+    total: 5600.0,
     totalVAT: 893.28,
     status: "imported",
     importedAt: "2024-11-28T14:20:00Z",
     lines: [
-      { id: "l12", description: "Tencuială decorativă Baumit Granopor 25kg", quantity: 80, unitPrice: 42.00, unit: "sac", vatRate: 19, currency: "RON" },
-      { id: "l13", description: "Grund Baumit UniPrimer 10L", quantity: 40, unitPrice: 56.00, unit: "buc", vatRate: 19, currency: "RON" },
+      {
+        id: "l12",
+        description: "Tencuială decorativă Baumit Granopor 25kg",
+        quantity: 80,
+        unitPrice: 42.0,
+        unit: "sac",
+        vatRate: 19,
+        currency: "RON",
+      },
+      {
+        id: "l13",
+        description: "Grund Baumit UniPrimer 10L",
+        quantity: 40,
+        unitPrice: 56.0,
+        unit: "buc",
+        vatRate: 19,
+        currency: "RON",
+      },
     ],
   },
 ];
@@ -229,7 +338,7 @@ export const mockClients: Client[] = [
     iban: "RO49AAAA1B31007593840000",
     bank: "BCR",
     createdAt: "2024-01-15",
-    totalInvoiced: 45200.00,
+    totalInvoiced: 45200.0,
     invoiceCount: 8,
   },
   {
@@ -249,7 +358,7 @@ export const mockClients: Client[] = [
     iban: "RO49AAAA1B31007593840001",
     bank: "ING",
     createdAt: "2024-03-10",
-    totalInvoiced: 28750.00,
+    totalInvoiced: 28750.0,
     invoiceCount: 5,
   },
   {
@@ -269,7 +378,7 @@ export const mockClients: Client[] = [
     iban: "DE89370400440532013000",
     bank: "Deutsche Bank",
     createdAt: "2024-05-20",
-    totalInvoiced: 15600.00,
+    totalInvoiced: 15600.0,
     invoiceCount: 3,
   },
   {
@@ -287,7 +396,7 @@ export const mockClients: Client[] = [
     language: "ro",
     contactPerson: "Ion Dumitrescu",
     createdAt: "2024-02-28",
-    totalInvoiced: 67800.00,
+    totalInvoiced: 67800.0,
     invoiceCount: 12,
   },
 ];
@@ -303,14 +412,44 @@ export const mockReInvoices: ReInvoice[] = [
     date: "2024-11-18",
     dueDate: "2024-12-18",
     currency: "RON",
-    total: 14540.00,
-    totalVAT: 2318.00,
+    total: 14540.0,
+    totalVAT: 2318.0,
     status: "paid",
     createdAt: "2024-11-18T10:00:00Z",
     lines: [
-      { id: "rl1", description: "Ciment Portland CEM I 42.5R, saci 25kg", quantity: 200, unitPrice: 33.00, originalUnitPrice: 28.50, markupPercent: 15.79, unit: "sac", vatRate: 19, currency: "RON" },
-      { id: "rl2", description: "Nisip de construcții 0-4mm, big bag 1t", quantity: 15, unitPrice: 215.00, originalUnitPrice: 185.00, markupPercent: 16.22, unit: "buc", vatRate: 19, currency: "RON" },
-      { id: "rl3", description: "Plasă sudată Ø6 2x3m", quantity: 50, unitPrice: 50.00, originalUnitPrice: 42.00, markupPercent: 19.05, unit: "buc", vatRate: 19, currency: "RON" },
+      {
+        id: "rl1",
+        description: "Ciment Portland CEM I 42.5R, saci 25kg",
+        quantity: 200,
+        unitPrice: 33.0,
+        originalUnitPrice: 28.5,
+        markupPercent: 15.79,
+        unit: "sac",
+        vatRate: 19,
+        currency: "RON",
+      },
+      {
+        id: "rl2",
+        description: "Nisip de construcții 0-4mm, big bag 1t",
+        quantity: 15,
+        unitPrice: 215.0,
+        originalUnitPrice: 185.0,
+        markupPercent: 16.22,
+        unit: "buc",
+        vatRate: 19,
+        currency: "RON",
+      },
+      {
+        id: "rl3",
+        description: "Plasă sudată Ø6 2x3m",
+        quantity: 50,
+        unitPrice: 50.0,
+        originalUnitPrice: 42.0,
+        markupPercent: 19.05,
+        unit: "buc",
+        vatRate: 19,
+        currency: "RON",
+      },
     ],
   },
   {
@@ -323,14 +462,44 @@ export const mockReInvoices: ReInvoice[] = [
     date: "2024-11-22",
     dueDate: "2024-12-22",
     currency: "RON",
-    total: 9650.00,
-    totalVAT: 1539.50,
+    total: 9650.0,
+    totalVAT: 1539.5,
     status: "sent",
     createdAt: "2024-11-22T11:30:00Z",
     lines: [
-      { id: "rl4", description: "Vopsea lavabilă albă 15L Dulux", quantity: 30, unitPrice: 165.00, originalUnitPrice: 145.00, markupPercent: 13.79, unit: "buc", vatRate: 19, currency: "RON" },
-      { id: "rl5", description: "Gresie porțelanată 60x60 Gri Antracit", quantity: 120, unitPrice: 45.00, originalUnitPrice: 38.50, markupPercent: 16.88, unit: "mp", vatRate: 19, currency: "RON" },
-      { id: "rl6", description: "Adeziv gresie C2TE 25kg", quantity: 40, unitPrice: 60.00, originalUnitPrice: 52.00, markupPercent: 15.38, unit: "sac", vatRate: 19, currency: "RON" },
+      {
+        id: "rl4",
+        description: "Vopsea lavabilă albă 15L Dulux",
+        quantity: 30,
+        unitPrice: 165.0,
+        originalUnitPrice: 145.0,
+        markupPercent: 13.79,
+        unit: "buc",
+        vatRate: 19,
+        currency: "RON",
+      },
+      {
+        id: "rl5",
+        description: "Gresie porțelanată 60x60 Gri Antracit",
+        quantity: 120,
+        unitPrice: 45.0,
+        originalUnitPrice: 38.5,
+        markupPercent: 16.88,
+        unit: "mp",
+        vatRate: 19,
+        currency: "RON",
+      },
+      {
+        id: "rl6",
+        description: "Adeziv gresie C2TE 25kg",
+        quantity: 40,
+        unitPrice: 60.0,
+        originalUnitPrice: 52.0,
+        markupPercent: 15.38,
+        unit: "sac",
+        vatRate: 19,
+        currency: "RON",
+      },
     ],
   },
   {
@@ -343,14 +512,44 @@ export const mockReInvoices: ReInvoice[] = [
     date: "2024-11-25",
     dueDate: "2024-12-25",
     currency: "EUR",
-    total: 3750.00,
-    totalVAT: 712.50,
+    total: 3750.0,
+    totalVAT: 712.5,
     status: "draft",
     createdAt: "2024-11-25T14:00:00Z",
     lines: [
-      { id: "rl7", description: "Plăci gips-carton GKB 12.5mm 1.2x2.6m", quantity: 100, unitPrice: 21.00, originalUnitPrice: 18.00, markupPercent: 16.67, unit: "buc", vatRate: 19, currency: "EUR" },
-      { id: "rl8", description: "Profil CW 75/3m", quantity: 200, unitPrice: 5.20, originalUnitPrice: 4.50, markupPercent: 15.56, unit: "buc", vatRate: 19, currency: "EUR" },
-      { id: "rl9", description: "Profil UW 75/3m", quantity: 100, unitPrice: 4.90, originalUnitPrice: 4.20, markupPercent: 16.67, unit: "buc", vatRate: 19, currency: "EUR" },
+      {
+        id: "rl7",
+        description: "Plăci gips-carton GKB 12.5mm 1.2x2.6m",
+        quantity: 100,
+        unitPrice: 21.0,
+        originalUnitPrice: 18.0,
+        markupPercent: 16.67,
+        unit: "buc",
+        vatRate: 19,
+        currency: "EUR",
+      },
+      {
+        id: "rl8",
+        description: "Profil CW 75/3m",
+        quantity: 200,
+        unitPrice: 5.2,
+        originalUnitPrice: 4.5,
+        markupPercent: 15.56,
+        unit: "buc",
+        vatRate: 19,
+        currency: "EUR",
+      },
+      {
+        id: "rl9",
+        description: "Profil UW 75/3m",
+        quantity: 100,
+        unitPrice: 4.9,
+        originalUnitPrice: 4.2,
+        markupPercent: 16.67,
+        unit: "buc",
+        vatRate: 19,
+        currency: "EUR",
+      },
     ],
   },
 ];
@@ -365,7 +564,8 @@ export const mockIntegrations: Integration[] = [
     lastSync: "2024-11-28T14:30:00Z",
     syncCount: 47,
     status: "connected",
-    description: "Importă automat facturile emise și primite din SmartBill. Sincronizare în timp real.",
+    description:
+      "Importă automat facturile emise și primite din SmartBill. Sincronizare în timp real.",
     logoColor: "#0066CC",
   },
   {
@@ -377,7 +577,8 @@ export const mockIntegrations: Integration[] = [
     lastSync: "2024-11-28T12:00:00Z",
     syncCount: 23,
     status: "connected",
-    description: "Sistemul de Plăți și Verificări ANAF — importă e-Factura din spațiul privat virtual.",
+    description:
+      "Sistemul de Plăți și Verificări ANAF — importă e-Factura din spațiul privat virtual.",
     logoColor: "#003087",
   },
   {
@@ -385,7 +586,8 @@ export const mockIntegrations: Integration[] = [
     name: "Oblio",
     enabled: false,
     status: "disconnected",
-    description: "Conectare cu Oblio pentru import facturi furnizori și sincronizare bază clienți.",
+    description:
+      "Conectare cu Oblio pentru import facturi furnizori și sincronizare bază clienți.",
     logoColor: "#FF6B35",
   },
 ];
@@ -428,7 +630,26 @@ export function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
-  return new Intl.DateTimeFormat("ro-RO", { day: "2-digit", month: "short", year: "numeric" }).format(d);
+  return new Intl.DateTimeFormat("ro-RO", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(d);
+}
+
+export function formatDateTime(
+  dateStr: string | null | undefined | Date
+): string {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return String(dateStr);
+  return new Intl.DateTimeFormat("ro-RO", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(d);
 }
 
 export const invoiceStatusLabels: Record<InvoiceStatus, string> = {

@@ -44,6 +44,10 @@ import HorecaDelivery from "@/pages/horeca/HorecaDelivery";
 import HorecaTables from "@/pages/horeca/HorecaTables";
 import HorecaOrderCreate from "@/pages/horeca/HorecaOrderCreate";
 import HorecaKitchenDisplay from "@/pages/horeca/HorecaKitchenDisplay";
+import HorecaShift from "@/pages/horeca/HorecaShift";
+import HorecaKioskSettings from "@/pages/horeca/HorecaKioskSettings";
+import HorecaTestPanel from "@/pages/horeca/HorecaTestPanel";
+import KioskApp from "@/pages/kiosk/App.jsx";
 
 function Router() {
   return (
@@ -55,7 +59,7 @@ function Router() {
       <Route path="/register" component={Register} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/super-admin" component={SuperAdmin} />
-      
+
       {/* Dashboard pages - with layout */}
       <Route path="/dashboard">
         <DashboardLayout>
@@ -215,28 +219,63 @@ function Router() {
       <Route path="/404" component={NotFound} />
       {/* ── HORECA MODULE ROUTES ──────────────────────────────── */}
       <Route path="/horeca">
-        <DashboardLayout><HorecaDashboard /></DashboardLayout>
+        <DashboardLayout>
+          <HorecaDashboard />
+        </DashboardLayout>
       </Route>
       <Route path="/horeca/locatii">
-        <DashboardLayout><HorecaLocations /></DashboardLayout>
+        <DashboardLayout>
+          <HorecaLocations />
+        </DashboardLayout>
       </Route>
       <Route path="/horeca/meniu">
-        <DashboardLayout><HorecaMenu /></DashboardLayout>
+        <DashboardLayout>
+          <HorecaMenu />
+        </DashboardLayout>
       </Route>
       <Route path="/horeca/comenzi">
-        <DashboardLayout><HorecaOrders /></DashboardLayout>
+        <DashboardLayout>
+          <HorecaOrders />
+        </DashboardLayout>
+      </Route>
+      <Route path="/horeca/kiosk">
+        <DashboardLayout>
+          <HorecaKioskSettings />
+        </DashboardLayout>
+      </Route>
+      <Route path="/horeca/test">
+        <DashboardLayout>
+          <HorecaTestPanel />
+        </DashboardLayout>
       </Route>
       <Route path="/horeca/delivery">
-        <DashboardLayout><HorecaDelivery /></DashboardLayout>
+        <DashboardLayout>
+          <HorecaDelivery />
+        </DashboardLayout>
       </Route>
       <Route path="/horeca/mese">
-        <DashboardLayout><HorecaTables /></DashboardLayout>
+        <DashboardLayout>
+          <HorecaTables />
+        </DashboardLayout>
       </Route>
       <Route path="/horeca/comenzi/nou">
-        <DashboardLayout><HorecaOrderCreate /></DashboardLayout>
+        <DashboardLayout>
+          <HorecaOrderCreate />
+        </DashboardLayout>
+      </Route>
+      <Route path="/horeca/tura">
+        <DashboardLayout>
+          <HorecaShift />
+        </DashboardLayout>
       </Route>
       <Route path="/horeca/kds">
-        <HorecaKitchenDisplay />
+        <DashboardLayout>
+          <HorecaKitchenDisplay />
+        </DashboardLayout>
+      </Route>
+      {/* ── KIOSK MODULE ──────────────────────────────────────── */}
+      <Route path="/kiosk/:locationId?">
+        <KioskApp />
       </Route>
       {/* ────────────────────────────────────────────────────── */}
       <Route component={NotFound} />

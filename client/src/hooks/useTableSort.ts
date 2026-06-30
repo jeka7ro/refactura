@@ -1,6 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
 
-export function useTableSort<T extends Record<string, any>>(data: T[], tableId?: string) {
+export function useTableSort<T extends Record<string, any>>(
+  data: T[],
+  tableId?: string
+) {
   const [sortColumn, setSortColumn] = useState<keyof T | null>(() => {
     if (tableId) {
       const saved = localStorage.getItem(`dt_sort_${tableId}`);
@@ -8,7 +11,7 @@ export function useTableSort<T extends Record<string, any>>(data: T[], tableId?:
     }
     return null;
   });
-  
+
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">(() => {
     if (tableId) {
       const saved = localStorage.getItem(`dt_dir_${tableId}`);
@@ -16,7 +19,7 @@ export function useTableSort<T extends Record<string, any>>(data: T[], tableId?:
     }
     return "asc";
   });
-  
+
   useEffect(() => {
     if (tableId && sortColumn) {
       localStorage.setItem(`dt_sort_${tableId}`, String(sortColumn));
@@ -29,22 +32,22 @@ export function useTableSort<T extends Record<string, any>>(data: T[], tableId?:
     return [...data].sort((a, b) => {
       const aVal = a[sortColumn];
       const bVal = b[sortColumn];
-      
+
       // Handle string vs number sorting nicely
       let comparison = 0;
-      if (typeof aVal === 'string' && typeof bVal === 'string') {
-        comparison = aVal.localeCompare(bVal, 'ro', { numeric: true });
+      if (typeof aVal === "string" && typeof bVal === "string") {
+        comparison = aVal.localeCompare(bVal, "ro", { numeric: true });
       } else {
         comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
       }
-      
+
       return sortDirection === "asc" ? comparison : -comparison;
     });
   }, [data, sortColumn, sortDirection]);
 
   const handleSort = (column: keyof T) => {
     if (sortColumn === column) {
-      setSortDirection(prev => prev === "asc" ? "desc" : "asc");
+      setSortDirection(prev => (prev === "asc" ? "desc" : "asc"));
     } else {
       setSortColumn(column);
       setSortDirection("asc");

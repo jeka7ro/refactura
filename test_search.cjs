@@ -1,11 +1,11 @@
-const fs = require('fs');
-const content = fs.readFileSync('coduri_edevize.csv', 'utf8');
-const lines = content.split('\n').filter(l => l.trim() !== '');
+const fs = require("fs");
+const content = fs.readFileSync("coduri_edevize.csv", "utf8");
+const lines = content.split("\n").filter(l => l.trim() !== "");
 const results = [];
 for (let i = 1; i < lines.length; i++) {
   const line = lines[i];
-  const firstComma = line.indexOf(',');
-  const lastComma = line.lastIndexOf(',');
+  const firstComma = line.indexOf(",");
+  const lastComma = line.lastIndexOf(",");
   if (firstComma > 0 && lastComma > firstComma) {
     const cod = line.substring(0, firstComma).trim();
     const tip = line.substring(lastComma + 1).trim();
@@ -16,5 +16,12 @@ for (let i = 1; i < lines.length; i++) {
     results.push({ cod, denumire, tip });
   }
 }
-const q = 'zidar';
-console.log(results.filter(r => r.cod.toLowerCase().includes(q) || r.denumire.toLowerCase().includes(q)).slice(0, 5));
+const q = "zidar";
+console.log(
+  results
+    .filter(
+      r =>
+        r.cod.toLowerCase().includes(q) || r.denumire.toLowerCase().includes(q)
+    )
+    .slice(0, 5)
+);

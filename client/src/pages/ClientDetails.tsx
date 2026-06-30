@@ -1,13 +1,25 @@
 import { useParams, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { Loader2, ArrowLeft, Building2, MapPin, Mail, Phone, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import {
+  Loader2,
+  ArrowLeft,
+  Building2,
+  MapPin,
+  Mail,
+  Phone,
+  ArrowUpRight,
+  ArrowDownRight,
+} from "lucide-react";
 import { DataTable, DataTableColumn } from "@/components/DataTable";
 
 export default function ClientDetails() {
   const params = useParams();
   const id = Number(params.id);
 
-  const { data, isLoading, error } = trpc.clients.getDetails.useQuery({ id }, { enabled: !!id });
+  const { data, isLoading, error } = trpc.clients.getDetails.useQuery(
+    { id },
+    { enabled: !!id }
+  );
 
   if (isLoading) {
     return (
@@ -33,38 +45,51 @@ export default function ClientDetails() {
     { key: "number", label: "NUMĂR", sortable: true },
     { key: "issueDate", label: "DATA EMITERII", sortable: true },
     { key: "dueDate", label: "SCADENȚĂ", sortable: true },
-    { key: "total", label: "TOTAL", sortable: true, render: (val: string) => <span className="font-bold">{val}</span> },
+    {
+      key: "total",
+      label: "TOTAL",
+      sortable: true,
+      render: (val: string) => <span className="font-bold">{val}</span>,
+    },
     { key: "currency", label: "MONEDĂ" },
-    { 
-      key: "status", 
+    {
+      key: "status",
       label: "STATUS",
       render: (val: string) => (
         <span className="inline-block px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 uppercase tracking-wider">
           {val}
         </span>
-      )
-    }
+      ),
+    },
   ];
 
   const receivedColumns: DataTableColumn<any>[] = [
     { key: "invoiceNumber", label: "NUMĂR", sortable: true },
     { key: "issueDate", label: "DATA EMITERII", sortable: true },
-    { key: "total", label: "TOTAL", sortable: true, render: (val: string) => <span className="font-bold">{val}</span> },
+    {
+      key: "total",
+      label: "TOTAL",
+      sortable: true,
+      render: (val: string) => <span className="font-bold">{val}</span>,
+    },
     { key: "currency", label: "MONEDĂ" },
-    { 
-      key: "status", 
+    {
+      key: "status",
       label: "STATUS",
       render: (val: string) => (
         <span className="inline-block px-2 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700 uppercase tracking-wider">
           {val}
         </span>
-      )
-    }
+      ),
+    },
   ];
 
   return (
     <div className="p-4 md:p-6 space-y-4">
-      <Link href="/clienti" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
+      <Link
+        href="/clienti"
+        className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+      >
         <ArrowLeft className="w-3.5 h-3.5" /> Înapoi la clienți
       </Link>
 
@@ -78,17 +103,25 @@ export default function ClientDetails() {
           </h1>
           <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-2 gap-x-6 text-xs">
             <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
-              <span className="font-bold text-slate-900 dark:text-slate-200 uppercase tracking-wider w-16">CUI</span> 
+              <span className="font-bold text-slate-900 dark:text-slate-200 uppercase tracking-wider w-16">
+                CUI
+              </span>
               {client.cui || "-"}
             </div>
             <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
-              <span className="font-bold text-slate-900 dark:text-slate-200 uppercase tracking-wider w-16">Reg. Com</span> 
+              <span className="font-bold text-slate-900 dark:text-slate-200 uppercase tracking-wider w-16">
+                Reg. Com
+              </span>
               {client.regCom || "-"}
             </div>
             <div className="flex items-start gap-1.5 text-slate-600 dark:text-slate-400">
               <MapPin className="w-3.5 h-3.5 mt-0.5 text-slate-400 shrink-0" />
-              <span className="truncate" title={`${client.address || "-"}, ${client.city || "-"}, ${client.country || "-"}`}>
-                {client.address || "-"}, {client.city || "-"}, {client.country || "-"}
+              <span
+                className="truncate"
+                title={`${client.address || "-"}, ${client.city || "-"}, ${client.country || "-"}`}
+              >
+                {client.address || "-"}, {client.city || "-"},{" "}
+                {client.country || "-"}
               </span>
             </div>
             <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
@@ -107,9 +140,16 @@ export default function ClientDetails() {
       <div className="space-y-4">
         {/* Sent Invoices */}
         <div>
-          <h2 className="text-sm font-bold text-slate-800 dark:text-white mb-2">Facturi Emise Către Client</h2>
+          <h2 className="text-sm font-bold text-slate-800 dark:text-white mb-2">
+            Facturi Emise Către Client
+          </h2>
           {sentInvoices.length > 0 ? (
-            <DataTable columns={sentColumns} data={sentInvoices} rowKey="id" isLoading={false} />
+            <DataTable
+              columns={sentColumns}
+              data={sentInvoices}
+              rowKey="id"
+              isLoading={false}
+            />
           ) : (
             <div className="text-center py-6 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 border-dashed dark:border-slate-700 rounded-lg text-slate-400 text-xs font-medium">
               Nicio factură emisă către acest client.
@@ -119,9 +159,16 @@ export default function ClientDetails() {
 
         {/* Received Invoices */}
         <div>
-          <h2 className="text-sm font-bold text-slate-800 dark:text-white mb-2">Facturi Primite De La Client (Furnizor)</h2>
+          <h2 className="text-sm font-bold text-slate-800 dark:text-white mb-2">
+            Facturi Primite De La Client (Furnizor)
+          </h2>
           {receivedInvoices.length > 0 ? (
-            <DataTable columns={receivedColumns} data={receivedInvoices} rowKey="id" isLoading={false} />
+            <DataTable
+              columns={receivedColumns}
+              data={receivedInvoices}
+              rowKey="id"
+              isLoading={false}
+            />
           ) : (
             <div className="text-center py-6 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 border-dashed dark:border-slate-700 rounded-lg text-slate-400 text-xs font-medium">
               Nicio factură primită de la acest CUI.

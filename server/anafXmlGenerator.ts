@@ -10,15 +10,21 @@ export function generateUblXml(
   tenant: Tenant
 ): string {
   const issueDate = new Date(invoice.issueDate).toISOString().split("T")[0];
-  const dueDate = invoice.dueDate ? new Date(invoice.dueDate).toISOString().split("T")[0] : issueDate;
-  
+  const dueDate = invoice.dueDate
+    ? new Date(invoice.dueDate).toISOString().split("T")[0]
+    : issueDate;
+
   // Calculate tax subtotals by VAT rate
-  const taxGroups = new Map<number, { taxableAmount: number, taxAmount: number }>();
+  const taxGroups = new Map<
+    number,
+    { taxableAmount: number; taxAmount: number }
+  >();
   for (const line of lines) {
     const rate = parseFloat(String(line.vatRate || "0"));
-    const amount = parseFloat(String(line.quantity)) * parseFloat(String(line.unitPrice));
+    const amount =
+      parseFloat(String(line.quantity)) * parseFloat(String(line.unitPrice));
     const tax = amount * (rate / 100);
-    
+
     if (!taxGroups.has(rate)) {
       taxGroups.set(rate, { taxableAmount: 0, taxAmount: 0 });
     }
@@ -34,19 +40,20 @@ export function generateUblXml(
   try {
     if (tenant.settings) tenantSettings = JSON.parse(tenant.settings);
   } catch (e) {}
-  
+
   const tenantCity = tenantSettings.city || "Nesetata";
   const tenantRegCom = tenantSettings.regCom || "";
 
   // Generate lines
-  const xmlLines = lines.map((line, idx) => {
-    const qty = parseFloat(String(line.quantity));
-    const unitPrice = parseFloat(String(line.unitPrice));
-    const lineTotal = qty * unitPrice;
-    const vatRate = parseFloat(String(line.vatRate || "0"));
-    const taxSchemeId = vatRate > 0 ? "S" : "E"; // Standard or Exempt (simplified)
+  const xmlLines = lines
+    .map((line, idx) => {
+      const qty = parseFloat(String(line.quantity));
+      const unitPrice = parseFloat(String(line.unitPrice));
+      const lineTotal = qty * unitPrice;
+      const vatRate = parseFloat(String(line.vatRate || "0"));
+      const taxSchemeId = vatRate > 0 ? "S" : "E"; // Standard or Exempt (simplified)
 
-    return `
+      return `
     <cac:InvoiceLine>
         <cbc:ID>${idx + 1}</cbc:ID>
         <cbc:InvoicedQuantity unitCode="EA">${qty.toFixed(2)}</cbc:InvoicedQuantity>
@@ -65,12 +72,14 @@ export function generateUblXml(
             <cbc:PriceAmount currencyID="${invoice.currency}">${unitPrice.toFixed(2)}</cbc:PriceAmount>
         </cac:Price>
     </cac:InvoiceLine>`;
-  }).join("");
+    })
+    .join("");
 
   // Generate tax subtotals
-  const xmlTaxSubtotals = Array.from(taxGroups.entries()).map(([rate, group]) => {
-    const taxSchemeId = rate > 0 ? "S" : "E";
-    return `
+  const xmlTaxSubtotals = Array.from(taxGroups.entries())
+    .map(([rate, group]) => {
+      const taxSchemeId = rate > 0 ? "S" : "E";
+      return `
         <cac:TaxSubtotal>
             <cbc:TaxableAmount currencyID="${invoice.currency}">${group.taxableAmount.toFixed(2)}</cbc:TaxableAmount>
             <cbc:TaxAmount currencyID="${invoice.currency}">${group.taxAmount.toFixed(2)}</cbc:TaxAmount>
@@ -82,7 +91,8 @@ export function generateUblXml(
                 </cac:TaxScheme>
             </cac:TaxCategory>
         </cac:TaxSubtotal>`;
-  }).join("");
+    })
+    .join("");
 
   const subtotal = parseFloat(String(invoice.subtotal));
   const totalVat = parseFloat(String(invoice.totalVAT));
@@ -168,14 +178,20 @@ ${xmlLines}
 
 function escapeXml(unsafe: string): string {
   if (!unsafe) return "";
-  return unsafe.replace(/[<>&'"]/g, (c) => {
+  return unsafe.replace(/[<>&'"]/g, c => {
     switch (c) {
-      case '<': return '&lt;';
-      case '>': return '&gt;';
-      case '&': return '&amp;';
-      case '\'': return '&apos;';
-      case '"': return '&quot;';
-      default: return c;
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case "&":
+        return "&amp;";
+      case "'":
+        return "&apos;";
+      case '"':
+        return "&quot;";
+      default:
+        return c;
     }
   });
 }

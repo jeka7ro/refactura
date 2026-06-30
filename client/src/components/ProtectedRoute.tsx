@@ -22,13 +22,19 @@ const roleHierarchy: Record<RequiredRole, number> = {
   viewer: 1,
 };
 
-function hasRole(userRole: string | undefined, requiredRole: RequiredRole): boolean {
+function hasRole(
+  userRole: string | undefined,
+  requiredRole: RequiredRole
+): boolean {
   if (!userRole) return false;
   const userLevel = roleHierarchy[userRole as RequiredRole] || 0;
   return userLevel >= roleHierarchy[requiredRole];
 }
 
-export default function ProtectedRoute({ children, requiredRole = "user" }: ProtectedRouteProps) {
+export default function ProtectedRoute({
+  children,
+  requiredRole = "user",
+}: ProtectedRouteProps) {
   const { user, loading } = useAuth();
   const [, setLocation] = useLocation();
 
@@ -67,7 +73,9 @@ export default function ProtectedRoute({ children, requiredRole = "user" }: Prot
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Access Denied</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+            Access Denied
+          </h1>
           <p className="text-slate-600 dark:text-slate-400 mb-6">
             You don't have permission to access this page.
           </p>

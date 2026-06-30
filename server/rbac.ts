@@ -11,7 +11,10 @@ export type UserRole = "superadmin" | "admin" | "user" | "viewer";
 /**
  * Check if user has required role
  */
-export function hasRole(userRole: UserRole | undefined, requiredRole: UserRole): boolean {
+export function hasRole(
+  userRole: UserRole | undefined,
+  requiredRole: UserRole
+): boolean {
   const roleHierarchy: Record<UserRole, number> = {
     superadmin: 4,
     admin: 3,

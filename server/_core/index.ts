@@ -12,7 +12,6 @@ import { serveStatic, setupVite } from "./vite";
 import { registerAnafProxy } from "../anafProxy";
 import { registerPdfRoute } from "../pdfRoute";
 
-
 async function startServer() {
   const app = express();
   const server = createServer(app);
@@ -24,10 +23,10 @@ async function startServer() {
   registerUploadRoute(app);
   registerAnafProxy(app);
   registerPdfRoute(app);
-  
+
   const { registerSpvAuth } = await import("../spvAuth");
   registerSpvAuth(app);
-  
+
   const { startSpvCron } = await import("../spvCron");
   startSpvCron();
 
@@ -39,9 +38,12 @@ async function startServer() {
       createContext,
     })
   );
-  
+
   // Serve local uploads
-  app.use("/uploads", express.static(path.resolve(process.cwd(), "dist/public/uploads")));
+  app.use(
+    "/uploads",
+    express.static(path.resolve(process.cwd(), "dist/public/uploads"))
+  );
 
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
