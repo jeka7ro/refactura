@@ -271,7 +271,9 @@ export default function HorecaDelivery() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="Brand Logo" className="h-10 w-auto object-contain bg-white rounded-lg px-2 py-1 shadow-sm border border-slate-200" />
+          <div className="p-2 bg-primary/20 rounded-lg">
+            <Truck className="w-6 h-6 text-primary" />
+          </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">Delivery</h1>
             <p className="text-muted-foreground text-sm">

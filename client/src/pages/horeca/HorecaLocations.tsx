@@ -216,7 +216,9 @@ export default function HorecaLocations() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="Brand Logo" className="h-10 w-auto object-contain bg-white rounded-lg px-2 py-1 shadow-sm border border-slate-200" />
+          <div className="p-2 bg-orange-100 dark:bg-orange-500/20 rounded-lg">
+            <MapPin className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+          </div>
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
               Locații HORECA

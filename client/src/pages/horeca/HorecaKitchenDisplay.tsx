@@ -106,7 +106,9 @@ export default function HorecaKitchenDisplay() {
       {/* Header */}
       <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="Brand Logo" className="h-10 w-auto object-contain bg-white rounded-lg px-2 py-1 shadow-sm border border-slate-200" />
+          <div className="p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
+            <ChefHat className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+          </div>
           <div>
             <h1 className="text-xl font-bold text-slate-900 dark:text-white">
               Kitchen Display
