@@ -520,8 +520,17 @@ export default function Integrations() {
     dbIntegrations.find((i: any) => i.provider === id);
   const getSpvOAuthUrl = trpc.integrations.getSpvOAuthUrl.useQuery();
   const syncSpvMutation = trpc.integrations.syncSpv.useMutation({
-    onSuccess: () => {
-      toast.success("SPV sincronizat!");
+    onSuccess: (result) => {
+      if (result.limitHit > 0) {
+        toast.warning(
+          `Sync complet: ${result.imported} facturi noi importate.\n⚠️ ${result.limitHit} factură nu a putut fi descărcată azi — ANAF permite maxim 10 descărcări/zi per fișier. Va fi importată automat mâine.`,
+          { duration: 8000 }
+        );
+      } else if (result.imported > 0) {
+        toast.success(`Sync complet: ${result.imported} facturi noi importate din SPV!`);
+      } else {
+        toast.success("SPV sincronizat! Nicio factură nouă de importat.");
+      }
       refetch();
     },
     onError: e => {

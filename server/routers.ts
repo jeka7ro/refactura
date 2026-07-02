@@ -1290,8 +1290,12 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         if (!ctx.user?.tenantId) throw new Error("No tenant context");
         const { syncAllSpv } = await import("./spvCron");
-        await syncAllSpv(input?.zile || 60);
-        return { success: true };
+        const result = await syncAllSpv(input?.zile || 60);
+        return {
+          success: true,
+          imported: result?.imported || 0,
+          limitHit: result?.limitHit || 0,
+        };
       }),
     syncSmartBill: protectedProcedure.mutation(async ({ ctx }) => {
       if (!ctx.user?.tenantId) throw new Error("No tenant context");

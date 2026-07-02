@@ -20,7 +20,7 @@ export function startSpvCron() {
 
 export async function syncAllSpv(zile: number = 60) {
   const db = await getDb();
-  if (!db) return;
+  if (!db) return { imported: 0, limitHit: 0, limitDetails: [] };
 
   const spvIntegrations = await db
     .select()
@@ -28,6 +28,10 @@ export async function syncAllSpv(zile: number = 60) {
     .where(
       and(eq(integrations.provider, "spv"), eq(integrations.status, "active"))
     );
+
+  let totalImported = 0;
+  let totalLimitHit = 0;
+  const totalLimitDetails: string[] = [];
 
   for (const intg of spvIntegrations) {
     if (!intg.apiKey) continue;
@@ -88,6 +92,8 @@ export async function syncAllSpv(zile: number = 60) {
 
       let imported = 0;
       let skipped = 0;
+      let limitHit = 0;
+      const limitDetails: string[] = [];
 
       for (const msg of messages) {
         // Log every message so we can see exactly what ANAF sends
@@ -195,8 +201,10 @@ export async function syncAllSpv(zile: number = 60) {
               const errData = JSON.parse(buf.toString("utf8"));
               if (errData.eroare) {
                 console.warn(`[SPV Cron] ANAF Error for ${downloadId}: ${errData.eroare}`);
-                // If it's a download limit error, skip for today
-                if (errData.eroare.includes("10 descarcari") || errData.eroare.includes("descarcari")) {
+                // If it's a download limit error, track it
+                if (errData.eroare.includes("descarcari")) {
+                  limitHit++;
+                  limitDetails.push(`id=${downloadId}`);
                   console.warn(`[SPV Cron] Download limit hit for ${downloadId} — will retry tomorrow`);
                 }
                 continue;
@@ -606,8 +614,11 @@ export async function syncAllSpv(zile: number = 60) {
         .where(eq(integrations.id, intg.id));
 
       console.log(
-        `[SPV Cron] Done for tenant ${intg.tenantId}: imported=${imported}, skipped=${skipped}`
+        `[SPV Cron] Done for tenant ${intg.tenantId}: imported=${imported}, skipped=${skipped}, limitHit=${limitHit}`
       );
+      totalImported += imported;
+      totalLimitHit += limitHit;
+      totalLimitDetails.push(...limitDetails);
     } catch (e: any) {
       console.error(
         `[SPV Cron] Error syncing for tenant ${intg.tenantId}:`,
@@ -615,4 +626,5 @@ export async function syncAllSpv(zile: number = 60) {
       );
     }
   }
+  return { imported: totalImported, limitHit: totalLimitHit, limitDetails: totalLimitDetails };
 }
