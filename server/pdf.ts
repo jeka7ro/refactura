@@ -280,8 +280,9 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   const addInfo = (label: string, val: string, x: number, currY: number) => {
     if (!val) return currY;
     doc.fontSize(8).font("Roboto-Bold").text(label, x, currY, { width: 60 });
-    doc.font("Roboto").text(val, x + 60, currY, { width: colW - 60 });
-    return currY + 12;
+    const textHeight = doc.font("Roboto").heightOfString(val, { width: colW - 60 });
+    doc.text(val, x + 60, currY, { width: colW - 60 });
+    return currY + Math.max(12, textHeight + 2);
   };
 
   leftInfoY = addInfo("CIF:", data.companyCUI, leftX, leftInfoY);
