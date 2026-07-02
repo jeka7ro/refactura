@@ -189,35 +189,50 @@ export async function syncAllSpv(zile: number = 60) {
           continue;
         }
 
-        let zip;
+        let xmlString: string | null = null;
+
         try {
           const buffer = await zipResponse.arrayBuffer();
           const buf = Buffer.from(buffer);
           // Log first 200 chars to identify what ANAF actually returned
           console.log(`[SPV Cron] Downloaded ${buf.length} bytes for ${downloadId}, first bytes: ${buf.slice(0,120).toString("utf8").replace(/[\r\n]/g, " ")}`);
-          zip = new AdmZip(buf);
+          
+          const firstBytes = buf.slice(0, 4).toString("hex");
+          // ZIP magic bytes: 504b0304
+          if (firstBytes === "504b0304") {
+            // It's a real ZIP
+            const zip = new AdmZip(buf);
+            const zipEntries = zip.getEntries();
+            const xmlEntry = zipEntries.find(
+              e =>
+                e.entryName.toLowerCase().endsWith(".xml") &&
+                !e.entryName.toLowerCase().includes("semnatura")
+            );
+            if (!xmlEntry) {
+              console.warn(`[SPV Cron] No XML found in ZIP for ${downloadId}`);
+              continue;
+            }
+            xmlString = xmlEntry.getData().toString("utf8");
+          } else {
+            // Not a ZIP — try treating as raw XML
+            const rawText = buf.toString("utf8");
+            if (rawText.includes("<Invoice") || rawText.includes("<CreditNote") || rawText.includes(":Invoice") || rawText.includes(":CreditNote")) {
+              console.log(`[SPV Cron] Content for ${downloadId} is raw XML, not ZIP — using directly`);
+              xmlString = rawText;
+            } else {
+              console.warn(`[SPV Cron] Unknown content format for ${downloadId}: ${rawText.slice(0, 200)}`);
+              continue;
+            }
+          }
         } catch (err: any) {
           console.warn(
-            `[SPV Cron] Failed to parse ZIP for ${downloadId}:`,
+            `[SPV Cron] Failed to process download for ${downloadId}:`,
             err.message
           );
           continue;
         }
-        const zipEntries = zip.getEntries();
 
-        // Find the XML file (not signature)
-        const xmlEntry = zipEntries.find(
-          e =>
-            e.entryName.toLowerCase().endsWith(".xml") &&
-            !e.entryName.toLowerCase().includes("semnatura")
-        );
-
-        if (!xmlEntry) {
-          console.warn(`[SPV Cron] No XML found in ZIP for ${downloadId}`);
-          continue;
-        }
-
-        const xmlString = xmlEntry.getData().toString("utf8");
+        if (!xmlString) continue;
 
         // Parse XML
         const parser = new XMLParser({
