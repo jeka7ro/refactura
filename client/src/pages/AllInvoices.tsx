@@ -936,6 +936,11 @@ export default function AllInvoices() {
               value={period}
               onValueChange={val => {
                 setPeriod(val as any);
+                const range = getDateRange(val);
+                if (range && val !== "custom") {
+                  setCustomFrom(range[0]);
+                  setCustomTo(range[1]);
+                }
                 setPage(1);
               }}
             >

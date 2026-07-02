@@ -246,20 +246,22 @@ export async function syncAllSpv(zile: number = 60) {
         }
 
         const legalTotal = invoiceObj["cac:LegalMonetaryTotal"];
-        const total = parseFloat(
+        const rawTotal =
           legalTotal?.["cbc:TaxInclusiveAmount"]?.["#text"] ||
-            legalTotal?.["cbc:TaxInclusiveAmount"] ||
-            legalTotal?.["cbc:PayableAmount"]?.["#text"] ||
-            legalTotal?.["cbc:PayableAmount"] ||
-            "0"
-        );
+          legalTotal?.["cbc:TaxInclusiveAmount"] ||
+          legalTotal?.["cbc:PayableAmount"]?.["#text"] ||
+          legalTotal?.["cbc:PayableAmount"] ||
+          "0";
+        const parsedTotal = parseFloat(typeof rawTotal === "object" ? "0" : rawTotal);
+        const total = isNaN(parsedTotal) ? 0 : parsedTotal;
 
-        const taxTotal = invoiceObj["cac:TaxTotal"];
-        const totalVAT = parseFloat(
-          taxTotal?.["cbc:TaxAmount"]?.["#text"] ||
-            taxTotal?.["cbc:TaxAmount"] ||
-            "0"
-        );
+        const taxTotalObj = Array.isArray(taxTotal) ? taxTotal[0] : taxTotal;
+        const rawVAT =
+          taxTotalObj?.["cbc:TaxAmount"]?.["#text"] ||
+          taxTotalObj?.["cbc:TaxAmount"] ||
+          "0";
+        const parsedVAT = parseFloat(typeof rawVAT === "object" ? "0" : rawVAT);
+        const totalVAT = isNaN(parsedVAT) ? 0 : parsedVAT;
 
         const currency =
           invoiceObj["cbc:DocumentCurrencyCode"]?.["#text"] ||
