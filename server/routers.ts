@@ -1253,8 +1253,12 @@ export const appRouter = router({
         );
       }
       const { syncAllSpv } = await import("./spvCron");
-      await syncAllSpv(60);
-      return { success: true };
+      const result = await syncAllSpv(60);
+      return {
+        success: true,
+        imported: result?.imported || 0,
+        limitHit: result?.limitHit || 0,
+      };
     }),
     getSpvOAuthUrl: protectedProcedure.query(async ({ ctx }) => {
       if (!ctx.user?.tenantId) throw new Error("No tenant context");

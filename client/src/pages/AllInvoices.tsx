@@ -1065,26 +1065,38 @@ export default function AllInvoices() {
 
                 if (hasOblio || hasSpv) {
                   toast.loading("Sincronizare date în curs...", { id: "sync" });
+                  let spvResult: any = null;
                   const tasks = [];
                   if (hasOblio)
                     tasks.push(syncOblio.mutateAsync().catch(() => {}));
                   if (hasSpv)
-                    tasks.push(syncSpvManual.mutateAsync().catch(() => {}));
+                    tasks.push(
+                      syncSpvManual.mutateAsync().then(r => { spvResult = r; }).catch(() => {})
+                    );
                   await Promise.all(tasks);
                   syncedAny = true;
-                  
+
                   // Refetch tables after sync
                   r1();
                   r2();
                   r3();
-                }
+
+                  // Show result message
+                  if (spvResult?.limitHit > 0) {
+                    toast.warning(
+                      `Sync complet: ${spvResult.imported} facturi noi importate.\n⚠️ ${spvResult.limitHit} factură nu a putut fi descărcată azi — ANAF permite maxim 10 descărcări/zi per fișier. Va fi importată automat mâine.`,
+                      { id: "sync", duration: 8000 }
+                    );
+                  } else if (spvResult?.imported > 0) {
+                    toast.success(`Sync complet: ${spvResult.imported} facturi noi importate din SPV!`, { id: "sync" });
+                  } else {
+                    toast.success("SPV sincronizat! Nicio factură nouă de importat.", { id: "sync" });
+                  }
 
                 if (!syncedAny) {
                   toast.error(
                     "Nicio integrare activă de sincronizat. Verificați Setările."
                   );
-                } else {
-                  toast.success("Sincronizare completă. Refreshing...", { id: "sync" });
                 }
               }}
               disabled={syncOblio.isPending || syncSpvManual.isPending}
