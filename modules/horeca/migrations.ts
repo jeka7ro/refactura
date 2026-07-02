@@ -110,9 +110,8 @@ export async function runHorecaMigrations(db: MySql2Database<any>) {
     try {
       await db.execute(sql`ALTER TABLE horecaRecipeLines ADD COLUMN ingredientId INT NULL`);
     } catch (e: any) {
-      if (e.code !== "ER_DUP_FIELDNAME") {
-        console.error("Error adding ingredientId to horecaRecipeLines", e);
-      }
+      // Ignore if column already exists (ER_DUP_FIELDNAME) — expected on re-deploy
+      if (e.code !== "ER_DUP_FIELDNAME") throw e;
     }
 
     await db.execute(sql`CREATE TABLE IF NOT EXISTS horecaModifierGroups (
@@ -185,9 +184,8 @@ export async function runHorecaMigrations(db: MySql2Database<any>) {
     try {
       await db.execute(sql`ALTER TABLE horecaOrders ADD COLUMN stockDeducted INT DEFAULT 0`);
     } catch (e: any) {
-      if (e.code !== "ER_DUP_FIELDNAME") {
-        console.error("Error adding stockDeducted to horecaOrders", e);
-      }
+      // Ignore if column already exists (ER_DUP_FIELDNAME) — expected on re-deploy
+      if (e.code !== "ER_DUP_FIELDNAME") throw e;
     }
 
     await db.execute(sql`CREATE TABLE IF NOT EXISTS horecaOrderLines (
