@@ -216,6 +216,7 @@ export async function syncAllSpv(zile: number = 60) {
         const parser = new XMLParser({
           ignoreAttributes: false,
           attributeNamePrefix: "@_",
+          removeNSPrefix: true,
         });
         const parsed = parser.parse(xmlString);
         const rootKey = Object.keys(parsed).find(
@@ -230,9 +231,9 @@ export async function syncAllSpv(zile: number = 60) {
         }
 
         // Extract invoice details
-        const invoiceNumber = invoiceObj["cbc:ID"] || `SPV-${downloadId}`;
-        const issueDate = invoiceObj["cbc:IssueDate"] || "";
-        const dueDate = invoiceObj["cbc:DueDate"] || issueDate;
+        const invoiceNumber = invoiceObj["ID"] || `SPV-${downloadId}`;
+        const issueDate = invoiceObj["IssueDate"] || "";
+        const dueDate = invoiceObj["DueDate"] || issueDate;
 
         let supplierName = "";
         let supplierCUI = "";
@@ -244,42 +245,43 @@ export async function syncAllSpv(zile: number = 60) {
         // For outgoing invoices (Emise), the supplier is US, but the UI/DB expects the CLIENT's details in supplierName/CUI
         const targetParty =
           direction === "in"
-            ? invoiceObj["cac:AccountingSupplierParty"]
-            : invoiceObj["cac:AccountingCustomerParty"];
+            ? invoiceObj["AccountingSupplierParty"]
+            : invoiceObj["AccountingCustomerParty"];
 
-        if (targetParty?.["cac:Party"]) {
-          const party = targetParty["cac:Party"];
+        if (targetParty?.["Party"]) {
+          const party = targetParty["Party"];
           supplierName =
-            party["cac:PartyName"]?.["cbc:Name"] ||
-            party["cac:PartyLegalEntity"]?.["cbc:RegistrationName"] ||
+            party["PartyName"]?.["Name"] ||
+            party["PartyLegalEntity"]?.["RegistrationName"] ||
             "Client necunoscut";
           supplierCUI =
-            party["cac:PartyTaxScheme"]?.["cbc:CompanyID"] ||
-            party["cac:PartyLegalEntity"]?.["cbc:CompanyID"] ||
+            party["PartyTaxScheme"]?.["CompanyID"] ||
+            party["PartyLegalEntity"]?.["CompanyID"] ||
             "";
         }
 
-        const legalTotal = invoiceObj["cac:LegalMonetaryTotal"];
+        const legalTotal = invoiceObj["LegalMonetaryTotal"];
         const rawTotal =
-          legalTotal?.["cbc:TaxInclusiveAmount"]?.["#text"] ||
-          legalTotal?.["cbc:TaxInclusiveAmount"] ||
-          legalTotal?.["cbc:PayableAmount"]?.["#text"] ||
-          legalTotal?.["cbc:PayableAmount"] ||
+          legalTotal?.["TaxInclusiveAmount"]?.["#text"] ||
+          legalTotal?.["TaxInclusiveAmount"] ||
+          legalTotal?.["PayableAmount"]?.["#text"] ||
+          legalTotal?.["PayableAmount"] ||
           "0";
         const parsedTotal = parseFloat(typeof rawTotal === "object" ? "0" : rawTotal);
         const total = isNaN(parsedTotal) ? 0 : parsedTotal;
 
+        const taxTotal = invoiceObj["TaxTotal"];
         const taxTotalObj = Array.isArray(taxTotal) ? taxTotal[0] : taxTotal;
         const rawVAT =
-          taxTotalObj?.["cbc:TaxAmount"]?.["#text"] ||
-          taxTotalObj?.["cbc:TaxAmount"] ||
+          taxTotalObj?.["TaxAmount"]?.["#text"] ||
+          taxTotalObj?.["TaxAmount"] ||
           "0";
         const parsedVAT = parseFloat(typeof rawVAT === "object" ? "0" : rawVAT);
         const totalVAT = isNaN(parsedVAT) ? 0 : parsedVAT;
 
         const currency =
-          invoiceObj["cbc:DocumentCurrencyCode"]?.["#text"] ||
-          invoiceObj["cbc:DocumentCurrencyCode"] ||
+          invoiceObj["DocumentCurrencyCode"]?.["#text"] ||
+          invoiceObj["DocumentCurrencyCode"] ||
           "RON";
 
         // Check for duplicate by invoice number + supplier (normalize CUI - strip RO prefix)
@@ -324,45 +326,45 @@ export async function syncAllSpv(zile: number = 60) {
 
             if (existingLines.length === 0) {
               let xmlLines =
-                invoiceObj["cac:InvoiceLine"] ||
-                invoiceObj["cac:CreditNoteLine"] ||
+                invoiceObj["InvoiceLine"] ||
+                invoiceObj["CreditNoteLine"] ||
                 [];
               if (!Array.isArray(xmlLines)) xmlLines = [xmlLines];
               if (xmlLines.length > 0) {
                 const linesToInsert = xmlLines.map((line: any) => {
-                  const item = line["cac:Item"];
-                  const price = line["cac:Price"];
+                  const item = line["Item"];
+                  const price = line["Price"];
                   const description =
-                    item?.["cbc:Name"] ||
-                    item?.["cbc:Description"] ||
+                    item?.["Name"] ||
+                    item?.["Description"] ||
                     "Articol";
                   const qty = parseFloat(
-                    line["cbc:InvoicedQuantity"]?.["#text"] ||
-                      line["cbc:InvoicedQuantity"] ||
-                      line["cbc:CreditedQuantity"]?.["#text"] ||
-                      line["cbc:CreditedQuantity"] ||
+                    line["InvoicedQuantity"]?.["#text"] ||
+                      line["InvoicedQuantity"] ||
+                      line["CreditedQuantity"]?.["#text"] ||
+                      line["CreditedQuantity"] ||
                       "1"
                   );
                   const unitPrice = parseFloat(
-                    price?.["cbc:PriceAmount"]?.["#text"] ||
-                      price?.["cbc:PriceAmount"] ||
+                    price?.["PriceAmount"]?.["#text"] ||
+                      price?.["PriceAmount"] ||
                       "0"
                   );
                   const unit =
-                    line["cbc:InvoicedQuantity"]?.["@_unitCode"] ||
-                    line["cbc:CreditedQuantity"]?.["@_unitCode"] ||
+                    line["InvoicedQuantity"]?.["@_unitCode"] ||
+                    line["CreditedQuantity"]?.["@_unitCode"] ||
                     "buc";
                   const lineTotal = parseFloat(
-                    line["cbc:LineExtensionAmount"]?.["#text"] ||
-                      line["cbc:LineExtensionAmount"] ||
+                    line["LineExtensionAmount"]?.["#text"] ||
+                      line["LineExtensionAmount"] ||
                       String(qty * unitPrice)
                   );
                   let vatRate = 19;
-                  const taxCategory = item?.["cac:ClassifiedTaxCategory"];
-                  if (taxCategory?.["cbc:Percent"]) {
+                  const taxCategory = item?.["ClassifiedTaxCategory"];
+                  if (taxCategory?.["Percent"]) {
                     vatRate = parseFloat(
-                      taxCategory["cbc:Percent"]?.["#text"] ||
-                        taxCategory["cbc:Percent"] ||
+                      taxCategory["Percent"]?.["#text"] ||
+                        taxCategory["Percent"] ||
                         "19"
                     );
                   }
