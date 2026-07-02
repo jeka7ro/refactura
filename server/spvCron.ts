@@ -218,7 +218,10 @@ export async function syncAllSpv(zile: number = 60) {
           attributeNamePrefix: "@_",
         });
         const parsed = parser.parse(xmlString);
-        const invoiceObj = parsed.Invoice || parsed.CreditNote;
+        const rootKey = Object.keys(parsed).find(
+          k => k.includes("Invoice") || k.includes("CreditNote")
+        );
+        const invoiceObj = rootKey ? parsed[rootKey] : null;
         if (!invoiceObj) {
           console.warn(
             `[SPV Cron] No Invoice/CreditNote in XML for ${downloadId}`

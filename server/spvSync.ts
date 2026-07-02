@@ -116,7 +116,10 @@ export async function syncSpvInvoices(
           attributeNamePrefix: "@_",
         });
         const parsedDoc = parser.parse(xmlText);
-        const invoiceObj = parsedDoc.Invoice || parsedDoc.CreditNote;
+        const rootKey = Object.keys(parsedDoc).find(
+          k => k.includes("Invoice") || k.includes("CreditNote")
+        );
+        const invoiceObj = rootKey ? parsedDoc[rootKey] : null;
         if (!invoiceObj) {
           skipped++;
           continue;
@@ -164,13 +167,13 @@ export async function syncSpvInvoices(
 
         // Check if already imported
         const [existing] = await db
-          .select({ id: integrations.id })
-          .from(integrations)
+          .select({ id: invoiceArchive.id })
+          .from(invoiceArchive)
           .where(
             and(
-              eq(integrations.tenantId, tenantId),
-              eq(integrations.provider, "spv"),
-              eq(integrations.apiKey, String(invoiceNumber))
+              eq(invoiceArchive.tenantId, tenantId),
+              eq(invoiceArchive.source, "spv_anaf"),
+              eq(invoiceArchive.invoiceNumber, String(invoiceNumber))
             )
           );
 
