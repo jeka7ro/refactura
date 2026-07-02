@@ -2057,10 +2057,16 @@ export const appRouter = router({
           body: xmlContent,
         });
         const responseText = await response.text();
-        const indexMatch = responseText.match(
-          /<index_incarcare>(\d+)<\/index_incarcare>/
-        );
-        if (indexMatch?.[1]) {
+        console.log(`[SPV Upload Emitted] Invoice ${input.id} Response:`, responseText);
+        
+        let spvIndex: string | null = null;
+        const indexTagMatch = responseText.match(/<index_incarcare>(\d+)<\/index_incarcare>/i);
+        const indexAttrMatch = responseText.match(/index_incarcare=["'](\d+)["']/i);
+        
+        if (indexTagMatch && indexTagMatch[1]) spvIndex = indexTagMatch[1];
+        else if (indexAttrMatch && indexAttrMatch[1]) spvIndex = indexAttrMatch[1];
+
+        if (spvIndex) {
           await db
             .update(emittedInvoices)
             .set({
@@ -2069,7 +2075,7 @@ export const appRouter = router({
               rawXml: xmlContent,
             })
             .where(eq(emittedInvoices.id, input.id));
-          return { success: true, index_incarcare: indexMatch[1] };
+          return { success: true, index_incarcare: spvIndex };
         } else {
           const errMatch = responseText.match(/<eroare>(.*?)<\/eroare>/i);
           const errMsg = errMatch?.[1] || responseText;
