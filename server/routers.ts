@@ -2070,7 +2070,7 @@ export const appRouter = router({
           await db
             .update(emittedInvoices)
             .set({
-              spvIndex: indexMatch[1],
+              spvIndex: spvIndex,
               spvStatus: "in_procesare",
               rawXml: xmlContent,
             })
