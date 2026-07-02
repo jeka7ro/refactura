@@ -60,6 +60,7 @@ interface UnifiedRow {
   fileUrl?: string | null;
   source: string;
   itemsText?: string;
+  spvStatus?: string | null;
 }
 
 const SOURCE_BADGE: Record<string, { label: string; cls: string }> = {
@@ -380,6 +381,7 @@ export default function AllInvoices() {
           fileUrl: null,
           source: "manual",
           itemsText: i.itemsText || "",
+          spvStatus: i.spvStatus,
         });
       }
     );
@@ -1249,15 +1251,22 @@ export default function AllInvoices() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex flex-col gap-0.5">
+                        <div className="flex flex-col gap-0.5 items-start">
                           <span className={`text-sm font-bold ${tb.cls}`}>
                             {tb.label}
                           </span>
-                          <span
-                            className={`text-sm font-bold ${STATUS_CLS[row.status] || STATUS_CLS.pending}`}
-                          >
-                            {getStatusLabel(row.status, row.type)}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className={`text-sm font-bold ${STATUS_CLS[row.status] || STATUS_CLS.pending}`}
+                            >
+                              {getStatusLabel(row.status, row.type)}
+                            </span>
+                            {row.spvStatus && (row.spvStatus.toLowerCase() === "validat" || row.spvStatus.toLowerCase() === "trimisa") && (
+                              <span className="text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded border border-green-200">
+                                {row.spvStatus.toLowerCase() === "validat" ? "Validată SPV" : "Trimisă SPV"}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">
