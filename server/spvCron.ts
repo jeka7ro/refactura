@@ -90,6 +90,9 @@ export async function syncAllSpv(zile: number = 60) {
       let skipped = 0;
 
       for (const msg of messages) {
+        // Log every message so we can see exactly what ANAF sends
+        console.log(`[SPV Cron] MSG tip=${msg.tip} cif=${msg.cif} id=${msg.id} id_descarcare=${msg.id_descarcare} id_solicitare=${msg.id_solicitare} detalii=${msg.detalii || ""}`);
+
         // Only process FACTURA PRIMITA and FACTURA TRIMISA
         if (
           !msg.tip ||
@@ -97,11 +100,12 @@ export async function syncAllSpv(zile: number = 60) {
             msg.tip !== "FACTURA PRIMITA" &&
             msg.tip !== "FACTURA TRIMISA")
         ) {
+          console.log(`[SPV Cron] SKIP (tip mismatch): ${msg.tip}`);
           continue;
         }
 
         const downloadId = msg.id_descarcare || msg.id;
-        if (!downloadId) continue;
+        if (!downloadId) { console.log(`[SPV Cron] SKIP (no downloadId)`); continue; }
 
         // 1. Check if this message corresponds to a ReInvoice we sent to SPV
         if (msg.id_solicitare) {
@@ -188,7 +192,10 @@ export async function syncAllSpv(zile: number = 60) {
         let zip;
         try {
           const buffer = await zipResponse.arrayBuffer();
-          zip = new AdmZip(Buffer.from(buffer));
+          const buf = Buffer.from(buffer);
+          // Log first 200 chars to identify what ANAF actually returned
+          console.log(`[SPV Cron] Downloaded ${buf.length} bytes for ${downloadId}, first bytes: ${buf.slice(0,120).toString("utf8").replace(/[\r\n]/g, " ")}`);
+          zip = new AdmZip(buf);
         } catch (err: any) {
           console.warn(
             `[SPV Cron] Failed to parse ZIP for ${downloadId}:`,
