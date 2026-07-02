@@ -179,24 +179,33 @@ export async function syncAllSpv(zile: number = 60) {
           continue;
         }
 
-        const contentType = zipResponse.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-          const errData = await zipResponse.json();
-          console.warn(
-            `[SPV Cron] ANAF Error for ${downloadId}:`,
-            errData.eroare
-          );
-          continue;
-        }
+        const contentType = zipResponse.headers.get("content-type") || "";
 
         let xmlString: string | null = null;
 
         try {
           const buffer = await zipResponse.arrayBuffer();
           const buf = Buffer.from(buffer);
-          // Log first 200 chars to identify what ANAF actually returned
           console.log(`[SPV Cron] Downloaded ${buf.length} bytes for ${downloadId}, first bytes: ${buf.slice(0,120).toString("utf8").replace(/[\r\n]/g, " ")}`);
-          
+
+          // Detect JSON error response regardless of content-type (ANAF sends JSON with wrong content-type sometimes)
+          const firstChar = buf.slice(0, 1).toString("utf8").trim();
+          if (firstChar === "{" || contentType.includes("application/json")) {
+            try {
+              const errData = JSON.parse(buf.toString("utf8"));
+              if (errData.eroare) {
+                console.warn(`[SPV Cron] ANAF Error for ${downloadId}: ${errData.eroare}`);
+                // If it's a download limit error, skip for today
+                if (errData.eroare.includes("10 descarcari") || errData.eroare.includes("descarcari")) {
+                  console.warn(`[SPV Cron] Download limit hit for ${downloadId} — will retry tomorrow`);
+                }
+                continue;
+              }
+            } catch {
+              // Not JSON, continue to ZIP/XML parsing
+            }
+          }
+
           const firstBytes = buf.slice(0, 4).toString("hex");
           // ZIP magic bytes: 504b0304
           if (firstBytes === "504b0304") {
