@@ -250,7 +250,7 @@ export default function ReInvoicesSent() {
         if (value === "in_procesare")
           return (
             <span className="text-[10px] font-bold text-blue-500">
-              În Procesare
+              Trimisă
             </span>
           );
         if (value === "validat")

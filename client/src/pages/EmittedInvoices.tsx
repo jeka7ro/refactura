@@ -51,7 +51,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 const SPV_LABELS: Record<string, string> = {
   nesincronizat: "Netrimisă",
-  in_procesare: "Procesare",
+  in_procesare: "Trimisă",
   validat: "Validată",
   eroare: "Eroare",
 };
