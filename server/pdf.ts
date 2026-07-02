@@ -277,12 +277,19 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   doc.fontSize(11).text(data.companyName, leftX, y + 12, { width: colW });
 
   let leftInfoY = y + 30;
-  const addInfo = (label: string, val: string, x: number, currY: number) => {
+  const addInfo = (label: string, val: string, x: number, currY: number, alignRight = false) => {
     if (!val) return currY;
-    doc.fontSize(8).font("Roboto-Bold").text(label, x, currY, { width: 60 });
-    const textHeight = doc.font("Roboto").heightOfString(val, { width: colW - 60 });
-    doc.text(val, x + 60, currY, { width: colW - 60 });
-    return currY + Math.max(12, textHeight + 2);
+    if (alignRight) {
+      const fullText = `${label} ${val}`;
+      doc.fontSize(8).font("Roboto").text(fullText, x, currY, { width: colW, align: "right" });
+      const textHeight = doc.heightOfString(fullText, { width: colW });
+      return currY + Math.max(12, textHeight + 2);
+    } else {
+      doc.fontSize(8).font("Roboto-Bold").text(label, x, currY, { width: 60 });
+      const textHeight = doc.font("Roboto").heightOfString(val, { width: colW - 60 });
+      doc.text(val, x + 60, currY, { width: colW - 60 });
+      return currY + Math.max(12, textHeight + 2);
+    }
   };
 
   leftInfoY = addInfo("CIF:", data.companyCUI, leftX, leftInfoY);
@@ -301,30 +308,33 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   doc
     .fontSize(9)
     .font("Roboto-Bold")
-    .text("Client:", leftX + colW + 20, y);
+    .text("Client:", leftX + colW + 20, y, { width: colW, align: "right" });
   doc
     .fontSize(11)
-    .text(data.clientName, leftX + colW + 20, y + 12, { width: colW });
+    .text(data.clientName, leftX + colW + 20, y + 12, { width: colW, align: "right" });
 
   let rightInfoY = y + 30;
-  rightInfoY = addInfo("CIF:", data.clientCUI, leftX + colW + 20, rightInfoY);
+  rightInfoY = addInfo("CIF:", data.clientCUI, leftX + colW + 20, rightInfoY, true);
   rightInfoY = addInfo(
     "Adresa:",
     `${data.clientAddress}, ${data.clientCity}`,
     leftX + colW + 20,
-    rightInfoY
+    rightInfoY,
+    true
   );
   rightInfoY = addInfo(
     "Tel.:",
     data.clientPhone,
     leftX + colW + 20,
-    rightInfoY
+    rightInfoY,
+    true
   );
   rightInfoY = addInfo(
     "Email:",
     data.clientEmail,
     leftX + colW + 20,
-    rightInfoY
+    rightInfoY,
+    true
   );
 
   y = Math.max(leftInfoY, rightInfoY) + 20;
