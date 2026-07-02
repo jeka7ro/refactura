@@ -1070,6 +1070,11 @@ export default function AllInvoices() {
                     tasks.push(syncSpvManual.mutateAsync().catch(() => {}));
                   await Promise.all(tasks);
                   syncedAny = true;
+                  
+                  // Refetch tables after sync
+                  r1();
+                  r2();
+                  r3();
                 }
 
                 if (!syncedAny) {
@@ -1077,7 +1082,7 @@ export default function AllInvoices() {
                     "Nicio integrare activă de sincronizat. Verificați Setările."
                   );
                 } else {
-                  toast.success("Sincronizare completă", { id: "sync" });
+                  toast.success("Sincronizare completă. Refreshing...", { id: "sync" });
                 }
               }}
               disabled={syncOblio.isPending || syncSpvManual.isPending}

@@ -1246,13 +1246,15 @@ export const appRouter = router({
             eq(integrations.provider, "spv")
           )
         );
+
       if (!spvIntg || !spvIntg.apiKey) {
         throw new Error(
           "SPV nu este configurat sau lipsește token-ul de acces."
         );
       }
-      const { syncSpvInvoices } = await import("./spvSync");
-      return syncSpvInvoices(ctx.user.tenantId, spvIntg.apiKey);
+      const { syncAllSpv } = await import("./spvCron");
+      await syncAllSpv(60);
+      return { success: true };
     }),
     getSpvOAuthUrl: protectedProcedure.query(async ({ ctx }) => {
       if (!ctx.user?.tenantId) throw new Error("No tenant context");
