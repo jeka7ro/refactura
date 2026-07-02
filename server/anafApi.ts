@@ -68,10 +68,10 @@ export async function uploadInvoiceToSPV(
     // Response structure:
     // <?xml version="1.0" encoding="UTF-8" standalone="yes"?><dateRsp><cui>42322117</cui><dateResponse><ExecutionStatus>0</ExecutionStatus><index_incarcare>66612345</index_incarcare></dateResponse></dateRsp>
     // Sometimes it's JSON if we ask for it? Let's parse XML simply via regex or fast-xml-parser
-    let indexMatch = responseText.match(
-      /<index_incarcare>(\d+)<\/index_incarcare>/
-    );
-    let errorMatch = responseText.match(/<Errors[^>]*>(.*?)<\/Errors>/i);
+    let indexMatch =
+      responseText.match(/<index_incarcare>(\d+)<\/index_incarcare>/i) ||
+      responseText.match(/index_incarcare=["'](\d+)["']/i);
+    let errorMatch = responseText.match(/<Errors[^>]*>(.*?)<\/Errors>/i) || responseText.match(/errorMessage=["'](.*?)["']/i);
 
     if (indexMatch && indexMatch[1]) {
       const spvIndex = indexMatch[1];

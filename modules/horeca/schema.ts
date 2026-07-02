@@ -100,6 +100,44 @@ export type HorecaMenuItem = typeof horecaMenuItems.$inferSelect;
 export type InsertHorecaMenuItem = typeof horecaMenuItems.$inferInsert;
 
 /**
+ * HORECA Ingredients — Materii prime și ingrediente
+ */
+export const horecaIngredients = mysqlTable("horecaIngredients", {
+  id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId").notNull(),
+  locationId: int("locationId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  unit: varchar("unit", { length: 20 }).default("kg"),
+  currentStock: decimal("currentStock", { precision: 12, scale: 4 }).default("0.0000"),
+  unitCost: decimal("unitCost", { precision: 10, scale: 4 }).default("0.0000"),
+  isActive: int("isActive").default(1),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type HorecaIngredient = typeof horecaIngredients.$inferSelect;
+export type InsertHorecaIngredient = typeof horecaIngredients.$inferInsert;
+
+/**
+ * HORECA Stock Movements — Mișcări de stoc pentru ingrediente
+ */
+export const horecaStockMovements = mysqlTable("horecaStockMovements", {
+  id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId").notNull(),
+  locationId: int("locationId").notNull(),
+  ingredientId: int("ingredientId").notNull(),
+  type: mysqlEnum("type", ["in", "out", "adjustment"]).notNull(),
+  quantity: decimal("quantity", { precision: 12, scale: 4 }).notNull(),
+  unitCost: decimal("unitCost", { precision: 10, scale: 4 }), // cost at the time of movement
+  reference: varchar("reference", { length: 255 }), // e.g. "Order #1234", "NIR #5"
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type HorecaStockMovement = typeof horecaStockMovements.$inferSelect;
+export type InsertHorecaStockMovement = typeof horecaStockMovements.$inferInsert;
+
+/**
  * HORECA Recipe Lines — Rețetă: ingrediente per produs de meniu
  * productId → optional link la tabelul `products` din core (stoc)
  */
@@ -107,6 +145,7 @@ export const horecaRecipeLines = mysqlTable("horecaRecipeLines", {
   id: int("id").autoincrement().primaryKey(),
   menuItemId: int("menuItemId").notNull(),
   tenantId: int("tenantId").notNull(),
+  ingredientId: int("ingredientId"), // FK către horecaIngredients
   ingredientName: varchar("ingredientName", { length: 255 }).notNull(),
   productId: int("productId"), // FK opțional → products (core)
   quantity: decimal("quantity", { precision: 10, scale: 4 }).notNull(),
@@ -225,6 +264,7 @@ export const horecaOrders = mysqlTable("horecaOrders", {
   deliveryPlatform: varchar("deliveryPlatform", { length: 50 }),
   notes: text("notes"),
   kitchenNotes: text("kitchenNotes"),
+  stockDeducted: int("stockDeducted").default(0),
   openedAt: timestamp("openedAt").defaultNow(),
   closedAt: timestamp("closedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

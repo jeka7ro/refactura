@@ -2,7 +2,7 @@
 // UI: Kanban-style columns, full screen layout for tablet/kitchen screen
 // Proper Light/Dark mode styling (Premium UI)
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   ChefHat,
   Loader2,
@@ -27,7 +27,19 @@ export default function HorecaKitchenDisplay() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [limit, setLimit] = useState<number>(50);
 
-  const { data: locations = [] } = trpc.horeca.locations.list.useQuery();
+  const { data: localLocations = [] } = trpc.horeca.locations.list.useQuery();
+
+  const { data: bridgeLocations = [] } =
+    trpc.horeca.kioskBridge.listLocations.useQuery(undefined, {
+      refetchOnWindowFocus: false,
+    });
+
+  const mappedBridgeLocations = bridgeLocations.map((bl: any) => ({
+    id: `bridge-${bl.id}`,
+    name: bl.name,
+  }));
+
+  const locations = [...localLocations, ...mappedBridgeLocations];
   const locationId = selectedLocationId ?? locations[0]?.id ?? 0;
 
   const utils = trpc.useUtils();
@@ -45,19 +57,17 @@ export default function HorecaKitchenDisplay() {
     }
   );
 
-  // Smart Kiosk Bridge — fetch real orders when local DB is empty (READ-ONLY!)
+  // Smart Kiosk Bridge — fetch real orders (from IIKO/POS/Smart Kiosk)
   const { data: bridgeOrdersData } =
     trpc.horeca.kioskBridge.listOrders.useQuery(
       { limit: 50, status: "pending,confirmed,preparing,ready" },
       {
-        enabled: !isLoading && localOrders.length === 0,
         refetchInterval: 5000,
         refetchOnWindowFocus: false,
       }
     );
 
-  const usesBridge =
-    localOrders.length === 0 && (bridgeOrdersData?.orders || []).length > 0;
+  const usesBridge = (bridgeOrdersData?.orders || []).length > 0;
   const orders = usesBridge
     ? (bridgeOrdersData?.orders || []).map((o: any, idx: number) => ({
         id: idx + 1,
@@ -92,6 +102,38 @@ export default function HorecaKitchenDisplay() {
     const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
     return timeA - timeB;
   });
+
+  // Notificare sonoră pentru comenzi noi
+  const prevHighestIdRef = useRef<number>(0);
+  useEffect(() => {
+    if (kitchenOrders.length === 0) return;
+    
+    const currentHighestId = Math.max(...kitchenOrders.map((o: any) => Number(o.id) || 0));
+    
+    if (prevHighestIdRef.current > 0 && currentHighestId > prevHighestIdRef.current) {
+      try {
+        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); 
+        oscillator.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1);
+        
+        gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.5);
+      } catch (e) {
+        console.error("Notificare audio eșuată", e);
+      }
+    }
+    prevHighestIdRef.current = currentHighestId;
+  }, [kitchenOrders]);
 
   function handleStart(orderId: number) {
     updateStatusMut.mutate({ id: orderId, status: "preparing" });
@@ -152,8 +194,11 @@ export default function HorecaKitchenDisplay() {
           {locations.length > 1 && (
             <div className="relative">
               <select
-                value={locationId}
-                onChange={e => setSelectedLocationId(Number(e.target.value))}
+                value={locationId || ""}
+                onChange={e => {
+                  const val = e.target.value;
+                  setSelectedLocationId(val.startsWith('bridge-') ? val as any : Number(val));
+                }}
                 className="appearance-none pr-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-3 py-2 rounded-full text-sm font-medium focus:outline-none focus:border-blue-500 shadow-sm"
               >
                 {locations.map(l => (

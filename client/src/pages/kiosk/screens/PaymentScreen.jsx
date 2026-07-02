@@ -114,7 +114,7 @@ export default function PaymentScreen() {
 
         const order = await createOrder.mutateAsync({
           locationId: locId,
-          tableId: undefined,
+          tableNumber: tableNumber ? String(tableNumber) : undefined,
           customerName: "Client Kiosk",
           customerPhone: "",
           type: orderType === "togo" ? "togo" : "dine_in",

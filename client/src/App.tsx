@@ -39,6 +39,7 @@ import Catalog from "@/pages/Catalog";
 import HorecaDashboard from "@/pages/horeca/HorecaDashboard";
 import HorecaLocations from "@/pages/horeca/HorecaLocations";
 import HorecaMenu from "@/pages/horeca/HorecaMenu";
+import HorecaInventory from "@/pages/horeca/HorecaInventory";
 import HorecaOrders from "@/pages/horeca/HorecaOrders";
 import HorecaDelivery from "@/pages/horeca/HorecaDelivery";
 import HorecaTables from "@/pages/horeca/HorecaTables";
@@ -231,6 +232,11 @@ function Router() {
       <Route path="/horeca/meniu">
         <DashboardLayout>
           <HorecaMenu />
+        </DashboardLayout>
+      </Route>
+      <Route path="/horeca/gestiune">
+        <DashboardLayout>
+          <HorecaInventory />
         </DashboardLayout>
       </Route>
       <Route path="/horeca/comenzi">

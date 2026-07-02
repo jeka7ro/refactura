@@ -86,18 +86,17 @@ export default function HorecaDelivery() {
   const { data: localLocations = [] } = trpc.horeca.locations.list.useQuery();
   const { data: bridgeLocations = [] } =
     trpc.horeca.kioskBridge.listLocations.useQuery(undefined, {
-      enabled: localLocations.length === 0,
       refetchOnWindowFocus: false,
     });
 
-  const usesBridge = localLocations.length === 0 && bridgeLocations.length > 0;
-  const locations = usesBridge
-    ? bridgeLocations.map((bl: any, idx: number) => ({
-        id: idx + 1,
-        name: bl.name,
-        iiko_id: bl.id,
-      }))
-    : localLocations;
+  const mappedBridgeLocations = bridgeLocations.map((bl: any) => ({
+    id: `bridge-${bl.id}`,
+    name: bl.name,
+    iiko_id: bl.id,
+  }));
+
+  const locations = [...localLocations, ...mappedBridgeLocations];
+  const usesBridge = mappedBridgeLocations.length > 0;
 
   const locationId = selectedLocationId ?? locations[0]?.id ?? 0;
   const activeLocation = locations.find((l: any) => l.id === locationId);
@@ -290,9 +289,12 @@ export default function HorecaDelivery() {
           {locations.length > 1 && (
             <div className="relative">
               <select
-                value={locationId}
-                onChange={e => setSelectedLocationId(Number(e.target.value))}
-                className="appearance-none bg-background border border-border text-foreground px-3 py-2 pr-8 !rounded-full text-sm focus:outline-none focus:border-primary shadow-sm"
+                value={locationId || ""}
+                onChange={e => {
+                  const val = e.target.value;
+                  setSelectedLocationId(val.startsWith('bridge-') ? val as any : Number(val));
+                }}
+                className="appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-4 py-2 font-semibold shadow-sm min-w-[200px] rounded-lg focus:outline-none focus:border-blue-500 pr-10"
               >
                 {locations.map((l: any) => (
                   <option key={l.id} value={l.id}>

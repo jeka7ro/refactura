@@ -42,8 +42,9 @@ import {
   ShoppingBag,
   Grid3X3,
   ChefHat,
-  MonitorSmartphone,
   Settings2,
+  Box,
+  MonitorSmartphone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -130,6 +131,7 @@ const navItems: NavItem[] = [
       { href: "/horeca/locatii", label: "Locații", icon: MapPin },
       { href: "/horeca/mese", label: "Plan Sală", icon: Grid3X3 },
       { href: "/horeca/meniu", label: "Meniu & Rețete", icon: BookOpen },
+      { href: "/horeca/gestiune", label: "Gestiune Stoc", icon: Box },
       { href: "/horeca/comenzi", label: "Comenzi POS", icon: ShoppingBag },
       { href: "/horeca/kds", label: "Bucătărie (KDS)", icon: ChefHat },
       { href: "/horeca/delivery", label: "Delivery", icon: Truck },
@@ -364,12 +366,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Top Header — Full width island */}
       <header className="h-16 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center px-4 sm:px-6 gap-4 flex-shrink-0">
         {/* Logo */}
-        <div className="h-8 w-auto flex-shrink-0 mr-2">
-          <img
-            src="/logo.png"
-            alt="GetApp Refactura"
-            className="h-full object-contain"
-          />
+        <div className="flex items-center gap-1.5 flex-shrink-0 mr-2">
+          <div className="h-8 w-8 overflow-hidden flex-shrink-0">
+            <img
+              src="/logo.png"
+              alt="Icon"
+              className="h-full w-full object-cover object-left"
+            />
+          </div>
+          <div className="flex flex-col items-center justify-center leading-[1.1]">
+            <span className="text-[17px] font-extrabold text-slate-900 dark:text-white tracking-tight">Get App</span>
+            <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">Smart ERP</span>
+          </div>
         </div>
 
         {/* Mobile menu toggle */}

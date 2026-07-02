@@ -115,6 +115,12 @@ export default function App() {
           const { applyBrandTheme } = require("./config/brands.js");
           applyBrandTheme(brands[0]);
         }
+
+        // Auto-select table if QR scanned
+        const tableParam = new URLSearchParams(window.location.search).get("table");
+        if (tableParam) {
+          useKioskStore.getState().setOrderType("dine_in", tableParam);
+        }
       } catch (e) {
         console.error("Eroare la parsarea setărilor kiosk", e);
       }

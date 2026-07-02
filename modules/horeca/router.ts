@@ -15,6 +15,8 @@ import {
   horecaModifiers,
   horecaShifts,
   horecaKioskSettings,
+  horecaIngredients,
+  horecaStockMovements,
 } from "./schema";
 import { bonuriConsum, bonuriConsumLines } from "../../drizzle/schema";
 
@@ -27,9 +29,10 @@ export const horecaRouter = router({
   // ── LOCATIONS ─────────────────────────────────────────────────────────────
   locations: router({
     list: protectedProcedure.query(async ({ ctx }) => {
+      console.log("[Horeca locations.list] User:", ctx.user.id, "Tenant:", ctx.user.tenantId);
       const db = await getDb();
       if (!db) throw new Error("No DB");
-      return db
+      const locs = await db
         .select()
         .from(horecaLocations)
         .where(
@@ -39,6 +42,8 @@ export const horecaRouter = router({
           )
         )
         .orderBy(horecaLocations.name);
+      console.log("[Horeca locations.list] Found locs:", locs.length);
+      return locs;
     }),
 
     create: protectedProcedure
@@ -127,6 +132,104 @@ export const horecaRouter = router({
               eq(horecaLocations.tenantId, ctx.user.tenantId!)
             )
           );
+        return { success: true };
+      }),
+  }),
+
+  // ── INVENTORY ─────────────────────────────────────────────────────────────
+  inventory: router({
+    listIngredients: protectedProcedure
+      .input(z.object({ locationId: z.union([z.number(), z.string()]).optional() }))
+      .query(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const conditions = [
+          eq(horecaIngredients.tenantId, ctx.user.tenantId!),
+          eq(horecaIngredients.isActive, 1)
+        ];
+        if (input.locationId) {
+          conditions.push(eq(horecaIngredients.locationId, input.locationId));
+        }
+        return db
+          .select()
+          .from(horecaIngredients)
+          .where(and(...conditions))
+          .orderBy(horecaIngredients.name);
+      }),
+
+    upsertIngredient: protectedProcedure
+      .input(
+        z.object({
+          id: z.number().optional(),
+          locationId: z.number(),
+          name: z.string().min(1),
+          unit: z.string(),
+          unitCost: z.number().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        if (input.id) {
+          await db
+            .update(horecaIngredients)
+            .set({
+              name: input.name,
+              unit: input.unit,
+              unitCost: input.unitCost?.toString() || "0.00",
+            })
+            .where(
+              and(
+                eq(horecaIngredients.id, input.id),
+                eq(horecaIngredients.tenantId, ctx.user.tenantId!)
+              )
+            );
+          return { id: input.id };
+        } else {
+          const [result] = await db.insert(horecaIngredients).values({
+            tenantId: ctx.user.tenantId!,
+            locationId: input.locationId,
+            name: input.name,
+            unit: input.unit,
+            unitCost: input.unitCost?.toString() || "0.00",
+            currentStock: "0.00",
+          });
+          return { id: (result as any).insertId };
+        }
+      }),
+
+    addStock: protectedProcedure
+      .input(
+        z.object({
+          ingredientId: z.number(),
+          locationId: z.number(),
+          quantity: z.number(),
+          unitCost: z.number().optional(),
+          reference: z.string().optional(),
+          notes: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+
+        // 1. Insert movement
+        await db.insert(horecaStockMovements).values({
+          tenantId: ctx.user.tenantId!,
+          locationId: input.locationId,
+          ingredientId: input.ingredientId,
+          type: "in",
+          quantity: input.quantity.toString(),
+          unitCost: input.unitCost?.toString(),
+          reference: input.reference,
+          notes: input.notes,
+        });
+
+        // 2. Update stock
+        await db.execute(
+          sql`UPDATE horecaIngredients SET currentStock = currentStock + ${input.quantity} WHERE id = ${input.ingredientId} AND tenantId = ${ctx.user.tenantId!}`
+        );
+
         return { success: true };
       }),
   }),
@@ -346,6 +449,7 @@ export const horecaRouter = router({
           lines: z.array(
             z.object({
               id: z.number().optional(),
+              ingredientId: z.number().optional().nullable(),
               ingredientName: z.string().min(1),
               productId: z.number().optional(),
               quantity: z.string(),
@@ -372,6 +476,7 @@ export const horecaRouter = router({
           await db.insert(horecaRecipeLines).values(
             input.lines.map(l => ({
               ...l,
+              ingredientId: l.ingredientId ?? null,
               menuItemId: input.menuItemId,
               tenantId: ctx.user.tenantId!,
             }))
@@ -743,12 +848,14 @@ export const horecaRouter = router({
         }
 
         // Auto-consumption of stock when paid
-        if (status === "paid" && oldOrder.status !== "paid") {
+        if (status === "paid" && oldOrder.status !== "paid" && !oldOrder.stockDeducted) {
           const lines = await db
             .select()
             .from(horecaOrderLines)
             .where(eq(horecaOrderLines.orderId, id));
+          
           const ingredientsToConsume: any[] = [];
+          const horecaStockUpdates: { ingredientId: number; qty: number; unitCost: number }[] = [];
 
           for (const line of lines) {
             if (line.menuItemId) {
@@ -757,23 +864,29 @@ export const horecaRouter = router({
                 .from(horecaRecipeLines)
                 .where(eq(horecaRecipeLines.menuItemId, line.menuItemId));
               for (const recipe of recipeLines) {
+                const consumeQty = Number(recipe.quantity) * Number(line.quantity);
+                const unitCost = Number(recipe.unitCost || 0);
+
                 ingredientsToConsume.push({
                   materialCode: String(recipe.productId || ""),
                   description: recipe.ingredientName,
-                  quantity: String(
-                    Number(recipe.quantity) * Number(line.quantity)
-                  ),
-                  unitPrice: String(recipe.unitCost || "0"),
-                  total: String(
-                    Number(recipe.quantity) *
-                      Number(line.quantity) *
-                      Number(recipe.unitCost || 0)
-                  ),
+                  quantity: String(consumeQty),
+                  unitPrice: String(unitCost),
+                  total: String(consumeQty * unitCost),
                 });
+
+                if (recipe.ingredientId) {
+                  horecaStockUpdates.push({
+                    ingredientId: recipe.ingredientId,
+                    qty: consumeQty,
+                    unitCost: unitCost
+                  });
+                }
               }
             }
           }
 
+          // 1. Generate Bon de Consum for ERP module (if global inventory is used)
           if (ingredientsToConsume.length > 0) {
             const [bc] = await db.insert(bonuriConsum).values({
               tenantId: ctx.user.tenantId!,
@@ -792,6 +905,23 @@ export const horecaRouter = router({
               }))
             );
           }
+
+          // 2. Real-time deduction from local Horeca Inventory
+          for (const stockUpd of horecaStockUpdates) {
+             await db.execute(sql`UPDATE horecaIngredients SET currentStock = currentStock - ${stockUpd.qty} WHERE id = ${stockUpd.ingredientId}`);
+             await db.insert(horecaStockMovements).values({
+               tenantId: ctx.user.tenantId!,
+               locationId: oldOrder.locationId,
+               ingredientId: stockUpd.ingredientId,
+               type: "out",
+               quantity: stockUpd.qty.toString(),
+               unitCost: stockUpd.unitCost.toString(),
+               reference: `CMD-${oldOrder.orderNumber}`,
+             });
+          }
+
+          // 3. Mark order as stock deducted
+          await db.update(horecaOrders).set({ stockDeducted: 1 }).where(eq(horecaOrders.id, id));
         }
 
         return { success: true };
@@ -1266,7 +1396,7 @@ export const horecaRouter = router({
       .input(
         z.object({
           locationId: z.string(),
-          data: z.record(z.any()), // free-form JSON — the entire location patch
+          data: z.record(z.string(), z.any()), // free-form JSON — the entire location patch
         })
       )
       .mutation(async ({ input }) => {

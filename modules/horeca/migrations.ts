@@ -68,17 +68,52 @@ export async function runHorecaMigrations(db: MySql2Database<any>) {
       updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )`);
 
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS horecaIngredients (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      tenantId INT NOT NULL,
+      locationId INT NOT NULL,
+      name VARCHAR(255) NOT NULL,
+      unit VARCHAR(20) DEFAULT 'kg',
+      currentStock DECIMAL(12,4) DEFAULT 0.0000,
+      unitCost DECIMAL(10,4) DEFAULT 0.0000,
+      isActive INT DEFAULT 1,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )`);
+
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS horecaStockMovements (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      tenantId INT NOT NULL,
+      locationId INT NOT NULL,
+      ingredientId INT NOT NULL,
+      type ENUM('in','out','adjustment') NOT NULL,
+      quantity DECIMAL(12,4) NOT NULL,
+      unitCost DECIMAL(10,4),
+      reference VARCHAR(255),
+      notes TEXT,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`);
+
     await db.execute(sql`CREATE TABLE IF NOT EXISTS horecaRecipeLines (
       id INT AUTO_INCREMENT PRIMARY KEY,
       menuItemId INT NOT NULL,
       tenantId INT NOT NULL,
       ingredientName VARCHAR(255) NOT NULL,
+      ingredientId INT NULL,
       productId INT,
       quantity DECIMAL(10,4) NOT NULL,
       unit VARCHAR(20) NOT NULL,
       unitCost DECIMAL(10,4),
       sortOrder INT DEFAULT 0
     )`);
+
+    try {
+      await db.execute(sql`ALTER TABLE horecaRecipeLines ADD COLUMN ingredientId INT NULL`);
+    } catch (e: any) {
+      if (e.code !== "ER_DUP_FIELDNAME") {
+        console.error("Error adding ingredientId to horecaRecipeLines", e);
+      }
+    }
 
     await db.execute(sql`CREATE TABLE IF NOT EXISTS horecaModifierGroups (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -140,11 +175,20 @@ export async function runHorecaMigrations(db: MySql2Database<any>) {
       deliveryPlatform VARCHAR(50),
       notes TEXT,
       kitchenNotes TEXT,
+      stockDeducted INT DEFAULT 0,
       openedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       closedAt TIMESTAMP NULL,
       createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )`);
+
+    try {
+      await db.execute(sql`ALTER TABLE horecaOrders ADD COLUMN stockDeducted INT DEFAULT 0`);
+    } catch (e: any) {
+      if (e.code !== "ER_DUP_FIELDNAME") {
+        console.error("Error adding stockDeducted to horecaOrders", e);
+      }
+    }
 
     await db.execute(sql`CREATE TABLE IF NOT EXISTS horecaOrderLines (
       id INT AUTO_INCREMENT PRIMARY KEY,

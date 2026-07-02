@@ -180,6 +180,7 @@ export default function ReInvoice() {
     unitPrice: number | string;
     markupPercent?: number | string;
     currency?: string;
+    isCustom?: boolean;
   }
   const [lines, setLines] = useState<EditableLine[]>([]);
   const [showCodes, setShowCodes] = useState(false);
@@ -408,6 +409,12 @@ export default function ReInvoice() {
   const updateLineQty = (lineId: string, qty: string | number) => {
     setLines(prev =>
       prev.map(l => (l.id === lineId ? { ...l, quantity: qty } : l))
+    );
+  };
+
+  const updateLine = (lineId: string, field: string, value: any) => {
+    setLines(prev =>
+      prev.map(l => (l.id === lineId ? { ...l, [field]: value } : l))
     );
   };
 

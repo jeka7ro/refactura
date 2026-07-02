@@ -31,6 +31,8 @@ export default function HorecaMenu() {
     null
   );
   const [syrveBrand, setSyrveBrand] = useState("rollmaster");
+  const [selectedSyrveProduct, setSelectedSyrveProduct] = useState<any>(null);
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
 
   const { data: locations = [] } = trpc.horeca.locations.list.useQuery();
   const locationId = selectedLocationId ?? locations[0]?.id ?? 0;
@@ -144,6 +146,92 @@ export default function HorecaMenu() {
               <div className="flex justify-center py-12">
                 <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
               </div>
+            ) : selectedSyrveProduct ? (
+              <div className="animate-in fade-in zoom-in-95 duration-200 p-2 sm:p-6">
+                <button
+                  onClick={() => setSelectedSyrveProduct(null)}
+                  className="mb-8 flex items-center gap-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors font-semibold"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                  Înapoi la Meniu
+                </button>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-start">
+                  {/* IMAGINE URIAȘĂ */}
+                  <div 
+                    className="relative rounded-3xl overflow-hidden bg-slate-100 dark:bg-slate-800 shadow-md border border-slate-200 dark:border-slate-700 aspect-square flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity group"
+                    onClick={() => {
+                      if (selectedSyrveProduct.image) {
+                        setFullscreenImage(selectedSyrveProduct.image);
+                      }
+                    }}
+                  >
+                    {selectedSyrveProduct.image ? (
+                      <>
+                        <img
+                          src={
+                            selectedSyrveProduct.image?.startsWith("http")
+                              ? selectedSyrveProduct.image
+                              : `http://localhost:4000/api/image-proxy?url=${encodeURIComponent(selectedSyrveProduct.image)}`
+                          }
+                          alt={selectedSyrveProduct.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                          <Search className="w-12 h-12 text-white opacity-0 group-hover:opacity-100 drop-shadow-md transition-opacity" />
+                        </div>
+                      </>
+                    ) : (
+                      <UtensilsCrossed className="w-24 h-24 text-slate-300 dark:text-slate-600" />
+                    )}
+                  </div>
+
+                  {/* DETALII */}
+                  <div className="flex flex-col h-full py-4">
+                    <span className="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 text-xs font-bold rounded-full w-fit mb-4">
+                      {selectedSyrveProduct.categoryName || "Fără categorie"}
+                    </span>
+                    
+                    <h2 className="text-4xl lg:text-5xl font-black text-slate-900 dark:text-white leading-tight mb-4 tracking-tight">
+                      {selectedSyrveProduct.name}
+                    </h2>
+                    
+                    <div className="text-3xl font-black text-slate-900 dark:text-white mb-8 pb-8 border-b border-slate-200 dark:border-slate-800">
+                      {selectedSyrveProduct.price} <span className="text-xl text-slate-500 font-bold">RON</span>
+                    </div>
+
+                    {selectedSyrveProduct.description && (
+                      <div className="mb-10">
+                        <h3 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">Ingrediente / Descriere</h3>
+                        <div 
+                          className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed font-medium"
+                          dangerouslySetInnerHTML={{ __html: selectedSyrveProduct.description }} 
+                        />
+                      </div>
+                    )}
+
+                    {selectedSyrveProduct.modifierGroups && selectedSyrveProduct.modifierGroups.length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">Modificatori ({selectedSyrveProduct.modifierGroups.length})</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {selectedSyrveProduct.modifierGroups.map((group: any, idx: number) => (
+                            <div key={idx} className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                              <div className="font-bold text-slate-900 dark:text-white mb-2">
+                                Grupa {idx + 1}
+                              </div>
+                              <div className="text-sm text-slate-500 space-y-1">
+                                <p>Minim: <strong className="text-slate-700 dark:text-slate-300">{group.minQuantity}</strong></p>
+                                <p>Maxim: <strong className="text-slate-700 dark:text-slate-300">{group.maxQuantity}</strong></p>
+                                <p className="text-xs mt-2 text-slate-400">ID: {group.modifierId}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             ) : (
               <>
                 <div className="mb-4 flex items-center justify-between">
@@ -198,7 +286,8 @@ export default function HorecaMenu() {
                       {syrveProducts.map((p: any, idx: number) => (
                         <tr
                           key={p.id}
-                          className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                          onClick={() => setSelectedSyrveProduct(p)}
+                          className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
                         >
                           <td className="px-4 py-2.5 text-center text-slate-400 text-xs">
                             {idx + 1}
@@ -229,9 +318,10 @@ export default function HorecaMenu() {
                               {p.name}
                             </span>
                             {p.description && (
-                              <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">
-                                {p.description}
-                              </p>
+                              <p 
+                                className="text-xs text-slate-400 mt-0.5 line-clamp-1" 
+                                dangerouslySetInnerHTML={{ __html: p.description }} 
+                              />
                             )}
                           </td>
                           <td className="px-4 py-2.5 text-right font-bold text-blue-600 dark:text-blue-400">
@@ -256,6 +346,7 @@ export default function HorecaMenu() {
                     </tbody>
                   </table>
                 </div>
+
                 <div className="mt-3 px-4 py-2 text-xs text-slate-400 border-t border-slate-100 dark:border-slate-800">
                   Total: <strong>{syrveProducts.length}</strong> produse afișate
                 </div>
@@ -263,6 +354,35 @@ export default function HorecaMenu() {
             )}
           </div>
         )}
+
+        {/* FULLSCREEN IMAGE LIGHTBOX */}
+        {fullscreenImage && (
+          <div 
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+            onClick={() => setFullscreenImage(null)}
+          >
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setFullscreenImage(null);
+              }}
+              className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors backdrop-blur-md"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <img
+              src={
+                fullscreenImage.startsWith("http")
+                  ? fullscreenImage
+                  : `http://localhost:4000/api/image-proxy?url=${encodeURIComponent(fullscreenImage)}`
+              }
+              alt="Fullscreen View"
+              className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
+
         {activeTab === "categories" && (
           <CategoriesTab locationId={locationId} />
         )}
@@ -620,7 +740,16 @@ function ItemsTab({ locationId }: { locationId: number }) {
             </div>
             <div className="md:col-span-4 flex justify-end mt-2">
               <button
-                onClick={() => createMut.mutate({ locationId, ...form })}
+                onClick={() =>
+                  createMut.mutate({
+                    locationId,
+                    ...form,
+                    price: String(form.price),
+                    isAvailableDelivery: form.isAvailableDelivery ? 1 : 0,
+                    isAvailableDineIn: form.isAvailableDineIn ? 1 : 0,
+                    isAvailableTakeaway: form.isAvailableTakeaway ? 1 : 0,
+                  })
+                }
                 disabled={
                   createMut.isPending || !form.name.trim() || !form.categoryId
                 }
@@ -809,15 +938,13 @@ function RecipesTab({ locationId }: { locationId: number }) {
                     <span>{cat?.icon}</span> {item.name}
                   </div>
                   {item.hasRecipe === 1 ? (
-                    <Check
-                      className="w-4 h-4 text-emerald-500 flex-shrink-0"
-                      title="Are rețetă configurată"
-                    />
+                    <div title="Are rețetă configurată">
+                      <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                    </div>
                   ) : (
-                    <AlertCircle
-                      className="w-4 h-4 text-slate-300 dark:text-slate-600 flex-shrink-0"
-                      title="Nu are rețetă"
-                    />
+                    <div title="Nu are rețetă">
+                      <AlertCircle className="w-4 h-4 text-slate-300 dark:text-slate-600 flex-shrink-0" />
+                    </div>
                   )}
                 </button>
               );
@@ -860,7 +987,7 @@ function RecipeBuilder({
       { menuItemId: item.id },
       { enabled: !!item.id }
     );
-  const { data: erpProducts = [] } = trpc.products.list.useQuery();
+  const { data: horecaIngredients = [] } = trpc.horeca.inventory.listIngredients.useQuery({ locationId });
 
   const [lines, setLines] = useState<any[]>([]);
 
@@ -883,6 +1010,7 @@ function RecipeBuilder({
       ...lines,
       {
         ingredientName: "",
+        ingredientId: null,
         productId: null,
         quantity: 1,
         unit: "g",
@@ -896,12 +1024,13 @@ function RecipeBuilder({
     const newLines = [...lines];
     newLines[idx] = { ...newLines[idx], [field]: val };
 
-    // Auto-fill nume dacă selectăm un produs ERP
-    if (field === "productId" && val) {
-      const prod = erpProducts.find(p => p.id === Number(val));
-      if (prod) {
-        newLines[idx].ingredientName = prod.name;
-        newLines[idx].unitCost = prod.defaultPrice || 0; // Aproximare cost de la defaultPrice
+    // Auto-fill nume și preț dacă selectăm un ingredient
+    if (field === "ingredientId" && val) {
+      const ing = horecaIngredients.find(p => p.id === Number(val));
+      if (ing) {
+        newLines[idx].ingredientName = ing.name;
+        newLines[idx].unit = ing.unit || "g";
+        newLines[idx].unitCost = ing.unitCost || 0;
       }
     }
     setLines(newLines);
@@ -1010,24 +1139,24 @@ function RecipeBuilder({
                 <td className="px-2 py-2">
                   <div className="flex flex-col gap-1.5">
                     <select
-                      value={l.productId || ""}
+                      value={l.ingredientId || ""}
                       onChange={e =>
                         updateLine(
                           idx,
-                          "productId",
+                          "ingredientId",
                           e.target.value ? Number(e.target.value) : null
                         )
                       }
                       className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1.5 text-xs text-slate-900 dark:text-white"
                     >
-                      <option value="">-- Produs din Stoc (ERP) --</option>
-                      {erpProducts.map(p => (
+                      <option value="">-- Materie Primă (Stoc HoReCa) --</option>
+                      {horecaIngredients.map(p => (
                         <option key={p.id} value={p.id}>
-                          {p.name}
+                          {p.name} ({p.unit})
                         </option>
                       ))}
                     </select>
-                    {!l.productId && (
+                    {!l.ingredientId && (
                       <input
                         placeholder="Nume ingredient manual"
                         value={l.ingredientName}

@@ -34,17 +34,16 @@ export default function HorecaDashboard() {
 
   const { data: bridgeLocations = [], isLoading: bridgeLoading } =
     trpc.horeca.kioskBridge.listLocations.useQuery(undefined, {
-      enabled: !loadingLoc && localLocations.length === 0,
       refetchOnWindowFocus: false,
     });
 
-  const usesBridge = localLocations.length === 0 && bridgeLocations.length > 0;
-  const locations = usesBridge
-    ? bridgeLocations.map((bl: any, idx: number) => ({
-        id: idx + 1,
-        name: bl.name,
-      }))
-    : localLocations;
+  const mappedBridgeLocations = bridgeLocations.map((bl: any) => ({
+    id: `bridge-${bl.id}`,
+    name: bl.name,
+  }));
+
+  const locations = [...localLocations, ...mappedBridgeLocations];
+  const usesBridge = mappedBridgeLocations.length > 0;
 
   const locationId = selectedLocationId ?? locations[0]?.id ?? 0;
 
@@ -121,7 +120,7 @@ export default function HorecaDashboard() {
       }
     : summary;
 
-  if (loadingLoc || (localLocations.length === 0 && bridgeLoading)) {
+  if (loadingLoc || bridgeLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
@@ -171,8 +170,11 @@ export default function HorecaDashboard() {
         {locations.length > 1 && (
           <div className="relative">
             <select
-              value={locationId}
-              onChange={e => setSelectedLocationId(Number(e.target.value))}
+              value={locationId || ""}
+              onChange={e => {
+                const val = e.target.value;
+                setSelectedLocationId(val.startsWith('bridge-') ? val as any : Number(val));
+              }}
               className="appearance-none pr-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-3 py-2 rounded-full text-sm font-medium focus:outline-none focus:border-blue-500 shadow-sm"
             >
               {locations.map(l => (

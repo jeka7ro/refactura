@@ -653,15 +653,15 @@ html.dark[data-theme="navy"] {
  * REGULA GLOBALA: Campuri editabile = colturi drepte
  * Butoane, carduri, filtre = raman rotunjite
  * ====================================================== */
-input[type="text"],
-input[type="number"],
-input[type="email"],
-input[type="tel"],
-input[type="date"],
-input[type="search"],
-input[type="password"],
-textarea,
-select {
+input[type="text"]:not(.rounded-full),
+input[type="number"]:not(.rounded-full),
+input[type="email"]:not(.rounded-full),
+input[type="tel"]:not(.rounded-full),
+input[type="date"]:not(.rounded-full),
+input[type="search"]:not(.rounded-full),
+input[type="password"]:not(.rounded-full),
+textarea:not(.rounded-full),
+select:not(.rounded-full) {
   border-radius: 0 !important;
 }
 

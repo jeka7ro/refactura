@@ -85,19 +85,17 @@ export default function HorecaOrders() {
     { enabled: locationId > 0, refetchInterval: 15000 }
   );
 
-  // Smart Kiosk Bridge — fetch real orders when local DB is empty
+  // Smart Kiosk Bridge — fetch real orders (from IIKO/POS/Smart Kiosk)
   const { data: bridgeOrdersData, isLoading: bridgeLoading } =
     trpc.horeca.kioskBridge.listOrders.useQuery(
       { limit: 100 },
       {
-        enabled: !isLoading && localOrders.length === 0,
         refetchInterval: 10000,
         refetchOnWindowFocus: false,
       }
     );
 
-  const usesBridge =
-    localOrders.length === 0 && (bridgeOrdersData?.orders || []).length > 0;
+  const usesBridge = (bridgeOrdersData?.orders || []).length > 0;
   const orders = usesBridge
     ? (bridgeOrdersData?.orders || []).map((o: any, idx: number) => ({
         id: idx + 1,
@@ -199,8 +197,11 @@ export default function HorecaOrders() {
           {locations.length > 1 && (
             <div className="relative">
               <select
-                value={locationId}
-                onChange={e => setSelectedLocationId(Number(e.target.value))}
+                value={locationId || ""}
+                onChange={e => {
+                  const val = e.target.value;
+                  setSelectedLocationId(val.startsWith('bridge-') ? val as any : Number(val));
+                }}
                 className="appearance-none pr-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-3 py-2 !rounded-full text-sm font-medium shadow-sm focus:outline-none focus:border-blue-500"
               >
                 {locations.map(l => (

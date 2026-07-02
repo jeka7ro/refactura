@@ -18,6 +18,9 @@ import {
   Building2,
   Menu,
   Settings,
+  Store,
+  MonitorSmartphone,
+  ChefHat,
 } from "lucide-react";
 
 const APP_SCREENSHOTS = {
@@ -116,19 +119,19 @@ export default function Landing() {
 
   const domains = [
     {
-      title: "Construcții & Șantiere",
-      img: DOMAIN_IMAGES.construction,
-      desc: "Gestionează materialele, utilajele și re-facturează subcontractorii direct de pe șantier.",
-    },
-    {
-      title: "HoReCa & Restaurante",
+      title: "Fast Food & Quick Service",
       img: DOMAIN_IMAGES.restaurant,
-      desc: "Urmărește facturile de marfă și emite rapoarte financiare instant, de oriunde.",
+      desc: "Preia comenzi rapid cu Smart Kiosk, KDS pentru bucătărie și Meniu QR la masă.",
     },
     {
-      title: "Birouri & Servicii",
-      img: DOMAIN_IMAGES.office,
-      desc: "Automatizează fluxul de facturi pentru clienții tăi corporate și agenții, reducând timpul cu 90%.",
+      title: "Cloud Kitchen & Livrări",
+      img: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=1000",
+      desc: "Gestionează toate comenzile din Glovo, Tazz și Wolt dintr-un singur ecran unificat.",
+    },
+    {
+      title: "Restaurante A la Carte",
+      img: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=1000",
+      desc: "Evidența stocurilor, preluarea comenzilor cu POS-ul și descărcarea NIR-urilor din e-Factura.",
     },
   ];
 
@@ -161,16 +164,8 @@ export default function Landing() {
                 >
                   GetApp
                 </span>
-                <span className="text-[10px] font-black leading-none text-[#ef4444] uppercase mt-0.5 w-full flex justify-between">
-                  <span>R</span>
-                  <span>E</span>
-                  <span>F</span>
-                  <span>A</span>
-                  <span>C</span>
-                  <span>T</span>
-                  <span>U</span>
-                  <span>R</span>
-                  <span>A</span>
+                <span className="text-[9px] font-black leading-none text-[#ef4444] uppercase mt-0.5 w-full tracking-[0.1em]">
+                  SMART HORECA
                 </span>
               </div>
             </div>
@@ -285,19 +280,17 @@ export default function Landing() {
               className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-sm border border-white/50 rounded-full text-sm font-semibold text-blue-700 mb-8 shadow-sm"
             >
               <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
-              Sistemul inteligent pentru afacerea ta
+              Ecosistemul complet pentru HoReCa & Retail
             </motion.div>
             <h1 className="text-5xl lg:text-7xl font-extrabold text-slate-900 leading-[1.1] mb-8 tracking-tight">
-              Facturezi mai inteligent.
+              Gestionezi și vinzi.
               <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
-                Nu mai greu.
+                Mai inteligent.
               </span>
             </h1>
             <p className="text-xl text-slate-600 mb-10 leading-relaxed font-light">
-              Importă facturile furnizorilor, adaugă adaosul și generează
-              re-factura PDF în 30 de secunde. Gata cu munca manuală și erorile
-              de calcul.
+              De la Smart Kiosk și Meniu QR, până la integrarea cu SPV e-Factura, stocuri, KDS și agreatorul de livrări. Ai tot controlul într-o singură aplicație.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Button
@@ -362,6 +355,19 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* Trusted By Section */}
+      <section className="py-10 border-b border-slate-100 bg-white flex flex-col items-center">
+        <p className="text-sm font-bold text-slate-400 mb-8 uppercase tracking-widest">Branduri de top care folosesc ecosistemul nostru</p>
+        <div className="flex items-center justify-center flex-wrap gap-8 md:gap-16 opacity-60 hover:opacity-100 grayscale hover:grayscale-0 transition-all duration-500 max-w-5xl mx-auto px-6">
+           <img src="https://placehold.co/200x80/ffffff/000000?text=SmashMe" alt="SmashMe" className="h-10 lg:h-12 object-contain rounded" />
+           <img src="https://placehold.co/200x80/ffffff/000000?text=Crunch" alt="Crunch" className="h-8 lg:h-10 object-contain rounded" />
+           <img src="https://placehold.co/200x80/ffffff/000000?text=Roll+Master" alt="Roll Master" className="h-10 lg:h-12 object-contain rounded" />
+           <img src="https://placehold.co/200x80/ffffff/000000?text=Love+Sushi" alt="Love Sushi" className="h-10 lg:h-12 object-contain rounded" />
+           <img src="https://placehold.co/200x80/ffffff/000000?text=Poki-Woki" alt="Poki-Woki" className="h-12 lg:h-14 object-contain rounded" />
+        </div>
+      </section>
+
       {/* Features Grid */}
       <section
         id="features"
@@ -372,23 +378,28 @@ export default function Landing() {
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            className="grid md:grid-cols-3 gap-8"
+            className="grid md:grid-cols-2 lg:grid-cols-4 gap-8"
           >
             {[
               {
-                icon: FileOutput,
-                title: "Modul 1: Re-facturare Automată",
-                desc: "Sincronizare completă cu e-Factura. Transformă automat facturile primite de la furnizori în facturi de vânzare, adăugând adaosul setat.",
+                icon: Store,
+                title: "POS & Smart Kiosk",
+                desc: "Preluare comenzi la casă, ecrane Kiosk pentru auto-comandă și Meniuri QR digitale pentru o experiență perfectă la masă.",
               },
               {
-                icon: Building2,
-                title: "Modul 2: Centre de Costuri",
-                desc: "Gestionează bugetele, alocă facturile pe șantiere, proiecte sau departamente și ai claritate totală asupra cheltuielilor fiecărui centru.",
+                icon: MonitorSmartphone,
+                title: "Agregator Delivery",
+                desc: "Toate comenzile din Glovo, Tazz și Wolt integrate direct în POS-ul tău. Gestionezi meniurile dintr-un singur loc.",
+              },
+              {
+                icon: FileOutput,
+                title: "Gestiune & e-Factura",
+                desc: "Sincronizare SPV ANAF. Transformă facturile de marfă automat în NIR-uri și actualizează stocurile fără să introduci manual date.",
               },
               {
                 icon: BarChart3,
-                title: "Rapoarte & Grafice",
-                desc: "Vizualizează marginile de profit, veniturile și costurile în timp real pe fiecare client sau centru de cost, direct din dashboard.",
+                title: "Rapoarte & AI",
+                desc: "Rapoarte de vânzări detaliate, performanța angajaților, alerte de stoc și inteligență artificială pentru predicția vânzărilor.",
               },
             ].map((f, i) => (
               <motion.div
@@ -562,16 +573,8 @@ export default function Landing() {
                 >
                   GetApp
                 </span>
-                <span className="text-[8px] font-black leading-none text-[#ef4444] uppercase mt-0.5 w-full flex justify-between">
-                  <span>R</span>
-                  <span>E</span>
-                  <span>F</span>
-                  <span>A</span>
-                  <span>C</span>
-                  <span>T</span>
-                  <span>U</span>
-                  <span>R</span>
-                  <span>A</span>
+                <span className="text-[8px] font-black leading-none text-[#ef4444] uppercase mt-0.5 w-full tracking-[0.1em]">
+                  SMART HORECA
                 </span>
               </div>
             </div>

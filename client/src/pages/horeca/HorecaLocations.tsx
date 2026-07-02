@@ -14,6 +14,7 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Store,
   Pizza,
   Truck,
@@ -97,13 +98,13 @@ export default function HorecaLocations() {
         id: idx + 1,
         _bridgeId: bl.id,
         name: bl.name,
-        address: "",
-        city: "",
-        phone: "",
-        type: "fast_food" as const,
-        currency: "RON",
-        defaultVatFood: 9,
-        defaultVatAlcohol: 19,
+        address: bl.address || "",
+        city: bl.city || "",
+        phone: bl.phone || "",
+        type: bl.type || "fast_food",
+        currency: bl.currency || "RON",
+        defaultVatFood: bl.defaultVatFood || 9,
+        defaultVatAlcohol: bl.defaultVatAlcohol || 19,
         brands: bl.brands || [],
         active: bl.active !== false,
       }))
@@ -555,27 +556,31 @@ export default function HorecaLocations() {
           </div>
 
           {/* Footer paginare */}
-          <div className="px-4 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between">
+          <div style={{ padding: '12px 20px', borderTop: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc' }} className="dark:border-slate-800 dark:bg-slate-900/50">
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                Afișează
-                <select
-                  value={rowsPerPage}
-                  onChange={e => {
-                    setRowsPerPage(Number(e.target.value));
-                    setPage(1);
-                  }}
-                  className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-1 text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
-                >
-                  <option value={10}>10</option>
-                  <option value={15}>15</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={9999}>Toți</option>
-                </select>
+                <span style={{ whiteSpace: 'nowrap' }} className="relative inline-block">
+                  Afișează&nbsp;
+                  <select
+                    value={rowsPerPage}
+                    onChange={e => {
+                      setRowsPerPage(Number(e.target.value));
+                      setPage(1);
+                    }}
+                    style={{ background: 'transparent', padding: '2px 24px 2px 12px' }}
+                    className="dark:border-slate-700 dark:bg-slate-800 dark:text-white appearance-none cursor-pointer focus:outline-none border border-slate-300 rounded-full"
+                  >
+                    <option value={10}>10</option>
+                    <option value={15}>15</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={9999}>Toți</option>
+                  </select>
+                  <ChevronDown className="w-3 h-3 text-slate-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </span>
               </div>
               <span className="text-sm text-slate-600 dark:text-slate-400 hidden sm:inline">
-                Total:{" "}
+                Total înregistrări:{" "}
                 <strong className="text-slate-900 dark:text-white">
                   {filtered.length}
                 </strong>
