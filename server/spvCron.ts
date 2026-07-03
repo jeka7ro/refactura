@@ -14,7 +14,8 @@ export function startSpvCron() {
   // Run every 4 hours
   cron.schedule("0 */4 * * *", async () => {
     console.log("[SPV Cron] Starting SPV synchronization job...");
-    await syncAllSpv();
+    const result = await syncAllSpv();
+    console.log(`[SPV Cron] Auto-cron done: imported=${result?.imported}, limitHit=${result?.limitHit}`);
   });
 }
 
@@ -611,6 +612,8 @@ export async function syncAllSpv(zile: number = 60) {
         .set({
           lastSyncAt: new Date(),
           syncCount: (intg.syncCount || 0) + imported,
+          lastCronAt: new Date(),
+          lastCronImported: imported,
         })
         .where(eq(integrations.id, intg.id));
 

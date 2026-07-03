@@ -59,6 +59,14 @@ export async function getDb() {
       } catch {}
       // Module migrations — fiecare modul izolat, safe
       await runHorecaMigrations(_db as any);
+
+      // Safe migrations: add cron tracking fields to integrations
+      try {
+        await _db.execute(sql`ALTER TABLE integrations ADD COLUMN lastCronImported INT DEFAULT 0`);
+      } catch {}
+      try {
+        await _db.execute(sql`ALTER TABLE integrations ADD COLUMN lastCronAt TIMESTAMP NULL`);
+      } catch {}
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;

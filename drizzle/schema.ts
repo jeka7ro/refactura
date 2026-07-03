@@ -109,6 +109,8 @@ export const integrations = mysqlTable("integrations", {
   ),
   lastSyncAt: timestamp("lastSyncAt"),
   syncCount: int("syncCount").default(0),
+  lastCronImported: int("lastCronImported").default(0), // how many invoices the last cron run imported
+  lastCronAt: timestamp("lastCronAt"), // when the last cron ran
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

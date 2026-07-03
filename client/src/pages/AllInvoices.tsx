@@ -1114,6 +1114,20 @@ export default function AllInvoices() {
               )}
               <span>Sync</span>
             </button>
+            {/* Last cron info */}
+            {(() => {
+              const spvIntg = (dbIntegrations as any[]).find(i => i.provider === "spv" && i.status === "active");
+              if (!spvIntg?.lastCronAt) return null;
+              const cronDate = new Date(spvIntg.lastCronAt);
+              const now = new Date();
+              const diffH = Math.round((now.getTime() - cronDate.getTime()) / 3600000);
+              const timeAgo = diffH < 1 ? "acum < 1h" : diffH === 1 ? "acum 1h" : `acum ${diffH}h`;
+              return (
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 whitespace-nowrap" title={`Ultima sincronizare automată: ${cronDate.toLocaleString("ro-RO")}`}>
+                  Cron {timeAgo}: {spvIntg.lastCronImported > 0 ? <span className="text-green-600 font-semibold">+{spvIntg.lastCronImported} facturi</span> : "nimic nou"}
+                </span>
+              );
+            })()}
           </div>
         </div>
 
