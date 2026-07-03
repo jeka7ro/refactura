@@ -522,12 +522,15 @@ export default function Integrations() {
   const syncSpvMutation = trpc.integrations.syncSpv.useMutation({
     onSuccess: (result) => {
       if (result.limitHit > 0) {
+        const facturiNoi = result.imported === 1 ? "1 factură nouă importată" : `${result.imported} facturi noi importate`;
+        const facturiLimita = result.limitHit === 1 ? "1 factură" : `${result.limitHit} facturi`;
         toast.warning(
-          `Sync complet: ${result.imported} facturi noi importate.\n⚠️ ${result.limitHit} factură nu a putut fi descărcată azi — ANAF permite maxim 10 descărcări/zi per fișier. Va fi importată automat mâine.`,
+          `Sync complet: ${facturiNoi}.\n⚠️ ${facturiLimita} nu ${result.limitHit === 1 ? "a putut" : "au putut"} fi descărcată azi — ANAF permite maxim 10 descărcări/zi per fișier. Va fi importată automat mâine.`,
           { duration: 8000 }
         );
       } else if (result.imported > 0) {
-        toast.success(`Sync complet: ${result.imported} facturi noi importate din SPV!`);
+        const facturiNoi = result.imported === 1 ? "1 factură nouă importată" : `${result.imported} facturi noi importate`;
+        toast.success(`Sync complet: ${facturiNoi} din SPV!`);
       } else {
         toast.success("SPV sincronizat! Nicio factură nouă de importat.");
       }

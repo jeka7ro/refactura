@@ -1083,15 +1083,19 @@ export default function AllInvoices() {
 
                   // Show result message
                   if (spvResult?.limitHit > 0) {
+                    const facturiNoi = spvResult.imported === 1 ? "1 factură nouă importată" : `${spvResult.imported} facturi noi importate`;
+                    const facturiLimita = spvResult.limitHit === 1 ? "1 factură" : `${spvResult.limitHit} facturi`;
                     toast.warning(
-                      `Sync complet: ${spvResult.imported} facturi noi importate.\n⚠️ ${spvResult.limitHit} factură nu a putut fi descărcată azi — ANAF permite maxim 10 descărcări/zi per fișier. Va fi importată automat mâine.`,
+                      `Sync complet: ${facturiNoi}.\n⚠️ ${facturiLimita} nu ${spvResult.limitHit === 1 ? "a putut" : "au putut"} fi descărcată azi — ANAF permite maxim 10 descărcări/zi per fișier. Va fi importată automat mâine.`,
                       { id: "sync", duration: 8000 }
                     );
                   } else if (spvResult?.imported > 0) {
-                    toast.success(`Sync complet: ${spvResult.imported} facturi noi importate din SPV!`, { id: "sync" });
+                    const facturiNoi = spvResult.imported === 1 ? "1 factură nouă importată" : `${spvResult.imported} facturi noi importate`;
+                    toast.success(`Sync complet: ${facturiNoi} din SPV!`, { id: "sync" });
                   } else {
                     toast.success("SPV sincronizat! Nicio factură nouă de importat.", { id: "sync" });
                   }
+                }
 
                 if (!syncedAny) {
                   toast.error(

@@ -99,12 +99,13 @@ export async function syncAllSpv(zile: number = 60) {
         // Log every message so we can see exactly what ANAF sends
         console.log(`[SPV Cron] MSG tip=${msg.tip} cif=${msg.cif} id=${msg.id} id_descarcare=${msg.id_descarcare} id_solicitare=${msg.id_solicitare} detalii=${msg.detalii || ""}`);
 
-        // Only process FACTURA PRIMITA and FACTURA TRIMISA
+        // Only process FACTURA PRIMITA and FACTURA TRIMISA — skip ERORI FACTURA (ANAF error notifications)
         if (
           !msg.tip ||
-          (!msg.tip.includes("FACTURA") &&
-            msg.tip !== "FACTURA PRIMITA" &&
-            msg.tip !== "FACTURA TRIMISA")
+          msg.tip === "ERORI FACTURA" ||
+          (msg.tip !== "FACTURA PRIMITA" &&
+            msg.tip !== "FACTURA TRIMISA" &&
+            !msg.tip.startsWith("FACTURA"))
         ) {
           console.log(`[SPV Cron] SKIP (tip mismatch): ${msg.tip}`);
           continue;
