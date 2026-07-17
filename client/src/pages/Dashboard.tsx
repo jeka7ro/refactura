@@ -41,17 +41,20 @@ import {
 } from "recharts";
 import { trpc } from "@/lib/trpc";
 
+import { useAuth } from "@/_core/hooks/useAuth";
+
 export default function Dashboard() {
+  const { user } = useAuth();
   const [syncing, setSyncing] = useState(false);
 
   const { data: dbInvoices = [], isLoading: loadingInv } =
-    trpc.invoices.list.useQuery();
+    trpc.invoices.list.useQuery(undefined, { enabled: !!user });
   const { data: dbEmitted = [], isLoading: loadingEmit } =
-    trpc.invoices.listEmise.useQuery();
+    trpc.invoices.listEmise.useQuery(undefined, { enabled: !!user });
   const { data: dbReInvoices = [], isLoading: loadingReInv } =
-    trpc.reinvoice.list.useQuery();
+    trpc.reinvoice.list.useQuery(undefined, { enabled: !!user });
   const { data: dbClients = [], isLoading: loadingClients } =
-    trpc.clients.list.useQuery();
+    trpc.clients.list.useQuery(undefined, { enabled: !!user });
 
   const {
     totalImported,

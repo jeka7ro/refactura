@@ -39,7 +39,10 @@ interface InvoiceRow {
   source: IntegrationSource;
 }
 
+import { useAuth } from "@/_core/hooks/useAuth";
+
 export default function InvoicesReceived() {
+  const { user } = useAuth();
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | typeof ALL>(
     ALL
   );
@@ -49,7 +52,7 @@ export default function InvoicesReceived() {
   const [syncing, setSyncing] = useState(false);
   const [selectedRows, setSelectedRows] = useState<InvoiceRow[]>([]);
 
-  const { data: dbInvoices, isLoading } = trpc.invoices.list.useQuery();
+  const { data: dbInvoices, isLoading } = trpc.invoices.list.useQuery(undefined, { enabled: !!user });
 
   const invoicesList: InvoiceRow[] = (dbInvoices || []).map((inv: any) => ({
     id: inv.id,

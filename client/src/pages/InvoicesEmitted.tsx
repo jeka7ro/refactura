@@ -56,12 +56,15 @@ const statusLabels: Record<string, string> = {
   archived: "Arhivată",
 };
 
+import { useAuth } from "@/_core/hooks/useAuth";
+
 export default function InvoicesEmitted() {
+  const { user } = useAuth();
   const {
     data: raw = [],
     isLoading,
     refetch,
-  } = trpc.invoices.listEmise.useQuery();
+  } = trpc.invoices.listEmise.useQuery(undefined, { enabled: !!user });
   const { data: clientsData = [] } = trpc.clients.list.useQuery();
   const { data: tenants = [] } = trpc.tenants.list.useQuery();
   const syncOblioMutation = trpc.integrations.syncOblio.useMutation({
