@@ -164,7 +164,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, loading, logout } = useAuth();
 
   // Count-uri reale din DB (zero hardcodat)
-  const { data: receivedInvoices = [] } = trpc.invoices.list.useQuery();
+  const { data: receivedInvoices = [] } = trpc.invoices.list.useQuery(undefined, {
+    enabled: !!user,
+  });
   const pendingCount = (receivedInvoices as any[]).filter(
     (i: any) => i.status === "pending"
   ).length;
