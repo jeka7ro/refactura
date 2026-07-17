@@ -2,6 +2,7 @@
 // UI Rules: Nr. Crt., search+counter, footer paginare, rounded-lg butoane
 
 import { useState, useMemo } from "react";
+import JSZip from "jszip";
 import { Link, useLocation } from "wouter";
 import {
   Search,
@@ -144,6 +145,71 @@ export default function AllInvoices() {
       setPage(1);
     }
   };
+
+  const handleDownloadSelectedZip = async () => {
+    const selectedRows = allRows.filter((r) =>
+      selectedIds.has(`${r.type}-${r.id}`)
+    );
+    if (selectedRows.length === 0) {
+      toast.error("Nu ai selectat nicio factură!");
+      return;
+    }
+
+    toast.loading("Pregătesc arhiva ZIP...", { id: "zip" });
+    try {
+      const zip = new JSZip();
+      let added = 0;
+
+      for (const row of selectedRows) {
+        if (row.fileUrl) {
+          try {
+            const token = localStorage.getItem("authToken");
+            const response = await fetch(row.fileUrl, {
+              headers: {
+                Authorization: token ? `Bearer ${token}` : "",
+              },
+            });
+            
+            const contentType = response.headers.get("content-type");
+            if (!response.ok || (contentType && contentType.includes("text/html"))) {
+              console.error("Eroare la fetch sau PDF lipsă (fallback HTML) pentru", row.fileUrl, response.statusText);
+              continue;
+            }
+            
+            const blob = await response.blob();
+            const safeNumber = row.number.replace(/[^a-z0-9]/gi, "_");
+            const filename = `Factura_${row.type.toUpperCase()}_${safeNumber}.pdf`;
+            zip.file(filename, blob);
+            added++;
+          } catch (e) {
+            console.error("Eroare de rețea la fetch pentru", row.fileUrl, e);
+          }
+        }
+      }
+
+      if (added === 0) {
+        toast.error("Nicio factură selectată nu are PDF disponibil pe server.", {
+          id: "zip",
+        });
+        return;
+      }
+
+      const content = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(content);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Facturi_Selectate_${new Date().toISOString().slice(0, 10)}.zip`;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      toast.success(`Arhiva conține ${added} facturi descărcate.`, {
+        id: "zip",
+      });
+      setSelectedIds(new Set());
+    } catch (e: any) {
+      toast.error("Eroare la crearea arhivei.", { id: "zip" });
+    }
+  };
   const [period, setPeriod] = useState<string>("all");
   const [customFrom, setCustomFrom] = useState(
     () => new Date().toISOString().split("T")[0]
@@ -157,7 +223,12 @@ export default function AllInvoices() {
   // Period date range helper
   const getDateRange = (p: string): [string, string] | null => {
     const now = new Date();
-    const fmt = (d: Date) => d.toISOString().split("T")[0];
+    const fmt = (d: Date) => {
+      const yr = d.getFullYear();
+      const mo = String(d.getMonth() + 1).padStart(2, "0");
+      const da = String(d.getDate()).padStart(2, "0");
+      return `${yr}-${mo}-${da}`;
+    };
     const startOfDay = (d: Date) =>
       new Date(d.getFullYear(), d.getMonth(), d.getDate());
     switch (p) {
@@ -338,7 +409,7 @@ export default function AllInvoices() {
         total: t,
         currency: i.currency || "RON",
         status: t < 0 ? "storno" : i.status || "pending",
-        fileUrl: i.fileUrl,
+        fileUrl: i.source === "spv_anaf" || i.fileUrl === "spv_import" ? `/api/pdf/archive/${i.id}` : i.fileUrl,
         source: i.source || "spv_anaf",
         itemsText: i.itemsText || "",
       });
@@ -355,7 +426,7 @@ export default function AllInvoices() {
         total: t,
         currency: i.currency || "RON",
         status: t < 0 ? "storno" : i.status || "draft",
-        fileUrl: null,
+        fileUrl: i.pdfUrl && i.pdfUrl !== "spv_import" ? i.pdfUrl : `/api/pdf/reinvoice/${i.id}`,
         source: "refactura",
         itemsText: i.itemsText || "",
       });
@@ -378,7 +449,7 @@ export default function AllInvoices() {
               : i.status === "sent"
                 ? "sent"
                 : i.status || "draft",
-          fileUrl: null,
+          fileUrl: i.pdfUrl && i.pdfUrl !== "spv_import" ? i.pdfUrl : `/api/pdf/emitted/${i.id}`,
           source: "manual",
           itemsText: i.itemsText || "",
           spvStatus: i.spvStatus,
@@ -1053,6 +1124,18 @@ export default function AllInvoices() {
               <Download className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Export PDF</span>
             </button>
+            {selectedIds.size > 0 && (
+              <button
+                onClick={handleDownloadSelectedZip}
+                className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-all shadow-sm border border-indigo-700"
+                title="Descarcă facturile selectate ca arhivă ZIP"
+              >
+                <FileDown className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">
+                  Descarcă {selectedIds.size} selectate (ZIP)
+                </span>
+              </button>
+            )}
             <button
               onClick={async () => {
                 const hasOblio = (dbIntegrations as any[]).some(

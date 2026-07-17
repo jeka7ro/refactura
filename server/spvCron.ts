@@ -100,18 +100,19 @@ export async function syncAllSpv(zile: number = 60) {
         // Log every message so we can see exactly what ANAF sends
         console.log(`[SPV Cron] MSG tip=${msg.tip} cif=${msg.cif} id=${msg.id} id_descarcare=${msg.id_descarcare} id_solicitare=${msg.id_solicitare} detalii=${msg.detalii || ""}`);
 
-        // Only process FACTURA PRIMITA and FACTURA TRIMISA — skip ERORI FACTURA (ANAF error notifications)
+        // Process FACTURA PRIMITA, FACTURA TRIMISA, and ERORI FACTURA
         if (
           !msg.tip ||
-          msg.tip === "ERORI FACTURA" ||
           (msg.tip !== "FACTURA PRIMITA" &&
             msg.tip !== "FACTURA TRIMISA" &&
+            msg.tip !== "ERORI FACTURA" &&
             !msg.tip.startsWith("FACTURA"))
         ) {
           console.log(`[SPV Cron] SKIP (tip mismatch): ${msg.tip}`);
           continue;
         }
 
+        const isError = msg.tip === "ERORI FACTURA";
         const downloadId = msg.id_descarcare || msg.id;
         if (!downloadId) { console.log(`[SPV Cron] SKIP (no downloadId)`); continue; }
 
@@ -126,10 +127,13 @@ export async function syncAllSpv(zile: number = 60) {
           if (matchReInvoice) {
             await db
               .update(reInvoices)
-              .set({ spvStatus: "validat" })
+              .set({
+                spvStatus: isError ? "eroare" : "validat",
+                spvError: isError ? msg.detalii : null,
+              })
               .where(eq(reInvoices.id, matchReInvoice.id));
             console.log(
-              `[SPV Cron] Re-Invoice ${matchReInvoice.id} validated in SPV!`
+              `[SPV Cron] Re-Invoice ${matchReInvoice.id} ${isError ? "REJECTED" : "validated"} in SPV!`
             );
             skipped++;
             continue;
@@ -144,10 +148,13 @@ export async function syncAllSpv(zile: number = 60) {
           if (matchEmitted) {
             await db
               .update(emittedInvoices)
-              .set({ spvStatus: "validat" })
+              .set({
+                spvStatus: isError ? "eroare" : "validat",
+                spvError: isError ? msg.detalii : null,
+              })
               .where(eq(emittedInvoices.id, matchEmitted.id));
             console.log(
-              `[SPV Cron] Emitted Invoice ${matchEmitted.id} validated in SPV!`
+              `[SPV Cron] Emitted Invoice ${matchEmitted.id} ${isError ? "REJECTED" : "validated"} in SPV!`
             );
             skipped++;
             continue;

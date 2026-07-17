@@ -309,6 +309,46 @@ export default function Register() {
                 </InputGroup>
               </div>
 
+              {/* GDPR Checkboxes */}
+              <div className="space-y-3 mt-6">
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <div className="flex items-center h-5 mt-0.5">
+                    <input
+                      type="checkbox"
+                      required
+                      className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    />
+                  </div>
+                  <div className="text-sm text-slate-600 leading-snug">
+                    Am citit și sunt de acord cu{" "}
+                    <a href="/termeni" className="text-blue-600 hover:underline" target="_blank">
+                      Termenii și Condițiile
+                    </a>
+                    ,{" "}
+                    <a href="/gdpr" className="text-blue-600 hover:underline" target="_blank">
+                      Politica de Confidențialitate
+                    </a>{" "}
+                    și{" "}
+                    <a href="/dpa" className="text-blue-600 hover:underline" target="_blank">
+                      Acordul de Prelucrare a Datelor (DPA)
+                    </a>
+                    . <span className="text-red-500">*</span>
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <div className="flex items-center h-5 mt-0.5">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    />
+                  </div>
+                  <div className="text-sm text-slate-600 leading-snug">
+                    Sunt de acord să primesc notificări, noutăți și oferte comerciale prin email.
+                  </div>
+                </label>
+              </div>
+
               <Button
                 type="submit"
                 disabled={isLoading}

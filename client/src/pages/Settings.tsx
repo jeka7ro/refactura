@@ -36,6 +36,7 @@ const tabs = [
   { id: "localization", label: "Localizare", icon: Globe },
   { id: "notifications", label: "Notificări", icon: Bell },
   { id: "security", label: "Securitate", icon: Shield },
+  { id: "gdpr", label: "GDPR & Date", icon: Shield },
 ];
 
 export default function Settings() {
@@ -156,6 +157,8 @@ export default function Settings() {
   };
 
   const updateSettingsMutation = trpc.tenants.updateSettings.useMutation();
+  const exportDataMutation = trpc.gdpr.exportData.useMutation();
+  const deleteAccountMutation = trpc.gdpr.deleteAccount.useMutation();
 
   const handleSave = async () => {
     setSaving(true);
@@ -198,6 +201,40 @@ export default function Settings() {
 
   const update = (key: keyof CompanySettings, value: any) => {
     setSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleExportData = async () => {
+    try {
+      toast.loading("Pregătim arhiva ta...", { id: "export" });
+      const data = await exportDataMutation.mutateAsync();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `smart-erp-gdpr-export-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Datele au fost descărcate cu succes!", { id: "export" });
+    } catch (e: any) {
+      toast.error("Eroare la exportul datelor.", { id: "export" });
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirm = window.prompt("Ești sigur că vrei să-ți ștergi definitiv contul? Acest proces este ireversibil.\n\nScrie cuvântul STERGE pentru a confirma.");
+    if (confirm === "STERGE") {
+      try {
+        await deleteAccountMutation.mutateAsync();
+        localStorage.removeItem("authToken");
+        window.location.href = "/";
+      } catch (e: any) {
+        toast.error("A apărut o eroare la ștergerea contului.");
+      }
+    } else if (confirm !== null) {
+      toast.error("Confirmare incorectă. Contul NU a fost șters.");
+    }
   };
 
   return (
@@ -810,6 +847,58 @@ export default function Settings() {
                   </button>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* GDPR tab */}
+          {activeTab === "gdpr" && (
+            <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-6">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Confidențialitate & Date Personale
+                </h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  Gestionează datele contului tău conform normelor GDPR.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between py-3 border-b border-slate-100 dark:border-slate-800">
+                  <div className="pr-4">
+                    <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                      Exportă Datele Mele
+                    </div>
+                    <div className="text-xs text-slate-500 mt-0.5">
+                      Descarcă o copie completă a datelor tale (facturi, clienți, istoric) în format JSON.
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleExportData}
+                    disabled={exportDataMutation.isPending}
+                    className="flex items-center justify-center gap-1.5 px-4 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs font-bold transition-colors whitespace-nowrap shrink-0"
+                  >
+                    {exportDataMutation.isPending ? "Se descarcă..." : "Exportă JSON"}
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between py-3">
+                  <div className="pr-4">
+                    <div className="text-sm font-semibold text-red-600 dark:text-red-500">
+                      Șterge Contul
+                    </div>
+                    <div className="text-xs text-slate-500 mt-0.5">
+                      Șterge permanent datele de autentificare. Facturile emise vor fi păstrate anonimizat conform obligațiilor fiscale (10 ani).
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleDeleteAccount}
+                    disabled={deleteAccountMutation.isPending}
+                    className="flex items-center justify-center gap-1.5 px-4 h-8 rounded-full bg-red-50 text-red-600 hover:bg-red-100 text-xs font-bold transition-colors whitespace-nowrap shrink-0"
+                  >
+                    {deleteAccountMutation.isPending ? "Se șterge..." : "Șterge Contul"}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

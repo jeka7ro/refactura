@@ -33,16 +33,63 @@ export function generateUblXml(
     group.taxAmount += tax;
   }
 
-  const supplierCui = (tenant.cui || "").replace(/[^A-Z0-9]/g, "");
-  const clientCui = (invoice.clientCUI || "").replace(/[^A-Z0-9]/g, "");
+  // ANAF BR-CO-09: VAT identifiers (BT-31, BT-48) must have ISO country prefix (e.g. RO42322117)
+  const ensureRoPrefix = (cui: string) => {
+    const clean = cui.replace(/[^A-Z0-9]/gi, "").toUpperCase();
+    if (!clean) return clean;
+    return clean.startsWith("RO") ? clean : "RO" + clean;
+  };
+  const supplierCui = ensureRoPrefix(tenant.cui || "");
+  const clientCui = ensureRoPrefix(invoice.clientCUI || "");
 
   let tenantSettings: any = {};
   try {
     if (tenant.settings) tenantSettings = JSON.parse(tenant.settings);
   } catch (e) {}
 
-  const tenantCity = tenantSettings.city || "Nesetata";
+  const tenantCity = tenantSettings.city || "";
   const tenantRegCom = tenantSettings.regCom || "";
+  const tenantCounty = tenantSettings.county || tenantCity || "";
+  const clientCounty = (invoice as any).clientCounty || (invoice as any).clientCity || "";
+
+  // BR-RO-110: Map Romanian city/county to ISO 3166-2:RO subdivision code
+  const COUNTY_MAP: Record<string, string> = {
+    "alba": "RO-AB", "arad": "RO-AR", "arges": "RO-AG", "bacau": "RO-BC",
+    "bihor": "RO-BH", "bistrita": "RO-BN", "botosani": "RO-BT", "brasov": "RO-BV",
+    "braila": "RO-BR", "bucuresti": "RO-B", "bucharest": "RO-B", "buzau": "RO-BZ",
+    "caras": "RO-CS", "severin": "RO-CS", "calarasi": "RO-CL", "cluj": "RO-CJ",
+    "constanta": "RO-CT", "covasna": "RO-CV", "dambovita": "RO-DB", "dolj": "RO-DJ",
+    "galati": "RO-GL", "giurgiu": "RO-GR", "gorj": "RO-GJ", "harghita": "RO-HR",
+    "hunedoara": "RO-HD", "ialomita": "RO-IL", "iasi": "RO-IS", "ilfov": "RO-IF",
+    "maramures": "RO-MM", "mehedinti": "RO-MH", "mures": "RO-MS", "neamt": "RO-NT",
+    "olt": "RO-OT", "prahova": "RO-PH", "satu": "RO-SM", "salaj": "RO-SJ",
+    "sibiu": "RO-SB", "suceava": "RO-SV", "teleorman": "RO-TR", "timis": "RO-TM",
+    "timisoara": "RO-TM", "tulcea": "RO-TL", "vaslui": "RO-VS", "valcea": "RO-VL",
+    "vrancea": "RO-VN",
+  };
+  const getCountyCode = (city: string): string => {
+    if (!city) return "RO-B"; // default Bucharest
+    const key = city.toLowerCase()
+      .normalize("NFD").replace(/\p{Diacritic}/gu, "") // strip diacritics
+      .trim();
+    for (const [k, v] of Object.entries(COUNTY_MAP)) {
+      if (key.includes(k)) return v;
+    }
+    return "RO-B"; // fallback
+  };
+  const sellerSubdivision = getCountyCode(tenantCounty);
+  const buyerSubdivision = getCountyCode(clientCounty);
+
+  // BR-RO-100: When subdivision is RO-B (Bucharest), city must be SECTOR1...SECTOR6
+  const getSectorOrCity = (subdivision: string, address: string, city: string): string => {
+    if (subdivision !== "RO-B") return city || "Nesetata";
+    // Try to extract sector number from address
+    const sectorMatch = (address + " " + city).match(/sector\s*([1-6])/i);
+    if (sectorMatch) return `SECTOR${sectorMatch[1]}`;
+    return "SECTOR1"; // fallback for Bucharest
+  };
+  const sellerCity = getSectorOrCity(sellerSubdivision, tenant.address || "", tenantCity);
+  const buyerCity = getSectorOrCity(buyerSubdivision, (invoice as any).clientAddress || "", (invoice as any).clientCity || "");
 
   // Generate lines
   const xmlLines = lines
@@ -117,7 +164,8 @@ export function generateUblXml(
             </cac:PartyName>
             <cac:PostalAddress>
                 <cbc:StreetName>${escapeXml(tenant.address || "Nesetata")}</cbc:StreetName>
-                <cbc:CityName>${escapeXml(tenantCity)}</cbc:CityName>
+                <cbc:CityName>${escapeXml(sellerCity)}</cbc:CityName>
+                <cbc:CountrySubentity>${sellerSubdivision}</cbc:CountrySubentity>
                 <cac:Country>
                     <cbc:IdentificationCode>RO</cbc:IdentificationCode>
                 </cac:Country>
@@ -143,7 +191,8 @@ export function generateUblXml(
             </cac:PartyName>
             <cac:PostalAddress>
                 <cbc:StreetName>${escapeXml(invoice.clientAddress || "Nesetata")}</cbc:StreetName>
-                <cbc:CityName>${escapeXml(invoice.clientCity || "Nesetata")}</cbc:CityName>
+                <cbc:CityName>${escapeXml(buyerCity)}</cbc:CityName>
+                <cbc:CountrySubentity>${buyerSubdivision}</cbc:CountrySubentity>
                 <cac:Country>
                     <cbc:IdentificationCode>RO</cbc:IdentificationCode>
                 </cac:Country>

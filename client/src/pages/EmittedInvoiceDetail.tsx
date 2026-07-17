@@ -10,6 +10,7 @@ import {
   Loader2,
   Download,
   Send,
+  RefreshCw,
 } from "lucide-react";
 import {
   formatCurrency,
@@ -35,15 +36,34 @@ export default function EmittedInvoiceDetail() {
     { enabled: !!invoiceId && !isNaN(invoiceId) }
   );
 
+  const utils = trpc.useUtils();
+
   const sendToSpv = trpc.emittedInvoice.sendToSpv.useMutation({
     onSuccess: res => {
       if (res.success) {
         toast.success("Trimisă în SPV! Index: " + res.index_incarcare);
+        utils.emittedInvoice.getById.invalidate({ id: invoiceId });
       } else {
         toast.error("Eroare SPV: " + res.error);
       }
     },
     onError: e => toast.error("Eroare SPV: " + e.message),
+  });
+
+  const checkSpvStatus = trpc.emittedInvoice.checkSpvStatus.useMutation({
+    onSuccess: res => {
+      utils.emittedInvoice.getById.invalidate({ id: invoiceId });
+      if (res.status === "validat") {
+        toast.success("✅ Factura a fost validată de ANAF!");
+      } else if (res.status === "in_procesare") {
+        toast.info("⏳ ANAF procesează în continuare factura. Mai încearcă peste câteva minute.");
+      } else if (res.status === "eroare") {
+        toast.error("❌ ANAF a respins factura: " + (res.errors?.join(", ") || "eroare necunoscută"));
+      } else {
+        toast.info("Status ANAF: " + (res.stare || "necunoscut"));
+      }
+    },
+    onError: e => toast.error("Eroare verificare: " + e.message),
   });
 
   if (isLoading) {
@@ -245,6 +265,24 @@ export default function EmittedInvoiceDetail() {
                     <Send className="w-3.5 h-3.5" />
                   )}
                   Trimite SPV
+                </button>
+              )}
+              {(invoice.spvStatus === "in_procesare" || invoice.spvStatus === "eroare") && (
+                <button
+                  onClick={() => checkSpvStatus.mutate({ id: invoice.id })}
+                  disabled={checkSpvStatus.isPending}
+                  className={`flex items-center gap-1.5 px-3 h-7 text-xs font-bold rounded-lg text-white transition-colors ${
+                    invoice.spvStatus === "eroare"
+                      ? "bg-rose-500 hover:bg-rose-600"
+                      : "bg-amber-500 hover:bg-amber-600"
+                  }`}
+                >
+                  {checkSpvStatus.isPending ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-3.5 h-3.5" />
+                  )}
+                  Verifică Status ANAF
                 </button>
               )}
             </div>

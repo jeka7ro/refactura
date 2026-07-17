@@ -75,6 +75,37 @@ export default function EmittedInvoices() {
   const [rowsPerPage, setRowsPerPage] = useState(15);
 
   const { data = [], isLoading, refetch } = trpc.emittedInvoice.list.useQuery();
+  const { data: archiveRaw = [], refetch: refetchArchive } = trpc.invoiceArchive.list.useQuery({});
+
+  // Combine both sources: emitted invoices (FACT-*) + archive OUT invoices (TON-*)
+  const allData = useMemo(() => {
+    const emitted = data.map(r => ({ ...r, _source: "emitted" as const }));
+    const archiveItems = (() => {
+      const raw = archiveRaw as unknown as { items: any[] } | any[];
+      return (raw as any)?.items ?? (Array.isArray(raw) ? raw : []);
+    })();
+    const archived = archiveItems
+      .filter((r: any) => r.direction === "out" || r.direction === "emis")
+      .map((r: any) => ({
+        id: r.id,
+        number: r.invoiceNumber || `#${r.id}`,
+        clientName: r.supplierName || r.buyerName || "",
+        clientCUI: r.supplierCif || r.buyerCif || "",
+        issueDate: r.issueDate,
+        dueDate: r.dueDate,
+        total: parseFloat(r.total || "0"),
+        currency: r.currency || "RON",
+        status: r.status || "sent",
+        spvStatus: r.spvStatus,
+        series: "",
+        _source: "archive" as const,
+      }));
+    return [...emitted, ...archived].sort((a, b) =>
+      new Date(b.issueDate || "").getTime() - new Date(a.issueDate || "").getTime()
+    );
+  }, [data, archiveRaw]);
+
+  const refetchAll = () => { refetch(); refetchArchive(); };
   const deleteMutation = trpc.emittedInvoice.delete.useMutation({
     onSuccess: () => {
       toast.success("Factura ștearsă");
@@ -91,13 +122,13 @@ export default function EmittedInvoices() {
       if (res.success)
         toast.success("Trimisă în SPV! Index: " + res.index_incarcare);
       else toast.error("Eroare SPV: " + res.error);
-      refetch();
+      refetchAll();
     },
     onError: e => toast.error("Eroare SPV: " + e.message),
   });
 
   const filtered = useMemo(() => {
-    let rows = data;
+    let rows = allData;
     if (statusFilter !== "all")
       rows = rows.filter(r => r.status === statusFilter);
     if (search.trim()) {
@@ -110,7 +141,7 @@ export default function EmittedInvoices() {
       );
     }
     return rows;
-  }, [data, statusFilter, search]);
+  }, [allData, statusFilter, search]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
   const paged = filtered.slice((page - 1) * rowsPerPage, page * rowsPerPage);
@@ -122,13 +153,13 @@ export default function EmittedInvoices() {
 
   const counts = useMemo(
     () => ({
-      all: data.length,
-      draft: data.filter(r => r.status === "draft").length,
-      sent: data.filter(r => r.status === "sent").length,
-      paid: data.filter(r => r.status === "paid").length,
-      overdue: data.filter(r => r.status === "overdue").length,
+      all: allData.length,
+      draft: allData.filter(r => r.status === "draft").length,
+      sent: allData.filter(r => r.status === "sent").length,
+      paid: allData.filter(r => r.status === "paid").length,
+      overdue: allData.filter(r => r.status === "overdue").length,
     }),
-    [data]
+    [allData]
   );
 
   return (
@@ -285,9 +316,11 @@ export default function EmittedInvoices() {
               ) : (
                 paged.map((row, idx) => (
                   <tr
-                    key={row.id}
+                    key={`${row._source}-${row.id}`}
                     onClick={() =>
-                      navigate(`/facturi-emise-nou/view/${row.id}`)
+                      row._source === "archive"
+                        ? navigate(`/facturi/${row.id}`)
+                        : navigate(`/facturi-emise-nou/view/${row.id}`)
                     }
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
                   >
@@ -295,9 +328,14 @@ export default function EmittedInvoices() {
                       {(page - 1) * rowsPerPage + idx + 1}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-sm font-bold text-blue-600 hover:underline text-left">
-                        {row.number}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-bold text-blue-600 hover:underline text-left">
+                          {row.number}
+                        </span>
+                        {row._source === "archive" && (
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-violet-100 text-violet-700 border border-violet-200">SPV</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div
@@ -332,35 +370,47 @@ export default function EmittedInvoices() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center hidden lg:table-cell">
-                      <span
-                        className={`text-[10px] font-semibold ${SPV_COLORS[row.spvStatus || "nesincronizat"]}`}
-                      >
-                        {SPV_LABELS[row.spvStatus || "nesincronizat"]}
-                      </span>
+                      {row._source === "archive" ? (
+                        <span className="text-[10px] font-semibold text-violet-600">
+                          Din SPV
+                        </span>
+                      ) : (
+                        <span
+                          className={`text-[10px] font-semibold ${SPV_COLORS[row.spvStatus || "nesincronizat"]}`}
+                        >
+                          {SPV_LABELS[row.spvStatus || "nesincronizat"]}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <div
                         className="flex items-center justify-end gap-1"
                         onClick={e => e.stopPropagation()}
                       >
-                        <button
-                          onClick={() =>
-                            setStornoTarget({
-                              id: row.id,
-                              number:
-                                `${row.series || ""} ${row.number}`.trim(),
-                            })
-                          }
-                          className="w-7 h-7 rounded-lg border border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100 flex items-center justify-center transition-colors"
-                          title="Storno Factură"
-                        >
-                          <Undo2 className="w-3.5 h-3.5" />
-                        </button>
+                        {row._source !== "archive" && (
+                          <button
+                            onClick={() =>
+                              setStornoTarget({
+                                id: row.id,
+                                number:
+                                  `${row.series || ""} ${row.number}`.trim(),
+                              })
+                            }
+                            className="w-7 h-7 rounded-lg border border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100 flex items-center justify-center transition-colors"
+                            title="Storno Factură"
+                          >
+                            <Undo2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                         <button
                           onClick={() => {
                             const a = document.createElement("a");
-                            a.href = `/api/pdf/emitted/${row.id}?download=1`;
-                            a.download = `${row.series || ""}${row.number}.pdf`;
+                            if (row._source === "archive") {
+                              a.href = `/api/pdf/archive/${row.id}`;
+                            } else {
+                              a.href = `/api/pdf/emitted/${row.id}?download=1`;
+                            }
+                            a.download = `${row.number}.pdf`;
                             a.target = "_blank";
                             document.body.appendChild(a);
                             a.click();
@@ -372,7 +422,7 @@ export default function EmittedInvoices() {
                           <Download className="w-3.5 h-3.5" />
                         </button>
 
-                        {(!row.spvStatus ||
+                        {row._source !== "archive" && (!row.spvStatus ||
                           row.spvStatus === "nesincronizat" ||
                           row.spvStatus === "eroare") && (
                           <button
@@ -388,13 +438,15 @@ export default function EmittedInvoices() {
                             )}
                           </button>
                         )}
-                        <button
-                          onClick={() => setDeleteId(row.id)}
-                          className="w-7 h-7 rounded-lg border border-rose-200 bg-rose-50 text-rose-500 hover:bg-rose-100 flex items-center justify-center transition-colors"
-                          title="Șterge"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {row._source !== "archive" && (
+                          <button
+                            onClick={() => setDeleteId(row.id)}
+                            className="w-7 h-7 rounded-lg border border-rose-200 bg-rose-50 text-rose-500 hover:bg-rose-100 flex items-center justify-center transition-colors"
+                            title="Șterge"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

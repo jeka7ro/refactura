@@ -1,13 +1,20 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import DashboardLayout from "./components/DashboardLayout";
 import Dashboard from "./pages/Dashboard";
 import AllInvoices from "./pages/AllInvoices";
 import InvoicesEmitted from "./pages/InvoicesEmitted";
+
+// Simple redirect component — must be a real component so hooks work
+function RedirectTo({ to }: { to: string }) {
+  const [, navigate] = useLocation();
+  navigate(to);
+  return null;
+}
 import InvoiceDetail from "./pages/InvoiceDetail";
 import ReInvoice from "./pages/ReInvoice";
 import ReInvoicesSent from "./pages/ReInvoicesSent";
@@ -49,6 +56,12 @@ import HorecaShift from "@/pages/horeca/HorecaShift";
 import HorecaKioskSettings from "@/pages/horeca/HorecaKioskSettings";
 import HorecaTestPanel from "@/pages/horeca/HorecaTestPanel";
 import KioskApp from "@/pages/kiosk/App.jsx";
+import SpvLogs from "@/pages/SpvLogs";
+
+import CookieBanner from "@/components/CookieBanner";
+import Terms from "@/pages/legal/Terms";
+import Privacy from "@/pages/legal/Privacy";
+import DPA from "@/pages/legal/DPA";
 
 function Router() {
   return (
@@ -58,6 +71,9 @@ function Router() {
       <Route path="/landing" component={Landing} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/termeni" component={Terms} />
+      <Route path="/gdpr" component={Privacy} />
+      <Route path="/dpa" component={DPA} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/super-admin" component={SuperAdmin} />
 
@@ -84,9 +100,7 @@ function Router() {
         </DashboardLayout>
       </Route>
       <Route path="/facturi-emise">
-        <DashboardLayout>
-          <InvoicesEmitted />
-        </DashboardLayout>
+        <RedirectTo to="/facturi-emise-nou" />
       </Route>
       <Route path="/facturi-emise-nou">
         <DashboardLayout>
@@ -104,6 +118,11 @@ function Router() {
       <Route path="/facturi-emise-nou/view/:id">
         <DashboardLayout>
           <EmittedInvoiceDetail />
+        </DashboardLayout>
+      </Route>
+      <Route path="/jurnal-spv">
+        <DashboardLayout>
+          <SpvLogs />
         </DashboardLayout>
       </Route>
       <Route path="/facturi-emise-nou/:id">
@@ -296,6 +315,7 @@ function App() {
         <TooltipProvider>
           <Toaster position="top-right" richColors />
           <Router />
+          <CookieBanner />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

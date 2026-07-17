@@ -545,7 +545,7 @@ export default function EmitInvoice() {
 
   return (
     <div className="p-4 md:p-6 space-y-4">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      <div className="flex items-center gap-4 flex-wrap">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate("/facturi-emise-nou")}
@@ -564,32 +564,6 @@ export default function EmitInvoice() {
               </p>
             )}
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => handleSave("draft")}
-            disabled={saving}
-            className="flex items-center gap-1.5 px-4 h-9 !rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-60"
-          >
-            {saving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4" />
-            )}
-            Salvează Ciornă
-          </button>
-          <button
-            onClick={() => handleSave("sent")}
-            disabled={saving}
-            className="flex items-center gap-1.5 px-8 h-9 !rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition-colors disabled:opacity-60"
-          >
-            {saving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
-            Emite Factura
-          </button>
         </div>
       </div>
 

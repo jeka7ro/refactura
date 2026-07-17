@@ -89,6 +89,7 @@ const navItems: NavItem[] = [
       { href: "/facturi-emise-nou", label: "Facturi Emise", icon: FileOutput },
       { href: "/re-facturi", label: "Re-Facturi", icon: FileOutput },
       { href: "/arhiva-facturi", label: "Arhivă Facturi", icon: Archive },
+      { href: "/jurnal-spv", label: "Jurnal SPV", icon: FileText },
     ],
   },
   {

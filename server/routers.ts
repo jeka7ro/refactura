@@ -2096,6 +2096,269 @@ export const appRouter = router({
           return { success: false, error: errMsg };
         }
       }),
+
+    checkSpvStatus: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { emittedInvoices, integrations } = await import("../drizzle/schema");
+        const [inv] = await db
+          .select()
+          .from(emittedInvoices)
+          .where(
+            and(
+              eq(emittedInvoices.id, input.id),
+              eq(emittedInvoices.tenantId, ctx.user.tenantId)
+            )
+          );
+        if (!inv) throw new Error("Factura nu a fost găsită");
+        if (!inv.spvIndex) throw new Error("Factura nu are index SPV. Trimite-o mai întâi.");
+
+        const [intg] = await db
+          .select()
+          .from(integrations)
+          .where(
+            and(
+              eq(integrations.tenantId, ctx.user.tenantId),
+              eq(integrations.provider, "spv"),
+              eq(integrations.status, "active")
+            )
+          );
+        if (!intg?.apiKey) throw new Error("SPV nu este conectat.");
+
+        const statusUrl = `https://api.anaf.ro/prod/FCTEL/rest/stareMesaj?id_incarcare=${inv.spvIndex}`;
+        const resp = await fetch(statusUrl, {
+          headers: { Authorization: `Bearer ${intg.apiKey}` },
+          signal: AbortSignal.timeout(15000),
+        });
+        const text = await resp.text();
+        console.log(`[SPV Status] Invoice ${input.id} index ${inv.spvIndex}:`, text);
+
+        // ANAF returns XML: <header stare="ok|nok|in prelucrare" id_descarcare="..." />
+        // Must parse XML attributes, NOT tags
+        let stare = "";
+        let errors: string[] = [];
+        let idDescarcare = "";
+
+        try {
+          // Try JSON first (older ANAF responses)
+          const json = JSON.parse(text);
+          stare = json.stare || json.Stare || "";
+          if (json.Erori && Array.isArray(json.Erori)) {
+            errors = json.Erori.map((e: any) => e.errorMessage || e.message || String(e));
+          }
+        } catch {
+          // Parse XML attributes
+          const stareAttr = text.match(/stare="([^"]+)"/i);
+          if (stareAttr) stare = stareAttr[1];
+          const idDescAttr = text.match(/id_descarcare="([^"]+)"/i);
+          if (idDescAttr) idDescarcare = idDescAttr[1];
+        }
+
+        // If nok and we have id_descarcare, download error details ZIP and extract error messages
+        if (stare.toLowerCase() === "nok" && idDescarcare) {
+          try {
+            const AdmZip = (await import("adm-zip")).default;
+            const errResp = await fetch(
+              `https://api.anaf.ro/prod/FCTEL/rest/descarcare?id=${idDescarcare}`,
+              { headers: { Authorization: `Bearer ${intg.apiKey}` }, signal: AbortSignal.timeout(15000) }
+            );
+            const buf = Buffer.from(await errResp.arrayBuffer());
+            console.log(`[SPV Error Details] ${idDescarcare}: ${buf.length} bytes, first4=${buf.slice(0,4).toString("hex")}`);
+
+            let errXml = "";
+            if (buf.slice(0,4).toString("hex") === "504b0304") {
+              // It's a ZIP — extract XML
+              const zip = new AdmZip(buf);
+              const xmlEntry = zip.getEntries().find(e =>
+                e.entryName.toLowerCase().endsWith(".xml") &&
+                !e.entryName.toLowerCase().includes("semnatura")
+              );
+              if (xmlEntry) errXml = xmlEntry.getData().toString("utf8");
+            } else {
+              errXml = buf.toString("utf8");
+            }
+
+            console.log(`[SPV Error XML] ${idDescarcare}:`, errXml.slice(0, 600));
+
+            // Extract error messages from ANAF error XML
+            // Format: <Error errorMessage="..."/> or <eroare>...</eroare>
+            const errMsgMatches = [...errXml.matchAll(/errorMessage="([^"]+)"/gi)];
+            for (const m of errMsgMatches) errors.push(m[1]);
+            const descMatches = [...errXml.matchAll(/descriere="([^"]+)"/gi)];
+            for (const m of descMatches) errors.push(m[1]);
+            if (!errors.length) {
+              const tagMatches = [...errXml.matchAll(/<eroare[^>]*>([^<]+)<\/eroare>/gi)];
+              for (const m of tagMatches) errors.push(m[1]);
+            }
+            if (!errors.length) {
+              errors.push("Factura a fost respinsă de ANAF. Intră în portalul SPV pentru detalii.");
+            }
+          } catch (e: any) {
+            console.warn("[SPV Error Details] Failed:", e.message);
+            errors.push("Factura a fost respinsă de ANAF. Intră în portalul SPV pentru detalii.");
+          }
+        }
+
+        // Map ANAF stare to internal status
+        const normalized = stare.toLowerCase();
+        let newStatus: string = inv.spvStatus || "in_procesare";
+        if (normalized === "ok") newStatus = "validat";
+        else if (normalized.includes("prelucrare") || normalized.includes("procesare")) newStatus = "in_procesare";
+        else if (normalized === "nok") newStatus = "eroare";
+
+        // Update DB
+        await db
+          .update(emittedInvoices)
+          .set({
+            spvStatus: newStatus as any,
+            spvError: errors.length > 0 ? errors.join("; ") : (newStatus === "eroare" ? stare : null),
+          })
+          .where(eq(emittedInvoices.id, input.id));
+
+        return {
+          status: newStatus,
+          stare,
+          errors,
+          raw: text.slice(0, 500),
+        };
+      }),
+  }),
+
+  // ─── SPV Logs Router ──────────────────────────────────────────────────────────
+  spvLogs: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      if (!ctx.user?.tenantId) throw new Error("No tenant context");
+      const db = await getDb();
+      if (!db) throw new Error("No DB");
+      const { emittedInvoices, reInvoices, invoiceArchive } = await import("../drizzle/schema");
+      const { eq, and, desc } = await import("drizzle-orm");
+
+      // 1. Fetch Emitted Invoices
+      const emitted = await db
+        .select()
+        .from(emittedInvoices)
+        .where(eq(emittedInvoices.tenantId, ctx.user.tenantId))
+        .orderBy(desc(emittedInvoices.createdAt));
+
+      // 2. Fetch Re-Invoices
+      const reInvs = await db
+        .select()
+        .from(reInvoices)
+        .where(eq(reInvoices.tenantId, ctx.user.tenantId))
+        .orderBy(desc(reInvoices.createdAt));
+
+      // 3. Fetch Received (Archive)
+      const archive = await db
+        .select()
+        .from(invoiceArchive)
+        .where(
+          and(
+            eq(invoiceArchive.tenantId, ctx.user.tenantId),
+            eq(invoiceArchive.direction, "in")
+          )
+        )
+        .orderBy(desc(invoiceArchive.createdAt));
+
+      const logs = [
+        ...emitted.filter(i => i.spvIndex).map(i => ({
+          id: `emitted-${i.id}`,
+          type: "trimisa" as const,
+          invoiceNumber: i.number,
+          partnerName: i.clientName,
+          total: i.total,
+          currency: i.currency,
+          date: i.createdAt,
+          spvIndex: i.spvIndex,
+          spvStatus: i.spvStatus,
+          spvError: i.spvError,
+          originalId: i.id,
+          sourceType: "emittedInvoice"
+        })),
+        ...reInvs.filter(i => i.spvIndex).map(i => ({
+          id: `reinv-${i.id}`,
+          type: "trimisa" as const,
+          invoiceNumber: i.number,
+          partnerName: i.clientName,
+          total: i.total,
+          currency: i.currency,
+          date: i.createdAt,
+          spvIndex: i.spvIndex,
+          spvStatus: i.spvStatus,
+          spvError: i.spvError,
+          originalId: i.id,
+          sourceType: "reInvoice"
+        })),
+        ...archive.filter(i => i.fileName && i.fileName.startsWith("SPV_")).map(i => {
+          const match = i.fileName?.match(/SPV_(\d+)/);
+          const spvIdx = match ? match[1] : null;
+          return {
+            id: `archive-${i.id}`,
+            type: "primita" as const,
+            invoiceNumber: i.invoiceNumber || "-",
+            partnerName: i.supplierName || "Necunoscut",
+            total: i.total ? String(i.total) : "0",
+            currency: i.currency || "RON",
+            date: i.createdAt,
+            spvIndex: spvIdx,
+            spvStatus: "validat" as const, // primite sunt mereu validate
+            spvError: null,
+            originalId: i.id,
+            sourceType: "invoiceArchive"
+          };
+        })
+      ];
+
+      return logs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }),
+  }),
+  // ─── GDPR Router ──────────────────────────────────────────────────────────────
+  gdpr: router({
+    exportData: protectedProcedure.mutation(async ({ ctx }) => {
+      if (!ctx.user?.tenantId) throw new Error("No tenant context");
+      const db = await getDb();
+      if (!db) throw new Error("No DB");
+      
+      const { emittedInvoices, clients, invoiceArchive, users } = await import("../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+
+      const myInvoices = await db.select().from(emittedInvoices).where(eq(emittedInvoices.tenantId, ctx.user.tenantId));
+      const myClients = await db.select().from(clients).where(eq(clients.tenantId, ctx.user.tenantId));
+      const myArchive = await db.select().from(invoiceArchive).where(eq(invoiceArchive.tenantId, ctx.user.tenantId));
+      const myUser = await db.select().from(users).where(eq(users.id, ctx.user.id));
+
+      const exportData = {
+        user: myUser[0],
+        clients: myClients,
+        emittedInvoices: myInvoices,
+        invoiceArchive: myArchive,
+        exportedAt: new Date().toISOString()
+      };
+
+      return exportData;
+    }),
+
+    deleteAccount: protectedProcedure.mutation(async ({ ctx }) => {
+      if (!ctx.user?.id) throw new Error("Not logged in");
+      const db = await getDb();
+      if (!db) throw new Error("No DB");
+      
+      const { users, userTenants } = await import("../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+
+      // We only delete the user link to respect fiscal laws for the tenant's invoices.
+      // Soft delete or anonymize user
+      // 1. Remove user from userTenants to revoke access
+      await db.delete(userTenants).where(eq(userTenants.userId, ctx.user.id));
+      
+      // 2. Anonymize user details to keep DB integrity if constraints exist, or delete if safe.
+      // In Drizzle, deleting the user might cascade or fail. Let's try to delete.
+      await db.delete(users).where(eq(users.id, ctx.user.id));
+
+      return { success: true };
+    }),
   }),
 
   // ─── NIR Router ───────────────────────────────────────────────────────────────
