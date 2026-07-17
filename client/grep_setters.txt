@@ -1,0 +1,2651 @@
+src/contexts/ThemeContext.tsx-45-  const toggleTheme = switchable
+src/contexts/ThemeContext.tsx-46-    ? () => {
+src/contexts/ThemeContext.tsx:47:        setTheme(prev => (prev === "light" ? "dark" : "light"));
+src/contexts/ThemeContext.tsx-48-      }
+src/contexts/ThemeContext.tsx-49-    : undefined;
+--
+src/components/ManusDialog.tsx-31-  useEffect(() => {
+src/components/ManusDialog.tsx-32-    if (!onOpenChange) {
+src/components/ManusDialog.tsx:33:      setInternalOpen(open);
+src/components/ManusDialog.tsx-34-    }
+src/components/ManusDialog.tsx-35-  }, [open, onOpenChange]);
+--
+src/components/ManusDialog.tsx-39-      onOpenChange(nextOpen);
+src/components/ManusDialog.tsx-40-    } else {
+src/components/ManusDialog.tsx:41:      setInternalOpen(nextOpen);
+src/components/ManusDialog.tsx-42-    }
+src/components/ManusDialog.tsx-43-
+--
+src/components/ui/sidebar.tsx-77-      const openState = typeof value === "function" ? value(open) : value;
+src/components/ui/sidebar.tsx-78-      if (setOpenProp) {
+src/components/ui/sidebar.tsx:79:        setOpenProp(openState);
+src/components/ui/sidebar.tsx-80-      } else {
+src/components/ui/sidebar.tsx-81-        _setOpen(openState);
+--
+src/components/ui/textarea.tsx-45-      // Delay setting composing to false to handle Safari's event order
+src/components/ui/textarea.tsx-46-      // In Safari, compositionEnd fires before the ESC keydown event
+src/components/ui/textarea.tsx:47:      setTimeout(() => {
+src/components/ui/textarea.tsx-48-        dialogComposition.setComposing(false);
+src/components/ui/textarea.tsx-49-      }, 100);
+--
+src/components/ui/input.tsx-45-      // Delay setting composing to false to handle Safari's event order
+src/components/ui/input.tsx-46-      // In Safari, compositionEnd fires before the ESC keydown event
+src/components/ui/input.tsx:47:      setTimeout(() => {
+src/components/ui/input.tsx-48-        dialogComposition.setComposing(false);
+src/components/ui/input.tsx-49-      }, 100);
+--
+src/components/ui/carousel.tsx-62-  const onSelect = React.useCallback((api: CarouselApi) => {
+src/components/ui/carousel.tsx-63-    if (!api) return;
+src/components/ui/carousel.tsx:64:    setCanScrollPrev(api.canScrollPrev());
+src/components/ui/carousel.tsx:65:    setCanScrollNext(api.canScrollNext());
+src/components/ui/carousel.tsx-66-  }, []);
+src/components/ui/carousel.tsx-67-
+--
+src/components/ui/carousel.tsx-89-  React.useEffect(() => {
+src/components/ui/carousel.tsx-90-    if (!api || !setApi) return;
+src/components/ui/carousel.tsx:91:    setApi(api);
+src/components/ui/carousel.tsx-92-  }, [api, setApi]);
+src/components/ui/carousel.tsx-93-
+--
+src/components/ProtectedRoute.tsx-50-    if (!hasRole(user.role, requiredRole)) {
+src/components/ProtectedRoute.tsx-51-      // Insufficient permissions - redirect to dashboard
+src/components/ProtectedRoute.tsx:52:      setLocation("/");
+src/components/ProtectedRoute.tsx-53-      return;
+src/components/ProtectedRoute.tsx-54-    }
+--
+src/components/AIChatBox.tsx-147-        scrollAreaHeight - 32 - userMessageReservedHeight;
+src/components/AIChatBox.tsx-148-
+src/components/AIChatBox.tsx:149:      setMinHeightForLastMessage(Math.max(0, calculatedHeight));
+src/components/AIChatBox.tsx-150-    }
+src/components/AIChatBox.tsx-151-  }, []);
+--
+src/components/AIChatBox.tsx-173-
+src/components/AIChatBox.tsx-174-    onSendMessage(trimmedInput);
+src/components/AIChatBox.tsx:175:    setInput("");
+src/components/AIChatBox.tsx-176-
+src/components/AIChatBox.tsx-177-    // Scroll immediately after sending
+--
+src/components/DashboardLayout.tsx-173-  useEffect(() => {
+src/components/DashboardLayout.tsx-174-    if (!loading && !user) {
+src/components/DashboardLayout.tsx:175:      setLocation("/login");
+src/components/DashboardLayout.tsx-176-    }
+src/components/DashboardLayout.tsx-177-  }, [loading, user, setLocation]);
+--
+src/components/DataTable.tsx-75-  const handleSelectAll = () => {
+src/components/DataTable.tsx-76-    if (selectedRows.size === paginatedData.length) {
+src/components/DataTable.tsx:77:      setSelectedRows(new Set());
+src/components/DataTable.tsx-78-      onSelectionChange?.([]);
+src/components/DataTable.tsx-79-    } else {
+src/components/DataTable.tsx-80-      const newSelected = new Set(paginatedData.map(row => row[rowKey]));
+src/components/DataTable.tsx:81:      setSelectedRows(newSelected);
+src/components/DataTable.tsx-82-      onSelectionChange?.(paginatedData);
+src/components/DataTable.tsx-83-    }
+--
+src/components/DataTable.tsx-92-      newSelected.add(key);
+src/components/DataTable.tsx-93-    }
+src/components/DataTable.tsx:94:    setSelectedRows(newSelected);
+src/components/DataTable.tsx-95-    const selectedRowsData = paginatedData.filter(r =>
+src/components/DataTable.tsx-96-      newSelected.has(r[rowKey])
+--
+src/components/DataTable.tsx-133-                value={search}
+src/components/DataTable.tsx-134-                onChange={e => {
+src/components/DataTable.tsx:135:                  setSearch(e.target.value);
+src/components/DataTable.tsx:136:                  setPage(1);
+src/components/DataTable.tsx-137-                }}
+src/components/DataTable.tsx-138-              />
+--
+src/components/DataTable.tsx-271-                value={rowsPerPage.toString()}
+src/components/DataTable.tsx-272-                onValueChange={val => {
+src/components/DataTable.tsx:273:                  setRowsPerPage(Number(val));
+src/components/DataTable.tsx:274:                  setPage(1);
+src/components/DataTable.tsx-275-                }}
+src/components/DataTable.tsx-276-              >
+--
+src/components/NirSelectorModal.tsx-91-  const toggleLine = (l: (typeof allLines)[0]) => {
+src/components/NirSelectorModal.tsx-92-    const k = key(l);
+src/components/NirSelectorModal.tsx:93:    setSelectedKeys(prev => {
+src/components/NirSelectorModal.tsx-94-      const next = new Set(prev);
+src/components/NirSelectorModal.tsx-95-      if (next.has(k)) next.delete(k);
+--
+src/components/NirSelectorModal.tsx-101-  const toggleAll = () => {
+src/components/NirSelectorModal.tsx-102-    if (paginated.every(l => selectedKeys.has(key(l)))) {
+src/components/NirSelectorModal.tsx:103:      setSelectedKeys(prev => {
+src/components/NirSelectorModal.tsx-104-        const next = new Set(prev);
+src/components/NirSelectorModal.tsx-105-        paginated.forEach(l => next.delete(key(l)));
+--
+src/components/NirSelectorModal.tsx-107-      });
+src/components/NirSelectorModal.tsx-108-    } else {
+src/components/NirSelectorModal.tsx:109:      setSelectedKeys(prev => {
+src/components/NirSelectorModal.tsx-110-        const next = new Set(prev);
+src/components/NirSelectorModal.tsx-111-        paginated.forEach(l => next.add(key(l)));
+--
+src/components/NirSelectorModal.tsx-176-              value={search}
+src/components/NirSelectorModal.tsx-177-              onChange={e => {
+src/components/NirSelectorModal.tsx:178:                setSearch(e.target.value);
+src/components/NirSelectorModal.tsx:179:                setPage(1);
+src/components/NirSelectorModal.tsx-180-              }}
+src/components/NirSelectorModal.tsx-181-            />
+--
+src/components/NirSelectorModal.tsx-475-                value={rowsPerPage}
+src/components/NirSelectorModal.tsx-476-                onChange={e => {
+src/components/NirSelectorModal.tsx:477:                  setRowsPerPage(Number(e.target.value));
+src/components/NirSelectorModal.tsx:478:                  setPage(1);
+src/components/NirSelectorModal.tsx-479-                }}
+src/components/NirSelectorModal.tsx-480-                style={{
+--
+src/hooks/useMobile.tsx-11-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
+src/hooks/useMobile.tsx-12-    const onChange = () => {
+src/hooks/useMobile.tsx:13:      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+src/hooks/useMobile.tsx-14-    };
+src/hooks/useMobile.tsx-15-    mql.addEventListener("change", onChange);
+src/hooks/useMobile.tsx:16:    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+src/hooks/useMobile.tsx-17-    return () => mql.removeEventListener("change", onChange);
+src/hooks/useMobile.tsx-18-  }, []);
+--
+src/pages/Settings.tsx-112-      } catch (e) {}
+src/pages/Settings.tsx-113-
+src/pages/Settings.tsx:114:      setSettings(prev => ({
+src/pages/Settings.tsx-115-        ...prev,
+src/pages/Settings.tsx-116-        name: currentTenant.tenants.name || "",
+--
+src/pages/Settings.tsx-134-    const cui = settings.cui.replace(/^RO/i, "").replace(/\s/g, "");
+src/pages/Settings.tsx-135-    if (!cui || cui.length < 2) return;
+src/pages/Settings.tsx:136:    setCuiLookupLoading(true);
+src/pages/Settings.tsx:137:    setCuiLookupError("");
+src/pages/Settings.tsx-138-    try {
+src/pages/Settings.tsx-139-      const res = await fetch(`/api/anaf/${cui}`);
+src/pages/Settings.tsx-140-      if (!res.ok) {
+src/pages/Settings.tsx-141-        const err = await res.json().catch(() => ({}));
+src/pages/Settings.tsx:142:        setCuiLookupError(err.error || "CUI-ul nu a fost găsit în ANAF.");
+src/pages/Settings.tsx-143-        return;
+src/pages/Settings.tsx-144-      }
+--
+src/pages/Settings.tsx-150-      if (data?.telefon) update("phone", data.telefon);
+src/pages/Settings.tsx-151-    } catch {
+src/pages/Settings.tsx:152:      setCuiLookupError("Eroare la căutare. Verificați conexiunea.");
+src/pages/Settings.tsx-153-    } finally {
+src/pages/Settings.tsx:154:      setCuiLookupLoading(false);
+src/pages/Settings.tsx-155-    }
+src/pages/Settings.tsx-156-  };
+--
+src/pages/Settings.tsx-159-
+src/pages/Settings.tsx-160-  const handleSave = async () => {
+src/pages/Settings.tsx:161:    setSaving(true);
+src/pages/Settings.tsx-162-    try {
+src/pages/Settings.tsx-163-      const settingsStr = JSON.stringify({
+--
+src/pages/Settings.tsx-193-      toast.error("Eroare la salvare", { description: e.message });
+src/pages/Settings.tsx-194-    } finally {
+src/pages/Settings.tsx:195:      setSaving(false);
+src/pages/Settings.tsx-196-    }
+src/pages/Settings.tsx-197-  };
+src/pages/Settings.tsx-198-
+src/pages/Settings.tsx-199-  const update = (key: keyof CompanySettings, value: any) => {
+src/pages/Settings.tsx:200:    setSettings(prev => ({ ...prev, [key]: value }));
+src/pages/Settings.tsx-201-  };
+src/pages/Settings.tsx-202-
+--
+src/pages/Settings.tsx-263-                      onChange={e => {
+src/pages/Settings.tsx-264-                        update("cui", e.target.value);
+src/pages/Settings.tsx:265:                        setCuiLookupError("");
+src/pages/Settings.tsx-266-                      }}
+src/pages/Settings.tsx-267-                      onKeyDown={e => e.key === "Enter" && lookupCui()}
+--
+src/pages/InvoicesReceived.tsx-73-
+src/pages/InvoicesReceived.tsx-74-  const handleSync = () => {
+src/pages/InvoicesReceived.tsx:75:    setSyncing(true);
+src/pages/InvoicesReceived.tsx:76:    setTimeout(() => {
+src/pages/InvoicesReceived.tsx:77:      setSyncing(false);
+src/pages/InvoicesReceived.tsx-78-      toast.success("Sincronizare completă", {
+src/pages/InvoicesReceived.tsx-79-        description: "3 facturi noi importate",
+--
+src/pages/horeca/HorecaKioskSettings.tsx-105-  useEffect(() => {
+src/pages/horeca/HorecaKioskSettings.tsx-106-    if (locationDetail) {
+src/pages/horeca/HorecaKioskSettings.tsx:107:      setBrands(locationDetail.brands || []);
+src/pages/horeca/HorecaKioskSettings.tsx:108:      setOrgIds(locationDetail.orgIds || {});
+src/pages/horeca/HorecaKioskSettings.tsx:109:      setKioskPin(locationDetail.kioskPin || "");
+src/pages/horeca/HorecaKioskSettings.tsx:110:      setPosterUrl(locationDetail.posterUrl || "");
+src/pages/horeca/HorecaKioskSettings.tsx:111:      setTopBannerUrl(locationDetail.topBannerUrl || "");
+src/pages/horeca/HorecaKioskSettings.tsx:112:      setTopBannerHeight(locationDetail.topBannerHeight || 3);
+src/pages/horeca/HorecaKioskSettings.tsx:113:      setBottomBannerUrl(locationDetail.bottomBannerUrl || "");
+src/pages/horeca/HorecaKioskSettings.tsx:114:      setBottomBannerText(locationDetail.bottomBannerText || "");
+src/pages/horeca/HorecaKioskSettings.tsx:115:      setBottomBannerHeight(locationDetail.bottomBannerHeight || 2);
+src/pages/horeca/HorecaKioskSettings.tsx:116:      setBottomBannerBg(locationDetail.bottomBannerBg || "#1e293b");
+src/pages/horeca/HorecaKioskSettings.tsx:117:      setBottomBannerLogoUrl(locationDetail.bottomBannerLogoUrl || "");
+src/pages/horeca/HorecaKioskSettings.tsx:118:      setLangs(
+src/pages/horeca/HorecaKioskSettings.tsx-119-        locationDetail.languages && locationDetail.languages.length > 0
+src/pages/horeca/HorecaKioskSettings.tsx-120-          ? locationDetail.languages
+src/pages/horeca/HorecaKioskSettings.tsx-121-          : ["ro"]
+src/pages/horeca/HorecaKioskSettings.tsx-122-      );
+src/pages/horeca/HorecaKioskSettings.tsx:123:      setDefaultLang(locationDetail.defaultLanguage || "ro");
+src/pages/horeca/HorecaKioskSettings.tsx:124:      setLangButtonColor(locationDetail.langButtonColor || "#0f172a");
+src/pages/horeca/HorecaKioskSettings.tsx:125:      setLangSelectorPosition(locationDetail.langSelectorPosition || "after");
+src/pages/horeca/HorecaKioskSettings.tsx:126:      setPromoActive(locationDetail.promoActive || false);
+src/pages/horeca/HorecaKioskSettings.tsx:127:      setPromoBrandId(locationDetail.promoBrandId || "");
+src/pages/horeca/HorecaKioskSettings.tsx:128:      setPromoMinOrder(locationDetail.promoMinOrderValue || 0);
+src/pages/horeca/HorecaKioskSettings.tsx:129:      setPromoOrdersToAppear(locationDetail.promoOrdersToAppear || 1);
+src/pages/horeca/HorecaKioskSettings.tsx-130-    }
+src/pages/horeca/HorecaKioskSettings.tsx-131-  }, [locationDetail]);
+--
+src/pages/horeca/HorecaKioskSettings.tsx-133-  useEffect(() => {
+src/pages/horeca/HorecaKioskSettings.tsx-134-    if (bridgeLocations.length > 0 && !selectedLocationId) {
+src/pages/horeca/HorecaKioskSettings.tsx:135:      setSelectedLocationId(bridgeLocations[0].id);
+src/pages/horeca/HorecaKioskSettings.tsx-136-    }
+src/pages/horeca/HorecaKioskSettings.tsx-137-  }, [bridgeLocations, selectedLocationId]);
+--
+src/pages/horeca/HorecaKioskSettings.tsx-169-    const b = newBrand.trim().toLowerCase();
+src/pages/horeca/HorecaKioskSettings.tsx-170-    if (b && !brands.includes(b)) {
+src/pages/horeca/HorecaKioskSettings.tsx:171:      setBrands([...brands, b]);
+src/pages/horeca/HorecaKioskSettings.tsx:172:      setNewBrand("");
+src/pages/horeca/HorecaKioskSettings.tsx-173-    }
+src/pages/horeca/HorecaKioskSettings.tsx-174-  };
+--
+src/pages/horeca/HorecaKioskSettings.tsx-180-      if (langs.length > 1) {
+src/pages/horeca/HorecaKioskSettings.tsx-181-        const next = langs.filter(l => l !== lang);
+src/pages/horeca/HorecaKioskSettings.tsx:182:        setLangs(next);
+src/pages/horeca/HorecaKioskSettings.tsx-183-        if (defaultLang === lang) setDefaultLang(next[0]);
+src/pages/horeca/HorecaKioskSettings.tsx-184-      }
+src/pages/horeca/HorecaKioskSettings.tsx-185-    } else {
+src/pages/horeca/HorecaKioskSettings.tsx:186:      setLangs([...langs, lang]);
+src/pages/horeca/HorecaKioskSettings.tsx-187-    }
+src/pages/horeca/HorecaKioskSettings.tsx-188-  };
+--
+src/pages/horeca/HorecaKioskSettings.tsx-379-                        value={topBannerHeight}
+src/pages/horeca/HorecaKioskSettings.tsx-380-                        onChange={e =>
+src/pages/horeca/HorecaKioskSettings.tsx:381:                          setTopBannerHeight(Number(e.target.value))
+src/pages/horeca/HorecaKioskSettings.tsx-382-                        }
+src/pages/horeca/HorecaKioskSettings.tsx-383-                        min={1}
+--
+src/pages/horeca/HorecaKioskSettings.tsx-434-                          value={bottomBannerHeight}
+src/pages/horeca/HorecaKioskSettings.tsx-435-                          onChange={e =>
+src/pages/horeca/HorecaKioskSettings.tsx:436:                            setBottomBannerHeight(Number(e.target.value))
+src/pages/horeca/HorecaKioskSettings.tsx-437-                          }
+src/pages/horeca/HorecaKioskSettings.tsx-438-                          min={1}
+--
+src/pages/horeca/HorecaKioskSettings.tsx-652-                          value={langSelectorPosition}
+src/pages/horeca/HorecaKioskSettings.tsx-653-                          onChange={e =>
+src/pages/horeca/HorecaKioskSettings.tsx:654:                            setLangSelectorPosition(e.target.value)
+src/pages/horeca/HorecaKioskSettings.tsx-655-                          }
+src/pages/horeca/HorecaKioskSettings.tsx-656-                          className="w-full bg-background border border-input rounded-md px-3 py-2 text-sm"
+--
+src/pages/horeca/HorecaKioskSettings.tsx-696-                          value={orgIds[bId] || ""}
+src/pages/horeca/HorecaKioskSettings.tsx-697-                          onChange={e =>
+src/pages/horeca/HorecaKioskSettings.tsx:698:                            setOrgIds({ ...orgIds, [bId]: e.target.value })
+src/pages/horeca/HorecaKioskSettings.tsx-699-                          }
+src/pages/horeca/HorecaKioskSettings.tsx-700-                          className="font-mono text-xs"
+--
+src/pages/horeca/HorecaKioskSettings.tsx-756-                          value={promoMinOrder}
+src/pages/horeca/HorecaKioskSettings.tsx-757-                          onChange={e =>
+src/pages/horeca/HorecaKioskSettings.tsx:758:                            setPromoMinOrder(Number(e.target.value))
+src/pages/horeca/HorecaKioskSettings.tsx-759-                          }
+src/pages/horeca/HorecaKioskSettings.tsx-760-                          min={0}
+--
+src/pages/horeca/HorecaKioskSettings.tsx-767-                          value={promoOrdersToAppear}
+src/pages/horeca/HorecaKioskSettings.tsx-768-                          onChange={e =>
+src/pages/horeca/HorecaKioskSettings.tsx:769:                            setPromoOrdersToAppear(Number(e.target.value))
+src/pages/horeca/HorecaKioskSettings.tsx-770-                          }
+src/pages/horeca/HorecaKioskSettings.tsx-771-                          min={1}
+--
+src/pages/horeca/HorecaOrders.tsx-201-                onChange={e => {
+src/pages/horeca/HorecaOrders.tsx-202-                  const val = e.target.value;
+src/pages/horeca/HorecaOrders.tsx:203:                  setSelectedLocationId(val.startsWith('bridge-') ? val as any : Number(val));
+src/pages/horeca/HorecaOrders.tsx-204-                }}
+src/pages/horeca/HorecaOrders.tsx-205-                className="appearance-none pr-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-3 py-2 !rounded-full text-sm font-medium shadow-sm focus:outline-none focus:border-blue-500"
+--
+src/pages/horeca/HorecaOrders.tsx-270-            value={search}
+src/pages/horeca/HorecaOrders.tsx-271-            onChange={e => {
+src/pages/horeca/HorecaOrders.tsx:272:              setSearch(e.target.value);
+src/pages/horeca/HorecaOrders.tsx:273:              setPage(1);
+src/pages/horeca/HorecaOrders.tsx-274-            }}
+src/pages/horeca/HorecaOrders.tsx-275-          />
+--
+src/pages/horeca/HorecaOrders.tsx-432-                    value={rowsPerPage}
+src/pages/horeca/HorecaOrders.tsx-433-                    onChange={e => {
+src/pages/horeca/HorecaOrders.tsx:434:                      setRowsPerPage(Number(e.target.value));
+src/pages/horeca/HorecaOrders.tsx:435:                      setPage(1);
+src/pages/horeca/HorecaOrders.tsx-436-                    }}
+src/pages/horeca/HorecaOrders.tsx-437-                    className="appearance-none pr-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 !rounded-full pl-3 py-1 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-blue-500 shadow-sm"
+--
+src/pages/horeca/HorecaOrderCreate.tsx-96-      utils.horeca.orders.list.invalidate();
+src/pages/horeca/HorecaOrderCreate.tsx-97-      utils.horeca.tables.list.invalidate();
+src/pages/horeca/HorecaOrderCreate.tsx:98:      setLocation("/horeca/comenzi");
+src/pages/horeca/HorecaOrderCreate.tsx-99-    },
+src/pages/horeca/HorecaOrderCreate.tsx-100-    onError: e => toast.error(e.message),
+--
+src/pages/horeca/HorecaOrderCreate.tsx-126-  // Cart operations
+src/pages/horeca/HorecaOrderCreate.tsx-127-  function addToCart(item: (typeof items)[0]) {
+src/pages/horeca/HorecaOrderCreate.tsx:128:    setCart(c => {
+src/pages/horeca/HorecaOrderCreate.tsx-129-      const existing = c.find(ci => ci.menuItemId === item.id);
+src/pages/horeca/HorecaOrderCreate.tsx-130-      if (existing)
+--
+src/pages/horeca/HorecaOrderCreate.tsx-147-
+src/pages/horeca/HorecaOrderCreate.tsx-148-  function updateQty(menuItemId: number, delta: number) {
+src/pages/horeca/HorecaOrderCreate.tsx:149:    setCart(c =>
+src/pages/horeca/HorecaOrderCreate.tsx-150-      c
+src/pages/horeca/HorecaOrderCreate.tsx-151-        .map(ci =>
+--
+src/pages/horeca/HorecaOrderCreate.tsx-159-
+src/pages/horeca/HorecaOrderCreate.tsx-160-  function removeFromCart(menuItemId: number) {
+src/pages/horeca/HorecaOrderCreate.tsx:161:    setCart(c => c.filter(ci => ci.menuItemId !== menuItemId));
+src/pages/horeca/HorecaOrderCreate.tsx-162-  }
+src/pages/horeca/HorecaOrderCreate.tsx-163-
+src/pages/horeca/HorecaOrderCreate.tsx-164-  function updateItemNote(menuItemId: number, note: string) {
+src/pages/horeca/HorecaOrderCreate.tsx:165:    setCart(c =>
+src/pages/horeca/HorecaOrderCreate.tsx-166-      c.map(ci => (ci.menuItemId === menuItemId ? { ...ci, notes: note } : ci))
+src/pages/horeca/HorecaOrderCreate.tsx-167-    );
+--
+src/pages/horeca/HorecaOrderCreate.tsx-252-            key={opt.value}
+src/pages/horeca/HorecaOrderCreate.tsx-253-            onClick={() => {
+src/pages/horeca/HorecaOrderCreate.tsx:254:              setOrderType(opt.value as OrderType);
+src/pages/horeca/HorecaOrderCreate.tsx:255:              setSelectedTableNumber("");
+src/pages/horeca/HorecaOrderCreate.tsx-256-            }}
+src/pages/horeca/HorecaOrderCreate.tsx-257-            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all shadow-sm ${orderType === opt.value ? `${opt.color} text-white` : "bg-transparent text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white"}`}
+--
+src/pages/horeca/HorecaShift.tsx-90-    onSuccess: () => {
+src/pages/horeca/HorecaShift.tsx-91-      toast.success("Tură închisă. Raportul Z a fost salvat!");
+src/pages/horeca/HorecaShift.tsx:92:      setIsClosing(false);
+src/pages/horeca/HorecaShift.tsx-93-      utils.horeca.shifts.getCurrent.invalidate();
+src/pages/horeca/HorecaShift.tsx-94-      utils.horeca.shifts.list.invalidate();
+--
+src/pages/horeca/HorecaTables.tsx-107-
+src/pages/horeca/HorecaTables.tsx-108-  function resetForm() {
+src/pages/horeca/HorecaTables.tsx:109:    setShowForm(false);
+src/pages/horeca/HorecaTables.tsx:110:    setEditId(null);
+src/pages/horeca/HorecaTables.tsx:111:    setForm({ number: "", capacity: 4, zone: "Sală principală" });
+src/pages/horeca/HorecaTables.tsx-112-  }
+src/pages/horeca/HorecaTables.tsx-113-
+--
+src/pages/horeca/HorecaTables.tsx-185-              value={locationId}
+src/pages/horeca/HorecaTables.tsx-186-              onChange={e => {
+src/pages/horeca/HorecaTables.tsx:187:                setSelectedLocationId(Number(e.target.value));
+src/pages/horeca/HorecaTables.tsx-188-              }}
+src/pages/horeca/HorecaTables.tsx-189-              className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-3 py-2 rounded-lg text-sm font-medium focus:outline-none focus:border-blue-500 shadow-sm"
+--
+src/pages/horeca/HorecaTables.tsx-215-              onClick={() => {
+src/pages/horeca/HorecaTables.tsx-216-                resetForm();
+src/pages/horeca/HorecaTables.tsx:217:                setShowForm(true);
+src/pages/horeca/HorecaTables.tsx-218-              }}
+src/pages/horeca/HorecaTables.tsx-219-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"
+--
+src/pages/horeca/HorecaTables.tsx-257-                value={form.capacity}
+src/pages/horeca/HorecaTables.tsx-258-                onChange={e =>
+src/pages/horeca/HorecaTables.tsx:259:                  setForm(f => ({ ...f, capacity: Number(e.target.value) }))
+src/pages/horeca/HorecaTables.tsx-260-                }
+src/pages/horeca/HorecaTables.tsx-261-                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
+--
+src/pages/horeca/HorecaTables.tsx-434-                  value={search}
+src/pages/horeca/HorecaTables.tsx-435-                  onChange={e => {
+src/pages/horeca/HorecaTables.tsx:436:                    setSearch(e.target.value);
+src/pages/horeca/HorecaTables.tsx:437:                    setPage(1);
+src/pages/horeca/HorecaTables.tsx-438-                  }}
+src/pages/horeca/HorecaTables.tsx-439-                />
+--
+src/pages/horeca/HorecaTables.tsx-571-                        value={rowsPerPage}
+src/pages/horeca/HorecaTables.tsx-572-                        onChange={e => {
+src/pages/horeca/HorecaTables.tsx:573:                          setRowsPerPage(Number(e.target.value));
+src/pages/horeca/HorecaTables.tsx:574:                          setPage(1);
+src/pages/horeca/HorecaTables.tsx-575-                        }}
+src/pages/horeca/HorecaTables.tsx-576-                        className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-blue-500"
+--
+src/pages/horeca/HorecaTables.tsx-604-                      <button
+src/pages/horeca/HorecaTables.tsx-605-                        onClick={() =>
+src/pages/horeca/HorecaTables.tsx:606:                          setPage(p => Math.min(totalPages, p + 1))
+src/pages/horeca/HorecaTables.tsx-607-                        }
+src/pages/horeca/HorecaTables.tsx-608-                        disabled={safePage === totalPages}
+--
+src/pages/horeca/HorecaDelivery.tsx-155-      toast.success("Comandă delivery înregistrată");
+src/pages/horeca/HorecaDelivery.tsx-156-      utils.horeca.delivery.list.invalidate();
+src/pages/horeca/HorecaDelivery.tsx:157:      setShowAddForm(false);
+src/pages/horeca/HorecaDelivery.tsx:158:      setForm({
+src/pages/horeca/HorecaDelivery.tsx-159-        platform: "manual",
+src/pages/horeca/HorecaDelivery.tsx-160-        externalId: "",
+--
+src/pages/horeca/HorecaDelivery.tsx-184-    if (sortCol === col) setSortDir(d => (d === "asc" ? "desc" : "asc"));
+src/pages/horeca/HorecaDelivery.tsx-185-    else {
+src/pages/horeca/HorecaDelivery.tsx:186:      setSortCol(col);
+src/pages/horeca/HorecaDelivery.tsx:187:      setSortDir("asc");
+src/pages/horeca/HorecaDelivery.tsx-188-    }
+src/pages/horeca/HorecaDelivery.tsx-189-  }
+--
+src/pages/horeca/HorecaDelivery.tsx-293-                onChange={e => {
+src/pages/horeca/HorecaDelivery.tsx-294-                  const val = e.target.value;
+src/pages/horeca/HorecaDelivery.tsx:295:                  setSelectedLocationId(val.startsWith('bridge-') ? val as any : Number(val));
+src/pages/horeca/HorecaDelivery.tsx-296-                }}
+src/pages/horeca/HorecaDelivery.tsx-297-                className="appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-4 py-2 font-semibold shadow-sm min-w-[200px] rounded-lg focus:outline-none focus:border-blue-500 pr-10"
+--
+src/pages/horeca/HorecaDelivery.tsx-370-                value={form.platform}
+src/pages/horeca/HorecaDelivery.tsx-371-                onChange={e =>
+src/pages/horeca/HorecaDelivery.tsx:372:                  setForm(f => ({ ...f, platform: e.target.value as any }))
+src/pages/horeca/HorecaDelivery.tsx-373-                }
+src/pages/horeca/HorecaDelivery.tsx-374-                className="w-full bg-background border border-border text-foreground rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+--
+src/pages/horeca/HorecaDelivery.tsx-388-                value={form.externalId}
+src/pages/horeca/HorecaDelivery.tsx-389-                onChange={e =>
+src/pages/horeca/HorecaDelivery.tsx:390:                  setForm(f => ({ ...f, externalId: e.target.value }))
+src/pages/horeca/HorecaDelivery.tsx-391-                }
+src/pages/horeca/HorecaDelivery.tsx-392-                placeholder="ID din platformă"
+--
+src/pages/horeca/HorecaDelivery.tsx-401-                value={form.customerName}
+src/pages/horeca/HorecaDelivery.tsx-402-                onChange={e =>
+src/pages/horeca/HorecaDelivery.tsx:403:                  setForm(f => ({ ...f, customerName: e.target.value }))
+src/pages/horeca/HorecaDelivery.tsx-404-                }
+src/pages/horeca/HorecaDelivery.tsx-405-                placeholder="Numele clientului"
+--
+src/pages/horeca/HorecaDelivery.tsx-416-                value={form.subtotal}
+src/pages/horeca/HorecaDelivery.tsx-417-                onChange={e =>
+src/pages/horeca/HorecaDelivery.tsx:418:                  setForm(f => ({
+src/pages/horeca/HorecaDelivery.tsx-419-                    ...f,
+src/pages/horeca/HorecaDelivery.tsx-420-                    subtotal: e.target.value,
+--
+src/pages/horeca/HorecaDelivery.tsx-434-                value={form.commission}
+src/pages/horeca/HorecaDelivery.tsx-435-                onChange={e =>
+src/pages/horeca/HorecaDelivery.tsx:436:                  setForm(f => ({ ...f, commission: e.target.value }))
+src/pages/horeca/HorecaDelivery.tsx-437-                }
+src/pages/horeca/HorecaDelivery.tsx-438-                className="w-full bg-background border border-border text-foreground rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+--
+src/pages/horeca/HorecaDelivery.tsx-480-        <button
+src/pages/horeca/HorecaDelivery.tsx-481-          onClick={() => {
+src/pages/horeca/HorecaDelivery.tsx:482:            setPlatformFilter("");
+src/pages/horeca/HorecaDelivery.tsx:483:            setPage(1);
+src/pages/horeca/HorecaDelivery.tsx-484-          }}
+src/pages/horeca/HorecaDelivery.tsx-485-          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${!platformFilter ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}
+--
+src/pages/horeca/HorecaDelivery.tsx-491-            key={p.value}
+src/pages/horeca/HorecaDelivery.tsx-492-            onClick={() => {
+src/pages/horeca/HorecaDelivery.tsx:493:              setPlatformFilter(p.value);
+src/pages/horeca/HorecaDelivery.tsx:494:              setPage(1);
+src/pages/horeca/HorecaDelivery.tsx-495-            }}
+src/pages/horeca/HorecaDelivery.tsx-496-            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors ${platformFilter === p.value ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}
+--
+src/pages/horeca/HorecaDelivery.tsx-503-            value={statusFilter}
+src/pages/horeca/HorecaDelivery.tsx-504-            onChange={e => {
+src/pages/horeca/HorecaDelivery.tsx:505:              setStatusFilter(e.target.value);
+src/pages/horeca/HorecaDelivery.tsx:506:              setPage(1);
+src/pages/horeca/HorecaDelivery.tsx-507-            }}
+src/pages/horeca/HorecaDelivery.tsx-508-            className="appearance-none bg-background border border-border text-foreground pl-3 pr-8 py-1 !rounded-full text-xs focus:outline-none focus:border-primary shadow-sm"
+--
+src/pages/horeca/HorecaDelivery.tsx-543-          value={search}
+src/pages/horeca/HorecaDelivery.tsx-544-          onChange={e => {
+src/pages/horeca/HorecaDelivery.tsx:545:            setSearch(e.target.value);
+src/pages/horeca/HorecaDelivery.tsx:546:            setPage(1);
+src/pages/horeca/HorecaDelivery.tsx-547-          }}
+src/pages/horeca/HorecaDelivery.tsx-548-        />
+--
+src/pages/horeca/HorecaDelivery.tsx-740-                    value={rowsPerPage}
+src/pages/horeca/HorecaDelivery.tsx-741-                    onChange={e => {
+src/pages/horeca/HorecaDelivery.tsx:742:                      setRowsPerPage(Number(e.target.value));
+src/pages/horeca/HorecaDelivery.tsx:743:                      setPage(1);
+src/pages/horeca/HorecaDelivery.tsx-744-                    }}
+src/pages/horeca/HorecaDelivery.tsx-745-                    className="appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 !rounded-full pl-3 pr-8 py-1 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-blue-500 shadow-sm"
+--
+src/pages/horeca/HorecaLocations.tsx-172-
+src/pages/horeca/HorecaLocations.tsx-173-  function resetForm() {
+src/pages/horeca/HorecaLocations.tsx:174:    setShowForm(false);
+src/pages/horeca/HorecaLocations.tsx:175:    setEditId(null);
+src/pages/horeca/HorecaLocations.tsx:176:    setForm({
+src/pages/horeca/HorecaLocations.tsx-177-      name: "",
+src/pages/horeca/HorecaLocations.tsx-178-      address: "",
+--
+src/pages/horeca/HorecaLocations.tsx-187-
+src/pages/horeca/HorecaLocations.tsx-188-  function handleEdit(loc: (typeof locations)[0]) {
+src/pages/horeca/HorecaLocations.tsx:189:    setEditId(loc.id);
+src/pages/horeca/HorecaLocations.tsx:190:    setForm({
+src/pages/horeca/HorecaLocations.tsx-191-      name: loc.name,
+src/pages/horeca/HorecaLocations.tsx-192-      address: loc.address || "",
+--
+src/pages/horeca/HorecaLocations.tsx-198-      defaultVatAlcohol: loc.defaultVatAlcohol || 19,
+src/pages/horeca/HorecaLocations.tsx-199-    });
+src/pages/horeca/HorecaLocations.tsx:200:    setShowForm(true);
+src/pages/horeca/HorecaLocations.tsx-201-  }
+src/pages/horeca/HorecaLocations.tsx-202-
+--
+src/pages/horeca/HorecaLocations.tsx-240-            onClick={() => {
+src/pages/horeca/HorecaLocations.tsx-241-              resetForm();
+src/pages/horeca/HorecaLocations.tsx:242:              setShowForm(true);
+src/pages/horeca/HorecaLocations.tsx-243-            }}
+src/pages/horeca/HorecaLocations.tsx-244-            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+--
+src/pages/horeca/HorecaLocations.tsx-278-                value={form.type}
+src/pages/horeca/HorecaLocations.tsx-279-                onChange={e =>
+src/pages/horeca/HorecaLocations.tsx:280:                  setForm(f => ({ ...f, type: e.target.value as any }))
+src/pages/horeca/HorecaLocations.tsx-281-                }
+src/pages/horeca/HorecaLocations.tsx-282-                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-orange-500 dark:focus:border-orange-500"
+--
+src/pages/horeca/HorecaLocations.tsx-309-                value={form.address}
+src/pages/horeca/HorecaLocations.tsx-310-                onChange={e =>
+src/pages/horeca/HorecaLocations.tsx:311:                  setForm(f => ({ ...f, address: e.target.value }))
+src/pages/horeca/HorecaLocations.tsx-312-                }
+src/pages/horeca/HorecaLocations.tsx-313-                placeholder="Str. Exemplu nr. 1"
+--
+src/pages/horeca/HorecaLocations.tsx-335-                value={form.defaultVatFood}
+src/pages/horeca/HorecaLocations.tsx-336-                onChange={e =>
+src/pages/horeca/HorecaLocations.tsx:337:                  setForm(f => ({
+src/pages/horeca/HorecaLocations.tsx-338-                    ...f,
+src/pages/horeca/HorecaLocations.tsx-339-                    defaultVatFood: Number(e.target.value),
+--
+src/pages/horeca/HorecaLocations.tsx-351-                value={form.defaultVatAlcohol}
+src/pages/horeca/HorecaLocations.tsx-352-                onChange={e =>
+src/pages/horeca/HorecaLocations.tsx:353:                  setForm(f => ({
+src/pages/horeca/HorecaLocations.tsx-354-                    ...f,
+src/pages/horeca/HorecaLocations.tsx-355-                    defaultVatAlcohol: Number(e.target.value),
+--
+src/pages/horeca/HorecaLocations.tsx-399-          value={search}
+src/pages/horeca/HorecaLocations.tsx-400-          onChange={e => {
+src/pages/horeca/HorecaLocations.tsx:401:            setSearch(e.target.value);
+src/pages/horeca/HorecaLocations.tsx:402:            setPage(1);
+src/pages/horeca/HorecaLocations.tsx-403-          }}
+src/pages/horeca/HorecaLocations.tsx-404-        />
+--
+src/pages/horeca/HorecaLocations.tsx-565-                    value={rowsPerPage}
+src/pages/horeca/HorecaLocations.tsx-566-                    onChange={e => {
+src/pages/horeca/HorecaLocations.tsx:567:                      setRowsPerPage(Number(e.target.value));
+src/pages/horeca/HorecaLocations.tsx:568:                      setPage(1);
+src/pages/horeca/HorecaLocations.tsx-569-                    }}
+src/pages/horeca/HorecaLocations.tsx-570-                    style={{ background: 'transparent', padding: '2px 24px 2px 12px' }}
+--
+src/pages/horeca/HorecaTestPanel.tsx-394-                      className="flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-secondary/30 transition-colors"
+src/pages/horeca/HorecaTestPanel.tsx-395-                      onClick={() =>
+src/pages/horeca/HorecaTestPanel.tsx:396:                        setExpandedOrder(expandedOrder === o._id ? null : o._id)
+src/pages/horeca/HorecaTestPanel.tsx-397-                      }
+src/pages/horeca/HorecaTestPanel.tsx-398-                    >
+--
+src/pages/horeca/HorecaMenu.tsx-163-                    onClick={() => {
+src/pages/horeca/HorecaMenu.tsx-164-                      if (selectedSyrveProduct.image) {
+src/pages/horeca/HorecaMenu.tsx:165:                        setFullscreenImage(selectedSyrveProduct.image);
+src/pages/horeca/HorecaMenu.tsx-166-                      }
+src/pages/horeca/HorecaMenu.tsx-167-                    }}
+--
+src/pages/horeca/HorecaMenu.tsx-365-              onClick={(e) => {
+src/pages/horeca/HorecaMenu.tsx-366-                e.stopPropagation();
+src/pages/horeca/HorecaMenu.tsx:367:                setFullscreenImage(null);
+src/pages/horeca/HorecaMenu.tsx-368-              }}
+src/pages/horeca/HorecaMenu.tsx-369-              className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors backdrop-blur-md"
+--
+src/pages/horeca/HorecaMenu.tsx-413-      toast.success("Categorie salvată");
+src/pages/horeca/HorecaMenu.tsx-414-      utils.horeca.menu.listCategories.invalidate();
+src/pages/horeca/HorecaMenu.tsx:415:      setShowForm(false);
+src/pages/horeca/HorecaMenu.tsx:416:      setForm({ name: "", description: "", icon: "🍽️", sortOrder: 0 });
+src/pages/horeca/HorecaMenu.tsx-417-    },
+src/pages/horeca/HorecaMenu.tsx-418-    onError: e => toast.error(e.message),
+--
+src/pages/horeca/HorecaMenu.tsx-474-                value={form.sortOrder}
+src/pages/horeca/HorecaMenu.tsx-475-                onChange={e =>
+src/pages/horeca/HorecaMenu.tsx:476:                  setForm(f => ({ ...f, sortOrder: Number(e.target.value) }))
+src/pages/horeca/HorecaMenu.tsx-477-                }
+src/pages/horeca/HorecaMenu.tsx-478-                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 focus:outline-none shadow-sm"
+--
+src/pages/horeca/HorecaMenu.tsx-593-      toast.success("Produs salvat");
+src/pages/horeca/HorecaMenu.tsx-594-      utils.horeca.menu.listItems.invalidate();
+src/pages/horeca/HorecaMenu.tsx:595:      setShowForm(false);
+src/pages/horeca/HorecaMenu.tsx:596:      setForm(initialForm);
+src/pages/horeca/HorecaMenu.tsx-597-    },
+src/pages/horeca/HorecaMenu.tsx-598-    onError: e => toast.error(e.message),
+--
+src/pages/horeca/HorecaMenu.tsx-628-              value={search}
+src/pages/horeca/HorecaMenu.tsx-629-              onChange={e => {
+src/pages/horeca/HorecaMenu.tsx:630:                setSearch(e.target.value);
+src/pages/horeca/HorecaMenu.tsx:631:                setPage(1);
+src/pages/horeca/HorecaMenu.tsx-632-              }}
+src/pages/horeca/HorecaMenu.tsx-633-              placeholder="Caută produs..."
+--
+src/pages/horeca/HorecaMenu.tsx-669-                value={form.categoryId}
+src/pages/horeca/HorecaMenu.tsx-670-                onChange={e =>
+src/pages/horeca/HorecaMenu.tsx:671:                  setForm(f => ({ ...f, categoryId: Number(e.target.value) }))
+src/pages/horeca/HorecaMenu.tsx-672-                }
+src/pages/horeca/HorecaMenu.tsx-673-                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 focus:outline-none shadow-sm"
+--
+src/pages/horeca/HorecaMenu.tsx-690-                value={form.price}
+src/pages/horeca/HorecaMenu.tsx-691-                onChange={e =>
+src/pages/horeca/HorecaMenu.tsx:692:                  setForm(f => ({ ...f, price: Number(e.target.value) }))
+src/pages/horeca/HorecaMenu.tsx-693-                }
+src/pages/horeca/HorecaMenu.tsx-694-                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-bold focus:border-blue-500 focus:outline-none shadow-sm"
+--
+src/pages/horeca/HorecaMenu.tsx-701-                  checked={form.isAvailableDineIn}
+src/pages/horeca/HorecaMenu.tsx-702-                  onChange={e =>
+src/pages/horeca/HorecaMenu.tsx:703:                    setForm(f => ({
+src/pages/horeca/HorecaMenu.tsx-704-                      ...f,
+src/pages/horeca/HorecaMenu.tsx-705-                      isAvailableDineIn: e.target.checked,
+--
+src/pages/horeca/HorecaMenu.tsx-715-                  checked={form.isAvailableTakeaway}
+src/pages/horeca/HorecaMenu.tsx-716-                  onChange={e =>
+src/pages/horeca/HorecaMenu.tsx:717:                    setForm(f => ({
+src/pages/horeca/HorecaMenu.tsx-718-                      ...f,
+src/pages/horeca/HorecaMenu.tsx-719-                      isAvailableTakeaway: e.target.checked,
+--
+src/pages/horeca/HorecaMenu.tsx-729-                  checked={form.isAvailableDelivery}
+src/pages/horeca/HorecaMenu.tsx-730-                  onChange={e =>
+src/pages/horeca/HorecaMenu.tsx:731:                    setForm(f => ({
+src/pages/horeca/HorecaMenu.tsx-732-                      ...f,
+src/pages/horeca/HorecaMenu.tsx-733-                      isAvailableDelivery: e.target.checked,
+--
+src/pages/horeca/HorecaMenu.tsx-1007-
+src/pages/horeca/HorecaMenu.tsx-1008-  function addLine() {
+src/pages/horeca/HorecaMenu.tsx:1009:    setLines([
+src/pages/horeca/HorecaMenu.tsx-1010-      ...lines,
+src/pages/horeca/HorecaMenu.tsx-1011-      {
+--
+src/pages/horeca/HorecaMenu.tsx-1034-      }
+src/pages/horeca/HorecaMenu.tsx-1035-    }
+src/pages/horeca/HorecaMenu.tsx:1036:    setLines(newLines);
+src/pages/horeca/HorecaMenu.tsx-1037-  }
+src/pages/horeca/HorecaMenu.tsx-1038-
+src/pages/horeca/HorecaMenu.tsx-1039-  function removeLine(idx: number) {
+src/pages/horeca/HorecaMenu.tsx:1040:    setLines(lines.filter((_, i) => i !== idx));
+src/pages/horeca/HorecaMenu.tsx-1041-  }
+src/pages/horeca/HorecaMenu.tsx-1042-
+--
+src/pages/horeca/HorecaMenu.tsx-1235-          onClick={() => {
+src/pages/horeca/HorecaMenu.tsx-1236-            if (confirm("Anulezi modificările?")) {
+src/pages/horeca/HorecaMenu.tsx:1237:              setLines(recipeLines || []);
+src/pages/horeca/HorecaMenu.tsx-1238-            }
+src/pages/horeca/HorecaMenu.tsx-1239-          }}
+--
+src/pages/horeca/HorecaKitchenDisplay.tsx-198-                onChange={e => {
+src/pages/horeca/HorecaKitchenDisplay.tsx-199-                  const val = e.target.value;
+src/pages/horeca/HorecaKitchenDisplay.tsx:200:                  setSelectedLocationId(val.startsWith('bridge-') ? val as any : Number(val));
+src/pages/horeca/HorecaKitchenDisplay.tsx-201-                }}
+src/pages/horeca/HorecaKitchenDisplay.tsx-202-                className="appearance-none pr-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-3 py-2 rounded-full text-sm font-medium focus:outline-none focus:border-blue-500 shadow-sm"
+--
+src/pages/horeca/HorecaDashboard.tsx-174-              onChange={e => {
+src/pages/horeca/HorecaDashboard.tsx-175-                const val = e.target.value;
+src/pages/horeca/HorecaDashboard.tsx:176:                setSelectedLocationId(val.startsWith('bridge-') ? val as any : Number(val));
+src/pages/horeca/HorecaDashboard.tsx-177-              }}
+src/pages/horeca/HorecaDashboard.tsx-178-              className="appearance-none pr-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-3 py-2 rounded-full text-sm font-medium focus:outline-none focus:border-blue-500 shadow-sm"
+--
+src/pages/horeca/HorecaInventory.tsx-27-  useEffect(() => {
+src/pages/horeca/HorecaInventory.tsx-28-    if (!selectedLocationId && locations.length > 0) {
+src/pages/horeca/HorecaInventory.tsx:29:      setSelectedLocationId(locations[0].id);
+src/pages/horeca/HorecaInventory.tsx-30-    }
+src/pages/horeca/HorecaInventory.tsx-31-  }, [selectedLocationId, locations]);
+--
+src/pages/horeca/HorecaInventory.tsx-72-              onChange={e => {
+src/pages/horeca/HorecaInventory.tsx-73-                const val = e.target.value;
+src/pages/horeca/HorecaInventory.tsx:74:                setSelectedLocationId(val.startsWith('bridge-') ? val as any : Number(val));
+src/pages/horeca/HorecaInventory.tsx-75-              }}
+src/pages/horeca/HorecaInventory.tsx-76-              className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-4 py-2 font-semibold shadow-sm min-w-[200px] appearance-none cursor-pointer pr-10 focus:outline-none focus:border-indigo-500 !rounded-full"
+--
+src/pages/horeca/HorecaInventory.tsx-110-      toast.success("Ingredient salvat!");
+src/pages/horeca/HorecaInventory.tsx-111-      utils.horeca.inventory.listIngredients.invalidate();
+src/pages/horeca/HorecaInventory.tsx:112:      setIsEditing(null);
+src/pages/horeca/HorecaInventory.tsx-113-    },
+src/pages/horeca/HorecaInventory.tsx-114-    onError: e => toast.error(e.message),
+--
+src/pages/horeca/HorecaInventory.tsx-119-      toast.success("Stoc actualizat!");
+src/pages/horeca/HorecaInventory.tsx-120-      utils.horeca.inventory.listIngredients.invalidate();
+src/pages/horeca/HorecaInventory.tsx:121:      setIsAddingStock(null);
+src/pages/horeca/HorecaInventory.tsx-122-    },
+src/pages/horeca/HorecaInventory.tsx-123-    onError: e => toast.error(e.message),
+--
+src/pages/horeca/HorecaInventory.tsx-186-              value={searchTerm}
+src/pages/horeca/HorecaInventory.tsx-187-              onChange={e => {
+src/pages/horeca/HorecaInventory.tsx:188:                setSearchTerm(e.target.value);
+src/pages/horeca/HorecaInventory.tsx:189:                setPage(1);
+src/pages/horeca/HorecaInventory.tsx-190-              }}
+src/pages/horeca/HorecaInventory.tsx-191-            />
+--
+src/pages/horeca/HorecaInventory.tsx-301-                    value={rowsPerPage} 
+src/pages/horeca/HorecaInventory.tsx-302-                    onChange={e => {
+src/pages/horeca/HorecaInventory.tsx:303:                      setRowsPerPage(Number(e.target.value));
+src/pages/horeca/HorecaInventory.tsx:304:                      setPage(1);
+src/pages/horeca/HorecaInventory.tsx-305-                    }} 
+src/pages/horeca/HorecaInventory.tsx-306-                    style={{ background: 'transparent', padding: '2px 24px 2px 12px' }}
+--
+src/pages/ReInvoice.tsx-228-
+src/pages/ReInvoice.tsx-229-  const selectClient = (c: any) => {
+src/pages/ReInvoice.tsx:230:    setSelectedClientId(String(c.id));
+src/pages/ReInvoice.tsx:231:    setClientName(c.name);
+src/pages/ReInvoice.tsx:232:    setClientCUI(c.cui || "");
+src/pages/ReInvoice.tsx:233:    setClientRegCom(c.regCom || "");
+src/pages/ReInvoice.tsx:234:    setClientAddress(c.address || "");
+src/pages/ReInvoice.tsx:235:    setClientCity(c.city || "");
+src/pages/ReInvoice.tsx:236:    setClientEmail(c.email || "");
+src/pages/ReInvoice.tsx:237:    setClientPhone(c.phone || "");
+src/pages/ReInvoice.tsx:238:    setShowClientDropdown(false);
+src/pages/ReInvoice.tsx:239:    setClientSearch("");
+src/pages/ReInvoice.tsx-240-  };
+src/pages/ReInvoice.tsx-241-
+--
+src/pages/ReInvoice.tsx-243-    const cui = clientCUI.replace(/^RO/i, "").replace(/\s/g, "");
+src/pages/ReInvoice.tsx-244-    if (!cui || cui.length < 2) return;
+src/pages/ReInvoice.tsx:245:    setCuiLoading(true);
+src/pages/ReInvoice.tsx-246-    try {
+src/pages/ReInvoice.tsx-247-      const res = await fetch(`/api/anaf/${cui}`);
+--
+src/pages/ReInvoice.tsx-252-      }
+src/pages/ReInvoice.tsx-253-      const d = await res.json();
+src/pages/ReInvoice.tsx:254:      setClientName(d.denumire || clientName);
+src/pages/ReInvoice.tsx:255:      setClientAddress(d.adresa || clientAddress);
+src/pages/ReInvoice.tsx:256:      setClientCity(d.judet || clientCity);
+src/pages/ReInvoice.tsx:257:      setClientRegCom(d.nrRegCom || clientRegCom);
+src/pages/ReInvoice.tsx-258-      toast.success("Date extrase de la ANAF cu succes.");
+src/pages/ReInvoice.tsx-259-    } catch {
+src/pages/ReInvoice.tsx-260-      toast.error("Eroare conexiune la ANAF.");
+src/pages/ReInvoice.tsx-261-    } finally {
+src/pages/ReInvoice.tsx:262:      setCuiLoading(false);
+src/pages/ReInvoice.tsx-263-    }
+src/pages/ReInvoice.tsx-264-  };
+--
+src/pages/ReInvoice.tsx-267-    const cui = searchTerm.replace(/^RO/i, "").replace(/\s/g, "");
+src/pages/ReInvoice.tsx-268-    if (!cui || cui.length < 2) return;
+src/pages/ReInvoice.tsx:269:    setCuiLoading(true);
+src/pages/ReInvoice.tsx-270-    try {
+src/pages/ReInvoice.tsx-271-      const res = await fetch(`/api/anaf/${cui}`);
+--
+src/pages/ReInvoice.tsx-276-      }
+src/pages/ReInvoice.tsx-277-      const d = await res.json();
+src/pages/ReInvoice.tsx:278:      setClientName(d.denumire || "");
+src/pages/ReInvoice.tsx:279:      setClientAddress(d.adresa || "");
+src/pages/ReInvoice.tsx:280:      setClientCity(d.judet || "");
+src/pages/ReInvoice.tsx:281:      setClientRegCom(d.nrRegCom || "");
+src/pages/ReInvoice.tsx:282:      setClientCUI(d.cui ? `RO${d.cui}` : cui);
+src/pages/ReInvoice.tsx:283:      setClientSearch(d.denumire || "");
+src/pages/ReInvoice.tsx:284:      setShowClientDropdown(false);
+src/pages/ReInvoice.tsx-285-      toast.success("Date extrase din ANAF!");
+src/pages/ReInvoice.tsx-286-    } catch {
+src/pages/ReInvoice.tsx-287-      toast.error("Eroare conexiune la ANAF.");
+src/pages/ReInvoice.tsx-288-    } finally {
+src/pages/ReInvoice.tsx:289:      setCuiLoading(false);
+src/pages/ReInvoice.tsx-290-    }
+src/pages/ReInvoice.tsx-291-  };
+--
+src/pages/ReInvoice.tsx-293-  useEffect(() => {
+src/pages/ReInvoice.tsx-294-    if (invoice) {
+src/pages/ReInvoice.tsx:295:      setCurrency(invoice.currency);
+src/pages/ReInvoice.tsx-296-      const due = new Date();
+src/pages/ReInvoice.tsx-297-      due.setDate(due.getDate() + 30);
+src/pages/ReInvoice.tsx:298:      setDueDate(due.toISOString().split("T")[0]);
+src/pages/ReInvoice.tsx:299:      setLines(
+src/pages/ReInvoice.tsx-300-        invoice.lines.map(l => {
+src/pages/ReInvoice.tsx-301-          const uPrice = parseFloat(String(l.unitPrice || 0));
+--
+src/pages/ReInvoice.tsx-336-  const applyGlobalMarkupToAll = () => {
+src/pages/ReInvoice.tsx-337-    const markupVal = Number(globalMarkup) || 0;
+src/pages/ReInvoice.tsx:338:    setLines(prev =>
+src/pages/ReInvoice.tsx-339-      prev.map(l => ({
+src/pages/ReInvoice.tsx-340-        ...l,
+--
+src/pages/ReInvoice.tsx-357-      ? `Refacturare prestări servicii conf. ${invoice.number} (${invoice.supplierName})`
+src/pages/ReInvoice.tsx-358-      : `Refacturare prestări servicii`;
+src/pages/ReInvoice.tsx:359:    setLines([
+src/pages/ReInvoice.tsx-360-      {
+src/pages/ReInvoice.tsx-361-        id: `merged-${Date.now()}`,
+--
+src/pages/ReInvoice.tsx-373-
+src/pages/ReInvoice.tsx-374-  const updateLineMarkup = (lineId: string, markup: string | number) => {
+src/pages/ReInvoice.tsx:375:    setLines(prev =>
+src/pages/ReInvoice.tsx-376-      prev.map(l => {
+src/pages/ReInvoice.tsx-377-        if (l.id === lineId) {
+--
+src/pages/ReInvoice.tsx-389-
+src/pages/ReInvoice.tsx-390-  const updateLinePrice = (lineId: string, price: string | number) => {
+src/pages/ReInvoice.tsx:391:    setLines(prev =>
+src/pages/ReInvoice.tsx-392-      prev.map(l => {
+src/pages/ReInvoice.tsx-393-        if (l.id === lineId) {
+--
+src/pages/ReInvoice.tsx-408-
+src/pages/ReInvoice.tsx-409-  const updateLineQty = (lineId: string, qty: string | number) => {
+src/pages/ReInvoice.tsx:410:    setLines(prev =>
+src/pages/ReInvoice.tsx-411-      prev.map(l => (l.id === lineId ? { ...l, quantity: qty } : l))
+src/pages/ReInvoice.tsx-412-    );
+--
+src/pages/ReInvoice.tsx-414-
+src/pages/ReInvoice.tsx-415-  const updateLine = (lineId: string, field: string, value: any) => {
+src/pages/ReInvoice.tsx:416:    setLines(prev =>
+src/pages/ReInvoice.tsx-417-      prev.map(l => (l.id === lineId ? { ...l, [field]: value } : l))
+src/pages/ReInvoice.tsx-418-    );
+--
+src/pages/ReInvoice.tsx-420-
+src/pages/ReInvoice.tsx-421-  const removeLine = (lineId: string) => {
+src/pages/ReInvoice.tsx:422:    setLines(prev => prev.filter(l => l.id !== lineId));
+src/pages/ReInvoice.tsx-423-  };
+src/pages/ReInvoice.tsx-424-
+src/pages/ReInvoice.tsx-425-  const addLine = () => {
+src/pages/ReInvoice.tsx:426:    setLines(prev => [
+src/pages/ReInvoice.tsx-427-      ...prev,
+src/pages/ReInvoice.tsx-428-      {
+--
+src/pages/ReInvoice.tsx-473-      return;
+src/pages/ReInvoice.tsx-474-    }
+src/pages/ReInvoice.tsx:475:    setSaving(true);
+src/pages/ReInvoice.tsx-476-    try {
+src/pages/ReInvoice.tsx-477-      const client = realClients.find(c => String(c.id) === selectedClientId);
+src/pages/ReInvoice.tsx-478-      if (!client) {
+src/pages/ReInvoice.tsx-479-        toast.error("Clientul selectat nu a fost găsit");
+src/pages/ReInvoice.tsx:480:        setSaving(false);
+src/pages/ReInvoice.tsx-481-        return;
+src/pages/ReInvoice.tsx-482-      }
+--
+src/pages/ReInvoice.tsx-532-      });
+src/pages/ReInvoice.tsx-533-    } finally {
+src/pages/ReInvoice.tsx:534:      setSaving(false);
+src/pages/ReInvoice.tsx-535-    }
+src/pages/ReInvoice.tsx-536-  };
+--
+src/pages/ReInvoice.tsx-546-    }
+src/pages/ReInvoice.tsx-547-
+src/pages/ReInvoice.tsx:548:    setSaving(true);
+src/pages/ReInvoice.tsx-549-    toast.loading("Se generează Re-Factura...", { id: "save" });
+src/pages/ReInvoice.tsx-550-
+--
+src/pages/ReInvoice.tsx-585-      toast.error("Eroare la salvare: " + e.message, { id: "save" });
+src/pages/ReInvoice.tsx-586-    } finally {
+src/pages/ReInvoice.tsx:587:      setSaving(false);
+src/pages/ReInvoice.tsx-588-    }
+src/pages/ReInvoice.tsx-589-  };
+--
+src/pages/ReInvoice.tsx-643-                return;
+src/pages/ReInvoice.tsx-644-              }
+src/pages/ReInvoice.tsx:645:              setDownloadingPDF(true);
+src/pages/ReInvoice.tsx-646-              try {
+src/pages/ReInvoice.tsx-647-                const client = realClients.find(
+--
+src/pages/ReInvoice.tsx-710-                toast.error("Eroare la descărcarea PDF");
+src/pages/ReInvoice.tsx-711-              } finally {
+src/pages/ReInvoice.tsx:712:                setDownloadingPDF(false);
+src/pages/ReInvoice.tsx-713-              }
+src/pages/ReInvoice.tsx-714-            }}
+--
+src/pages/ReInvoice.tsx-908-                        onChange={e => {
+src/pages/ReInvoice.tsx-909-                          updateLine(line.id, "description", e.target.value);
+src/pages/ReInvoice.tsx:910:                          setCatalogQuery(e.target.value);
+src/pages/ReInvoice.tsx-911-                        }}
+src/pages/ReInvoice.tsx-912-                        onFocus={e => {
+src/pages/ReInvoice.tsx:913:                          setFocusedLineId(line.id);
+src/pages/ReInvoice.tsx-914-                          // Nu declanșa autocomplete pe textul default
+src/pages/ReInvoice.tsx-915-                          const isDefault = line.description === "";
+src/pages/ReInvoice.tsx:916:                          setCatalogQuery(isDefault ? "" : line.description);
+src/pages/ReInvoice.tsx-917-                          // Selectează tot textul ca să poți scrie imediat
+src/pages/ReInvoice.tsx-918-                          e.target.select();
+src/pages/ReInvoice.tsx-919-                        }}
+src/pages/ReInvoice.tsx-920-                        onBlur={() =>
+src/pages/ReInvoice.tsx:921:                          setTimeout(() => setFocusedLineId(null), 200)
+src/pages/ReInvoice.tsx-922-                        }
+src/pages/ReInvoice.tsx-923-                        className="w-full h-8 px-2 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+--
+src/pages/ReInvoice.tsx-1024-              <button
+src/pages/ReInvoice.tsx-1025-                onClick={() => {
+src/pages/ReInvoice.tsx:1026:                  setLines([
+src/pages/ReInvoice.tsx-1027-                    ...lines,
+src/pages/ReInvoice.tsx-1028-                    {
+--
+src/pages/ReInvoice.tsx-1069-                  onChange={e => {
+src/pages/ReInvoice.tsx-1070-                    if (!showClientDropdown) {
+src/pages/ReInvoice.tsx:1071:                      setClientName(e.target.value);
+src/pages/ReInvoice.tsx:1072:                      setSelectedClientId("");
+src/pages/ReInvoice.tsx-1073-                    }
+src/pages/ReInvoice.tsx:1074:                    setClientSearch(e.target.value);
+src/pages/ReInvoice.tsx-1075-                  }}
+src/pages/ReInvoice.tsx-1076-                  onFocus={() => setShowClientDropdown(true)}
+src/pages/ReInvoice.tsx-1077-                  onBlur={() =>
+src/pages/ReInvoice.tsx:1078:                    setTimeout(() => setShowClientDropdown(false), 200)
+src/pages/ReInvoice.tsx-1079-                  }
+src/pages/ReInvoice.tsx-1080-                  className="w-full h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+--
+src/pages/DevizeList.tsx-40-      toast.success("Deviz șters!");
+src/pages/DevizeList.tsx-41-      refetch();
+src/pages/DevizeList.tsx:42:      setDeleteTarget(null);
+src/pages/DevizeList.tsx-43-    },
+src/pages/DevizeList.tsx-44-    onError: e => toast.error("Eroare: " + e.message),
+--
+src/pages/DevizeList.tsx-133-            value={search}
+src/pages/DevizeList.tsx-134-            onChange={e => {
+src/pages/DevizeList.tsx:135:              setSearch(e.target.value);
+src/pages/DevizeList.tsx:136:              setPage(1);
+src/pages/DevizeList.tsx-137-            }}
+src/pages/DevizeList.tsx-138-            placeholder="Caută nr. deviz, ID factură..."
+--
+src/pages/DevizeList.tsx-332-                value={rowsPerPage}
+src/pages/DevizeList.tsx-333-                onChange={e => {
+src/pages/DevizeList.tsx:334:                  setRowsPerPage(Number(e.target.value));
+src/pages/DevizeList.tsx:335:                  setPage(1);
+src/pages/DevizeList.tsx-336-                }}
+src/pages/DevizeList.tsx-337-                style={{
+--
+src/pages/Login.tsx-38-    const token = localStorage.getItem("authToken");
+src/pages/Login.tsx-39-    if (token) {
+src/pages/Login.tsx:40:      setLocation("/dashboard");
+src/pages/Login.tsx-41-      return;
+src/pages/Login.tsx-42-    }
+--
+src/pages/Login.tsx-46-      try {
+src/pages/Login.tsx-47-        const { email: e, password: p } = JSON.parse(saved);
+src/pages/Login.tsx:48:        setEmail(e || "");
+src/pages/Login.tsx:49:        setPassword(p || "");
+src/pages/Login.tsx:50:        setRememberMe(true);
+src/pages/Login.tsx-51-      } catch {}
+src/pages/Login.tsx-52-    }
+--
+src/pages/Login.tsx-55-  const handleLogin = async (e: React.FormEvent) => {
+src/pages/Login.tsx-56-    e.preventDefault();
+src/pages/Login.tsx:57:    setError("");
+src/pages/Login.tsx:58:    setIsLoading(true);
+src/pages/Login.tsx-59-    try {
+src/pages/Login.tsx-60-      const result = await loginMutation.mutateAsync({ email, password });
+--
+src/pages/Login.tsx-69-          localStorage.removeItem("savedCredentials");
+src/pages/Login.tsx-70-        }
+src/pages/Login.tsx:71:        setLocation("/dashboard");
+src/pages/Login.tsx-72-      }
+src/pages/Login.tsx-73-    } catch (err) {
+src/pages/Login.tsx:74:      setError((err as Error).message || "Autentificare eșuată");
+src/pages/Login.tsx-75-    } finally {
+src/pages/Login.tsx:76:      setIsLoading(false);
+src/pages/Login.tsx-77-    }
+src/pages/Login.tsx-78-  };
+--
+src/pages/EmitInvoice.tsx-206-    if (originalInvoice && sourceId) {
+src/pages/EmitInvoice.tsx-207-      if (originalInvoice.clientId)
+src/pages/EmitInvoice.tsx:208:        setSelectedClientId(String(originalInvoice.clientId));
+src/pages/EmitInvoice.tsx:209:      setClientName(originalInvoice.clientName || "");
+src/pages/EmitInvoice.tsx:210:      setClientCUI(originalInvoice.clientCUI || "");
+src/pages/EmitInvoice.tsx:211:      setClientRegCom(originalInvoice.clientRegCom || "");
+src/pages/EmitInvoice.tsx:212:      setClientAddress(originalInvoice.clientAddress || "");
+src/pages/EmitInvoice.tsx:213:      setClientCity(originalInvoice.clientCity || "");
+src/pages/EmitInvoice.tsx:214:      setClientEmail(originalInvoice.clientEmail || "");
+src/pages/EmitInvoice.tsx:215:      setClientPhone(originalInvoice.clientPhone || "");
+src/pages/EmitInvoice.tsx:216:      setCurrency((originalInvoice.currency || "RON") as Currency);
+src/pages/EmitInvoice.tsx-217-
+src/pages/EmitInvoice.tsx-218-      let oldNotes = originalInvoice.notes || "";
+--
+src/pages/EmitInvoice.tsx-229-            : 21,
+src/pages/EmitInvoice.tsx-230-        }));
+src/pages/EmitInvoice.tsx:231:        setLines(stornoLines.length ? stornoLines : [defaultLine()]);
+src/pages/EmitInvoice.tsx-232-
+src/pages/EmitInvoice.tsx-233-        const stornoNote = `Storno la factura seria ${originalInvoice.series} nr. ${originalInvoice.number} din ${originalInvoice.issueDate.split("T")[0]}`;
+src/pages/EmitInvoice.tsx:234:        setMentiuni(stornoNote);
+src/pages/EmitInvoice.tsx-235-      } else if (editId) {
+src/pages/EmitInvoice.tsx:236:        setSeries(originalInvoice.series || "FACT");
+src/pages/EmitInvoice.tsx:237:        setInvoiceNumber(originalInvoice.number);
+src/pages/EmitInvoice.tsx-238-        if (originalInvoice.issueDate)
+src/pages/EmitInvoice.tsx:239:          setIssueDate(originalInvoice.issueDate.split("T")[0]);
+src/pages/EmitInvoice.tsx-240-        if (originalInvoice.dueDate)
+src/pages/EmitInvoice.tsx:241:          setDueDate(originalInvoice.dueDate.split("T")[0]);
+src/pages/EmitInvoice.tsx-242-
+src/pages/EmitInvoice.tsx-243-        const editLines = originalInvoice.lines.map(l => ({
+--
+src/pages/EmitInvoice.tsx-266-            devizType: dl.type,
+src/pages/EmitInvoice.tsx-267-          }));
+src/pages/EmitInvoice.tsx:268:          setLines(devizExpandedLines.length ? devizExpandedLines : editLines);
+src/pages/EmitInvoice.tsx-269-        } else {
+src/pages/EmitInvoice.tsx:270:          setLines(editLines.length ? editLines : [defaultLine()]);
+src/pages/EmitInvoice.tsx-271-        }
+src/pages/EmitInvoice.tsx-272-
+--
+src/pages/EmitInvoice.tsx-288-          line => !oblioKeys.some(k => line.startsWith(k))
+src/pages/EmitInvoice.tsx-289-        );
+src/pages/EmitInvoice.tsx:290:        setMentiuni(restNotes.join("\n").trim());
+src/pages/EmitInvoice.tsx-291-      }
+src/pages/EmitInvoice.tsx-292-
+--
+src/pages/EmitInvoice.tsx-295-        parts.forEach(p => {
+src/pages/EmitInvoice.tsx-296-          if (p.startsWith("Întocmit de: "))
+src/pages/EmitInvoice.tsx:297:            setIntocmitDe(p.replace("Întocmit de: ", ""));
+src/pages/EmitInvoice.tsx-298-          if (p.startsWith("CNP: ")) setCarteIdentitate(p.replace("CNP: ", ""));
+src/pages/EmitInvoice.tsx-299-          if (p.startsWith("Delegat: ")) setDelegat(p.replace("Delegat: ", ""));
+src/pages/EmitInvoice.tsx-300-          if (p.startsWith("Număr aviz: "))
+src/pages/EmitInvoice.tsx:301:            setNumarAviz(p.replace("Număr aviz: ", ""));
+src/pages/EmitInvoice.tsx-302-          if (p.startsWith("Auto: ")) setAuto(p.replace("Auto: ", ""));
+src/pages/EmitInvoice.tsx-303-          if (p.startsWith("Mijloc transport: "))
+src/pages/EmitInvoice.tsx:304:            setAuto(p.replace("Mijloc transport: ", ""));
+src/pages/EmitInvoice.tsx-305-          if (p.startsWith("Agent vânzări: "))
+src/pages/EmitInvoice.tsx:306:            setAgentVanzari(p.replace("Agent vânzări: ", ""));
+src/pages/EmitInvoice.tsx-307-          if (p.startsWith("Punct de lucru: "))
+src/pages/EmitInvoice.tsx:308:            setPunctLucru(p.replace("Punct de lucru: ", ""));
+src/pages/EmitInvoice.tsx-309-          if (p.startsWith("Număr comandă: "))
+src/pages/EmitInvoice.tsx:310:            setNumarComanda(p.replace("Număr comandă: ", ""));
+src/pages/EmitInvoice.tsx-311-          if (p.startsWith("Număr contract: "))
+src/pages/EmitInvoice.tsx:312:            setNumarContract(p.replace("Număr contract: ", ""));
+src/pages/EmitInvoice.tsx-313-        });
+src/pages/EmitInvoice.tsx-314-      }
+--
+src/pages/EmitInvoice.tsx-319-
+src/pages/EmitInvoice.tsx-320-  const selectClient = (c: any) => {
+src/pages/EmitInvoice.tsx:321:    setSelectedClientId(String(c.id));
+src/pages/EmitInvoice.tsx:322:    setClientName(c.name);
+src/pages/EmitInvoice.tsx:323:    setClientCUI(c.cui || "");
+src/pages/EmitInvoice.tsx:324:    setClientRegCom(c.regCom || "");
+src/pages/EmitInvoice.tsx:325:    setClientAddress(c.address || "");
+src/pages/EmitInvoice.tsx:326:    setClientCity(c.city || "");
+src/pages/EmitInvoice.tsx:327:    setClientEmail(c.email || "");
+src/pages/EmitInvoice.tsx:328:    setClientPhone(c.phone || "");
+src/pages/EmitInvoice.tsx:329:    setShowClientDropdown(false);
+src/pages/EmitInvoice.tsx:330:    setClientSearch("");
+src/pages/EmitInvoice.tsx-331-  };
+src/pages/EmitInvoice.tsx-332-
+--
+src/pages/EmitInvoice.tsx-334-    const cui = clientCUI.replace(/^RO/i, "").replace(/\s/g, "");
+src/pages/EmitInvoice.tsx-335-    if (!cui || cui.length < 2) return;
+src/pages/EmitInvoice.tsx:336:    setCuiLoading(true);
+src/pages/EmitInvoice.tsx-337-    try {
+src/pages/EmitInvoice.tsx-338-      const res = await fetch(`/api/anaf/${cui}`);
+--
+src/pages/EmitInvoice.tsx-343-      }
+src/pages/EmitInvoice.tsx-344-      const d = await res.json();
+src/pages/EmitInvoice.tsx:345:      setClientName(d.denumire || clientName);
+src/pages/EmitInvoice.tsx:346:      setClientAddress(d.adresa || clientAddress);
+src/pages/EmitInvoice.tsx:347:      setClientCity(d.judet || clientCity);
+src/pages/EmitInvoice.tsx:348:      setClientRegCom(d.nrRegCom || clientRegCom);
+src/pages/EmitInvoice.tsx-349-      toast.success("Date extrase de la ANAF cu succes.");
+src/pages/EmitInvoice.tsx-350-    } catch {
+src/pages/EmitInvoice.tsx-351-      toast.error("Eroare conexiune la ANAF.");
+src/pages/EmitInvoice.tsx-352-    } finally {
+src/pages/EmitInvoice.tsx:353:      setCuiLoading(false);
+src/pages/EmitInvoice.tsx-354-    }
+src/pages/EmitInvoice.tsx-355-  };
+--
+src/pages/EmitInvoice.tsx-358-    const cui = searchTerm.replace(/^RO/i, "").replace(/\s/g, "");
+src/pages/EmitInvoice.tsx-359-    if (!cui || cui.length < 2) return;
+src/pages/EmitInvoice.tsx:360:    setCuiLoading(true);
+src/pages/EmitInvoice.tsx-361-    try {
+src/pages/EmitInvoice.tsx-362-      const res = await fetch(`/api/anaf/${cui}`);
+--
+src/pages/EmitInvoice.tsx-367-      }
+src/pages/EmitInvoice.tsx-368-      const d = await res.json();
+src/pages/EmitInvoice.tsx:369:      setClientName(d.denumire || "");
+src/pages/EmitInvoice.tsx:370:      setClientAddress(d.adresa || "");
+src/pages/EmitInvoice.tsx:371:      setClientCity(d.judet || "");
+src/pages/EmitInvoice.tsx:372:      setClientRegCom(d.nrRegCom || "");
+src/pages/EmitInvoice.tsx:373:      setClientCUI(d.cui ? `RO${d.cui}` : cui);
+src/pages/EmitInvoice.tsx:374:      setClientSearch(d.denumire || "");
+src/pages/EmitInvoice.tsx:375:      setShowClientDropdown(false);
+src/pages/EmitInvoice.tsx-376-      toast.success("Date extrase din ANAF!");
+src/pages/EmitInvoice.tsx-377-    } catch {
+src/pages/EmitInvoice.tsx-378-      toast.error("Eroare conexiune la ANAF.");
+src/pages/EmitInvoice.tsx-379-    } finally {
+src/pages/EmitInvoice.tsx:380:      setCuiLoading(false);
+src/pages/EmitInvoice.tsx-381-    }
+src/pages/EmitInvoice.tsx-382-  };
+--
+src/pages/EmitInvoice.tsx-384-  const addLine = () => setLines(prev => [...prev, defaultLine()]);
+src/pages/EmitInvoice.tsx-385-  const removeLine = (id: string) =>
+src/pages/EmitInvoice.tsx:386:    setLines(prev => prev.filter(l => l.id !== id));
+src/pages/EmitInvoice.tsx-387-  const updateLine = useCallback(
+src/pages/EmitInvoice.tsx-388-    (id: string, field: keyof Line, value: any) => {
+src/pages/EmitInvoice.tsx:389:      setLines(prev =>
+src/pages/EmitInvoice.tsx-390-        prev.map(l => (l.id === id ? { ...l, [field]: value } : l))
+src/pages/EmitInvoice.tsx-391-      );
+--
+src/pages/EmitInvoice.tsx-395-
+src/pages/EmitInvoice.tsx-396-  const handleSelectFromCatalog = (lineId: string, item: any) => {
+src/pages/EmitInvoice.tsx:397:    setLines(prev =>
+src/pages/EmitInvoice.tsx-398-      prev.map(l => {
+src/pages/EmitInvoice.tsx-399-        if (l.id === lineId) {
+--
+src/pages/EmitInvoice.tsx-411-      })
+src/pages/EmitInvoice.tsx-412-    );
+src/pages/EmitInvoice.tsx:413:    setFocusedLineId(null);
+src/pages/EmitInvoice.tsx-414-  };
+src/pages/EmitInvoice.tsx-415-
+--
+src/pages/EmitInvoice.tsx-463-      return;
+src/pages/EmitInvoice.tsx-464-    }
+src/pages/EmitInvoice.tsx:465:    setSaving(true);
+src/pages/EmitInvoice.tsx-466-    try {
+src/pages/EmitInvoice.tsx-467-      for (const line of lines) {
+--
+src/pages/EmitInvoice.tsx-540-      }
+src/pages/EmitInvoice.tsx-541-    } finally {
+src/pages/EmitInvoice.tsx:542:      setSaving(false);
+src/pages/EmitInvoice.tsx-543-    }
+src/pages/EmitInvoice.tsx-544-  };
+--
+src/pages/EmitInvoice.tsx-605-                onChange={e => {
+src/pages/EmitInvoice.tsx-606-                  if (!showClientDropdown) {
+src/pages/EmitInvoice.tsx:607:                    setClientName(e.target.value);
+src/pages/EmitInvoice.tsx:608:                    setSelectedClientId("");
+src/pages/EmitInvoice.tsx-609-                  }
+src/pages/EmitInvoice.tsx:610:                  setClientSearch(e.target.value);
+src/pages/EmitInvoice.tsx-611-                }}
+src/pages/EmitInvoice.tsx-612-                onFocus={() => setShowClientDropdown(true)}
+src/pages/EmitInvoice.tsx-613-                onBlur={() =>
+src/pages/EmitInvoice.tsx:614:                  setTimeout(() => setShowClientDropdown(false), 200)
+src/pages/EmitInvoice.tsx-615-                }
+src/pages/EmitInvoice.tsx-616-                className={inputCls}
+--
+src/pages/EmitInvoice.tsx-853-                  onChange={e => {
+src/pages/EmitInvoice.tsx-854-                    updateLine(line.id, "description", e.target.value);
+src/pages/EmitInvoice.tsx:855:                    setCatalogQuery(e.target.value);
+src/pages/EmitInvoice.tsx:856:                    setHighlightedIdx(-1);
+src/pages/EmitInvoice.tsx-857-                  }}
+src/pages/EmitInvoice.tsx-858-                  onFocus={e => {
+src/pages/EmitInvoice.tsx:859:                    setFocusedLineId(line.id);
+src/pages/EmitInvoice.tsx-860-                    const isDefault =
+src/pages/EmitInvoice.tsx-861-                      line.description === "" ||
+src/pages/EmitInvoice.tsx-862-                      line.description === "Produs / Serviciu nou";
+src/pages/EmitInvoice.tsx:863:                    setCatalogQuery(isDefault ? "" : line.description);
+src/pages/EmitInvoice.tsx:864:                    setHighlightedIdx(-1);
+src/pages/EmitInvoice.tsx-865-                    e.target.select();
+src/pages/EmitInvoice.tsx-866-                  }}
+--
+src/pages/EmitInvoice.tsx-870-                    if (e.key === "ArrowDown") {
+src/pages/EmitInvoice.tsx-871-                      e.preventDefault();
+src/pages/EmitInvoice.tsx:872:                      setHighlightedIdx(i => Math.min(i + 1, items.length - 1));
+src/pages/EmitInvoice.tsx-873-                    } else if (e.key === "ArrowUp") {
+src/pages/EmitInvoice.tsx-874-                      e.preventDefault();
+src/pages/EmitInvoice.tsx:875:                      setHighlightedIdx(i => Math.max(i - 1, 0));
+src/pages/EmitInvoice.tsx-876-                    } else if (e.key === "Enter" && highlightedIdx >= 0) {
+src/pages/EmitInvoice.tsx-877-                      e.preventDefault();
+src/pages/EmitInvoice.tsx-878-                      handleSelectFromCatalog(line.id, items[highlightedIdx]);
+src/pages/EmitInvoice.tsx:879:                      setHighlightedIdx(-1);
+src/pages/EmitInvoice.tsx-880-                    } else if (e.key === "Escape") {
+src/pages/EmitInvoice.tsx:881:                      setFocusedLineId(null);
+src/pages/EmitInvoice.tsx:882:                      setHighlightedIdx(-1);
+src/pages/EmitInvoice.tsx-883-                    }
+src/pages/EmitInvoice.tsx-884-                  }}
+src/pages/EmitInvoice.tsx-885-                  onBlur={() =>
+src/pages/EmitInvoice.tsx:886:                    setTimeout(() => {
+src/pages/EmitInvoice.tsx:887:                      setFocusedLineId(null);
+src/pages/EmitInvoice.tsx:888:                      setHighlightedIdx(-1);
+src/pages/EmitInvoice.tsx-889-                    }, 200)
+src/pages/EmitInvoice.tsx-890-                  }
+--
+src/pages/EmitInvoice.tsx-1243-              maxQuantity: nl.quantity,
+src/pages/EmitInvoice.tsx-1244-            }));
+src/pages/EmitInvoice.tsx:1245:            setLines(prev => {
+src/pages/EmitInvoice.tsx-1246-              const hasOnlyDefault =
+src/pages/EmitInvoice.tsx-1247-                prev.length === 1 &&
+--
+src/pages/EmitInvoice.tsx-1261-              console.error("consumeLine error", e);
+src/pages/EmitInvoice.tsx-1262-            }
+src/pages/EmitInvoice.tsx:1263:            setShowNirModal(false);
+src/pages/EmitInvoice.tsx-1264-          }}
+src/pages/EmitInvoice.tsx-1265-        />
+--
+src/pages/PrintInvoice.tsx-23-  useEffect(() => {
+src/pages/PrintInvoice.tsx-24-    if (invoice && tenant && !window.location.search.includes("view=1")) {
+src/pages/PrintInvoice.tsx:25:      setTimeout(() => window.print(), 500);
+src/pages/PrintInvoice.tsx-26-    }
+src/pages/PrintInvoice.tsx-27-  }, [invoice, tenant]);
+--
+src/pages/InvoicesEmitted.tsx-158-
+src/pages/InvoicesEmitted.tsx-159-  const addLine = () =>
+src/pages/InvoicesEmitted.tsx:160:    setLines(prev => [
+src/pages/InvoicesEmitted.tsx-161-      ...prev,
+src/pages/InvoicesEmitted.tsx-162-      { description: "", quantity: 1, unitPrice: 0, vatRate: 21, unit: "buc" },
+src/pages/InvoicesEmitted.tsx-163-    ]);
+src/pages/InvoicesEmitted.tsx-164-  const removeLine = (i: number) =>
+src/pages/InvoicesEmitted.tsx:165:    setLines(prev => prev.filter((_, idx) => idx !== i));
+src/pages/InvoicesEmitted.tsx-166-  const updateLine = (i: number, field: keyof NewInvoiceLine, value: any) =>
+src/pages/InvoicesEmitted.tsx:167:    setLines(prev =>
+src/pages/InvoicesEmitted.tsx-168-      prev.map((l, idx) => (idx === i ? { ...l, [field]: value } : l))
+src/pages/InvoicesEmitted.tsx-169-    );
+--
+src/pages/InvoicesEmitted.tsx-186-      return;
+src/pages/InvoicesEmitted.tsx-187-    }
+src/pages/InvoicesEmitted.tsx:188:    setSaving(true);
+src/pages/InvoicesEmitted.tsx-189-    try {
+src/pages/InvoicesEmitted.tsx-190-      // Store as invoice archive entry with direction='out'
+--
+src/pages/InvoicesEmitted.tsx-198-        });
+src/pages/InvoicesEmitted.tsx-199-      }
+src/pages/InvoicesEmitted.tsx:200:      setShowForm(false);
+src/pages/InvoicesEmitted.tsx-201-      refetch();
+src/pages/InvoicesEmitted.tsx-202-    } catch (e: any) {
+src/pages/InvoicesEmitted.tsx-203-      toast.error("Eroare", { description: e.message });
+src/pages/InvoicesEmitted.tsx-204-    } finally {
+src/pages/InvoicesEmitted.tsx:205:      setSaving(false);
+src/pages/InvoicesEmitted.tsx-206-    }
+src/pages/InvoicesEmitted.tsx-207-  };
+src/pages/InvoicesEmitted.tsx-208-
+src/pages/InvoicesEmitted.tsx-209-  const resetForm = () => {
+src/pages/InvoicesEmitted.tsx:210:    setSelectedClientId("");
+src/pages/InvoicesEmitted.tsx:211:    setInvoiceNumber("");
+src/pages/InvoicesEmitted.tsx:212:    setNotes("");
+src/pages/InvoicesEmitted.tsx:213:    setSendToSpv(false);
+src/pages/InvoicesEmitted.tsx:214:    setLines([
+src/pages/InvoicesEmitted.tsx-215-      { description: "", quantity: 1, unitPrice: 0, vatRate: 21, unit: "buc" },
+src/pages/InvoicesEmitted.tsx-216-    ]);
+src/pages/InvoicesEmitted.tsx:217:    setIssueDate(new Date().toISOString().split("T")[0]);
+src/pages/InvoicesEmitted.tsx-218-    const d = new Date();
+src/pages/InvoicesEmitted.tsx-219-    d.setDate(d.getDate() + 30);
+src/pages/InvoicesEmitted.tsx:220:    setDueDate(d.toISOString().split("T")[0]);
+src/pages/InvoicesEmitted.tsx-221-  };
+src/pages/InvoicesEmitted.tsx-222-
+--
+src/pages/InvoicesEmitted.tsx-251-              onClick={() => {
+src/pages/InvoicesEmitted.tsx-252-                resetForm();
+src/pages/InvoicesEmitted.tsx:253:                setShowForm(true);
+src/pages/InvoicesEmitted.tsx-254-              }}
+src/pages/InvoicesEmitted.tsx-255-              className="flex items-center gap-1.5 px-4 h-9 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition-all shadow-sm"
+--
+src/pages/InvoicesEmitted.tsx-584-                value={search}
+src/pages/InvoicesEmitted.tsx-585-                onChange={e => {
+src/pages/InvoicesEmitted.tsx:586:                  setSearch(e.target.value);
+src/pages/InvoicesEmitted.tsx:587:                  setPage(1);
+src/pages/InvoicesEmitted.tsx-588-                }}
+src/pages/InvoicesEmitted.tsx-589-              />
+--
+src/pages/InvoicesEmitted.tsx-765-                  value={rowsPerPage}
+src/pages/InvoicesEmitted.tsx-766-                  onChange={e => {
+src/pages/InvoicesEmitted.tsx:767:                    setRowsPerPage(Number(e.target.value));
+src/pages/InvoicesEmitted.tsx:768:                    setPage(1);
+src/pages/InvoicesEmitted.tsx-769-                  }}
+src/pages/InvoicesEmitted.tsx-770-                  style={{
+--
+src/pages/ComponentShowcase.tsx-199-      description: `Input: ${dialogInput}`,
+src/pages/ComponentShowcase.tsx-200-    });
+src/pages/ComponentShowcase.tsx:201:    setDialogInput("");
+src/pages/ComponentShowcase.tsx:202:    setDialogOpen(false);
+src/pages/ComponentShowcase.tsx-203-  };
+src/pages/ComponentShowcase.tsx-204-
+--
+src/pages/ComponentShowcase.tsx-213-    // Add user message
+src/pages/ComponentShowcase.tsx-214-    const newMessages: Message[] = [...chatMessages, { role: "user", content }];
+src/pages/ComponentShowcase.tsx:215:    setChatMessages(newMessages);
+src/pages/ComponentShowcase.tsx-216-
+src/pages/ComponentShowcase.tsx-217-    // Simulate AI response with delay
+src/pages/ComponentShowcase.tsx:218:    setIsChatLoading(true);
+src/pages/ComponentShowcase.tsx:219:    setTimeout(() => {
+src/pages/ComponentShowcase.tsx-220-      const aiResponse: Message = {
+src/pages/ComponentShowcase.tsx-221-        role: "assistant",
+src/pages/ComponentShowcase.tsx-222-        content: `This is a **demo response**. In a real app, you would call a tRPC mutation here:\n\n\`\`\`typescript\nconst chatMutation = trpc.ai.chat.useMutation({\n  onSuccess: (response) => {\n    setChatMessages(prev => [...prev, {\n      role: "assistant",\n      content: response.choices[0].message.content\n    }]);\n  }\n});\n\nchatMutation.mutate({ messages: newMessages });\n\`\`\`\n\nYour message was: "${content}"`,
+src/pages/ComponentShowcase.tsx-223-      };
+src/pages/ComponentShowcase.tsx:224:      setChatMessages([...newMessages, aiResponse]);
+src/pages/ComponentShowcase.tsx:225:      setIsChatLoading(false);
+src/pages/ComponentShowcase.tsx-226-    }, 1500);
+src/pages/ComponentShowcase.tsx-227-  };
+--
+src/pages/ComponentShowcase.tsx-517-                                newDate.setHours(parseInt(hours));
+src/pages/ComponentShowcase.tsx-518-                                newDate.setMinutes(parseInt(minutes));
+src/pages/ComponentShowcase.tsx:519:                                setDatePickerDate(newDate);
+src/pages/ComponentShowcase.tsx-520-                              }}
+src/pages/ComponentShowcase.tsx-521-                            />
+--
+src/pages/ComponentShowcase.tsx-577-                                value={framework.value}
+src/pages/ComponentShowcase.tsx-578-                                onSelect={currentValue => {
+src/pages/ComponentShowcase.tsx:579:                                  setSelectedFramework(
+src/pages/ComponentShowcase.tsx-580-                                    currentValue === selectedFramework
+src/pages/ComponentShowcase.tsx-581-                                      ? ""
+src/pages/ComponentShowcase.tsx-582-                                      : currentValue
+src/pages/ComponentShowcase.tsx-583-                                  );
+src/pages/ComponentShowcase.tsx:584:                                  setOpenCombobox(false);
+src/pages/ComponentShowcase.tsx-585-                                }}
+src/pages/ComponentShowcase.tsx-586-                              >
+--
+src/pages/ComponentShowcase.tsx-743-                          onClick={e => {
+src/pages/ComponentShowcase.tsx-744-                            e.preventDefault();
+src/pages/ComponentShowcase.tsx:745:                            setCurrentPage(Math.max(1, currentPage - 1));
+src/pages/ComponentShowcase.tsx-746-                          }}
+src/pages/ComponentShowcase.tsx-747-                        />
+--
+src/pages/ComponentShowcase.tsx-754-                            onClick={e => {
+src/pages/ComponentShowcase.tsx-755-                              e.preventDefault();
+src/pages/ComponentShowcase.tsx:756:                              setCurrentPage(page);
+src/pages/ComponentShowcase.tsx-757-                            }}
+src/pages/ComponentShowcase.tsx-758-                          >
+--
+src/pages/ComponentShowcase.tsx-766-                          onClick={e => {
+src/pages/ComponentShowcase.tsx-767-                            e.preventDefault();
+src/pages/ComponentShowcase.tsx:768:                            setCurrentPage(Math.min(5, currentPage + 1));
+src/pages/ComponentShowcase.tsx-769-                          }}
+src/pages/ComponentShowcase.tsx-770-                        />
+--
+src/pages/ComponentShowcase.tsx-1376-                      onClick={() => {
+src/pages/ComponentShowcase.tsx-1377-                        const promise = new Promise(resolve =>
+src/pages/ComponentShowcase.tsx:1378:                          setTimeout(resolve, 2000)
+src/pages/ComponentShowcase.tsx-1379-                        );
+src/pages/ComponentShowcase.tsx-1380-                        sonnerToast.promise(promise, {
+--
+src/pages/Catalog.tsx-69-              value={search}
+src/pages/Catalog.tsx-70-              onChange={e => {
+src/pages/Catalog.tsx:71:                setSearch(e.target.value);
+src/pages/Catalog.tsx:72:                setPage(1);
+src/pages/Catalog.tsx-73-              }}
+src/pages/Catalog.tsx-74-            />
+--
+src/pages/Catalog.tsx-190-                value={rowsPerPage}
+src/pages/Catalog.tsx-191-                onChange={e => {
+src/pages/Catalog.tsx:192:                  setRowsPerPage(Number(e.target.value));
+src/pages/Catalog.tsx:193:                  setPage(1);
+src/pages/Catalog.tsx-194-                }}
+src/pages/Catalog.tsx-195-                style={{ borderRadius: 9999, padding: "2px 8px" }}
+--
+src/pages/CostCenters.tsx-29-    onSuccess: () => {
+src/pages/CostCenters.tsx-30-      refetch();
+src/pages/CostCenters.tsx:31:      setFormData({
+src/pages/CostCenters.tsx-32-        name: "",
+src/pages/CostCenters.tsx-33-        address: "",
+--
+src/pages/CostCenters.tsx-38-        country: "",
+src/pages/CostCenters.tsx-39-      });
+src/pages/CostCenters.tsx:40:      setShowForm(false);
+src/pages/CostCenters.tsx-41-    },
+src/pages/CostCenters.tsx-42-  });
+--
+src/pages/CostCenters.tsx-46-    onSuccess: () => {
+src/pages/CostCenters.tsx-47-      refetch();
+src/pages/CostCenters.tsx:48:      setFormData({
+src/pages/CostCenters.tsx-49-        name: "",
+src/pages/CostCenters.tsx-50-        address: "",
+--
+src/pages/CostCenters.tsx-55-        country: "",
+src/pages/CostCenters.tsx-56-      });
+src/pages/CostCenters.tsx:57:      setEditingId(null);
+src/pages/CostCenters.tsx:58:      setShowForm(false);
+src/pages/CostCenters.tsx-59-    },
+src/pages/CostCenters.tsx-60-  });
+--
+src/pages/CostCenters.tsx-79-
+src/pages/CostCenters.tsx-80-  const handleEdit = (center: any) => {
+src/pages/CostCenters.tsx:81:    setFormData({
+src/pages/CostCenters.tsx-82-      name: center.name,
+src/pages/CostCenters.tsx-83-      address: center.address || "",
+--
+src/pages/CostCenters.tsx-88-      country: center.country || "",
+src/pages/CostCenters.tsx-89-    });
+src/pages/CostCenters.tsx:90:    setEditingId(center.id);
+src/pages/CostCenters.tsx:91:    setShowForm(true);
+src/pages/CostCenters.tsx-92-  };
+src/pages/CostCenters.tsx-93-
+--
+src/pages/CostCenters.tsx-147-        <button
+src/pages/CostCenters.tsx-148-          onClick={() => {
+src/pages/CostCenters.tsx:149:            setEditingId(null);
+src/pages/CostCenters.tsx:150:            setFormData({
+src/pages/CostCenters.tsx-151-              name: "",
+src/pages/CostCenters.tsx-152-              address: "",
+--
+src/pages/CostCenters.tsx-157-              country: "",
+src/pages/CostCenters.tsx-158-            });
+src/pages/CostCenters.tsx:159:            setShowForm(!showForm);
+src/pages/CostCenters.tsx-160-          }}
+src/pages/CostCenters.tsx-161-          className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors shadow-sm"
+--
+src/pages/CostCenters.tsx-196-                value={formData.name}
+src/pages/CostCenters.tsx-197-                onChange={e =>
+src/pages/CostCenters.tsx:198:                  setFormData({ ...formData, name: e.target.value })
+src/pages/CostCenters.tsx-199-                }
+src/pages/CostCenters.tsx-200-                className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400"
+--
+src/pages/CostCenters.tsx-207-                value={formData.city}
+src/pages/CostCenters.tsx-208-                onChange={e =>
+src/pages/CostCenters.tsx:209:                  setFormData({ ...formData, city: e.target.value })
+src/pages/CostCenters.tsx-210-                }
+src/pages/CostCenters.tsx-211-                className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400"
+--
+src/pages/CostCenters.tsx-217-                value={formData.address}
+src/pages/CostCenters.tsx-218-                onChange={e =>
+src/pages/CostCenters.tsx:219:                  setFormData({ ...formData, address: e.target.value })
+src/pages/CostCenters.tsx-220-                }
+src/pages/CostCenters.tsx-221-                className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400"
+--
+src/pages/CostCenters.tsx-227-                value={formData.cui}
+src/pages/CostCenters.tsx-228-                onChange={e =>
+src/pages/CostCenters.tsx:229:                  setFormData({ ...formData, cui: e.target.value })
+src/pages/CostCenters.tsx-230-                }
+src/pages/CostCenters.tsx-231-                className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400"
+--
+src/pages/CostCenters.tsx-237-                value={formData.email}
+src/pages/CostCenters.tsx-238-                onChange={e =>
+src/pages/CostCenters.tsx:239:                  setFormData({ ...formData, email: e.target.value })
+src/pages/CostCenters.tsx-240-                }
+src/pages/CostCenters.tsx-241-                className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400"
+--
+src/pages/CostCenters.tsx-247-                value={formData.phone}
+src/pages/CostCenters.tsx-248-                onChange={e =>
+src/pages/CostCenters.tsx:249:                  setFormData({ ...formData, phone: e.target.value })
+src/pages/CostCenters.tsx-250-                }
+src/pages/CostCenters.tsx-251-                className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400"
+--
+src/pages/CostCenters.tsx-258-                variant="outline"
+src/pages/CostCenters.tsx-259-                onClick={() => {
+src/pages/CostCenters.tsx:260:                  setShowForm(false);
+src/pages/CostCenters.tsx:261:                  setEditingId(null);
+src/pages/CostCenters.tsx-262-                }}
+src/pages/CostCenters.tsx-263-              >
+--
+src/pages/Home.tsx-10-  useEffect(() => {
+src/pages/Home.tsx-11-    if (!loading && !isAuthenticated) {
+src/pages/Home.tsx:12:      setLocation("/login");
+src/pages/Home.tsx-13-    }
+src/pages/Home.tsx-14-  }, [loading, isAuthenticated, setLocation]);
+--
+src/pages/NIRList.tsx-43-      toast.success("NIR șters!");
+src/pages/NIRList.tsx-44-      refetch();
+src/pages/NIRList.tsx:45:      setDeleteTarget(null);
+src/pages/NIRList.tsx-46-    },
+src/pages/NIRList.tsx-47-    onError: e => toast.error("Eroare: " + e.message),
+--
+src/pages/NIRList.tsx-140-            value={search}
+src/pages/NIRList.tsx-141-            onChange={e => {
+src/pages/NIRList.tsx:142:              setSearch(e.target.value);
+src/pages/NIRList.tsx:143:              setPage(1);
+src/pages/NIRList.tsx-144-            }}
+src/pages/NIRList.tsx-145-            placeholder="Caută NIR, furnizor, factură..."
+--
+src/pages/NIRList.tsx-322-            value={rowsPerPage}
+src/pages/NIRList.tsx-323-            onChange={e => {
+src/pages/NIRList.tsx:324:              setRowsPerPage(Number(e.target.value));
+src/pages/NIRList.tsx:325:              setPage(1);
+src/pages/NIRList.tsx-326-            }}
+src/pages/NIRList.tsx-327-            style={{
+--
+src/pages/BonuriConsumList.tsx-44-      toast.success("Bon de consum șters!");
+src/pages/BonuriConsumList.tsx-45-      refetch();
+src/pages/BonuriConsumList.tsx:46:      setDeleteTarget(null);
+src/pages/BonuriConsumList.tsx-47-    },
+src/pages/BonuriConsumList.tsx-48-    onError: e => toast.error("Eroare: " + e.message),
+--
+src/pages/BonuriConsumList.tsx-128-            value={search}
+src/pages/BonuriConsumList.tsx-129-            onChange={e => {
+src/pages/BonuriConsumList.tsx:130:              setSearch(e.target.value);
+src/pages/BonuriConsumList.tsx:131:              setPage(1);
+src/pages/BonuriConsumList.tsx-132-            }}
+src/pages/BonuriConsumList.tsx-133-            placeholder="Caută nr. bon, gestiune, ID deviz..."
+--
+src/pages/BonuriConsumList.tsx-286-              value={rowsPerPage}
+src/pages/BonuriConsumList.tsx-287-              onChange={e => {
+src/pages/BonuriConsumList.tsx:288:                setRowsPerPage(Number(e.target.value));
+src/pages/BonuriConsumList.tsx:289:                setPage(1);
+src/pages/BonuriConsumList.tsx-290-              }}
+src/pages/BonuriConsumList.tsx-291-              style={{
+--
+src/pages/SuperAdmin.tsx-42-  useEffect(() => {
+src/pages/SuperAdmin.tsx-43-    if (user && user.role !== "superadmin" && user.role !== "admin") {
+src/pages/SuperAdmin.tsx:44:      setLocation("/");
+src/pages/SuperAdmin.tsx-45-    }
+src/pages/SuperAdmin.tsx-46-  }, [user, setLocation]);
+--
+src/pages/SuperAdmin.tsx-555-    onSuccess: () => {
+src/pages/SuperAdmin.tsx-556-      utils.admin.modulesWithPricing.invalidate();
+src/pages/SuperAdmin.tsx:557:      setEditingModule(null);
+src/pages/SuperAdmin.tsx:558:      setShowNewModule(false);
+src/pages/SuperAdmin.tsx-559-    },
+src/pages/SuperAdmin.tsx-560-  });
+--
+src/pages/SuperAdmin.tsx-565-    onSuccess: () => {
+src/pages/SuperAdmin.tsx-566-      utils.admin.modulesWithPricing.invalidate();
+src/pages/SuperAdmin.tsx:567:      setEditingPrice(null);
+src/pages/SuperAdmin.tsx:568:      setNewPriceFor(null);
+src/pages/SuperAdmin.tsx-569-    },
+src/pages/SuperAdmin.tsx-570-  });
+--
+src/pages/SuperAdmin.tsx-594-
+src/pages/SuperAdmin.tsx-595-  const openEditModule = (mod: any) => {
+src/pages/SuperAdmin.tsx:596:    setEditingModule(mod);
+src/pages/SuperAdmin.tsx:597:    setShowNewModule(false);
+src/pages/SuperAdmin.tsx:598:    setModForm({
+src/pages/SuperAdmin.tsx-599-      slug: mod.slug,
+src/pages/SuperAdmin.tsx-600-      name: mod.name,
+--
+src/pages/SuperAdmin.tsx-607-  };
+src/pages/SuperAdmin.tsx-608-  const openNewModule = () => {
+src/pages/SuperAdmin.tsx:609:    setEditingModule(null);
+src/pages/SuperAdmin.tsx:610:    setShowNewModule(true);
+src/pages/SuperAdmin.tsx:611:    setModForm({
+src/pages/SuperAdmin.tsx-612-      slug: "",
+src/pages/SuperAdmin.tsx-613-      name: "",
+--
+src/pages/SuperAdmin.tsx-620-  };
+src/pages/SuperAdmin.tsx-621-  const openNewPrice = (moduleId: number) => {
+src/pages/SuperAdmin.tsx:622:    setNewPriceFor(moduleId);
+src/pages/SuperAdmin.tsx:623:    setEditingPrice(null);
+src/pages/SuperAdmin.tsx:624:    setPriceForm({
+src/pages/SuperAdmin.tsx-625-      currency: "RON",
+src/pages/SuperAdmin.tsx-626-      monthlyPrice: "",
+--
+src/pages/SuperAdmin.tsx-630-  };
+src/pages/SuperAdmin.tsx-631-  const openEditPrice = (price: any) => {
+src/pages/SuperAdmin.tsx:632:    setEditingPrice(price);
+src/pages/SuperAdmin.tsx:633:    setNewPriceFor(null);
+src/pages/SuperAdmin.tsx:634:    setPriceForm({
+src/pages/SuperAdmin.tsx-635-      currency: price.currency,
+src/pages/SuperAdmin.tsx-636-      monthlyPrice: String(price.monthlyPrice),
+--
+src/pages/SuperAdmin.tsx-695-              value={modForm.description}
+src/pages/SuperAdmin.tsx-696-              onChange={e =>
+src/pages/SuperAdmin.tsx:697:                setModForm({ ...modForm, description: e.target.value })
+src/pages/SuperAdmin.tsx-698-              }
+src/pages/SuperAdmin.tsx-699-              placeholder="Descriere"
+--
+src/pages/SuperAdmin.tsx-712-                value={modForm.color}
+src/pages/SuperAdmin.tsx-713-                onChange={e =>
+src/pages/SuperAdmin.tsx:714:                  setModForm({ ...modForm, color: e.target.value })
+src/pages/SuperAdmin.tsx-715-                }
+src/pages/SuperAdmin.tsx-716-                className="w-10 h-10 rounded-lg border border-slate-200 cursor-pointer flex-shrink-0"
+--
+src/pages/SuperAdmin.tsx-719-                value={modForm.color}
+src/pages/SuperAdmin.tsx-720-                onChange={e =>
+src/pages/SuperAdmin.tsx:721:                  setModForm({ ...modForm, color: e.target.value })
+src/pages/SuperAdmin.tsx-722-                }
+src/pages/SuperAdmin.tsx-723-                placeholder="#3B82F6"
+--
+src/pages/SuperAdmin.tsx-730-                type="button"
+src/pages/SuperAdmin.tsx-731-                onClick={() =>
+src/pages/SuperAdmin.tsx:732:                  setModForm({ ...modForm, isCombo: modForm.isCombo ? 0 : 1 })
+src/pages/SuperAdmin.tsx-733-                }
+src/pages/SuperAdmin.tsx-734-                className={`w-10 h-6 rounded-full transition-colors ${modForm.isCombo ? "bg-blue-600" : "bg-slate-300"}`}
+--
+src/pages/SuperAdmin.tsx-743-              value={modForm.sortOrder}
+src/pages/SuperAdmin.tsx-744-              onChange={e =>
+src/pages/SuperAdmin.tsx:745:                setModForm({ ...modForm, sortOrder: Number(e.target.value) })
+src/pages/SuperAdmin.tsx-746-              }
+src/pages/SuperAdmin.tsx-747-              placeholder="Ordine afișare"
+--
+src/pages/SuperAdmin.tsx-759-            <button
+src/pages/SuperAdmin.tsx-760-              onClick={() => {
+src/pages/SuperAdmin.tsx:761:                setShowNewModule(false);
+src/pages/SuperAdmin.tsx:762:                setEditingModule(null);
+src/pages/SuperAdmin.tsx-763-              }}
+src/pages/SuperAdmin.tsx-764-              className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 text-slate-600 text-sm rounded-lg hover:bg-white transition-colors"
+--
+src/pages/SuperAdmin.tsx-784-                value={priceForm.currency}
+src/pages/SuperAdmin.tsx-785-                onChange={e =>
+src/pages/SuperAdmin.tsx:786:                  setPriceForm({ ...priceForm, currency: e.target.value })
+src/pages/SuperAdmin.tsx-787-                }
+src/pages/SuperAdmin.tsx-788-                className={inputCls}
+--
+src/pages/SuperAdmin.tsx-802-                value={priceForm.monthlyPrice}
+src/pages/SuperAdmin.tsx-803-                onChange={e =>
+src/pages/SuperAdmin.tsx:804:                  setPriceForm({ ...priceForm, monthlyPrice: e.target.value })
+src/pages/SuperAdmin.tsx-805-                }
+src/pages/SuperAdmin.tsx-806-                placeholder="149.00"
+--
+src/pages/SuperAdmin.tsx-817-                value={priceForm.yearlyPrice}
+src/pages/SuperAdmin.tsx-818-                onChange={e =>
+src/pages/SuperAdmin.tsx:819:                  setPriceForm({ ...priceForm, yearlyPrice: e.target.value })
+src/pages/SuperAdmin.tsx-820-                }
+src/pages/SuperAdmin.tsx-821-                placeholder="1490.00"
+--
+src/pages/SuperAdmin.tsx-831-                value={priceForm.trialDays}
+src/pages/SuperAdmin.tsx-832-                onChange={e =>
+src/pages/SuperAdmin.tsx:833:                  setPriceForm({
+src/pages/SuperAdmin.tsx-834-                    ...priceForm,
+src/pages/SuperAdmin.tsx-835-                    trialDays: Number(e.target.value),
+--
+src/pages/SuperAdmin.tsx-850-            <button
+src/pages/SuperAdmin.tsx-851-              onClick={() => {
+src/pages/SuperAdmin.tsx:852:                setEditingPrice(null);
+src/pages/SuperAdmin.tsx:853:                setNewPriceFor(null);
+src/pages/SuperAdmin.tsx-854-              }}
+src/pages/SuperAdmin.tsx-855-              className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 text-slate-600 text-sm rounded-lg hover:bg-white transition-colors"
+--
+src/pages/SuperAdmin.tsx-1059-        });
+src/pages/SuperAdmin.tsx-1060-    }
+src/pages/SuperAdmin.tsx:1061:    setSaved(true);
+src/pages/SuperAdmin.tsx:1062:    setTimeout(() => setSaved(false), 2500);
+src/pages/SuperAdmin.tsx-1063-  };
+src/pages/SuperAdmin.tsx-1064-
+--
+src/pages/SuperAdmin.tsx-1087-                    defaultValue={getValue(s.key)}
+src/pages/SuperAdmin.tsx-1088-                    onChange={e =>
+src/pages/SuperAdmin.tsx:1089:                      setForm(f => ({ ...f, [s.key]: e.target.value }))
+src/pages/SuperAdmin.tsx-1090-                    }
+src/pages/SuperAdmin.tsx-1091-                    rows={3}
+--
+src/pages/SuperAdmin.tsx-1097-                    defaultValue={getValue(s.key)}
+src/pages/SuperAdmin.tsx-1098-                    onChange={e =>
+src/pages/SuperAdmin.tsx:1099:                      setForm(f => ({ ...f, [s.key]: e.target.value }))
+src/pages/SuperAdmin.tsx-1100-                    }
+src/pages/SuperAdmin.tsx-1101-                    className={inputCls}
+--
+src/pages/Register.tsx-36-  const handleRegister = async (e: React.FormEvent) => {
+src/pages/Register.tsx-37-    e.preventDefault();
+src/pages/Register.tsx:38:    setError("");
+src/pages/Register.tsx-39-    if (password !== confirmPassword) {
+src/pages/Register.tsx:40:      setError("Parolele nu coincid.");
+src/pages/Register.tsx-41-      return;
+src/pages/Register.tsx-42-    }
+src/pages/Register.tsx-43-    if (password.length < 8) {
+src/pages/Register.tsx:44:      setError("Parola trebuie să aibă minim 8 caractere.");
+src/pages/Register.tsx-45-      return;
+src/pages/Register.tsx-46-    }
+src/pages/Register.tsx:47:    setIsLoading(true);
+src/pages/Register.tsx-48-    try {
+src/pages/Register.tsx-49-      const result = await registerMutation.mutateAsync({
+--
+src/pages/Register.tsx-54-      if (result.success) {
+src/pages/Register.tsx-55-        localStorage.setItem("authToken", result.token);
+src/pages/Register.tsx:56:        setLocation("/dashboard");
+src/pages/Register.tsx-57-      }
+src/pages/Register.tsx-58-    } catch (err) {
+src/pages/Register.tsx:59:      setError(
+src/pages/Register.tsx-60-        (err as Error).message || "Înregistrare eșuată. Încearcă din nou."
+src/pages/Register.tsx-61-      );
+src/pages/Register.tsx-62-    } finally {
+src/pages/Register.tsx:63:      setIsLoading(false);
+src/pages/Register.tsx-64-    }
+src/pages/Register.tsx-65-  };
+--
+src/pages/ReInvoicesSent.tsx-70-      toast.error("Eroare la ștergere", { description: error.message });
+src/pages/ReInvoicesSent.tsx-71-    } finally {
+src/pages/ReInvoicesSent.tsx:72:      setDeleteId(null);
+src/pages/ReInvoicesSent.tsx-73-    }
+src/pages/ReInvoicesSent.tsx-74-  };
+--
+src/pages/ReInvoicesSent.tsx-379-                  value={customFrom}
+src/pages/ReInvoicesSent.tsx-380-                  onChange={e => {
+src/pages/ReInvoicesSent.tsx:381:                    setCustomFrom(e.target.value);
+src/pages/ReInvoicesSent.tsx:382:                    setPeriod("custom");
+src/pages/ReInvoicesSent.tsx-383-                  }}
+src/pages/ReInvoicesSent.tsx-384-                  className="text-xs bg-transparent outline-none text-slate-700 dark:text-slate-300 w-24 sm:w-auto"
+--
+src/pages/ReInvoicesSent.tsx-394-                  value={customTo}
+src/pages/ReInvoicesSent.tsx-395-                  onChange={e => {
+src/pages/ReInvoicesSent.tsx:396:                    setCustomTo(e.target.value);
+src/pages/ReInvoicesSent.tsx:397:                    setPeriod("custom");
+src/pages/ReInvoicesSent.tsx-398-                  }}
+src/pages/ReInvoicesSent.tsx-399-                  className="text-xs bg-transparent outline-none text-slate-700 dark:text-slate-300 w-24 sm:w-auto"
+--
+src/pages/InvoiceArchive.tsx-120-      toast.success("Factură actualizată");
+src/pages/InvoiceArchive.tsx-121-      refetch();
+src/pages/InvoiceArchive.tsx:122:      setShowMetaModal(false);
+src/pages/InvoiceArchive.tsx-123-    },
+src/pages/InvoiceArchive.tsx-124-    onError: e => toast.error(e.message),
+--
+src/pages/InvoiceArchive.tsx-137-      const fileArray = Array.from(files);
+src/pages/InvoiceArchive.tsx-138-      if (!fileArray.length) return;
+src/pages/InvoiceArchive.tsx:139:      setUploading(true);
+src/pages/InvoiceArchive.tsx-140-      try {
+src/pages/InvoiceArchive.tsx-141-        for (const file of fileArray) {
+--
+src/pages/InvoiceArchive.tsx-168-        toast.error(e.message);
+src/pages/InvoiceArchive.tsx-169-      } finally {
+src/pages/InvoiceArchive.tsx:170:        setUploading(false);
+src/pages/InvoiceArchive.tsx-171-      }
+src/pages/InvoiceArchive.tsx-172-    },
+--
+src/pages/InvoiceArchive.tsx-177-    (e: React.DragEvent) => {
+src/pages/InvoiceArchive.tsx-178-      e.preventDefault();
+src/pages/InvoiceArchive.tsx:179:      setIsDragging(false);
+src/pages/InvoiceArchive.tsx-180-      handleFiles(e.dataTransfer.files);
+src/pages/InvoiceArchive.tsx-181-    },
+--
+src/pages/InvoiceArchive.tsx-185-  const handleDragOver = (e: React.DragEvent) => {
+src/pages/InvoiceArchive.tsx-186-    e.preventDefault();
+src/pages/InvoiceArchive.tsx:187:    setIsDragging(true);
+src/pages/InvoiceArchive.tsx-188-  };
+src/pages/InvoiceArchive.tsx-189-  const handleDragLeave = () => setIsDragging(false);
+src/pages/InvoiceArchive.tsx-190-
+src/pages/InvoiceArchive.tsx-191-  const openMetaModal = (entry: any) => {
+src/pages/InvoiceArchive.tsx:192:    setSelectedEntry(entry);
+src/pages/InvoiceArchive.tsx:193:    setMetaForm({
+src/pages/InvoiceArchive.tsx-194-      invoiceNumber: entry.invoiceNumber || "",
+src/pages/InvoiceArchive.tsx-195-      supplierName: entry.supplierName || "",
+--
+src/pages/InvoiceArchive.tsx-203-      notes: entry.notes || "",
+src/pages/InvoiceArchive.tsx-204-    });
+src/pages/InvoiceArchive.tsx:205:    setShowMetaModal(true);
+src/pages/InvoiceArchive.tsx-206-  };
+src/pages/InvoiceArchive.tsx-207-
+--
+src/pages/InvoiceArchive.tsx-317-              value={search}
+src/pages/InvoiceArchive.tsx-318-              onChange={e => {
+src/pages/InvoiceArchive.tsx:319:                setSearch(e.target.value);
+src/pages/InvoiceArchive.tsx:320:                setPage(0);
+src/pages/InvoiceArchive.tsx-321-              }}
+src/pages/InvoiceArchive.tsx-322-              className="!pl-9 h-9 text-sm border-slate-200 dark:border-slate-700 bg-transparent"
+--
+src/pages/InvoiceArchive.tsx-326-            value={filterSource}
+src/pages/InvoiceArchive.tsx-327-            onValueChange={v => {
+src/pages/InvoiceArchive.tsx:328:              setFilterSource(v);
+src/pages/InvoiceArchive.tsx:329:              setPage(0);
+src/pages/InvoiceArchive.tsx-330-            }}
+src/pages/InvoiceArchive.tsx-331-          >
+--
+src/pages/InvoiceArchive.tsx-345-            value={filterStatus}
+src/pages/InvoiceArchive.tsx-346-            onValueChange={v => {
+src/pages/InvoiceArchive.tsx:347:              setFilterStatus(v);
+src/pages/InvoiceArchive.tsx:348:              setPage(0);
+src/pages/InvoiceArchive.tsx-349-            }}
+src/pages/InvoiceArchive.tsx-350-          >
+--
+src/pages/InvoiceArchive.tsx-366-              size="sm"
+src/pages/InvoiceArchive.tsx-367-              onClick={() => {
+src/pages/InvoiceArchive.tsx:368:                setSearch("");
+src/pages/InvoiceArchive.tsx:369:                setFilterSource("all");
+src/pages/InvoiceArchive.tsx:370:                setFilterStatus("all");
+src/pages/InvoiceArchive.tsx:371:                setPage(0);
+src/pages/InvoiceArchive.tsx-372-              }}
+src/pages/InvoiceArchive.tsx-373-              className="h-9 gap-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white"
+--
+src/pages/InvoiceArchive.tsx-407-                      } catch {}
+src/pages/InvoiceArchive.tsx-408-                    }
+src/pages/InvoiceArchive.tsx:409:                    setSelectedIds(new Set());
+src/pages/InvoiceArchive.tsx-410-                    toast.success(`${ok} facturi șterse`);
+src/pages/InvoiceArchive.tsx-411-                  }}
+--
+src/pages/InvoiceArchive.tsx-439-                      onChange={e => {
+src/pages/InvoiceArchive.tsx-440-                        if (e.target.checked) {
+src/pages/InvoiceArchive.tsx:441:                          setSelectedIds(new Set(items.map((i: any) => i.id)));
+src/pages/InvoiceArchive.tsx-442-                        } else {
+src/pages/InvoiceArchive.tsx:443:                          setSelectedIds(new Set());
+src/pages/InvoiceArchive.tsx-444-                        }
+src/pages/InvoiceArchive.tsx-445-                      }}
+--
+src/pages/InvoiceArchive.tsx-538-                            if (e.target.checked) newIds.add(item.id);
+src/pages/InvoiceArchive.tsx-539-                            else newIds.delete(item.id);
+src/pages/InvoiceArchive.tsx:540:                            setSelectedIds(newIds);
+src/pages/InvoiceArchive.tsx-541-                          }}
+src/pages/InvoiceArchive.tsx-542-                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 bg-white"
+--
+src/pages/InvoiceArchive.tsx-691-                  value={metaForm.supplierName}
+src/pages/InvoiceArchive.tsx-692-                  onChange={e =>
+src/pages/InvoiceArchive.tsx:693:                    setMetaForm({ ...metaForm, supplierName: e.target.value })
+src/pages/InvoiceArchive.tsx-694-                  }
+src/pages/InvoiceArchive.tsx-695-                  placeholder="Denumire furnizor"
+--
+src/pages/InvoiceArchive.tsx-705-                  value={metaForm.supplierCUI}
+src/pages/InvoiceArchive.tsx-706-                  onChange={e =>
+src/pages/InvoiceArchive.tsx:707:                    setMetaForm({ ...metaForm, supplierCUI: e.target.value })
+src/pages/InvoiceArchive.tsx-708-                  }
+src/pages/InvoiceArchive.tsx-709-                  placeholder="RO12345678"
+--
+src/pages/InvoiceArchive.tsx-718-                  value={metaForm.invoiceNumber}
+src/pages/InvoiceArchive.tsx-719-                  onChange={e =>
+src/pages/InvoiceArchive.tsx:720:                    setMetaForm({ ...metaForm, invoiceNumber: e.target.value })
+src/pages/InvoiceArchive.tsx-721-                  }
+src/pages/InvoiceArchive.tsx-722-                  placeholder="FAC-2024-001"
+--
+src/pages/InvoiceArchive.tsx-733-                    value={metaForm.issueDate}
+src/pages/InvoiceArchive.tsx-734-                    onChange={e =>
+src/pages/InvoiceArchive.tsx:735:                      setMetaForm({ ...metaForm, issueDate: e.target.value })
+src/pages/InvoiceArchive.tsx-736-                    }
+src/pages/InvoiceArchive.tsx-737-                    className="h-9 text-sm"
+--
+src/pages/InvoiceArchive.tsx-746-                    value={metaForm.dueDate}
+src/pages/InvoiceArchive.tsx-747-                    onChange={e =>
+src/pages/InvoiceArchive.tsx:748:                      setMetaForm({ ...metaForm, dueDate: e.target.value })
+src/pages/InvoiceArchive.tsx-749-                    }
+src/pages/InvoiceArchive.tsx-750-                    className="h-9 text-sm"
+--
+src/pages/InvoiceArchive.tsx-760-                    value={metaForm.total}
+src/pages/InvoiceArchive.tsx-761-                    onChange={e =>
+src/pages/InvoiceArchive.tsx:762:                      setMetaForm({ ...metaForm, total: e.target.value })
+src/pages/InvoiceArchive.tsx-763-                    }
+src/pages/InvoiceArchive.tsx-764-                    placeholder="1250.00"
+--
+src/pages/InvoiceArchive.tsx-773-                    value={metaForm.totalVAT}
+src/pages/InvoiceArchive.tsx-774-                    onChange={e =>
+src/pages/InvoiceArchive.tsx:775:                      setMetaForm({ ...metaForm, totalVAT: e.target.value })
+src/pages/InvoiceArchive.tsx-776-                    }
+src/pages/InvoiceArchive.tsx-777-                    placeholder="237.50"
+--
+src/pages/InvoiceArchive.tsx-788-                    value={metaForm.currency}
+src/pages/InvoiceArchive.tsx-789-                    onValueChange={v =>
+src/pages/InvoiceArchive.tsx:790:                      setMetaForm({ ...metaForm, currency: v })
+src/pages/InvoiceArchive.tsx-791-                    }
+src/pages/InvoiceArchive.tsx-792-                  >
+--
+src/pages/InvoiceArchive.tsx-829-                  value={metaForm.notes}
+src/pages/InvoiceArchive.tsx-830-                  onChange={e =>
+src/pages/InvoiceArchive.tsx:831:                    setMetaForm({ ...metaForm, notes: e.target.value })
+src/pages/InvoiceArchive.tsx-832-                  }
+src/pages/InvoiceArchive.tsx-833-                  placeholder="Note interne..."
+--
+src/pages/Landing.tsx-91-
+src/pages/Landing.tsx-92-  const openTrial = (mod?: any) => {
+src/pages/Landing.tsx:93:    setSelectedPlan(mod || null);
+src/pages/Landing.tsx:94:    setShowModal(true);
+src/pages/Landing.tsx-95-  };
+src/pages/Landing.tsx-96-
+--
+src/pages/Landing.tsx-601-          onClose={() => setShowModal(false)}
+src/pages/Landing.tsx-602-          onSuccess={() => {
+src/pages/Landing.tsx:603:            setShowModal(false);
+src/pages/Landing.tsx:604:            setLocation("/register");
+src/pages/Landing.tsx-605-          }}
+src/pages/Landing.tsx-606-        />
+--
+src/pages/Landing.tsx-714-  const handleSubmit = (e: React.FormEvent) => {
+src/pages/Landing.tsx-715-    e.preventDefault();
+src/pages/Landing.tsx:716:    setError("");
+src/pages/Landing.tsx-717-    submitLead.mutate({
+src/pages/Landing.tsx-718-      ...form,
+--
+src/pages/Landing.tsx-848-  useEffect(() => {
+src/pages/Landing.tsx-849-    const timer = setInterval(() => {
+src/pages/Landing.tsx:850:      setActiveTab(prev => (prev + 1) % 3);
+src/pages/Landing.tsx-851-    }, 4000);
+src/pages/Landing.tsx-852-    return () => clearInterval(timer);
+--
+src/pages/AllInvoices.tsx-137-  const handleCardFilterClick = (type: InvoiceType, status: string) => {
+src/pages/AllInvoices.tsx-138-    if (typeFilter === type && filterStatus === status) {
+src/pages/AllInvoices.tsx:139:      setTypeFilter("all");
+src/pages/AllInvoices.tsx:140:      setFilterStatus("all");
+src/pages/AllInvoices.tsx-141-    } else {
+src/pages/AllInvoices.tsx:142:      setTypeFilter(type);
+src/pages/AllInvoices.tsx:143:      setFilterStatus(status);
+src/pages/AllInvoices.tsx:144:      setPage(1);
+src/pages/AllInvoices.tsx-145-    }
+src/pages/AllInvoices.tsx-146-  };
+--
+src/pages/AllInvoices.tsx-199-
+src/pages/AllInvoices.tsx-200-  const toggleSelect = (rowKey: string) => {
+src/pages/AllInvoices.tsx:201:    setSelectedIds(prev => {
+src/pages/AllInvoices.tsx-202-      const next = new Set(prev);
+src/pages/AllInvoices.tsx-203-      next.has(rowKey) ? next.delete(rowKey) : next.add(rowKey);
+--
+src/pages/AllInvoices.tsx-209-    const pageKeys = pageRows.map(r => `${r.type}-${r.id}`);
+src/pages/AllInvoices.tsx-210-    const allSelected = pageKeys.every(k => selectedIds.has(k));
+src/pages/AllInvoices.tsx:211:    setSelectedIds(prev => {
+src/pages/AllInvoices.tsx-212-      const next = new Set(prev);
+src/pages/AllInvoices.tsx-213-      if (allSelected) {
+--
+src/pages/AllInvoices.tsx-314-      });
+src/pages/AllInvoices.tsx-315-    }
+src/pages/AllInvoices.tsx:316:    setDeleteTarget(null);
+src/pages/AllInvoices.tsx-317-  };
+src/pages/AllInvoices.tsx-318-
+--
+src/pages/AllInvoices.tsx-843-                  } catch {}
+src/pages/AllInvoices.tsx-844-                }
+src/pages/AllInvoices.tsx:845:                setSelectedIds(new Set());
+src/pages/AllInvoices.tsx-846-                toast.success(`${ok} facturi șterse`, { id: "bulk-del" });
+src/pages/AllInvoices.tsx-847-              }}
+--
+src/pages/AllInvoices.tsx-895-              value={search}
+src/pages/AllInvoices.tsx-896-              onChange={e => {
+src/pages/AllInvoices.tsx:897:                setSearch(e.target.value);
+src/pages/AllInvoices.tsx:898:                setPage(1);
+src/pages/AllInvoices.tsx-899-              }}
+src/pages/AllInvoices.tsx-900-            />
+--
+src/pages/AllInvoices.tsx-938-              value={period}
+src/pages/AllInvoices.tsx-939-              onValueChange={val => {
+src/pages/AllInvoices.tsx:940:                setPeriod(val as any);
+src/pages/AllInvoices.tsx-941-                const range = getDateRange(val);
+src/pages/AllInvoices.tsx-942-                if (range && val !== "custom") {
+src/pages/AllInvoices.tsx:943:                  setCustomFrom(range[0]);
+src/pages/AllInvoices.tsx:944:                  setCustomTo(range[1]);
+src/pages/AllInvoices.tsx-945-                }
+src/pages/AllInvoices.tsx:946:                setPage(1);
+src/pages/AllInvoices.tsx-947-              }}
+src/pages/AllInvoices.tsx-948-            >
+--
+src/pages/AllInvoices.tsx-967-              value={customFrom}
+src/pages/AllInvoices.tsx-968-              onChange={e => {
+src/pages/AllInvoices.tsx:969:                setCustomFrom(e.target.value);
+src/pages/AllInvoices.tsx:970:                setPeriod("custom");
+src/pages/AllInvoices.tsx:971:                setPage(1);
+src/pages/AllInvoices.tsx-972-              }}
+src/pages/AllInvoices.tsx-973-              className="h-8 px-2 rounded-full border border-slate-200 dark:border-slate-600 text-xs bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 outline-none flex-shrink-0"
+--
+src/pages/AllInvoices.tsx-979-              value={customTo}
+src/pages/AllInvoices.tsx-980-              onChange={e => {
+src/pages/AllInvoices.tsx:981:                setCustomTo(e.target.value);
+src/pages/AllInvoices.tsx:982:                setPeriod("custom");
+src/pages/AllInvoices.tsx:983:                setPage(1);
+src/pages/AllInvoices.tsx-984-              }}
+src/pages/AllInvoices.tsx-985-              className="h-8 px-2 rounded-full border border-slate-200 dark:border-slate-600 text-xs bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 outline-none flex-shrink-0"
+--
+src/pages/AllInvoices.tsx-993-              value={typeFilter}
+src/pages/AllInvoices.tsx-994-              onValueChange={val => {
+src/pages/AllInvoices.tsx:995:                setTypeFilter(val as any);
+src/pages/AllInvoices.tsx:996:                setPage(1);
+src/pages/AllInvoices.tsx-997-              }}
+src/pages/AllInvoices.tsx-998-            >
+--
+src/pages/AllInvoices.tsx-1018-              value={sourceFilter}
+src/pages/AllInvoices.tsx-1019-              onValueChange={val => {
+src/pages/AllInvoices.tsx:1020:                setSourceFilter(val);
+src/pages/AllInvoices.tsx:1021:                setPage(1);
+src/pages/AllInvoices.tsx-1022-              }}
+src/pages/AllInvoices.tsx-1023-            >
+--
+src/pages/AllInvoices.tsx-1569-                value={rowsPerPage.toString()}
+src/pages/AllInvoices.tsx-1570-                onValueChange={val => {
+src/pages/AllInvoices.tsx:1571:                  setRowsPerPage(Number(val));
+src/pages/AllInvoices.tsx:1572:                  setPage(1);
+src/pages/AllInvoices.tsx-1573-                }}
+src/pages/AllInvoices.tsx-1574-              >
+--
+src/pages/kiosk/screens/ProductScreen.jsx-82-
+src/pages/kiosk/screens/ProductScreen.jsx-83-  const handleSelect = (modId, optId) =>
+src/pages/kiosk/screens/ProductScreen.jsx:84:    setSelected(s => ({ ...s, [modId]: optId }));
+src/pages/kiosk/screens/ProductScreen.jsx-85-
+src/pages/kiosk/screens/ProductScreen.jsx-86-  const handleAdd = () => {
+--
+src/pages/kiosk/screens/ProductScreen.jsx-108-    const fromRect = refElem.getBoundingClientRect();
+src/pages/kiosk/screens/ProductScreen.jsx-109-    const toRect = cartIconRef.current.getBoundingClientRect();
+src/pages/kiosk/screens/ProductScreen.jsx:110:    setFlyAnim({
+src/pages/kiosk/screens/ProductScreen.jsx-111-      img: sugProd.image,
+src/pages/kiosk/screens/ProductScreen.jsx-112-      startX: fromRect.left + fromRect.width / 2,
+--
+src/pages/kiosk/screens/ProductScreen.jsx-115-      endY: toRect.top + toRect.height / 2,
+src/pages/kiosk/screens/ProductScreen.jsx-116-    });
+src/pages/kiosk/screens/ProductScreen.jsx:117:    setTimeout(() => {
+src/pages/kiosk/screens/ProductScreen.jsx:118:      setFlyAnim(null);
+src/pages/kiosk/screens/ProductScreen.jsx-119-    }, 850);
+src/pages/kiosk/screens/ProductScreen.jsx-120-  };
+--
+src/pages/kiosk/screens/PaymentScreen.jsx-64-    let cancelled = false;
+src/pages/kiosk/screens/PaymentScreen.jsx-65-    const generateQR = async () => {
+src/pages/kiosk/screens/PaymentScreen.jsx:66:      setQrLoading(true);
+src/pages/kiosk/screens/PaymentScreen.jsx-67-      try {
+src/pages/kiosk/screens/PaymentScreen.jsx-68-        const orderId = `kiosk-qr-${Date.now()}`;
+--
+src/pages/kiosk/screens/PaymentScreen.jsx-80-          qrSocketRef.current = null;
+src/pages/kiosk/screens/PaymentScreen.jsx-81-          if (!cancelled && result.paid) {
+src/pages/kiosk/screens/PaymentScreen.jsx:82:            setTxInfo(result);
+src/pages/kiosk/screens/PaymentScreen.jsx:83:            setPayState(STATE.APPROVED);
+src/pages/kiosk/screens/PaymentScreen.jsx-84-            await sendOrder(result);
+src/pages/kiosk/screens/PaymentScreen.jsx:85:            setTimeout(() => goTo("confirmation"), 2200);
+src/pages/kiosk/screens/PaymentScreen.jsx-86-          }
+src/pages/kiosk/screens/PaymentScreen.jsx-87-        });
+--
+src/pages/kiosk/screens/PaymentScreen.jsx-144-
+src/pages/kiosk/screens/PaymentScreen.jsx-145-  const handlePay = useCallback(async () => {
+src/pages/kiosk/screens/PaymentScreen.jsx:146:    setPayState(STATE.INITIATING);
+src/pages/kiosk/screens/PaymentScreen.jsx:147:    setErrorMsg("");
+src/pages/kiosk/screens/PaymentScreen.jsx-148-    try {
+src/pages/kiosk/screens/PaymentScreen.jsx-149-      const orderId = `kiosk-${Date.now()}`;
+--
+src/pages/kiosk/screens/PaymentScreen.jsx-161-        if (lower.includes("pin")) setPayState(STATE.PIN_ENTRY);
+src/pages/kiosk/screens/PaymentScreen.jsx-162-        if (lower.includes("banc") || lower.includes("auth"))
+src/pages/kiosk/screens/PaymentScreen.jsx:163:          setPayState(STATE.AUTHORIZING);
+src/pages/kiosk/screens/PaymentScreen.jsx-164-      });
+src/pages/kiosk/screens/PaymentScreen.jsx-165-
+--
+src/pages/kiosk/screens/PaymentScreen.jsx-168-        socketRef.current = null;
+src/pages/kiosk/screens/PaymentScreen.jsx-169-        if (result.paid) {
+src/pages/kiosk/screens/PaymentScreen.jsx:170:          setTxInfo(result);
+src/pages/kiosk/screens/PaymentScreen.jsx:171:          setPayState(STATE.APPROVED);
+src/pages/kiosk/screens/PaymentScreen.jsx-172-          await sendOrder(result);
+src/pages/kiosk/screens/PaymentScreen.jsx:173:          setTimeout(() => goTo("confirmation"), 2200);
+src/pages/kiosk/screens/PaymentScreen.jsx-174-        } else {
+src/pages/kiosk/screens/PaymentScreen.jsx:175:          setPayState(STATE.DECLINED);
+src/pages/kiosk/screens/PaymentScreen.jsx:176:          setErrorMsg(result.error || "Plată refuzată de bancă");
+src/pages/kiosk/screens/PaymentScreen.jsx-177-        }
+src/pages/kiosk/screens/PaymentScreen.jsx-178-      });
+--
+src/pages/kiosk/screens/PaymentScreen.jsx-189-      });
+src/pages/kiosk/screens/PaymentScreen.jsx-190-      if (!res.ok) throw new Error(`Backend ${res.status}`);
+src/pages/kiosk/screens/PaymentScreen.jsx:191:      setPayState(STATE.WAITING_CARD);
+src/pages/kiosk/screens/PaymentScreen.jsx-192-    } catch (err) {
+src/pages/kiosk/screens/PaymentScreen.jsx:193:      setPayState(STATE.ERROR);
+src/pages/kiosk/screens/PaymentScreen.jsx:194:      setErrorMsg(err.message || "Eroare conexiune terminal");
+src/pages/kiosk/screens/PaymentScreen.jsx-195-    }
+src/pages/kiosk/screens/PaymentScreen.jsx-196-  }, [total, sendOrder, goTo]);
+--
+src/pages/kiosk/screens/PaymentScreen.jsx-207-  };
+src/pages/kiosk/screens/PaymentScreen.jsx-208-  const handleRetry = () => {
+src/pages/kiosk/screens/PaymentScreen.jsx:209:    setPayState(STATE.IDLE);
+src/pages/kiosk/screens/PaymentScreen.jsx:210:    setErrorMsg("");
+src/pages/kiosk/screens/PaymentScreen.jsx:211:    setTxInfo(null);
+src/pages/kiosk/screens/PaymentScreen.jsx-212-  };
+src/pages/kiosk/screens/PaymentScreen.jsx-213-
+--
+src/pages/kiosk/screens/WelcomeScreen.jsx-39-      };
+src/pages/kiosk/screens/WelcomeScreen.jsx-40-
+src/pages/kiosk/screens/WelcomeScreen.jsx:41:      setPoster({
+src/pages/kiosk/screens/WelcomeScreen.jsx-42-        url: locationData.posterUrl,
+src/pages/kiosk/screens/WelcomeScreen.jsx-43-        type: detectType(locationData.posterUrl),
+src/pages/kiosk/screens/WelcomeScreen.jsx-44-        showLogo: true, // Always show logo based on user requirements for now
+src/pages/kiosk/screens/WelcomeScreen.jsx-45-      });
+src/pages/kiosk/screens/WelcomeScreen.jsx:46:      setPosterVisible(true);
+src/pages/kiosk/screens/WelcomeScreen.jsx-47-    } else {
+src/pages/kiosk/screens/WelcomeScreen.jsx:48:      setPoster(null);
+src/pages/kiosk/screens/WelcomeScreen.jsx:49:      setPosterVisible(false);
+src/pages/kiosk/screens/WelcomeScreen.jsx-50-    }
+src/pages/kiosk/screens/WelcomeScreen.jsx-51-  }, [locationData]);
+--
+src/pages/kiosk/screens/WelcomeScreen.jsx-67-  // Handle tap on poster — dismiss poster and go to orderType
+src/pages/kiosk/screens/WelcomeScreen.jsx-68-  const handlePosterTap = () => {
+src/pages/kiosk/screens/WelcomeScreen.jsx:69:    setPosterVisible(false);
+src/pages/kiosk/screens/WelcomeScreen.jsx-70-    goAfterWelcome();
+src/pages/kiosk/screens/WelcomeScreen.jsx-71-  };
+--
+src/pages/kiosk/screens/PinScreen.jsx-8-  const handleKey = num => {
+src/pages/kiosk/screens/PinScreen.jsx-9-    if (pin.length < 6) {
+src/pages/kiosk/screens/PinScreen.jsx:10:      setPin(prev => prev + num);
+src/pages/kiosk/screens/PinScreen.jsx:11:      setError(false);
+src/pages/kiosk/screens/PinScreen.jsx-12-    }
+src/pages/kiosk/screens/PinScreen.jsx-13-  };
+src/pages/kiosk/screens/PinScreen.jsx-14-
+src/pages/kiosk/screens/PinScreen.jsx-15-  const handleDel = () => {
+src/pages/kiosk/screens/PinScreen.jsx:16:    setPin(prev => prev.slice(0, -1));
+src/pages/kiosk/screens/PinScreen.jsx:17:    setError(false);
+src/pages/kiosk/screens/PinScreen.jsx-18-  };
+src/pages/kiosk/screens/PinScreen.jsx-19-
+--
+src/pages/kiosk/screens/PinScreen.jsx-22-      onUnlock();
+src/pages/kiosk/screens/PinScreen.jsx-23-    } else {
+src/pages/kiosk/screens/PinScreen.jsx:24:      setError(true);
+src/pages/kiosk/screens/PinScreen.jsx:25:      setPin("");
+src/pages/kiosk/screens/PinScreen.jsx-26-    }
+src/pages/kiosk/screens/PinScreen.jsx-27-  };
+--
+src/pages/kiosk/screens/CartScreen.jsx-72-  const handleQuickAdd = prod => {
+src/pages/kiosk/screens/CartScreen.jsx-73-    addToCart(prod, 1, [], prod.price, brand?.id);
+src/pages/kiosk/screens/CartScreen.jsx:74:    setAddedIds(prev => ({ ...prev, [prod.id]: true }));
+src/pages/kiosk/screens/CartScreen.jsx:75:    setTimeout(
+src/pages/kiosk/screens/CartScreen.jsx-76-      () =>
+src/pages/kiosk/screens/CartScreen.jsx:77:        setAddedIds(prev => {
+src/pages/kiosk/screens/CartScreen.jsx-78-          const next = { ...prev };
+src/pages/kiosk/screens/CartScreen.jsx-79-          delete next[prod.id];
+--
+src/pages/kiosk/screens/CartScreen.jsx-190-                          alt={item.name}
+src/pages/kiosk/screens/CartScreen.jsx-191-                          onError={() =>
+src/pages/kiosk/screens/CartScreen.jsx:192:                            setImgErrors(e => ({ ...e, [item.id]: true }))
+src/pages/kiosk/screens/CartScreen.jsx-193-                          }
+src/pages/kiosk/screens/CartScreen.jsx-194-                        />
+--
+src/pages/kiosk/screens/CartScreen.jsx-379-                        !hasPlayedPromo
+src/pages/kiosk/screens/CartScreen.jsx-380-                      ) {
+src/pages/kiosk/screens/CartScreen.jsx:381:                        setPromoIntendedRoute("payment");
+src/pages/kiosk/screens/CartScreen.jsx:382:                        setShowWheel(true);
+src/pages/kiosk/screens/CartScreen.jsx-383-                        return;
+src/pages/kiosk/screens/CartScreen.jsx-384-                      }
+--
+src/pages/kiosk/screens/MenuScreen.jsx-85-        const btnRect = btnEl.getBoundingClientRect();
+src/pages/kiosk/screens/MenuScreen.jsx-86-        const cartRect = cartBarRef.current.getBoundingClientRect();
+src/pages/kiosk/screens/MenuScreen.jsx:87:        setFlyAnim({
+src/pages/kiosk/screens/MenuScreen.jsx-88-          id: Date.now(),
+src/pages/kiosk/screens/MenuScreen.jsx-89-          img: product.image,
+--
+src/pages/kiosk/screens/MenuScreen.jsx-93-          endY: cartRect.top,
+src/pages/kiosk/screens/MenuScreen.jsx-94-        });
+src/pages/kiosk/screens/MenuScreen.jsx:95:        setTimeout(() => setFlyAnim(null), 850);
+src/pages/kiosk/screens/MenuScreen.jsx-96-      }
+src/pages/kiosk/screens/MenuScreen.jsx-97-    },
+--
+src/pages/kiosk/screens/MenuScreen.jsx-124-    if (addedCount > 0 && cartBarRef.current) {
+src/pages/kiosk/screens/MenuScreen.jsx-125-      const cartRect = cartBarRef.current.getBoundingClientRect();
+src/pages/kiosk/screens/MenuScreen.jsx:126:      setFlyAnim({
+src/pages/kiosk/screens/MenuScreen.jsx-127-        id: Date.now(),
+src/pages/kiosk/screens/MenuScreen.jsx-128-        img: toRemove[0]?.image,
+--
+src/pages/kiosk/screens/MenuScreen.jsx-132-        endY: cartRect.top,
+src/pages/kiosk/screens/MenuScreen.jsx-133-      });
+src/pages/kiosk/screens/MenuScreen.jsx:134:      setTimeout(() => setFlyAnim(null), 850);
+src/pages/kiosk/screens/MenuScreen.jsx-135-    }
+src/pages/kiosk/screens/MenuScreen.jsx-136-
+--
+src/pages/kiosk/screens/MenuScreen.jsx-156-      .then(loc => {
+src/pages/kiosk/screens/MenuScreen.jsx-157-        if (loc.brands && loc.brands.length > 0) {
+src/pages/kiosk/screens/MenuScreen.jsx:158:          setLocationBrands(loc.brands);
+src/pages/kiosk/screens/MenuScreen.jsx:159:          setLocationOrgIds(loc.orgIds || {});
+src/pages/kiosk/screens/MenuScreen.jsx-160-          // Keep active brand if it's in the list, otherwise pick first
+src/pages/kiosk/screens/MenuScreen.jsx-161-          if (!loc.brands.includes(activeBrandId)) {
+src/pages/kiosk/screens/MenuScreen.jsx:162:            setActiveBrandId(loc.brands[0]);
+src/pages/kiosk/screens/MenuScreen.jsx-163-          }
+src/pages/kiosk/screens/MenuScreen.jsx-164-        }
+--
+src/pages/kiosk/screens/MenuScreen.jsx-170-  useEffect(() => {
+src/pages/kiosk/screens/MenuScreen.jsx-171-    if (serverCategories && serverProducts) {
+src/pages/kiosk/screens/MenuScreen.jsx:172:      setCategories(serverCategories);
+src/pages/kiosk/screens/MenuScreen.jsx-173-
+src/pages/kiosk/screens/MenuScreen.jsx-174-      const prods = serverProducts.map(p => ({
+--
+src/pages/kiosk/screens/MenuScreen.jsx-184-      }));
+src/pages/kiosk/screens/MenuScreen.jsx-185-
+src/pages/kiosk/screens/MenuScreen.jsx:186:      setProducts(prods);
+src/pages/kiosk/screens/MenuScreen.jsx:187:      setMenuProducts(prods);
+src/pages/kiosk/screens/MenuScreen.jsx-188-
+src/pages/kiosk/screens/MenuScreen.jsx-189-      const pickDefault = (cats, prods) => {
+--
+src/pages/kiosk/screens/MenuScreen.jsx-195-
+src/pages/kiosk/screens/MenuScreen.jsx-196-      if (!activeCategory) {
+src/pages/kiosk/screens/MenuScreen.jsx:197:        setActiveCategory(pickDefault(serverCategories, prods));
+src/pages/kiosk/screens/MenuScreen.jsx-198-      }
+src/pages/kiosk/screens/MenuScreen.jsx:199:      setLoading(false);
+src/pages/kiosk/screens/MenuScreen.jsx-200-    } else {
+src/pages/kiosk/screens/MenuScreen.jsx:201:      setLoading(catLoading || prodLoading);
+src/pages/kiosk/screens/MenuScreen.jsx-202-    }
+src/pages/kiosk/screens/MenuScreen.jsx-203-  }, [
+--
+src/pages/kiosk/screens/MenuScreen.jsx-231-
+src/pages/kiosk/screens/MenuScreen.jsx-232-      if (validCat) {
+src/pages/kiosk/screens/MenuScreen.jsx:233:        setActiveCategory(validCat.id);
+src/pages/kiosk/screens/MenuScreen.jsx-234-      } else if (locationBrands.length > 1) {
+src/pages/kiosk/screens/MenuScreen.jsx-235-        const alternateBrand = locationBrands.find(
+--
+src/pages/kiosk/screens/MenuScreen.jsx-243-        );
+src/pages/kiosk/screens/MenuScreen.jsx-244-        if (alternateBrand) {
+src/pages/kiosk/screens/MenuScreen.jsx:245:          setActiveBrandId(alternateBrand);
+src/pages/kiosk/screens/MenuScreen.jsx-246-        }
+src/pages/kiosk/screens/MenuScreen.jsx-247-      }
+--
+src/pages/kiosk/screens/MenuScreen.jsx-331-      );
+src/pages/kiosk/screens/MenuScreen.jsx-332-      if (hasRequiredModifiers) {
+src/pages/kiosk/screens/MenuScreen.jsx:333:        setModifierModalProduct(product);
+src/pages/kiosk/screens/MenuScreen.jsx-334-        return;
+src/pages/kiosk/screens/MenuScreen.jsx-335-      }
+--
+src/pages/kiosk/screens/MenuScreen.jsx-342-        const cardRect = cardEl.getBoundingClientRect();
+src/pages/kiosk/screens/MenuScreen.jsx-343-        const cartRect = cartBarRef.current.getBoundingClientRect();
+src/pages/kiosk/screens/MenuScreen.jsx:344:        setFlyAnim({
+src/pages/kiosk/screens/MenuScreen.jsx-345-          id: Date.now(),
+src/pages/kiosk/screens/MenuScreen.jsx-346-          img: product.image,
+--
+src/pages/kiosk/screens/MenuScreen.jsx-350-          endY: cartRect.top,
+src/pages/kiosk/screens/MenuScreen.jsx-351-        });
+src/pages/kiosk/screens/MenuScreen.jsx:352:        setTimeout(() => setFlyAnim(null), 850);
+src/pages/kiosk/screens/MenuScreen.jsx-353-      }
+src/pages/kiosk/screens/MenuScreen.jsx-354-    },
+--
+src/pages/kiosk/screens/MenuScreen.jsx-430-            <button
+src/pages/kiosk/screens/MenuScreen.jsx-431-              onClick={() =>
+src/pages/kiosk/screens/MenuScreen.jsx:432:                setActiveDiet(activeDiet === "spicy" ? null : "spicy")
+src/pages/kiosk/screens/MenuScreen.jsx-433-              }
+src/pages/kiosk/screens/MenuScreen.jsx-434-              style={{
+--
+src/pages/kiosk/screens/MenuScreen.jsx-505-                }}
+src/pages/kiosk/screens/MenuScreen.jsx-506-                onClick={() => {
+src/pages/kiosk/screens/MenuScreen.jsx:507:                  setActiveBrandId(bId);
+src/pages/kiosk/screens/MenuScreen.jsx:508:                  setSearch("");
+src/pages/kiosk/screens/MenuScreen.jsx-509-                  import("../config/brands.js").then(m =>
+src/pages/kiosk/screens/MenuScreen.jsx-510-                    m.applyBrandTheme(bId)
+--
+src/pages/kiosk/screens/MenuScreen.jsx-652-                className={`cat-btn ${activeCategory === cat.id ? "cat-btn--active" : ""}`}
+src/pages/kiosk/screens/MenuScreen.jsx-653-                onClick={() => {
+src/pages/kiosk/screens/MenuScreen.jsx:654:                  setActiveCategory(cat.id);
+src/pages/kiosk/screens/MenuScreen.jsx:655:                  setSearch("");
+src/pages/kiosk/screens/MenuScreen.jsx-656-                }}
+src/pages/kiosk/screens/MenuScreen.jsx-657-              >
+--
+src/pages/kiosk/screens/MenuScreen.jsx-796-            if (cartBarRef.current) {
+src/pages/kiosk/screens/MenuScreen.jsx-797-              const cartRect = cartBarRef.current.getBoundingClientRect();
+src/pages/kiosk/screens/MenuScreen.jsx:798:              setFlyAnim({
+src/pages/kiosk/screens/MenuScreen.jsx-799-                id: Date.now(),
+src/pages/kiosk/screens/MenuScreen.jsx-800-                img: product.image,
+--
+src/pages/kiosk/screens/MenuScreen.jsx-804-                endY: cartRect.top,
+src/pages/kiosk/screens/MenuScreen.jsx-805-              });
+src/pages/kiosk/screens/MenuScreen.jsx:806:              setTimeout(() => setFlyAnim(null), 850);
+src/pages/kiosk/screens/MenuScreen.jsx-807-            }
+src/pages/kiosk/screens/MenuScreen.jsx:808:            setModifierModalProduct(null);
+src/pages/kiosk/screens/MenuScreen.jsx-809-          }}
+src/pages/kiosk/screens/MenuScreen.jsx-810-          onClose={() => setModifierModalProduct(null)}
+--
+src/pages/kiosk/screens/ConfirmationScreen.jsx-20-    // Dacă am câștigat ceva, oferim mult mai mult timp (ex 60s) ca să apuce să arate casierului.
+src/pages/kiosk/screens/ConfirmationScreen.jsx-21-    if (wonPrize && countdown < 45) {
+src/pages/kiosk/screens/ConfirmationScreen.jsx:22:      setCountdown(45);
+src/pages/kiosk/screens/ConfirmationScreen.jsx-23-    }
+src/pages/kiosk/screens/ConfirmationScreen.jsx-24-  }, [wonPrize]);
+--
+src/pages/kiosk/screens/ConfirmationScreen.jsx-27-    const timer = setInterval(
+src/pages/kiosk/screens/ConfirmationScreen.jsx-28-      () =>
+src/pages/kiosk/screens/ConfirmationScreen.jsx:29:        setCountdown(c => {
+src/pages/kiosk/screens/ConfirmationScreen.jsx-30-          if (c <= 1) {
+src/pages/kiosk/screens/ConfirmationScreen.jsx-31-            clearInterval(timer);
+--
+src/pages/kiosk/screens/ConfirmationScreen.jsx-71-
+src/pages/kiosk/screens/ConfirmationScreen.jsx-72-            if (total >= minVal && isRightFreq) {
+src/pages/kiosk/screens/ConfirmationScreen.jsx:73:              setShowWheel(true);
+src/pages/kiosk/screens/ConfirmationScreen.jsx-74-            }
+src/pages/kiosk/screens/ConfirmationScreen.jsx-75-          }
+--
+src/pages/kiosk/screens/BrandSelectScreen.jsx-54-
+src/pages/kiosk/screens/BrandSelectScreen.jsx-55-  const selectBrand = brandId => {
+src/pages/kiosk/screens/BrandSelectScreen.jsx:56:    setActiveBrandId(brandId);
+src/pages/kiosk/screens/BrandSelectScreen.jsx-57-    goTo("orderType");
+src/pages/kiosk/screens/BrandSelectScreen.jsx-58-  };
+--
+src/pages/kiosk/components/ModifierModal.jsx-29-  const [visible, setVisible] = useState(false);
+src/pages/kiosk/components/ModifierModal.jsx-30-  useEffect(() => {
+src/pages/kiosk/components/ModifierModal.jsx:31:    setTimeout(() => setVisible(true), 10);
+src/pages/kiosk/components/ModifierModal.jsx-32-  }, []);
+src/pages/kiosk/components/ModifierModal.jsx-33-
+src/pages/kiosk/components/ModifierModal.jsx-34-  const handleClose = () => {
+src/pages/kiosk/components/ModifierModal.jsx:35:    setVisible(false);
+src/pages/kiosk/components/ModifierModal.jsx:36:    setTimeout(onClose, 350);
+src/pages/kiosk/components/ModifierModal.jsx-37-  };
+src/pages/kiosk/components/ModifierModal.jsx-38-
+src/pages/kiosk/components/ModifierModal.jsx-39-  const handleSelect = (groupId, optionId) => {
+src/pages/kiosk/components/ModifierModal.jsx:40:    setSelected(prev => ({ ...prev, [groupId]: optionId }));
+src/pages/kiosk/components/ModifierModal.jsx-41-  };
+src/pages/kiosk/components/ModifierModal.jsx-42-
+--
+src/pages/kiosk/components/ModifierModal.jsx-69-
+src/pages/kiosk/components/ModifierModal.jsx-70-    onConfirm(product, 1, selectedModifiers, totalPrice, activeBrandId);
+src/pages/kiosk/components/ModifierModal.jsx:71:    setVisible(false);
+src/pages/kiosk/components/ModifierModal.jsx:72:    setTimeout(onClose, 350);
+src/pages/kiosk/components/ModifierModal.jsx-73-  };
+src/pages/kiosk/components/ModifierModal.jsx-74-
+--
+src/pages/kiosk/components/FortuneWheel.jsx-74-  const spin = () => {
+src/pages/kiosk/components/FortuneWheel.jsx-75-    if (isSpinning) return;
+src/pages/kiosk/components/FortuneWheel.jsx:76:    setIsSpinning(true);
+src/pages/kiosk/components/FortuneWheel.jsx:77:    setHasPlayedPromo(true);
+src/pages/kiosk/components/FortuneWheel.jsx:78:    setWinningSlice(null);
+src/pages/kiosk/components/FortuneWheel.jsx:79:    setShowWinModal(false);
+src/pages/kiosk/components/FortuneWheel.jsx-80-
+src/pages/kiosk/components/FortuneWheel.jsx-81-    const rand = Math.random() * 100;
+--
+src/pages/kiosk/components/FortuneWheel.jsx-103-      (360 - selectedIndex * ANGLE_PER_SLICE) +
+src/pages/kiosk/components/FortuneWheel.jsx-104-      randomOffset;
+src/pages/kiosk/components/FortuneWheel.jsx:105:    setWheelRotation(newRot);
+src/pages/kiosk/components/FortuneWheel.jsx-106-
+src/pages/kiosk/components/FortuneWheel.jsx:107:    setTimeout(() => {
+src/pages/kiosk/components/FortuneWheel.jsx:108:      setIsSpinning(false);
+src/pages/kiosk/components/FortuneWheel.jsx:109:      setWinningSlice(winner);
+src/pages/kiosk/components/FortuneWheel.jsx:110:      setTimeout(() => setShowWinModal(true), 600);
+src/pages/kiosk/components/FortuneWheel.jsx-111-    }, 5500);
+src/pages/kiosk/components/FortuneWheel.jsx-112-  };
+--
+src/pages/kiosk/components/ProductCard.jsx-30-    if (cartQty === 0) {
+src/pages/kiosk/components/ProductCard.jsx-31-      onQuickAdd(product, cardRef.current);
+src/pages/kiosk/components/ProductCard.jsx:32:      setJustAdded(true);
+src/pages/kiosk/components/ProductCard.jsx:33:      setTimeout(() => setJustAdded(false), 600);
+src/pages/kiosk/components/ProductCard.jsx-34-    } else {
+src/pages/kiosk/components/ProductCard.jsx-35-      updateCartItem(cartEntry.id, cartQty + 1);
+--
+src/pages/kiosk/App.jsx-96-        };
+src/pages/kiosk/App.jsx-97-
+src/pages/kiosk/App.jsx:98:        setLocationData(loc);
+src/pages/kiosk/App.jsx-99-
+src/pages/kiosk/App.jsx-100-        if (promo && promo.prizes) {
+src/pages/kiosk/App.jsx:101:          setPromoData(promo);
+src/pages/kiosk/App.jsx-102-        }
+src/pages/kiosk/App.jsx-103-
+--
+src/pages/kiosk/App.jsx-112-        // Set active brand
+src/pages/kiosk/App.jsx-113-        if (brands && brands.length > 0) {
+src/pages/kiosk/App.jsx:114:          setActiveBrandId(brands[0]);
+src/pages/kiosk/App.jsx-115-          const { applyBrandTheme } = require("./config/brands.js");
+src/pages/kiosk/App.jsx-116-          applyBrandTheme(brands[0]);
+--
+src/pages/kiosk/App.jsx-125-        console.error("Eroare la parsarea setărilor kiosk", e);
+src/pages/kiosk/App.jsx-126-      }
+src/pages/kiosk/App.jsx:127:      setLoading(false);
+src/pages/kiosk/App.jsx-128-    } else if (!settingsLoading) {
+src/pages/kiosk/App.jsx:129:      setLoading(false);
+src/pages/kiosk/App.jsx-130-    }
+src/pages/kiosk/App.jsx-131-  }, [kioskSettings, setLocationData]);
+--
+src/pages/kiosk/App.jsx-192-    socket.on("location_updated", newData => {
+src/pages/kiosk/App.jsx-193-      console.log("[Kiosk] Live config update received from Admin Panel.");
+src/pages/kiosk/App.jsx:194:      setLocationData(newData);
+src/pages/kiosk/App.jsx-195-    });
+src/pages/kiosk/App.jsx-196-
+--
+src/pages/kiosk/App.jsx-295-            "true"
+src/pages/kiosk/App.jsx-296-          );
+src/pages/kiosk/App.jsx:297:          setIsLocked(false);
+src/pages/kiosk/App.jsx-298-        }}
+src/pages/kiosk/App.jsx-299-      />
+--
+src/pages/kiosk/App.jsx-545-              config={promoData}
+src/pages/kiosk/App.jsx-546-              onClose={() => {
+src/pages/kiosk/App.jsx:547:                setShowWheel(false);
+src/pages/kiosk/App.jsx-548-                if (useKioskStore.getState().promoIntendedRoute === "payment") {
+src/pages/kiosk/App.jsx-549-                  useKioskStore.getState().setPromoIntendedRoute(null);
+--
+src/pages/kiosk/App.jsx-566-                  );
+src/pages/kiosk/App.jsx-567-                }
+src/pages/kiosk/App.jsx:568:                setTimeout(() => {
+src/pages/kiosk/App.jsx:569:                  setShowWheel(false);
+src/pages/kiosk/App.jsx-570-                  if (
+src/pages/kiosk/App.jsx-571-                    useKioskStore.getState().promoIntendedRoute === "payment"
+--
+src/pages/EmittedInvoices.tsx-80-      toast.success("Factura ștearsă");
+src/pages/EmittedInvoices.tsx-81-      refetch();
+src/pages/EmittedInvoices.tsx:82:      setDeleteId(null);
+src/pages/EmittedInvoices.tsx-83-    },
+src/pages/EmittedInvoices.tsx-84-    onError: e => {
+src/pages/EmittedInvoices.tsx-85-      toast.error("Eroare: " + e.message);
+src/pages/EmittedInvoices.tsx:86:      setDeleteId(null);
+src/pages/EmittedInvoices.tsx-87-    },
+src/pages/EmittedInvoices.tsx-88-  });
+--
+src/pages/EmittedInvoices.tsx-196-                key={f.id}
+src/pages/EmittedInvoices.tsx-197-                onClick={() => {
+src/pages/EmittedInvoices.tsx:198:                  setStatusFilter(f.id);
+src/pages/EmittedInvoices.tsx:199:                  setPage(1);
+src/pages/EmittedInvoices.tsx-200-                }}
+src/pages/EmittedInvoices.tsx-201-                className={`flex items-center gap-1 px-3 h-7 rounded-lg text-xs font-semibold border transition-all ${
+--
+src/pages/EmittedInvoices.tsx-218-              value={search}
+src/pages/EmittedInvoices.tsx-219-              onChange={e => {
+src/pages/EmittedInvoices.tsx:220:                setSearch(e.target.value);
+src/pages/EmittedInvoices.tsx:221:                setPage(1);
+src/pages/EmittedInvoices.tsx-222-              }}
+src/pages/EmittedInvoices.tsx-223-              className="w-full h-8 !pl-10 pr-10 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-full text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+--
+src/pages/EmittedInvoices.tsx-346-                        <button
+src/pages/EmittedInvoices.tsx-347-                          onClick={() =>
+src/pages/EmittedInvoices.tsx:348:                            setStornoTarget({
+src/pages/EmittedInvoices.tsx-349-                              id: row.id,
+src/pages/EmittedInvoices.tsx-350-                              number:
+--
+src/pages/EmittedInvoices.tsx-413-                value={rowsPerPage.toString()}
+src/pages/EmittedInvoices.tsx-414-                onValueChange={val => {
+src/pages/EmittedInvoices.tsx:415:                  setRowsPerPage(Number(val));
+src/pages/EmittedInvoices.tsx:416:                  setPage(1);
+src/pages/EmittedInvoices.tsx-417-                }}
+src/pages/EmittedInvoices.tsx-418-              >
+--
+src/pages/EmittedInvoices.tsx-503-                if (stornoTarget) {
+src/pages/EmittedInvoices.tsx-504-                  navigate(`/facturi-emise-nou/storno/${stornoTarget.id}`);
+src/pages/EmittedInvoices.tsx:505:                  setStornoTarget(null);
+src/pages/EmittedInvoices.tsx-506-                }
+src/pages/EmittedInvoices.tsx-507-              }}
+--
+src/pages/NIRCreate.tsx-115-    onSuccess: () => {
+src/pages/NIRCreate.tsx-116-      toast.success("NIR finalizat!");
+src/pages/NIRCreate.tsx:117:      setStatus("finalizat");
+src/pages/NIRCreate.tsx-118-      utils.nir.list.invalidate();
+src/pages/NIRCreate.tsx-119-      utils.nir.getById.invalidate({ id: nirId! });
+--
+src/pages/NIRCreate.tsx-125-  useEffect(() => {
+src/pages/NIRCreate.tsx-126-    if (!isEdit) {
+src/pages/NIRCreate.tsx:127:      setLoaded(false);
+src/pages/NIRCreate.tsx:128:      setLines([]);
+src/pages/NIRCreate.tsx:129:      setSupplierName("");
+src/pages/NIRCreate.tsx:130:      setSupplierCUI("");
+src/pages/NIRCreate.tsx:131:      setSupplierAddress("");
+src/pages/NIRCreate.tsx:132:      setInvoiceNumber("");
+src/pages/NIRCreate.tsx:133:      setAvizNumber("");
+src/pages/NIRCreate.tsx-134-    }
+src/pages/NIRCreate.tsx-135-  }, [sourceInvoiceId, isEdit]);
+--
+src/pages/NIRCreate.tsx-143-  useEffect(() => {
+src/pages/NIRCreate.tsx-144-    if (isEdit && existingNir && !loaded) {
+src/pages/NIRCreate.tsx:145:      setNirNumber(existingNir.nirNumber);
+src/pages/NIRCreate.tsx:146:      setReceiptDate(existingNir.receiptDate);
+src/pages/NIRCreate.tsx:147:      setAvizNumber(existingNir.avizNumber || "");
+src/pages/NIRCreate.tsx:148:      setGestiune(existingNir.gestiune || "");
+src/pages/NIRCreate.tsx:149:      setSupplierName(existingNir.supplierName || "");
+src/pages/NIRCreate.tsx:150:      setSupplierCUI(existingNir.supplierCUI || "");
+src/pages/NIRCreate.tsx:151:      setSupplierAddress(existingNir.supplierAddress || "");
+src/pages/NIRCreate.tsx:152:      setInvoiceNumber(existingNir.invoiceNumber || "");
+src/pages/NIRCreate.tsx-153-      setMember1Name(existingNir.member1Name || "");
+src/pages/NIRCreate.tsx-154-      setMember1Function(existingNir.member1Function || "Gestionar");
+--
+src/pages/NIRCreate.tsx-157-      setMember3Name(existingNir.member3Name || "");
+src/pages/NIRCreate.tsx-158-      setMember3Function(existingNir.member3Function || "Sef depozit");
+src/pages/NIRCreate.tsx:159:      setDifferenceNotes(existingNir.differenceNotes || "");
+src/pages/NIRCreate.tsx:160:      setNotes(existingNir.notes || "");
+src/pages/NIRCreate.tsx:161:      setStatus((existingNir.status as any) || "draft");
+src/pages/NIRCreate.tsx:162:      setLines(
+src/pages/NIRCreate.tsx-163-        (existingNir.lines || []).map((l: any) => ({
+src/pages/NIRCreate.tsx-164-          id: l.id,
+--
+src/pages/NIRCreate.tsx-173-        }))
+src/pages/NIRCreate.tsx-174-      );
+src/pages/NIRCreate.tsx:175:      setLoaded(true);
+src/pages/NIRCreate.tsx-176-    }
+src/pages/NIRCreate.tsx-177-  }, [existingNir, isEdit, loaded]);
+--
+src/pages/NIRCreate.tsx-180-  useEffect(() => {
+src/pages/NIRCreate.tsx-181-    if (!isEdit && sourceInvoice && !loaded && archiveLinesFetched) {
+src/pages/NIRCreate.tsx:182:      setSupplierName(sourceInvoice.supplierName || "");
+src/pages/NIRCreate.tsx:183:      setSupplierCUI(sourceInvoice.supplierCUI || "");
+src/pages/NIRCreate.tsx:184:      setInvoiceNumber(sourceInvoice.invoiceNumber || "");
+src/pages/NIRCreate.tsx-185-      const archLns = archiveLines as any[];
+src/pages/NIRCreate.tsx-186-      if (archLns.length > 0) {
+src/pages/NIRCreate.tsx:187:        setLines(
+src/pages/NIRCreate.tsx-188-          archLns.map((l: any) => ({
+src/pages/NIRCreate.tsx-189-            description: l.description || "",
+--
+src/pages/NIRCreate.tsx-198-        );
+src/pages/NIRCreate.tsx-199-      } else {
+src/pages/NIRCreate.tsx:200:        setLines([
+src/pages/NIRCreate.tsx-201-          {
+src/pages/NIRCreate.tsx-202-            description: `Marfă conform factură ${sourceInvoice.invoiceNumber || ""}`,
+--
+src/pages/NIRCreate.tsx-211-        ]);
+src/pages/NIRCreate.tsx-212-      }
+src/pages/NIRCreate.tsx:213:      setLoaded(true);
+src/pages/NIRCreate.tsx-214-    }
+src/pages/NIRCreate.tsx-215-  }, [sourceInvoice, archiveLines, archiveLinesFetched, isEdit, loaded]);
+src/pages/NIRCreate.tsx-216-
+src/pages/NIRCreate.tsx-217-  const addLine = () =>
+src/pages/NIRCreate.tsx:218:    setLines(prev => [
+src/pages/NIRCreate.tsx-219-      ...prev,
+src/pages/NIRCreate.tsx-220-      {
+--
+src/pages/NIRCreate.tsx-231-
+src/pages/NIRCreate.tsx-232-  const removeLine = (idx: number) =>
+src/pages/NIRCreate.tsx:233:    setLines(prev => prev.filter((_, i) => i !== idx));
+src/pages/NIRCreate.tsx-234-
+src/pages/NIRCreate.tsx-235-  const updateLine = (idx: number, field: keyof NirLineForm, value: string) => {
+src/pages/NIRCreate.tsx:236:    setLines(prev => {
+src/pages/NIRCreate.tsx-237-      const updated = [...prev];
+src/pages/NIRCreate.tsx-238-      updated[idx] = { ...updated[idx], [field]: value };
+--
+src/pages/Clients.tsx-43-    onSuccess: () => {
+src/pages/Clients.tsx-44-      refetch();
+src/pages/Clients.tsx:45:      setFormData({
+src/pages/Clients.tsx-46-        name: "",
+src/pages/Clients.tsx-47-        cui: "",
+--
+src/pages/Clients.tsx-55-        tva: false,
+src/pages/Clients.tsx-56-      });
+src/pages/Clients.tsx:57:      setShowForm(false);
+src/pages/Clients.tsx-58-    },
+src/pages/Clients.tsx-59-  });
+--
+src/pages/Clients.tsx-63-    onSuccess: () => {
+src/pages/Clients.tsx-64-      refetch();
+src/pages/Clients.tsx:65:      setFormData({
+src/pages/Clients.tsx-66-        name: "",
+src/pages/Clients.tsx-67-        cui: "",
+--
+src/pages/Clients.tsx-75-        tva: false,
+src/pages/Clients.tsx-76-      });
+src/pages/Clients.tsx:77:      setEditingId(null);
+src/pages/Clients.tsx:78:      setShowForm(false);
+src/pages/Clients.tsx-79-    },
+src/pages/Clients.tsx-80-  });
+--
+src/pages/Clients.tsx-99-
+src/pages/Clients.tsx-100-  const handleEdit = (client: any) => {
+src/pages/Clients.tsx:101:    setFormData({
+src/pages/Clients.tsx-102-      name: client.name,
+src/pages/Clients.tsx-103-      cui: client.cui || "",
+--
+src/pages/Clients.tsx-111-      tva: client.tva ?? false,
+src/pages/Clients.tsx-112-    });
+src/pages/Clients.tsx:113:    setEditingId(client.id);
+src/pages/Clients.tsx:114:    setShowForm(true);
+src/pages/Clients.tsx-115-  };
+src/pages/Clients.tsx-116-
+--
+src/pages/Clients.tsx-210-            <button
+src/pages/Clients.tsx-211-              onClick={() => {
+src/pages/Clients.tsx:212:                setEditingId(null);
+src/pages/Clients.tsx:213:                setFormData({
+src/pages/Clients.tsx-214-                  name: "",
+src/pages/Clients.tsx-215-                  cui: "",
+--
+src/pages/Clients.tsx-223-                  tva: false,
+src/pages/Clients.tsx-224-                });
+src/pages/Clients.tsx:225:                setShowForm(true);
+src/pages/Clients.tsx-226-              }}
+src/pages/Clients.tsx-227-              className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors shadow-sm"
+--
+src/pages/Clients.tsx-294-          }}
+src/pages/Clients.tsx-295-          onCancel={() => {
+src/pages/Clients.tsx:296:            setShowForm(false);
+src/pages/Clients.tsx:297:            setEditingId(null);
+src/pages/Clients.tsx-298-          }}
+src/pages/Clients.tsx-299-          isPending={createMutation.isPending || updateMutation.isPending}
+--
+src/pages/Clients.tsx-373-
+src/pages/Clients.tsx-374-  const set = (k: keyof ClientFormData, v: string) =>
+src/pages/Clients.tsx:375:    setData(p => ({ ...p, [k]: v }));
+src/pages/Clients.tsx-376-
+src/pages/Clients.tsx-377-  const lookupCui = async () => {
+src/pages/Clients.tsx-378-    const cui = data.cui.replace(/^RO/i, "").replace(/\s/g, "");
+src/pages/Clients.tsx-379-    if (!cui || cui.length < 2) return;
+src/pages/Clients.tsx:380:    setCuiLoading(true);
+src/pages/Clients.tsx:381:    setCuiError("");
+src/pages/Clients.tsx:382:    setCuiFilled(false);
+src/pages/Clients.tsx-383-    try {
+src/pages/Clients.tsx-384-      const res = await fetch(`/api/anaf/${cui}`);
+src/pages/Clients.tsx-385-      if (!res.ok) {
+src/pages/Clients.tsx-386-        const err = await res.json().catch(() => ({}));
+src/pages/Clients.tsx:387:        setCuiError(err.error || "CUI negăsit în ANAF.");
+src/pages/Clients.tsx-388-        return;
+src/pages/Clients.tsx-389-      }
+src/pages/Clients.tsx-390-      const d = await res.json();
+src/pages/Clients.tsx:391:      setData(prev => ({
+src/pages/Clients.tsx-392-        ...prev,
+src/pages/Clients.tsx-393-        name: d.denumire || prev.name,
+--
+src/pages/Clients.tsx-398-        tva: d.tva ?? prev.tva,
+src/pages/Clients.tsx-399-      }));
+src/pages/Clients.tsx:400:      setCuiFilled(true);
+src/pages/Clients.tsx-401-    } catch {
+src/pages/Clients.tsx:402:      setCuiError("Eroare conexiune la ANAF.");
+src/pages/Clients.tsx-403-    } finally {
+src/pages/Clients.tsx:404:      setCuiLoading(false);
+src/pages/Clients.tsx-405-    }
+src/pages/Clients.tsx-406-  };
+--
+src/pages/Clients.tsx-428-              onChange={e => {
+src/pages/Clients.tsx-429-                set("cui", e.target.value);
+src/pages/Clients.tsx:430:                setCuiError("");
+src/pages/Clients.tsx:431:                setCuiFilled(false);
+src/pages/Clients.tsx-432-              }}
+src/pages/Clients.tsx-433-              onKeyDown={e =>
+--
+src/pages/Integrations.tsx-77-    if (step === "provider") {
+src/pages/Integrations.tsx-78-      if (trimmed.includes("oblio")) {
+src/pages/Integrations.tsx:79:        setSelectedProvider("oblio");
+src/pages/Integrations.tsx:80:        setStep("oblio_email");
+src/pages/Integrations.tsx-81-        newMessages.push({
+src/pages/Integrations.tsx-82-          role: "ai",
+--
+src/pages/Integrations.tsx-84-        });
+src/pages/Integrations.tsx-85-      } else if (trimmed.includes("smartbill")) {
+src/pages/Integrations.tsx:86:        setSelectedProvider("smartbill");
+src/pages/Integrations.tsx-87-        newMessages.push({
+src/pages/Integrations.tsx-88-          role: "ai",
+--
+src/pages/Integrations.tsx-90-        });
+src/pages/Integrations.tsx-91-      } else if (trimmed.includes("spv")) {
+src/pages/Integrations.tsx:92:        setSelectedProvider("spv");
+src/pages/Integrations.tsx-93-        newMessages.push({
+src/pages/Integrations.tsx-94-          role: "ai",
+--
+src/pages/Integrations.tsx-108-        });
+src/pages/Integrations.tsx-109-      } else {
+src/pages/Integrations.tsx:110:        setDraft(d => ({ ...d, email: userText.trim() }));
+src/pages/Integrations.tsx:111:        setStep("oblio_secret");
+src/pages/Integrations.tsx-112-        newMessages.push({
+src/pages/Integrations.tsx-113-          role: "ai",
+--
+src/pages/Integrations.tsx-122-        });
+src/pages/Integrations.tsx-123-      } else {
+src/pages/Integrations.tsx:124:        setDraft(d => ({ ...d, apiSecret: userText.trim() }));
+src/pages/Integrations.tsx:125:        setStep("oblio_cif");
+src/pages/Integrations.tsx-126-        newMessages.push({
+src/pages/Integrations.tsx-127-          role: "ai",
+--
+src/pages/Integrations.tsx-138-      } else {
+src/pages/Integrations.tsx-139-        const finalConfig: Record<string, string> = { ...draft, cif: cifClean };
+src/pages/Integrations.tsx:140:        setDraft(finalConfig);
+src/pages/Integrations.tsx:141:        setStep("done");
+src/pages/Integrations.tsx-142-        newMessages.push({
+src/pages/Integrations.tsx-143-          role: "ai",
+--
+src/pages/Integrations.tsx-153-    }
+src/pages/Integrations.tsx-154-
+src/pages/Integrations.tsx:155:    setMessages(newMessages);
+src/pages/Integrations.tsx-156-  };
+src/pages/Integrations.tsx-157-
+--
+src/pages/Integrations.tsx-484-      onSuccess: () => {
+src/pages/Integrations.tsx-485-        toast.success("Integrarea Oblio a fost ștearsă/dezactivată");
+src/pages/Integrations.tsx:486:        setDeleteProviderId(null);
+src/pages/Integrations.tsx-487-        refetch();
+src/pages/Integrations.tsx-488-      },
+src/pages/Integrations.tsx-489-      onError: e => {
+src/pages/Integrations.tsx-490-        toast.error("Eroare la ștergere: " + e.message);
+src/pages/Integrations.tsx:491:        setDeleteProviderId(null);
+src/pages/Integrations.tsx-492-      },
+src/pages/Integrations.tsx-493-    }
+--
+src/pages/Integrations.tsx-496-    onSuccess: () => {
+src/pages/Integrations.tsx-497-      toast.success("Integrarea SPV a fost ștearsă/dezactivată");
+src/pages/Integrations.tsx:498:      setDeleteProviderId(null);
+src/pages/Integrations.tsx-499-      refetch();
+src/pages/Integrations.tsx-500-    },
+src/pages/Integrations.tsx-501-    onError: e => {
+src/pages/Integrations.tsx-502-      toast.error("Eroare la ștergere: " + e.message);
+src/pages/Integrations.tsx:503:      setDeleteProviderId(null);
+src/pages/Integrations.tsx-504-    },
+src/pages/Integrations.tsx-505-  });
+--
+src/pages/Integrations.tsx-509-      toast.success(msg);
+src/pages/Integrations.tsx-510-      refetch();
+src/pages/Integrations.tsx:511:      setSyncing(null);
+src/pages/Integrations.tsx-512-    },
+src/pages/Integrations.tsx-513-    onError: e => {
+src/pages/Integrations.tsx-514-      toast.error("Eroare sync Oblio: " + e.message);
+src/pages/Integrations.tsx:515:      setSyncing(null);
+src/pages/Integrations.tsx-516-    },
+src/pages/Integrations.tsx-517-  });
+--
+src/pages/Integrations.tsx-547-      toast.success(msg);
+src/pages/Integrations.tsx-548-      refetch();
+src/pages/Integrations.tsx:549:      setSyncing(null);
+src/pages/Integrations.tsx-550-    },
+src/pages/Integrations.tsx-551-    onError: e => {
+src/pages/Integrations.tsx-552-      toast.error("Eroare sync SmartBill: " + e.message);
+src/pages/Integrations.tsx:553:      setSyncing(null);
+src/pages/Integrations.tsx-554-    },
+src/pages/Integrations.tsx-555-  });
+--
+src/pages/Integrations.tsx-563-    });
+src/pages/Integrations.tsx-564-    toast.success("Oblio configurat cu succes!");
+src/pages/Integrations.tsx:565:    setConfiguringId(null);
+src/pages/Integrations.tsx-566-  };
+src/pages/Integrations.tsx-567-
+src/pages/Integrations.tsx-568-  const handleSyncOblio = () => {
+src/pages/Integrations.tsx:569:    setSyncing("oblio");
+src/pages/Integrations.tsx-570-    syncOblioMutation.mutate();
+src/pages/Integrations.tsx-571-  };
+src/pages/Integrations.tsx-572-
+src/pages/Integrations.tsx-573-  const handleSyncSmartBill = () => {
+src/pages/Integrations.tsx:574:    setSyncing("smartbill");
+src/pages/Integrations.tsx-575-    syncSmartBillMutation.mutate();
+src/pages/Integrations.tsx-576-  };
+--
+src/pages/Integrations.tsx-584-    });
+src/pages/Integrations.tsx-585-    toast.success("SmartBill configurat cu succes!");
+src/pages/Integrations.tsx:586:    setConfiguringId(null);
+src/pages/Integrations.tsx-587-  };
+src/pages/Integrations.tsx-588-
+--
+src/pages/Integrations.tsx-599-    if (!aiInput.trim()) return;
+src/pages/Integrations.tsx-600-    respond(aiInput);
+src/pages/Integrations.tsx:601:    setAiInput("");
+src/pages/Integrations.tsx-602-  };
+src/pages/Integrations.tsx-603-
+--
+src/pages/Integrations.tsx-943-                          onClick={() => {
+src/pages/Integrations.tsx-944-                            if (isActive) {
+src/pages/Integrations.tsx:945:                              setDeleteProviderId(provider.id);
+src/pages/Integrations.tsx-946-                            } else {
+src/pages/Integrations.tsx-947-                              // connect
+--
+src/pages/Integrations.tsx-951-                                    getSpvOAuthUrl.data.url;
+src/pages/Integrations.tsx-952-                              } else {
+src/pages/Integrations.tsx:953:                                setConfiguringId(
+src/pages/Integrations.tsx-954-                                  isConfiguring ? null : provider.id
+src/pages/Integrations.tsx-955-                                );
+--
+src/pages/Integrations.tsx-1047-                                            "Configurați mai întâi SPV — CIF, Client ID și Client Secret"
+src/pages/Integrations.tsx-1048-                                          );
+src/pages/Integrations.tsx:1049:                                          setConfiguringId(provider.id);
+src/pages/Integrations.tsx-1050-                                          return;
+src/pages/Integrations.tsx-1051-                                        }
+--
+src/pages/Integrations.tsx-1076-                            <button
+src/pages/Integrations.tsx-1077-                              onClick={() =>
+src/pages/Integrations.tsx:1078:                                setConfiguringId(
+src/pages/Integrations.tsx-1079-                                  isConfiguring ? null : provider.id
+src/pages/Integrations.tsx-1080-                                )
+--
+src/pages/Integrations.tsx-1123-                            <button
+src/pages/Integrations.tsx-1124-                              onClick={() =>
+src/pages/Integrations.tsx:1125:                                setConfiguringId(
+src/pages/Integrations.tsx-1126-                                  isConfiguring ? null : provider.id
+src/pages/Integrations.tsx-1127-                                )
+--
+src/pages/Integrations.tsx-1155-                              <button
+src/pages/Integrations.tsx-1156-                                onClick={() =>
+src/pages/Integrations.tsx:1157:                                  setConfiguringId(
+src/pages/Integrations.tsx-1158-                                    isConfiguring ? null : provider.id
+src/pages/Integrations.tsx-1159-                                  )
+--
+src/pages/NotFound.tsx-8-
+src/pages/NotFound.tsx-9-  const handleGoHome = () => {
+src/pages/NotFound.tsx:10:    setLocation("/");
+src/pages/NotFound.tsx-11-  };
+src/pages/NotFound.tsx-12-

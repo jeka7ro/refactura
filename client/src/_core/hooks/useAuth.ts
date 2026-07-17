@@ -13,11 +13,11 @@ export function useAuth() {
   });
 
   useEffect(() => {
-    if (meQuery.isError) {
+    if (meQuery.isError || (meQuery.isSuccess && !meQuery.data)) {
       localStorage.removeItem("authToken");
       setLocation("/login");
     }
-  }, [meQuery.isError, setLocation]);
+  }, [meQuery.isError, meQuery.isSuccess, meQuery.data, setLocation]);
 
   const logoutMutation = trpc.auth.logout.useMutation({
     onSuccess: () => {

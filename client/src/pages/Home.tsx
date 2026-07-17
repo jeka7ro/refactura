@@ -9,6 +9,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
+      localStorage.removeItem("authToken");
       setLocation("/login");
     }
   }, [loading, isAuthenticated, setLocation]);

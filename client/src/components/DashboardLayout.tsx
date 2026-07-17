@@ -172,6 +172,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   // Redirect direct la login dacă nu e autentificat
   useEffect(() => {
     if (!loading && !user) {
+      localStorage.removeItem("authToken");
       setLocation("/login");
     }
   }, [loading, user, setLocation]);

@@ -114,6 +114,7 @@ export async function syncSpvInvoices(
         const parser = new XMLParser({
           ignoreAttributes: false,
           attributeNamePrefix: "@_",
+          removeNSPrefix: true,
         });
         const parsedDoc = parser.parse(xmlText);
         const rootKey = Object.keys(parsedDoc).find(
@@ -125,39 +126,39 @@ export async function syncSpvInvoices(
           continue;
         }
 
-        const invoiceNumber = invoiceObj["cbc:ID"] || `SPV-${doc.id}`;
-        const issueDate = invoiceObj["cbc:IssueDate"] || "";
-        const legalTotal = invoiceObj["cac:LegalMonetaryTotal"];
+        const invoiceNumber = invoiceObj["ID"] || `SPV-${doc.id}`;
+        const issueDate = invoiceObj["IssueDate"] || "";
+        const legalTotal = invoiceObj["LegalMonetaryTotal"];
         const rawTotal =
-          legalTotal?.["cbc:TaxInclusiveAmount"]?.["#text"] ||
-          legalTotal?.["cbc:TaxInclusiveAmount"] ||
+          legalTotal?.["TaxInclusiveAmount"]?.["#text"] ||
+          legalTotal?.["TaxInclusiveAmount"] ||
           "0";
         const parsedTotal = parseFloat(typeof rawTotal === "object" ? "0" : rawTotal);
         const total = isNaN(parsedTotal) ? 0 : parsedTotal;
 
-        const taxTotal = invoiceObj["cac:TaxTotal"];
+        const taxTotal = invoiceObj["TaxTotal"];
         const taxTotalObj = Array.isArray(taxTotal) ? taxTotal[0] : taxTotal;
         const rawVAT =
-          taxTotalObj?.["cbc:TaxAmount"]?.["#text"] ||
-          taxTotalObj?.["cbc:TaxAmount"] ||
+          taxTotalObj?.["TaxAmount"]?.["#text"] ||
+          taxTotalObj?.["TaxAmount"] ||
           "0";
         const parsedVAT = parseFloat(typeof rawVAT === "object" ? "0" : rawVAT);
         const totalVAT = isNaN(parsedVAT) ? 0 : parsedVAT;
         const currency =
-          invoiceObj["cbc:DocumentCurrencyCode"]?.["#text"] ||
-          invoiceObj["cbc:DocumentCurrencyCode"] ||
+          invoiceObj["DocumentCurrencyCode"]?.["#text"] ||
+          invoiceObj["DocumentCurrencyCode"] ||
           "RON";
 
         let supplierName = "";
         let supplierCUI = "";
-        const supplierParty = invoiceObj["cac:AccountingSupplierParty"];
-        if (supplierParty && supplierParty["cac:Party"]) {
-          const party = supplierParty["cac:Party"];
+        const supplierParty = invoiceObj["AccountingSupplierParty"];
+        if (supplierParty && supplierParty["Party"]) {
+          const party = supplierParty["Party"];
           supplierName =
-            party["cac:PartyName"]?.["cbc:Name"] ||
-            party["cac:PartyLegalEntity"]?.["cbc:RegistrationName"] ||
+            party["PartyName"]?.["Name"] ||
+            party["PartyLegalEntity"]?.["RegistrationName"] ||
             "Unknown Supplier";
-          supplierCUI = party["cac:PartyTaxScheme"]?.["cbc:CompanyID"] || "";
+          supplierCUI = party["PartyTaxScheme"]?.["CompanyID"] || "";
         }
 
         if (!invoiceNumber || !issueDate) {
