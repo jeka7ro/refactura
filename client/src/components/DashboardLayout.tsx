@@ -2,7 +2,7 @@
 // Fixed sidebar (240px) + main content area
 // Design: slate-900 sidebar, white content, blue-600 accents
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -179,8 +179,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   // Redirect direct la login dacă nu e autentificat
+  useEffect(() => {
+    if (!loading && !user) {
+      setLocation("/login");
+    }
+  }, [loading, user, setLocation]);
+
   if (!user) {
-    setLocation("/login");
     return null;
   }
 

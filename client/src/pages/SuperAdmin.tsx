@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
@@ -39,8 +39,13 @@ export default function SuperAdmin() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<Tab>("overview");
 
+  useEffect(() => {
+    if (user && user.role !== "superadmin" && user.role !== "admin") {
+      setLocation("/");
+    }
+  }, [user, setLocation]);
+
   if (user && user.role !== "superadmin" && user.role !== "admin") {
-    setLocation("/");
     return null;
   }
 

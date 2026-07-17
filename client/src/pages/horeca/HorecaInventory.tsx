@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Loader2, Plus, Box, ArrowDownToLine, Search, ChevronDown } from "lucide-react";
@@ -42,8 +42,13 @@ export default function HorecaInventory() {
     );
   }
 
+  useEffect(() => {
+    if (!selectedLocationId && locations.length > 0) {
+      setSelectedLocationId(locations[0].id);
+    }
+  }, [selectedLocationId, locations]);
+
   if (!selectedLocationId) {
-    setSelectedLocationId(locations[0].id);
     return null;
   }
 
