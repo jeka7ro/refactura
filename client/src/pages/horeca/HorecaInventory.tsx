@@ -24,6 +24,12 @@ export default function HorecaInventory() {
   const locations = [...localLocations, ...mappedBridgeLocations];
   const isLoading = isLoadingLocations || bridgeLoading;
 
+  useEffect(() => {
+    if (!selectedLocationId && locations.length > 0) {
+      setSelectedLocationId(locations[0].id);
+    }
+  }, [selectedLocationId, locations]);
+
   if (isLoading) {
     return (
       <div className="p-8 flex justify-center">
@@ -41,12 +47,6 @@ export default function HorecaInventory() {
       </div>
     );
   }
-
-  useEffect(() => {
-    if (!selectedLocationId && locations.length > 0) {
-      setSelectedLocationId(locations[0].id);
-    }
-  }, [selectedLocationId, locations]);
 
   if (!selectedLocationId) {
     return null;

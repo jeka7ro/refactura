@@ -169,6 +169,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     (i: any) => i.status === "pending"
   ).length;
 
+  // Redirect direct la login dacă nu e autentificat
+  useEffect(() => {
+    if (!loading && !user) {
+      setLocation("/login");
+    }
+  }, [loading, user, setLocation]);
+
   // Loading auth state
   if (loading) {
     return (
@@ -177,13 +184,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       </div>
     );
   }
-
-  // Redirect direct la login dacă nu e autentificat
-  useEffect(() => {
-    if (!loading && !user) {
-      setLocation("/login");
-    }
-  }, [loading, user, setLocation]);
 
   if (!user) {
     return null;
