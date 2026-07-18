@@ -91,6 +91,7 @@ export default function EmitInvoice() {
   const [clientPhone, setClientPhone] = useState("");
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [clientSearch, setClientSearch] = useState("");
+  const [showAdvancedClientInfo, setShowAdvancedClientInfo] = useState(false);
 
   // Invoice meta
   const [series, setSeries] = useState("FACT");
@@ -568,8 +569,8 @@ export default function EmitInvoice() {
       </div>
 
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 !rounded-md p-4 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
-          <div className="md:col-span-4 relative">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
+          <div className="xl:col-span-5 relative">
             <label className={labelCls}>Nume sau Cod Fiscal Client *</label>
             <div className="relative">
               <input
@@ -630,25 +631,27 @@ export default function EmitInvoice() {
               )}
             </div>
           </div>
-          <div className="md:col-span-2">
-            <label className={labelCls}>Data Emiterii *</label>
-            <input
-              type="date"
-              value={issueDate}
-              onChange={e => setIssueDate(e.target.value)}
-              className={inputCls}
-            />
+          <div className="xl:col-span-3 grid grid-cols-2 gap-2 sm:gap-4">
+            <div>
+              <label className={labelCls}>Data Emiterii *</label>
+              <input
+                type="date"
+                value={issueDate}
+                onChange={e => setIssueDate(e.target.value)}
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className={labelCls}>Data Scadenței</label>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={e => setDueDate(e.target.value)}
+                className={inputCls}
+              />
+            </div>
           </div>
-          <div className="md:col-span-2">
-            <label className={labelCls}>Data Scadenței</label>
-            <input
-              type="date"
-              value={dueDate}
-              onChange={e => setDueDate(e.target.value)}
-              className={inputCls}
-            />
-          </div>
-          <div className="md:col-span-4 grid grid-cols-2 gap-2">
+          <div className="xl:col-span-4 grid grid-cols-3 gap-2">
             <div>
               <label className={labelCls}>Serie</label>
               <input
@@ -665,84 +668,98 @@ export default function EmitInvoice() {
                 className={inputCls}
               />
             </div>
+            <div>
+              <label className={labelCls}>Monedă</label>
+              <select
+                value={currency}
+                onChange={e => setCurrency(e.target.value as Currency)}
+                className={inputCls}
+              >
+                <option value="RON">RON</option>
+                <option value="EUR">EUR</option>
+                <option value="USD">USD</option>
+                <option value="GBP">GBP</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
-          <div className="md:col-span-4 grid grid-cols-2 gap-2">
-            <div>
-              <label className={labelCls}>
-                CUI / CIF
-                {cuiLoading && (
-                  <Loader2 className="w-3 h-3 ml-1 inline animate-spin" />
-                )}
-              </label>
-              <input
-                value={clientCUI}
-                onChange={e => setClientCUI(e.target.value)}
-                onBlur={lookupCui}
-                className={inputCls}
-              />
-            </div>
-            <div>
-              <label className={labelCls}>Reg. Com.</label>
-              <input
-                value={clientRegCom}
-                onChange={e => setClientRegCom(e.target.value)}
-                className={inputCls}
-              />
-            </div>
-          </div>
-          <div className="md:col-span-2">
-            <label className={labelCls}>Moneda facturii</label>
-            <select
-              value={currency}
-              onChange={e => setCurrency(e.target.value as Currency)}
-              className={inputCls}
-            >
-              <option value="RON">RON</option>
-              <option value="EUR">EUR</option>
-              <option value="USD">USD</option>
-              <option value="GBP">GBP</option>
-            </select>
-          </div>
-          <div className="md:col-span-6">
-            <label className={labelCls}>Telefon Client</label>
-            <input
-              value={clientPhone}
-              onChange={e => setClientPhone(e.target.value)}
-              className={inputCls}
-            />
-          </div>
+        <div>
+          <button
+            onClick={() => setShowAdvancedClientInfo(!showAdvancedClientInfo)}
+            className="flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+          >
+            {showAdvancedClientInfo ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            {showAdvancedClientInfo ? "Ascunde Informații Opționale Client" : "Arată Informații Opționale Client (CUI, Adresă, etc.)"}
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
-          <div className="md:col-span-6">
-            <label className={labelCls}>Adresă</label>
-            <input
-              value={clientAddress}
-              onChange={e => setClientAddress(e.target.value)}
-              className={inputCls}
-            />
+        {showAdvancedClientInfo && (
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+              <div className="lg:col-span-4 grid grid-cols-2 gap-2">
+                <div>
+                  <label className={labelCls}>
+                    CUI / CIF
+                    {cuiLoading && (
+                      <Loader2 className="w-3 h-3 ml-1 inline animate-spin" />
+                    )}
+                  </label>
+                  <input
+                    value={clientCUI}
+                    onChange={e => setClientCUI(e.target.value)}
+                    onBlur={lookupCui}
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>Reg. Com.</label>
+                  <input
+                    value={clientRegCom}
+                    onChange={e => setClientRegCom(e.target.value)}
+                    className={inputCls}
+                  />
+                </div>
+              </div>
+              <div className="lg:col-span-4">
+                <label className={labelCls}>Telefon Client</label>
+                <input
+                  value={clientPhone}
+                  onChange={e => setClientPhone(e.target.value)}
+                  className={inputCls}
+                />
+              </div>
+              <div className="lg:col-span-4">
+                <label className={labelCls}>Email</label>
+                <input
+                  type="email"
+                  value={clientEmail}
+                  onChange={e => setClientEmail(e.target.value)}
+                  className={inputCls}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+              <div className="lg:col-span-8">
+                <label className={labelCls}>Adresă</label>
+                <input
+                  value={clientAddress}
+                  onChange={e => setClientAddress(e.target.value)}
+                  className={inputCls}
+                />
+              </div>
+              <div className="lg:col-span-4">
+                <label className={labelCls}>Localitate</label>
+                <input
+                  value={clientCity}
+                  onChange={e => setClientCity(e.target.value)}
+                  className={inputCls}
+                />
+              </div>
+            </div>
           </div>
-          <div className="md:col-span-3">
-            <label className={labelCls}>Localitate</label>
-            <input
-              value={clientCity}
-              onChange={e => setClientCity(e.target.value)}
-              className={inputCls}
-            />
-          </div>
-          <div className="md:col-span-3">
-            <label className={labelCls}>Email</label>
-            <input
-              type="email"
-              value={clientEmail}
-              onChange={e => setClientEmail(e.target.value)}
-              className={inputCls}
-            />
-          </div>
-        </div>
+        )}
       </div>
 
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded">
@@ -762,7 +779,7 @@ export default function EmitInvoice() {
             {showCodes ? "Ascunde coduri" : "Arată coduri"}
           </button>
         </div>
-        <div className="grid grid-cols-12 gap-0 bg-[#1e1b4b] dark:bg-slate-800 text-white text-[11px] font-bold uppercase tracking-wider">
+        <div className="hidden md:grid grid-cols-12 gap-0 bg-[#1e1b4b] dark:bg-slate-800 text-white text-[11px] font-bold uppercase tracking-wider">
           {showCodes ? (
             <>
               <div className="col-span-1 px-4 py-2.5">Cod</div>
@@ -797,10 +814,11 @@ export default function EmitInvoice() {
           {lines.map((line, idx) => (
             <div
               key={line.id}
-              className="grid grid-cols-12 gap-0 items-start hover:bg-slate-50 dark:hover:bg-slate-800/30"
+              className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-12 gap-3 md:gap-0 items-start hover:bg-slate-50 dark:hover:bg-slate-800/30 p-4 md:p-0 border-b border-slate-200 dark:border-slate-800 md:border-b-0"
             >
               {showCodes && (
-                <div className="col-span-1 px-3 py-2 h-full flex items-center">
+                <div className="col-span-2 sm:col-span-4 md:col-span-1 px-0 md:px-3 py-1 md:py-2 h-full flex flex-col md:flex-row md:items-center">
+                  <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Cod</label>
                   <input
                     type="text"
                     placeholder="Cod..."
@@ -814,12 +832,13 @@ export default function EmitInvoice() {
               )}
               <div
                 className={cn(
-                  "px-3 py-2 relative h-full flex flex-col justify-center",
+                  "px-0 md:px-3 py-1 md:py-2 relative h-full flex flex-col justify-center col-span-2 sm:col-span-4",
                   showCodes
-                    ? "col-span-4 border-l border-slate-100 dark:border-slate-800"
-                    : "col-span-5"
+                    ? "md:col-span-4 md:border-l border-slate-100 dark:border-slate-800"
+                    : "md:col-span-5"
                 )}
               >
+                <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Denumire Produs / Serviciu</label>
                 <input
                   type="text"
                   placeholder={`Căutare sau denumire liberă...`}
@@ -929,7 +948,8 @@ export default function EmitInvoice() {
                     </div>
                   )}
               </div>
-              <div className="col-span-1 px-2 py-2 border-l border-slate-100 dark:border-slate-800 h-full flex items-center">
+              <div className="col-span-1 md:col-span-1 px-0 md:px-2 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 h-full flex flex-col justify-center">
+                <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">U.M.</label>
                 <select
                   value={line.unit}
                   onChange={e => updateLine(line.id, "unit", e.target.value)}
@@ -942,7 +962,8 @@ export default function EmitInvoice() {
                   ))}
                 </select>
               </div>
-              <div className="col-span-1 px-2 py-2 border-l border-slate-100 dark:border-slate-800">
+              <div className="col-span-1 md:col-span-1 px-0 md:px-2 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 flex flex-col justify-center">
+                <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Cant.</label>
                 <input
                   type="number"
                   min="0"
@@ -969,10 +990,11 @@ export default function EmitInvoice() {
                     }
                     updateLine(line.id, "quantity", e.target.value);
                   }}
-                  className="w-full h-8 px-2 text-sm text-center border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full h-8 px-2 text-sm text-center md:text-center border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
-              <div className="col-span-1 px-2 py-2 border-l border-slate-100 dark:border-slate-800">
+              <div className="col-span-1 md:col-span-1 px-0 md:px-2 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 flex flex-col justify-center">
+                <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">TVA (%)</label>
                 <select
                   value={line.vatRate}
                   onChange={e =>
@@ -987,7 +1009,8 @@ export default function EmitInvoice() {
                   ))}
                 </select>
               </div>
-              <div className="col-span-2 px-2 py-2 border-l border-slate-100 dark:border-slate-800">
+              <div className="col-span-1 md:col-span-2 px-0 md:px-2 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 flex flex-col justify-center">
+                <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Preț (fără TVA)</label>
                 <input
                   type="number"
                   min="0"
@@ -996,21 +1019,22 @@ export default function EmitInvoice() {
                   onChange={e =>
                     updateLine(line.id, "unitPrice", e.target.value)
                   }
-                  className="w-full h-8 px-2 text-sm text-right border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full h-8 px-2 text-sm text-left md:text-right border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
-              <div className="col-span-1 px-3 py-2 border-l border-slate-100 dark:border-slate-800 text-right">
-                <span className="text-sm font-semibold text-slate-900 dark:text-white">
+              <div className="col-span-1 md:col-span-1 px-0 md:px-3 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 flex flex-col justify-center md:items-end">
+                <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Valoare</label>
+                <span className="text-sm font-semibold text-slate-900 dark:text-white mt-1 md:mt-0">
                   {formatCurrency(computeLineTotal(line), currency)}
                 </span>
               </div>
-              <div className="col-span-1 px-2 py-2 border-l border-slate-100 dark:border-slate-800 flex justify-center">
+              <div className="col-span-1 md:col-span-1 px-0 md:px-2 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 flex items-end md:items-center justify-end md:justify-center">
                 {lines.length > 1 && (
                   <button
                     onClick={() => removeLine(line.id)}
-                    className="w-7 h-7 flex items-center justify-center rounded text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 hover:text-rose-600 transition-colors"
+                    className="w-8 h-8 md:w-7 md:h-7 flex items-center justify-center rounded text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 hover:text-rose-600 transition-colors"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4 md:w-3.5 md:h-3.5" />
                   </button>
                 )}
               </div>
@@ -1018,8 +1042,8 @@ export default function EmitInvoice() {
           ))}
         </div>
 
-        <div className="border-t border-slate-200 dark:border-slate-700 grid grid-cols-12">
-          <div className="col-span-7 px-4 py-3 flex gap-2 flex-wrap">
+        <div className="border-t border-slate-200 dark:border-slate-700 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-0">
+          <div className="lg:col-span-7 px-4 py-3 flex gap-2 flex-wrap">
             <button
               onClick={addLine}
               className="flex items-center gap-1.5 px-3 h-8 text-xs font-semibold text-blue-600 border border-blue-200 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
@@ -1033,7 +1057,7 @@ export default function EmitInvoice() {
               <Plus className="w-3.5 h-3.5" /> Adaugă din NIR
             </button>
           </div>
-          <div className="col-span-5 px-4 py-3 border-l border-slate-200 dark:border-slate-700 space-y-1">
+          <div className="lg:col-span-5 px-4 py-3 lg:border-l border-slate-200 dark:border-slate-700 space-y-1 bg-slate-50/50 dark:bg-slate-800/20 lg:bg-transparent">
             {vatBreakdown.map(({ rate, base, vat }) => (
               <div
                 key={rate}

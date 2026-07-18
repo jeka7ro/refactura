@@ -36,7 +36,7 @@ const DOMAIN_IMAGES = {
   office: "/images/industry_office_1781868278831.png",
 };
 
-const LOGO_URL = "/logo_gettsapp.png";
+const LOGO_URL = "/refactura-logo.png";
 const APP_NAME = "getts/App";
 
 const ICON_MAP: Record<string, any> = {

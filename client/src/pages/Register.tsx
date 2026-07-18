@@ -106,25 +106,10 @@ export default function Register() {
           <div className="flex items-center relative z-10 cursor-pointer hover:opacity-90 transition-opacity w-fit">
             <div className="bg-white px-6 py-3 rounded-2xl shadow-lg border border-white/20 flex-shrink-0 flex flex-col items-center justify-center">
               <img
-                src="/logo_gettsapp.png"
+                src="/refactura-logo.png"
                 alt="getts/App"
                 className="h-10 object-contain"
               />
-              <div className="text-[10px] font-black text-[#ef4444] mt-1 w-[130px] flex justify-between">
-                <span>f</span>
-                <span>a</span>
-                <span>c</span>
-                <span>t</span>
-                <span>u</span>
-                <span>r</span>
-                <span>a</span>
-                <span>s</span>
-                <span>p</span>
-                <span>v</span>
-                <span>.</span>
-                <span>r</span>
-                <span>o</span>
-              </div>
             </div>
           </div>
         </Link>
@@ -166,25 +151,10 @@ export default function Register() {
             <div className="flex items-center mb-10 lg:hidden cursor-pointer w-fit">
               <div className="bg-white px-5 py-2.5 rounded-2xl shadow-lg border border-slate-200 flex flex-col items-center justify-center">
                 <img
-                  src="/logo_gettsapp.png"
+                  src="/refactura-logo.png"
                   alt="getts/App"
                   className="h-8 object-contain"
                 />
-                <div className="text-[8px] font-black text-[#ef4444] mt-0.5 w-[100px] flex justify-between">
-                  <span>f</span>
-                  <span>a</span>
-                  <span>c</span>
-                  <span>t</span>
-                  <span>u</span>
-                  <span>r</span>
-                  <span>a</span>
-                  <span>s</span>
-                  <span>p</span>
-                  <span>v</span>
-                  <span>.</span>
-                  <span>r</span>
-                  <span>o</span>
-                </div>
               </div>
             </div>
           </Link>

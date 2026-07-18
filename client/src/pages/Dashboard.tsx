@@ -267,7 +267,7 @@ export default function Dashboard() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
         <KPICard
           title="Total Importat"
           value={formatCurrency(totalImported, "RON")}
@@ -283,13 +283,15 @@ export default function Dashboard() {
           sub={`${dbReInvoices.length} re-facturi`}
         />
 
-        <KPICard
-          title="Clienți Activi"
-          value={dbClients.length.toString()}
-          icon={<Users className="w-5 h-5 text-amber-600" />}
-          iconBg="bg-amber-50 dark:bg-amber-900/30"
-          sub="4 țări"
-        />
+        <div className="col-span-2 sm:col-span-1">
+          <KPICard
+            title="Clienți Activi"
+            value={dbClients.length.toString()}
+            icon={<Users className="w-5 h-5 text-amber-600" />}
+            iconBg="bg-amber-50 dark:bg-amber-900/30"
+            sub="4 țări"
+          />
+        </div>
       </div>
 
       {/* Charts Row */}
@@ -557,16 +559,16 @@ function KPICard({
   sub: string;
 }) {
   return (
-    <div className="bg-white/70 dark:bg-white/5 backdrop-blur-xl rounded-lg border border-white/20 dark:border-white/10 p-6 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
-      <div className="flex items-start justify-between mb-3">
+    <div className="bg-white/70 dark:bg-white/5 backdrop-blur-xl rounded-lg border border-white/20 dark:border-white/10 p-4 sm:p-6 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02] flex flex-col justify-between">
+      <div className="flex items-start justify-between mb-2 sm:mb-3">
         <div
-          className={`w-10 h-10 rounded-lg ${iconBg} flex items-center justify-center`}
+          className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${iconBg} flex items-center justify-center`}
         >
           {icon}
         </div>
         {change && (
           <div
-            className={`flex items-center gap-1 text-xs font-semibold ${positive ? "text-emerald-600" : "text-rose-600"}`}
+            className={`flex items-center gap-1 text-[10px] sm:text-xs font-semibold ${positive ? "text-emerald-600" : "text-rose-600"}`}
           >
             {positive ? (
               <ArrowUpRight className="w-3.5 h-3.5" />
@@ -577,13 +579,13 @@ function KPICard({
           </div>
         )}
       </div>
-      <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+      <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1 truncate">
         {title}
       </div>
-      <div className="text-3xl font-bold text-slate-900 dark:text-white mb-1">
+      <div className="text-xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-1 truncate">
         {value}
       </div>
-      <div className="text-xs text-slate-400 mt-1">{sub}</div>
+      <div className="text-[10px] sm:text-xs text-slate-400 mt-auto">{sub}</div>
     </div>
   );
 }

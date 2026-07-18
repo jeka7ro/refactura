@@ -165,6 +165,7 @@ export default function ReInvoice() {
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [clientSearch, setClientSearch] = useState("");
   const [cuiLoading, setCuiLoading] = useState(false);
+  const [showAdvancedClientInfo, setShowAdvancedClientInfo] = useState(false);
 
   const [currency, setCurrency] = useState<Currency>("RON");
   const [dueDate, setDueDate] = useState("");
@@ -834,7 +835,7 @@ export default function ReInvoice() {
             </div>
 
             {/* Header Tabel */}
-            <div className="grid grid-cols-12 gap-0 bg-[#1e1b4b] dark:bg-slate-800 text-white text-[10px] font-bold uppercase tracking-wider">
+            <div className="hidden md:grid grid-cols-12 gap-0 bg-[#1e1b4b] dark:bg-slate-800 text-white text-[10px] font-bold uppercase tracking-wider">
               {showCodes ? (
                 <>
                   <div className="col-span-1 px-3 py-2.5">Cod</div>
@@ -879,10 +880,11 @@ export default function ReInvoice() {
                 return (
                   <div
                     key={line.id}
-                    className={`grid grid-cols-12 gap-0 items-start hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors ${lineClass}`}
+                    className={`grid grid-cols-2 sm:grid-cols-4 md:grid-cols-12 gap-3 md:gap-0 items-start hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors p-4 md:p-0 border-b border-slate-200 dark:border-slate-800 md:border-b-0 ${lineClass}`}
                   >
                     {showCodes && (
-                      <div className="col-span-1 px-2 py-2 h-full flex items-center">
+                      <div className="col-span-2 sm:col-span-4 md:col-span-1 px-0 md:px-2 py-1 md:py-2 h-full flex flex-col md:flex-row md:items-center">
+                        <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Cod</label>
                         <input
                           type="text"
                           placeholder="Cod..."
@@ -899,8 +901,9 @@ export default function ReInvoice() {
                       </div>
                     )}
                     <div
-                      className={`px-2 py-2 relative h-full flex flex-col justify-center ${showCodes ? "col-span-3 border-l border-slate-100 dark:border-slate-800" : "col-span-4"}`}
+                      className={`px-0 md:px-2 py-1 md:py-2 relative h-full flex flex-col justify-center col-span-2 sm:col-span-4 ${showCodes ? "md:col-span-3 md:border-l border-slate-100 dark:border-slate-800" : "md:col-span-4"}`}
                     >
+                      <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Denumire Serviciu</label>
                       <input
                         type="text"
                         placeholder="Descriere..."
@@ -962,57 +965,63 @@ export default function ReInvoice() {
                           </div>
                         )}
                     </div>
-                    <div className="col-span-1 px-1 py-2 border-l border-slate-100 dark:border-slate-800 h-full flex items-center">
+                    <div className="col-span-1 md:col-span-1 px-0 md:px-1 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 h-full flex flex-col justify-center">
+                      <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">U.M.</label>
                       <input
                         value={line.unit}
                         onChange={e =>
                           updateLine(line.id, "unit", e.target.value)
                         }
-                        className="w-full text-center text-xs bg-transparent focus:outline-none"
+                        className="w-full text-center text-xs bg-slate-50 dark:bg-slate-800 md:bg-transparent border border-slate-200 dark:border-slate-700 md:border-0 rounded md:rounded-none h-8 md:h-auto focus:outline-none focus:ring-1 focus:ring-blue-500 md:focus:ring-0"
                       />
                     </div>
-                    <div className="col-span-1 px-1 py-2 border-l border-slate-100 dark:border-slate-800 h-full flex items-center">
+                    <div className="col-span-1 md:col-span-1 px-0 md:px-1 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 h-full flex flex-col justify-center">
+                      <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Cant.</label>
                       <input
                         type="number"
                         value={line.quantity}
                         onChange={e =>
                           updateLine(line.id, "quantity", e.target.value)
                         }
-                        className="w-full text-center text-xs bg-transparent focus:outline-none"
+                        className="w-full text-center text-xs bg-slate-50 dark:bg-slate-800 md:bg-transparent border border-slate-200 dark:border-slate-700 md:border-0 rounded md:rounded-none h-8 md:h-auto focus:outline-none focus:ring-1 focus:ring-blue-500 md:focus:ring-0"
                       />
                     </div>
-                    <div className="col-span-2 px-1 py-2 border-l border-slate-100 dark:border-slate-800 h-full flex items-center justify-end text-xs text-slate-500">
-                      {formatCurrency(line.originalUnitPrice, currency)}
+                    <div className="col-span-1 md:col-span-2 px-0 md:px-1 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 h-full flex flex-col justify-center md:items-end text-xs text-slate-500">
+                      <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Preț Orig.</label>
+                      <span className="mt-1 md:mt-0">{formatCurrency(line.originalUnitPrice, currency)}</span>
                     </div>
-                    <div className="col-span-1 px-1 py-2 border-l border-slate-100 dark:border-slate-800 h-full flex items-center">
+                    <div className="col-span-1 md:col-span-1 px-0 md:px-1 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 h-full flex flex-col justify-center">
+                      <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Adaos %</label>
                       <input
                         type="number"
                         value={line.markupPercent}
                         onChange={e =>
                           updateLine(line.id, "markupPercent", e.target.value)
                         }
-                        className="w-full text-center text-xs bg-transparent focus:outline-none"
+                        className="w-full text-center text-xs bg-white dark:bg-slate-800 md:bg-transparent border border-slate-200 dark:border-slate-700 md:border-0 rounded md:rounded-none h-8 md:h-auto focus:outline-none focus:ring-1 focus:ring-blue-500 md:focus:ring-0 text-amber-600 dark:text-amber-400 font-bold"
                       />
                     </div>
-                    <div className="col-span-1 px-1 py-2 border-l border-slate-100 dark:border-slate-800 h-full flex items-center">
+                    <div className="col-span-1 md:col-span-1 px-0 md:px-1 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 h-full flex flex-col justify-center">
+                      <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Preț Nou</label>
                       <input
                         type="number"
                         value={line.unitPrice}
                         onChange={e =>
                           updateLine(line.id, "unitPrice", e.target.value)
                         }
-                        className="w-full text-right text-xs bg-transparent focus:outline-none font-semibold text-blue-600"
+                        className="w-full md:text-right text-xs bg-slate-50 dark:bg-slate-800 md:bg-transparent border border-slate-200 dark:border-slate-700 md:border-0 rounded md:rounded-none h-8 md:h-auto px-2 md:px-0 focus:outline-none focus:ring-1 focus:ring-blue-500 md:focus:ring-0 font-semibold text-blue-600"
                       />
                     </div>
-                    <div className="col-span-1 px-1 py-2 border-l border-slate-100 dark:border-slate-800 h-full flex items-center justify-end text-xs font-bold text-slate-900 dark:text-white">
-                      {formatCurrency(lineTotal, currency)}
+                    <div className="col-span-1 md:col-span-1 px-0 md:px-1 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 h-full flex flex-col justify-center md:items-end">
+                      <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Total</label>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white mt-1 md:mt-0">{formatCurrency(lineTotal, currency)}</span>
                     </div>
-                    <div className="col-span-1 flex items-center justify-center border-l border-slate-100 dark:border-slate-800">
+                    <div className="col-span-2 md:col-span-1 px-0 md:px-1 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 flex items-end md:items-center justify-end md:justify-center">
                       <button
                         onClick={() => removeLine(line.id)}
-                        className="text-slate-400 hover:text-rose-500"
+                        className="w-8 h-8 md:w-auto md:h-auto flex items-center justify-center rounded text-slate-400 hover:text-rose-500 hover:bg-rose-50 md:hover:bg-transparent dark:hover:bg-rose-900/30 md:dark:hover:bg-transparent transition-colors"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4 md:w-3.5 md:h-3.5" />
                       </button>
                     </div>
                   </div>
@@ -1058,7 +1067,7 @@ export default function ReInvoice() {
             </div>
 
             <div className="space-y-4">
-              <div className="relative">
+              <div className="relative mb-4">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
                   Nume sau Cod Fiscal Client *
                 </label>
@@ -1120,78 +1129,92 @@ export default function ReInvoice() {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
-                    CUI / CIF{" "}
-                    {cuiLoading && (
-                      <Loader2 className="w-3 h-3 ml-1 inline animate-spin" />
-                    )}
-                  </label>
-                  <input
-                    value={clientCUI}
-                    onChange={e => setClientCUI(e.target.value)}
-                    onBlur={lookupCui}
-                    className="w-full h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
-                    Reg. Com.
-                  </label>
-                  <input
-                    value={clientRegCom}
-                    onChange={e => setClientRegCom(e.target.value)}
-                    className="w-full h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+              <div>
+                <button
+                  onClick={() => setShowAdvancedClientInfo(!showAdvancedClientInfo)}
+                  className="flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                >
+                  {showAdvancedClientInfo ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  {showAdvancedClientInfo ? "Ascunde Informații Opționale Client" : "Arată Informații Opționale Client (CUI, Adresă, etc.)"}
+                </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
-                    Telefon Client
-                  </label>
-                  <input
-                    value={clientPhone}
-                    onChange={e => setClientPhone(e.target.value)}
-                    className="w-full h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
-                    Email
-                  </label>
-                  <input
-                    value={clientEmail}
-                    onChange={e => setClientEmail(e.target.value)}
-                    className="w-full h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
+              {showAdvancedClientInfo && (
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                        CUI / CIF{" "}
+                        {cuiLoading && (
+                          <Loader2 className="w-3 h-3 ml-1 inline animate-spin" />
+                        )}
+                      </label>
+                      <input
+                        value={clientCUI}
+                        onChange={e => setClientCUI(e.target.value)}
+                        onBlur={lookupCui}
+                        className="w-full h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                        Reg. Com.
+                      </label>
+                      <input
+                        value={clientRegCom}
+                        onChange={e => setClientRegCom(e.target.value)}
+                        className="w-full h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-12 gap-4">
-                <div className="col-span-8">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
-                    Adresă
-                  </label>
-                  <input
-                    value={clientAddress}
-                    onChange={e => setClientAddress(e.target.value)}
-                    className="w-full h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                        Telefon Client
+                      </label>
+                      <input
+                        value={clientPhone}
+                        onChange={e => setClientPhone(e.target.value)}
+                        className="w-full h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                        Email
+                      </label>
+                      <input
+                        value={clientEmail}
+                        onChange={e => setClientEmail(e.target.value)}
+                        className="w-full h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-12 gap-4">
+                    <div className="col-span-8">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                        Adresă
+                      </label>
+                      <input
+                        value={clientAddress}
+                        onChange={e => setClientAddress(e.target.value)}
+                        className="w-full h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="col-span-4">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                        Localitate
+                      </label>
+                      <input
+                        value={clientCity}
+                        onChange={e => setClientCity(e.target.value)}
+                        className="w-full h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="col-span-4">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
-                    Localitate
-                  </label>
-                  <input
-                    value={clientCity}
-                    onChange={e => setClientCity(e.target.value)}
-                    className="w-full h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
+              )}
             </div>
           </div>
 

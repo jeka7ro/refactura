@@ -17,6 +17,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  ArrowLeft,
   Menu,
   MapPin,
   Search,
@@ -55,9 +56,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const LOGO_URL = "/logo.png";
-const APP_NAME = "Get App";
-const APP_SUBTITLE = "Smart Invoice";
+const LOGO_URL = "/refactura-logo.png";
+const APP_NAME = "Smart Invoice";
+const APP_SUBTITLE = "Refactura.ro";
 
 interface NavItem {
   href: string;
@@ -168,6 +169,7 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [forceMainMenu, setForceMainMenu] = useState(false);
   const [location, setLocation] = useLocation();
   const { theme, toggleTheme } = useTheme();
   const { user, loading, logout } = useAuth();
@@ -516,24 +518,80 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex justify-around items-center px-1 pb-[env(safe-area-inset-bottom)] pt-2 h-[calc(60px+env(safe-area-inset-bottom))] shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)] z-40">
-        {mobileNavItems.map(item => {
-          const Icon = item.icon;
-          const active = isActive(item.href);
-          return (
-            <Link key={item.href} href={item.href}>
-              <div className={cn(
-                "flex flex-col items-center justify-center w-[4.5rem] h-12 gap-1 cursor-pointer transition-colors rounded-xl",
-                active 
-                  ? "text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/20" 
-                  : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 active:bg-slate-100 dark:active:bg-slate-800"
-              )}>
-                <Icon className={cn("w-5 h-5", active && "stroke-[2.5px] scale-110 transition-transform")} />
-                <span className={cn("text-[10px] font-medium leading-none", active && "font-bold")}>{item.label}</span>
-              </div>
-            </Link>
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-1 pb-[env(safe-area-inset-bottom)] pt-2 h-[calc(60px+env(safe-area-inset-bottom))] shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)] z-40">
+        {(() => {
+          const activeParent = navItems.find(
+            item =>
+              isActive(item.href) ||
+              (item.subItems && item.subItems.some(sub => location === sub.href))
           );
-        })}
+          const showSubNav =
+            activeParent &&
+            activeParent.subItems &&
+            activeParent.subItems.length > 0 &&
+            !forceMainMenu;
+
+          if (showSubNav) {
+            return (
+              <div className="flex items-center w-full h-full overflow-x-auto scrollbar-hide gap-1 px-1">
+                <div
+                  onClick={() => setForceMainMenu(true)}
+                  className="flex-shrink-0 flex flex-col items-center justify-center w-16 h-12 gap-1 cursor-pointer transition-colors rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                  <span className="text-[10px] font-medium leading-none text-center">Înapoi</span>
+                </div>
+                
+                {activeParent.subItems!.map(sub => {
+                  const SubIcon = sub.icon;
+                  const subActive = location === sub.href;
+                  return (
+                    <Link key={sub.href} href={sub.href} onClick={() => setForceMainMenu(false)}>
+                      <div className={cn(
+                        "flex-shrink-0 flex flex-col items-center justify-center w-[4.5rem] h-12 gap-1 cursor-pointer transition-colors rounded-xl px-1",
+                        subActive 
+                          ? "text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/20" 
+                          : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 active:bg-slate-100 dark:active:bg-slate-800"
+                      )}>
+                        <SubIcon className={cn("w-5 h-5", subActive && "stroke-[2.5px] scale-110 transition-transform")} />
+                        <span className={cn("text-[10px] font-medium leading-none text-center truncate w-full", subActive && "font-bold")}>{sub.label}</span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            );
+          }
+
+          return (
+            <div className="flex justify-around items-center w-full h-full">
+              {mobileNavItems.map(item => {
+                const Icon = item.icon;
+                const active = isActive(item.href);
+                const parentNavItem = navItems.find(n => n.href === item.href);
+                const hasSubItems = parentNavItem && parentNavItem.subItems && parentNavItem.subItems.length > 0;
+
+                return (
+                  <Link key={item.href} href={item.href} onClick={() => {
+                    if (hasSubItems) {
+                      setForceMainMenu(false);
+                    }
+                  }}>
+                    <div className={cn(
+                      "flex flex-col items-center justify-center w-[4.5rem] h-12 gap-1 cursor-pointer transition-colors rounded-xl",
+                      active 
+                        ? "text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/20" 
+                        : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 active:bg-slate-100 dark:active:bg-slate-800"
+                    )}>
+                      <Icon className={cn("w-5 h-5", active && "stroke-[2.5px] scale-110 transition-transform")} />
+                      <span className={cn("text-[10px] font-medium leading-none", active && "font-bold")}>{item.label}</span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

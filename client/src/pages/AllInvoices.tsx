@@ -21,12 +21,20 @@ import {
   Download,
   CheckCircle,
   ClipboardList,
+  MoreVertical,
 } from "lucide-react";
 import { formatCurrency, formatDate, type Currency } from "@/lib/store";
 import { trpc } from "@/lib/trpc";
 import { normalizeText } from "@/lib/utils";
 import { useTableSort } from "@/hooks/useTableSort";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -533,163 +541,7 @@ export default function AllInvoices() {
 
   // Import XML e-Factura: mutat în pagina Integrări → cardul „SPV ANAF".
 
-  // ── Export Excel (CSV) ──
-  const exportToExcel = () => {
-    const header = [
-      "Tip",
-      "Număr",
-      "Dată",
-      "Scadență",
-      "Partener",
-      "CUI",
-      "Total",
-      "Monedă",
-      "Status",
-    ];
-    const rows = filtered.map(r => [
-      r.type.toUpperCase(),
-      `"${r.number}"`,
-      r.date.slice(0, 10),
-      r.dueDate ? r.dueDate.slice(0, 10) : "",
-      `"${(r.partnerName || "").replace(/"/g, '""')}"`,
-      r.partnerCui || "",
-      r.total,
-      r.currency,
-      STATUS_LBL[r.status] || r.status,
-    ]);
-    const csvContent = [header, ...rows].map(e => e.join(";")).join("\n");
-    // BOM for Excel compatibility with UTF-8
-    const blob = new Blob(["\uFEFF" + csvContent], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `Facturi_Export_${new Date().toISOString().slice(0, 10)}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-    toast.success("Export Excel generat cu succes!");
-  }; // ── Download PDF re-factură ──
-  const handleDownloadReInvoicePDF = async (row: UnifiedRow) => {
-    const ri = (reInvoices as any[]).find(r => r.id === row.id);
-    if (!ri) {
-      toast.error("Re-factura nu a fost găsită");
-      return;
-    }
-    toast.loading("Generez PDF...", { id: "pdf" });
-    try {
-      await downloadPDF.mutateAsync({
-        number: ri.number,
-        date: ri.issueDate || new Date().toISOString().split("T")[0],
-        dueDate: ri.dueDate || "",
-        clientName: ri.clientName || "",
-        clientCUI: ri.clientCUI || "",
-        clientAddress: ri.clientAddress || "",
-        clientCity: ri.clientCity || "",
-        clientCounty: "",
-        clientEmail: ri.clientEmail || "",
-        clientPhone: ri.clientPhone || "",
-        companyName: tenant?.name || "",
-        companyCUI: tenant?.cui || "",
-        companyAddress: tenant?.address || "",
-        companyCity: tenantSettings.city || "",
-        companyCounty: tenantSettings.county || "",
-        companyEmail: tenant?.email || "",
-        companyPhone: tenant?.phone || "",
-        companyIBAN: tenantSettings.iban || "",
-        companyBank: tenantSettings.bank || "",
-        logoBase64: tenantSettings.logoBase64 || undefined,
-        template:
-          (localStorage.getItem("invoice-template") as any) || "classic",
-        lines: (ri.lines || []).map((l: any) => ({
-          description: l.description,
-          quantity: Number(l.quantity),
-          unitPrice: Number(l.unitPrice),
-          unit: l.unit || "buc",
-          vatRate: Number(l.vatRate) || 21,
-          total:
-            Number(l.quantity) *
-            Number(l.unitPrice) *
-            (1 + (Number(l.vatRate) || 21) / 100),
-        })),
-        subtotal: parseFloat(ri.subtotal || "0"),
-        totalVAT: parseFloat(ri.totalVAT || "0"),
-        total: parseFloat(ri.total || "0"),
-        currency: ri.currency || "RON",
-        notes: ri.notes || undefined,
-      });
-      toast.success("PDF generat!", { id: "pdf" });
-    } catch (e: any) {
-      toast.error("Eroare PDF", { id: "pdf", description: e?.message });
-    }
-  };
-
-  const exportToPdf = () => {
-    const printWindow = window.open("", "", "height=800,width=1200");
-    if (!printWindow) {
-      toast.error("Pop-up blocat");
-      return;
-    }
-
-    const header = [
-      "Tip",
-      "Număr",
-      "Dată",
-      "Scadență",
-      "Partener",
-      "CUI",
-      "Total",
-      "Monedă",
-      "Status",
-    ];
-    const rowsHtml = filtered
-      .map(
-        r => `
-      <tr>
-        <td>${r.type.toUpperCase()}</td>
-        <td>${r.number}</td>
-        <td>${r.date.slice(0, 10)}</td>
-        <td>${r.dueDate ? r.dueDate.slice(0, 10) : ""}</td>
-        <td>${r.partnerName || ""}</td>
-        <td>${r.partnerCui || ""}</td>
-        <td>${r.total}</td>
-        <td>${r.currency}</td>
-        <td>${STATUS_LBL[r.status] || r.status}</td>
-      </tr>
-    `
-      )
-      .join("");
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Export Facturi</title>
-          <style>
-            body { font-family: system-ui, sans-serif; padding: 20px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f8fafc; font-weight: bold; }
-            h2 { margin: 0 0 10px 0; font-size: 18px; }
-          </style>
-        </head>
-        <body>
-          <h2>Lista Facturi - ${new Date().toLocaleDateString("ro-RO")}</h2>
-          <table>
-            <thead>
-              <tr>${header.map(h => `<th>${h}</th>`).join("")}</tr>
-            </thead>
-            <tbody>
-              ${rowsHtml}
-            </tbody>
-          </table>
-          <script>
-            window.onload = function() { window.print(); window.close(); }
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-  };
+  // ── Download PDF re-factură ──
 
   return (
     <div className="p-3 sm:p-5 max-w-full space-y-3">
@@ -938,7 +790,7 @@ export default function AllInvoices() {
       {/* Card tabel */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-6">
         {/* Search & Filtre */}
-        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800/50 flex flex-col md:flex-row items-start md:items-center justify-between bg-white dark:bg-slate-900 gap-3 md:gap-4">
+        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800/50 flex flex-row flex-wrap items-center justify-start bg-white dark:bg-slate-900 gap-3">
           {/* Search (Bara de stânga) */}
           <div style={{ position: "relative" }} className="w-full md:w-[200px] flex-shrink-0">
             <Search
@@ -1108,22 +960,6 @@ export default function AllInvoices() {
             <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
 
             {/* Butoane de Actiune */}
-            <button
-              onClick={exportToExcel}
-              className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold transition-all"
-              title="Exportă tabelul curent în format Excel"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Export Excel</span>
-            </button>
-            <button
-              onClick={exportToPdf}
-              className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition-all"
-              title="Exportă tabelul curent în format PDF"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Export PDF</span>
-            </button>
             {selectedIds.size > 0 && (
               <button
                 onClick={handleDownloadSelectedZip}
@@ -1414,122 +1250,128 @@ export default function AllInvoices() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1 justify-end">
-                          {/* Buton Marchează Achitat/Încasat — doar dacă nu e deja plătit */}
-                          {row.status !== "paid" &&
-                            row.status !== "processed" &&
-                            row.status !== "storno" &&
-                            row.type !== "refacturat" && (
-                              <button
-                                onClick={() => {
-                                  if (row.source === "manual") {
-                                    markEmittedPaid.mutate({
-                                      id: row.id,
-                                      status: "paid",
-                                    });
-                                  } else if (
-                                    row.source === "spv_anaf" ||
-                                    row.source === "spv_import"
-                                  ) {
-                                    markArchivePaid.mutate({
-                                      id: row.id,
-                                      status: "processed",
-                                    });
-                                  }
-                                }}
-                                title={
-                                  row.type === "primit" ||
-                                  (row.type === "emis" &&
-                                    row.source !== "manual")
-                                    ? "Marchează Achitat/Încasat"
-                                    : "Marchează Încasat"
-                                }
-                                className="flex items-center justify-center w-6 h-6 rounded-lg bg-slate-50 hover:bg-slate-100 text-emerald-600 border border-slate-200 transition-colors"
-                              >
-                                <CheckCircle className="w-3 h-3" />
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-500 border border-slate-200 transition-colors">
+                                <MoreVertical className="w-4 h-4" />
                               </button>
-                            )}
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              {row.status !== "paid" &&
+                                row.status !== "processed" &&
+                                row.status !== "storno" &&
+                                row.type !== "refacturat" && (
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      if (row.source === "manual") {
+                                        markEmittedPaid.mutate({
+                                          id: row.id,
+                                          status: "paid",
+                                        });
+                                      } else if (
+                                        row.source === "spv_anaf" ||
+                                        row.source === "spv_import"
+                                      ) {
+                                        markArchivePaid.mutate({
+                                          id: row.id,
+                                          status: "processed",
+                                        });
+                                      }
+                                    }}
+                                    className="cursor-pointer text-emerald-600 focus:text-emerald-700"
+                                  >
+                                    <CheckCircle className="w-4 h-4 mr-2" />
+                                    <span>
+                                      {row.type === "primit" ||
+                                      (row.type === "emis" &&
+                                        row.source !== "manual")
+                                        ? "Marchează Achitat"
+                                        : "Marchează Încasat"}
+                                    </span>
+                                  </DropdownMenuItem>
+                                )}
 
-                          {(row.type === "primit" ||
-                            (row.type === "emis" &&
-                              row.source === "spv_anaf")) && (
-                            <Link href={`/re-facturare/${row.id}`}>
-                              <button
-                                title="Re-facturează"
-                                className="flex items-center justify-center w-6 h-6 rounded-lg bg-slate-50 hover:bg-slate-100 text-blue-600 border border-slate-200 transition-colors"
-                              >
-                                <Send className="w-3 h-3" />
-                              </button>
-                            </Link>
-                          )}
-                          {/* Buton NIR — doar facturi primite */}
-                          {row.type === "primit" && (
-                            <Link href={`/nir/nou/${row.id}`}>
-                              <button
-                                title="Creează NIR"
-                                className="flex items-center justify-center w-6 h-6 rounded-lg bg-slate-50 hover:bg-slate-100 text-teal-600 border border-slate-200 transition-colors"
-                              >
-                                <ClipboardList className="w-3 h-3" />
-                              </button>
-                            </Link>
-                          )}
-                          {row.type === "refacturat" ? (
-                            <button
-                              onClick={() => handleDownloadReInvoicePDF(row)}
-                              title="Descarcă PDF"
-                              disabled={downloadPDF.isPending}
-                              className="flex items-center justify-center w-6 h-6 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 transition-colors disabled:opacity-50"
-                            >
-                              {downloadPDF.isPending ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              ) : (
-                                <FileDown className="w-3 h-3" />
+                              {(row.type === "primit" ||
+                                (row.type === "emis" &&
+                                  row.source === "spv_anaf")) && (
+                                <Link href={`/re-facturare/${row.id}`}>
+                                  <DropdownMenuItem className="cursor-pointer text-blue-600 focus:text-blue-700">
+                                    <Send className="w-4 h-4 mr-2" />
+                                    <span>Re-facturează</span>
+                                  </DropdownMenuItem>
+                                </Link>
                               )}
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                if (
-                                  row.type === "emis" &&
-                                  row.source === "manual"
-                                ) {
-                                  downloadFile(
-                                    `/api/pdf/emitted/${row.id}?download=1`,
-                                    `${row.number}.pdf`
-                                  );
-                                } else if (
-                                  row.fileUrl &&
-                                  row.fileUrl !== "spv_import"
-                                ) {
-                                  downloadFile(
-                                    row.fileUrl,
-                                    `${row.number}.pdf`
-                                  );
-                                } else if (
-                                  row.type === "primit" ||
-                                  (row.type === "emis" &&
-                                    row.source === "spv_anaf")
-                                ) {
-                                  downloadFile(
-                                    `/api/pdf/archive/${row.id}?download=1`,
-                                    `${row.number}.pdf`
-                                  );
-                                } else {
-                                  toast.error("PDF-ul nu este disponibil.");
-                                }
-                              }}
-                              title="Descarcă PDF"
-                              className="flex items-center justify-center w-6 h-6 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 transition-colors"
-                            >
-                              <FileDown className="w-3 h-3" />
-                            </button>
-                          )}
-                          <button
-                            onClick={() => setDeleteTarget(row)}
-                            title="Șterge factura"
-                            className="flex items-center justify-center w-6 h-6 rounded-lg bg-slate-50 hover:bg-slate-100 text-red-600 border border-slate-200 transition-colors"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
+
+                              {row.type === "primit" && (
+                                <Link href={`/nir/nou/${row.id}`}>
+                                  <DropdownMenuItem className="cursor-pointer text-teal-600 focus:text-teal-700">
+                                    <ClipboardList className="w-4 h-4 mr-2" />
+                                    <span>Creează NIR</span>
+                                  </DropdownMenuItem>
+                                </Link>
+                              )}
+
+                              <DropdownMenuSeparator />
+
+                              {row.type === "refacturat" ? (
+                                <DropdownMenuItem
+                                  onClick={() => handleDownloadReInvoicePDF(row)}
+                                  disabled={downloadPDF.isPending}
+                                  className="cursor-pointer"
+                                >
+                                  <FileDown className="w-4 h-4 mr-2" />
+                                  <span>Descarcă PDF</span>
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    if (
+                                      row.type === "emis" &&
+                                      row.source === "manual"
+                                    ) {
+                                      downloadFile(
+                                        `/api/pdf/emitted/${row.id}?download=1`,
+                                        `${row.number}.pdf`
+                                      );
+                                    } else if (
+                                      row.fileUrl &&
+                                      row.fileUrl !== "spv_import"
+                                    ) {
+                                      downloadFile(
+                                        row.fileUrl,
+                                        `${row.number}.pdf`
+                                      );
+                                    } else if (
+                                      row.type === "primit" ||
+                                      (row.type === "emis" &&
+                                        row.source === "spv_anaf")
+                                    ) {
+                                      downloadFile(
+                                        `/api/pdf/archive/${row.id}?download=1`,
+                                        `${row.number}.pdf`
+                                      );
+                                    } else {
+                                      toast.error("PDF-ul nu este disponibil.");
+                                    }
+                                  }}
+                                  className="cursor-pointer"
+                                >
+                                  <FileDown className="w-4 h-4 mr-2" />
+                                  <span>Descarcă PDF</span>
+                                </DropdownMenuItem>
+                              )}
+
+                              <DropdownMenuSeparator />
+
+                              <DropdownMenuItem
+                                onClick={() => setDeleteTarget(row)}
+                                className="cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                <span>Șterge</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </td>
                     </tr>
@@ -1596,41 +1438,103 @@ export default function AllInvoices() {
                         {STATUS_LBL[row.status] || row.status}
                       </span>
 
-                      <Link href={`/re-facturare/${row.id}`}>
-                        <button
-                          title="Re-facturează"
-                          className="flex items-center justify-center w-5 h-5 rounded bg-blue-50 text-blue-700 border border-blue-200"
-                        >
-                          <Send className="w-2.5 h-2.5" />
-                        </button>
-                      </Link>
-                      {row.type === "refacturat" ? (
-                        <button
-                          onClick={() => handleDownloadReInvoicePDF(row)}
-                          title="Descarcă PDF"
-                          className="flex items-center justify-center w-5 h-5 rounded bg-slate-50 text-slate-600 border border-slate-200"
-                        >
-                          <FileDown className="w-2.5 h-2.5" />
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            if (row.fileUrl && row.fileUrl !== "spv_import")
-                              window.open(row.fileUrl, "_blank");
-                            else toast.error("PDF indisp. (SPV XML)");
-                          }}
-                          title="Descarcă PDF"
-                          className="flex items-center justify-center w-5 h-5 rounded bg-slate-50 text-slate-600 border border-slate-200"
-                        >
-                          <FileDown className="w-2.5 h-2.5" />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => setDeleteTarget(row)}
-                        className="flex items-center justify-center w-5 h-5 rounded bg-red-50 text-red-600 border border-red-200"
-                      >
-                        <Trash2 className="w-2.5 h-2.5" />
-                      </button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="flex items-center justify-center w-6 h-6 rounded bg-slate-50 text-slate-500 border border-slate-200 transition-colors ml-1">
+                            <MoreVertical className="w-3 h-3" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          {row.status !== "paid" &&
+                            row.status !== "processed" &&
+                            row.status !== "storno" &&
+                            row.type !== "refacturat" && (
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  if (row.source === "manual") {
+                                    markEmittedPaid.mutate({
+                                      id: row.id,
+                                      status: "paid",
+                                    });
+                                  } else if (
+                                    row.source === "spv_anaf" ||
+                                    row.source === "spv_import"
+                                  ) {
+                                    markArchivePaid.mutate({
+                                      id: row.id,
+                                      status: "processed",
+                                    });
+                                  }
+                                }}
+                                className="cursor-pointer text-emerald-600 focus:text-emerald-700"
+                              >
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                <span>
+                                  {row.type === "primit" ||
+                                  (row.type === "emis" &&
+                                    row.source !== "manual")
+                                    ? "Marchează Achitat"
+                                    : "Marchează Încasat"}
+                                </span>
+                              </DropdownMenuItem>
+                            )}
+
+                          {(row.type === "primit" ||
+                            (row.type === "emis" &&
+                              row.source === "spv_anaf")) && (
+                            <Link href={`/re-facturare/${row.id}`}>
+                              <DropdownMenuItem className="cursor-pointer text-blue-600 focus:text-blue-700">
+                                <Send className="w-4 h-4 mr-2" />
+                                <span>Re-facturează</span>
+                              </DropdownMenuItem>
+                            </Link>
+                          )}
+
+                          {row.type === "primit" && (
+                            <Link href={`/nir/nou/${row.id}`}>
+                              <DropdownMenuItem className="cursor-pointer text-teal-600 focus:text-teal-700">
+                                <ClipboardList className="w-4 h-4 mr-2" />
+                                <span>Creează NIR</span>
+                              </DropdownMenuItem>
+                            </Link>
+                          )}
+
+                          <DropdownMenuSeparator />
+
+                          {row.type === "refacturat" ? (
+                            <DropdownMenuItem
+                              onClick={() => handleDownloadReInvoicePDF(row)}
+                              disabled={downloadPDF.isPending}
+                              className="cursor-pointer"
+                            >
+                              <FileDown className="w-4 h-4 mr-2" />
+                              <span>Descarcă PDF</span>
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                if (row.fileUrl && row.fileUrl !== "spv_import")
+                                  window.open(row.fileUrl, "_blank");
+                                else toast.error("PDF indisp. (SPV XML)");
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <FileDown className="w-4 h-4 mr-2" />
+                              <span>Descarcă PDF</span>
+                            </DropdownMenuItem>
+                          )}
+
+                          <DropdownMenuSeparator />
+
+                          <DropdownMenuItem
+                            onClick={() => setDeleteTarget(row)}
+                            className="cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            <span>Șterge</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
                   <div className="text-[10px] text-slate-400 mt-0.5">
