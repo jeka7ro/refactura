@@ -7,7 +7,7 @@ import { OAuth2Client } from "google-auth-library";
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY || "re_dummy_key_to_prevent_crash_on_boot");
 const EMAIL_FROM = process.env.EMAIL_FROM || "onboarding@resend.dev";
 const APP_URL = process.env.APP_URL || "http://localhost:3000";
 
