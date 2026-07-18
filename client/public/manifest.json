@@ -1,0 +1,24 @@
+{
+  "name": "Factura SPV — Platformă de Facturare HORECA",
+  "short_name": "FacturaSPV",
+  "description": "Platformă completă de gestiune și facturare. Integrată cu SmartBill, SPV și sisteme POS.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1e3a8a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo_icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo_icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -154,7 +154,7 @@ export default function Landing() {
           >
             <div className="flex items-center justify-center gap-2">
               <img
-                src="/favicon.png"
+                src="/logo_icon.png"
                 alt="Icon"
                 className="h-8 w-8 flex-shrink-0"
               />
@@ -563,7 +563,7 @@ export default function Landing() {
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center gap-2">
               <img
-                src="/favicon.png"
+                src="/logo_icon.png"
                 alt="Icon"
                 className="h-7 w-7 flex-shrink-0"
               />
@@ -871,7 +871,7 @@ function HeroMockup() {
           <div className="flex items-center mb-4 cursor-pointer">
             <div className="bg-white px-3 py-2 rounded-lg shadow-sm border border-white/10 flex items-center justify-center gap-1.5">
               <img
-                src="/favicon.png"
+                src="/logo_icon.png"
                 alt="Icon"
                 className="h-5 w-5 flex-shrink-0"
               />
