@@ -559,10 +559,10 @@ export default function AllInvoices() {
           </div>
         </div>
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {/* KPI Cards (Swipeable on mobile) */}
+        <div className="flex overflow-x-auto sm:grid sm:grid-cols-4 gap-4 pb-2 snap-x hide-scrollbar">
           {/* TOTAL */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md min-w-[85vw] sm:min-w-0 snap-center">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
                 Total Facturi
@@ -596,7 +596,7 @@ export default function AllInvoices() {
           </div>
 
           {/* EMISE */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md min-w-[85vw] sm:min-w-0 snap-center">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
                 Emise
@@ -641,7 +641,7 @@ export default function AllInvoices() {
           </div>
 
           {/* PRIMITE */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md min-w-[85vw] sm:min-w-0 snap-center">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
                 Primite
@@ -686,7 +686,7 @@ export default function AllInvoices() {
           </div>
 
           {/* RE-FACTURATE */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md min-w-[85vw] sm:min-w-0 snap-center">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
                 Re-facturate
@@ -790,72 +790,137 @@ export default function AllInvoices() {
       {/* Card tabel */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-6">
         {/* Search & Filtre */}
-        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800/50 flex flex-row flex-wrap items-center justify-start bg-white dark:bg-slate-900 gap-3">
-          {/* Search (Bara de stânga) */}
-          <div style={{ position: "relative" }} className="w-full md:w-[200px] flex-shrink-0">
-            <Search
-              className="w-3.5 h-3.5 text-slate-400"
-              style={{
-                position: "absolute",
-                left: 8,
-                top: "50%",
-                transform: "translateY(-50%)",
+        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800/50 flex flex-col gap-3 bg-white dark:bg-slate-900">
+          
+          {/* Randul 1: Cautare si Buton Sync (Mobile-first layout) */}
+          <div className="flex items-center gap-3 w-full">
+            <div style={{ position: "relative" }} className="flex-1 flex-shrink-0">
+              <Search
+                className="w-3.5 h-3.5 text-slate-400"
+                style={{
+                  position: "absolute",
+                  left: 8,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                }}
+              />
+              <input
+                style={{
+                  paddingLeft: 26,
+                  paddingRight: search ? 60 : 10,
+                  borderRadius: 9999,
+                  width: "100%",
+                  height: 32,
+                  border: "1px solid #e2e8f0",
+                  outline: "none",
+                  fontSize: 12,
+                }}
+                className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white dark:border-slate-700"
+                placeholder="Caută factură..."
+                value={search}
+                onChange={e => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+              />
+              {search && (
+                <>
+                  <div
+                    style={{
+                      position: "absolute",
+                      right: 22,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "#2563eb",
+                      color: "white",
+                      borderRadius: 9999,
+                      padding: "1px 6px",
+                      fontSize: 10,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {filtered.length}/{allRows.length}
+                  </div>
+                  <button
+                    onClick={() => setSearch("")}
+                    style={{
+                      position: "absolute",
+                      right: 6,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                    }}
+                  >
+                    <X className="w-3 h-3 text-slate-400 hover:text-slate-700" />
+                  </button>
+                </>
+              )}
+            </div>
+            
+            <button
+              onClick={async () => {
+                const hasOblio = (dbIntegrations as any[]).some(
+                  i => i.provider === "oblio" && i.status === "active"
+                );
+                const hasSpv = (dbIntegrations as any[]).some(
+                  i => i.provider === "spv" && i.status === "active"
+                );
+                let syncedAny = false;
+
+                if (hasOblio || hasSpv) {
+                  toast.loading("Sincronizare date în curs...", { id: "sync" });
+                  let spvResult: any = null;
+                  const tasks = [];
+                  if (hasOblio)
+                    tasks.push(syncOblio.mutateAsync().catch(() => {}));
+                  if (hasSpv)
+                    tasks.push(
+                      syncSpvManual.mutateAsync().then(r => { spvResult = r; }).catch(() => {})
+                    );
+                  await Promise.all(tasks);
+                  syncedAny = true;
+
+                  // Refetch tables after sync
+                  r1();
+                  r2();
+                  r3();
+
+                  // Show result message
+                  if (spvResult?.limitHit > 0) {
+                    const facturiNoi = spvResult.imported === 1 ? "1 factură nouă importată" : `${spvResult.imported} facturi noi importate`;
+                    const facturiLimita = spvResult.limitHit === 1 ? "1 factură" : `${spvResult.limitHit} facturi`;
+                    toast.warning(
+                      `Sync complet: ${facturiNoi}.\n⚠️ ${facturiLimita} nu ${spvResult.limitHit === 1 ? "a putut" : "au putut"} fi descărcată azi — ANAF permite maxim 10 descărcări/zi per fișier. Va fi importată automat mâine.`,
+                      { id: "sync", duration: 8000 }
+                    );
+                  } else if (spvResult?.imported > 0) {
+                    const facturiNoi = spvResult.imported === 1 ? "1 factură nouă importată" : `${spvResult.imported} facturi noi importate`;
+                    toast.success(`Sync complet: ${facturiNoi} din SPV!`, { id: "sync" });
+                  } else {
+                    toast.success("SPV sincronizat! Nicio factură nouă de importat.", { id: "sync" });
+                  }
+                }
+
+                if (!syncedAny) {
+                  toast.error(
+                    "Nicio integrare activă de sincronizat. Verificați Setările."
+                  );
+                }
               }}
-            />
-            <input
-              style={{
-                paddingLeft: 26,
-                paddingRight: search ? 60 : 10,
-                borderRadius: 9999,
-                width: "100%",
-                height: 30,
-                border: "1px solid #e2e8f0",
-                outline: "none",
-                fontSize: 12,
-              }}
-              className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white dark:border-slate-700"
-              placeholder="Caută..."
-              value={search}
-              onChange={e => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-            />
-            {search && (
-              <>
-                <div
-                  style={{
-                    position: "absolute",
-                    right: 22,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    background: "#2563eb",
-                    color: "white",
-                    borderRadius: 9999,
-                    padding: "1px 6px",
-                    fontSize: 10,
-                    fontWeight: 700,
-                  }}
-                >
-                  {filtered.length}/{allRows.length}
-                </div>
-                <button
-                  onClick={() => setSearch("")}
-                  style={{
-                    position: "absolute",
-                    right: 6,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                  }}
-                >
-                  <X className="w-3 h-3 text-slate-400 hover:text-slate-700" />
-                </button>
-              </>
-            )}
+              disabled={syncOblio.isPending || syncSpvManual.isPending}
+              className="flex items-center justify-center gap-1.5 px-4 h-8 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-all disabled:opacity-60 flex-shrink-0 shadow-sm"
+              title="Sincronizează din sursele configurate (Oblio / SPV)"
+            >
+              {syncOblio.isPending || syncSpvManual.isPending ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="w-3.5 h-3.5" />
+              )}
+              <span>Sync</span>
+            </button>
           </div>
 
-          {/* Restul filtrelor si butoanelor aliniate la dreapta */}
-          <div className="flex flex-wrap md:flex-nowrap items-center gap-2 w-full md:w-auto md:ml-auto">
+          {/* Randul 2: Restul filtrelor (wrap inteligent) */}
+          <div className="flex flex-wrap items-center gap-2">
             {/* Period Filter */}
             <Select
               value={period}
@@ -873,41 +938,41 @@ export default function AllInvoices() {
                 <SelectValue placeholder="Perioadă" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Toate</SelectItem>
+                <SelectItem value="all">Toate dățile</SelectItem>
                 <SelectItem value="today">Azi</SelectItem>
                 <SelectItem value="week">Săpt. curentă</SelectItem>
                 <SelectItem value="month">Luna curentă</SelectItem>
                 <SelectItem value="lastMonth">Luna trecută</SelectItem>
                 <SelectItem value="year">Anul curent</SelectItem>
                 <SelectItem value="lastYear">Anul trecut</SelectItem>
-                <SelectItem value="custom">Custom</SelectItem>
+                <SelectItem value="custom">Personalizat...</SelectItem>
               </SelectContent>
             </Select>
 
-            {/* Date pickers inline */}
-            <input
-              type="date"
-              value={customFrom}
-              onChange={e => {
-                setCustomFrom(e.target.value);
-                setPeriod("custom");
-                setPage(1);
-              }}
-              className="h-8 px-2 rounded-full border border-slate-200 dark:border-slate-600 text-xs bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 outline-none flex-shrink-0"
-              style={{ width: 118 }}
-            />
-            <span className="text-xs text-slate-400 flex-shrink-0">-</span>
-            <input
-              type="date"
-              value={customTo}
-              onChange={e => {
-                setCustomTo(e.target.value);
-                setPeriod("custom");
-                setPage(1);
-              }}
-              className="h-8 px-2 rounded-full border border-slate-200 dark:border-slate-600 text-xs bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 outline-none flex-shrink-0"
-              style={{ width: 118 }}
-            />
+            {/* Arată input-urile doar dacă este pe "custom" */}
+            {period === "custom" && (
+              <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700">
+                <input
+                  type="date"
+                  value={customFrom}
+                  onChange={e => {
+                    setCustomFrom(e.target.value);
+                    setPage(1);
+                  }}
+                  className="h-6 px-1.5 text-xs bg-transparent text-slate-600 dark:text-slate-300 outline-none w-[100px]"
+                />
+                <span className="text-[10px] text-slate-400 font-bold">-</span>
+                <input
+                  type="date"
+                  value={customTo}
+                  onChange={e => {
+                    setCustomTo(e.target.value);
+                    setPage(1);
+                  }}
+                  className="h-6 px-1.5 text-xs bg-transparent text-slate-600 dark:text-slate-300 outline-none w-[100px]"
+                />
+              </div>
+            )}
 
             <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
 
@@ -1400,8 +1465,9 @@ export default function AllInvoices() {
                   key={`${row.source}-${row.type}-${row.id}`}
                   className="px-3 py-2.5"
                 >
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <div className="flex items-center gap-1.5 min-w-0">
+                  {/* LINIA 1: Numar, Nume, Total, Meniu */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
                       <span className="text-[10px] text-slate-400 flex-shrink-0">
                         {(page - 1) * rowsPerPage + i + 1}.
                       </span>
@@ -1413,35 +1479,22 @@ export default function AllInvoices() {
                               : `/facturi-primite/${row.id}`
                           )
                         }
-                        className="text-xs font-bold text-blue-600 hover:underline truncate"
+                        className="text-[11px] font-bold text-blue-600 hover:underline flex-shrink-0"
                       >
                         {row.number}
                       </button>
-                      <span
-                        className={`flex-shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold border ${tb.cls}`}
-                      >
-                        {tb.label}
+                      <span className="text-[11px] text-slate-600 dark:text-slate-300 truncate font-medium">
+                        {row.partnerName}
                       </span>
                     </div>
-                    <span className="flex-shrink-0 text-xs font-bold text-slate-900 dark:text-white">
-                      {formatCurrency(row.total, row.currency as Currency)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-slate-500 truncate max-w-[180px]">
-                      {row.partnerName}
-                    </span>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <span
-                        className={`px-1.5 py-0.5 rounded text-[9px] font-semibold border ${STATUS_CLS[row.status] || STATUS_CLS.pending}`}
-                      >
-                        {STATUS_LBL[row.status] || row.status}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-[11px] font-black text-slate-900 dark:text-white">
+                        {formatCurrency(row.total, row.currency as Currency)}
                       </span>
-
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <button className="flex items-center justify-center w-6 h-6 rounded bg-slate-50 text-slate-500 border border-slate-200 transition-colors ml-1">
-                            <MoreVertical className="w-3 h-3" />
+                          <button className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors">
+                            <MoreVertical className="w-3.5 h-3.5" />
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
@@ -1513,9 +1566,34 @@ export default function AllInvoices() {
                           ) : (
                             <DropdownMenuItem
                               onClick={() => {
-                                if (row.fileUrl && row.fileUrl !== "spv_import")
-                                  window.open(row.fileUrl, "_blank");
-                                else toast.error("PDF indisp. (SPV XML)");
+                                if (
+                                  row.type === "emis" &&
+                                  row.source === "manual"
+                                ) {
+                                  downloadFile(
+                                    `/api/pdf/emitted/${row.id}?download=1`,
+                                    `${row.number}.pdf`
+                                  );
+                                } else if (
+                                  row.fileUrl &&
+                                  row.fileUrl !== "spv_import"
+                                ) {
+                                  downloadFile(
+                                    row.fileUrl,
+                                    `${row.number}.pdf`
+                                  );
+                                } else if (
+                                  row.type === "primit" ||
+                                  (row.type === "emis" &&
+                                    row.source === "spv_anaf")
+                                ) {
+                                  downloadFile(
+                                    `/api/pdf/archive/${row.id}?download=1`,
+                                    `${row.number}.pdf`
+                                  );
+                                } else {
+                                  toast.error("PDF-ul nu este disponibil.");
+                                }
                               }}
                               className="cursor-pointer"
                             >
@@ -1537,9 +1615,28 @@ export default function AllInvoices() {
                       </DropdownMenu>
                     </div>
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">
-                    {formatDate(row.date)}
-                    {row.dueDate ? ` · Scad. ${formatDate(row.dueDate)}` : ""}
+
+                  {/* LINIA 2: Badge tip, Date, Badge status */}
+                  <div className="flex items-center justify-between mt-1.5">
+                    <div className="flex items-center gap-1.5 text-[9px] text-slate-400">
+                      <span
+                        className={`px-1 py-0.5 rounded text-[8px] font-bold border ${tb.cls}`}
+                      >
+                        {tb.label}
+                      </span>
+                      <span>{formatDate(row.date)}</span>
+                      {row.dueDate && (
+                        <>
+                          <span>·</span>
+                          <span>Scad. {formatDate(row.dueDate)}</span>
+                        </>
+                      )}
+                    </div>
+                    <span
+                      className={`px-1.5 py-0.5 rounded text-[9px] font-semibold border ${STATUS_CLS[row.status] || STATUS_CLS.pending}`}
+                    >
+                      {STATUS_LBL[row.status] || row.status}
+                    </span>
                   </div>
                 </div>
               );

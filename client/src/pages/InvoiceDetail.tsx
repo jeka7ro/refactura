@@ -251,27 +251,10 @@ export default function InvoiceDetail() {
                   </a>
                 </div>
               </div>
-              
-              {/* Mobile View: Button instead of iframe */}
-              <div className="md:hidden flex flex-col items-center justify-center p-8 flex-1 bg-slate-50 dark:bg-slate-900/50">
-                <FileText className="w-12 h-12 text-slate-300 mb-4" />
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 text-center max-w-[250px]">
-                  Pentru o vizualizare optimă pe telefon, deschideți factura pe tot ecranul.
-                </p>
-                <a
-                  href={pdfUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-6 h-12 rounded-full bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-sm font-bold flex items-center gap-2 shadow-lg active:scale-95 transition-transform w-full justify-center max-w-[280px]"
-                >
-                  Vezi Factura Originală
-                </a>
-              </div>
-
-              {/* Desktop View: Iframe */}
+              {/* PDF Viewer (Mobile & Desktop) */}
               <iframe
                 src={pdfUrl}
-                className="hidden md:block w-full flex-1 bg-slate-100 dark:bg-slate-900/50"
+                className="w-full h-[65vh] md:h-auto md:flex-1 bg-slate-100 dark:bg-slate-900/50"
                 title="Factura PDF"
               />
             </div>

@@ -283,7 +283,7 @@ export default function Dashboard() {
           sub={`${dbReInvoices.length} re-facturi`}
         />
 
-        <div className="col-span-2 sm:col-span-1">
+        <div className="hidden sm:block col-span-2 sm:col-span-1">
           <KPICard
             title="Clienți Activi"
             value={dbClients.length.toString()}

@@ -165,19 +165,19 @@ export default function EmittedInvoices() {
   return (
     <div className="p-4 md:p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-xl md:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
             Facturi Emise
           </h1>
-          <p className="text-sm text-slate-500 font-medium">
+          <p className="text-[11px] sm:text-sm text-slate-500 font-medium">
             Facturi emise direct din platformă
           </p>
         </div>
         <Link href="/facturi-emise-nou/new">
-          <button className="flex items-center gap-1.5 px-4 h-9 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition-colors">
-            <Plus className="w-4 h-4" />
-            Emite Factură Nouă
+          <button className="flex items-center justify-center sm:gap-1.5 w-10 h-10 sm:w-auto sm:h-9 sm:px-4 rounded-full sm:rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition-colors shadow-sm flex-shrink-0">
+            <Plus className="w-5 h-5 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Emite Factură Nouă</span>
           </button>
         </Link>
       </div>
