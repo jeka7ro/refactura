@@ -36,7 +36,8 @@ const DOMAIN_IMAGES = {
   office: "/images/industry_office_1781868278831.png",
 };
 
-const LOGO_URL = "/logo.png";
+const LOGO_URL = "/logo_gettsapp.png";
+const APP_NAME = "getts/App";
 
 const ICON_MAP: Record<string, any> = {
   FileOutput,
@@ -162,10 +163,10 @@ export default function Landing() {
                   className="text-2xl font-black leading-none text-[#1e3a8a] tracking-tight"
                   style={{ fontFamily: "Inter, sans-serif" }}
                 >
-                  GetApp
+                  {APP_NAME}
                 </span>
-                <span className="text-[9px] font-black leading-none text-[#ef4444] uppercase mt-0.5 w-full tracking-[0.1em]">
-                  SMART HORECA
+                <span className="text-[7px] font-black leading-none text-[#ef4444] mt-0 w-full flex justify-between tracking-tighter">
+                  <span>f</span><span>a</span><span>c</span><span>t</span><span>u</span><span>r</span><span>a</span><span>s</span><span>p</span><span>v</span><span>.</span><span>r</span><span>o</span>
                 </span>
               </div>
             </div>
@@ -571,17 +572,16 @@ export default function Landing() {
                   className="text-xl font-black leading-none text-[#1e3a8a] tracking-tight"
                   style={{ fontFamily: "Inter, sans-serif" }}
                 >
-                  GetApp
+                  {APP_NAME}
                 </span>
-                <span className="text-[8px] font-black leading-none text-[#ef4444] uppercase mt-0.5 w-full tracking-[0.1em]">
-                  SMART HORECA
+                <span className="text-[6px] font-black leading-none text-[#ef4444] mt-0 w-full flex justify-between tracking-tighter">
+                  <span>f</span><span>a</span><span>c</span><span>t</span><span>u</span><span>r</span><span>a</span><span>s</span><span>p</span><span>v</span><span>.</span><span>r</span><span>o</span>
                 </span>
               </div>
             </div>
           </div>
           <p className="text-slate-500 text-sm">
-            © {new Date().getFullYear()} Refactura.ro — Construit cu pasiune
-            pentru antreprenori.
+            © {new Date().getFullYear()} Factura SPV — Construit cu pasiune pentru antreprenori.
           </p>
           <div className="flex gap-8 text-sm font-medium text-slate-500">
             <a href="#" className="hover:text-blue-600">
@@ -880,18 +880,10 @@ function HeroMockup() {
                   className="text-[14px] font-black leading-none text-[#1e3a8a] tracking-tight"
                   style={{ fontFamily: "Inter, sans-serif" }}
                 >
-                  GetApp
+                  {APP_NAME}
                 </span>
-                <span className="text-[6px] font-black leading-none text-[#ef4444] uppercase mt-0.5 w-full flex justify-between">
-                  <span>R</span>
-                  <span>E</span>
-                  <span>F</span>
-                  <span>A</span>
-                  <span>C</span>
-                  <span>T</span>
-                  <span>U</span>
-                  <span>R</span>
-                  <span>A</span>
+                <span className="text-[5px] font-black text-[#ef4444] mt-0 w-full flex justify-between tracking-tighter">
+                  <span>f</span><span>a</span><span>c</span><span>t</span><span>u</span><span>r</span><span>a</span><span>s</span><span>p</span><span>v</span><span>.</span><span>r</span><span>o</span>
                 </span>
               </div>
             </div>

@@ -600,10 +600,10 @@ export function registerPdfRoute(app: any) {
         let foundPath = null;
         try {
           const possiblePaths = [
-            path.resolve(process.cwd(), "client/public/logo.png"),
-            path.resolve(process.cwd(), "../client/public/logo.png"),
-            path.resolve(process.cwd(), "dist/public/logo.png"),
-            path.resolve(process.cwd(), "server/assets/logo.png"),
+            path.resolve(process.cwd(), "client/public/logo_gettsapp.png"),
+            path.resolve(process.cwd(), "../client/public/logo_gettsapp.png"),
+            path.resolve(process.cwd(), "dist/public/logo_gettsapp.png"),
+            path.resolve(process.cwd(), "server/assets/logo_gettsapp.png"),
           ];
           for (const p of possiblePaths) {
             if (fs.existsSync(p)) {
@@ -611,9 +611,34 @@ export function registerPdfRoute(app: any) {
               break;
             }
           }
+          let foundIconPath = null;
+          const iconPaths = [
+            path.resolve(process.cwd(), "client/public/logo_icon.png"),
+            path.resolve(process.cwd(), "../client/public/logo_icon.png"),
+            path.resolve(process.cwd(), "dist/public/logo_icon.png"),
+            path.resolve(process.cwd(), "server/assets/logo_icon.png"),
+          ];
+          for (const p of iconPaths) {
+            if (fs.existsSync(p)) {
+              foundIconPath = p;
+              break;
+            }
+          }
+
+          if (foundIconPath) {
+            const iconBuffer = fs.readFileSync(foundIconPath);
+            doc.image(iconBuffer, 40, 30, { width: 30, height: 30 });
+          }
+
           if (foundPath) {
             const imgBuffer = fs.readFileSync(foundPath);
-            doc.image(imgBuffer, 40, 30, { width: 140 });
+            doc.image(imgBuffer, 63, 20, { width: 85 });
+            // Adaugam și subtitlul facturaspv.ro cu roșu, fix sub logo
+            doc
+              .fontSize(6)
+              .font("Roboto-Bold")
+              .fillColor("#ef4444")
+              .text("facturaspv.ro", 63, 41, { width: 85, align: 'center', characterSpacing: 1 });
           } else {
             doc
               .fontSize(14)

@@ -1,7 +1,8 @@
 import bcrypt from "bcrypt";
 import { eq } from "drizzle-orm";
 import { getDb } from "./db";
-import { accounts } from "../drizzle/schema";
+import { accounts, passwordResets } from "../drizzle/schema";
+import crypto from "crypto";
 
 const SALT_ROUNDS = 10;
 
@@ -45,6 +46,36 @@ export async function createAccount(
       isActive: 1,
     });
     return result;
+  } catch (error) {
+    if ((error as any).code === "ER_DUP_ENTRY") {
+      throw new Error("Email already exists");
+    }
+    throw error;
+  }
+}
+
+/**
+ * Create a new account from Google Login
+ */
+export async function createGoogleAccount(email: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Generate a random secure password hash for google accounts 
+  // since they won't use a password to login, but the column is NOT NULL
+  const randomPassword = crypto.randomBytes(32).toString("hex");
+  const passwordHash = await hashPassword(randomPassword);
+
+  try {
+    const [result] = await db.insert(accounts).values({
+      email,
+      passwordHash,
+      role: "user",
+      isActive: 1,
+    });
+    
+    // Return the newly created account id
+    return result.insertId;
   } catch (error) {
     if ((error as any).code === "ER_DUP_ENTRY") {
       throw new Error("Email already exists");
@@ -141,4 +172,86 @@ export async function getAccountById(id: number) {
     .where(eq(accounts.id, id))
     .limit(1);
   return result.length > 0 ? result[0] : null;
+}
+
+/**
+ * Generate a password reset token
+ */
+export async function generatePasswordResetToken(email: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const account = await getAccountByEmail(email);
+  if (!account) return null; // Do not throw error for security (enum prevention)
+
+  const token = crypto.randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60); // 1 hour
+
+  await db.insert(passwordResets).values({
+    email,
+    token,
+    expiresAt,
+  });
+
+  return token;
+}
+
+/**
+ * Reset password using a valid token
+ */
+export async function resetPasswordWithToken(token: string, newPassword: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const [resetReq] = await db
+    .select()
+    .from(passwordResets)
+    .where(eq(passwordResets.token, token))
+    .limit(1);
+
+  if (!resetReq) throw new Error("Invalid or expired token");
+  if (resetReq.expiresAt < new Date()) {
+    // Delete expired token
+    await db.delete(passwordResets).where(eq(passwordResets.id, resetReq.id));
+    throw new Error("Token has expired");
+  }
+
+  const account = await getAccountByEmail(resetReq.email);
+  if (!account) throw new Error("Account no longer exists");
+
+  const newHash = await hashPassword(newPassword);
+
+  // Update password
+  await db
+    .update(accounts)
+    .set({ passwordHash: newHash })
+    .where(eq(accounts.id, account.id));
+
+  // Consume token (delete all for this user to be safe)
+  await db.delete(passwordResets).where(eq(passwordResets.email, account.email));
+
+  return true;
+}
+
+/**
+ * Change password for logged in user
+ */
+export async function changePassword(accountId: number, currentPassword: string, newPassword: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const account = await getAccountById(accountId);
+  if (!account) throw new Error("Account not found");
+
+  const isValid = await verifyPassword(currentPassword, account.passwordHash);
+  if (!isValid) throw new Error("Parola curentă este incorectă");
+
+  const newHash = await hashPassword(newPassword);
+
+  await db
+    .update(accounts)
+    .set({ passwordHash: newHash })
+    .where(eq(accounts.id, account.id));
+
+  return true;
 }

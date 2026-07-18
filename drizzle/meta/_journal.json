@@ -29,6 +29,13 @@
       "when": 1782646931949,
       "tag": "0003_safe_thor",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1784361783866,
+      "tag": "0004_cold_slapstick",
+      "breakpoints": true
     }
   ]
 }

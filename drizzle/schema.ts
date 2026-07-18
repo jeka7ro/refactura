@@ -715,3 +715,17 @@ export const bonuriConsumLines = mysqlTable("bonuri_consum_lines", {
 
 export type BonConsumLine = typeof bonuriConsumLines.$inferSelect;
 export type InsertBonConsumLine = typeof bonuriConsumLines.$inferInsert;
+
+/**
+ * Password Resets for accounts
+ */
+export const passwordResets = mysqlTable("passwordResets", {
+  id: int("id").autoincrement().primaryKey(),
+  email: varchar("email", { length: 320 }).notNull(),
+  token: varchar("token", { length: 255 }).notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type PasswordReset = typeof passwordResets.$inferSelect;
+export type InsertPasswordReset = typeof passwordResets.$inferInsert;

@@ -159,6 +159,12 @@ export default function Settings() {
   const updateSettingsMutation = trpc.tenants.updateSettings.useMutation();
   const exportDataMutation = trpc.gdpr.exportData.useMutation();
   const deleteAccountMutation = trpc.gdpr.deleteAccount.useMutation();
+  const changePasswordMutation = trpc.auth.changePassword.useMutation();
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
 
   const handleSave = async () => {
     setSaving(true);
@@ -234,6 +240,28 @@ export default function Settings() {
       }
     } else if (confirm !== null) {
       toast.error("Confirmare incorectă. Contul NU a fost șters.");
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmNewPassword) {
+      toast.error("Parola nouă nu coincide cu confirmarea.");
+      return;
+    }
+    if (newPassword.length < 8) {
+      toast.error("Parola nouă trebuie să aibă minim 8 caractere.");
+      return;
+    }
+    try {
+      await changePasswordMutation.mutateAsync({ currentPassword, newPassword });
+      toast.success("Parola a fost schimbată cu succes!");
+      setShowPasswordForm(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+    } catch (err) {
+      toast.error((err as Error).message || "A apărut o eroare la schimbarea parolei.");
     }
   };
 
@@ -800,12 +828,52 @@ export default function Settings() {
               <h2 className="text-sm font-bold text-slate-900 dark:text-white">
                 Securitate
               </h2>
+              
+              {showPasswordForm ? (
+                <form onSubmit={handleChangePassword} className="space-y-4 border border-slate-200 dark:border-slate-800 p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-2">Schimbă Parola</h3>
+                  <div>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">Parola curentă</label>
+                    <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required className="w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-900 outline-none" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">Parola nouă</label>
+                    <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={8} className="w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-900 outline-none" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">Confirmă parola nouă</label>
+                    <input type="password" value={confirmNewPassword} onChange={e => setConfirmNewPassword(e.target.value)} required minLength={8} className="w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-900 outline-none" />
+                  </div>
+                  <div className="flex gap-2 justify-end mt-2">
+                    <button type="button" onClick={() => setShowPasswordForm(false)} className="px-3 h-8 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">Anulează</button>
+                    <button type="submit" disabled={changePasswordMutation.isPending} className="px-3 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center min-w-[80px]">
+                      {changePasswordMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Salvează"}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div
+                  className="flex items-center justify-between py-3 border-b border-slate-100 dark:border-slate-800"
+                >
+                  <div>
+                    <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                      Schimbă parola
+                    </div>
+                    <div className="text-xs text-slate-500 mt-0.5">
+                      Actualizează parola contului tău
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowPasswordForm(true)}
+                    className="flex items-center gap-1.5 px-4 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-colors"
+                  >
+                    Schimbă
+                    <ChevronRight className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+
               {[
-                {
-                  label: "Schimbă parola",
-                  desc: "Actualizează parola contului tău",
-                  action: "Schimbă",
-                },
                 {
                   label: "Autentificare în doi pași (2FA)",
                   desc: "Adaugă un strat extra de securitate",

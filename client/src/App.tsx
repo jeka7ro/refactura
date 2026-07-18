@@ -26,6 +26,7 @@ import Reports from "./pages/Reports";
 import CostCenters from "./pages/CostCenters";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ResetPassword from "./pages/ResetPassword";
 import AdminDashboard from "./pages/AdminDashboard";
 import Landing from "./pages/Landing";
 import SuperAdmin from "./pages/SuperAdmin";
@@ -70,6 +71,7 @@ function Router() {
       <Route path="/" component={Landing} />
       <Route path="/landing" component={Landing} />
       <Route path="/login" component={Login} />
+      <Route path="/reset-password" component={ResetPassword} />
       <Route path="/register" component={Register} />
       <Route path="/termeni" component={Terms} />
       <Route path="/gdpr" component={Privacy} />

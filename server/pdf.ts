@@ -76,10 +76,10 @@ function drawLogo(
     // Folosim fix imaginea pusa de user
     try {
       const possiblePaths = [
-        path.resolve(process.cwd(), "client/public/logo.png"),
-        path.resolve(process.cwd(), "../client/public/logo.png"),
-        path.resolve(process.cwd(), "dist/public/logo.png"),
-        path.resolve(process.cwd(), "server/assets/logo.png"),
+        path.resolve(process.cwd(), "client/public/logo_gettsapp.png"),
+        path.resolve(process.cwd(), "../client/public/logo_gettsapp.png"),
+        path.resolve(process.cwd(), "dist/public/logo_gettsapp.png"),
+        path.resolve(process.cwd(), "server/assets/logo_gettsapp.png"),
       ];
 
       let foundPath = null;
@@ -90,9 +90,34 @@ function drawLogo(
         }
       }
 
+      let foundIconPath = null;
+      const iconPaths = [
+        path.resolve(process.cwd(), "client/public/logo_icon.png"),
+        path.resolve(process.cwd(), "../client/public/logo_icon.png"),
+        path.resolve(process.cwd(), "dist/public/logo_icon.png"),
+        path.resolve(process.cwd(), "server/assets/logo_icon.png"),
+      ];
+      for (const p of iconPaths) {
+        if (fs.existsSync(p)) {
+          foundIconPath = p;
+          break;
+        }
+      }
+
+      if (foundIconPath) {
+        const iconBuffer = fs.readFileSync(foundIconPath);
+        doc.image(iconBuffer, x, y, { width: 30, height: 30 });
+      }
+
       if (foundPath) {
         const imgBuffer = fs.readFileSync(foundPath);
-        doc.image(imgBuffer, x, y, { width: 140 });
+        doc.image(imgBuffer, x + 23, y - 5, { width: 90 });
+        // Adaugam și subtitlul facturaspv.ro cu roșu, fix sub logo
+        doc
+          .fontSize(6)
+          .font("Roboto-Bold")
+          .fillColor("#ef4444")
+          .text("facturaspv.ro", x + 23, y + 18, { width: 90, align: 'center', characterSpacing: 1 });
       }
     } catch (err) {
       console.error("[PDF] Failed to draw logo:", err);

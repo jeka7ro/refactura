@@ -58,6 +58,7 @@ import {
   upsertIntegration,
 } from "./db";
 import { authenticateAccount, createAccount, getAccountByEmail } from "./auth";
+import { authRouter } from "./auth-routers";
 import { createSessionToken } from "./session";
 import { eq, desc, and, inArray } from "drizzle-orm";
 import {
@@ -106,107 +107,7 @@ import { convertXmlToPdf } from "./anafPdf";
 export const appRouter = router({
   system: systemRouter,
   horeca: horecaRouter,
-  auth: router({
-    me: publicProcedure.query(async opts => {
-      const user = opts.ctx.user;
-      if (!user) return null;
-      // Attach tenant name + CUI for sidebar display
-      if (user.tenantId) {
-        try {
-          const db = await getDb();
-          if (db) {
-            const { tenants } = await import("../drizzle/schema");
-            const [tenant] = await db
-              .select({ name: tenants.name, cui: tenants.cui })
-              .from(tenants)
-              .where(eq(tenants.id, user.tenantId));
-            if (tenant)
-              return {
-                ...user,
-                tenantName: tenant.name,
-                tenantCUI: tenant.cui,
-              };
-          }
-        } catch (_) {}
-      }
-      return user;
-    }),
-    logout: publicProcedure.mutation(({ ctx }) => {
-      const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return {
-        success: true,
-      } as const;
-    }),
-    login: publicProcedure
-      .input(
-        z.object({
-          email: z.string().email(),
-          password: z.string(),
-        })
-      )
-      .mutation(async ({ input }) => {
-        try {
-          const account = await authenticateAccount(
-            input.email,
-            input.password
-          );
-          const token = await createSessionToken({
-            accountId: account.id,
-            email: account.email,
-            role: account.role,
-            tenantId: account.tenantId || undefined,
-          });
-          return {
-            success: true,
-            token,
-            account: {
-              id: account.id,
-              email: account.email,
-              role: account.role,
-              tenantId: account.tenantId,
-            },
-          };
-        } catch (error) {
-          throw new Error("Invalid email or password");
-        }
-      }),
-    register: publicProcedure
-      .input(
-        z.object({
-          email: z.string().email(),
-          password: z.string().min(8),
-          confirmPassword: z.string(),
-        })
-      )
-      .mutation(async ({ input }) => {
-        if (input.password !== input.confirmPassword) {
-          throw new Error("Passwords do not match");
-        }
-        const existing = await getAccountByEmail(input.email);
-        if (existing) {
-          throw new Error("Email already registered");
-        }
-        await createAccount(input.email, input.password, undefined, "user");
-        const account = await authenticateAccount(input.email, input.password);
-        const token = await createSessionToken({
-          accountId: account.id,
-          email: account.email,
-          role: account.role,
-          tenantId: account.tenantId || undefined,
-        });
-        return {
-          success: true,
-          token,
-          account: {
-            id: account.id,
-            email: account.email,
-            role: account.role,
-            tenantId: account.tenantId,
-          },
-        };
-      }),
-  }),
+  auth: authRouter,
 
   tenants: router({
     list: protectedProcedure.query(async ({ ctx }) => {
