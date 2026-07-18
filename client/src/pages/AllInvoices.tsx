@@ -937,10 +937,10 @@ export default function AllInvoices() {
 
       {/* Card tabel */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-6">
-        {/* Search & Filtre — UN SINGUR RÂND */}
-        <div className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800/50 flex flex-row items-center justify-between bg-white dark:bg-slate-900 overflow-x-auto gap-4">
+        {/* Search & Filtre */}
+        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800/50 flex flex-col md:flex-row items-start md:items-center justify-between bg-white dark:bg-slate-900 gap-3 md:gap-4">
           {/* Search (Bara de stânga) */}
-          <div style={{ position: "relative", flexShrink: 0, width: 200 }}>
+          <div style={{ position: "relative" }} className="w-full md:w-[200px] flex-shrink-0">
             <Search
               className="w-3.5 h-3.5 text-slate-400"
               style={{
@@ -1003,7 +1003,7 @@ export default function AllInvoices() {
           </div>
 
           {/* Restul filtrelor si butoanelor aliniate la dreapta */}
-          <div className="flex flex-row items-center gap-2 flex-shrink-0 ml-auto">
+          <div className="flex flex-wrap md:flex-nowrap items-center gap-2 w-full md:w-auto md:ml-auto">
             {/* Period Filter */}
             <Select
               value={period}

@@ -93,9 +93,9 @@ export default function InvoiceDetail() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
         {/* Supplier Info */}
-        <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-5">
+        <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-3 md:p-5">
           <div className="flex items-center gap-2 mb-4">
             <Building2 className="w-4 h-4 text-slate-400" />
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -115,7 +115,7 @@ export default function InvoiceDetail() {
         </div>
 
         {/* Invoice Info */}
-        <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-5">
+        <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-3 md:p-5">
           <div className="flex items-center gap-2 mb-4">
             <Hash className="w-4 h-4 text-slate-400" />
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -177,7 +177,7 @@ export default function InvoiceDetail() {
         </div>
 
         {/* Totals */}
-        <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-5">
+        <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-3 md:p-5">
           <div className="flex items-center gap-2 mb-4">
             <Globe className="w-4 h-4 text-slate-400" />
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -221,38 +221,57 @@ export default function InvoiceDetail() {
 
         if (pdfUrl) {
           return (
-            <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col h-[700px] overflow-hidden">
-              <div className="flex items-center justify-between p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+            <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col h-[70vh] md:h-[700px] overflow-hidden">
+              <div className="flex items-center justify-between p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex-wrap gap-2">
                 <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
                   <FileText className="w-4 h-4" />
-                  Vizualizare Factură PDF
+                  <span className="hidden sm:inline">Vizualizare Factură PDF</span>
+                  <span className="inline sm:hidden">Factură PDF</span>
                   {!hasPdf && (
-                    <span className="text-[10px] font-normal text-purple-600 bg-purple-50 px-2 py-0.5 rounded-lg border border-purple-200">
+                    <span className="text-[10px] font-normal text-purple-600 bg-purple-50 px-2 py-0.5 rounded-lg border border-purple-200 whitespace-nowrap">
                       via ANAF
                     </span>
                   )}
                 </h3>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
                   <a
                     href={`${pdfUrl}${pdfUrl.includes("?") ? "&" : "?"}download=1`}
                     download
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold transition-colors"
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 h-8 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold transition-colors"
                   >
                     Descarcă
                   </a>
                   <a
                     href={`mailto:?subject=Factura ${invoice.invoiceNumber}&body=Regăsiți atașată factura ${invoice.invoiceNumber}.`}
-                    className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors"
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors"
                   >
-                    Trimite pe Email
+                    Trimite
                   </a>
                 </div>
               </div>
+              
+              {/* Mobile View: Button instead of iframe */}
+              <div className="md:hidden flex flex-col items-center justify-center p-8 flex-1 bg-slate-50 dark:bg-slate-900/50">
+                <FileText className="w-12 h-12 text-slate-300 mb-4" />
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 text-center max-w-[250px]">
+                  Pentru o vizualizare optimă pe telefon, deschideți factura pe tot ecranul.
+                </p>
+                <a
+                  href={pdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-6 h-12 rounded-full bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-sm font-bold flex items-center gap-2 shadow-lg active:scale-95 transition-transform w-full justify-center max-w-[280px]"
+                >
+                  Vezi Factura Originală
+                </a>
+              </div>
+
+              {/* Desktop View: Iframe */}
               <iframe
                 src={pdfUrl}
-                className="w-full flex-1 bg-slate-100 dark:bg-slate-900/50"
+                className="hidden md:block w-full flex-1 bg-slate-100 dark:bg-slate-900/50"
                 title="Factura PDF"
               />
             </div>
