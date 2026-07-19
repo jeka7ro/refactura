@@ -53,7 +53,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type InvoiceType = "primit" | "emis" | "refacturat";
+type InvoiceType = "primit" | "emis";
 
 interface UnifiedRow {
   id: number;
@@ -81,9 +81,8 @@ const SOURCE_BADGE: Record<string, { label: string; cls: string }> = {
 };
 
 const TYPE_BADGE: Record<InvoiceType, { label: string; cls: string }> = {
-  primit: { label: "Primit", cls: "text-red-600 dark:text-red-400" },
+  primit: { label: "Primit", cls: "text-amber-600 dark:text-amber-400" },
   emis: { label: "Emis", cls: "text-emerald-600 dark:text-emerald-400" },
-  refacturat: { label: "Re-facturat", cls: "text-blue-600 dark:text-blue-400" },
 };
 const STATUS_CLS: Record<string, string> = {
   pending: "text-amber-600 dark:text-amber-500",
@@ -156,7 +155,7 @@ export default function AllInvoices() {
 
   const handleDownloadSelectedZip = async () => {
     const selectedRows = allRows.filter((r) =>
-      selectedIds.has(`${r.type}-${r.id}`)
+      selectedIds.has(`${r.source}-${r.id}`)
     );
     if (selectedRows.length === 0) {
       toast.error("Nu ai selectat nicio factură!");
@@ -276,7 +275,8 @@ export default function AllInvoices() {
     }
   };
 
-  const toggleSelect = (rowKey: string) => {
+  const toggleSelect = (row: UnifiedRow) => {
+    const rowKey = `${row.source}-${row.id}`;
     setSelectedIds(prev => {
       const next = new Set(prev);
       next.has(rowKey) ? next.delete(rowKey) : next.add(rowKey);
@@ -285,7 +285,7 @@ export default function AllInvoices() {
   };
 
   const toggleSelectAll = (pageRows: UnifiedRow[]) => {
-    const pageKeys = pageRows.map(r => `${r.type}-${r.id}`);
+    const pageKeys = pageRows.map(r => `${r.source}-${r.id}`);
     const allSelected = pageKeys.every(k => selectedIds.has(k));
     setSelectedIds(prev => {
       const next = new Set(prev);
@@ -300,7 +300,7 @@ export default function AllInvoices() {
 
   const getSelectedPrimitRows = () =>
     allRows.filter(
-      r => r.type === "primit" && selectedIds.has(`primit-${r.id}`)
+      r => r.type === "primit" && selectedIds.has(`${r.source}-${r.id}`)
     );
 
   const {
@@ -375,7 +375,7 @@ export default function AllInvoices() {
     if (!deleteTarget) return;
     toast.loading("Ștergere în curs...", { id: "delete" });
     try {
-      if (deleteTarget.type === "refacturat") {
+      if (deleteTarget.source === "refactura") {
         await deleteReinvoice.mutateAsync({ id: deleteTarget.id });
       } else if (
         deleteTarget.type === "emis" &&
@@ -426,7 +426,7 @@ export default function AllInvoices() {
       const t = parseFloat(i.total || "0");
       rows.push({
         id: i.id,
-        type: "refacturat",
+        type: "emis",
         number: i.number || `RF-${i.id}`,
         partnerName: i.clientName || "—",
         date: i.issueDate || i.createdAt || "",
@@ -536,12 +536,22 @@ export default function AllInvoices() {
     all: allRows.length,
     primit: allRows.filter(r => r.type === "primit").length,
     emis: allRows.filter(r => r.type === "emis").length,
-    refacturat: allRows.filter(r => r.type === "refacturat").length,
   };
 
-  // Import XML e-Factura: mutat în pagina Integrări → cardul „SPV ANAF".
-
-  // ── Download PDF re-factură ──
+  const handleDownloadReInvoicePDF = async (row: UnifiedRow) => {
+    toast.loading("Se descarcă PDF...", { id: "pdf" });
+    try {
+      const blob = await downloadPDF.mutateAsync({ id: row.id });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${row.number}.pdf`;
+      link.click();
+      toast.dismiss("pdf");
+    } catch {
+      toast.error("Eroare download", { id: "pdf" });
+    }
+  };
 
   return (
     <div className="p-3 sm:p-5 max-w-full space-y-3">
@@ -560,7 +570,7 @@ export default function AllInvoices() {
         </div>
 
       {/* KPI Cards (Swipeable on mobile) */}
-        <div className="flex overflow-x-auto sm:grid sm:grid-cols-4 gap-4 pb-2 snap-x hide-scrollbar">
+        <div className="flex overflow-x-auto sm:grid sm:grid-cols-3 gap-4 pb-2 snap-x hide-scrollbar">
           {/* TOTAL */}
           <div
             className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md min-w-[85vw] sm:min-w-0 snap-center cursor-pointer"
@@ -605,21 +615,6 @@ export default function AllInvoices() {
               </p>
             </div>
           </div>
-
-          {/* RE-FACTURATE */}
-          <div
-            className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md min-w-[85vw] sm:min-w-0 snap-center cursor-pointer"
-            onClick={() => { setTypeFilter("refacturat"); setPage(1); }}
-          >
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                Re-facturate
-              </p>
-              <p className="text-2xl font-black text-slate-800 dark:text-white leading-none">
-                {allRows.filter(r => r.type === "refacturat").length}
-              </p>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -627,7 +622,7 @@ export default function AllInvoices() {
       {selectedIds.size > 0 && (
         <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-blue-600 text-white rounded-lg shadow-md">
           <span className="text-sm font-semibold">
-            {selectedIds.size} factură/facturi selectate pentru Re-Facturare
+            {selectedIds.size} factură/facturi selectate
           </span>
           <div className="flex items-center gap-2">
             <button
@@ -647,32 +642,24 @@ export default function AllInvoices() {
                 toast.loading("Ștergere în curs...", { id: "bulk-del" });
                 let ok = 0;
                 for (const key of Array.from(selectedIds)) {
-                  const [type, idStr] = key.split("-");
+                  const [source, idStr] = key.split("-");
                   const id = Number(idStr);
                   try {
-                    if (type === "refacturat")
+                    if (source === "refactura")
                       await deleteReinvoice.mutateAsync({ id });
+                    else if (source === "manual")
+                      await deleteEmitted.mutateAsync({ id });
                     else await deleteArchive.mutateAsync({ id });
                     ok++;
                   } catch {}
                 }
                 setSelectedIds(new Set());
                 toast.success(`${ok} facturi șterse`, { id: "bulk-del" });
+                r1(); r2(); r3();
               }}
               className="px-3 h-7 rounded-lg bg-red-600 text-white hover:bg-red-700 text-xs font-bold transition-colors shadow-sm"
             >
               Șterge selectate
-            </button>
-            <button
-              onClick={() => {
-                const ids = getSelectedPrimitRows()
-                  .map(r => r.id)
-                  .join(",");
-                navigate(`/re-facturare/multiplu?ids=${ids}`);
-              }}
-              className="px-3 h-7 rounded-lg bg-white text-blue-700 hover:bg-blue-50 text-xs font-bold transition-colors shadow-sm"
-            >
-              Re-Facturare Multiplă →
             </button>
           </div>
         </div>
@@ -811,7 +798,7 @@ export default function AllInvoices() {
           </div>
 
           {/* Randul 2: Restul filtrelor (wrap inteligent) */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-3 w-full gap-2">
             {/* Period Filter */}
             <Select
               value={period}
@@ -825,7 +812,7 @@ export default function AllInvoices() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="h-8 w-fit min-w-[110px] rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 flex-shrink-0">
+              <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">
                 <SelectValue placeholder="Perioadă" />
               </SelectTrigger>
               <SelectContent>
@@ -840,33 +827,6 @@ export default function AllInvoices() {
               </SelectContent>
             </Select>
 
-            {/* Arată input-urile doar dacă este pe "custom" */}
-            {period === "custom" && (
-              <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700">
-                <input
-                  type="date"
-                  value={customFrom}
-                  onChange={e => {
-                    setCustomFrom(e.target.value);
-                    setPage(1);
-                  }}
-                  className="h-6 px-1.5 text-xs bg-transparent text-slate-600 dark:text-slate-300 outline-none w-[100px]"
-                />
-                <span className="text-[10px] text-slate-400 font-bold">-</span>
-                <input
-                  type="date"
-                  value={customTo}
-                  onChange={e => {
-                    setCustomTo(e.target.value);
-                    setPage(1);
-                  }}
-                  className="h-6 px-1.5 text-xs bg-transparent text-slate-600 dark:text-slate-300 outline-none w-[100px]"
-                />
-              </div>
-            )}
-
-            <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
-
             {/* Type Filter */}
             <Select
               value={typeFilter}
@@ -875,22 +835,15 @@ export default function AllInvoices() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="h-8 w-fit min-w-[100px] rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 flex-shrink-0">
+              <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">
                 <SelectValue placeholder="Tip" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Toate {counts["all"]}</SelectItem>
-                <SelectItem value="primit">
-                  Primite {counts["primit"]}
-                </SelectItem>
-                <SelectItem value="emis">Emise {counts["emis"]}</SelectItem>
-                <SelectItem value="refacturat">
-                  Re-fact. {counts["refacturat"]}
-                </SelectItem>
+                <SelectItem value="all">Toate</SelectItem>
+                <SelectItem value="primit">Primite</SelectItem>
+                <SelectItem value="emis">Emise</SelectItem>
               </SelectContent>
             </Select>
-
-            <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
 
             {/* Source Filter */}
             <Select
@@ -900,7 +853,7 @@ export default function AllInvoices() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="h-8 w-fit min-w-[100px] rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 flex-shrink-0">
+              <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">
                 <SelectValue placeholder="Sursă" />
               </SelectTrigger>
               <SelectContent>
@@ -909,11 +862,34 @@ export default function AllInvoices() {
                 <SelectItem value="oblio">Oblio</SelectItem>
                 <SelectItem value="smartbill">SmartBill</SelectItem>
                 <SelectItem value="manual">Manual</SelectItem>
-                <SelectItem value="refactura">Re-Facturat</SelectItem>
               </SelectContent>
             </Select>
-
           </div>
+
+          {/* Arată input-urile doar dacă este pe "custom", acum sub filtre */}
+          {period === "custom" && (
+            <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700 w-fit mt-1">
+              <input
+                type="date"
+                value={customFrom}
+                onChange={e => {
+                  setCustomFrom(e.target.value);
+                  setPage(1);
+                }}
+                className="h-6 px-1.5 text-xs bg-transparent text-slate-600 dark:text-slate-300 outline-none w-[100px]"
+              />
+              <span className="text-[10px] text-slate-400 font-bold">-</span>
+              <input
+                type="date"
+                value={customTo}
+                onChange={e => {
+                  setCustomTo(e.target.value);
+                  setPage(1);
+                }}
+                className="h-6 px-1.5 text-xs bg-transparent text-slate-600 dark:text-slate-300 outline-none w-[100px]"
+              />
+            </div>
+          )}
         </div>
 
         {/* DESKTOP TABLE */}
@@ -927,7 +903,7 @@ export default function AllInvoices() {
                     className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                     checked={
                       paginated.length > 0 &&
-                      paginated.every(r => selectedIds.has(`${r.type}-${r.id}`))
+                      paginated.every(r => selectedIds.has(`${r.source}-${r.id}`))
                     }
                     onChange={() => toggleSelectAll(paginated)}
                     title="Selectează/Deselectează toate de pe această pagină"
@@ -1027,14 +1003,14 @@ export default function AllInvoices() {
                   return (
                     <tr
                       key={`${row.source}-${row.type}-${row.id}`}
-                      className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${selectedIds.has(`${row.type}-${row.id}`) ? "bg-blue-50/50 dark:bg-blue-900/10" : ""}`}
+                      className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${selectedIds.has(`${row.source}-${row.id}`) ? "bg-blue-50/50 dark:bg-blue-900/10" : ""}`}
                     >
                       <td className="px-4 py-3 text-center">
                         <input
                           type="checkbox"
                           className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                          checked={selectedIds.has(`${row.type}-${row.id}`)}
-                          onChange={() => toggleSelect(`${row.type}-${row.id}`)}
+                          checked={selectedIds.has(`${row.source}-${row.id}`)}
+                          onChange={() => toggleSelect(row)}
                         />
                       </td>
                       <td className="px-4 py-3 text-center text-[11px] font-medium text-slate-500">
@@ -1044,7 +1020,7 @@ export default function AllInvoices() {
                         <div className="flex flex-col gap-0.5">
                           <button
                             onClick={() => {
-                              if (row.type === "refacturat")
+                              if (row.source === "refactura")
                                 navigate(`/re-facturi/${row.id}`);
                               else if (
                                 row.type === "emis" &&
@@ -1126,7 +1102,7 @@ export default function AllInvoices() {
                               {row.status !== "paid" &&
                                 row.status !== "processed" &&
                                 row.status !== "storno" &&
-                                row.type !== "refacturat" && (
+                                row.source !== "refactura" && (
                                   <DropdownMenuItem
                                     onClick={() => {
                                       if (row.source === "manual") {
@@ -1179,7 +1155,7 @@ export default function AllInvoices() {
 
                               <DropdownMenuSeparator />
 
-                              {row.type === "refacturat" ? (
+                              {row.source === "refactura" ? (
                                 <DropdownMenuItem
                                   onClick={() => handleDownloadReInvoicePDF(row)}
                                   disabled={downloadPDF.isPending}
@@ -1273,13 +1249,13 @@ export default function AllInvoices() {
                         {(page - 1) * rowsPerPage + i + 1}.
                       </span>
                       <button
-                        onClick={() =>
-                          navigate(
-                            row.type === "refacturat"
-                              ? `/re-facturare/${row.id}`
-                              : `/facturi-primite/${row.id}`
-                          )
-                        }
+                        onClick={() => {
+                          if (row.source === "refactura")
+                            navigate(`/re-facturi/${row.id}`);
+                          else if (row.type === "emis" && row.source === "manual")
+                            navigate(`/facturi-emise-nou/view/${row.id}`);
+                          else navigate(`/facturi-primite/${row.id}`);
+                        }}
                         className="text-[11px] font-bold text-blue-600 hover:underline flex-shrink-0"
                       >
                         {row.number}
@@ -1302,7 +1278,7 @@ export default function AllInvoices() {
                           {row.status !== "paid" &&
                             row.status !== "processed" &&
                             row.status !== "storno" &&
-                            row.type !== "refacturat" && (
+                            row.source !== "refactura" && (
                               <DropdownMenuItem
                                 onClick={() => {
                                   if (row.source === "manual") {
@@ -1355,7 +1331,7 @@ export default function AllInvoices() {
 
                           <DropdownMenuSeparator />
 
-                          {row.type === "refacturat" ? (
+                          {row.source === "refactura" ? (
                             <DropdownMenuItem
                               onClick={() => handleDownloadReInvoicePDF(row)}
                               disabled={downloadPDF.isPending}
