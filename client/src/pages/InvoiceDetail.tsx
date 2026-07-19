@@ -221,7 +221,7 @@ export default function InvoiceDetail() {
 
         if (pdfUrl) {
           return (
-            <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col h-[70vh] md:h-[700px] overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col h-[85vh] md:h-[800px] overflow-hidden">
               <div className="flex items-center justify-between p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex-wrap gap-2">
                 <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
                   <FileText className="w-4 h-4" />
@@ -254,7 +254,8 @@ export default function InvoiceDetail() {
               {/* PDF Viewer (Mobile & Desktop) */}
               <iframe
                 src={pdfUrl}
-                className="w-full h-[65vh] md:h-auto md:flex-1 bg-slate-100 dark:bg-slate-900/50"
+                className="w-full flex-1 bg-slate-100 dark:bg-slate-900/50"
+                style={{ height: '100%', minHeight: '75vh' }}
                 title="Factura PDF"
               />
             </div>

@@ -559,7 +559,7 @@ export default function AllInvoices() {
           </div>
         </div>
 
-        {/* KPI Cards (Swipeable on mobile) */}
+      {/* KPI Cards (Swipeable on mobile) */}
         <div className="flex overflow-x-auto sm:grid sm:grid-cols-4 gap-4 pb-2 snap-x hide-scrollbar">
           {/* TOTAL */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md min-w-[85vw] sm:min-w-0 snap-center">
@@ -596,7 +596,10 @@ export default function AllInvoices() {
           </div>
 
           {/* EMISE */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md min-w-[85vw] sm:min-w-0 snap-center">
+          <div
+            className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md min-w-[85vw] sm:min-w-0 snap-center cursor-pointer"
+            onClick={() => { setTypeFilter("emis"); setPage(1); }}
+          >
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
                 Emise
@@ -605,43 +608,13 @@ export default function AllInvoices() {
                 {allRows.filter(r => r.type === "emis").length}
               </p>
             </div>
-            <div className="flex flex-col items-end gap-1 text-[10px] font-semibold">
-              <span
-                className={`cursor-pointer transition-colors ${typeFilter === "emis" && filterStatus === "paid" ? "text-emerald-700 dark:text-emerald-400 underline font-extrabold" : "text-emerald-600 dark:text-emerald-500 hover:text-emerald-700"}`}
-                onClick={() => handleCardFilterClick("emis", "paid")}
-              >
-                Încasate:{" "}
-                <span className="font-bold">
-                  {
-                    allRows.filter(
-                      r =>
-                        r.type === "emis" &&
-                        (r.status === "paid" || r.status === "processed")
-                    ).length
-                  }
-                </span>
-              </span>
-              <span
-                className={`cursor-pointer transition-colors ${typeFilter === "emis" && filterStatus === "pending" ? "text-amber-700 dark:text-amber-400 underline font-extrabold" : "text-amber-600 dark:text-amber-500 hover:text-amber-700"}`}
-                onClick={() => handleCardFilterClick("emis", "pending")}
-              >
-                Neîncasate:{" "}
-                <span className="font-bold">
-                  {
-                    allRows.filter(
-                      r =>
-                        r.type === "emis" &&
-                        r.status !== "paid" &&
-                        r.status !== "processed"
-                    ).length
-                  }
-                </span>
-              </span>
-            </div>
           </div>
 
           {/* PRIMITE */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md min-w-[85vw] sm:min-w-0 snap-center">
+          <div
+             className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md min-w-[85vw] sm:min-w-0 snap-center cursor-pointer"
+             onClick={() => { setTypeFilter("primit"); setPage(1); }}
+          >
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
                 Primite
@@ -650,43 +623,13 @@ export default function AllInvoices() {
                 {allRows.filter(r => r.type === "primit").length}
               </p>
             </div>
-            <div className="flex flex-col items-end gap-1 text-[10px] font-semibold">
-              <span
-                className={`cursor-pointer transition-colors ${typeFilter === "primit" && filterStatus === "processed" ? "text-emerald-700 dark:text-emerald-400 underline font-extrabold" : "text-emerald-600 dark:text-emerald-500 hover:text-emerald-700"}`}
-                onClick={() => handleCardFilterClick("primit", "processed")}
-              >
-                Achitate:{" "}
-                <span className="font-bold">
-                  {
-                    allRows.filter(
-                      r =>
-                        r.type === "primit" &&
-                        (r.status === "paid" || r.status === "processed")
-                    ).length
-                  }
-                </span>
-              </span>
-              <span
-                className={`cursor-pointer transition-colors ${typeFilter === "primit" && filterStatus === "pending" ? "text-amber-700 dark:text-amber-400 underline font-extrabold" : "text-amber-600 dark:text-amber-500 hover:text-amber-700"}`}
-                onClick={() => handleCardFilterClick("primit", "pending")}
-              >
-                Neachitate:{" "}
-                <span className="font-bold">
-                  {
-                    allRows.filter(
-                      r =>
-                        r.type === "primit" &&
-                        r.status !== "paid" &&
-                        r.status !== "processed"
-                    ).length
-                  }
-                </span>
-              </span>
-            </div>
           </div>
 
           {/* RE-FACTURATE */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md min-w-[85vw] sm:min-w-0 snap-center">
+          <div
+            className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md min-w-[85vw] sm:min-w-0 snap-center cursor-pointer"
+            onClick={() => { setTypeFilter("refacturat"); setPage(1); }}
+          >
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
                 Re-facturate
@@ -694,39 +637,6 @@ export default function AllInvoices() {
               <p className="text-2xl font-black text-slate-800 dark:text-white leading-none">
                 {allRows.filter(r => r.type === "refacturat").length}
               </p>
-            </div>
-            <div className="flex flex-col items-end gap-1 text-[10px] font-semibold">
-              <span
-                className={`cursor-pointer transition-colors ${typeFilter === "refacturat" && filterStatus === "paid" ? "text-emerald-700 dark:text-emerald-400 underline font-extrabold" : "text-emerald-600 dark:text-emerald-500 hover:text-emerald-700"}`}
-                onClick={() => handleCardFilterClick("refacturat", "paid")}
-              >
-                Încasate:{" "}
-                <span className="font-bold">
-                  {
-                    allRows.filter(
-                      r =>
-                        r.type === "refacturat" &&
-                        (r.status === "paid" || r.status === "processed")
-                    ).length
-                  }
-                </span>
-              </span>
-              <span
-                className={`cursor-pointer transition-colors ${typeFilter === "refacturat" && filterStatus === "pending" ? "text-amber-700 dark:text-amber-400 underline font-extrabold" : "text-amber-600 dark:text-amber-500 hover:text-amber-700"}`}
-                onClick={() => handleCardFilterClick("refacturat", "pending")}
-              >
-                Neîncasate:{" "}
-                <span className="font-bold">
-                  {
-                    allRows.filter(
-                      r =>
-                        r.type === "refacturat" &&
-                        r.status !== "paid" &&
-                        r.status !== "processed"
-                    ).length
-                  }
-                </span>
-              </span>
             </div>
           </div>
         </div>
