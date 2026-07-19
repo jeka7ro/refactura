@@ -267,7 +267,7 @@ export default function Dashboard() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4 pb-2">
         <KPICard
           title="Total Emise"
           value={formatCurrency(dbEmitted.reduce((s: number, e: any) => s + parseFloat(e.total || "0"), 0), "RON")}
@@ -559,10 +559,10 @@ function KPICard({
   sub: string;
 }) {
   return (
-    <div className="bg-white/70 dark:bg-white/5 backdrop-blur-xl rounded-lg border border-white/20 dark:border-white/10 p-4 sm:p-6 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02] flex flex-col justify-between">
-      <div className="flex items-start justify-between mb-2 sm:mb-3">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3 sm:p-4 flex flex-col justify-center h-16 sm:h-20 shadow-sm transition-all hover:shadow-md">
+      <div className="hidden">
         <div
-          className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${iconBg} flex items-center justify-center`}
+          className={`hidden sm:flex w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${iconBg} items-center justify-center`}
         >
           {icon}
         </div>
@@ -579,13 +579,13 @@ function KPICard({
           </div>
         )}
       </div>
-      <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1 truncate">
+      <div className="text-[8px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5 sm:mb-1 truncate">
         {title}
       </div>
-      <div className="text-xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-1 truncate">
+      <div className="text-lg sm:text-2xl font-black text-slate-800 dark:text-white leading-none truncate">
         {value}
       </div>
-      <div className="text-[10px] sm:text-xs text-slate-400 mt-auto">{sub}</div>
+      <div className="hidden">{sub}</div>
     </div>
   );
 }

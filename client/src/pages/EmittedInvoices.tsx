@@ -215,7 +215,7 @@ export default function EmittedInvoices() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-4 gap-1.5 sm:gap-4 pb-2">
         {[
           {
             label: "Total Facturi",
@@ -232,12 +232,12 @@ export default function EmittedInvoices() {
         ].map(k => (
           <div
             key={k.label}
-            className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4"
+            className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-2 sm:p-4 flex flex-col justify-center h-14 sm:h-20 shadow-sm transition-all hover:shadow-md cursor-pointer"
           >
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+            <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5 sm:mb-1 truncate">
               {k.label}
             </p>
-            <p className={`text-xl font-black ${k.cls}`}>{k.value}</p>
+            <p className={`text-base sm:text-2xl font-black leading-none truncate ${k.cls}`}>{k.value}</p>
           </div>
         ))}
       </div>
