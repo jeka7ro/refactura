@@ -343,88 +343,73 @@ export default function ReInvoicesSent() {
         onRowClick={row => {
           window.location.href = `/re-facturi/${row.id}`;
         }}
-        headerContent={
-          <div className="flex flex-wrap gap-2 items-center justify-end w-full">
-            {/* Period Filter */}
-            <div className="flex items-center gap-1.5">
-              <Calendar className="w-4 h-4 text-slate-400 hidden sm:block" />
+        toolbar={
+          <div className="w-full">
+            <div className="grid grid-cols-2 w-full gap-2">
+              {/* Period Filter */}
               <Select
                 value={period}
-                onValueChange={val => setPeriod(val as any)}
+                onValueChange={val => {
+                  setPeriod(val as any);
+                  const range = getDateRange(val);
+                  if (range && val !== "custom") {
+                    setCustomFrom(range[0]);
+                    setCustomTo(range[1]);
+                  }
+                }}
               >
-                <SelectTrigger className="h-8 w-fit min-w-[130px] rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-slate-800 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300">
-                  <SelectValue placeholder="Selectează perioada" />
+                <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">
+                  <SelectValue placeholder="Perioadă" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Toate</SelectItem>
+                  <SelectItem value="all">Toate dățile</SelectItem>
                   <SelectItem value="today">Azi</SelectItem>
                   <SelectItem value="week">Săpt. curentă</SelectItem>
                   <SelectItem value="month">Luna curentă</SelectItem>
                   <SelectItem value="lastMonth">Luna trecută</SelectItem>
                   <SelectItem value="year">Anul curent</SelectItem>
                   <SelectItem value="lastYear">Anul trecut</SelectItem>
-                  <SelectItem value="custom">Custom</SelectItem>
+                  <SelectItem value="custom">Personalizat...</SelectItem>
                 </SelectContent>
               </Select>
 
-              <div className="flex items-center gap-1 ml-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full px-2 h-8">
-                <span className="text-[10px] text-slate-500 font-medium hidden sm:inline">
-                  De la:
-                </span>
+              {/* Status Filter */}
+              <Select
+                value={statusFilter}
+                onValueChange={val => setStatusFilter(val as any)}
+              >
+                <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toate</SelectItem>
+                  <SelectItem value="draft">Ciornă</SelectItem>
+                  <SelectItem value="pending">În Așteptare</SelectItem>
+                  <SelectItem value="sent">Trimisă</SelectItem>
+                  <SelectItem value="paid">Achitată</SelectItem>
+                  <SelectItem value="overdue">Restanță</SelectItem>
+                  <SelectItem value="cancelled">Anulată</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {period === "custom" && (
+              <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700 w-fit mt-2">
                 <input
                   type="date"
                   value={customFrom}
-                  onChange={e => {
-                    setCustomFrom(e.target.value);
-                    setPeriod("custom");
-                  }}
-                  className="text-xs bg-transparent outline-none text-slate-700 dark:text-slate-300 w-24 sm:w-auto"
+                  onChange={e => setCustomFrom(e.target.value)}
+                  className="h-6 px-1.5 text-xs bg-transparent text-slate-600 dark:text-slate-300 outline-none w-[100px]"
                 />
-                <span className="text-xs text-slate-300 dark:text-slate-600 px-1">
-                  -
-                </span>
-                <span className="text-[10px] text-slate-500 font-medium hidden sm:inline">
-                  Până la:
-                </span>
+                <span className="text-[10px] text-slate-400 font-bold">-</span>
                 <input
                   type="date"
                   value={customTo}
-                  onChange={e => {
-                    setCustomTo(e.target.value);
-                    setPeriod("custom");
-                  }}
-                  className="text-xs bg-transparent outline-none text-slate-700 dark:text-slate-300 w-24 sm:w-auto"
+                  onChange={e => setCustomTo(e.target.value)}
+                  className="h-6 px-1.5 text-xs bg-transparent text-slate-600 dark:text-slate-300 outline-none w-[100px]"
                 />
               </div>
-            </div>
-
-            <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-0.5 hidden sm:block" />
-
-            {/* Status Filter */}
-            <Select
-              value={statusFilter}
-              onValueChange={val => setStatusFilter(val as any)}
-            >
-              <SelectTrigger className="h-8 w-fit min-w-[130px] rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-slate-800 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300">
-                <SelectValue placeholder="Status factură" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toate {reInvoices.length}</SelectItem>
-                <SelectItem value="paid">
-                  Achitate {reInvoices.filter(r => r.status === "paid").length}
-                </SelectItem>
-                <SelectItem value="sent">
-                  Trimise {reInvoices.filter(r => r.status === "sent").length}
-                </SelectItem>
-                <SelectItem value="draft">
-                  Ciornă {reInvoices.filter(r => r.status === "draft").length}
-                </SelectItem>
-                <SelectItem value="overdue">
-                  Restanțe{" "}
-                  {reInvoices.filter(r => r.status === "overdue").length}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            )}
           </div>
         }
         isLoading={isLoading}

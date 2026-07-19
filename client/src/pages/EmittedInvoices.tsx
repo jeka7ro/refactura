@@ -15,13 +15,7 @@ import {
   ChevronRight,
   Undo2,
 } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { formatCurrency, formatDate } from "@/lib/store";
@@ -67,6 +61,30 @@ export default function EmittedInvoices() {
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [period, setPeriod] = useState<string>("all");
+  const [customFrom, setCustomFrom] = useState(() => new Date().toISOString().split("T")[0]);
+  const [customTo, setCustomTo] = useState(() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().split("T")[0]; });
+
+  const getDateRange = (p: string): [string, string] | null => {
+    const now = new Date();
+    const fmt = (d: Date) => {
+      const yr = d.getFullYear();
+      const mo = String(d.getMonth() + 1).padStart(2, "0");
+      const da = String(d.getDate()).padStart(2, "0");
+      return `${yr}-${mo}-${da}`;
+    };
+    const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    switch (p) {
+      case "today": { const t = fmt(now); return [t, t]; }
+      case "week": { const d = startOfDay(now); const day = d.getDay() || 7; d.setDate(d.getDate() - day + 1); const end = new Date(d); end.setDate(end.getDate() + 6); return [fmt(d), fmt(end)]; }
+      case "month": { const s = new Date(now.getFullYear(), now.getMonth(), 1); const e = new Date(now.getFullYear(), now.getMonth() + 1, 0); return [fmt(s), fmt(e)]; }
+      case "lastMonth": { const s = new Date(now.getFullYear(), now.getMonth() - 1, 1); const e = new Date(now.getFullYear(), now.getMonth(), 0); return [fmt(s), fmt(e)]; }
+      case "year": return [`${now.getFullYear()}-01-01`, `${now.getFullYear()}-12-31`];
+      case "lastYear": return [`${now.getFullYear() - 1}-01-01`, `${now.getFullYear() - 1}-12-31`];
+      case "custom": return customFrom && customTo ? [customFrom, customTo] : null;
+      default: return null;
+    }
+  };
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [stornoTarget, setStornoTarget] = useState<{
     id: number;
