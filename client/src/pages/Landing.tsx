@@ -153,22 +153,7 @@ export default function Landing() {
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           >
             <div className="flex items-center justify-center gap-2">
-              <img
-                src="/logo_icon.png"
-                alt="Icon"
-                className="h-8 w-8 flex-shrink-0"
-              />
-              <div className="flex flex-col pt-1 w-fit">
-                <span
-                  className="text-2xl font-black leading-none text-[#1e3a8a] tracking-tight"
-                  style={{ fontFamily: "Inter, sans-serif" }}
-                >
-                  {APP_NAME}
-                </span>
-                <span className="text-[7px] font-black leading-none text-[#ef4444] mt-0 w-full flex justify-between tracking-tighter">
-                  <span>f</span><span>a</span><span>c</span><span>t</span><span>u</span><span>r</span><span>a</span><span>s</span><span>p</span><span>v</span><span>.</span><span>r</span><span>o</span>
-                </span>
-              </div>
+              <img src={LOGO_URL} alt="Smart Invoice" className="h-8" />
             </div>
           </div>
           <div className="hidden md:flex items-center gap-10 text-sm font-medium text-slate-600">
@@ -562,22 +547,7 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center gap-2">
-              <img
-                src="/logo_icon.png"
-                alt="Icon"
-                className="h-7 w-7 flex-shrink-0"
-              />
-              <div className="flex flex-col pt-1 w-fit">
-                <span
-                  className="text-xl font-black leading-none text-[#1e3a8a] tracking-tight"
-                  style={{ fontFamily: "Inter, sans-serif" }}
-                >
-                  {APP_NAME}
-                </span>
-                <span className="text-[6px] font-black leading-none text-[#ef4444] mt-0 w-full flex justify-between tracking-tighter">
-                  <span>f</span><span>a</span><span>c</span><span>t</span><span>u</span><span>r</span><span>a</span><span>s</span><span>p</span><span>v</span><span>.</span><span>r</span><span>o</span>
-                </span>
-              </div>
+              <img src={LOGO_URL} alt="Smart Invoice" className="h-7" />
             </div>
           </div>
           <p className="text-slate-500 text-sm">
@@ -870,22 +840,7 @@ function HeroMockup() {
         <div className="hidden sm:flex w-44 bg-slate-900 border-r border-slate-800 p-3 flex-col gap-1 flex-shrink-0">
           <div className="flex items-center mb-4 cursor-pointer">
             <div className="bg-white px-3 py-2 rounded-lg shadow-sm border border-white/10 flex items-center justify-center gap-1.5">
-              <img
-                src="/logo_icon.png"
-                alt="Icon"
-                className="h-5 w-5 flex-shrink-0"
-              />
-              <div className="flex flex-col pt-0.5 w-fit">
-                <span
-                  className="text-[14px] font-black leading-none text-[#1e3a8a] tracking-tight"
-                  style={{ fontFamily: "Inter, sans-serif" }}
-                >
-                  {APP_NAME}
-                </span>
-                <span className="text-[5px] font-black text-[#ef4444] mt-0 w-full flex justify-between tracking-tighter">
-                  <span>f</span><span>a</span><span>c</span><span>t</span><span>u</span><span>r</span><span>a</span><span>s</span><span>p</span><span>v</span><span>.</span><span>r</span><span>o</span>
-                </span>
-              </div>
+              <img src={LOGO_URL} alt="Smart Invoice" className="h-6" />
             </div>
           </div>
           <div
