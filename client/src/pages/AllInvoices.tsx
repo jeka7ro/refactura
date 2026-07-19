@@ -562,7 +562,10 @@ export default function AllInvoices() {
       {/* KPI Cards (Swipeable on mobile) */}
         <div className="flex overflow-x-auto sm:grid sm:grid-cols-4 gap-4 pb-2 snap-x hide-scrollbar">
           {/* TOTAL */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md min-w-[85vw] sm:min-w-0 snap-center">
+          <div
+            className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md min-w-[85vw] sm:min-w-0 snap-center cursor-pointer"
+            onClick={() => { setTypeFilter("all"); setPage(1); }}
+          >
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
                 Total Facturi
@@ -570,28 +573,6 @@ export default function AllInvoices() {
               <p className="text-2xl font-black text-slate-800 dark:text-white leading-none">
                 {allRows.length}
               </p>
-            </div>
-            <div className="flex flex-col items-end gap-1 text-[10px] font-semibold">
-              <span className="text-blue-600">
-                Val. Emise:{" "}
-                <span className="font-bold">
-                  {allRows
-                    .filter(r => r.type === "emis" || r.type === "refacturat")
-                    .reduce((s, r) => s + (Number(r.total) || 0), 0)
-                    .toLocaleString("ro-RO", { minimumFractionDigits: 2 })}{" "}
-                  RON
-                </span>
-              </span>
-              <span className="text-blue-900 dark:text-blue-400">
-                Val. Primite:{" "}
-                <span className="font-bold">
-                  {allRows
-                    .filter(r => r.type === "primit")
-                    .reduce((s, r) => s + (Number(r.total) || 0), 0)
-                    .toLocaleString("ro-RO", { minimumFractionDigits: 2 })}{" "}
-                  RON
-                </span>
-              </span>
             </div>
           </div>
 

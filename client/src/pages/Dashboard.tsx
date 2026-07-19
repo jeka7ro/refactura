@@ -269,18 +269,18 @@ export default function Dashboard() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
         <KPICard
-          title="Total Importat"
+          title="Total Emise"
+          value={formatCurrency(dbEmitted.reduce((s: number, e: any) => s + parseFloat(e.total || "0"), 0), "RON")}
+          icon={<FileOutput className="w-5 h-5 text-emerald-600" />}
+          iconBg="bg-emerald-50 dark:bg-emerald-900/30"
+          sub={`${dbEmitted.length} facturi emise`}
+        />
+        <KPICard
+          title="Total Primite"
           value={formatCurrency(totalImported, "RON")}
           icon={<FileText className="w-5 h-5 text-blue-600" />}
           iconBg="bg-blue-50 dark:bg-blue-900/30"
-          sub={`${dbInvoices.length} facturi`}
-        />
-        <KPICard
-          title="Total Re-Facturat"
-          value={formatCurrency(totalReInvoiced, "RON")}
-          icon={<FileOutput className="w-5 h-5 text-emerald-600" />}
-          iconBg="bg-emerald-50 dark:bg-emerald-900/30"
-          sub={`${dbReInvoices.length} re-facturi`}
+          sub={`${dbInvoices.length} facturi primite`}
         />
 
         <div className="hidden sm:block col-span-2 sm:col-span-1">

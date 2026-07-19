@@ -253,7 +253,7 @@ export default function InvoiceDetail() {
               </div>
               {/* PDF Viewer (Mobile & Desktop) */}
               <iframe
-                src={pdfUrl}
+                src={`${pdfUrl}#view=FitH`}
                 className="w-full flex-1 bg-slate-100 dark:bg-slate-900/50"
                 style={{ height: '100%', minHeight: '75vh' }}
                 title="Factura PDF"
