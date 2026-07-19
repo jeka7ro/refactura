@@ -1,6 +1,7 @@
 // EmittedInvoices.tsx — Lista Facturilor Emise Direct din Platformă
 import { useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Plus,
   Eye,
@@ -131,6 +132,19 @@ export default function EmittedInvoices() {
     let rows = allData;
     if (statusFilter !== "all")
       rows = rows.filter(r => r.status === statusFilter);
+    if (period !== "all") {
+      const range = getDateRange(period);
+      if (range) {
+        const [start, end] = range;
+        const startDate = new Date(start).getTime();
+        const endDate = new Date(end).getTime() + 86400000;
+        rows = rows.filter(r => {
+          if (!r.issueDate) return false;
+          const d = new Date(r.issueDate).getTime();
+          return d >= startDate && d < endDate;
+        });
+      }
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       rows = rows.filter(
@@ -212,53 +226,59 @@ export default function EmittedInvoices() {
 
       {/* Table Card */}
       <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
-        {/* Toolbar */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 border-b border-slate-100 dark:border-slate-800">
-          {/* Status Filters */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {[
-              { id: "all", label: "Toate", count: counts.all },
-              { id: "draft", label: "Ciornă", count: counts.draft },
-              { id: "sent", label: "Emise", count: counts.sent },
-              { id: "paid", label: "Achitate", count: counts.paid },
-              { id: "overdue", label: "Restanțe", count: counts.overdue },
-            ].map(f => (
-              <button
-                key={f.id}
-                onClick={() => {
-                  setStatusFilter(f.id);
-                  setPage(1);
-                }}
-                className={`flex items-center gap-1 px-3 h-7 rounded-lg text-xs font-semibold border transition-all ${
-                  statusFilter === f.id
-                    ? "bg-blue-600 text-white border-blue-600"
-                    : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300 dark:hover:border-slate-600"
-                }`}
-              >
-                {f.label} <span className="font-bold">{f.count}</span>
-              </button>
-            ))}
+        {/* Search & Filtre */}
+        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800/50 flex flex-col gap-3 bg-white dark:bg-slate-900">
+          <div className="flex items-center gap-3 w-full">
+            <div style={{ position: "relative" }} className="flex-1 flex-shrink-0">
+              <Search className="w-3.5 h-3.5 text-slate-400" style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)" }} />
+              <input
+                style={{ paddingLeft: 26, paddingRight: search ? 60 : 10, borderRadius: 9999, width: "100%", height: 32, border: "1px solid #e2e8f0", outline: "none", fontSize: 12 }}
+                className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white dark:border-slate-700"
+                placeholder="Caută factură, client..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
+              />
+              {search && (
+                <div style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "#2563eb", color: "white", borderRadius: 9999, padding: "1px 6px", fontSize: 10, fontWeight: 700 }}>
+                  {filtered.length}/{data.length}
+                </div>
+              )}
+            </div>
           </div>
-
-          {/* Search */}
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
-            <input
-              type="text"
-              placeholder="Caută factură, client..."
-              value={search}
-              onChange={e => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              className="w-full h-8 !pl-10 pr-10 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-full text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {search && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 bg-blue-600 text-white rounded-full px-2 text-[10px] font-bold">
-                {filtered.length}/{data.length}
-              </span>
-            )}
+          <div className="grid grid-cols-2 w-full gap-2">
+            <Select value={period} onValueChange={val => { setPeriod(val as any); const range = getDateRange(val); if (range && val !== "custom") { setCustomFrom(range[0]); setCustomTo(range[1]); } setPage(1); }}>
+              <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">
+                <SelectValue placeholder="Perioadă" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toate dățile</SelectItem>
+                <SelectItem value="today">Azi</SelectItem>
+                <SelectItem value="week">Săpt. curentă</SelectItem>
+                <SelectItem value="month">Luna curentă</SelectItem>
+                <SelectItem value="lastMonth">Luna trecută</SelectItem>
+                <SelectItem value="year">Anul curent</SelectItem>
+                <SelectItem value="lastYear">Anul trecut</SelectItem>
+                <SelectItem value="custom">Personalizat...</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={val => { setStatusFilter(val as any); setPage(1); }}>
+              <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toate ({counts.all})</SelectItem>
+                <SelectItem value="draft">Ciornă ({counts.draft})</SelectItem>
+                <SelectItem value="sent">Emise ({counts.sent})</SelectItem>
+                <SelectItem value="paid">Achitate ({counts.paid})</SelectItem>
+                <SelectItem value="overdue">Restanțe ({counts.overdue})</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+          {period === "custom" && (
+            <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700 w-fit mt-1">
+              <input type="date" value={customFrom} onChange={e => { setCustomFrom(e.target.value); setPage(1); }} className="h-6 px-1.5 text-xs bg-transparent text-slate-600 dark:text-slate-300 outline-none w-[100px]" />
+              <span className="text-[10px] text-slate-400 font-bold">-</span>
+              <input type="date" value={customTo} onChange={e => { setCustomTo(e.target.value); setPage(1); }} className="h-6 px-1.5 text-xs bg-transparent text-slate-600 dark:text-slate-300 outline-none w-[100px]" />
+            </div>
+          )}
         </div>
 
         {/* Table */}

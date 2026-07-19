@@ -276,10 +276,10 @@ export default function ReInvoiceDetail() {
             </a>
           </div>
         </div>
-        <div className="flex-1 min-h-[800px] bg-slate-50 dark:bg-slate-900/50 p-4">
+        <div className="flex-1 min-h-[800px] bg-slate-50 dark:bg-slate-900/50 p-4 overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
           <iframe
             src={`${pdfUrl}#view=FitH`}
-            className="w-full h-[800px] rounded border border-slate-200 dark:border-slate-700 bg-white"
+            className="w-full min-w-[800px] sm:min-w-full h-[800px] rounded border border-slate-200 dark:border-slate-700 bg-white"
             title={`Re-Factură ${invoice.number}`}
           />
         </div>

@@ -293,10 +293,7 @@ export default function ReInvoicesSent() {
               <span className="hidden sm:inline">Export Excel</span>
             </button>
             <Link href="/facturi-primite">
-              <button className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors shadow-sm">
-                <Plus className="w-3.5 h-3.5" />
-                Re-Factură nouă
-              </button>
+              <button className="flex items-center justify-center sm:gap-1.5 w-10 h-10 sm:w-auto sm:h-8 sm:px-3 rounded-full sm:rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors shadow-sm flex-shrink-0"><Plus className="w-5 h-5 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Re-Factură nouă</span></button>
             </Link>
           </div>
         </div>

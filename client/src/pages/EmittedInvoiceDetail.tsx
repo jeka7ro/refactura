@@ -287,10 +287,10 @@ export default function EmittedInvoiceDetail() {
               )}
             </div>
           </div>
-          <div className="bg-slate-50 dark:bg-slate-900/50 p-3">
+          <div className="bg-slate-50 dark:bg-slate-900/50 p-3 overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
             <iframe
               src={`/api/pdf/emitted/${invoice.id}`}
-              className="w-full h-[550px] border border-slate-200 dark:border-slate-700 bg-white"
+              className="w-full min-w-[800px] sm:min-w-full h-[550px] border border-slate-200 dark:border-slate-700 bg-white"
               title="PDF Viewer"
             />
           </div>
@@ -330,10 +330,10 @@ export default function EmittedInvoiceDetail() {
                 </a>
               </div>
             </div>
-            <div className="bg-slate-50 dark:bg-slate-900/50 p-3">
+            <div className="bg-slate-50 dark:bg-slate-900/50 p-3 overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
               <iframe
                 src={`/api/pdf/deviz/${linkedDeviz.deviz.id}`}
-                className="w-full h-[550px] border border-slate-200 dark:border-slate-700 bg-white"
+                className="w-full min-w-[800px] sm:min-w-full h-[550px] border border-slate-200 dark:border-slate-700 bg-white"
                 title="Deviz PDF Viewer"
               />
             </div>

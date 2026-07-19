@@ -177,13 +177,13 @@ export default function InvoiceDetail() {
               </div>
               {/* PDF Viewer (Mobile & Desktop) */}
               <div 
-                className="w-full flex-1 bg-slate-100 dark:bg-slate-900/50 overflow-auto"
+                className="w-full flex-1 bg-slate-100 dark:bg-slate-900/50 overflow-x-auto"
                 style={{ WebkitOverflowScrolling: "touch" }}
               >
                 <iframe
                   src={`${pdfUrl}#view=FitH`}
-                  className="border-0 bg-transparent"
-                  style={{ width: "1px", minWidth: "100%", height: "100%", minHeight: "75vh" }}
+                  className="border-0 bg-transparent w-full min-w-[800px] sm:min-w-full"
+                  style={{ height: "100%", minHeight: "75vh" }}
                   title="Factura PDF"
                 />
               </div>

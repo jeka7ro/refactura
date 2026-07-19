@@ -569,18 +569,18 @@ export default function AllInvoices() {
           </div>
         </div>
 
-      {/* KPI Cards (Swipeable on mobile) */}
-        <div className="flex overflow-x-auto sm:grid sm:grid-cols-3 gap-4 pb-2 snap-x hide-scrollbar">
+      {/* KPI Cards (Grid uniform pe mobile si desktop) */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-4 pb-2">
           {/* TOTAL */}
           <div
-            className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md min-w-[85vw] sm:min-w-0 snap-center cursor-pointer"
+            className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3 sm:p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md cursor-pointer"
             onClick={() => { setTypeFilter("all"); setPage(1); }}
           >
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                Total Facturi
+              <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 truncate">
+                Total
               </p>
-              <p className="text-2xl font-black text-slate-800 dark:text-white leading-none">
+              <p className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white leading-none">
                 {allRows.length}
               </p>
             </div>
@@ -588,14 +588,14 @@ export default function AllInvoices() {
 
           {/* EMISE */}
           <div
-            className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md min-w-[85vw] sm:min-w-0 snap-center cursor-pointer"
+            className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3 sm:p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md cursor-pointer"
             onClick={() => { setTypeFilter("emis"); setPage(1); }}
           >
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+              <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 truncate">
                 Emise
               </p>
-              <p className="text-2xl font-black text-slate-800 dark:text-white leading-none">
+              <p className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white leading-none">
                 {allRows.filter(r => r.type === "emis").length}
               </p>
             </div>
@@ -603,14 +603,14 @@ export default function AllInvoices() {
 
           {/* PRIMITE */}
           <div
-             className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md min-w-[85vw] sm:min-w-0 snap-center cursor-pointer"
+             className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3 sm:p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md cursor-pointer"
              onClick={() => { setTypeFilter("primit"); setPage(1); }}
           >
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+              <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 truncate">
                 Primite
               </p>
-              <p className="text-2xl font-black text-slate-800 dark:text-white leading-none">
+              <p className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white leading-none">
                 {allRows.filter(r => r.type === "primit").length}
               </p>
             </div>
