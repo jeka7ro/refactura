@@ -385,12 +385,36 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Top Header — Full width island */}
       <header className="h-16 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center px-4 sm:px-6 gap-4 flex-shrink-0">
         {/* Logo */}
-        <div className="flex items-center gap-2 flex-shrink-0 mr-2 h-8">
-          <img
-            src="/refactura-logo.png"
-            alt="Refactura Logo"
-            className="h-full w-auto object-contain"
-          />
+        <div className="flex items-center gap-2 flex-shrink-0 mr-2">
+          <div className="h-8 w-8 flex-shrink-0">
+            <img
+              src="/logo_icon.png"
+              alt="Icon"
+              className="h-full w-full object-contain"
+            />
+          </div>
+          {!collapsed && (
+            <div className="flex flex-col">
+              <div className="text-[19px] font-extrabold text-slate-900 dark:text-white tracking-tight leading-none pt-1">
+                getts<span className="text-[#20C57A]">/</span>App
+              </div>
+              <div className="text-[10px] font-black text-[#ef4444] mt-0.5 w-full flex justify-between">
+                <span>f</span>
+                <span>a</span>
+                <span>c</span>
+                <span>t</span>
+                <span>u</span>
+                <span>r</span>
+                <span>a</span>
+                <span>s</span>
+                <span>p</span>
+                <span>v</span>
+                <span>.</span>
+                <span>r</span>
+                <span>o</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Mobile menu toggle */}
