@@ -6,6 +6,7 @@ import {
   tenants,
   userTenants,
   costCenters,
+  costCenterRules,
   subscriptionPlans,
   clients,
   leads,
@@ -67,6 +68,27 @@ export async function getDb() {
       try {
         await _db.execute(sql`ALTER TABLE integrations ADD COLUMN lastCronAt TIMESTAMP NULL`);
       } catch {}
+      // API Keys table
+      try {
+        await _db.execute(sql`
+          CREATE TABLE IF NOT EXISTS apiKeys (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            tenantId INT NOT NULL,
+            name VARCHAR(100) NOT NULL,
+            keyHash VARCHAR(255) NOT NULL,
+            keyPrefix VARCHAR(12) NOT NULL,
+            isActive INT NOT NULL DEFAULT 1,
+            lastUsedAt TIMESTAMP NULL,
+            expiresAt TIMESTAMP NULL,
+            createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_apiKeys_tenantId (tenantId),
+            INDEX idx_apiKeys_keyHash (keyHash)
+          )
+        `);
+        console.log("[DB] apiKeys table ready");
+      } catch (e) {
+        // Table might already exist — ignore
+      }
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;

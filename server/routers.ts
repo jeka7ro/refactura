@@ -568,6 +568,189 @@ export const appRouter = router({
         if (!ctx.user?.tenantId) throw new Error("No tenant context");
         return getCostCenterById(input.id, ctx.user.tenantId);
       }),
+    listRules: protectedProcedure.query(async ({ ctx }) => {
+      if (!ctx.user?.tenantId) throw new Error("No tenant context");
+      const db = await getDb();
+      const { costCenterRules } = await import("../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      return db.select().from(costCenterRules).where(eq(costCenterRules.tenantId, ctx.user.tenantId));
+    }),
+    createRule: protectedProcedure
+      .input(
+        z.object({
+          costCenterId: z.number(),
+          conditionValue: z.string().optional(), // CUI filter
+          matchName: z.string().optional(),      // Name filter
+          addressKeyword: z.string().optional(), // Location filter
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        const { costCenterRules } = await import("../drizzle/schema");
+        return db.insert(costCenterRules).values({
+          tenantId: ctx.user.tenantId,
+          conditionType: "MULTI",
+          conditionValue: input.conditionValue || "",
+          matchName: input.matchName || null,
+          addressKeyword: input.addressKeyword || null,
+          costCenterId: input.costCenterId,
+        });
+      }),
+    deleteRule: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        const { costCenterRules } = await import("../drizzle/schema");
+        const { eq, and } = await import("drizzle-orm");
+        return db
+          .delete(costCenterRules)
+          .where(and(eq(costCenterRules.id, input.id), eq(costCenterRules.tenantId, ctx.user.tenantId)));
+      }),
+    updateRule: protectedProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          costCenterId: z.number(),
+          conditionValue: z.string().optional(), // CUI filter
+          matchName: z.string().optional(),      // Name filter
+          addressKeyword: z.string().optional(), // Location filter
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        const { costCenterRules } = await import("../drizzle/schema");
+        const { eq, and } = await import("drizzle-orm");
+        const { id, ...data } = input;
+        return db
+          .update(costCenterRules)
+          .set({
+            conditionType: "MULTI",
+            conditionValue: data.conditionValue || "",
+            matchName: data.matchName || null,
+            addressKeyword: data.addressKeyword || null,
+            costCenterId: data.costCenterId,
+          })
+          .where(and(eq(costCenterRules.id, id), eq(costCenterRules.tenantId, ctx.user.tenantId)));
+      }),
+    getInvoicesByCostCenter: protectedProcedure
+      .input(z.object({
+        costCenterId: z.number(),
+        supplierSearch: z.string().optional(),
+        dateFrom: z.string().optional(),
+        dateTo: z.string().optional(),
+      }))
+      .query(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        const { invoiceArchive } = await import("../drizzle/schema");
+        const { eq, and, like, gte, lte, or } = await import("drizzle-orm");
+
+        const conditions: any[] = [
+          eq(invoiceArchive.tenantId, ctx.user.tenantId),
+          eq(invoiceArchive.costCenterId, input.costCenterId),
+        ];
+
+        if (input.supplierSearch && input.supplierSearch.trim()) {
+          const term = `%${input.supplierSearch.trim()}%`;
+          conditions.push(or(
+            like(invoiceArchive.supplierName, term),
+            like(invoiceArchive.supplierCUI, term)
+          ));
+        }
+        if (input.dateFrom) conditions.push(gte(invoiceArchive.issueDate, input.dateFrom));
+        if (input.dateTo) conditions.push(lte(invoiceArchive.issueDate, input.dateTo));
+
+        return db
+          .select({
+            id: invoiceArchive.id,
+            invoiceNumber: invoiceArchive.invoiceNumber,
+            supplierName: invoiceArchive.supplierName,
+            supplierCUI: invoiceArchive.supplierCUI,
+            total: invoiceArchive.total,
+            totalVAT: invoiceArchive.totalVAT,
+            currency: invoiceArchive.currency,
+            issueDate: invoiceArchive.issueDate,
+            dueDate: invoiceArchive.dueDate,
+            status: invoiceArchive.status,
+            direction: invoiceArchive.direction,
+          })
+          .from(invoiceArchive)
+          .where(and(...conditions))
+          .orderBy(invoiceArchive.issueDate)
+          .limit(1000);
+      }),
+    getUniqueSuppliers: protectedProcedure.query(async ({ ctx }) => {
+      if (!ctx.user?.tenantId) throw new Error("No tenant context");
+      const db = await getDb();
+      const { invoiceArchive } = await import("../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      
+      // Fetch ALL suppliers from ALL invoices (no direction filter)
+      const distinctSuppliers = await db
+        .select({
+          supplierCUI: invoiceArchive.supplierCUI,
+          supplierName: invoiceArchive.supplierName,
+        })
+        .from(invoiceArchive)
+        .where(eq(invoiceArchive.tenantId, ctx.user.tenantId))
+        .groupBy(invoiceArchive.supplierCUI, invoiceArchive.supplierName)
+        .limit(500);
+
+      return distinctSuppliers.filter(s => s.supplierCUI || s.supplierName);
+    }),
+    recalculateRules: protectedProcedure.mutation(async ({ ctx }) => {
+      if (!ctx.user?.tenantId) throw new Error("No tenant context");
+      const db = await getDb();
+      const { invoiceArchive, costCenterRules } = await import("../drizzle/schema");
+      const { eq, and } = await import("drizzle-orm");
+      
+      const rules = await db
+        .select()
+        .from(costCenterRules)
+        .where(and(eq(costCenterRules.tenantId, ctx.user.tenantId), eq(costCenterRules.isActive, 1)));
+        
+      if (rules.length === 0) return { updated: 0 };
+      
+      // Fetch ALL inbound invoices (no strict direction filter - include null/out too)
+      const invoices = await db
+        .select()
+        .from(invoiceArchive)
+        .where(eq(invoiceArchive.tenantId, ctx.user.tenantId));
+        
+      let updatedCount = 0;
+      for (const invoice of invoices) {
+        let assignedCostCenterId = null;
+        for (const rule of rules) {
+          // New MULTI logic: all non-empty conditions must match
+          const hasCUI = rule.conditionValue && rule.conditionValue.trim() !== "";
+          const hasName = rule.matchName && rule.matchName.trim() !== "";
+          const hasAddr = rule.addressKeyword && rule.addressKeyword.trim() !== "";
+
+          if (!hasCUI && !hasName && !hasAddr) continue; // empty rule, skip
+
+          let cuiOk = !hasCUI || (invoice.supplierCUI && invoice.supplierCUI.toLowerCase().includes(rule.conditionValue!.toLowerCase()));
+          let nameOk = !hasName || (invoice.supplierName && invoice.supplierName.toLowerCase().includes(rule.matchName!.toLowerCase()));
+          let addrOk = !hasAddr || (invoice.supplierAddress && invoice.supplierAddress.toLowerCase().includes(rule.addressKeyword!.toLowerCase()));
+
+          if (cuiOk && nameOk && addrOk) {
+            assignedCostCenterId = rule.costCenterId;
+            break;
+          }
+        }
+        
+        if (assignedCostCenterId && assignedCostCenterId !== invoice.costCenterId) {
+          await db
+            .update(invoiceArchive)
+            .set({ costCenterId: assignedCostCenterId })
+            .where(eq(invoiceArchive.id, invoice.id));
+          updatedCount++;
+        }
+      }
+      return { updated: updatedCount };
+    }),
   }),
 
   clients: router({
@@ -2967,4 +3150,72 @@ export const appRouter = router({
   }),
 
 });
+
+// ─── API Keys Router ───────────────────────────────────────────────────────────
+import { generateApiKey, hashKey } from "./publicApi";
+import { apiKeys } from "../drizzle/schema";
+
+const apiKeysRouter = router({
+  list: protectedProcedure.query(async ({ ctx }) => {
+    if (!ctx.user?.tenantId) return [];
+    const db = await getDb();
+    const { eq } = await import("drizzle-orm");
+    return db
+      .select({
+        id: apiKeys.id,
+        name: apiKeys.name,
+        keyPrefix: apiKeys.keyPrefix,
+        isActive: apiKeys.isActive,
+        lastUsedAt: apiKeys.lastUsedAt,
+        expiresAt: apiKeys.expiresAt,
+        createdAt: apiKeys.createdAt,
+      })
+      .from(apiKeys)
+      .where(eq(apiKeys.tenantId, ctx.user.tenantId));
+  }),
+
+  create: protectedProcedure
+    .input(z.object({ name: z.string().min(1).max(100) }))
+    .mutation(async ({ input, ctx }) => {
+      if (!ctx.user?.tenantId) throw new Error("No tenant");
+      const db = await getDb();
+      const { raw, prefix, hash } = generateApiKey();
+      await db.insert(apiKeys).values({
+        tenantId: ctx.user.tenantId,
+        name: input.name,
+        keyHash: hash,
+        keyPrefix: prefix,
+        isActive: 1,
+      });
+      // Return raw key ONLY once — never stored
+      return { rawKey: raw, prefix };
+    }),
+
+  revoke: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      if (!ctx.user?.tenantId) throw new Error("No tenant");
+      const db = await getDb();
+      const { eq, and } = await import("drizzle-orm");
+      await db.update(apiKeys)
+        .set({ isActive: 0 })
+        .where(and(eq(apiKeys.id, input.id), eq(apiKeys.tenantId, ctx.user.tenantId)));
+      return { success: true };
+    }),
+
+  delete: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      if (!ctx.user?.tenantId) throw new Error("No tenant");
+      const db = await getDb();
+      const { eq, and } = await import("drizzle-orm");
+      await db.delete(apiKeys)
+        .where(and(eq(apiKeys.id, input.id), eq(apiKeys.tenantId, ctx.user.tenantId)));
+      return { success: true };
+    }),
+});
+
+// Patch appRouter to include apiKeys
+Object.assign(appRouter, { apiKeys: apiKeysRouter });
+
 export type AppRouter = typeof appRouter;

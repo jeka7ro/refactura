@@ -139,7 +139,7 @@ export default function Landing() {
   const opacityHero = useTransform(scrollY, [0, 500], [1, 0]);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-blue-200">
+    <main className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-blue-200">
       {/* Navbar (Glassmorphism) */}
       <nav
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-white/80 backdrop-blur-md shadow-sm border-b border-white/20" : "bg-transparent"}`}
@@ -343,17 +343,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Trusted By Section */}
-      <section className="py-10 border-b border-slate-100 bg-white flex flex-col items-center">
-        <p className="text-sm font-bold text-slate-400 mb-8 uppercase tracking-widest">Branduri de top care folosesc ecosistemul nostru</p>
-        <div className="flex items-center justify-center flex-wrap gap-8 md:gap-16 opacity-60 hover:opacity-100 grayscale hover:grayscale-0 transition-all duration-500 max-w-5xl mx-auto px-6">
-           <img src="https://placehold.co/200x80/ffffff/000000?text=SmashMe" alt="SmashMe" className="h-10 lg:h-12 object-contain rounded" />
-           <img src="https://placehold.co/200x80/ffffff/000000?text=Crunch" alt="Crunch" className="h-8 lg:h-10 object-contain rounded" />
-           <img src="https://placehold.co/200x80/ffffff/000000?text=Roll+Master" alt="Roll Master" className="h-10 lg:h-12 object-contain rounded" />
-           <img src="https://placehold.co/200x80/ffffff/000000?text=Love+Sushi" alt="Love Sushi" className="h-10 lg:h-12 object-contain rounded" />
-           <img src="https://placehold.co/200x80/ffffff/000000?text=Poki-Woki" alt="Poki-Woki" className="h-12 lg:h-14 object-contain rounded" />
-        </div>
-      </section>
 
       {/* Features Grid */}
       <section
@@ -373,11 +362,7 @@ export default function Landing() {
                 title: "POS & Smart Kiosk",
                 desc: "Preluare comenzi la casă, ecrane Kiosk pentru auto-comandă și Meniuri QR digitale pentru o experiență perfectă la masă.",
               },
-              {
-                icon: MonitorSmartphone,
-                title: "Agregator Delivery",
-                desc: "Toate comenzile din Glovo, Tazz și Wolt integrate direct în POS-ul tău. Gestionezi meniurile dintr-un singur loc.",
-              },
+
               {
                 icon: FileOutput,
                 title: "Gestiune & e-Factura",
@@ -496,7 +481,9 @@ export default function Landing() {
                     />
                   );
                 })
-              : (modulesWithPricing as any[]).map((mod, i) => {
+              : (modulesWithPricing as any[])
+                  .filter(mod => !mod.name.toLowerCase().includes("horeca"))
+                  .map((mod, i) => {
                   const priceObj =
                     getPriceForModule(mod, activeCurrency) || mod.pricing[0];
                   if (!priceObj) return null;
@@ -531,7 +518,7 @@ export default function Landing() {
           </h2>
           <p className="text-xl text-slate-300 mb-12 font-light">
             Transformă haosul facturilor într-un proces curat, automat și
-            precis. Primele 7 zile sunt din partea noastră.
+            precis. Primele 30 de zile sunt din partea noastră.
           </p>
           <Button
             onClick={() => openTrial()}
@@ -568,7 +555,7 @@ export default function Landing() {
         </div>
         
         <div className="flex flex-col items-center justify-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
-          <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 text-center leading-tight">
+          <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 text-center leading-tight">
             Grup și Echipă de<br/>Producție Aplicație
           </span>
           <img src="/logo_full.png" alt="GettsApp" className="h-5 w-auto filter grayscale hover:grayscale-0 transition-all" />
@@ -576,7 +563,7 @@ export default function Landing() {
       </footer>
 
 
-    </div>
+    </main>
   );
 }
 
@@ -627,7 +614,7 @@ function PricingCard({
         </div>
         <h3 className="font-extrabold text-2xl mb-3">{mod.name}</h3>
         <p
-          className={`text-sm leading-relaxed ${highlighted ? "text-slate-400" : "text-slate-500"}`}
+          className={`text-sm leading-relaxed ${highlighted ? "text-slate-500" : "text-slate-500"}`}
         >
           {mod.description}
         </p>
@@ -639,7 +626,7 @@ function PricingCard({
           <span className="text-xl font-bold mt-2">{symbol}</span>
         </div>
         <p
-          className={`text-sm mt-3 ${highlighted ? "text-slate-400" : "text-slate-500"}`}
+          className={`text-sm mt-3 ${highlighted ? "text-slate-500" : "text-slate-500"}`}
         >
           /lună + TVA · {trialDays} zile gratis
         </p>
@@ -685,7 +672,7 @@ function HeroMockup() {
         <div className="w-3 h-3 rounded-full bg-red-500" />
         <div className="w-3 h-3 rounded-full bg-yellow-500" />
         <div className="w-3 h-3 rounded-full bg-green-500" />
-        <div className="ml-4 text-xs font-medium text-slate-400">
+        <div className="ml-4 text-xs font-medium text-slate-500">
           app.smartinvoice.ro
         </div>
       </div>
@@ -704,21 +691,21 @@ function HeroMockup() {
             </div>
           </div>
           <div
-            className={`flex items-center gap-2 px-2 py-2 rounded-lg text-xs font-medium transition-colors ${activeTab === 0 ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"}`}
+            className={`flex items-center gap-2 px-2 py-2 rounded-lg text-xs font-medium transition-colors ${activeTab === 0 ? "bg-blue-600 text-white" : "text-slate-500 hover:text-white"}`}
           >
             <BarChart3 className="w-3.5 h-3.5" /> Dashboard
           </div>
           <div
-            className={`flex items-center gap-2 px-2 py-2 rounded-lg text-xs font-medium transition-colors ${activeTab === 1 ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"}`}
+            className={`flex items-center gap-2 px-2 py-2 rounded-lg text-xs font-medium transition-colors ${activeTab === 1 ? "bg-blue-600 text-white" : "text-slate-500 hover:text-white"}`}
           >
             <FileText className="w-3.5 h-3.5" /> Re-Facturare
           </div>
           <div
-            className={`flex items-center gap-2 px-2 py-2 rounded-lg text-xs font-medium transition-colors ${activeTab === 2 ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"}`}
+            className={`flex items-center gap-2 px-2 py-2 rounded-lg text-xs font-medium transition-colors ${activeTab === 2 ? "bg-blue-600 text-white" : "text-slate-500 hover:text-white"}`}
           >
             <Building2 className="w-3.5 h-3.5" /> Centre de Cost
           </div>
-          <div className="mt-auto flex items-center gap-2 px-2 py-2 rounded-lg text-slate-400 text-xs font-medium">
+          <div className="mt-auto flex items-center gap-2 px-2 py-2 rounded-lg text-slate-500 text-xs font-medium">
             <Settings className="w-3.5 h-3.5" /> Setări
           </div>
         </div>
@@ -757,7 +744,7 @@ function HeroMockup() {
                 <div className="text-base font-black text-orange-500">
                   32.100 RON
                 </div>
-                <div className="text-[10px] text-slate-400 mt-1 font-medium">
+                <div className="text-[10px] text-slate-500 mt-1 font-medium">
                   14 facturi active
                 </div>
               </div>
@@ -793,7 +780,7 @@ function HeroMockup() {
                         style={{ height: `${h * 0.6}%` }}
                       />
                     </div>
-                    <span className="text-[9px] text-slate-400">L{i + 1}</span>
+                    <span className="text-[9px] text-slate-500">L{i + 1}</span>
                   </div>
                 ))}
               </div>
@@ -840,7 +827,7 @@ function HeroMockup() {
                   className="bg-white rounded-lg border border-slate-200 shadow-sm p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between relative overflow-hidden gap-3"
                 >
                   <div className="flex flex-col gap-0.5 w-full sm:w-1/3">
-                    <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                    <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-orange-500 inline-block"></span>
                       Furnizor (SPV)
                     </div>
@@ -980,7 +967,7 @@ function HeroMockup() {
                     </svg>
                     <div className="absolute flex flex-col items-center">
                       <span className="text-xl font-black">58%</span>
-                      <span className="text-[8px] text-slate-400 uppercase tracking-widest">
+                      <span className="text-[8px] text-slate-500 uppercase tracking-widest">
                         Marjă
                       </span>
                     </div>
@@ -988,7 +975,7 @@ function HeroMockup() {
                 </div>
                 <div className="grid grid-cols-2 gap-2 border-t border-white/10 pt-3 mt-auto">
                   <div>
-                    <div className="text-[9px] text-slate-400 uppercase mb-0.5">
+                    <div className="text-[9px] text-slate-500 uppercase mb-0.5">
                       Venituri
                     </div>
                     <div className="text-xs font-bold text-green-400">
@@ -996,7 +983,7 @@ function HeroMockup() {
                     </div>
                   </div>
                   <div>
-                    <div className="text-[9px] text-slate-400 uppercase mb-0.5">
+                    <div className="text-[9px] text-slate-500 uppercase mb-0.5">
                       Costuri
                     </div>
                     <div className="text-xs font-bold text-red-400">

@@ -373,7 +373,7 @@ export default function NIRCreate() {
         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3">
           I. Date NIR
         </p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
           <div>
             <label className={LABEL_CLS}>Nr. NIR *</label>
             <input

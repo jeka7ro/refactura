@@ -141,6 +141,21 @@ export const costCenters = mysqlTable("costCenters", {
 export type CostCenter = typeof costCenters.$inferSelect;
 export type InsertCostCenter = typeof costCenters.$inferInsert;
 
+export const costCenterRules = mysqlTable("costCenterRules", {
+  id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId").notNull(),
+  costCenterId: int("costCenterId").notNull(),
+  conditionType: varchar("conditionType", { length: 50 }).notNull().default("MULTI"),
+  conditionValue: varchar("conditionValue", { length: 255 }).notNull().default(""),
+  matchName: varchar("matchName", { length: 255 }),
+  addressKeyword: varchar("addressKeyword", { length: 255 }),
+  isActive: int("isActive").default(1),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type CostCenterRule = typeof costCenterRules.$inferSelect;
+export type InsertCostCenterRule = typeof costCenterRules.$inferInsert;
+
 /**
  * Quotations (from imported invoices)
  */
@@ -492,6 +507,7 @@ export const invoiceArchive = mysqlTable("invoiceArchive", {
   notes: text("notes"),
   rawXml: text("rawXml"), // Store original XML for on-demand PDF conversion
   tags: text("tags"), // JSON array of tags
+  costCenterId: int("costCenterId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -729,3 +745,21 @@ export const passwordResets = mysqlTable("passwordResets", {
 
 export type PasswordReset = typeof passwordResets.$inferSelect;
 export type InsertPasswordReset = typeof passwordResets.$inferInsert;
+
+/**
+ * API Keys — REST API access for external apps
+ */
+export const apiKeys = mysqlTable("apiKeys", {
+  id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId").notNull(),
+  name: varchar("name", { length: 100 }).notNull(),      // e.g. "App B - Production"
+  keyHash: varchar("keyHash", { length: 255 }).notNull(), // SHA-256 hash of the key
+  keyPrefix: varchar("keyPrefix", { length: 12 }).notNull(), // First 8 chars, shown in UI
+  isActive: int("isActive").default(1).notNull(),
+  lastUsedAt: timestamp("lastUsedAt"),
+  expiresAt: timestamp("expiresAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type InsertApiKey = typeof apiKeys.$inferInsert;

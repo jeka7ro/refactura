@@ -46,6 +46,7 @@ import {
   Settings2,
   Box,
   MonitorSmartphone,
+  Key,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -117,30 +118,14 @@ const navItems: NavItem[] = [
   },
   { href: "/clienti", label: "Clienți", icon: Users, section: "gestiune" },
   { href: "/integrari", label: "Integrări", icon: Plug, section: "gestiune" },
+  { href: "/api-keys", label: "API Keys", icon: Key, section: "gestiune" },
   {
     href: "/centre-cost",
     label: "Centre de Cost",
     icon: MapPin,
     section: "gestiune",
   },
-  {
-    href: "/horeca",
-    label: "SmartHORECA",
-    icon: UtensilsCrossed,
-    section: "module",
-    subItems: [
-      { href: "/horeca", label: "Dashboard HORECA", icon: LayoutDashboard },
-      { href: "/horeca/locatii", label: "Locații", icon: MapPin },
-      { href: "/horeca/mese", label: "Plan Sală", icon: Grid3X3 },
-      { href: "/horeca/meniu", label: "Meniu & Rețete", icon: BookOpen },
-      { href: "/horeca/gestiune", label: "Gestiune Stoc", icon: Box },
-      { href: "/horeca/comenzi", label: "Comenzi POS", icon: ShoppingBag },
-      { href: "/horeca/kds", label: "Bucătărie (KDS)", icon: ChefHat },
-      { href: "/horeca/delivery", label: "Delivery", icon: Truck },
-      { href: "/horeca/kiosk", label: "Setări Kiosk", icon: Settings2 },
-      { href: "/horeca/test", label: "Kiosk Monitor", icon: MonitorSmartphone },
-    ],
-  },
+
   { href: "/setari", label: "Setări", icon: Settings, section: "cont" },
 ];
 
@@ -158,7 +143,7 @@ const mobileNavItems = [
   { href: "/dashboard", label: "Acasă", icon: LayoutDashboard },
   { href: "/facturi", label: "Facturi", icon: FileText },
   { href: "/nir", label: "Gestiune", icon: PackageOpen },
-  { href: "/horeca", label: "HORECA", icon: UtensilsCrossed },
+
   { href: "/setari", label: "Setări", icon: Settings },
 ];
 
@@ -247,7 +232,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         ? "text-white"
                         : (active || hasExpandedSubs) && item.subItems
                           ? "text-blue-600 dark:text-blue-400"
-                          : "text-slate-400 group-hover:text-blue-600 dark:group-hover:text-white"
+                          : "text-slate-500 group-hover:text-blue-600 dark:group-hover:text-white"
                     )}
                   />
                   {!collapsed && (
@@ -273,13 +258,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                             "flex items-center gap-2 px-2 py-1.5 rounded-md text-xs font-medium transition-all duration-150 cursor-pointer group",
                             subActive
                               ? "bg-[var(--color-primary)] text-white shadow-sm font-bold"
-                              : "text-slate-500 font-medium hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800"
+                              : "text-slate-500 font-medium hover:text-slate-900 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-white dark:hover:bg-slate-800"
                           )}
                         >
                           <SubIcon
                             className={cn(
                               "w-3.5 h-3.5 flex-shrink-0",
-                              subActive ? "text-white" : "text-slate-400"
+                              subActive ? "text-white" : "text-slate-500"
                             )}
                           />
                           <span className="truncate">{sub.label}</span>
@@ -323,7 +308,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         "w-4 h-4 flex-shrink-0",
                         active
                           ? "text-white"
-                          : "text-slate-400 group-hover:text-purple-600 dark:group-hover:text-white"
+                          : "text-slate-500 group-hover:text-purple-600 dark:group-hover:text-white"
                       )}
                     />
                     {!collapsed && <span className="flex-1">{item.label}</span>}
@@ -340,7 +325,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="px-4 py-4 border-t border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
-              <Building2 className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+              <Building2 className="w-4 h-4 text-slate-500 dark:text-slate-500" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-slate-900 dark:text-white text-sm font-bold leading-tight break-words">
@@ -404,7 +389,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           className="md:hidden w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
           onClick={() => setMobileOpen(true)}
         >
-          <Menu className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+          <Menu className="w-4 h-4 text-slate-600 dark:text-slate-500" />
         </button>
 
         {/* Desktop Sidebar collapse toggle (optional, dar vizual cum e in poza cu acel hamburger de langa logo) */}
@@ -412,22 +397,22 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           className="hidden md:flex w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
           onClick={() => setCollapsed(!collapsed)}
         >
-          <Menu className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+          <Menu className="w-4 h-4 text-slate-600 dark:text-slate-500" />
         </button>
 
         <div className="flex-1" />
 
         {/* Multi-currency / country indicator */}
         <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-          <Globe className="w-3.5 h-3.5 text-slate-400" />
-          <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+          <Globe className="w-3.5 h-3.5 text-slate-500" />
+          <span className="text-xs font-semibold text-slate-600 dark:text-slate-500">
             RON
           </span>
         </div>
 
         {/* Notifications — fără count hardcodat */}
         <button className="relative w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-blue-50 dark:hover:bg-slate-800 hover:text-blue-600 hover:border-blue-200 dark:hover:border-blue-700 transition-colors">
-          <Bell className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+          <Bell className="w-4 h-4 text-slate-500 dark:text-slate-500" />
         </button>
 
         {/* Theme toggle */}
@@ -436,9 +421,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-blue-50 dark:hover:bg-slate-800 hover:text-blue-600 hover:border-blue-200 dark:hover:border-blue-700 transition-colors"
         >
           {theme === "dark" ? (
-            <Sun className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+            <Sun className="w-4 h-4 text-slate-500 dark:text-slate-500" />
           ) : (
-            <Moon className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+            <Moon className="w-4 h-4 text-slate-500 dark:text-slate-500" />
           )}
         </button>
 
@@ -459,7 +444,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="border-t border-slate-200 dark:border-slate-700 my-1" />
             <DropdownMenuItem
               onClick={logout}
-              className="cursor-pointer text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400"
+              className="cursor-pointer text-slate-600 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400"
             >
               <LogOut className="w-4 h-4 mr-2" />
               Deconectare
@@ -518,7 +503,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <div className="flex items-center w-full h-full overflow-x-auto scrollbar-hide gap-1 px-1">
                 <div
                   onClick={() => setForceMainMenu(true)}
-                  className="flex-shrink-0 flex flex-col items-center justify-center w-16 h-12 gap-1 cursor-pointer transition-colors rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+                  className="flex-shrink-0 flex flex-col items-center justify-center w-16 h-12 gap-1 cursor-pointer transition-colors rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-500 dark:hover:text-slate-200"
                 >
                   <ArrowLeft className="w-5 h-5" />
                   <span className="text-[10px] font-medium leading-none text-center">Înapoi</span>
@@ -533,7 +518,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         "flex-shrink-0 flex flex-col items-center justify-center w-[4.5rem] h-12 gap-1 cursor-pointer transition-colors rounded-xl px-1",
                         subActive 
                           ? "text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/20" 
-                          : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 active:bg-slate-100 dark:active:bg-slate-800"
+                          : "text-slate-500 hover:text-slate-900 dark:text-slate-500 dark:hover:text-slate-200 active:bg-slate-100 dark:active:bg-slate-800"
                       )}>
                         <SubIcon className={cn("w-5 h-5", subActive && "stroke-[2.5px] scale-110 transition-transform")} />
                         <span className={cn("text-[10px] font-medium leading-none text-center truncate w-full", subActive && "font-bold")}>{sub.label}</span>
@@ -563,7 +548,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                       "flex flex-col items-center justify-center w-[4.5rem] h-12 gap-1 cursor-pointer transition-colors rounded-xl",
                       active 
                         ? "text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/20" 
-                        : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 active:bg-slate-100 dark:active:bg-slate-800"
+                        : "text-slate-500 hover:text-slate-900 dark:text-slate-500 dark:hover:text-slate-200 active:bg-slate-100 dark:active:bg-slate-800"
                     )}>
                       <Icon className={cn("w-5 h-5", active && "stroke-[2.5px] scale-110 transition-transform")} />
                       <span className={cn("text-[10px] font-medium leading-none", active && "font-bold")}>{item.label}</span>

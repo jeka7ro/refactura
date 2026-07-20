@@ -24,6 +24,8 @@ import Integrations from "./pages/Integrations";
 import Settings from "./pages/Settings";
 import Reports from "./pages/Reports";
 import CostCenters from "./pages/CostCenters";
+import CostCenterDetail from "./pages/CostCenterDetail";
+import ApiKeys from "./pages/ApiKeys";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ResetPassword from "./pages/ResetPassword";
@@ -226,6 +228,16 @@ function Router() {
       <Route path="/centre-cost">
         <DashboardLayout>
           <CostCenters />
+        </DashboardLayout>
+      </Route>
+      <Route path="/centre-cost/:id">
+        <DashboardLayout>
+          <CostCenterDetail />
+        </DashboardLayout>
+      </Route>
+      <Route path="/api-keys">
+        <DashboardLayout>
+          <ApiKeys />
         </DashboardLayout>
       </Route>
       <Route path="/arhiva-facturi">

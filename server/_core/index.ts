@@ -11,6 +11,7 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { registerAnafProxy } from "../anafProxy";
 import { registerPdfRoute } from "../pdfRoute";
+import { registerPublicApi } from "../publicApi";
 
 async function startServer() {
   const app = express();
@@ -23,6 +24,7 @@ async function startServer() {
   registerUploadRoute(app);
   registerAnafProxy(app);
   registerPdfRoute(app);
+  registerPublicApi(app);
 
   const { registerSpvAuth } = await import("../spvAuth");
   registerSpvAuth(app);

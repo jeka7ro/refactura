@@ -3,7 +3,7 @@
  * Flow: Utilizator → redirect SPV OAuth → callback token → descarca facturile
  */
 import { createInvoiceArchiveEntry, getDb } from "./db";
-import { integrations, tenants } from "../drizzle/schema";
+import { integrations, tenants, costCenterRules } from "../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import { XMLParser } from "fast-xml-parser";
 import { convertXmlToPdf } from "./anafPdf";
@@ -76,6 +76,11 @@ export async function syncSpvInvoices(
       .where(eq(tenants.id, tenantId));
     if (!tenant) throw new Error("Tenant not found");
     const tenantCui = (tenant.cui || "").replace(/[^0-9]/g, "");
+
+    const rules = await db
+      .select()
+      .from(costCenterRules)
+      .where(and(eq(costCenterRules.tenantId, tenantId), eq(costCenterRules.isActive, 1)));
 
     // List received documents from SPV
     const res = await fetch(`${SPV_API_URL}/noutati`, {
@@ -151,6 +156,7 @@ export async function syncSpvInvoices(
 
         let supplierName = "";
         let supplierCUI = "";
+        let supplierAddress = "";
         const supplierParty = invoiceObj["AccountingSupplierParty"];
         if (supplierParty && supplierParty["Party"]) {
           const party = supplierParty["Party"];
@@ -159,6 +165,35 @@ export async function syncSpvInvoices(
             party["PartyLegalEntity"]?.["RegistrationName"] ||
             "Unknown Supplier";
           supplierCUI = party["PartyTaxScheme"]?.["CompanyID"] || "";
+        }
+
+        // Extract Delivery Location (Punct de Lucru) — NOT the supplier HQ
+        // In UBL e-Factura, Delivery.DeliveryLocation.Address contains the actual work point
+        const deliveryNode = invoiceObj["Delivery"];
+        if (deliveryNode) {
+          const deliveryArr = Array.isArray(deliveryNode) ? deliveryNode : [deliveryNode];
+          for (const d of deliveryArr) {
+            const loc = d["DeliveryLocation"]?.["Address"];
+            if (loc) {
+              supplierAddress = [
+                loc["StreetName"],
+                loc["CityName"],
+                loc["CountrySubentity"],
+                loc["PostalZone"]
+              ].filter(Boolean).join(", ");
+              break;
+            }
+          }
+        }
+        // Fallback: if no Delivery location, try supplier PostalAddress
+        if (!supplierAddress && supplierParty?.["Party"]?.["PostalAddress"]) {
+          const pa = supplierParty["Party"]["PostalAddress"];
+          supplierAddress = [
+            pa["StreetName"],
+            pa["CityName"],
+            pa["CountrySubentity"],
+            pa["PostalZone"]
+          ].filter(Boolean).join(", ");
         }
 
         if (!invoiceNumber || !issueDate) {
@@ -193,6 +228,25 @@ export async function syncSpvInvoices(
           fileUrl = pdfRes.url;
         }
 
+        // Evaluate rules - MULTI condition: all non-empty fields must match (AND logic)
+        let assignedCostCenterId = null;
+        for (const rule of rules) {
+          const hasCUI = rule.conditionValue && rule.conditionValue.trim() !== "";
+          const hasName = rule.matchName && rule.matchName.trim() !== "";
+          const hasAddr = rule.addressKeyword && rule.addressKeyword.trim() !== "";
+
+          if (!hasCUI && !hasName && !hasAddr) continue;
+
+          const cuiOk = !hasCUI || (supplierCUI && supplierCUI.toLowerCase().includes(rule.conditionValue!.toLowerCase()));
+          const nameOk = !hasName || (supplierName && supplierName.toLowerCase().includes(rule.matchName!.toLowerCase()));
+          const addrOk = !hasAddr || (supplierAddress && supplierAddress.toLowerCase().includes(rule.addressKeyword!.toLowerCase()));
+
+          if (cuiOk && nameOk && addrOk) {
+            assignedCostCenterId = rule.costCenterId;
+            break;
+          }
+        }
+
         // Determine direction based on CUI matching
         const cleanSupplierCui = supplierCUI.replace(/[^0-9]/g, "");
         const direction =
@@ -209,12 +263,14 @@ export async function syncSpvInvoices(
           invoiceNumber: String(invoiceNumber),
           supplierName,
           supplierCUI,
+          supplierAddress,
           issueDate,
           dueDate: issueDate,
           total: String(total),
           totalVAT: String(totalVAT),
           currency: currency,
           status: "pending",
+          costCenterId: assignedCostCenterId || undefined,
         });
 
         imported++;
