@@ -711,7 +711,7 @@ export default function CostCenters() {
               </button>
               <button
                 onClick={() => {
-                  setRuleFormData({ costCenterId: 0, conditionType: "SUPPLIER_CUI", conditionValue: "", addressKeyword: "" });
+                  setRuleFormData({ ...EMPTY_RULE });
                   setEditingRuleId(null);
                   setShowRuleForm(!showRuleForm);
                 }}
