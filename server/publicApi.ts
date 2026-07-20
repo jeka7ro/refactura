@@ -49,9 +49,12 @@ export function registerPublicApi(app: Express) {
         .select({
           id: costCenters.id,
           name: costCenters.name,
-          code: costCenters.code,
+          cui: costCenters.cui,
           city: costCenters.city,
           address: costCenters.address,
+          email: costCenters.email,
+          phone: costCenters.phone,
+          isActive: costCenters.isActive,
         })
         .from(costCenters)
         .where(eq(costCenters.tenantId, auth.tenantId));
