@@ -57,8 +57,6 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 
 export default function Landing() {
   const [, setLocation] = useLocation();
-  const [showModal, setShowModal] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const [activeCurrency, setActiveCurrency] = useState("RON");
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
@@ -91,8 +89,7 @@ export default function Landing() {
   };
 
   const openTrial = (mod?: any) => {
-    setSelectedPlan(mod || null);
-    setShowModal(true);
+    setLocation("/register");
   };
 
   const appTabs = [
@@ -149,18 +146,15 @@ export default function Landing() {
       >
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div
-            className="flex items-center gap-2 cursor-pointer"
+            className="flex items-center gap-2 cursor-pointer relative group hover:opacity-90 transition-opacity"
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           >
-            <div className="flex items-center justify-center gap-2">
+            <div className="flex items-center justify-center">
               <img
-                src="/logo_icon.png"
-                alt="Icon"
-                className="h-9 w-9 flex-shrink-0"
+                src="/logo_spv2.png"
+                alt="Factura SPV"
+                className="h-16 sm:h-20 w-auto object-contain flex-shrink-0 z-10"
               />
-              <div className="h-9 w-auto pt-1">
-                <img src="/logo_gettsapp.png" alt="GetApp Refactura" className="h-full object-contain" />
-              </div>
             </div>
           </div>
           <div className="hidden md:flex items-center gap-10 text-sm font-medium text-slate-600">
@@ -460,7 +454,7 @@ export default function Landing() {
                     description: "Pentru automatizarea re-facturărilor",
                     icon: FileOutput,
                     pricing: [
-                      { monthlyPrice: "49", currency: "EUR", trialDays: 7 },
+                      { monthlyPrice: "49", currency: "EUR", trialDays: 30 },
                     ],
                   },
                   {
@@ -470,7 +464,7 @@ export default function Landing() {
                       "Gestionare Centre de Cost / Punct de Lucru / Locație",
                     icon: Building2,
                     pricing: [
-                      { monthlyPrice: "79", currency: "EUR", trialDays: 7 },
+                      { monthlyPrice: "79", currency: "EUR", trialDays: 30 },
                     ],
                   },
                   {
@@ -480,7 +474,7 @@ export default function Landing() {
                     icon: Layers,
                     isCombo: 1,
                     pricing: [
-                      { monthlyPrice: "99", currency: "EUR", trialDays: 7 },
+                      { monthlyPrice: "99", currency: "EUR", trialDays: 30 },
                     ],
                   },
                 ].map((mod, i) => {
@@ -517,7 +511,7 @@ export default function Landing() {
                       symbol={
                         CURRENCY_SYMBOLS[priceObj.currency] || priceObj.currency
                       }
-                      trialDays={priceObj.trialDays || 7}
+                      trialDays={priceObj.trialDays || 30}
                       onTrial={() => openTrial(mod)}
                       highlighted={!!mod.isCombo}
                     />
@@ -549,20 +543,16 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-12 bg-white border-t border-slate-100">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
+      <footer className="py-12 bg-white border-t border-slate-100 flex flex-col items-center">
+        <div className="max-w-7xl w-full mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center gap-2">
-              <img
-                src="/logo_icon.png"
-                alt="Icon"
-                className="h-8 w-8 flex-shrink-0 grayscale opacity-70"
-              />
-              <div className="h-8 w-auto pt-1">
-                <img src="/logo_gettsapp.png" alt="GetApp Refactura" className="h-full object-contain grayscale opacity-70" />
+              <div className="flex items-center">
+                <img
+                  src="/logo_spv2.png"
+                  alt="Factura SPV"
+                  className="h-12 w-auto object-contain flex-shrink-0 z-10 filter grayscale brightness-200 hover:grayscale-0 hover:brightness-100 transition-all"
+                />
               </div>
-            </div>
           </div>
           <p className="text-slate-500 text-sm">
             © {new Date().getFullYear()} Factura SPV — Construit cu pasiune pentru antreprenori.
@@ -576,19 +566,16 @@ export default function Landing() {
             </a>
           </div>
         </div>
+        
+        <div className="flex flex-col items-center justify-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
+          <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 text-center leading-tight">
+            Grup și Echipă de<br/>Producție Aplicație
+          </span>
+          <img src="/logo_full.png" alt="GettsApp" className="h-5 w-auto filter grayscale hover:grayscale-0 transition-all" />
+        </div>
       </footer>
 
-      {/* Trial Modal */}
-      {showModal && (
-        <TrialModal
-          selectedPlan={selectedPlan}
-          onClose={() => setShowModal(false)}
-          onSuccess={() => {
-            setShowModal(false);
-            setLocation("/register");
-          }}
-        />
-      )}
+
     </div>
   );
 }
@@ -679,151 +666,6 @@ function PricingCard({
   );
 }
 
-// ─── Trial Modal ──────────────────────────────────────────────────────────────
-function TrialModal({ selectedPlan, onClose, onSuccess }: any) {
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    company: "",
-  });
-  const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState("");
-
-  const submitLead = trpc.public.submitLead.useMutation({
-    onSuccess: () => setSubmitted(true),
-    onError: e => setError(e.message),
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    submitLead.mutate({
-      ...form,
-      planId: selectedPlan?.id,
-      source: "landing-trial",
-    });
-  };
-
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
-        onClick={onClose}
-      />
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-10 z-10"
-      >
-        <button
-          onClick={onClose}
-          className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 transition-colors"
-        >
-          <X className="w-5 h-5 text-slate-500" />
-        </button>
-
-        {submitted ? (
-          <div className="text-center py-8">
-            <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-6">
-              <CheckCircle2 className="w-10 h-10 text-green-500" />
-            </div>
-            <h3 className="text-3xl font-extrabold text-slate-900 mb-4">
-              Felicitări!
-            </h3>
-            <p className="text-slate-500 mb-8 leading-relaxed">
-              Cererea ta a fost înregistrată. Un membru al echipei te va
-              contacta în curând pentru activarea contului.
-            </p>
-            <Button
-              onClick={onClose}
-              className="w-full h-14 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-base font-bold"
-            >
-              Închide
-            </Button>
-          </div>
-        ) : (
-          <>
-            <div className="mb-8">
-              <h3 className="text-3xl font-extrabold text-slate-900 mb-3">
-                {selectedPlan ? selectedPlan.name : "Trial Gratuit"}
-              </h3>
-              <p className="text-slate-500">
-                Introdu datele pentru a începe testarea.
-              </p>
-            </div>
-            <form
-              onSubmit={handleSubmit}
-              className="space-y-5"
-              autoComplete="on"
-            >
-              <div>
-                <input
-                  id="trial-name"
-                  name="name"
-                  autoComplete="name"
-                  required
-                  type="text"
-                  placeholder="Nume complet"
-                  value={form.name}
-                  onChange={e => setForm({ ...form, name: e.target.value })}
-                  className="w-full px-5 py-4 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
-                />
-              </div>
-              <div>
-                <input
-                  id="trial-email"
-                  name="email"
-                  autoComplete="email"
-                  required
-                  type="email"
-                  placeholder="Email de companie"
-                  value={form.email}
-                  onChange={e => setForm({ ...form, email: e.target.value })}
-                  className="w-full px-5 py-4 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
-                />
-              </div>
-              <div>
-                <input
-                  id="trial-phone"
-                  name="phone"
-                  autoComplete="tel"
-                  type="tel"
-                  placeholder="Telefon"
-                  value={form.phone}
-                  onChange={e => setForm({ ...form, phone: e.target.value })}
-                  className="w-full px-5 py-4 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
-                />
-              </div>
-              <div>
-                <input
-                  id="trial-company"
-                  name="company"
-                  autoComplete="organization"
-                  type="text"
-                  placeholder="Companie"
-                  value={form.company}
-                  onChange={e => setForm({ ...form, company: e.target.value })}
-                  className="w-full px-5 py-4 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
-                />
-              </div>
-              {error && (
-                <p className="text-red-500 text-sm font-medium">{error}</p>
-              )}
-              <Button
-                type="submit"
-                disabled={submitLead.isPending}
-                className="w-full h-14 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-base font-bold shadow-lg shadow-blue-500/30 mt-4"
-              >
-                {submitLead.isPending ? "Se procesează..." : "Solicită Trial"}
-              </Button>
-            </form>
-          </>
-        )}
-      </motion.div>
-    </div>
-  );
-}
 
 // ─── Highly Detailed Code-Based App Mockup ───────────────────────────────────────
 function HeroMockup() {
@@ -853,15 +695,12 @@ function HeroMockup() {
         {/* Sidebar */}
         <div className="hidden sm:flex w-44 bg-slate-900 border-r border-slate-800 p-3 flex-col gap-1 flex-shrink-0">
           <div className="flex items-center mb-4 cursor-pointer">
-            <div className="bg-white px-3 py-2 rounded-lg shadow-sm border border-white/10 flex items-center justify-center gap-2 h-12 w-full">
+            <div className="bg-white px-3 py-2 rounded-lg shadow-sm border border-white/10 flex items-center justify-center h-10 w-full">
               <img
-                src="/logo_icon.png"
-                alt="Icon"
-                className="h-6 w-6 flex-shrink-0"
+                src="/logo_spv2.png"
+                alt="Factura SPV"
+                className="h-7 w-auto object-contain flex-shrink-0 z-10"
               />
-              <div className="h-6 w-auto pt-0.5">
-                <img src="/logo_gettsapp.png" alt="GetApp Refactura" className="h-full object-contain" />
-              </div>
             </div>
           </div>
           <div

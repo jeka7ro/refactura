@@ -599,46 +599,32 @@ export function registerPdfRoute(app: any) {
       if (activeLogo === "DEFAULT_TEXT_LOGO") {
         let foundPath = null;
         try {
-          const possiblePaths = [
-            path.resolve(process.cwd(), "client/public/logo_gettsapp.png"),
-            path.resolve(process.cwd(), "../client/public/logo_gettsapp.png"),
-            path.resolve(process.cwd(), "dist/public/logo_gettsapp.png"),
-            path.resolve(process.cwd(), "server/assets/logo_gettsapp.png"),
+          const logoPaths = [
+            path.resolve(process.cwd(), "client/public/logo_spv2.png"),
+            path.resolve(process.cwd(), "../client/public/logo_spv2.png"),
+            path.resolve(process.cwd(), "dist/public/logo_spv2.png"),
+            path.resolve(process.cwd(), "server/assets/logo_spv2.png"),
           ];
-          for (const p of possiblePaths) {
+          for (const p of logoPaths) {
             if (fs.existsSync(p)) {
               foundPath = p;
               break;
             }
           }
-          let foundIconPath = null;
-          const iconPaths = [
-            path.resolve(process.cwd(), "client/public/logo_icon.png"),
-            path.resolve(process.cwd(), "../client/public/logo_icon.png"),
-            path.resolve(process.cwd(), "dist/public/logo_icon.png"),
-            path.resolve(process.cwd(), "server/assets/logo_icon.png"),
-          ];
-          for (const p of iconPaths) {
-            if (fs.existsSync(p)) {
-              foundIconPath = p;
-              break;
-            }
-          }
-
-          if (foundIconPath) {
-            const iconBuffer = fs.readFileSync(foundIconPath);
-            doc.image(iconBuffer, 40, 30, { width: 30, height: 30 });
-          }
 
           if (foundPath) {
             const imgBuffer = fs.readFileSync(foundPath);
-            doc.image(imgBuffer, 63, 20, { width: 85 });
-            // Adaugam și subtitlul facturaspv.ro cu roșu, fix sub logo
+            doc.image(imgBuffer, 40, 20, { width: 120 });
+            
+            // Text roșu facturaspv.ro sub logo
             doc
-              .fontSize(6)
+              .fontSize(5)
               .font("Roboto-Bold")
               .fillColor("#ef4444")
-              .text("facturaspv.ro", 63, 41, { width: 85, align: 'center', characterSpacing: 1 });
+              .text("facturaspv.ro", 68, 46, { width: 80, align: 'center', characterSpacing: 1 });
+              
+            // Adăugăm un link invizibil peste toată imaginea
+            doc.link(40, 20, 120, 45, "https://facturaspv.ro/");
           } else {
             doc
               .fontSize(14)

@@ -127,16 +127,11 @@ export default function Login() {
 
         <Link href="/">
           <div className="flex items-center relative z-10 cursor-pointer hover:opacity-90 transition-opacity w-fit max-w-[80%]">
-            <div className="bg-white px-6 py-3 rounded-2xl shadow-lg border border-white/20 flex-shrink-0 flex items-center justify-center gap-2">
+            <div className="bg-white px-6 py-3 rounded-2xl shadow-lg border border-white/20 flex-shrink-0 flex items-center justify-center">
               <img
-                src="/logo_icon.png"
-                alt="Icon"
-                className="h-8 w-8 object-contain"
-              />
-              <img
-                src={LOGO_URL}
-                alt="Logo"
-                className="h-8 w-auto object-contain"
+                src="/logo_spv2.png"
+                alt="Factura SPV"
+                className="h-12 w-auto object-contain z-10"
               />
             </div>
           </div>
@@ -178,16 +173,11 @@ export default function Login() {
           {/* Mobile logo */}
           <Link href="/">
             <div className="flex items-center mb-10 lg:hidden cursor-pointer w-fit">
-              <div className="bg-white px-5 py-2.5 rounded-2xl shadow-lg border border-slate-200 flex items-center justify-center gap-2">
+              <div className="bg-white px-5 py-2.5 rounded-2xl shadow-lg border border-slate-200 flex items-center justify-center">
                 <img
-                  src="/logo_icon.png"
-                  alt="Icon"
-                  className="h-6 w-6 object-contain"
-                />
-                <img
-                  src={LOGO_URL}
-                  alt="Logo"
-                  className="h-6 w-auto object-contain"
+                  src="/logo_spv2.png"
+                  alt="Factura SPV"
+                  className="h-10 w-auto object-contain z-10"
                 />
               </div>
             </div>
@@ -441,6 +431,13 @@ export default function Login() {
               Creează cont gratuit
             </Link>
           </p>
+          
+          <div className="mt-12 flex flex-col items-center justify-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 text-center leading-tight">
+              Grup și Echipă de<br/>Producție Aplicație
+            </span>
+            <img src="/logo_full.png" alt="GettsApp" className="h-5 w-auto filter grayscale hover:grayscale-0 transition-all" />
+          </div>
         </div>
       </div>
     </div>

@@ -17,6 +17,7 @@ import {
   Search,
   FileText,
   ExternalLink,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -78,7 +79,14 @@ export default function ReInvoice() {
         currency: (singleData.currency || "RON") as Currency,
         status: singleData.status,
         lines: (singleData.lines && Array.isArray(singleData.lines) && singleData.lines.length > 0)
-          ? singleData.lines.map(l => ({ ...l, id: `${singleData.id}-${l.id}` }))
+          ? singleData.lines.map(l => ({ 
+              ...l, 
+              id: `${singleData.id}-${l.id}`,
+              originalUnitPrice: parseFloat(String(l.unitPrice || "0")),
+              unitPrice: parseFloat(String(l.unitPrice || "0")),
+              markupPercent: 15,
+              vatRate: parseFloat(String(l.vatRate || "19"))
+            }))
           : [
               {
                 id: `line-auto-${singleData.id}`,
@@ -112,7 +120,14 @@ export default function ReInvoice() {
       const isRefactured = multiData.some(d => d.status === "refactured");
       multiData.forEach((d, i) => {
         if (d.lines && Array.isArray(d.lines) && d.lines.length > 0) {
-          allLines.push(...d.lines.map(l => ({ ...l, id: `${d.id}-${l.id}` })));
+          allLines.push(...d.lines.map(l => ({ 
+            ...l, 
+            id: `${d.id}-${l.id}`,
+            originalUnitPrice: parseFloat(String(l.unitPrice || "0")),
+            unitPrice: parseFloat(String(l.unitPrice || "0")),
+            markupPercent: 15,
+            vatRate: parseFloat(String(l.vatRate || "19"))
+          })));
         } else {
           allLines.push({
             id: `line-auto-${d.id}`,

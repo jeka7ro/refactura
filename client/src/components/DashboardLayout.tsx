@@ -353,6 +353,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               </div>
             </div>
           </div>
+          
+          <div className="mt-6 flex flex-col items-center justify-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
+            <img src="/logo_full.png" alt="GettsApp" className="h-4 w-auto" />
+          </div>
         </div>
       )}
 
@@ -385,16 +389,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Top Header — Full width island */}
       <header className="h-16 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center px-4 sm:px-6 gap-4 flex-shrink-0">
         {/* Logo */}
-        <div className="flex items-center gap-2 flex-shrink-0 mr-2">
-          <img
-            src="/logo_icon.png"
-            alt="Icon"
-            className="h-8 w-8 flex-shrink-0"
-          />
-          <div className="h-8 w-auto pt-1">
-            <img src="/logo_gettsapp.png" alt="GetApp Refactura" className="h-full object-contain" />
+        <Link href="/">
+          <div className="flex items-center flex-shrink-0 mr-2 cursor-pointer hover:opacity-90 transition-opacity">
+            <img
+              src="/logo_spv2.png"
+              alt="Factura SPV"
+              className="h-14 sm:h-16 w-auto object-contain flex-shrink-0 z-10"
+            />
           </div>
-        </div>
+        </Link>
 
         {/* Mobile menu toggle */}
         <button

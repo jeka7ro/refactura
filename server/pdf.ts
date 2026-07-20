@@ -75,49 +75,34 @@ function drawLogo(
   if (logoBase64 === "DEFAULT_TEXT_LOGO") {
     // Folosim fix imaginea pusa de user
     try {
-      const possiblePaths = [
-        path.resolve(process.cwd(), "client/public/logo_gettsapp.png"),
-        path.resolve(process.cwd(), "../client/public/logo_gettsapp.png"),
-        path.resolve(process.cwd(), "dist/public/logo_gettsapp.png"),
-        path.resolve(process.cwd(), "server/assets/logo_gettsapp.png"),
+      const logoPaths = [
+        path.resolve(process.cwd(), "client/public/logo_spv2.png"),
+        path.resolve(process.cwd(), "../client/public/logo_spv2.png"),
+        path.resolve(process.cwd(), "dist/public/logo_spv2.png"),
+        path.resolve(process.cwd(), "server/assets/logo_spv2.png"),
       ];
 
       let foundPath = null;
-      for (const p of possiblePaths) {
+      for (const p of logoPaths) {
         if (fs.existsSync(p)) {
           foundPath = p;
           break;
         }
       }
 
-      let foundIconPath = null;
-      const iconPaths = [
-        path.resolve(process.cwd(), "client/public/logo_icon.png"),
-        path.resolve(process.cwd(), "../client/public/logo_icon.png"),
-        path.resolve(process.cwd(), "dist/public/logo_icon.png"),
-        path.resolve(process.cwd(), "server/assets/logo_icon.png"),
-      ];
-      for (const p of iconPaths) {
-        if (fs.existsSync(p)) {
-          foundIconPath = p;
-          break;
-        }
-      }
-
-      if (foundIconPath) {
-        const iconBuffer = fs.readFileSync(foundIconPath);
-        doc.image(iconBuffer, x, y, { width: 30, height: 30 });
-      }
-
       if (foundPath) {
         const imgBuffer = fs.readFileSync(foundPath);
-        doc.image(imgBuffer, x + 23, y - 5, { width: 90 });
-        // Adaugam și subtitlul facturaspv.ro cu roșu, fix sub logo
+        doc.image(imgBuffer, x, y, { width: 120 });
+        
+        // Text roșu facturaspv.ro sub logo
         doc
-          .fontSize(6)
+          .fontSize(5)
           .font("Roboto-Bold")
           .fillColor("#ef4444")
-          .text("facturaspv.ro", x + 23, y + 18, { width: 90, align: 'center', characterSpacing: 1 });
+          .text("facturaspv.ro", x + 28, y + 26, { width: 80, align: 'center', characterSpacing: 1 });
+          
+        // Adăugăm un link invizibil peste toată imaginea (inclusiv peste Factura / Spv și facturaspv.ro)
+        doc.link(x, y, 120, 45, "https://facturaspv.ro/");
       }
     } catch (err) {
       console.error("[PDF] Failed to draw logo:", err);
@@ -502,7 +487,7 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     .font("Roboto")
     .fillColor("#cbd5e1")
     .text(
-      `www.refactura.ro • ${now.toLocaleDateString("ro-RO")}`,
+      `Grup și Echipă de Producție Aplicație: GettsApp • www.refactura.ro • ${now.toLocaleDateString("ro-RO")}`,
       leftX,
       footerY,
       { width: pageWidth, align: "center" }
@@ -690,7 +675,7 @@ function generateModern(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     .font("Roboto")
     .fillColor("#94a3b8")
     .text(
-      `www.refactura.ro • Generat automat • ${now.toLocaleDateString("ro-RO")} ${now.toLocaleTimeString("ro-RO")}`,
+      `Grup și Echipă de Producție Aplicație: GettsApp • www.refactura.ro • Generat automat • ${now.toLocaleDateString("ro-RO")} ${now.toLocaleTimeString("ro-RO")}`,
       0,
       footerY + 2,
       { align: "center", width: doc.page.width }
@@ -921,7 +906,7 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     .font("Roboto")
     .fillColor("#cbd5e1")
     .text(
-      `www.refactura.ro • ${now.toLocaleDateString("ro-RO")}`,
+      `Grup și Echipă de Producție Aplicație: GettsApp • www.refactura.ro • ${now.toLocaleDateString("ro-RO")}`,
       leftX,
       footerY,
       { width: pageWidth, align: "center" }
