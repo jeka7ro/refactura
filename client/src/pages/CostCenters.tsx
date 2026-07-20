@@ -122,7 +122,7 @@ export default function CostCenters() {
 
   const [showRuleForm, setShowRuleForm] = useState(false);
   const [editingRuleId, setEditingRuleId] = useState<number | null>(null);
-  const EMPTY_RULE = { costCenterId: 0, conditionValue: "", matchName: "", addressKeyword: "" };
+  const EMPTY_RULE = { costCenterId: 0, conditionValue: "", matchName: "", addressKeyword: "", lineKeyword: "" };
   const [ruleFormData, setRuleFormData] = useState({ ...EMPTY_RULE });
 
   const [invoicesModal, setInvoicesModal] = useState<{ open: boolean; center: any | null }>({
@@ -262,7 +262,7 @@ export default function CostCenters() {
   const handleRuleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!ruleFormData.costCenterId) return;
-    if (!ruleFormData.conditionValue.trim() && !ruleFormData.matchName.trim()) return;
+    if (!ruleFormData.conditionValue.trim() && !ruleFormData.matchName.trim() && !ruleFormData.lineKeyword?.trim()) return;
     
     if (editingRuleId) {
       updateRuleMutation.mutate({ id: editingRuleId, ...ruleFormData });
@@ -277,6 +277,7 @@ export default function CostCenters() {
       conditionValue: rule.conditionValue || "",
       matchName: rule.matchName || "",
       addressKeyword: rule.addressKeyword || "",
+      lineKeyword: rule.lineKeyword || "",
     });
     setEditingRuleId(rule.id);
     setShowRuleForm(true);
@@ -734,6 +735,13 @@ export default function CostCenters() {
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
                   </div>
                   <div>
+                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Cuvânt în liniile facturii (opțional)</label>
+                    <input type="text" placeholder="ex: orez, sos, bere, curatenie" value={(ruleFormData as any).lineKeyword || ""}
+                      onChange={(e) => setRuleFormData({ ...ruleFormData, lineKeyword: e.target.value } as any)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+                    <p className="text-xs text-slate-400 mt-0.5">Se potrivește dacă cel puțin o linie din factură conține acest cuvânt.</p>
+                  </div>
+                  <div>
                     <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Centru de Cost Destinație *</label>
                     <select value={ruleFormData.costCenterId || ""} onChange={(e) => setRuleFormData({ ...ruleFormData, costCenterId: Number(e.target.value) })}
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" required>
@@ -744,7 +752,7 @@ export default function CostCenters() {
                 </div>
                 <div className="flex gap-2 justify-end pt-2">
                   <Button type="button" variant="outline" onClick={() => { setShowRuleForm(false); setEditingRuleId(null); setRuleFormData({ ...EMPTY_RULE }); }}>Anulează</Button>
-                  <Button type="submit" disabled={createRuleMutation.isPending || updateRuleMutation.isPending || !ruleFormData.costCenterId || (!ruleFormData.conditionValue.trim() && !ruleFormData.matchName.trim())}>
+                  <Button type="submit" disabled={createRuleMutation.isPending || updateRuleMutation.isPending || !ruleFormData.costCenterId || (!ruleFormData.conditionValue.trim() && !ruleFormData.matchName.trim() && !(ruleFormData as any).lineKeyword?.trim())}>
                     {editingRuleId ? "Actualizează" : "Adaugă Regulă"}
                   </Button>
                 </div>

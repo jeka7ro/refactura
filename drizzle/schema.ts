@@ -165,6 +165,7 @@ export const costCenterRules = mysqlTable("costCenterRules", {
   conditionValue: varchar("conditionValue", { length: 255 }).notNull().default(""),
   matchName: varchar("matchName", { length: 255 }),
   addressKeyword: varchar("addressKeyword", { length: 255 }),
+  lineKeyword: varchar("lineKeyword", { length: 255 }),   // keyword in invoice lines description
   isActive: int("isActive").default(1),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

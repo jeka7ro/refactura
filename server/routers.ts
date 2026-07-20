@@ -693,6 +693,7 @@ export const appRouter = router({
           conditionValue: z.string().optional(), // CUI filter
           matchName: z.string().optional(),      // Name filter
           addressKeyword: z.string().optional(), // Location filter
+          lineKeyword: z.string().optional(),    // Keyword in invoice lines
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -705,6 +706,7 @@ export const appRouter = router({
           conditionValue: input.conditionValue || "",
           matchName: input.matchName || null,
           addressKeyword: input.addressKeyword || null,
+          lineKeyword: input.lineKeyword || null,
           costCenterId: input.costCenterId,
         });
       }),
@@ -727,6 +729,7 @@ export const appRouter = router({
           conditionValue: z.string().optional(), // CUI filter
           matchName: z.string().optional(),      // Name filter
           addressKeyword: z.string().optional(), // Location filter
+          lineKeyword: z.string().optional(),    // Keyword in invoice lines
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -742,6 +745,7 @@ export const appRouter = router({
             conditionValue: data.conditionValue || "",
             matchName: data.matchName || null,
             addressKeyword: data.addressKeyword || null,
+            lineKeyword: data.lineKeyword || null,
             costCenterId: data.costCenterId,
           })
           .where(and(eq(costCenterRules.id, id), eq(costCenterRules.tenantId, ctx.user.tenantId)));
@@ -815,8 +819,8 @@ export const appRouter = router({
     recalculateRules: protectedProcedure.mutation(async ({ ctx }) => {
       if (!ctx.user?.tenantId) throw new Error("No tenant context");
       const db = await getDb();
-      const { invoiceArchive, costCenterRules } = await import("../drizzle/schema");
-      const { eq, and } = await import("drizzle-orm");
+      const { invoiceArchive, costCenterRules, invoiceArchiveLines } = await import("../drizzle/schema");
+      const { eq, and, inArray } = await import("drizzle-orm");
       
       const rules = await db
         .select()
@@ -825,28 +829,45 @@ export const appRouter = router({
         
       if (rules.length === 0) return { updated: 0 };
       
-      // Fetch ALL inbound invoices (no strict direction filter - include null/out too)
       const invoices = await db
         .select()
         .from(invoiceArchive)
         .where(eq(invoiceArchive.tenantId, ctx.user.tenantId));
+
+      // Pre-load all lines for this tenant's invoices (batch, not per invoice)
+      const invoiceIds = invoices.map(i => i.id);
+      let linesMap = new Map<number, string[]>(); // invoiceId -> [descriptions]
+      if (invoiceIds.length > 0) {
+        const allLines = await db
+          .select({ invoiceArchiveId: invoiceArchiveLines.invoiceArchiveId, description: invoiceArchiveLines.description })
+          .from(invoiceArchiveLines)
+          .where(inArray(invoiceArchiveLines.invoiceArchiveId, invoiceIds));
+        for (const l of allLines) {
+          if (!linesMap.has(l.invoiceArchiveId)) linesMap.set(l.invoiceArchiveId, []);
+          linesMap.get(l.invoiceArchiveId)!.push((l.description || "").toLowerCase());
+        }
+      }
         
       let updatedCount = 0;
       for (const invoice of invoices) {
         let assignedCostCenterId = null;
+        const invoiceLines = linesMap.get(invoice.id) || [];
+
         for (const rule of rules) {
-          // New MULTI logic: all non-empty conditions must match
-          const hasCUI = rule.conditionValue && rule.conditionValue.trim() !== "";
+          const hasCUI  = rule.conditionValue && rule.conditionValue.trim() !== "";
           const hasName = rule.matchName && rule.matchName.trim() !== "";
           const hasAddr = rule.addressKeyword && rule.addressKeyword.trim() !== "";
+          const hasLine = rule.lineKeyword && rule.lineKeyword.trim() !== "";
 
-          if (!hasCUI && !hasName && !hasAddr) continue; // empty rule, skip
+          if (!hasCUI && !hasName && !hasAddr && !hasLine) continue; // empty rule
 
-          let cuiOk = !hasCUI || (invoice.supplierCUI && invoice.supplierCUI.toLowerCase().includes(rule.conditionValue!.toLowerCase()));
-          let nameOk = !hasName || (invoice.supplierName && invoice.supplierName.toLowerCase().includes(rule.matchName!.toLowerCase()));
-          let addrOk = !hasAddr || (invoice.supplierAddress && invoice.supplierAddress.toLowerCase().includes(rule.addressKeyword!.toLowerCase()));
+          const cuiOk  = !hasCUI  || (invoice.supplierCUI  && invoice.supplierCUI.toLowerCase().includes(rule.conditionValue!.toLowerCase()));
+          const nameOk = !hasName || (invoice.supplierName && invoice.supplierName.toLowerCase().includes(rule.matchName!.toLowerCase()));
+          const addrOk = !hasAddr || (invoice.supplierAddress && invoice.supplierAddress.toLowerCase().includes(rule.addressKeyword!.toLowerCase()));
+          // lineKeyword: at least one line description must contain the keyword
+          const lineOk = !hasLine || invoiceLines.some(desc => desc.includes(rule.lineKeyword!.toLowerCase()));
 
-          if (cuiOk && nameOk && addrOk) {
+          if (cuiOk && nameOk && addrOk && lineOk) {
             assignedCostCenterId = rule.costCenterId;
             break;
           }

@@ -107,6 +107,10 @@ export async function getDb() {
         await _db.execute(sql`ALTER TABLE costCenters ADD COLUMN categoryId INT NULL`);
         console.log("[DB] Added categoryId to costCenters");
       } catch {} // column already exists
+      try {
+        await _db.execute(sql`ALTER TABLE costCenterRules ADD COLUMN lineKeyword VARCHAR(255) NULL`);
+        console.log("[DB] Added lineKeyword to costCenterRules");
+      } catch {} // column already exists
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
