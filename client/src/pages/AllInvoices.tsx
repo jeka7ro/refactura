@@ -1144,11 +1144,13 @@ export default function AllInvoices() {
                                 </Link>
                               )}
 
-                              {row.type === "primit" && (
+                              {row.type === "primit" && (row as any).nirStatus !== "full" && (
                                 <Link href={`/nir/nou/${row.id}`}>
                                   <DropdownMenuItem className="cursor-pointer text-teal-600 focus:text-teal-700">
                                     <ClipboardList className="w-4 h-4 mr-2" />
-                                    <span>Creează NIR</span>
+                                    <span>
+                                      {(row as any).nirStatus === "partial" ? "Creează NIR (Parțial)" : "Creează NIR"}
+                                    </span>
                                   </DropdownMenuItem>
                                 </Link>
                               )}
@@ -1320,11 +1322,13 @@ export default function AllInvoices() {
                             </Link>
                           )}
 
-                          {row.type === "primit" && (
+                          {row.type === "primit" && (row as any).nirStatus !== "full" && (
                             <Link href={`/nir/nou/${row.id}`}>
                               <DropdownMenuItem className="cursor-pointer text-teal-600 focus:text-teal-700">
                                 <ClipboardList className="w-4 h-4 mr-2" />
-                                <span>Creează NIR</span>
+                                <span>
+                                  {(row as any).nirStatus === "partial" ? "Creează NIR (Parțial)" : "Creează NIR"}
+                                </span>
                               </DropdownMenuItem>
                             </Link>
                           )}

@@ -77,32 +77,34 @@ export default function ReInvoice() {
         total: parseFloat(String(singleData.total || "0")),
         currency: (singleData.currency || "RON") as Currency,
         status: singleData.status,
-        lines: [
-          {
-            id: "line-auto-1",
-            description: `Refacturare prestări / bunuri conf. ${singleData.invoiceNumber || `INV-${singleData.id}`} (${singleData.supplierName || "Furnizor"})`,
-            quantity: 1,
-            unitPrice: parseFloat(
-              String(
-                singleData.totalVAT
-                  ? parseFloat(String(singleData.total)) -
-                      parseFloat(String(singleData.totalVAT))
-                  : singleData.total || "0"
-              )
-            ),
-            originalUnitPrice: parseFloat(
-              String(
-                singleData.totalVAT
-                  ? parseFloat(String(singleData.total)) -
-                      parseFloat(String(singleData.totalVAT))
-                  : singleData.total || "0"
-              )
-            ),
-            vatRate: 21,
-            unit: "servicii",
-            markupPercent: 15,
-          },
-        ] as any[],
+        lines: (singleData.lines && Array.isArray(singleData.lines) && singleData.lines.length > 0)
+          ? singleData.lines.map(l => ({ ...l, id: `${singleData.id}-${l.id}` }))
+          : [
+              {
+                id: `line-auto-${singleData.id}`,
+                description: `Refacturare prestări / bunuri conf. ${singleData.invoiceNumber || `INV-${singleData.id}`} (${singleData.supplierName || "Furnizor"})`,
+                quantity: 1,
+                unitPrice: parseFloat(
+                  String(
+                    singleData.totalVAT
+                      ? parseFloat(String(singleData.total)) -
+                          parseFloat(String(singleData.totalVAT))
+                      : singleData.total || "0"
+                  )
+                ),
+                originalUnitPrice: parseFloat(
+                  String(
+                    singleData.totalVAT
+                      ? parseFloat(String(singleData.total)) -
+                          parseFloat(String(singleData.totalVAT))
+                      : singleData.total || "0"
+                  )
+                ),
+                vatRate: 21,
+                unit: "servicii",
+                markupPercent: 15,
+              },
+            ] as any[],
       };
     } else {
       if (!multiData || multiData.length === 0) return null;

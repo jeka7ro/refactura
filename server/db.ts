@@ -1052,24 +1052,71 @@ export async function getInvoiceArchiveList(
     .limit(limit)
     .offset(offset);
 
-  let itemsWithLines = items.map(item => ({ ...item, itemsText: "" }));
+  let itemsWithLines = items.map(item => ({ ...item, itemsText: "", nirStatus: "none" }));
   if (items.length > 0) {
     const itemIds = items.map(i => i.id);
     const lines = await db
       .select()
       .from(invoiceArchiveLines)
       .where(inArray(invoiceArchiveLines.invoiceArchiveId, itemIds));
+
+    // Get NIRs and NIR lines to calculate NIR status
+    const { nir, nirLines } = await import("../drizzle/schema");
+    const nirs = await db
+      .select({ id: nir.id, invoiceArchiveId: nir.invoiceArchiveId })
+      .from(nir)
+      .where(inArray(nir.invoiceArchiveId, itemIds));
+
+    const nirIds = nirs.map(n => n.id);
+    let allNirLines: any[] = [];
+    if (nirIds.length > 0) {
+      allNirLines = await db
+        .select()
+        .from(nirLines)
+        .where(inArray(nirLines.nirId, nirIds));
+    }
+
     const linesMap = new Map<number, string[]>();
+    const invoiceQtyMap = new Map<number, number>(); // Total qty per invoice
+    const nirQtyMap = new Map<number, number>(); // Received qty per invoice
+
     for (const l of lines) {
       if (!linesMap.has(l.invoiceArchiveId))
         linesMap.set(l.invoiceArchiveId, []);
       linesMap.get(l.invoiceArchiveId)!.push(l.description);
+
+      invoiceQtyMap.set(
+        l.invoiceArchiveId,
+        (invoiceQtyMap.get(l.invoiceArchiveId) || 0) + parseFloat(String(l.quantity || "0"))
+      );
     }
 
-    itemsWithLines = items.map(item => ({
-      ...item,
-      itemsText: (linesMap.get(item.id) || []).join(" "),
-    }));
+    // Map NIR lines to invoices
+    const nirToInvoice = new Map(nirs.map(n => [n.id, n.invoiceArchiveId]));
+    for (const nl of allNirLines) {
+      const invId = nirToInvoice.get(nl.nirId);
+      if (invId) {
+        nirQtyMap.set(
+          invId,
+          (nirQtyMap.get(invId) || 0) + parseFloat(String(nl.cantitateReceptionata || "0"))
+        );
+      }
+    }
+
+    itemsWithLines = items.map(item => {
+      const totalQty = invoiceQtyMap.get(item.id) || 0;
+      const receivedQty = nirQtyMap.get(item.id) || 0;
+      let nirStatus = "none";
+      if (receivedQty > 0) {
+        nirStatus = receivedQty >= totalQty - 0.001 ? "full" : "partial";
+      }
+
+      return {
+        ...item,
+        itemsText: (linesMap.get(item.id) || []).join(" "),
+        nirStatus,
+      };
+    });
   }
 
   const [{ total }] = await db
@@ -1106,7 +1153,36 @@ export async function getInvoiceArchiveById(id: number, tenantId: number) {
     .select()
     .from(invoiceArchiveLines)
     .where(eq(invoiceArchiveLines.invoiceArchiveId, id));
-  return { ...entry, lines } as any;
+
+  // Compute cantitate deja NIRata
+  const { nir, nirLines } = await import("../drizzle/schema");
+  const existingNirs = await db
+    .select({ id: nir.id })
+    .from(nir)
+    .where(and(eq(nir.invoiceArchiveId, id), eq(nir.tenantId, tenantId)));
+
+  const nirIds = existingNirs.map(n => n.id);
+  let allNirLines: any[] = [];
+  if (nirIds.length > 0) {
+    allNirLines = await db
+      .select()
+      .from(nirLines)
+      .where(inArray(nirLines.nirId, nirIds));
+  }
+
+  const receivedMap = new Map<string, number>();
+  for (const nl of allNirLines) {
+    const qty = parseFloat(String(nl.cantitateReceptionata || "0"));
+    const desc = nl.description || "";
+    receivedMap.set(desc, (receivedMap.get(desc) || 0) + qty);
+  }
+
+  const linesWithReceived = lines.map(l => ({
+    ...l,
+    receivedQuantity: receivedMap.get(l.description || "") || 0,
+  }));
+
+  return { ...entry, lines: linesWithReceived } as any;
 }
 
 export async function getInvoiceArchiveByIds(ids: number[], tenantId: number) {

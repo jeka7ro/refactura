@@ -184,18 +184,31 @@ export default function NIRCreate() {
       setInvoiceNumber(sourceInvoice.invoiceNumber || "");
       const archLns = archiveLines as any[];
       if (archLns.length > 0) {
-        setLines(
-          archLns.map((l: any) => ({
-            description: l.description || "",
-            unit: l.unit || "buc",
-            cantitateComanda: String(l.quantity || "1"),
-            cantitateReceptionata: String(l.quantity || "1"),
-            unitPrice: String(l.unitPrice || "0"),
-            vatRate: String(l.vatRate || "19"),
-            total: String(l.total || "0"),
-            observations: "",
-          }))
-        );
+        const newLines = archLns
+          .map((l: any) => {
+            const qty = parseFloat(String(l.quantity || "1"));
+            const received = parseFloat(String(l.receivedQuantity || "0"));
+            const remaining = Math.max(0, qty - received);
+            const unitPrice = parseFloat(String(l.unitPrice || "0"));
+            return {
+              description: l.description || "",
+              unit: l.unit || "buc",
+              cantitateComanda: String(remaining),
+              cantitateReceptionata: String(remaining),
+              unitPrice: String(unitPrice),
+              vatRate: String(l.vatRate || "19"),
+              total: String((remaining * unitPrice).toFixed(2)),
+              observations: "",
+            };
+          })
+          .filter((l: any) => parseFloat(l.cantitateReceptionata) > 0);
+
+        if (newLines.length > 0) {
+          setLines(newLines);
+        } else {
+          toast.info("Toate produsele din această factură au fost deja recepționate!");
+          setLines([]);
+        }
       } else {
         setLines([
           {
