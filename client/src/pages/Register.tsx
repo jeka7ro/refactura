@@ -104,11 +104,16 @@ export default function Register() {
 
         <Link href="/">
           <div className="flex items-center relative z-10 cursor-pointer hover:opacity-90 transition-opacity w-fit">
-            <div className="bg-white px-6 py-3 rounded-2xl shadow-lg border border-white/20 flex-shrink-0 flex flex-col items-center justify-center">
+            <div className="bg-white px-6 py-3 rounded-2xl shadow-lg border border-white/20 flex-shrink-0 flex items-center justify-center gap-2">
+              <img
+                src="/logo_icon.png"
+                alt="Icon"
+                className="h-8 w-8 object-contain"
+              />
               <img
                 src="/logo_gettsapp.png"
                 alt="getts/App"
-                className="h-10 object-contain"
+                className="h-8 object-contain"
               />
             </div>
           </div>
@@ -149,11 +154,16 @@ export default function Register() {
           {/* Mobile logo */}
           <Link href="/">
             <div className="flex items-center mb-10 lg:hidden cursor-pointer w-fit">
-              <div className="bg-white px-5 py-2.5 rounded-2xl shadow-lg border border-slate-200 flex flex-col items-center justify-center">
+              <div className="bg-white px-5 py-2.5 rounded-2xl shadow-lg border border-slate-200 flex items-center justify-center gap-2">
+                <img
+                  src="/logo_icon.png"
+                  alt="Icon"
+                  className="h-6 w-6 object-contain"
+                />
                 <img
                   src="/logo_gettsapp.png"
                   alt="getts/App"
-                  className="h-8 object-contain"
+                  className="h-6 object-contain"
                 />
               </div>
             </div>
