@@ -587,10 +587,11 @@ export const appRouter = router({
           name: z.string().min(1),
           address: z.string().optional(),
           cui: z.string().optional(),
-          email: z.string().email().optional(),
+          email: z.string().email().optional().or(z.literal("")),
           phone: z.string().optional(),
           city: z.string().optional(),
           country: z.string().optional(),
+          categoryId: z.number().nullable().optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -607,10 +608,11 @@ export const appRouter = router({
           name: z.string().min(1).optional(),
           address: z.string().optional(),
           cui: z.string().optional(),
-          email: z.string().email().optional(),
+          email: z.string().email().optional().or(z.literal("")),
           phone: z.string().optional(),
           city: z.string().optional(),
           country: z.string().optional(),
+          categoryId: z.number().nullable().optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -629,6 +631,53 @@ export const appRouter = router({
       .query(async ({ input, ctx }) => {
         if (!ctx.user?.tenantId) throw new Error("No tenant context");
         return getCostCenterById(input.id, ctx.user.tenantId);
+      }),
+
+    // ─── Categories Nomenclator ───────────────────────────────
+    listCategories: protectedProcedure.query(async ({ ctx }) => {
+      if (!ctx.user?.tenantId) throw new Error("No tenant context");
+      const db = await getDb();
+      const { costCenterCategories } = await import("../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      return db.select().from(costCenterCategories)
+        .where(eq(costCenterCategories.tenantId, ctx.user.tenantId))
+        .orderBy(costCenterCategories.name);
+    }),
+    createCategory: protectedProcedure
+      .input(z.object({ name: z.string().min(1).max(100), color: z.string().length(7).optional() }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        const { costCenterCategories } = await import("../drizzle/schema");
+        await db.insert(costCenterCategories).values({
+          tenantId: ctx.user.tenantId,
+          name: input.name.trim(),
+          color: input.color || "#6366f1",
+        });
+        return { success: true };
+      }),
+    updateCategory: protectedProcedure
+      .input(z.object({ id: z.number(), name: z.string().min(1).max(100).optional(), color: z.string().length(7).optional() }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        const { costCenterCategories } = await import("../drizzle/schema");
+        const { eq, and } = await import("drizzle-orm");
+        const { id, ...data } = input;
+        await db.update(costCenterCategories).set(data)
+          .where(and(eq(costCenterCategories.id, id), eq(costCenterCategories.tenantId, ctx.user.tenantId)));
+        return { success: true };
+      }),
+    deleteCategory: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const db = await getDb();
+        const { costCenterCategories } = await import("../drizzle/schema");
+        const { eq, and } = await import("drizzle-orm");
+        await db.delete(costCenterCategories)
+          .where(and(eq(costCenterCategories.id, input.id), eq(costCenterCategories.tenantId, ctx.user.tenantId)));
+        return { success: true };
       }),
     listRules: protectedProcedure.query(async ({ ctx }) => {
       if (!ctx.user?.tenantId) throw new Error("No tenant context");

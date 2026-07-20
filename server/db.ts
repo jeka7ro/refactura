@@ -89,6 +89,24 @@ export async function getDb() {
       } catch (e) {
         // Table might already exist — ignore
       }
+      // Cost Center Categories nomenclator
+      try {
+        await _db.execute(sql`
+          CREATE TABLE IF NOT EXISTS costCenterCategories (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            tenantId INT NOT NULL,
+            name VARCHAR(100) NOT NULL,
+            color VARCHAR(7) DEFAULT '#6366f1',
+            createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_costCenterCategories_tenantId (tenantId)
+          )
+        `);
+        console.log("[DB] costCenterCategories table ready");
+      } catch {}
+      try {
+        await _db.execute(sql`ALTER TABLE costCenters ADD COLUMN categoryId INT NULL`);
+        console.log("[DB] Added categoryId to costCenters");
+      } catch {} // column already exists
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -238,6 +256,7 @@ export async function createCostCenter(data: {
   phone?: string;
   city?: string;
   country?: string;
+  categoryId?: number | null;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -281,6 +300,7 @@ export async function updateCostCenter(
     phone?: string;
     city?: string;
     country?: string;
+    categoryId?: number | null;
   }>
 ) {
   const db = await getDb();

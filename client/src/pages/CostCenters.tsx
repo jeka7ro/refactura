@@ -117,6 +117,7 @@ export default function CostCenters() {
     phone: "",
     city: "",
     country: "",
+    categoryId: null as number | null,
   });
 
   const [showRuleForm, setShowRuleForm] = useState(false);
@@ -155,6 +156,14 @@ export default function CostCenters() {
     refetch: refetchRules,
   } = trpc.costCenters.listRules.useQuery();
 
+  // Fetch categories nomenclator
+  const { data: categories = [], refetch: refetchCategories } = trpc.costCenters.listCategories.useQuery();
+  const createCategoryMut = trpc.costCenters.createCategory.useMutation({ onSuccess: () => refetchCategories() });
+  const deleteCategoryMut = trpc.costCenters.deleteCategory.useMutation({ onSuccess: () => refetchCategories() });
+  const [newCatName, setNewCatName] = useState("");
+  const [newCatColor, setNewCatColor] = useState("#6366f1");
+  const [showCatPanel, setShowCatPanel] = useState(false);
+
   // Create mutation
   const createMutation = trpc.costCenters.create.useMutation({
     onSuccess: () => {
@@ -167,6 +176,7 @@ export default function CostCenters() {
         phone: "",
         city: "",
         country: "",
+        categoryId: null,
       });
       setShowForm(false);
     },
@@ -184,6 +194,7 @@ export default function CostCenters() {
         phone: "",
         city: "",
         country: "",
+        categoryId: null,
       });
       setEditingId(null);
       setShowForm(false);
@@ -280,6 +291,7 @@ export default function CostCenters() {
       phone: center.phone || "",
       city: center.city || "",
       country: center.country || "",
+      categoryId: center.categoryId || null,
     });
     setEditingId(center.id);
     setShowForm(true);
@@ -308,6 +320,22 @@ export default function CostCenters() {
       key: "city",
       label: "ORAȘ",
       sortable: true,
+      render: (val: string) => val ? <span className="text-slate-700 dark:text-slate-300">{val}</span> : <span className="text-slate-400">—</span>,
+    },
+    {
+      key: "categoryId",
+      label: "CATEGORIE",
+      sortable: true,
+      render: (val: number) => {
+        const cat = (categories as any[]).find((c) => c.id === val);
+        if (!cat) return <span className="text-slate-400 text-xs">—</span>;
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-white"
+            style={{ backgroundColor: cat.color || "#6366f1" }}>
+            {cat.name}
+          </span>
+        );
+      },
     },
     {
       key: "address",
@@ -495,6 +523,79 @@ export default function CostCenters() {
                     className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400"
                     autoComplete="tel"
                   />
+                  {/* Category dropdown */}
+                  <div className="flex gap-2">
+                    <select
+                      value={formData.categoryId ?? ""}
+                      onChange={e => setFormData({ ...formData, categoryId: e.target.value ? Number(e.target.value) : null })}
+                      className="flex-1 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    >
+                      <option value="">— Fără categorie —</option>
+                      {(categories as any[]).map((cat: any) => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      title="Gestionează categorii"
+                      onClick={() => setShowCatPanel(p => !p)}
+                      className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium"
+                    >
+                      + Categorii
+                    </button>
+                  </div>
+                  {/* Category management panel */}
+                  {showCatPanel && (
+                    <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-3 space-y-2 bg-slate-50 dark:bg-slate-900">
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Nomenclator Categorii</p>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="Denumire categorie (ex: Bar)"
+                          value={newCatName}
+                          onChange={e => setNewCatName(e.target.value)}
+                          className="flex-1 px-3 py-1.5 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                        />
+                        <input
+                          type="color"
+                          value={newCatColor}
+                          onChange={e => setNewCatColor(e.target.value)}
+                          title="Culoare badge"
+                          className="w-9 h-9 rounded border border-slate-200 dark:border-slate-700 cursor-pointer p-0.5 bg-white"
+                        />
+                        <button
+                          type="button"
+                          disabled={!newCatName.trim() || createCategoryMut.isPending}
+                          onClick={() => {
+                            if (newCatName.trim()) {
+                              createCategoryMut.mutate({ name: newCatName.trim(), color: newCatColor });
+                              setNewCatName("");
+                            }
+                          }}
+                          className="px-3 py-1.5 text-sm rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
+                        >
+                          Adaugă
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto">
+                        {(categories as any[]).length === 0 && (
+                          <span className="text-xs text-slate-400">Nicio categorie definită încă.</span>
+                        )}
+                        {(categories as any[]).map((cat: any) => (
+                          <span key={cat.id}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs text-white"
+                            style={{ backgroundColor: cat.color || "#6366f1" }}>
+                            {cat.name}
+                            <button
+                              type="button"
+                              onClick={() => deleteCategoryMut.mutate({ id: cat.id })}
+                              className="hover:opacity-70 ml-0.5 leading-none"
+                            >×</button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2 justify-end">
                   <Button

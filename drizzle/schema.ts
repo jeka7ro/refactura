@@ -134,12 +134,28 @@ export const costCenters = mysqlTable("costCenters", {
   city: varchar("city", { length: 100 }),
   country: varchar("country", { length: 2 }).default("RO"),
   isActive: int("isActive").default(1),
+  categoryId: int("categoryId"),              // FK -> costCenterCategories.id
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
 export type CostCenter = typeof costCenters.$inferSelect;
 export type InsertCostCenter = typeof costCenters.$inferInsert;
+
+/**
+ * Cost Center Categories — nomenclator per tenant
+ * Ex: "Produse alimentare", "Bar", "Băuturi", "Curățenie", etc.
+ */
+export const costCenterCategories = mysqlTable("costCenterCategories", {
+  id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId").notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  color: varchar("color", { length: 7 }).default("#6366f1"), // hex color for badge
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type CostCenterCategory = typeof costCenterCategories.$inferSelect;
+export type InsertCostCenterCategory = typeof costCenterCategories.$inferInsert;
 
 export const costCenterRules = mysqlTable("costCenterRules", {
   id: int("id").autoincrement().primaryKey(),
