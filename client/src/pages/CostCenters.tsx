@@ -524,79 +524,108 @@ export default function CostCenters() {
                     className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400"
                     autoComplete="tel"
                   />
-                  {/* Category dropdown */}
-                  <div className="flex gap-2">
-                    <select
-                      value={formData.categoryId ?? ""}
-                      onChange={e => setFormData({ ...formData, categoryId: e.target.value ? Number(e.target.value) : null })}
-                      className="flex-1 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
-                    >
-                      <option value="">— Fără categorie —</option>
-                      {(categories as any[]).map((cat: any) => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      title="Gestionează categorii"
-                      onClick={() => setShowCatPanel(p => !p)}
-                      className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium"
-                    >
-                      + Categorii
-                    </button>
-                  </div>
-                  {/* Category management panel */}
-                  {showCatPanel && (
-                    <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-3 space-y-2 bg-slate-50 dark:bg-slate-900">
-                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Nomenclator Categorii</p>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          placeholder="Denumire categorie (ex: Bar)"
-                          value={newCatName}
-                          onChange={e => setNewCatName(e.target.value)}
-                          className="flex-1 px-3 py-1.5 text-sm rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                        />
-                        <input
-                          type="color"
-                          value={newCatColor}
-                          onChange={e => setNewCatColor(e.target.value)}
-                          title="Culoare badge"
-                          className="w-9 h-9 rounded border border-slate-200 dark:border-slate-700 cursor-pointer p-0.5 bg-white"
-                        />
-                        <button
-                          type="button"
-                          disabled={!newCatName.trim() || createCategoryMut.isPending}
-                          onClick={() => {
-                            if (newCatName.trim()) {
-                              createCategoryMut.mutate({ name: newCatName.trim(), color: newCatColor });
-                              setNewCatName("");
-                            }
-                          }}
-                          className="px-3 py-1.5 text-sm rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
-                        >
-                          Adaugă
-                        </button>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto">
-                        {(categories as any[]).length === 0 && (
-                          <span className="text-xs text-slate-400">Nicio categorie definită încă.</span>
-                        )}
+                  {/* ── Categorie ─────────────────────────────── */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Categorie</label>
+                    <div className="flex gap-2">
+                      <select
+                        value={formData.categoryId ?? ""}
+                        onChange={e => setFormData({ ...formData, categoryId: e.target.value ? Number(e.target.value) : null })}
+                        className="flex-1 px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value="">— Fără categorie —</option>
                         {(categories as any[]).map((cat: any) => (
-                          <span key={cat.id}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs text-white"
-                            style={{ backgroundColor: cat.color || "#6366f1" }}>
-                            {cat.name}
+                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => setShowCatPanel(p => !p)}
+                        className={`px-3 py-2 rounded-lg border text-xs font-medium transition-colors ${showCatPanel ? "border-indigo-300 bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300" : "border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"}`}
+                      >
+                        {showCatPanel ? "✕ Închide" : "+ Gestionează"}
+                      </button>
+                    </div>
+
+                    {/* Categoria management — apare sub dropdown */}
+                    {showCatPanel && (
+                      <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 overflow-hidden">
+                        <div className="px-3 py-2 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
+                          <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Nomenclator categorii</span>
+                        </div>
+                        {/* Existing categories */}
+                        {(categories as any[]).length > 0 && (
+                          <div className="px-3 py-2 flex flex-wrap gap-1.5 border-b border-slate-200 dark:border-slate-700">
+                            {(categories as any[]).map((cat: any) => (
+                              <span
+                                key={cat.id}
+                                className="inline-flex items-center gap-1.5 pl-2 pr-1 py-0.5 rounded-lg text-xs font-medium text-white"
+                                style={{ backgroundColor: cat.color || "#6366f1" }}
+                              >
+                                {cat.name}
+                                <button
+                                  type="button"
+                                  onClick={() => deleteCategoryMut.mutate({ id: cat.id })}
+                                  className="w-4 h-4 rounded flex items-center justify-center bg-black/20 hover:bg-black/40 transition-colors leading-none text-xs"
+                                  title="Șterge"
+                                >×</button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {/* Add new category */}
+                        <div className="px-3 py-2.5 space-y-2">
+                          <input
+                            type="text"
+                            placeholder="Denumire nouă (ex: Bar, Bucătărie, Curățenie)"
+                            value={newCatName}
+                            onChange={e => setNewCatName(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === "Enter" && newCatName.trim()) {
+                                e.preventDefault();
+                                createCategoryMut.mutate({ name: newCatName.trim(), color: newCatColor });
+                                setNewCatName("");
+                              }
+                            }}
+                            className="w-full px-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          />
+                          {/* Color swatches */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-400 shrink-0">Culoare:</span>
+                            <div className="flex gap-1.5 flex-wrap">
+                              {["#6366f1","#0ea5e9","#10b981","#f59e0b","#ef4444","#ec4899","#8b5cf6","#06b6d4","#84cc16","#f97316"].map(color => (
+                                <button
+                                  key={color}
+                                  type="button"
+                                  onClick={() => setNewCatColor(color)}
+                                  className="w-5 h-5 rounded-lg transition-transform hover:scale-110 focus:outline-none"
+                                  style={{
+                                    backgroundColor: color,
+                                    boxShadow: newCatColor === color ? `0 0 0 2px white, 0 0 0 3.5px ${color}` : "none",
+                                    transform: newCatColor === color ? "scale(1.2)" : "scale(1)",
+                                  }}
+                                  title={color}
+                                />
+                              ))}
+                            </div>
                             <button
                               type="button"
-                              onClick={() => deleteCategoryMut.mutate({ id: cat.id })}
-                              className="hover:opacity-70 ml-0.5 leading-none"
-                            >×</button>
-                          </span>
-                        ))}
+                              disabled={!newCatName.trim() || createCategoryMut.isPending}
+                              onClick={() => {
+                                if (newCatName.trim()) {
+                                  createCategoryMut.mutate({ name: newCatName.trim(), color: newCatColor });
+                                  setNewCatName("");
+                                }
+                              }}
+                              className="ml-auto px-3 py-1 text-xs font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40 transition-colors"
+                            >
+                              {createCategoryMut.isPending ? "..." : "+ Adaugă"}
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
                 <div className="flex gap-2 justify-end">
                   <Button
