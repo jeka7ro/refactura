@@ -56,7 +56,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const LOGO_URL = "/refactura-logo.png";
+const LOGO_URL = "/logo_gettsapp.png";
 const APP_NAME = "Smart Invoice";
 const APP_SUBTITLE = "Refactura.ro";
 
@@ -386,7 +386,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <header className="h-16 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center px-4 sm:px-6 gap-4 flex-shrink-0">
         {/* Logo */}
         <div className="h-8 w-auto flex-shrink-0 mr-2">
-          <img src="/logo.png" alt="GetApp Refactura" className="h-full object-contain" />
+          <img src="/logo_gettsapp.png" alt="GetApp Refactura" className="h-full object-contain" />
         </div>
 
         {/* Mobile menu toggle */}

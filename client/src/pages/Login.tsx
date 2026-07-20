@@ -20,7 +20,7 @@ import {
 import { toast } from "sonner";
 import { GoogleLogin } from "@react-oauth/google";
 
-const LOGO_URL = "/refactura-logo.png";
+const LOGO_URL = "/logo_gettsapp.png";
 const APP_NAME = "GetApp Refactura";
 
 export default function Login() {

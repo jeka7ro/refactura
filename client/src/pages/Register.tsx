@@ -106,7 +106,7 @@ export default function Register() {
           <div className="flex items-center relative z-10 cursor-pointer hover:opacity-90 transition-opacity w-fit">
             <div className="bg-white px-6 py-3 rounded-2xl shadow-lg border border-white/20 flex-shrink-0 flex flex-col items-center justify-center">
               <img
-                src="/logo.png"
+                src="/logo_gettsapp.png"
                 alt="getts/App"
                 className="h-10 object-contain"
               />
@@ -151,7 +151,7 @@ export default function Register() {
             <div className="flex items-center mb-10 lg:hidden cursor-pointer w-fit">
               <div className="bg-white px-5 py-2.5 rounded-2xl shadow-lg border border-slate-200 flex flex-col items-center justify-center">
                 <img
-                  src="/logo.png"
+                  src="/logo_gettsapp.png"
                   alt="getts/App"
                   className="h-8 object-contain"
                 />
