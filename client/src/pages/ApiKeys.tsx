@@ -17,8 +17,8 @@ export default function ApiKeysPage() {
   const [showCreate, setShowCreate] = useState(false);
 
   const utils = trpc.useUtils();
-  const { data: keys = [], isLoading } = (trpc as any).apiKeys.list.useQuery();
-  const createMut = (trpc as any).apiKeys.create.useMutation({
+  const { data: keys = [], isLoading } = trpc.apiKeys.list.useQuery();
+  const createMut = trpc.apiKeys.create.useMutation({
     onSuccess: (data: any) => {
       setNewKey(data.rawKey);
       setNewName("");
@@ -26,8 +26,8 @@ export default function ApiKeysPage() {
       utils.invalidate();
     },
   });
-  const revokeMut = (trpc as any).apiKeys.revoke.useMutation({ onSuccess: () => utils.invalidate() });
-  const deleteMut = (trpc as any).apiKeys.delete.useMutation({ onSuccess: () => utils.invalidate() });
+  const revokeMut = trpc.apiKeys.revoke.useMutation({ onSuccess: () => utils.invalidate() });
+  const deleteMut = trpc.apiKeys.delete.useMutation({ onSuccess: () => utils.invalidate() });
 
   const handleCreate = async () => {
     if (!newName.trim()) return;

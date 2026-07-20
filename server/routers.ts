@@ -103,11 +103,73 @@ try {
 }
 
 import { convertXmlToPdf } from "./anafPdf";
+import { generateApiKey } from "./publicApi";
+import { apiKeys } from "../drizzle/schema";
+
+const apiKeysRouter = router({
+  list: protectedProcedure.query(async ({ ctx }) => {
+    if (!ctx.user?.tenantId) return [];
+    const db = await getDb();
+    const { eq } = await import("drizzle-orm");
+    return db
+      .select({
+        id: apiKeys.id,
+        name: apiKeys.name,
+        keyPrefix: apiKeys.keyPrefix,
+        isActive: apiKeys.isActive,
+        lastUsedAt: apiKeys.lastUsedAt,
+        expiresAt: apiKeys.expiresAt,
+        createdAt: apiKeys.createdAt,
+      })
+      .from(apiKeys)
+      .where(eq(apiKeys.tenantId, ctx.user.tenantId));
+  }),
+
+  create: protectedProcedure
+    .input(z.object({ name: z.string().min(1).max(100) }))
+    .mutation(async ({ input, ctx }) => {
+      if (!ctx.user?.tenantId) throw new Error("No tenant");
+      const db = await getDb();
+      const { raw, prefix, hash } = generateApiKey();
+      await db.insert(apiKeys).values({
+        tenantId: ctx.user.tenantId,
+        name: input.name,
+        keyHash: hash,
+        keyPrefix: prefix,
+        isActive: 1,
+      });
+      return { rawKey: raw, prefix };
+    }),
+
+  revoke: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      if (!ctx.user?.tenantId) throw new Error("No tenant");
+      const db = await getDb();
+      const { eq, and } = await import("drizzle-orm");
+      await db.update(apiKeys)
+        .set({ isActive: 0 })
+        .where(and(eq(apiKeys.id, input.id), eq(apiKeys.tenantId, ctx.user.tenantId)));
+      return { success: true };
+    }),
+
+  delete: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      if (!ctx.user?.tenantId) throw new Error("No tenant");
+      const db = await getDb();
+      const { eq, and } = await import("drizzle-orm");
+      await db.delete(apiKeys)
+        .where(and(eq(apiKeys.id, input.id), eq(apiKeys.tenantId, ctx.user.tenantId)));
+      return { success: true };
+    }),
+});
 
 export const appRouter = router({
   system: systemRouter,
   horeca: horecaRouter,
   auth: authRouter,
+  apiKeys: apiKeysRouter,
 
   tenants: router({
     list: protectedProcedure.query(async ({ ctx }) => {
@@ -3150,72 +3212,5 @@ export const appRouter = router({
   }),
 
 });
-
-// ─── API Keys Router ───────────────────────────────────────────────────────────
-import { generateApiKey, hashKey } from "./publicApi";
-import { apiKeys } from "../drizzle/schema";
-
-const apiKeysRouter = router({
-  list: protectedProcedure.query(async ({ ctx }) => {
-    if (!ctx.user?.tenantId) return [];
-    const db = await getDb();
-    const { eq } = await import("drizzle-orm");
-    return db
-      .select({
-        id: apiKeys.id,
-        name: apiKeys.name,
-        keyPrefix: apiKeys.keyPrefix,
-        isActive: apiKeys.isActive,
-        lastUsedAt: apiKeys.lastUsedAt,
-        expiresAt: apiKeys.expiresAt,
-        createdAt: apiKeys.createdAt,
-      })
-      .from(apiKeys)
-      .where(eq(apiKeys.tenantId, ctx.user.tenantId));
-  }),
-
-  create: protectedProcedure
-    .input(z.object({ name: z.string().min(1).max(100) }))
-    .mutation(async ({ input, ctx }) => {
-      if (!ctx.user?.tenantId) throw new Error("No tenant");
-      const db = await getDb();
-      const { raw, prefix, hash } = generateApiKey();
-      await db.insert(apiKeys).values({
-        tenantId: ctx.user.tenantId,
-        name: input.name,
-        keyHash: hash,
-        keyPrefix: prefix,
-        isActive: 1,
-      });
-      // Return raw key ONLY once — never stored
-      return { rawKey: raw, prefix };
-    }),
-
-  revoke: protectedProcedure
-    .input(z.object({ id: z.number() }))
-    .mutation(async ({ input, ctx }) => {
-      if (!ctx.user?.tenantId) throw new Error("No tenant");
-      const db = await getDb();
-      const { eq, and } = await import("drizzle-orm");
-      await db.update(apiKeys)
-        .set({ isActive: 0 })
-        .where(and(eq(apiKeys.id, input.id), eq(apiKeys.tenantId, ctx.user.tenantId)));
-      return { success: true };
-    }),
-
-  delete: protectedProcedure
-    .input(z.object({ id: z.number() }))
-    .mutation(async ({ input, ctx }) => {
-      if (!ctx.user?.tenantId) throw new Error("No tenant");
-      const db = await getDb();
-      const { eq, and } = await import("drizzle-orm");
-      await db.delete(apiKeys)
-        .where(and(eq(apiKeys.id, input.id), eq(apiKeys.tenantId, ctx.user.tenantId)));
-      return { success: true };
-    }),
-});
-
-// Patch appRouter to include apiKeys
-Object.assign(appRouter, { apiKeys: apiKeysRouter });
 
 export type AppRouter = typeof appRouter;
