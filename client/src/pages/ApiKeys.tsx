@@ -176,30 +176,60 @@ export default function ApiKeysPage() {
       <div className="bg-slate-900 dark:bg-slate-950 rounded-xl p-5 space-y-4">
         <div className="flex items-center gap-2">
           <ExternalLink className="w-4 h-4 text-slate-400" />
-          <h3 className="text-sm font-semibold text-white">Cum se foloseste</h3>
+          <h3 className="text-sm font-semibold text-white">Referinta API</h3>
         </div>
-        <div className="space-y-3 text-xs font-mono">
+        <div className="space-y-4 text-xs font-mono">
+
+          {/* Facturi Primite */}
+          <p className="text-slate-400 text-xs font-sans font-semibold uppercase tracking-wider">Facturi Primite</p>
           <div>
-            <p className="text-slate-500 mb-1"># Lista centre de cost</p>
+            <p className="text-slate-500 mb-1"># Lista tuturor facturilor primite (filtre optionale)</p>
             <div className="bg-slate-800 rounded-lg p-3 text-emerald-400 overflow-x-auto">
+              <p>GET {baseUrl}/api/v1/facturi-primite</p>
+              <p className="text-slate-500">   ?from=2026-01-01 &amp;to=2026-12-31</p>
+              <p className="text-slate-500">   &amp;supplier=Orange &amp;status=processed &amp;costCenterId=1</p>
+              <p className="text-indigo-400">Authorization: Bearer sk_...</p>
+            </div>
+          </div>
+          <div>
+            <p className="text-slate-500 mb-1"># Detalii factura primita</p>
+            <div className="bg-slate-800 rounded-lg p-3 text-emerald-400 overflow-x-auto">
+              <p>GET {baseUrl}/api/v1/facturi-primite/:id</p>
+              <p className="text-indigo-400">Authorization: Bearer sk_...</p>
+            </div>
+          </div>
+
+          {/* Facturi Emise */}
+          <p className="text-slate-400 text-xs font-sans font-semibold uppercase tracking-wider pt-2">Facturi Emise</p>
+          <div>
+            <p className="text-slate-500 mb-1"># Lista tuturor facturilor emise (filtre optionale)</p>
+            <div className="bg-slate-800 rounded-lg p-3 text-emerald-400 overflow-x-auto">
+              <p>GET {baseUrl}/api/v1/facturi-emise</p>
+              <p className="text-slate-500">   ?from=2026-01-01 &amp;to=2026-12-31</p>
+              <p className="text-slate-500">   &amp;client=Acme &amp;status=paid</p>
+              <p className="text-indigo-400">Authorization: Bearer sk_...</p>
+            </div>
+          </div>
+          <div>
+            <p className="text-slate-500 mb-1"># Detalii factura emisa</p>
+            <div className="bg-slate-800 rounded-lg p-3 text-emerald-400 overflow-x-auto">
+              <p>GET {baseUrl}/api/v1/facturi-emise/:id</p>
+              <p className="text-indigo-400">Authorization: Bearer sk_...</p>
+            </div>
+          </div>
+
+          {/* Centre de Cost */}
+          <p className="text-slate-400 text-xs font-sans font-semibold uppercase tracking-wider pt-2">Centre de Cost</p>
+          <div>
+            <div className="bg-slate-800 rounded-lg p-3 text-emerald-400 overflow-x-auto space-y-1">
               <p>GET {baseUrl}/api/v1/cost-centers</p>
-              <p>Authorization: Bearer sk_...</p>
+              <p>GET {baseUrl}/api/v1/cost-centers/:id</p>
+              <p>GET {baseUrl}/api/v1/cost-centers/:id/invoices</p>
+              <p>GET {baseUrl}/api/v1/cost-centers/:id/summary</p>
+              <p className="text-indigo-400">Authorization: Bearer sk_...</p>
             </div>
           </div>
-          <div>
-            <p className="text-slate-500 mb-1"># Facturi pe centru (cu filtre optionale)</p>
-            <div className="bg-slate-800 rounded-lg p-3 text-emerald-400 overflow-x-auto">
-              <p>GET {baseUrl}/api/v1/cost-centers/1/invoices?from=2026-01-01&to=2026-12-31</p>
-              <p>Authorization: Bearer sk_...</p>
-            </div>
-          </div>
-          <div>
-            <p className="text-slate-500 mb-1"># Sumar KPI centru</p>
-            <div className="bg-slate-800 rounded-lg p-3 text-emerald-400 overflow-x-auto">
-              <p>GET {baseUrl}/api/v1/cost-centers/1/summary</p>
-              <p>Authorization: Bearer sk_...</p>
-            </div>
-          </div>
+
         </div>
       </div>
     </div>

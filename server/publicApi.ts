@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createHash, randomBytes } from "crypto";
 import { getDb } from "./db";
-import { apiKeys, costCenters, invoiceArchive } from "../drizzle/schema";
+import { apiKeys, costCenters, invoiceArchive, emittedInvoices } from "../drizzle/schema";
 import { eq, and, gte, lte, like, or, sql } from "drizzle-orm";
 
 // ─── helpers ─────────────────────────────────────────────────
@@ -182,6 +182,155 @@ export function registerPublicApi(app: Express) {
           },
         },
       });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // FACTURI PRIMITE (invoiceArchive)
+  // ═══════════════════════════════════════════════════════════
+
+  // ── GET /api/v1/facturi-primite ───────────────────────────
+  // Filtre: from, to, supplier, status, costCenterId, limit
+  app.get("/api/v1/facturi-primite", async (req: Request, res: Response) => {
+    const auth = await resolveApiKey(req.headers.authorization);
+    if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
+    const { from, to, supplier, status, costCenterId } = req.query as Record<string, string>;
+    const limit = Math.min(parseInt((req.query.limit as string) || "200"), 1000);
+    try {
+      const db = await getDb();
+      const conditions: any[] = [eq(invoiceArchive.tenantId, auth.tenantId)];
+      if (from) conditions.push(gte(invoiceArchive.issueDate, from));
+      if (to)   conditions.push(lte(invoiceArchive.issueDate, to));
+      if (status) conditions.push(eq(invoiceArchive.status, status as any));
+      if (costCenterId) conditions.push(eq(invoiceArchive.costCenterId, parseInt(costCenterId)));
+      if (supplier) {
+        const term = `%${supplier}%`;
+        conditions.push(or(like(invoiceArchive.supplierName, term), like(invoiceArchive.supplierCUI, term)));
+      }
+      const rows = await db
+        .select({
+          id: invoiceArchive.id,
+          invoiceNumber: invoiceArchive.invoiceNumber,
+          supplierName: invoiceArchive.supplierName,
+          supplierCUI: invoiceArchive.supplierCUI,
+          issueDate: invoiceArchive.issueDate,
+          dueDate: invoiceArchive.dueDate,
+          total: invoiceArchive.total,
+          totalVAT: invoiceArchive.totalVAT,
+          currency: invoiceArchive.currency,
+          status: invoiceArchive.status,
+          direction: invoiceArchive.direction,
+          costCenterId: invoiceArchive.costCenterId,
+          fileUrl: invoiceArchive.fileUrl,
+          source: invoiceArchive.source,
+        })
+        .from(invoiceArchive)
+        .where(and(...conditions))
+        .orderBy(invoiceArchive.issueDate)
+        .limit(limit);
+      const total = rows.reduce((s, r) => s + (Number(r.total) || 0), 0);
+      const totalVAT = rows.reduce((s, r) => s + (Number(r.totalVAT) || 0), 0);
+      return res.json({
+        data: rows,
+        meta: { count: rows.length, totalSpend: +total.toFixed(2), totalVAT: +totalVAT.toFixed(2) },
+      });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── GET /api/v1/facturi-primite/:id ──────────────────────
+  app.get("/api/v1/facturi-primite/:id", async (req: Request, res: Response) => {
+    const auth = await resolveApiKey(req.headers.authorization);
+    if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+    try {
+      const db = await getDb();
+      const rows = await db
+        .select()
+        .from(invoiceArchive)
+        .where(and(eq(invoiceArchive.id, id), eq(invoiceArchive.tenantId, auth.tenantId)))
+        .limit(1);
+      if (!rows[0]) return res.status(404).json({ error: "Invoice not found" });
+      return res.json({ data: rows[0] });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // FACTURI EMISE (emittedInvoices)
+  // ═══════════════════════════════════════════════════════════
+
+  // ── GET /api/v1/facturi-emise ─────────────────────────────
+  // Filtre: from, to, client, status, limit
+  app.get("/api/v1/facturi-emise", async (req: Request, res: Response) => {
+    const auth = await resolveApiKey(req.headers.authorization);
+    if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
+    const { from, to, client, status } = req.query as Record<string, string>;
+    const limit = Math.min(parseInt((req.query.limit as string) || "200"), 1000);
+    try {
+      const db = await getDb();
+      const conditions: any[] = [eq(emittedInvoices.tenantId, auth.tenantId)];
+      if (from) conditions.push(gte(emittedInvoices.issueDate, from));
+      if (to)   conditions.push(lte(emittedInvoices.issueDate, to));
+      if (status) conditions.push(eq(emittedInvoices.status, status as any));
+      if (client) {
+        const term = `%${client}%`;
+        conditions.push(or(like(emittedInvoices.clientName, term), like(emittedInvoices.clientCUI, term)));
+      }
+      const rows = await db
+        .select({
+          id: emittedInvoices.id,
+          number: emittedInvoices.number,
+          series: emittedInvoices.series,
+          clientName: emittedInvoices.clientName,
+          clientCUI: emittedInvoices.clientCUI,
+          clientEmail: emittedInvoices.clientEmail,
+          issueDate: emittedInvoices.issueDate,
+          dueDate: emittedInvoices.dueDate,
+          subtotal: emittedInvoices.subtotal,
+          totalVAT: emittedInvoices.totalVAT,
+          total: emittedInvoices.total,
+          currency: emittedInvoices.currency,
+          status: emittedInvoices.status,
+          spvStatus: emittedInvoices.spvStatus,
+          pdfUrl: emittedInvoices.pdfUrl,
+          createdAt: emittedInvoices.createdAt,
+        })
+        .from(emittedInvoices)
+        .where(and(...conditions))
+        .orderBy(emittedInvoices.issueDate)
+        .limit(limit);
+      const totalSpend = rows.reduce((s, r) => s + (Number(r.total) || 0), 0);
+      const totalVAT   = rows.reduce((s, r) => s + (Number(r.totalVAT) || 0), 0);
+      return res.json({
+        data: rows,
+        meta: { count: rows.length, totalRevenue: +totalSpend.toFixed(2), totalVAT: +totalVAT.toFixed(2) },
+      });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── GET /api/v1/facturi-emise/:id ────────────────────────
+  app.get("/api/v1/facturi-emise/:id", async (req: Request, res: Response) => {
+    const auth = await resolveApiKey(req.headers.authorization);
+    if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+    try {
+      const db = await getDb();
+      const rows = await db
+        .select()
+        .from(emittedInvoices)
+        .where(and(eq(emittedInvoices.id, id), eq(emittedInvoices.tenantId, auth.tenantId)))
+        .limit(1);
+      if (!rows[0]) return res.status(404).json({ error: "Invoice not found" });
+      return res.json({ data: rows[0] });
     } catch (e: any) {
       return res.status(500).json({ error: e.message });
     }
