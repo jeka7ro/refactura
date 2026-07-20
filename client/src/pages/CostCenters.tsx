@@ -368,26 +368,29 @@ export default function CostCenters() {
     },
     {
       key: "conditionType",
-      label: "TIP CONDIȚIE",
-      sortable: true,
-      render: (val) => val === "SUPPLIER_CUI" ? "CUI Furnizor" : "Nume Furnizor",
-    },
-    {
-      key: "conditionValue",
-      label: "VALOARE",
-      sortable: true,
-    },
-    {
-      key: "addressKeyword",
-      label: "ADRESĂ (OPȚIONAL)",
-      sortable: true,
-      render: (val) => val ? val : "-",
+      label: "CONDIȚII ACTIVE",
+      sortable: false,
+      render: (_val: any, row: any) => {
+        const badges: { label: string; color: string }[] = [];
+        if (row.conditionValue?.trim())  badges.push({ label: `CUI: ${row.conditionValue}`,       color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" });
+        if (row.matchName?.trim())        badges.push({ label: `Furnizor: ${row.matchName}`,        color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300" });
+        if (row.addressKeyword?.trim())   badges.push({ label: `Adresă: ${row.addressKeyword}`,    color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300" });
+        if (row.lineKeyword?.trim())      badges.push({ label: `Linie: ${row.lineKeyword}`,         color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" });
+        if (badges.length === 0) return <span className="text-slate-400 text-xs italic">—</span>;
+        return (
+          <div className="flex flex-wrap gap-1">
+            {badges.map((b, i) => (
+              <span key={i} className={`inline-block px-2 py-0.5 rounded-lg text-xs font-medium ${b.color}`}>{b.label}</span>
+            ))}
+          </div>
+        );
+      },
     },
     {
       key: "costCenterId",
       label: "DESTINAȚIE",
       sortable: true,
-      render: (val) => {
+      render: (val: any) => {
         const c = costCenters.find((x: any) => x.id === val);
         return c ? c.name : val;
       }
