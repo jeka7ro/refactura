@@ -30,7 +30,8 @@ export async function createAccount(
   email: string,
   password: string,
   tenantId?: number,
-  role: "superadmin" | "admin" | "user" = "user"
+  role: "superadmin" | "admin" | "user" = "user",
+  phone?: string
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -44,6 +45,7 @@ export async function createAccount(
       tenantId,
       role,
       isActive: 1,
+      phone: phone || null,
     });
     return result;
   } catch (error) {

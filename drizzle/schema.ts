@@ -23,6 +23,7 @@ export const users = mysqlTable("users", {
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
+  phone: varchar("phone", { length: 30 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin", "superadmin"])
     .default("user")
@@ -262,6 +263,7 @@ export const accounts = mysqlTable("accounts", {
     .default("user")
     .notNull(),
   isActive: int("isActive").default(1),
+  phone: varchar("phone", { length: 30 }),
   lastLoginAt: timestamp("lastLoginAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

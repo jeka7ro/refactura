@@ -21,6 +21,7 @@ export const authRouter = router({
         email: z.string().email(),
         password: z.string().min(8),
         confirmPassword: z.string(),
+        phone: z.string().optional(),
       })
     )
     .mutation(async ({ input }) => {
@@ -35,7 +36,7 @@ export const authRouter = router({
       }
 
       // Create account
-      await createAccount(input.email, input.password, undefined, "user");
+      await createAccount(input.email, input.password, undefined, "user", input.phone);
 
       // Authenticate and return token
       const account = await authenticateAccount(input.email, input.password);

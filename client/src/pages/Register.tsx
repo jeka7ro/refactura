@@ -5,6 +5,7 @@ import {
   Loader2,
   Lock,
   Mail,
+  Phone,
   ArrowRight,
   Eye,
   EyeOff,
@@ -25,6 +26,7 @@ export default function Register() {
   const [, setLocation] = useLocation();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -52,6 +54,7 @@ export default function Register() {
         email,
         password,
         confirmPassword: password,
+        phone: phone.trim() || undefined,
       });
       if (result.success) {
         localStorage.setItem("authToken", result.token);
@@ -222,6 +225,31 @@ export default function Register() {
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     placeholder="email@companie.ro"
+                    disabled={isLoading}
+                    className="py-3"
+                  />
+                </InputGroup>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="reg-phone"
+                  className="block text-sm font-semibold text-slate-700 mb-1 pl-2"
+                >
+                  Telefon
+                </label>
+                <InputGroup className="bg-white !rounded-full overflow-hidden border-slate-200 shadow-sm px-2">
+                  <InputGroupAddon>
+                    <Phone className="w-4 h-4 text-slate-400" />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    id="reg-phone"
+                    name="phone"
+                    type="tel"
+                    autoComplete="tel"
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    placeholder="+40 712 345 678"
                     disabled={isLoading}
                     className="py-3"
                   />
@@ -406,19 +434,14 @@ export default function Register() {
             </form>
           </div>
 
-          <p className="text-sm text-slate-500 text-center mt-4">
-            Ai deja cont?{" "}
-            <Link
-              href="/login"
-              className="text-primary font-bold hover:underline"
-            >
-              Autentifică-te
-            </Link>
-          </p>
-          
-          {/* Branding footer */}
-          <div className="mt-10 flex flex-col items-center gap-2">
-            <img src="/logo_full.png" alt="GettsApp" className="h-8 w-auto" />
+          <div className="flex items-center justify-between mt-6">
+            <p className="text-sm text-slate-500">
+              Ai deja cont?{" "}
+              <Link href="/login" className="text-primary font-bold hover:underline">
+                Autentifică-te
+              </Link>
+            </p>
+            <img src="/logo_full.png" alt="GettsApp" className="h-6 w-auto opacity-60 hover:opacity-100 transition-opacity" />
           </div>
 
         </div>
