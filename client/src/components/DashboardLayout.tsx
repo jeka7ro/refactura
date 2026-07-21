@@ -339,8 +339,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
           </div>
           
-          <div className="mt-6 flex flex-col items-center justify-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
-            <img src="/logo_full.png" alt="GettsApp" className="h-4 w-auto" />
+          <div className="mt-4 flex items-center justify-center">
+            <img src="/logo_full.png" alt="GettsApp" className="h-7 w-auto" />
           </div>
         </div>
       )}
