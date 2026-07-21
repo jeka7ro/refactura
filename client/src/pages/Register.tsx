@@ -416,6 +416,10 @@ export default function Register() {
             </Link>
           </p>
           
+          {/* Branding footer */}
+          <div className="mt-10 flex flex-col items-center gap-2">
+            <img src="/logo_full.png" alt="GettsApp" className="h-8 w-auto" />
+          </div>
 
         </div>
       </div>

@@ -554,6 +554,10 @@ export default function Landing() {
           </div>
         </div>
         
+        {/* Branding footer */}
+        <div className="mt-8 flex flex-col items-center gap-2">
+          <img src="/logo_full.png" alt="GettsApp" className="h-8 w-auto" />
+        </div>
 
       </footer>
 
