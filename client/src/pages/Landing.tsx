@@ -554,12 +554,7 @@ export default function Landing() {
           </div>
         </div>
         
-        <div className="flex flex-col items-center justify-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
-          <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 text-center leading-tight">
-            Grup și Echipă de<br/>Producție Aplicație
-          </span>
-          <img src="/logo_full.png" alt="GettsApp" className="h-5 w-auto filter grayscale hover:grayscale-0 transition-all" />
-        </div>
+
       </footer>
 
 

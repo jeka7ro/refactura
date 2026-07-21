@@ -346,23 +346,27 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       )}
 
       {/* Collapse toggle */}
-      <div
-        className={cn(
-          "px-2 py-3 border-t border-slate-200/50 dark:border-slate-800/50",
-          collapsed && "flex justify-center"
-        )}
-      >
+      <div className="px-3 py-3 border-t border-slate-200/50 dark:border-slate-800/50">
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-blue-600 bg-blue-50/50 hover:bg-blue-100 dark:text-blue-400 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 font-semibold transition-all duration-150 text-xs"
+          title={collapsed ? "Extinde sidebar" : "Restrânge sidebar"}
+          className={cn(
+            "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all duration-200 group",
+            "text-slate-400 hover:text-slate-700 dark:hover:text-slate-200",
+            "hover:bg-slate-100 dark:hover:bg-slate-800",
+            collapsed && "justify-center"
+          )}
         >
-          {collapsed ? (
-            <ChevronRight className="w-4 h-4" />
-          ) : (
-            <>
-              <ChevronLeft className="w-4 h-4" />
-              <span>Restrânge</span>
-            </>
+          <div className="w-5 h-5 rounded-lg bg-slate-100 dark:bg-slate-800 group-hover:bg-slate-200 dark:group-hover:bg-slate-700 flex items-center justify-center transition-colors flex-shrink-0">
+            {collapsed
+              ? <ChevronRight className="w-3.5 h-3.5" />
+              : <ChevronLeft className="w-3.5 h-3.5" />
+            }
+          </div>
+          {!collapsed && (
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors">
+              Restrânge
+            </span>
           )}
         </button>
       </div>

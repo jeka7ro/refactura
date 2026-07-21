@@ -416,12 +416,7 @@ export default function Register() {
             </Link>
           </p>
           
-          <div className="mt-12 flex flex-col items-center justify-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 text-center leading-tight">
-              Grup și Echipă de<br/>Producție Aplicație
-            </span>
-            <img src="/logo_full.png" alt="GettsApp" className="h-5 w-auto filter grayscale hover:grayscale-0 transition-all" />
-          </div>
+
         </div>
       </div>
     </div>
