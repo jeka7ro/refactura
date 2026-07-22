@@ -36,7 +36,7 @@ const DOMAIN_IMAGES = {
   office: "/images/industry_office_1781868278831.png",
 };
 
-const LOGO_URL = "/logo_gettsapp.png";
+const LOGO_URL = "/gettsapp_logo_ver2.png";
 const APP_NAME = "getts/App";
 
 const ICON_MAP: Record<string, any> = {
@@ -151,9 +151,9 @@ export default function Landing() {
           >
             <div className="flex items-center justify-center">
               <img
-                src="/logo_spv2.png"
+                src="/logo_final_root.png"
                 alt="Factura SPV"
-                className="h-16 sm:h-20 w-auto object-contain flex-shrink-0 z-10"
+                className="h-16 sm:h-20 w-auto object-contain flex-shrink-0 z-10 mix-blend-multiply"
               />
             </div>
           </div>
@@ -535,7 +535,7 @@ export default function Landing() {
           <div className="flex items-center gap-3">
               <div className="flex items-center">
                 <img
-                  src="/logo_spv2.png"
+                  src="/logo_spv.png"
                   alt="Factura SPV"
                   className="h-12 w-auto object-contain flex-shrink-0 z-10 filter grayscale brightness-200 hover:grayscale-0 hover:brightness-100 transition-all"
                 />
@@ -556,7 +556,7 @@ export default function Landing() {
         
         {/* Branding footer */}
         <div className="mt-8 flex flex-col items-center gap-2">
-          <img src="/logo_full.png" alt="GettsApp" className="h-8 w-auto" />
+          <img src="/gettsapp_logo_ver2.png" alt="GettsApp" className="h-8 w-auto" />
         </div>
 
       </footer>
@@ -683,7 +683,7 @@ function HeroMockup() {
           <div className="flex items-center mb-4 cursor-pointer">
             <div className="bg-white px-3 py-2 rounded-lg shadow-sm border border-white/10 flex items-center justify-center h-10 w-full">
               <img
-                src="/logo_spv2.png"
+                src="/logo_spv.png"
                 alt="Factura SPV"
                 className="h-7 w-auto object-contain flex-shrink-0 z-10"
               />

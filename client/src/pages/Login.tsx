@@ -20,7 +20,7 @@ import {
 import { toast } from "sonner";
 import { GoogleLogin } from "@react-oauth/google";
 
-const LOGO_URL = "/logo_gettsapp.png";
+const LOGO_URL = "/gettsapp_logo_ver2.png";
 const APP_NAME = "GetApp Refactura";
 
 export default function Login() {
@@ -121,30 +121,28 @@ export default function Login() {
   return (
     <div className="h-screen flex overflow-hidden bg-background">
       {/* Left panel - branding */}
-      <div className="hidden lg:flex lg:flex-1 bg-slate-900 flex-col justify-between p-12 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/20 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-600/20 rounded-full blur-[100px] pointer-events-none" />
+      <div className="hidden lg:flex lg:flex-1 bg-blue-50 flex-col justify-between p-12 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-300/20 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-300/20 rounded-full blur-[100px] pointer-events-none" />
 
         <Link href="/">
           <div className="flex items-center relative z-10 cursor-pointer hover:opacity-90 transition-opacity w-fit max-w-[80%]">
-            <div className="bg-white px-6 py-3 rounded-2xl shadow-lg border border-white/20 flex-shrink-0 flex items-center justify-center">
-              <img
-                src="/logo_spv2.png"
-                alt="Factura SPV"
-                className="h-12 w-auto object-contain z-10"
-              />
-            </div>
+            <img
+              src="/logo_final_root.png"
+              alt="Factura SPV"
+              className="h-20 sm:h-24 w-auto object-contain z-10 mix-blend-multiply"
+            />
           </div>
         </Link>
 
-        <div className="relative z-10">
-          <h2 className="text-4xl font-black text-white leading-tight mb-6">
+        <div className="relative z-10 mt-12">
+          <h2 className="text-4xl font-black text-slate-900 leading-tight mb-6">
             Facturezi mai inteligent.
             <br />
-            <span className="text-blue-400">Nu mai greu.</span>
+            <span className="text-blue-600">Nu mai greu.</span>
           </h2>
-          <p className="text-slate-400 text-lg leading-relaxed max-w-sm">
-            Re-facturare automată din SPV, sincronizare Oblio și gestionare
+          <p className="text-slate-600 text-lg leading-relaxed max-w-sm">
+            Re-facturare automată din SPV și gestionare
             centre de cost — totul într-un singur loc.
           </p>
 
@@ -152,41 +150,42 @@ export default function Login() {
             {[
               { value: "2 min", label: "setup inițial" },
               { value: "100%", label: "conformitate SPV" },
-              { value: "7 zile", label: "trial gratuit" },
+              { value: "30 zile", label: "trial gratuit" },
             ].map(s => (
               <div key={s.label}>
-                <div className="text-2xl font-black text-white">{s.value}</div>
+                <div className="text-2xl font-black text-slate-900">{s.value}</div>
                 <div className="text-slate-500 text-sm mt-1">{s.label}</div>
               </div>
             ))}
           </div>
         </div>
 
-        <p className="text-slate-600 text-sm relative z-10">
-          © {new Date().getFullYear()} SmartInvoice · Refactura.ro
-        </p>
+        <div className="relative z-10 flex items-center gap-4">
+          <p className="text-slate-500 text-base">
+            © {new Date().getFullYear()} SmartInvoice · facturaspv.ro
+          </p>
+          <img src="/gettsapp_logo_ver2.png" alt="GettsApp" className="h-10 w-auto" />
+        </div>
       </div>
 
       {/* Right panel - login form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-slate-50 overflow-y-auto">
+      <div className="flex-1 flex items-center justify-center p-8 bg-slate-900 overflow-y-auto">
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <Link href="/">
             <div className="flex items-center mb-10 lg:hidden cursor-pointer w-fit">
-              <div className="bg-white px-5 py-2.5 rounded-2xl shadow-lg border border-slate-200 flex items-center justify-center">
-                <img
-                  src="/logo_spv2.png"
-                  alt="Factura SPV"
-                  className="h-10 w-auto object-contain z-10"
-                />
-              </div>
+              <img
+                src="/logo_final_root.png"
+                alt="Factura SPV"
+                className="h-16 w-auto object-contain z-10"
+              />
             </div>
           </Link>
 
-          <h1 className="text-3xl font-black text-slate-900 mb-1">
+          <h1 className="text-3xl font-black text-white mb-1 text-center">
             {isForgotPassword ? "Resetare Parolă" : "Bun venit înapoi"}
           </h1>
-          <p className="text-slate-500 text-sm mb-8">
+          <p className="text-slate-300 text-sm mb-8 text-center">
             {isForgotPassword 
               ? "Introdu adresa de email pentru a primi linkul de resetare." 
               : "Intră în contul tău pentru a continua."}
@@ -422,7 +421,7 @@ export default function Login() {
             )}
           </div>
 
-          <p className="text-sm text-slate-500 text-center mt-8">
+          <p className="text-sm text-slate-400 text-center mt-8">
             Nu ai cont?{" "}
             <Link
               href="/register"
@@ -431,11 +430,6 @@ export default function Login() {
               Creează cont gratuit
             </Link>
           </p>
-          
-          {/* Branding footer */}
-          <div className="mt-10 flex flex-col items-center gap-2">
-            <img src="/logo_full.png" alt="GettsApp" className="h-10 w-auto" />
-          </div>
 
         </div>
       </div>

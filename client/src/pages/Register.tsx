@@ -100,69 +100,68 @@ export default function Register() {
 
   return (
     <div className="h-screen flex overflow-hidden bg-background">
-      {/* Left panel - dark branding */}
-      <div className="hidden lg:flex lg:flex-1 bg-slate-900 flex-col justify-between p-12 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/20 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-600/20 rounded-full blur-[100px] pointer-events-none" />
+      {/* Left panel - branding */}
+      <div className="hidden lg:flex lg:flex-1 bg-blue-50 flex-col justify-between p-12 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-300/20 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-300/20 rounded-full blur-[100px] pointer-events-none" />
 
         <Link href="/">
-          <div className="flex items-center relative z-10 cursor-pointer hover:opacity-90 transition-opacity w-fit">
-            <div className="bg-white px-6 py-3 rounded-2xl shadow-lg border border-white/20 flex-shrink-0 flex items-center justify-center">
-              <img
-                src="/logo_spv2.png"
-                alt="Factura SPV"
-                className="h-12 w-auto object-contain z-10"
-              />
-            </div>
+          <div className="flex items-center relative z-10 cursor-pointer hover:opacity-90 transition-opacity w-fit max-w-[80%]">
+            <img
+              src="/logo_final_root.png"
+              alt="Factura SPV"
+              className="h-20 sm:h-24 w-auto object-contain z-10 mix-blend-multiply"
+            />
           </div>
         </Link>
 
-        <div className="relative z-10">
-          <h2 className="text-4xl font-black text-white leading-tight mb-6">
+        <div className="relative z-10 mt-12">
+          <h2 className="text-4xl font-black text-slate-900 leading-tight mb-6">
             Automatizează
             <br />
-            <span className="text-blue-400">re-facturarea ta.</span>
+            <span className="text-blue-600">re-facturarea ta.</span>
           </h2>
-          <p className="text-slate-400 text-base leading-relaxed max-w-sm mb-10">
-            Import SPV, adaos automat, emitere în Oblio. Gata în 2 minute.
+          <p className="text-slate-600 text-base leading-relaxed max-w-sm mb-10">
+            Import SPV, adaos automat. Gata în 2 minute.
           </p>
 
           <div className="flex flex-col gap-4">
             {[
-              "7 zile gratuit, fără card",
-              "Sincronizare automată SPV & Oblio",
+              "30 zile gratuit, fără card",
+              "Sincronizare automată SPV",
               "Centre de cost & rapoarte în timp real",
             ].map(b => (
               <div key={b} className="flex items-center gap-3">
-                <CheckCircle2 className="w-5 h-5 text-blue-400 flex-shrink-0" />
-                <span className="text-slate-300 text-sm font-medium">{b}</span>
+                <CheckCircle2 className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                <span className="text-slate-700 text-sm font-medium">{b}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <p className="text-slate-600 text-sm relative z-10">
-          © {new Date().getFullYear()} Refactura.ro · Toate drepturile rezervate
-        </p>
+        <div className="relative z-10 flex items-center gap-4">
+          <p className="text-slate-500 text-base">
+            © {new Date().getFullYear()} SmartInvoice · facturaspv.ro
+          </p>
+          <img src="/gettsapp_logo_ver2.png" alt="GettsApp" className="h-10 w-auto" />
+        </div>
       </div>
 
       {/* Right panel - form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-slate-50 overflow-y-auto">
+      <div className="flex-1 flex items-center justify-center p-8 bg-slate-900 overflow-y-auto">
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <Link href="/">
             <div className="flex items-center mb-10 lg:hidden cursor-pointer w-fit">
-              <div className="bg-white px-5 py-2.5 rounded-2xl shadow-lg border border-slate-200 flex items-center justify-center">
-                <img
-                  src="/logo_spv2.png"
-                  alt="Factura SPV"
-                  className="h-10 w-auto object-contain z-10"
-                />
-              </div>
+              <img
+                src="/logo_final_root.png"
+                alt="Factura SPV"
+                className="h-16 w-auto object-contain z-10"
+              />
             </div>
           </Link>
 
-          <h1 className="text-2xl font-black text-slate-900 mb-4">
+          <h1 className="text-3xl font-black text-white mb-4 text-center">
             Creează cont
           </h1>
 
@@ -176,120 +175,212 @@ export default function Register() {
 
             <form
               onSubmit={handleRegister}
-              className="space-y-3"
+              className="space-y-4"
               autoComplete="on"
             >
-              {/* Row 1: Nume + Email */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="reg-name" className="block text-sm font-semibold text-slate-700 mb-1 pl-2">
-                    Nume complet
-                  </label>
-                  <InputGroup className="bg-white !rounded-full overflow-hidden border-slate-200 shadow-sm px-2">
-                    <InputGroupAddon><User className="w-4 h-4 text-slate-400" /></InputGroupAddon>
-                    <InputGroupInput
-                      id="reg-name" name="name" type="text" autoComplete="name" required
-                      value={name} onChange={e => setName(e.target.value)}
-                      placeholder="Ion Popescu" disabled={isLoading} className="py-2.5"
-                    />
-                  </InputGroup>
-                </div>
-                <div>
-                  <label htmlFor="reg-email" className="block text-sm font-semibold text-slate-700 mb-1 pl-2">
-                    Adresă email
-                  </label>
-                  <InputGroup className="bg-white !rounded-full overflow-hidden border-slate-200 shadow-sm px-2">
-                    <InputGroupAddon><Mail className="w-4 h-4 text-slate-400" /></InputGroupAddon>
-                    <InputGroupInput
-                      id="reg-email" name="email" type="email" autoComplete="email" required
-                      value={email} onChange={e => setEmail(e.target.value)}
-                      placeholder="email@companie.ro" disabled={isLoading} className="py-2.5"
-                    />
-                  </InputGroup>
-                </div>
-              </div>
-
-              {/* Row 2: Telefon full width */}
               <div>
-                <label htmlFor="reg-phone" className="block text-sm font-semibold text-slate-700 mb-1 pl-2">
-                  Telefon
+                <label
+                  htmlFor="reg-name"
+                  className="block text-sm font-semibold text-slate-700 mb-1 pl-2"
+                >
+                  Nume complet
                 </label>
                 <InputGroup className="bg-white !rounded-full overflow-hidden border-slate-200 shadow-sm px-2">
-                  <InputGroupAddon><Phone className="w-4 h-4 text-slate-400" /></InputGroupAddon>
+                  <InputGroupAddon>
+                    <User className="w-4 h-4 text-slate-400" />
+                  </InputGroupAddon>
                   <InputGroupInput
-                    id="reg-phone" name="phone" type="tel" autoComplete="tel"
-                    value={phone} onChange={e => setPhone(e.target.value)}
-                    placeholder="+40 712 345 678" disabled={isLoading} className="py-2.5"
+                    id="reg-name"
+                    name="name"
+                    type="text"
+                    autoComplete="name"
+                    required
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    placeholder="Ion Popescu"
+                    disabled={isLoading}
+                    className="py-3"
                   />
                 </InputGroup>
               </div>
 
-              {/* Row 3: Parolă + Confirmă parola */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="reg-password" className="block text-sm font-semibold text-slate-700 mb-1 pl-2">
-                    Parolă
-                  </label>
-                  <InputGroup className="bg-white pr-2 !rounded-full overflow-hidden border-slate-200 shadow-sm px-2">
-                    <InputGroupAddon><Lock className="w-4 h-4 text-slate-400" /></InputGroupAddon>
-                    <InputGroupInput
-                      id="reg-password" name="new-password"
-                      type={showPassword ? "text" : "password"} autoComplete="new-password" required
-                      value={password} onChange={e => setPassword(e.target.value)}
-                      placeholder="Minim 8 car." disabled={isLoading} className="py-2.5"
-                    />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} tabIndex={-1}
-                      className="text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0 focus:outline-none px-2">
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </InputGroup>
-                  {password.length > 0 && (
-                    <div className="mt-1.5 flex items-center gap-2 pl-2">
-                      <div className="flex gap-1 flex-1">
-                        {[1, 2, 3].map(i => (
-                          <div key={i} className={`h-1 flex-1 rounded-full transition-all ${i <= passwordStrength ? strengthColor[passwordStrength] : "bg-slate-200"}`} />
-                        ))}
-                      </div>
-                      <span className="text-xs text-slate-500 font-medium">{strengthLabel[passwordStrength]}</span>
+              <div>
+                <label
+                  htmlFor="reg-email"
+                  className="block text-sm font-semibold text-slate-700 mb-1 pl-2"
+                >
+                  Adresă email
+                </label>
+                <InputGroup className="bg-white !rounded-full overflow-hidden border-slate-200 shadow-sm px-2">
+                  <InputGroupAddon>
+                    <Mail className="w-4 h-4 text-slate-400" />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    id="reg-email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="email@companie.ro"
+                    disabled={isLoading}
+                    className="py-3"
+                  />
+                </InputGroup>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="reg-phone"
+                  className="block text-sm font-semibold text-slate-700 mb-1 pl-2"
+                >
+                  Telefon
+                </label>
+                <InputGroup className="bg-white !rounded-full overflow-hidden border-slate-200 shadow-sm px-2">
+                  <InputGroupAddon>
+                    <Phone className="w-4 h-4 text-slate-400" />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    id="reg-phone"
+                    name="phone"
+                    type="tel"
+                    autoComplete="tel"
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    placeholder="+40 712 345 678"
+                    disabled={isLoading}
+                    className="py-3"
+                  />
+                </InputGroup>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="reg-password"
+                  className="block text-sm font-semibold text-slate-700 mb-1 pl-2"
+                >
+                  Parolă
+                </label>
+                <InputGroup className="bg-white pr-2 !rounded-full overflow-hidden border-slate-200 shadow-sm px-2">
+                  <InputGroupAddon>
+                    <Lock className="w-4 h-4 text-slate-400" />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    id="reg-password"
+                    name="new-password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    required
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="Minim 8 caractere"
+                    disabled={isLoading}
+                    className="py-3"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    tabIndex={-1}
+                    className="text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0 focus:outline-none px-2"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </InputGroup>
+                {password.length > 0 && (
+                  <div className="mt-2 flex items-center gap-2 pl-2">
+                    <div className="flex gap-1 flex-1">
+                      {[1, 2, 3].map(i => (
+                        <div
+                          key={i}
+                          className={`h-1.5 flex-1 rounded-full transition-all ${i <= passwordStrength ? strengthColor[passwordStrength] : "bg-slate-200"}`}
+                        />
+                      ))}
                     </div>
-                  )}
-                </div>
-                <div>
-                  <label htmlFor="reg-confirm" className="block text-sm font-semibold text-slate-700 mb-1 pl-2">
-                    Confirmă parola
-                  </label>
-                  <InputGroup className={`bg-white pr-2 !rounded-full overflow-hidden border-slate-200 shadow-sm px-2 ${confirmPassword.length > 0 && confirmPassword !== password ? "!border-red-300" : ""}`}>
-                    <InputGroupAddon><Lock className="w-4 h-4 text-slate-400" /></InputGroupAddon>
-                    <InputGroupInput
-                      id="reg-confirm" name="confirm-password"
-                      type={showConfirm ? "text" : "password"} autoComplete="new-password" required
-                      value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
-                      placeholder="Repetă parola" disabled={isLoading} className="py-2.5"
-                    />
-                    <button type="button" onClick={() => setShowConfirm(!showConfirm)} tabIndex={-1}
-                      className="text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0 focus:outline-none px-2">
-                      {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </InputGroup>
-                </div>
+                    <span className="text-xs text-slate-500 font-medium">
+                      {strengthLabel[passwordStrength]}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="reg-confirm"
+                  className="block text-sm font-semibold text-slate-700 mb-1 pl-2"
+                >
+                  Confirmă parola
+                </label>
+                <InputGroup
+                  className={`bg-white pr-2 !rounded-full overflow-hidden border-slate-200 shadow-sm px-2 ${confirmPassword.length > 0 && confirmPassword !== password ? "!border-red-300 has-[[data-slot=input-group-control]:focus-visible]:!ring-red-400" : ""}`}
+                >
+                  <InputGroupAddon>
+                    <Lock className="w-4 h-4 text-slate-400" />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    id="reg-confirm"
+                    name="confirm-password"
+                    type={showConfirm ? "text" : "password"}
+                    autoComplete="new-password"
+                    required
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    placeholder="Repetă parola"
+                    disabled={isLoading}
+                    className="py-3"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm(!showConfirm)}
+                    tabIndex={-1}
+                    className="text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0 focus:outline-none px-2"
+                  >
+                    {showConfirm ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </InputGroup>
               </div>
 
               {/* GDPR Checkboxes */}
-              <div className="space-y-2 mt-1">
+              <div className="space-y-2 mt-3">
                 <label className="flex items-start gap-3 cursor-pointer group">
                   <div className="flex items-center h-4 mt-0.5">
-                    <input type="checkbox" required className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                    <input
+                      type="checkbox"
+                      required
+                      className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    />
                   </div>
                   <div className="text-[13px] text-slate-600 leading-tight">
                     Am citit și sunt de acord cu{" "}
-                    <a href="/termeni" className="text-blue-600 hover:underline" target="_blank">Termenii</a>,{" "}
-                    <a href="/gdpr" className="text-blue-600 hover:underline" target="_blank">Confidențialitate</a>{" "}
-                    și <a href="/dpa" className="text-blue-600 hover:underline" target="_blank">DPA</a>. <span className="text-red-500">*</span>
+                    <a href="/termeni" className="text-blue-600 hover:underline" target="_blank">
+                      Termenii
+                    </a>
+                    ,{" "}
+                    <a href="/gdpr" className="text-blue-600 hover:underline" target="_blank">
+                      Confidențialitate
+                    </a>{" "}
+                    și{" "}
+                    <a href="/dpa" className="text-blue-600 hover:underline" target="_blank">
+                      DPA
+                    </a>
+                    . <span className="text-red-500">*</span>
                   </div>
                 </label>
+
                 <label className="flex items-start gap-3 cursor-pointer group">
                   <div className="flex items-center h-4 mt-0.5">
-                    <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    />
                   </div>
                   <div className="text-[13px] text-slate-600 leading-tight">
                     Sunt de acord să primesc oferte comerciale prin email.
@@ -297,11 +388,20 @@ export default function Register() {
                 </label>
               </div>
 
-              <Button type="submit" disabled={isLoading} className="w-full py-4 mt-2 text-base font-bold shadow-lg shadow-primary/20 !rounded-full">
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-4 mt-2 text-base font-bold shadow-lg shadow-primary/20 !rounded-full"
+              >
                 {isLoading ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Se creează contul...</>
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Se creează
+                    contul...
+                  </>
                 ) : (
-                  <>Creează cont gratuit <ArrowRight className="w-4 h-4 ml-2" /></>
+                  <>
+                    Creează cont gratuit <ArrowRight className="w-4 h-4 ml-2" />
+                  </>
                 )}
               </Button>
 
@@ -333,17 +433,15 @@ export default function Register() {
             </form>
           </div>
 
-          <div className="flex items-center justify-between mt-6">
-            <p className="text-sm text-slate-500">
-          <p className="text-sm text-slate-500 text-center">
+          <p className="text-sm text-slate-400 text-center mt-8">
             Ai deja cont?{" "}
-            <Link href="/login" className="text-primary font-bold hover:underline">
+            <Link
+              href="/login"
+              className="text-primary font-bold hover:underline"
+            >
               Autentifică-te
             </Link>
           </p>
-          <div className="flex justify-center mt-3">
-            <img src="/logo_full.png" alt="GettsApp" className="h-12 w-auto" />
-          </div>
 
         </div>
       </div>

@@ -57,7 +57,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const LOGO_URL = "/logo_gettsapp.png";
+const LOGO_URL = "/gettsapp_logo_ver2.png";
 const APP_NAME = "Smart Invoice";
 const APP_SUBTITLE = "Refactura.ro";
 
@@ -340,7 +340,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
           
           <div className="mt-4 flex items-center justify-center">
-            <img src="/logo_full.png" alt="GettsApp" className="h-7 w-auto" />
+            <img src="/gettsapp_logo_ver2.png" alt="GettsApp" className="h-7 w-auto" />
           </div>
         </div>
       )}
