@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import {
   AlertCircle,
+  CheckCircle2,
   Loader2,
   Lock,
   Mail,
@@ -121,7 +122,7 @@ export default function Login() {
   return (
     <div className="h-screen flex overflow-hidden bg-background">
       {/* Left panel - branding */}
-      <div className="hidden lg:flex lg:flex-1 bg-blue-50 flex-col justify-between p-12 relative overflow-hidden">
+      <div className="hidden md:flex md:flex-1 bg-blue-50 flex-col justify-between p-8 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-300/20 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-300/20 rounded-full blur-[100px] pointer-events-none" />
 
@@ -135,28 +136,37 @@ export default function Login() {
           </div>
         </Link>
 
-        <div className="relative z-10 mt-12">
-          <h2 className="text-4xl font-black text-slate-900 leading-tight mb-6">
-            Facturezi mai inteligent.
+        <div className="relative z-10 mt-6">
+          <h2 className="text-3xl font-black text-slate-900 leading-tight mb-4">
+            E-Factura &
             <br />
-            <span className="text-blue-600">Nu mai greu.</span>
+            <span className="text-blue-600">Bonuri de consum.</span>
           </h2>
-          <p className="text-slate-600 text-lg leading-relaxed max-w-sm">
-            Re-facturare automată din SPV și gestionare
-            centre de cost — totul într-un singur loc.
+          <p className="text-slate-600 text-sm leading-relaxed max-w-sm mb-4">
+            Preluare automată SPV, generare bonuri de consum și rapoarte contabile. Totul gata în 2 minute.
           </p>
 
-          <div className="mt-10 grid grid-cols-3 gap-6">
+          <div className="flex flex-col gap-3 mb-4">
             {[
-              { value: "2 min", label: "setup inițial" },
-              { value: "100%", label: "conformitate SPV" },
-              { value: "30 zile", label: "trial gratuit" },
-            ].map(s => (
-              <div key={s.label}>
-                <div className="text-2xl font-black text-slate-900">{s.value}</div>
-                <div className="text-slate-500 text-sm mt-1">{s.label}</div>
+              "Integrare completă e-Factura SPV",
+              "Generare automată Bonuri de Consum",
+              "Rapoarte contabile & centre de cost",
+            ].map(b => (
+              <div key={b} className="flex items-center gap-3">
+                <CheckCircle2 className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                <span className="text-slate-700 text-sm font-medium">{b}</span>
               </div>
             ))}
+          </div>
+
+          {/* Professional Dashboard Image */}
+          <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-white/20 mt-2 group">
+            <img 
+              src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80" 
+              alt="Dashboard Contabilitate" 
+              className="w-full max-h-48 object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-blue-900/40 to-transparent pointer-events-none mix-blend-overlay"></div>
           </div>
         </div>
 

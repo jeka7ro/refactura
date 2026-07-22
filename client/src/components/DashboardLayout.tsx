@@ -338,10 +338,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               </div>
             </div>
           </div>
-          
-          <div className="mt-4 flex items-center justify-center">
-            <img src="/gettsapp_logo_ver2.png" alt="GettsApp" className="h-7 w-auto" />
-          </div>
         </div>
       )}
 
@@ -364,9 +360,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             }
           </div>
           {!collapsed && (
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors">
-              Restrânge
-            </span>
+            <div className="flex-1 flex justify-center">
+               <img src="/gettsapp_logo_ver2.png" alt="GettsApp" className="h-7 w-auto pr-6" />
+            </div>
           )}
         </button>
       </div>
