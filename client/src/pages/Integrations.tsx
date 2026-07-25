@@ -19,6 +19,7 @@ import {
   ChevronUp,
   Settings,
   Upload,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -432,6 +433,15 @@ function SmartBillConfigForm({
 
 const PROVIDERS = [
   {
+    id: "saga",
+    name: "SAGA Accounting",
+    description: "Exportă automat facturile și NIR-urile în format XML compatibil SAGA C.",
+    logoColor: "#0284c7",
+    logoText: "SAGA",
+    logoBg: "#0284c7",
+    comingSoon: false,
+  },
+  {
     id: "spv",
     name: "SPV ANAF",
     description:
@@ -478,6 +488,24 @@ export default function Integrations() {
   } = trpc.integrations.list.useQuery();
   const upsertMutation = trpc.integrations.upsert.useMutation({
     onSuccess: () => refetch(),
+  });
+
+  const exportSagaMutation = trpc.integrations.exportSaga.useMutation({
+    onSuccess: (data) => {
+      const blob = new Blob([data.xml], { type: "text/xml" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Export_SAGA.xml`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success("Fișierul SAGA a fost descărcat cu succes!");
+    },
+    onError: (err) => {
+      toast.error("Eroare la generare SAGA: " + err.message);
+    },
   });
   const disconnectOblioMutation = trpc.integrations.disconnectOblio.useMutation(
     {
@@ -1166,6 +1194,23 @@ export default function Integrations() {
                             </>
                           )}
 
+                        {/* SAGA */}
+                        {provider.id === "saga" && (
+                          <button
+                            onClick={() => {
+                              const d = new Date();
+                              const month = d.getMonth() + 1;
+                              const year = d.getFullYear();
+                              exportSagaMutation.mutate({ month, year });
+                            }}
+                            disabled={exportSagaMutation.isPending}
+                            className="flex items-center gap-1 px-2 h-7 rounded-md bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-semibold transition-colors disabled:opacity-60"
+                          >
+                            <Download className="w-3 h-3" />
+                            {exportSagaMutation.isPending ? "Generare..." : "Descarcă XML"}
+                          </button>
+                        )}
+
                         {provider.comingSoon && (
                           <span className="text-[11px] text-slate-400">—</span>
                         )}
@@ -1229,7 +1274,7 @@ export default function Integrations() {
                   {PROVIDERS.length}
                 </strong>
                 <span className="ml-4">
-                  În curând: Saga, WinMentor, Ciel, QuickBooks
+                  În curând: WinMentor, Ciel, QuickBooks
                 </span>
               </td>
             </tr>

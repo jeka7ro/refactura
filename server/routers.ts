@@ -1392,6 +1392,23 @@ export const appRouter = router({
       if (!ctx.user?.tenantId) throw new Error("No tenant context");
       return getIntegrations(ctx.user.tenantId);
     }),
+    exportSaga: protectedProcedure
+      .input(
+        z.object({
+          month: z.number(),
+          year: z.number(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant context");
+        const { generateSagaExportXML } = await import("./sagaXmlGenerator");
+        const xml = await generateSagaExportXML(
+          ctx.user.tenantId,
+          input.month,
+          input.year
+        );
+        return { xml };
+      }),
     upsert: protectedProcedure
       .input(
         z.object({
@@ -2589,6 +2606,37 @@ export const appRouter = router({
         .from(nir)
         .where(eq(nir.tenantId, ctx.user.tenantId))
         .orderBy(desc(nir.createdAt));
+    }),
+
+    listWithLines: protectedProcedure.query(async ({ ctx }) => {
+      if (!ctx.user?.tenantId) throw new Error("No tenant context");
+      const db = await getDb();
+      if (!db) throw new Error("No DB");
+      const { nir, nirLines } = await import("../drizzle/schema");
+      
+      const nirs = await db
+        .select()
+        .from(nir)
+        .where(eq(nir.tenantId, ctx.user.tenantId))
+        .orderBy(desc(nir.createdAt));
+        
+      if (nirs.length === 0) return [];
+      
+      const lines = await db
+        .select()
+        .from(nirLines)
+        .where(inArray(nirLines.nirId, nirs.map(n => n.id)));
+        
+      const linesByNirId = lines.reduce((acc, l) => {
+        if (!acc[l.nirId]) acc[l.nirId] = [];
+        acc[l.nirId].push(l);
+        return acc;
+      }, {} as Record<number, any[]>);
+      
+      return nirs.map(n => ({
+        ...n,
+        lines: linesByNirId[n.id] || []
+      }));
     }),
 
     getById: protectedProcedure
