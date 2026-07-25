@@ -110,6 +110,44 @@ export async function generateSagaExportXML(tenantId: number, month: number, yea
     xml += `  </Intrari>\n`;
   }
 
+  // 4. Export Bonuri de Consum
+  const bonuriList = await db.select().from(schema.bonuriConsum).where(eq(schema.bonuriConsum.tenantId, tenantId));
+  const monthBonuri = bonuriList.filter(b => {
+    if (!b.date) return false;
+    const bDate = new Date(b.date);
+    const m = bDate.getMonth() + 1;
+    const y = bDate.getFullYear();
+    return m === month && y === year;
+  });
+
+  if (monthBonuri.length > 0) {
+    xml += `  <BonuriConsum>\n`;
+    for (const bon of monthBonuri) {
+      const lines = await db.select().from(schema.bonuriConsumLines).where(eq(schema.bonuriConsumLines.bonId, bon.id));
+      
+      xml += `    <BonConsum>\n`;
+      xml += `      <NrDoc>${escapeXml(bon.number)}</NrDoc>\n`;
+      xml += `      <Data>${formatDate(String(bon.date))}</Data>\n`;
+      xml += `      <Gestiune>${escapeXml(bon.gestiune || "")}</Gestiune>\n`;
+      
+      xml += `      <Detalii>\n`;
+      for (const line of lines) {
+        xml += `        <Detaliu>\n`;
+        xml += `          <Denumire>${escapeXml(line.description)}</Denumire>\n`;
+        xml += `          <Cod>${escapeXml(line.materialCode || "")}</Cod>\n`;
+        xml += `          <UM>buc</UM>\n`;
+        xml += `          <Cantitate>${line.quantity}</Cantitate>\n`;
+        xml += `          <Pret>${line.unitPrice}</Pret>\n`;
+        // Contul pentru consum de materiale 602 / 6028 etc
+        xml += `          <Cont>6028</Cont>\n`;
+        xml += `        </Detaliu>\n`;
+      }
+      xml += `      </Detalii>\n`;
+      xml += `    </BonConsum>\n`;
+    }
+    xml += `  </BonuriConsum>\n`;
+  }
+
   xml += `</ExportSaga>\n`;
   return xml;
 }
