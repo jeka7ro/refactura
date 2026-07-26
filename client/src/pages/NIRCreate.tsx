@@ -27,6 +27,8 @@ interface NirLineForm {
   vatRate: string;
   total: string;
   observations: string;
+  accountingType?: string;
+  accountingAccount?: string;
 }
 
 const INPUT_CLS =
@@ -46,6 +48,8 @@ export default function NIRCreate() {
   );
   const [avizNumber, setAvizNumber] = useState("");
   const [gestiune, setGestiune] = useState("");
+  const [accountingType, setAccountingType] = useState("Marfuri");
+  const [accountingAccount, setAccountingAccount] = useState("371");
   const [notes, setNotes] = useState("");
   // Furnizor
   const [supplierName, setSupplierName] = useState("");
@@ -146,6 +150,8 @@ export default function NIRCreate() {
       setReceiptDate(existingNir.receiptDate);
       setAvizNumber(existingNir.avizNumber || "");
       setGestiune(existingNir.gestiune || "");
+      setAccountingType(existingNir.accountingType || "Marfuri");
+      setAccountingAccount(existingNir.accountingAccount || "371");
       setSupplierName(existingNir.supplierName || "");
       setSupplierCUI(existingNir.supplierCUI || "");
       setSupplierAddress(existingNir.supplierAddress || "");
@@ -167,9 +173,11 @@ export default function NIRCreate() {
           cantitateComanda: String(l.cantitateComanda || "0"),
           cantitateReceptionata: String(l.cantitateReceptionata || "0"),
           unitPrice: String(l.unitPrice || "0"),
-          vatRate: String(l.vatRate || "19"),
-          total: String(l.total || "0"),
+          vatRate: String(l.vatRate || ""),
+          total: String(l.total || ""),
           observations: l.observations || "",
+          accountingType: l.accountingType || "Marfuri",
+          accountingAccount: l.accountingAccount || "371",
         }))
       );
       setLoaded(true);
@@ -199,6 +207,8 @@ export default function NIRCreate() {
               vatRate: String(l.vatRate || "19"),
               total: String((remaining * unitPrice).toFixed(2)),
               observations: "",
+              accountingType: "Marfuri",
+              accountingAccount: "371",
             };
           })
           .filter((l: any) => parseFloat(l.cantitateReceptionata) > 0);
@@ -220,6 +230,8 @@ export default function NIRCreate() {
             vatRate: "19",
             total: String(sourceInvoice.total || "0"),
             observations: "",
+            accountingType: "Marfuri",
+            accountingAccount: "371",
           },
         ]);
       }
@@ -239,6 +251,8 @@ export default function NIRCreate() {
         vatRate: "19",
         total: "0",
         observations: "",
+        accountingType: "Marfuri",
+        accountingAccount: "371",
       },
     ]);
 
@@ -267,6 +281,8 @@ export default function NIRCreate() {
     supplierCUI,
     supplierAddress: supplierAddress || undefined,
     gestiune: gestiune || undefined,
+    accountingType: accountingType || undefined,
+    accountingAccount: accountingAccount || undefined,
     receiptDate,
     member1Name: member1Name || undefined,
     member1Function: member1Function || undefined,
@@ -286,6 +302,8 @@ export default function NIRCreate() {
       vatRate: l.vatRate,
       total: l.total,
       observations: l.observations,
+      accountingType: l.accountingType,
+      accountingAccount: l.accountingAccount,
       lineOrder: idx,
     })),
   });
@@ -418,6 +436,35 @@ export default function NIRCreate() {
               placeholder="Gestiune"
             />
           </div>
+          <div className="md:col-span-2">
+            <label className={LABEL_CLS}>Tip SAGA (General)</label>
+            <select
+              value={accountingType}
+              onChange={e => setAccountingType(e.target.value)}
+              className={INPUT_CLS}
+            >
+              <option value="Marfuri">Mărfuri</option>
+              <option value="Materii prime">Materii prime</option>
+              <option value="Consumabile">Consumabile</option>
+              <option value="Nedefinit">Nedefinit</option>
+              <option value="Servicii">Servicii</option>
+            </select>
+          </div>
+          <div className="md:col-span-2">
+            <label className={LABEL_CLS}>Cont (General)</label>
+            <select
+              value={accountingAccount}
+              onChange={e => setAccountingAccount(e.target.value)}
+              className={INPUT_CLS}
+            >
+              <option value="371">371 - Mărfuri</option>
+              <option value="301">301 - Materii prime</option>
+              <option value="3028">3028 - Alte mat. consumabile</option>
+              <option value="3021">3021 - Mat. auxiliare</option>
+              <option value="3024">3024 - Piese de schimb</option>
+              <option value="704">704 - Servicii prestate</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -478,6 +525,12 @@ export default function NIRCreate() {
                 <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 min-w-[180px]">
                   Denumire produs/serviciu
                 </th>
+                <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 w-24">
+                  Tip
+                </th>
+                <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 w-20">
+                  Cont
+                </th>
                 <th className="px-2 py-2 text-center text-[10px] font-bold uppercase text-slate-400 w-14">
                   U/M
                 </th>
@@ -503,7 +556,7 @@ export default function NIRCreate() {
               {lines.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={11}
                     className="py-6 text-center text-xs text-slate-400"
                   >
                     Nicio linie. Apasă Adaugă linie.
@@ -528,6 +581,37 @@ export default function NIRCreate() {
                           }
                           className="w-full h-7 px-2 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-teal-500 text-xs"
                         />
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <select
+                          value={line.accountingType || ""}
+                          onChange={e =>
+                            updateLine(idx, "accountingType", e.target.value)
+                          }
+                          className="w-full h-7 px-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-500 text-xs"
+                        >
+                          <option value="Marfuri">Mărfuri</option>
+                          <option value="Materii prime">Materii prime</option>
+                          <option value="Consumabile">Consumabile</option>
+                          <option value="Nedefinit">Nedefinit</option>
+                          <option value="Servicii">Servicii</option>
+                        </select>
+                      </td>
+                      <td className="px-2 py-1.5">
+                        <select
+                          value={line.accountingAccount || ""}
+                          onChange={e =>
+                            updateLine(idx, "accountingAccount", e.target.value)
+                          }
+                          className="w-full h-7 px-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-500 text-xs"
+                        >
+                          <option value="371">371</option>
+                          <option value="301">301</option>
+                          <option value="3028">3028</option>
+                          <option value="3021">3021</option>
+                          <option value="3024">3024</option>
+                          <option value="704">704</option>
+                        </select>
                       </td>
                       <td className="px-2 py-1.5">
                         <input
@@ -603,7 +687,7 @@ export default function NIRCreate() {
             <tfoot>
               <tr className="border-t-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
                 <td
-                  colSpan={6}
+                  colSpan={8}
                   className="px-3 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 text-right"
                 >
                   TOTAL VALOARE RECEPȚIONATĂ:

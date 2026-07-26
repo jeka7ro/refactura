@@ -2702,6 +2702,8 @@ export const appRouter = router({
           hasDifferences: z.number().optional(),
           differenceNotes: z.string().optional(),
           notes: z.string().optional(),
+          accountingType: z.string().optional(),
+          accountingAccount: z.string().optional(),
           lines: z.array(
             z.object({
               description: z.string(),
@@ -2712,6 +2714,8 @@ export const appRouter = router({
               vatRate: z.string().optional(),
               total: z.string().optional(),
               observations: z.string().optional(),
+              accountingType: z.string().optional(),
+              accountingAccount: z.string().optional(),
               lineOrder: z.number().optional(),
             })
           ),
@@ -2742,6 +2746,8 @@ export const appRouter = router({
           hasDifferences: input.hasDifferences ?? 0,
           differenceNotes: input.differenceNotes,
           notes: input.notes,
+          accountingType: input.accountingType,
+          accountingAccount: input.accountingAccount,
           status: "draft",
         });
         const nirId = (result as any).insertId;
@@ -2757,6 +2763,8 @@ export const appRouter = router({
               vatRate: l.vatRate,
               total: l.total,
               observations: l.observations,
+              accountingType: l.accountingType || "Marfa",
+              accountingAccount: l.accountingAccount || "371",
               lineOrder: l.lineOrder ?? idx,
             }))
           );
@@ -2781,6 +2789,8 @@ export const appRouter = router({
           hasDifferences: z.number().optional(),
           differenceNotes: z.string().optional(),
           notes: z.string().optional(),
+          accountingType: z.string().optional(),
+          accountingAccount: z.string().optional(),
           status: z.enum(["draft", "finalizat"]).optional(),
           lines: z
             .array(
@@ -2794,6 +2804,8 @@ export const appRouter = router({
                 vatRate: z.string().optional(),
                 total: z.string().optional(),
                 observations: z.string().optional(),
+                accountingType: z.string().optional(),
+                accountingAccount: z.string().optional(),
                 lineOrder: z.number().optional(),
               })
             )
@@ -2821,6 +2833,8 @@ export const appRouter = router({
           "hasDifferences",
           "differenceNotes",
           "notes",
+          "accountingType",
+          "accountingAccount",
           "status",
         ] as const;
         for (const f of fields) {
@@ -2847,6 +2861,8 @@ export const appRouter = router({
                 vatRate: l.vatRate,
                 total: l.total,
                 observations: l.observations,
+                accountingType: l.accountingType || "Marfa",
+                accountingAccount: l.accountingAccount || "371",
                 lineOrder: l.lineOrder ?? idx,
               }))
             );

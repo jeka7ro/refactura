@@ -707,12 +707,20 @@ export function registerPdfRoute(app: any) {
       });
 
       y += 32;
-      doc.fontSize(7).font("Roboto").fillColor(GRAY).text("Gestiunea:", 50, y);
-      doc
-        .fontSize(8)
-        .font("Roboto-Bold")
-        .fillColor("#1e293b")
-        .text(nirRow.gestiune || "—", 50, y + 10);
+      const fields2: [string, string][] = [
+        ["Gestiunea:", nirRow.gestiune || "—"],
+        ["Tip SAGA (Gen):", nirRow.accountingType || "Marfuri"],
+        ["Cont (Gen):", nirRow.accountingAccount || "371"],
+      ];
+      fields2.forEach(([label, val], i) => {
+        const x = 50 + i * col;
+        doc.fontSize(7).font("Roboto").fillColor(GRAY).text(label, x, y);
+        doc
+          .fontSize(8)
+          .font("Roboto-Bold")
+          .fillColor("#1e293b")
+          .text(val, x, y + 10);
+      });
 
       // ── FURNIZOR + FIRMA ──────────────────────────────────────────────────────
       y = 180;
@@ -769,15 +777,17 @@ export function registerPdfRoute(app: any) {
       y += 12;
 
       // Header tabel
-      const cols = [30, 170, 30, 50, 50, 50, 55]; // widths
+      const cols = [20, 155, 55, 40, 25, 45, 45, 60, 70]; // sum = 515 ~ W
       const headers = [
         "Nr.",
-        "Denumire produs/serviciu",
+        "Denumire produs",
+        "Tip",
+        "Cont",
         "U/M",
-        "Cant. doc.",
-        "Cant. recept.",
-        "Preț unit.",
-        "Valoare RON",
+        "Cant. doc",
+        "Cant. rec",
+        "Preț un.",
+        "Valoare",
       ];
       let xOff = 40;
       doc.rect(40, y, W, 16).fillColor(TEAL).fill();
@@ -788,7 +798,7 @@ export function registerPdfRoute(app: any) {
           .fillColor("white")
           .text(h, xOff + 3, y + 5, {
             width: cols[i] - 4,
-            align: i > 2 ? "right" : "left",
+            align: i > 4 ? "right" : "left",
           });
         xOff += cols[i];
       });
@@ -813,6 +823,8 @@ export function registerPdfRoute(app: any) {
         const cells = [
           { val: String(idx + 1), align: "left" as const },
           { val: line.description, align: "left" as const },
+          { val: line.accountingType || nirRow.accountingType || "Marfuri", align: "left" as const },
+          { val: line.accountingAccount || nirRow.accountingAccount || "371", align: "center" as const },
           { val: line.unit || "buc", align: "left" as const },
           {
             val: parseFloat(line.cantitateComanda || "0").toLocaleString(
@@ -840,10 +852,10 @@ export function registerPdfRoute(app: any) {
           },
         ];
         cells.forEach((cell, ci) => {
-          const color = ci === 4 && hasDiff ? "#b45309" : "#1e293b";
+          const color = ci === 6 && hasDiff ? "#b45309" : "#1e293b";
           doc
             .fontSize(7)
-            .font(ci === 4 && hasDiff ? "Roboto-Bold" : "Roboto")
+            .font(ci === 6 && hasDiff ? "Roboto-Bold" : "Roboto")
             .fillColor(color)
             .text(cell.val, xc + 3, y + 5, {
               width: cols[ci] - 6,
@@ -874,9 +886,9 @@ export function registerPdfRoute(app: any) {
       const total = lines.reduce((s, l) => s + parseFloat(l.total || "0"), 0);
       doc.text(
         `${total.toLocaleString("ro-RO", { minimumFractionDigits: 2 })} RON`,
-        40 + W - 60,
+        40 + W - 70 - 10,
         y + 5,
-        { width: 55, align: "right" }
+        { width: 75, align: "right" }
       );
       y += 26;
 

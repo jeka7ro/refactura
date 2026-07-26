@@ -101,7 +101,8 @@ export async function generateSagaExportXML(tenantId: number, month: number, yea
         xml += `          <Cantitate>${line.cantitateReceptionata}</Cantitate>\n`;
         xml += `          <Pret>${line.unitPrice || 0}</Pret>\n`;
         xml += `          <CotaTVA>${line.vatRate || 0}</CotaTVA>\n`;
-        xml += `          <Cont>371</Cont>\n`; 
+        xml += `          <Tip>${escapeXml(line.accountingType || n.accountingType || "Marfuri")}</Tip>\n`;
+        xml += `          <Cont>${escapeXml(line.accountingAccount || n.accountingAccount || "371")}</Cont>\n`; 
         xml += `        </Detaliu>\n`;
       }
       xml += `      </Detalii>\n`;

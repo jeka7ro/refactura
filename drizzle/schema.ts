@@ -642,8 +642,10 @@ export const nir = mysqlTable("nir", {
   // Constatări diferențe
   hasDifferences: int("hasDifferences").default(0), // 0=nu, 1=da
   differenceNotes: text("differenceNotes"),
-  status: mysqlEnum("status", ["draft", "finalizat"]).default("draft"),
   notes: text("notes"),
+  accountingType: varchar("accountingType", { length: 50 }).default("Marfuri"),
+  accountingAccount: varchar("accountingAccount", { length: 20 }).default("371"),
+  status: mysqlEnum("status", ["draft", "finalizat"]).default("draft"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -669,6 +671,8 @@ export const nirLines = mysqlTable("nirLines", {
   vatRate: decimal("vatRate", { precision: 5, scale: 2 }),
   total: decimal("total", { precision: 12, scale: 2 }),
   observations: text("observations"),
+  accountingType: varchar("accountingType", { length: 50 }).default("Marfa"), // Marfa, Materii prime, Consumabile, etc.
+  accountingAccount: varchar("accountingAccount", { length: 20 }).default("371"), // 371, 301, 3028, etc.
   lineOrder: int("lineOrder").default(0),
 });
 
