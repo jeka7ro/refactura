@@ -161,6 +161,12 @@ export async function syncAllSpv(zile: number = 60) {
           }
         }
 
+        if (isError) {
+          console.log(`[SPV Cron] Skipping ERORI FACTURA ${downloadId} (no invoice payload)`);
+          skipped++;
+          continue;
+        }
+
         // Check if already imported (by SPV download ID)
         const [existing] = await db
           .select({ id: invoiceArchive.id })
