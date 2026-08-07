@@ -12,6 +12,7 @@ import { serveStatic, setupVite } from "./vite";
 import { registerAnafProxy } from "../anafProxy";
 import { registerPdfRoute } from "../pdfRoute";
 import { registerPublicApi } from "../publicApi";
+import { registerSagaSyncRoute } from "../sagaSyncRoute";
 
 async function startServer() {
   const app = express();
@@ -26,6 +27,7 @@ async function startServer() {
   registerAnafProxy(app);
   registerPdfRoute(app);
   registerPublicApi(app);
+  registerSagaSyncRoute(app);
 
   const { registerSpvAuth } = await import("../spvAuth");
   registerSpvAuth(app);

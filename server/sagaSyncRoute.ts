@@ -1,0 +1,49 @@
+import { Router } from "express";
+import AdmZip from "adm-zip";
+
+const router = Router();
+
+// SAGA calls this endpoint to pull the XML files bundled in a ZIP archive.
+// URL format for SAGA: /api/saga-sync?token=saga2026
+router.get("/", async (req, res) => {
+  try {
+    const { token, month, year } = req.query;
+    
+    // Simplă validare de securitate (token fixat pentru moment)
+    if (token !== "saga2026") {
+      return res.status(401).send("Unauthorized. Token invalid.");
+    }
+
+    const exportMonth = month ? parseInt(String(month)) : new Date().getMonth() + 1;
+    const exportYear = year ? parseInt(String(year)) : new Date().getFullYear();
+
+    // Importăm dinamic pentru a nu încărca fișierul prematur
+    const { generateSagaExportXML } = await import("./sagaXmlGenerator.js");
+    
+    // Găsim exportul pentru tenant-ul 1 (implicit)
+    const xmlContent = await generateSagaExportXML(1, exportMonth, exportYear);
+
+    // Creăm arhiva ZIP folosind adm-zip (SAGA necesită arhiva)
+    const zip = new AdmZip();
+    // Adăugăm fișierul XML în arhivă
+    zip.addFile(
+      `SAGA_Export_${exportYear}_${String(exportMonth).padStart(2, "0")}.xml`,
+      Buffer.from(xmlContent, "utf8")
+    );
+
+    const zipBuffer = zip.toBuffer();
+
+    res.set("Content-Type", "application/zip");
+    res.set("Content-Disposition", `attachment; filename=SAGA_Sync_${exportYear}_${exportMonth}.zip`);
+    res.set("Content-Length", zipBuffer.length.toString());
+    
+    res.send(zipBuffer);
+  } catch (err: any) {
+    console.error("SAGA API Sync Error:", err);
+    res.status(500).send(`Internal Server Error: ${err.message}`);
+  }
+});
+
+export function registerSagaSyncRoute(app: import("express").Express) {
+  app.use("/api/saga-sync", router);
+}
