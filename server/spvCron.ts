@@ -50,7 +50,7 @@ export async function syncAllSpv(zile: number = 60) {
 
     try {
       const messages: any[] = [];
-      const CHUNK_DAYS = 60;
+      const CHUNK_DAYS = 3; // Reduced from 60 to 3 days to avoid ANAF pagination truncating results for high volume
       let daysRemaining = zile;
       let currentEndTime = Date.now();
 
