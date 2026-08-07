@@ -37,6 +37,9 @@ router.get("/", async (req, res) => {
     res.set("Content-Type", "application/zip");
     res.set("Content-Disposition", `attachment; filename=SAGA_Sync_${exportYear}_${exportMonth}.zip`);
     res.set("Content-Length", zipBuffer.length.toString());
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.set("Pragma", "no-cache");
+    res.set("Expires", "0");
     
     res.send(zipBuffer);
   } catch (err: any) {
