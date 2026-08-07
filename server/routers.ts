@@ -2796,9 +2796,31 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new Error("No DB");
         const { nir, nirLines } = await import("../drizzle/schema");
+        const { sagaIntrari, sagaIntrariLinii, sagaArticles } = await import("../modules/saga/schema");
+        const { desc, eq, inArray } = await import("drizzle-orm");
+
+        // 1. Auto-assign NIR if empty
+        let finalNirNumber = input.nirNumber;
+        if (!finalNirNumber || finalNirNumber.trim() === "") {
+          const year = new Date().getFullYear();
+          const last = await db
+            .select({ nirNumber: nir.nirNumber })
+            .from(nir)
+            .where(eq(nir.tenantId, (ctx.user?.tenantId || 1)))
+            .orderBy(desc(nir.id))
+            .limit(1);
+          let nextNum = 1;
+          if (last[0]?.nirNumber) {
+            const match = last[0].nirNumber.match(/(\d+)$/);
+            if (match) nextNum = parseInt(match[1]) + 1;
+          }
+          finalNirNumber = `NIR-${year}-${String(nextNum).padStart(4, "0")}`;
+        }
+
+        // 2. Insert into main NIR table
         const [result] = await db.insert(nir).values({
           tenantId: (ctx.user?.tenantId || 1),
-          nirNumber: input.nirNumber,
+          nirNumber: finalNirNumber,
           invoiceArchiveId: input.invoiceArchiveId,
           invoiceNumber: input.invoiceNumber,
           avizNumber: input.avizNumber,
@@ -2821,6 +2843,8 @@ export const appRouter = router({
           status: "draft",
         });
         const nirId = (result as any).insertId;
+
+        // 3. Insert into nirLines
         if (input.lines.length > 0) {
           await db.insert(nirLines).values(
             input.lines.map((l, idx) => ({
@@ -2840,7 +2864,66 @@ export const appRouter = router({
             }))
           );
         }
-        return { id: nirId, nirNumber: input.nirNumber };
+
+        // 4. Create in sagaIntrari so it shows in the Saga module
+        let totalValoare = 0;
+        let totalTvaSuma = 0;
+        
+        input.lines.forEach(l => {
+          totalValoare += parseFloat(l.total || "0");
+          totalTvaSuma += (parseFloat(l.total || "0") * parseFloat(l.vatRate || "19")) / 100;
+        });
+
+        const [sagaIntResult] = await db.insert(sagaIntrari).values({
+          tenantId: ctx.user?.tenantId || 1,
+          tip: "Factura",
+          nrDoc: input.invoiceNumber || finalNirNumber,
+          numeFurnizor: input.supplierName,
+          cuiFurnizor: input.supplierCUI,
+          data: input.receiptDate,
+          scadent: input.receiptDate,
+          valoare: totalValoare.toString(),
+          tva: totalTvaSuma.toString(),
+          total: (totalValoare + totalTvaSuma).toString(),
+          neachitat: (totalValoare + totalTvaSuma).toString(),
+          nirId: nirId,
+          status: "draft",
+        });
+        const intrareId = (sagaIntResult as any).insertId;
+
+        if (input.lines.length > 0) {
+          // Preload articles to get codes
+          const articleIds = input.lines.map(l => l.sagaArticleId).filter(Boolean) as number[];
+          const loadedArticles = articleIds.length > 0 
+            ? await db.select().from(sagaArticles).where(inArray(sagaArticles.id, articleIds))
+            : [];
+
+          await db.insert(sagaIntrariLinii).values(
+            input.lines.map((l, idx) => {
+              const art = loadedArticles.find(a => a.id === l.sagaArticleId);
+              const val = parseFloat(l.total || "0");
+              const tva = (val * parseFloat(l.vatRate || "19")) / 100;
+              return {
+                intrareId,
+                tip: l.accountingType || "Marfa",
+                articolId: l.sagaArticleId,
+                cod: art?.code || undefined,
+                denumire: l.description,
+                um: l.unit || "buc",
+                tvaPercent: l.vatRate || "19",
+                cantitate: l.cantitateReceptionata,
+                pretUnitar: l.unitPrice || "0",
+                valoare: val.toString(),
+                tvaSuma: tva.toString(),
+                total: (val + tva).toString(),
+                cont: l.accountingAccount || "371",
+                lineOrder: l.lineOrder ?? idx,
+              };
+            })
+          );
+        }
+
+        return { id: nirId, nirNumber: finalNirNumber };
       }),
 
     update: protectedProcedure
