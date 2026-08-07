@@ -26,11 +26,27 @@ router.get("/", async (req, res) => {
 
     // Creăm arhiva ZIP folosind adm-zip (SAGA necesită arhiva)
     const zip = new AdmZip();
-    // SAGA API-ul caută specific fișiere numite "Facturi.xml" sau "Intrari.xml" în arhivă
-    zip.addFile(
-      "Intrari.xml",
-      Buffer.from(xmlContent, "utf8")
-    );
+    
+    // API-ul SAGA necesită fișiere separate, nu un ExportSaga global
+    const intrariMatch = xmlContent.match(/<Intrari>[\s\S]*?<\/Intrari>/);
+    if (intrariMatch) {
+      zip.addFile("Intrari.xml", Buffer.from(`<?xml version="1.0" encoding="Windows-1250"?>\n${intrariMatch[0]}`, "utf8"));
+    }
+
+    const iesiriMatch = xmlContent.match(/<Iesiri>[\s\S]*?<\/Iesiri>/);
+    if (iesiriMatch) {
+      zip.addFile("Facturi.xml", Buffer.from(`<?xml version="1.0" encoding="Windows-1250"?>\n${iesiriMatch[0]}`, "utf8"));
+    }
+
+    const clientiMatch = xmlContent.match(/<Clienti>[\s\S]*?<\/Clienti>/);
+    if (clientiMatch) {
+      zip.addFile("Clienti.xml", Buffer.from(`<?xml version="1.0" encoding="Windows-1250"?>\n${clientiMatch[0]}`, "utf8"));
+    }
+
+    // Fallback: dacă nu e nimic, punem un XML gol ca să nu crape cu fișier inexistent
+    if (!intrariMatch && !iesiriMatch && !clientiMatch) {
+      zip.addFile("Intrari.xml", Buffer.from(`<?xml version="1.0" encoding="Windows-1250"?>\n<Intrari></Intrari>`, "utf8"));
+    }
 
     const zipBuffer = zip.toBuffer();
 
