@@ -45,6 +45,8 @@ import DevizeList from "@/pages/DevizeList";
 import DevizDetail from "@/pages/DevizDetail";
 import BonuriConsumList from "@/pages/BonuriConsumList";
 import BonConsumDetail from "@/pages/BonConsumDetail";
+import BonConsumCreate from "@/pages/BonConsumCreate";
+import Inventory from "@/pages/Inventory";
 import Catalog from "@/pages/Catalog";
 import HorecaDashboard from "@/pages/horeca/HorecaDashboard";
 import HorecaLocations from "@/pages/horeca/HorecaLocations";
@@ -60,6 +62,7 @@ import HorecaKioskSettings from "@/pages/horeca/HorecaKioskSettings";
 import HorecaTestPanel from "@/pages/horeca/HorecaTestPanel";
 import KioskApp from "@/pages/kiosk/App.jsx";
 import SpvLogs from "@/pages/SpvLogs";
+import SagaModule from "@/pages/SagaModule";
 
 import CookieBanner from "@/components/CookieBanner";
 import Terms from "@/pages/legal/Terms";
@@ -190,14 +193,29 @@ function Router() {
           <DevizDetail />
         </DashboardLayout>
       </Route>
+      <Route path="/bonuri-consum">
+        <DashboardLayout>
+          <BonuriConsumList />
+        </DashboardLayout>
+      </Route>
+      <Route path="/bonuri-consum/new">
+        <DashboardLayout>
+          <BonConsumCreate />
+        </DashboardLayout>
+      </Route>
       <Route path="/bonuri-consum/:id">
         <DashboardLayout>
           <BonConsumDetail />
         </DashboardLayout>
       </Route>
-      <Route path="/bonuri-consum">
+      <Route path="/inventory">
         <DashboardLayout>
-          <BonuriConsumList />
+          <Inventory />
+        </DashboardLayout>
+      </Route>
+      <Route path="/saga">
+        <DashboardLayout>
+          <SagaModule />
         </DashboardLayout>
       </Route>
       <Route path="/rapoarte">

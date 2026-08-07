@@ -22,6 +22,13 @@ import {
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import NirSelectorModal from "@/components/NirSelectorModal";
+import {
   formatCurrency,
   currencies,
   type Currency,
@@ -200,10 +207,12 @@ export default function ReInvoice() {
     currency?: string;
     isCustom?: boolean;
   }
-  const [lines, setLines] = useState<EditableLine[]>([]);
+  const [lines, setLines] = useState<ReInvoiceLine[]>([]);
+  const [showNirModal, setShowNirModal] = useState(false);
   const [showCodes, setShowCodes] = useState(false);
   const [saving, setSaving] = useState(false);
   const [downloadingPDF, setDownloadingPDF] = useState(false);
+  const consumeLineMutation = trpc.nir.consumeLine.useMutation();
 
   // Autocomplete
   const [generatedInvoiceId, setGeneratedInvoiceId] = useState<number | null>(
@@ -597,6 +606,20 @@ export default function ReInvoice() {
       }
 
       const res = await createReInvoice.mutateAsync(payload);
+      
+      // Consume stock for items added from NIR
+      const stockLines = lines
+        .filter((l: any) => l.nirLineId)
+        .map((l: any) => ({ nirLineId: l.nirLineId, qty: Number(l.quantity) }));
+      
+      if (stockLines.length > 0) {
+        try {
+          await consumeLineMutation.mutateAsync({ lines: stockLines });
+        } catch (e) {
+          console.error("Failed to consume stock", e);
+        }
+      }
+
       toast.success("Re-Factură generată cu succes!", { id: "save" });
       navigate(`/re-facturi/${res.id}`);
     } catch (e: any) {
@@ -1068,6 +1091,12 @@ export default function ReInvoice() {
               >
                 <Plus className="w-3.5 h-3.5" /> Adaugă rând liber
               </button>
+              <button
+                onClick={() => setShowNirModal(true)}
+                className="flex items-center gap-1.5 px-3 h-8 text-xs font-semibold text-sky-700 border border-sky-200 bg-sky-50 hover:bg-sky-100 rounded transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" /> Adaugă din Stoc
+              </button>
             </div>
           </div>
         </div>
@@ -1357,6 +1386,33 @@ export default function ReInvoice() {
           </div>
         </div>
       </div>
+
+      {showNirModal && (
+        <NirSelectorModal
+          onClose={() => setShowNirModal(false)}
+          onAdd={(selected) => {
+            const newLines = selected.map(s => ({
+              id: crypto.randomUUID(),
+              description: s.description,
+              quantity: s.quantity,
+              unit: s.unit,
+              unitPrice: s.unitPrice,
+              markupPercent: 0,
+              vatRate: s.vatRate || 21,
+              isCustom: true,
+              nirLineId: s.nirLineId,
+            }));
+            setLines(prev => {
+              const hasOnlyDefault =
+                prev.length === 1 &&
+                !prev[0].description &&
+                !parseFloat(String(prev[0].unitPrice));
+              return hasOnlyDefault ? newLines : [...prev, ...newLines];
+            });
+            setShowNirModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }

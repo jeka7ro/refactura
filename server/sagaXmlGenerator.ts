@@ -84,7 +84,15 @@ export async function generateSagaExportXML(tenantId: number, month: number, yea
   if (monthNirs.length > 0) {
     xml += `  <Intrari>\n`;
     for (const n of monthNirs) {
-      const lines = await db.select().from(schema.nirLines).where(eq(schema.nirLines.nirId, n.id));
+      const { sagaArticles } = await import("../modules/saga/schema");
+      const linesData = await db
+        .select({
+          line: schema.nirLines,
+          articleCode: sagaArticles.code,
+        })
+        .from(schema.nirLines)
+        .leftJoin(sagaArticles, eq(schema.nirLines.sagaArticleId, sagaArticles.id))
+        .where(eq(schema.nirLines.nirId, n.id));
       
       xml += `    <Intrare>\n`;
       xml += `      <NrDoc>${escapeXml(n.invoiceNumber || n.nirNumber)}</NrDoc>\n`;
@@ -94,8 +102,13 @@ export async function generateSagaExportXML(tenantId: number, month: number, yea
       xml += `      <Gestiune>${escapeXml(n.gestiune || "")}</Gestiune>\n`;
       
       xml += `      <Detalii>\n`;
-      for (const line of lines) {
+      for (const row of linesData) {
+        const line = row.line;
+        const code = row.articleCode;
         xml += `        <Detaliu>\n`;
+        if (code) {
+          xml += `          <Cod>${escapeXml(code)}</Cod>\n`;
+        }
         xml += `          <Denumire>${escapeXml(line.description)}</Denumire>\n`;
         xml += `          <UM>${escapeXml(line.unit || "buc")}</UM>\n`;
         xml += `          <Cantitate>${line.cantitateReceptionata}</Cantitate>\n`;

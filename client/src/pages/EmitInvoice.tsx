@@ -166,8 +166,23 @@ export default function EmitInvoice() {
     onSuccess: () => utils.products.list.invalidate(),
   });
 
+  const consumeLineMutation = trpc.nir.consumeLine.useMutation();
+
   const createMutation = trpc.emittedInvoice.create.useMutation({
-    onSuccess: () => {
+    onSuccess: async (data, variables) => {
+      // Consume stock for items added from NIR
+      const stockLines = variables.lines
+        .filter((l: any) => l.nirLineId)
+        .map((l: any) => ({ nirLineId: l.nirLineId, qty: l.quantity }));
+      
+      if (stockLines.length > 0) {
+        try {
+          await consumeLineMutation.mutateAsync({ lines: stockLines });
+        } catch (e) {
+          console.error("Failed to consume stock", e);
+        }
+      }
+
       utils.emittedInvoice.list.invalidate();
       toast.success("Factura a fost creată cu succes!");
       navigate("/facturi-emise-nou");
@@ -185,7 +200,6 @@ export default function EmitInvoice() {
   });
 
   const devizeUpdateMutation = trpc.devize.update.useMutation();
-  const consumeLineMutation = trpc.nir.consumeLine.useMutation();
 
   const clients = clientsData || [];
   const filteredClients = useMemo(
@@ -1054,7 +1068,7 @@ export default function EmitInvoice() {
               onClick={() => setShowNirModal(true)}
               className="flex items-center gap-1.5 px-3 h-8 text-xs font-semibold text-sky-700 border border-sky-200 bg-sky-50 hover:bg-sky-100 rounded transition-colors"
             >
-              <Plus className="w-3.5 h-3.5" /> Adaugă din NIR
+              <Plus className="w-3.5 h-3.5" /> Adaugă din Stoc
             </button>
           </div>
           <div className="lg:col-span-5 px-4 py-3 lg:border-l border-slate-200 dark:border-slate-700 space-y-1 bg-slate-50/50 dark:bg-slate-800/20 lg:bg-transparent">
@@ -1247,17 +1261,6 @@ export default function EmitInvoice() {
                 !parseFloat(String(prev[0].unitPrice));
               return hasOnlyDefault ? newLines : [...prev, ...newLines];
             });
-            // Marchează liniile ca consumate în NIR
-            try {
-              await consumeLineMutation.mutateAsync({
-                lines: nirLines.map(nl => ({
-                  nirLineId: nl.nirLineId,
-                  qty: nl.quantity,
-                })),
-              });
-            } catch (e) {
-              console.error("consumeLine error", e);
-            }
             setShowNirModal(false);
           }}
         />

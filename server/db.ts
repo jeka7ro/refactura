@@ -24,6 +24,7 @@ import {
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { runHorecaMigrations } from "../modules/horeca/migrations";
+import { runSagaMigrations } from "../modules/saga/migrations";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -60,6 +61,7 @@ export async function getDb() {
       } catch {}
       // Module migrations — fiecare modul izolat, safe
       await runHorecaMigrations(_db as any);
+      await runSagaMigrations(_db as any);
 
       // Safe migrations: add cron tracking fields to integrations
       try {
@@ -232,7 +234,7 @@ export async function getUserRole(userId: number, tenantId: number) {
   return result.length > 0 ? result[0].role : null;
 }
 
-export async function getDefaultTenantForUser(userId: number) {
+export async function getDefaultTenantForUser(userId: number, isAccount = false) {
   const db = await getDb();
   if (!db) return null;
 
@@ -242,7 +244,41 @@ export async function getDefaultTenantForUser(userId: number) {
     .where(eq(userTenants.userId, userId))
     .limit(1);
 
-  return result.length > 0 ? result[0].tenantId : null;
+  if (result.length > 0) return result[0].tenantId;
+
+  // No tenant found, auto-create one for this user to ensure data isolation
+  let name = `Workspace ${userId}`;
+  let email = `user${userId}@smartinvoice.local`;
+
+  // Try to find in users (OAuth)
+  const userRes = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  if (userRes.length > 0) {
+    name = userRes[0].name || userRes[0].email || name;
+    email = userRes[0].email || email;
+  } else {
+    // Try to find in accounts (Email/Password)
+    const accRes = await db.select().from(accounts).where(eq(accounts.id, userId)).limit(1);
+    if (accRes.length > 0) {
+      name = `Workspace ${accRes[0].email}`;
+      email = accRes[0].email || email;
+    } else {
+      return null;
+    }
+  }
+  
+  const newTenant = await db.insert(tenants).values({ name, email });
+  const tenantId = newTenant[0].insertId;
+  
+  await db.insert(userTenants).values({
+    userId: userId,
+    tenantId: tenantId,
+    role: "superadmin",
+  });
+  
+  // Also update accounts if it exists so it has tenantId natively
+  await db.update(accounts).set({ tenantId }).where(eq(accounts.id, userId));
+  
+  return tenantId;
 }
 
 export async function createTenant(data: {

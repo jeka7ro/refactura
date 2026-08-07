@@ -79,6 +79,13 @@ export default function BonuriConsumList() {
             Gestionează eliberarea materialelor din gestiune
           </p>
         </div>
+        <button
+          onClick={() => navigate("/bonuri-consum/new")}
+          className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold rounded-xl transition-colors shadow-sm shadow-amber-600/20"
+        >
+          <PackageOpen className="w-4 h-4" />
+          Adaugă Bon Consum
+        </button>
       </div>
 
       {/* KPI Cards */}

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factura Tradusa Dippold Racing</title>
+    <style>
+        @page {
+            margin: 1cm;
+            size: A4 portrait;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+            color: #000;
+            margin: 0;
+            padding: 0;
+            background: #fff;
+        }
+        .invoice-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .logo-section {
+            width: 60%;
+        }
+        .logo-section h1 {
+            color: #d32f2f;
+            font-size: 48px;
+            margin: 0;
+            font-weight: bold;
+            font-style: italic;
+        }
+        .logo-section h1 span {
+            color: #000;
+            font-size: 24px;
+        }
+        .address-line {
+            font-size: 11px;
+            margin-top: 10px;
+            border-bottom: 1px solid #ccc;
+            display: inline-block;
+            padding-bottom: 2px;
+        }
+        .brands-section {
+            width: 35%;
+            text-align: right;
+            font-size: 10px;
+            color: #666;
+        }
+        .details-grid {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 25px;
+        }
+        .billing-address {
+            line-height: 1.4;
+        }
+        .invoice-meta {
+            text-align: left;
+        }
+        .invoice-meta table {
+            border-collapse: collapse;
+        }
+        .invoice-meta td {
+            padding: 2px 10px 2px 0;
+            font-weight: bold;
+        }
+        .invoice-meta td:last-child {
+            font-weight: normal;
+            text-align: right;
+        }
+        .main-item {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            font-size: 15px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+        }
+        .specs-grid {
+            display: grid;
+            grid-template-columns: 200px auto;
+            row-gap: 5px;
+            margin-bottom: 20px;
+        }
+        .specs-grid div:nth-child(odd) {
+            font-weight: normal;
+        }
+        .specs-grid div:nth-child(even) {
+            font-weight: bold;
+        }
+        .notes {
+            margin: 15px 0;
+            line-height: 1.6;
+        }
+        .footer-totals {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 25px;
+            border-top: 1px solid #000;
+            padding-top: 15px;
+        }
+        .thank-you {
+            width: 50%;
+            line-height: 1.5;
+        }
+        .totals-table {
+            width: 40%;
+        }
+        .totals-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .totals-table td {
+            padding: 4px 0;
+        }
+        .totals-table tr td:last-child {
+            text-align: right;
+            font-weight: bold;
+        }
+        .totals-table tr.border-top td {
+            border-top: 1px solid #ccc;
+        }
+        .totals-table tr.border-bottom td {
+            border-bottom: 1px solid #000;
+            padding-bottom: 10px;
+        }
+        .page-footer {
+            margin-top: 30px;
+            font-size: 9px;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
+            border-top: 1px solid #ccc;
+            padding-top: 10px;
+        }
+        .website {
+            text-align: center;
+            font-size: 28px;
+            color: #e0e0e0;
+            font-weight: bold;
+            margin: 20px 0 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-container">
+        <div class="header" style="margin-bottom: 30px;">
+            <img src="/Users/eugeniucazmal/Downloads/dev_office/smart invoice/invoice_images/header.jpeg" alt="Header" style="width: 100%; height: auto; mix-blend-mode: multiply;">
+        </div>
+
+        <div class="details-grid">
+            <div class="billing-address">
+                <strong>Firma</strong><br>
+                Gurmand Plamadeala SRL<br>
+                Ion Plamadeala<br>
+                Zizinului nr. 625<br>
+                507220 TĂRLUNGENI<br>
+                ROMÂNIA
+            </div>
+            <div class="invoice-meta">
+                <table>
+                    <tr><td>Vânzare Autovehicul Rulat</td><td></td></tr>
+                    <tr><td>Factura:</td><td>00023811</td></tr>
+                    <tr><td>Cod TVA:</td><td>RO36803566</td></tr>
+                    <tr><td>Nr. Client:</td><td>18816</td></tr>
+                    <tr><td>Data:</td><td>01.07.2026</td></tr>
+                    <tr><td>Data livrării:</td><td>01.07.26</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="main-item">
+            <div>
+                DUCATI MULTISTRADA V4 RALLY RADAR, ( 1006 )<br>
+                GREEN LIVERY 2026 (ca vehicul demonstrativ)
+            </div>
+            <div>20840.00 €</div>
+        </div>
+
+        <div class="specs-grid">
+            <div>Serie Șasiu (Fgst Nr.):</div><div>ZDM1006AATB009989</div>
+            <div>Serie Motor (Motor Nr.):</div><div>ZDM1200WE*010149*</div>
+            <div>Nr. înmatriculare oficial:</div><div>CO-DU 40</div>
+            <div>Prima înmatriculare:</div><div>28.04.2026</div>
+            <div>Inspecție Tehnică (ITP):</div><div>04.2028</div>
+            <div>Putere conf. C.I.V.:</div><div>125.00 KW</div>
+            <div>Capacitate cilindrică:</div><div>1158 cm³</div>
+        </div>
+
+        <div class="notes">
+            Livrare intracomunitară scutită de taxe conform art. 4 nr. 1b coroborat cu art. 6a din Legea privind taxa pe valoarea adăugată din Germania (UStG).<br><br>
+            inclusiv protecție laterală (crash bar) neagră<br>
+            inclusiv prima inspecție tehnică (revizie)<br><br>
+            953 KM
+        </div>
+
+        <div class="footer-totals">
+            <div class="thank-you">
+                Ați fost consiliat de M.Dippold<br>
+                Echipa Dippold-Racing vă mulțumește pentru comandă și vă dorește drum bun mereu!!<br>
+                --------------------------------------------------<br>
+                Suma primită cu mulțumiri<br><br>
+                Marfa rămâne proprietatea noastră până la plata integrală.
+            </div>
+            <div class="totals-table">
+                <table>
+                    <tr><td>Preț Vehicul:</td><td>20840.00 €</td></tr>
+                    <tr class="border-top border-bottom"><td>Total Net:</td><td>20840.00 €</td></tr>
+                    <tr><td>Valoare Factură:</td><td>20840.00 €</td></tr>
+                    <tr class="border-top"><td>Rest de plată:</td><td>20840.00 €</td></tr>
+                    <tr><td colspan="2" style="font-size: 11px; font-weight: normal; padding-top: 10px;">Plată: fără deduceri imediat la primire</td></tr>
+                    <tr><td colspan="2" style="font-size: 11px; font-weight: normal;">Suma deschisă: 20840.00</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="website">
+            www.dippold-racing.de
+        </div>
+
+        <div class="page-footer">
+            <div>
+                Dippold Racing<br>
+                Gewerbering 16<br>
+                96523 Untersiemau<br>
+                Reprezentant: Tanja Dippold
+            </div>
+            <div>
+                Telefon: 0 95 65 / 61 72 37<br>
+                Fax: 0 95 65 / 67 32<br>
+                E-Mail: info@dippold-racing.de<br>
+                CUI (USt-IdNr): DE 250 823 206
+            </div>
+            <div>
+                Cont Bancar: VR-Bank Lichtenfels-Ebern eG<br>
+                IBAN: DE22 7709 1800 0103 7040 76<br>
+                BIC: GENODEF1LIF
+            </div>
+            <div>
+                Hypo Vereinsbank Coburg<br>
+                IBAN: DE25 7832 0076 0016 6716 14<br>
+                BIC: HYVEDEMM480
+            </div>
+        </div>
+    </div>
+</body>
+</html>

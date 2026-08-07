@@ -555,6 +555,7 @@ export function registerPdfRoute(app: any) {
 
       const logoBase64: string | undefined = settings.logoBase64 || undefined;
       const isDownload = req.query.download === "1";
+      const showAccounting = req.query.showAccounting !== "false";
       const filename = `NIR-${nirRow.nirNumber || id}.pdf`;
 
       res.setHeader("Content-Type", "application/pdf");
@@ -709,9 +710,11 @@ export function registerPdfRoute(app: any) {
       y += 32;
       const fields2: [string, string][] = [
         ["Gestiunea:", nirRow.gestiune || "—"],
-        ["Tip SAGA (Gen):", nirRow.accountingType || "Marfuri"],
-        ["Cont (Gen):", nirRow.accountingAccount || "371"],
       ];
+      if (showAccounting) {
+        fields2.push(["Tip SAGA (Gen):", nirRow.accountingType || "Marfuri"]);
+        fields2.push(["Cont (Gen):", nirRow.accountingAccount || "371"]);
+      }
       fields2.forEach(([label, val], i) => {
         const x = 50 + i * col;
         doc.fontSize(7).font("Roboto").fillColor(GRAY).text(label, x, y);
@@ -777,18 +780,32 @@ export function registerPdfRoute(app: any) {
       y += 12;
 
       // Header tabel
-      const cols = [20, 155, 55, 40, 25, 45, 45, 60, 70]; // sum = 515 ~ W
-      const headers = [
-        "Nr.",
-        "Denumire produs",
-        "Tip",
-        "Cont",
-        "U/M",
-        "Cant. doc",
-        "Cant. rec",
-        "Preț un.",
-        "Valoare",
-      ];
+      const cols = showAccounting 
+        ? [20, 120, 55, 40, 25, 45, 45, 60, 35, 70] 
+        : [20, 215, 25, 45, 45, 60, 35, 70]; // Redistribuit spatiul
+      const headers = showAccounting
+        ? [
+            "Nr.",
+            "Denumire produs",
+            "Tip",
+            "Cont",
+            "U/M",
+            "Cant. doc",
+            "Cant. rec",
+            "Preț un.",
+            "TVA%",
+            "Valoare",
+          ]
+        : [
+            "Nr.",
+            "Denumire produs",
+            "U/M",
+            "Cant. doc",
+            "Cant. rec",
+            "Preț un.",
+            "TVA%",
+            "Valoare",
+          ];
       let xOff = 40;
       doc.rect(40, y, W, 16).fillColor(TEAL).fill();
       headers.forEach((h, i) => {
@@ -798,7 +815,7 @@ export function registerPdfRoute(app: any) {
           .fillColor("white")
           .text(h, xOff + 3, y + 5, {
             width: cols[i] - 4,
-            align: i > 4 ? "right" : "left",
+            align: (showAccounting ? (i > 4) : (i > 2)) ? "right" : "left",
           });
         xOff += cols[i];
       });
@@ -823,8 +840,14 @@ export function registerPdfRoute(app: any) {
         const cells = [
           { val: String(idx + 1), align: "left" as const },
           { val: line.description, align: "left" as const },
-          { val: line.accountingType || nirRow.accountingType || "Marfuri", align: "left" as const },
-          { val: line.accountingAccount || nirRow.accountingAccount || "371", align: "center" as const },
+        ];
+        
+        if (showAccounting) {
+          cells.push({ val: line.accountingType || nirRow.accountingType || "Marfuri", align: "left" as const });
+          cells.push({ val: line.accountingAccount || nirRow.accountingAccount || "371", align: "center" as const });
+        }
+
+        cells.push(
           { val: line.unit || "buc", align: "left" as const },
           {
             val: parseFloat(line.cantitateComanda || "0").toLocaleString(
@@ -845,17 +868,22 @@ export function registerPdfRoute(app: any) {
             align: "right" as const,
           },
           {
+            val: line.vatRate || "19",
+            align: "center" as const,
+          },
+          {
             val: parseFloat(line.total || "0").toLocaleString("ro-RO", {
               minimumFractionDigits: 2,
             }),
             align: "right" as const,
-          },
-        ];
+          }
+        );
         cells.forEach((cell, ci) => {
-          const color = ci === 6 && hasDiff ? "#b45309" : "#1e293b";
+          const isQtyIdx = showAccounting ? 6 : 4;
+          const color = ci === isQtyIdx && hasDiff ? "#b45309" : "#1e293b";
           doc
             .fontSize(7)
-            .font(ci === 6 && hasDiff ? "Roboto-Bold" : "Roboto")
+            .font(ci === isQtyIdx && hasDiff ? "Roboto-Bold" : "Roboto")
             .fillColor(color)
             .text(cell.val, xc + 3, y + 5, {
               width: cols[ci] - 6,
@@ -873,23 +901,27 @@ export function registerPdfRoute(app: any) {
         }
       });
 
-      // Total row
+      // Calculate totals
+      const totalFaraTva = lines.reduce((s, l) => s + parseFloat(l.total || "0"), 0);
+      const totalTva = lines.reduce((s, l) => s + (parseFloat(l.total || "0") * parseFloat(l.vatRate || "19") / 100), 0);
+      const totalCuTva = totalFaraTva + totalTva;
+
+      // 1. TOTAL FARA TVA
+      doc.rect(40, y, W, 16).fillColor(LIGHT).strokeColor(BORDER).lineWidth(0.5).fillAndStroke();
+      doc.fontSize(7).font("Roboto-Bold").fillColor(GRAY).text("TOTAL FĂRĂ TVA:", 40 + 3, y + 5, { width: W - 65, align: "right" });
+      doc.fillColor("#334155").text(`${totalFaraTva.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}`, 40 + W - 70 - 10, y + 5, { width: 75, align: "right" });
+      y += 16;
+      
+      // 2. TOTAL TVA
+      doc.rect(40, y, W, 16).fillColor(LIGHT).strokeColor(BORDER).lineWidth(0.5).fillAndStroke();
+      doc.fontSize(7).font("Roboto-Bold").fillColor(GRAY).text("TOTAL TVA:", 40 + 3, y + 5, { width: W - 65, align: "right" });
+      doc.fillColor("#334155").text(`${totalTva.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}`, 40 + W - 70 - 10, y + 5, { width: 75, align: "right" });
+      y += 16;
+      
+      // 3. TOTAL CU TVA
       doc.rect(40, y, W, 18).fillColor(TEAL).fill();
-      doc
-        .fontSize(8)
-        .font("Roboto-Bold")
-        .fillColor("white")
-        .text("TOTAL VALOARE RECEPȚIONATĂ:", 40 + 3, y + 5, {
-          width: W - 65,
-          align: "right",
-        });
-      const total = lines.reduce((s, l) => s + parseFloat(l.total || "0"), 0);
-      doc.text(
-        `${total.toLocaleString("ro-RO", { minimumFractionDigits: 2 })} RON`,
-        40 + W - 70 - 10,
-        y + 5,
-        { width: 75, align: "right" }
-      );
+      doc.fontSize(8).font("Roboto-Black").fillColor("white").text("TOTAL CU TVA:", 40 + 3, y + 5, { width: W - 65, align: "right" });
+      doc.fontSize(9).text(`${totalCuTva.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}`, 40 + W - 70 - 10, y + 4.5, { width: 75, align: "right" });
       y += 26;
 
       // Diferente alert

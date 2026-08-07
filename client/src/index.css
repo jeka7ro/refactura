@@ -660,8 +660,7 @@ input[type="tel"]:not(.rounded-full),
 input[type="date"]:not(.rounded-full),
 input[type="search"]:not(.rounded-full),
 input[type="password"]:not(.rounded-full),
-textarea:not(.rounded-full),
-select:not(.rounded-full) {
+textarea:not(.rounded-full) {
   border-radius: 0 !important;
 }
 

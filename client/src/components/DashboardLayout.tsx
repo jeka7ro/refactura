@@ -32,6 +32,7 @@ import {
   TrendingUp,
   ClipboardCheck,
   PackageOpen,
+  Package,
   Globe,
   Building2,
   Moon,
@@ -47,6 +48,7 @@ import {
   Box,
   MonitorSmartphone,
   Key,
+  Database,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -100,6 +102,7 @@ const navItems: NavItem[] = [
     icon: PackageOpen,
     section: "gestiune",
     subItems: [
+      { href: "/inventory", label: "Inventar (Stoc)", icon: Package },
       { href: "/nir", label: "NIR", icon: ClipboardCheck },
       { href: "/bonuri-consum", label: "Bonuri Consum", icon: PackageOpen },
       { href: "/devize", label: "Devize", icon: FileText },
@@ -118,6 +121,7 @@ const navItems: NavItem[] = [
   },
   { href: "/clienti", label: "Clienți", icon: Users, section: "gestiune" },
   { href: "/integrari", label: "Integrări", icon: Plug, section: "gestiune" },
+  { href: "/saga", label: "SAGA Sync", icon: Database, section: "gestiune" },
   { href: "/api-keys", label: "API Keys", icon: Key, section: "gestiune" },
   {
     href: "/centre-cost",

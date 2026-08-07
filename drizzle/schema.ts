@@ -656,6 +656,7 @@ export type InsertNir = typeof nir.$inferInsert;
 export const nirLines = mysqlTable("nirLines", {
   id: int("id").autoincrement().primaryKey(),
   nirId: int("nirId").notNull(),
+  sagaArticleId: int("sagaArticleId"), // FK to sagaArticles.id
   description: varchar("description", { length: 512 }).notNull(),
   unit: varchar("unit", { length: 50 }).default("buc"),
   cantitateComanda: decimal("cantitateComanda", {
