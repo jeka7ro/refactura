@@ -34,10 +34,16 @@ export async function syncAllSpv(zile: number = 60) {
   let totalLimitHit = 0;
   const totalLimitDetails: string[] = [];
 
+  const { tenants } = await import("../drizzle/schema");
+  
   for (const intg of spvIntegrations) {
     if (!intg.apiKey) continue;
 
-    const cif = process.env.SPV_CUI || "42322117";
+    const [tenant] = await db.select({ cui: tenants.cui }).from(tenants).where(eq(tenants.id, intg.tenantId));
+    let rawCif = tenant?.cui || process.env.SPV_CUI || "42322117";
+    // Remove RO prefix if present for ANAF API
+    const cif = rawCif.toUpperCase().replace(/^RO/, "");
+    
     console.log(
       `[SPV Cron] Syncing for tenant ${intg.tenantId}, CIF ${cif}, zile=${zile}`
     );
