@@ -27,26 +27,29 @@ router.get("/", async (req, res) => {
     // Creăm arhiva ZIP folosind adm-zip (SAGA necesită arhiva)
     const zip = new AdmZip();
     
-    // API-ul SAGA necesită fișiere separate, nu un ExportSaga global
-    const intrariMatch = xmlContent.match(/<Intrari>[\s\S]*?<\/Intrari>/);
-    if (intrariMatch) {
-      zip.addFile("Intrari.xml", Buffer.from(`<?xml version="1.0" encoding="Windows-1250"?>\n${intrariMatch[0]}`, "utf8"));
-    }
-
+    // API-ul SAGA necesită mereu aceste fișiere, altfel dă eroare "Fisier inexistent"
     const iesiriMatch = xmlContent.match(/<Iesiri>[\s\S]*?<\/Iesiri>/);
+    let facturiXmlStr = `<?xml version="1.0" encoding="Windows-1250"?>\n<Facturi></Facturi>`;
     if (iesiriMatch) {
-      zip.addFile("Facturi.xml", Buffer.from(`<?xml version="1.0" encoding="Windows-1250"?>\n${iesiriMatch[0]}`, "utf8"));
+      // SAGA așteaptă tagul <Facturi> în loc de <Iesiri> la importul prin API
+      const safeXml = iesiriMatch[0].replace(/<Iesiri>/g, '<Facturi>').replace(/<\/Iesiri>/g, '</Facturi>');
+      facturiXmlStr = `<?xml version="1.0" encoding="Windows-1250"?>\n${safeXml}`;
     }
+    zip.addFile("Facturi.xml", Buffer.from(facturiXmlStr, "utf8"));
+
+    const intrariMatch = xmlContent.match(/<Intrari>[\s\S]*?<\/Intrari>/);
+    let intrariXmlStr = `<?xml version="1.0" encoding="Windows-1250"?>\n<Intrari></Intrari>`;
+    if (intrariMatch) {
+      intrariXmlStr = `<?xml version="1.0" encoding="Windows-1250"?>\n${intrariMatch[0]}`;
+    }
+    zip.addFile("Intrari.xml", Buffer.from(intrariXmlStr, "utf8"));
 
     const clientiMatch = xmlContent.match(/<Clienti>[\s\S]*?<\/Clienti>/);
+    let clientiXmlStr = `<?xml version="1.0" encoding="Windows-1250"?>\n<Clienti></Clienti>`;
     if (clientiMatch) {
-      zip.addFile("Clienti.xml", Buffer.from(`<?xml version="1.0" encoding="Windows-1250"?>\n${clientiMatch[0]}`, "utf8"));
+      clientiXmlStr = `<?xml version="1.0" encoding="Windows-1250"?>\n${clientiMatch[0]}`;
     }
-
-    // Fallback: dacă nu e nimic, punem un XML gol ca să nu crape cu fișier inexistent
-    if (!intrariMatch && !iesiriMatch && !clientiMatch) {
-      zip.addFile("Intrari.xml", Buffer.from(`<?xml version="1.0" encoding="Windows-1250"?>\n<Intrari></Intrari>`, "utf8"));
-    }
+    zip.addFile("Clienti.xml", Buffer.from(clientiXmlStr, "utf8"));
 
     const zipBuffer = zip.toBuffer();
 
