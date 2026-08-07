@@ -974,9 +974,11 @@ export default function Integrations() {
                             } else {
                               // connect
                               if (provider.id === "spv") {
-                                if (getSpvOAuthUrl.data?.url)
-                                  window.location.href =
-                                    getSpvOAuthUrl.data.url;
+                                if (getSpvOAuthUrl.data?.url) {
+                                  window.location.href = getSpvOAuthUrl.data.url;
+                                } else {
+                                  toast.error("Eroare generare link OAuth ANAF. Verificați logurile serverului.");
+                                }
                               } else {
                                 setConfiguringId(
                                   isConfiguring ? null : provider.id
