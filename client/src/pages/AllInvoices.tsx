@@ -1,7 +1,7 @@
 // AllInvoices — pagina unificată (import XML e-Factura mutat în pagina Integrări)
 // UI Rules: Nr. Crt., search+counter, footer paginare, rounded-lg butoane
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import JSZip from "jszip";
 import { Link, useLocation } from "wouter";
 import {
@@ -122,7 +122,7 @@ const getStatusLabel = (status: string, type: string) =>
 
 export default function AllInvoices() {
   const [, navigate] = useLocation();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(() => sessionStorage.getItem("allInvoices_search") || "");
 
   // Helper: forțează download în loc de preview în browser
   const downloadFile = (url: string, filename: string) => {
@@ -134,11 +134,19 @@ export default function AllInvoices() {
     a.click();
     document.body.removeChild(a);
   };
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(() => parseInt(sessionStorage.getItem("allInvoices_page") || "1", 10));
   const [rowsPerPage, setRowsPerPage] = useState(15);
-  const [typeFilter, setTypeFilter] = useState<InvoiceType | "all">("all");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<InvoiceType | "all">(() => (sessionStorage.getItem("allInvoices_type") as any) || "all");
+  const [filterStatus, setFilterStatus] = useState<string>(() => sessionStorage.getItem("allInvoices_status") || "all");
+  const [sourceFilter, setSourceFilter] = useState<string>(() => sessionStorage.getItem("allInvoices_source") || "all");
+
+  useEffect(() => {
+    sessionStorage.setItem("allInvoices_search", search);
+    sessionStorage.setItem("allInvoices_page", page.toString());
+    sessionStorage.setItem("allInvoices_type", typeFilter);
+    sessionStorage.setItem("allInvoices_status", filterStatus);
+    sessionStorage.setItem("allInvoices_source", sourceFilter);
+  }, [search, page, typeFilter, filterStatus, sourceFilter]);
   const [deleteTarget, setDeleteTarget] = useState<UnifiedRow | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 

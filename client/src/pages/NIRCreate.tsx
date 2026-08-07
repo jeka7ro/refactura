@@ -399,6 +399,7 @@ export default function NIRCreate() {
       accountingType: l.accountingType,
       accountingAccount: l.accountingAccount,
       lineOrder: idx,
+      sagaArticleId: l.sagaArticleId,
     })),
   });
 
