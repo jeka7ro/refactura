@@ -281,13 +281,15 @@ export default function NIRList() {
                         className="flex items-center gap-1 justify-end"
                         onClick={e => e.stopPropagation()}
                       >
-                        <button
-                          onClick={() => navigate(`/nir/${row.id}`)}
-                          title="Vizualizează / Editează"
+                        <a
+                          href={`/api/pdf/nir/${row.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Vizualizează PDF"
                           className="flex items-center justify-center w-6 h-6 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 transition-colors"
                         >
                           <Eye className="w-3 h-3" />
-                        </button>
+                        </a>
                         <a
                           href={`/api/pdf/nir/${row.id}?download=1`}
                           target="_blank"
