@@ -147,6 +147,19 @@ export default function AllInvoices() {
     sessionStorage.setItem("allInvoices_status", filterStatus);
     sessionStorage.setItem("allInvoices_source", sourceFilter);
   }, [search, page, typeFilter, filterStatus, sourceFilter]);
+
+  // Șterge memoria filtrelor la refresh-ul complet al paginii (F5)
+  useEffect(() => {
+    const clearOnRefresh = () => {
+      sessionStorage.removeItem("allInvoices_search");
+      sessionStorage.removeItem("allInvoices_page");
+      sessionStorage.removeItem("allInvoices_type");
+      sessionStorage.removeItem("allInvoices_status");
+      sessionStorage.removeItem("allInvoices_source");
+    };
+    window.addEventListener("beforeunload", clearOnRefresh);
+    return () => window.removeEventListener("beforeunload", clearOnRefresh);
+  }, []);
   const [deleteTarget, setDeleteTarget] = useState<UnifiedRow | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
