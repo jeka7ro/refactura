@@ -126,7 +126,7 @@ export default function NIRCreate() {
       { id: sourceInvoiceId!, excludeNirId: isEdit ? nirId : undefined },
       { enabled: !!sourceInvoiceId, staleTime: 0 }
     );
-  const { data: articles = [] } = trpc.saga.articles.list.useQuery();
+  const { data: articles = [], isFetched: articlesFetched } = trpc.saga.articles.list.useQuery();
 
   const utils = trpc.useContext();
 
@@ -221,7 +221,7 @@ export default function NIRCreate() {
 
   // Init from source invoice (wait for both queries)
   useEffect(() => {
-    if (!isEdit && sourceInvoice && !loaded && archiveLinesFetched) {
+    if (!isEdit && sourceInvoice && !loaded && archiveLinesFetched && articlesFetched) {
       setSupplierName(sourceInvoice.supplierName || "");
       setSupplierCUI(sourceInvoice.supplierCUI || "");
       setInvoiceNumber(sourceInvoice.invoiceNumber || "");
@@ -233,17 +233,25 @@ export default function NIRCreate() {
             const received = parseFloat(String(l.receivedQuantity || "0"));
             const remaining = Math.max(0, qty - received);
             const unitPrice = parseFloat(String(l.unitPrice || "0"));
+            const descLower = (l.description || "").trim().toLowerCase();
+            const matchedArticle = articles.find(
+              (a: any) => a.name.trim().toLowerCase() === descLower
+            );
+
             return {
+              sagaArticleId: matchedArticle ? matchedArticle.id : undefined,
               description: l.description || "",
-              unit: l.unit || "buc",
+              unit: matchedArticle ? matchedArticle.unit : (l.unit || "buc"),
               cantitateComanda: String(remaining),
               cantitateReceptionata: String(remaining),
               unitPrice: String(unitPrice),
-              vatRate: (l.vatRate !== undefined && l.vatRate !== null && l.vatRate !== "") ? String(l.vatRate) : "19",
+              vatRate: matchedArticle && matchedArticle.vatRate !== null 
+                ? String(matchedArticle.vatRate) 
+                : ((l.vatRate !== undefined && l.vatRate !== null && l.vatRate !== "") ? String(l.vatRate) : "19"),
               total: String((remaining * unitPrice).toFixed(2)),
               observations: "",
-              accountingType: "Marfuri",
-              accountingAccount: "371",
+              accountingType: matchedArticle ? matchedArticle.category : "Marfuri",
+              accountingAccount: matchedArticle ? matchedArticle.accountingAccount : "371",
             };
           })
           .filter((l: any) => parseFloat(l.cantitateReceptionata) > 0);
@@ -272,7 +280,7 @@ export default function NIRCreate() {
       }
       setLoaded(true);
     }
-  }, [sourceInvoice, archiveLines, archiveLinesFetched, isEdit, loaded]);
+  }, [sourceInvoice, archiveLines, archiveLinesFetched, isEdit, loaded, articles, articlesFetched]);
 
   const addLine = () =>
     setLines(prev => [
@@ -306,6 +314,19 @@ export default function NIRCreate() {
       // Când schimbi Tipul pe rând, actualizează automat Contul pe același rând
       if (field === "accountingType") {
         updated[idx].accountingAccount = TIP_TO_CONT[value] || "371";
+      }
+      
+      // Auto-link article if description matches perfectly
+      if (field === "description") {
+        const descLower = value.trim().toLowerCase();
+        const matched = articles.find((a: any) => a.name.trim().toLowerCase() === descLower);
+        if (matched) {
+          updated[idx].sagaArticleId = matched.id;
+          updated[idx].unit = matched.unit || updated[idx].unit;
+          if (matched.vatRate !== null) updated[idx].vatRate = String(matched.vatRate);
+          updated[idx].accountingType = matched.category || updated[idx].accountingType;
+          updated[idx].accountingAccount = matched.accountingAccount || updated[idx].accountingAccount;
+        }
       }
       return updated;
     });
