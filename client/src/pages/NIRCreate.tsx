@@ -404,8 +404,8 @@ export default function NIRCreate() {
   });
 
   const handleSave = () => {
-    if (!nirNumber || !receiptDate) {
-      toast.error("Nr. NIR și data recepției sunt obligatorii!");
+    if (!receiptDate) {
+      toast.error("Data recepției este obligatorie!");
       return;
     }
     const payload = buildPayload();
@@ -695,23 +695,23 @@ export default function NIRCreate() {
             <Plus className="w-3 h-3" /> Adaugă linie
           </button>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs min-w-[950px] table-fixed">
+        <div className="overflow-x-auto pb-4">
+          <table className="w-full text-xs min-w-[1200px]">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800">
                 <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 w-[30px]">Nr.</th>
-                <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400">Denumire produs/serviciu</th>
+                <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 min-w-[150px]">Denumire produs/serviciu</th>
                 <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 w-[140px]">Articol (Stoc)</th>
-                {showAccounting && <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 w-[110px]">Tip</th>}
-                {showAccounting && <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 w-[80px]">Cont</th>}
+                {showAccounting && <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 w-[120px]">Tip</th>}
+                {showAccounting && <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 w-[90px]">Cont</th>}
                 <th className="px-2 py-2 text-center text-[10px] font-bold uppercase text-slate-400 w-[70px]">U/M</th>
-                <th className="px-2 py-2 text-center text-[10px] font-bold uppercase text-slate-400 w-[70px]">Cant. doc.</th>
-                <th className="px-2 py-2 text-center text-[10px] font-bold uppercase text-slate-400 w-[70px] bg-teal-50 dark:bg-teal-900/20">Cant. recept.</th>
-                <th className="px-2 py-2 text-right text-[10px] font-bold uppercase text-slate-400 w-[80px]">Preț unit.</th>
+                <th className="px-2 py-2 text-center text-[10px] font-bold uppercase text-slate-400 w-[80px]">Cant. doc.</th>
+                <th className="px-2 py-2 text-center text-[10px] font-bold uppercase text-slate-400 w-[80px] bg-teal-50 dark:bg-teal-900/20">Cant. recept.</th>
+                <th className="px-2 py-2 text-right text-[10px] font-bold uppercase text-slate-400 w-[100px]">Preț unit.</th>
                 <th className="px-2 py-2 text-center text-[10px] font-bold uppercase text-slate-400 w-[70px]">TVA %</th>
-                <th className="px-2 py-2 text-right text-[10px] font-bold uppercase text-slate-400 w-[90px]">Valoare</th>
-                <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 w-[80px]">Obs.</th>
-                <th className="px-1 py-2 w-[36px]"></th>
+                <th className="px-2 py-2 text-right text-[10px] font-bold uppercase text-slate-400 w-[110px]">Valoare</th>
+                <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 w-[90px]">Obs.</th>
+                <th className="px-1 py-2 w-[40px]"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
