@@ -73,16 +73,27 @@ export async function generateSagaExportXML(tenantId: number, month: number, yea
     xml += `  </Iesiri>\n`;
   }
 
-  // 3. Export Intrări (NIR / Facturi Furnizori)
+  // 3. Export Intrări (NIR / Facturi Furnizori) - DIN AMBELE MODULE
   const nirList = await db.select().from(schema.nir).where(eq(schema.nir.tenantId, tenantId));
+  const { sagaIntrari, sagaIntrariLinii } = await import("../modules/saga/schema");
+  const noileIntrari = await db.select().from(sagaIntrari).where(eq(sagaIntrari.tenantId, tenantId));
+
   const monthNirs = nirList.filter(n => {
     if (!n.receiptDate) return false;
     const nDate = n.receiptDate.substring(0, 10);
     return nDate >= startDateStr && nDate <= endDateStr;
   });
 
-  if (monthNirs.length > 0) {
+  const monthSagaIntrari = noileIntrari.filter(n => {
+    if (!n.data) return false;
+    const nDate = n.data.substring(0, 10);
+    return nDate >= startDateStr && nDate <= endDateStr;
+  });
+
+  if (monthNirs.length > 0 || monthSagaIntrari.length > 0) {
     xml += `  <Intrari>\n`;
+    
+    // Generăm Intrări din modul vechi (NIR)
     for (const n of monthNirs) {
       const { sagaArticles } = await import("../modules/saga/schema");
       const linesData = await db
@@ -121,6 +132,40 @@ export async function generateSagaExportXML(tenantId: number, month: number, yea
       xml += `      </Detalii>\n`;
       xml += `    </Intrare>\n`;
     }
+
+    // Generăm Intrări din noul modul (SAGA)
+    for (const n of monthSagaIntrari) {
+      const linesData = await db
+        .select()
+        .from(sagaIntrariLinii)
+        .where(eq(sagaIntrariLinii.intrareId, n.id));
+      
+      xml += `    <Intrare>\n`;
+      xml += `      <NrDoc>${escapeXml(n.nrDoc || String(n.nrIntern || ""))}</NrDoc>\n`;
+      xml += `      <Data>${formatDate(n.data)}</Data>\n`;
+      xml += `      <Furnizor>${escapeXml(n.numeFurnizor || "")}</Furnizor>\n`;
+      xml += `      <CUIFurnizor>${escapeXml(n.cuiFurnizor || "")}</CUIFurnizor>\n`;
+      xml += `      <Scadent>${n.scadent ? formatDate(n.scadent) : ""}</Scadent>\n`;
+      
+      xml += `      <Detalii>\n`;
+      for (const line of linesData) {
+        xml += `        <Detaliu>\n`;
+        if (line.cod) {
+          xml += `          <Cod>${escapeXml(line.cod)}</Cod>\n`;
+        }
+        xml += `          <Denumire>${escapeXml(line.denumire)}</Denumire>\n`;
+        xml += `          <UM>${escapeXml(line.um || "buc")}</UM>\n`;
+        xml += `          <Cantitate>${line.cantitate}</Cantitate>\n`;
+        xml += `          <Pret>${line.pretUnitar || 0}</Pret>\n`;
+        xml += `          <CotaTVA>${line.tvaPercent || 0}</CotaTVA>\n`;
+        xml += `          <Tip>${escapeXml(line.tip || "Marfuri")}</Tip>\n`;
+        xml += `          <Cont>${escapeXml(line.cont || "371")}</Cont>\n`; 
+        xml += `        </Detaliu>\n`;
+      }
+      xml += `      </Detalii>\n`;
+      xml += `    </Intrare>\n`;
+    }
+
     xml += `  </Intrari>\n`;
   }
 
