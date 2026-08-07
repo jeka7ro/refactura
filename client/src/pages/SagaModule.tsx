@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, Fragment } from "react";
 import {
   Database,
   Plus,
@@ -1308,7 +1308,7 @@ function IntrariTab() {
           <tbody>
             {isLoading && <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>}
             {intrari.map((intr: any) => (
-              <React.Fragment key={intr.id}>
+              <Fragment key={intr.id}>
                 <tr
                   onClick={() => setSelectedIntrareId(selectedIntrareId === intr.id ? null : intr.id)}
                   className={`border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30 cursor-pointer ${
@@ -1397,7 +1397,7 @@ function IntrariTab() {
                     </td>
                   </tr>
                 )}
-              </React.Fragment>
+              </Fragment>
             ))}
             {!isLoading && intrari.length === 0 && (
               <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-400">Nicio intrare.</td></tr>
