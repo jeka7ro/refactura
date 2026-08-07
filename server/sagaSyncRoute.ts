@@ -26,9 +26,9 @@ router.get("/", async (req, res) => {
 
     // Creăm arhiva ZIP folosind adm-zip (SAGA necesită arhiva)
     const zip = new AdmZip();
-    // Adăugăm fișierul XML în arhivă
+    // SAGA API-ul caută specific fișiere numite "Facturi.xml" sau "Intrari.xml" în arhivă
     zip.addFile(
-      `SAGA_Export_${exportYear}_${String(exportMonth).padStart(2, "0")}.xml`,
+      "Facturi.xml",
       Buffer.from(xmlContent, "utf8")
     );
 
