@@ -8,11 +8,12 @@ const router = Router();
 router.get("/", async (req, res) => {
   try {
     const { token, month, year } = req.query;
+    console.log("SAGA Sync request:", { query: req.query, headers: req.headers });
     
-    // Simplă validare de securitate (token fixat pentru moment)
-    if (token !== "saga2026") {
-      return res.status(401).send("Unauthorized. Token invalid.");
-    }
+    // Simplă validare de securitate (temporar dezactivată pentru a vedea ce trimite SAGA)
+    // if (token !== "saga2026") {
+    //   return res.status(401).send("Unauthorized. Token invalid.");
+    // }
 
     const exportMonth = month ? parseInt(String(month)) : new Date().getMonth() + 1;
     const exportYear = year ? parseInt(String(year)) : new Date().getFullYear();
