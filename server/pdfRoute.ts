@@ -920,7 +920,7 @@ export function registerPdfRoute(app: any) {
       
       // 3. TOTAL CU TVA
       doc.rect(40, y, W, 18).fillColor(TEAL).fill();
-      doc.fontSize(8).font("Roboto-Black").fillColor("white").text("TOTAL CU TVA:", 40 + 3, y + 5, { width: W - 65, align: "right" });
+      doc.fontSize(8).font("Roboto-Bold").fillColor("white").text("TOTAL CU TVA:", 40 + 3, y + 5, { width: W - 65, align: "right" });
       doc.fontSize(9).text(`${totalCuTva.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}`, 40 + W - 70 - 10, y + 4.5, { width: 75, align: "right" });
       y += 26;
 
