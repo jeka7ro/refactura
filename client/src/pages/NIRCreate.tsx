@@ -30,6 +30,7 @@ const normalizeName = (name: string) => {
 interface NirLineForm {
   id?: number;
   sagaArticleId?: number;
+  articleSearchText?: string;
   description: string;
   unit: string;
   cantitateComanda: string;
@@ -213,6 +214,8 @@ export default function NIRCreate() {
       setLines(
         (existingNir.lines || []).map((l: any) => ({
           id: l.id,
+          sagaArticleId: l.sagaArticleId,
+          articleSearchText: l.sagaArticleId ? articles.find((a:any) => a.id === l.sagaArticleId)?.name : "",
           description: l.description,
           unit: l.unit || "buc",
           cantitateComanda: String(l.cantitateComanda || "0"),
@@ -250,6 +253,7 @@ export default function NIRCreate() {
 
             return {
               sagaArticleId: matchedArticle ? matchedArticle.id : undefined,
+              articleSearchText: matchedArticle ? matchedArticle.name : "",
               description: l.description || "",
               unit: matchedArticle ? matchedArticle.unit : (l.unit || "buc"),
               cantitateComanda: String(remaining),
@@ -332,10 +336,27 @@ export default function NIRCreate() {
         const matched = articles.find((a: any) => normalizeName(a.name) === descNorm);
         if (matched) {
           updated[idx].sagaArticleId = matched.id;
+          updated[idx].articleSearchText = matched.name;
           updated[idx].unit = matched.unit || updated[idx].unit;
           if (matched.vatRate !== null) updated[idx].vatRate = String(matched.vatRate);
           updated[idx].accountingType = matched.category || updated[idx].accountingType;
           updated[idx].accountingAccount = matched.accountingAccount || updated[idx].accountingAccount;
+        }
+      }
+      
+      // Auto-fill when selecting an article from datalist
+      if (field === "articleSearchText") {
+        // value contains the name or 'code - name'
+        const matched = articles.find((a: any) => a.name === value || `${a.code} - ${a.name}` === value);
+        if (matched) {
+          updated[idx].sagaArticleId = matched.id;
+          updated[idx].articleSearchText = matched.name; // normalize to just name
+          updated[idx].unit = matched.unit || updated[idx].unit;
+          if (matched.vatRate !== null) updated[idx].vatRate = String(matched.vatRate);
+          updated[idx].accountingType = matched.category || updated[idx].accountingType;
+          updated[idx].accountingAccount = matched.accountingAccount || updated[idx].accountingAccount;
+        } else {
+          updated[idx].sagaArticleId = undefined;
         }
       }
       return updated;
@@ -716,37 +737,19 @@ export default function NIRCreate() {
                       </td>
                       <td className="px-1 py-1.5">
                         <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-                          <select
-                            value={line.sagaArticleId || ""}
-                            onChange={e => {
-                              const val = e.target.value;
-                              if (val) {
-                                const found = articles.find((a: any) => String(a.id) === val);
-                                if (found) {
-                                  setLines(curr => {
-                                    const newLines = [...curr];
-                                    newLines[idx] = {
-                                      ...newLines[idx],
-                                      sagaArticleId: found.id,
-                                      unit: found.unit || "buc",
-                                      accountingAccount: found.accountingAccount || "371",
-                                      accountingType: found.category || "Marfuri"
-                                    };
-                                    return newLines;
-                                  });
-                                }
-                              } else {
-                                updateLine(idx, "sagaArticleId", "");
+                          <input
+                            list="saga-articles-list"
+                            placeholder="Caută articol..."
+                            value={line.articleSearchText !== undefined ? line.articleSearchText : (line.sagaArticleId ? (articles.find((a:any) => a.id === line.sagaArticleId)?.name || "") : "")}
+                            onChange={e => updateLine(idx, "articleSearchText", e.target.value)}
+                            onBlur={e => {
+                              // If they typed something but didn't match, clear the sagaArticleId
+                              if (!line.sagaArticleId) {
+                                updateLine(idx, "articleSearchText", "");
                               }
                             }}
-                            style={SELECT_SM_STYLE}
-                            className="w-full h-7 px-2 pr-6 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none border-none"
-                          >
-                            <option value="">-- Neselectat --</option>
-                            {articles.map((a: any) => (
-                              <option key={a.id} value={a.id}>{a.code ? `${a.code} - ` : ""}{a.name}</option>
-                            ))}
-                          </select>
+                            className="w-full h-7 px-2 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none border-none"
+                          />
                         </div>
                       </td>
                       {showAccounting && (
