@@ -184,8 +184,8 @@ export default function NIRCreate() {
 
   // Init from next number
   useEffect(() => {
-    if (!isEdit && nextNumber && !loaded) setNirNumber(nextNumber.nextNumber);
-  }, [nextNumber, isEdit, loaded]);
+    if (!isEdit && nextNumber && !nirNumber) setNirNumber(nextNumber.nextNumber);
+  }, [nextNumber, isEdit, nirNumber]);
 
   // Init from existing NIR
   useEffect(() => {
@@ -215,7 +215,10 @@ export default function NIRCreate() {
         (existingNir.lines || []).map((l: any) => ({
           id: l.id,
           sagaArticleId: l.sagaArticleId,
-          articleSearchText: l.sagaArticleId ? articles.find((a:any) => a.id === l.sagaArticleId)?.name : "",
+          articleSearchText: l.sagaArticleId ? (() => {
+            const a = articles.find((art:any) => art.id === l.sagaArticleId);
+            return a ? (a.code || a.name) : "";
+          })() : "",
           description: l.description,
           unit: l.unit || "buc",
           cantitateComanda: String(l.cantitateComanda || "0"),
@@ -253,7 +256,7 @@ export default function NIRCreate() {
 
             return {
               sagaArticleId: matchedArticle ? matchedArticle.id : undefined,
-              articleSearchText: matchedArticle ? matchedArticle.name : "",
+              articleSearchText: matchedArticle ? (matchedArticle.code || matchedArticle.name) : "",
               description: l.description || "",
               unit: matchedArticle ? matchedArticle.unit : (l.unit || "buc"),
               cantitateComanda: String(remaining),
@@ -336,7 +339,7 @@ export default function NIRCreate() {
         const matched = articles.find((a: any) => normalizeName(a.name) === descNorm);
         if (matched) {
           updated[idx].sagaArticleId = matched.id;
-          updated[idx].articleSearchText = matched.name;
+          updated[idx].articleSearchText = matched.code || matched.name;
           updated[idx].unit = matched.unit || updated[idx].unit;
           if (matched.vatRate !== null) updated[idx].vatRate = String(matched.vatRate);
           updated[idx].accountingType = matched.category || updated[idx].accountingType;
@@ -346,11 +349,11 @@ export default function NIRCreate() {
       
       // Auto-fill when selecting an article from datalist
       if (field === "articleSearchText") {
-        // value contains the name or 'code - name'
-        const matched = articles.find((a: any) => a.name === value || `${a.code} - ${a.name}` === value);
+        // value contains the code, name or 'code - name'
+        const matched = articles.find((a: any) => a.code === value || a.name === value || `${a.code} - ${a.name}` === value);
         if (matched) {
           updated[idx].sagaArticleId = matched.id;
-          updated[idx].articleSearchText = matched.name; // normalize to just name
+          updated[idx].articleSearchText = matched.code || matched.name;
           updated[idx].unit = matched.unit || updated[idx].unit;
           if (matched.vatRate !== null) updated[idx].vatRate = String(matched.vatRate);
           updated[idx].accountingType = matched.category || updated[idx].accountingType;
@@ -739,8 +742,11 @@ export default function NIRCreate() {
                         <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
                           <input
                             list="saga-articles-list"
-                            placeholder="Caută articol..."
-                            value={line.articleSearchText !== undefined ? line.articleSearchText : (line.sagaArticleId ? (articles.find((a:any) => a.id === line.sagaArticleId)?.name || "") : "")}
+                            placeholder="Caută cod/articol..."
+                            value={line.articleSearchText !== undefined ? line.articleSearchText : (line.sagaArticleId ? (() => {
+                              const a = articles.find((art:any) => art.id === line.sagaArticleId);
+                              return a ? (a.code || a.name) : "";
+                            })() : "")}
                             onChange={e => updateLine(idx, "articleSearchText", e.target.value)}
                             onBlur={e => {
                               // If they typed something but didn't match, clear the sagaArticleId
