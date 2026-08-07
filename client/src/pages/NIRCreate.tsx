@@ -644,6 +644,7 @@ export default function NIRCreate() {
               <tr className="border-b border-slate-100 dark:border-slate-800">
                 <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 w-[30px]">Nr.</th>
                 <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400">Denumire produs/serviciu</th>
+                <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 w-[140px]">Articol (Stoc)</th>
                 {showAccounting && <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 w-[110px]">Tip</th>}
                 {showAccounting && <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 w-[80px]">Cont</th>}
                 <th className="px-2 py-2 text-center text-[10px] font-bold uppercase text-slate-400 w-[70px]">U/M</th>
@@ -659,7 +660,7 @@ export default function NIRCreate() {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {lines.length === 0 ? (
                 <tr>
-                  <td colSpan={showAccounting ? 12 : 10} className="py-6 text-center text-xs text-slate-400">
+                  <td colSpan={showAccounting ? 13 : 11} className="py-6 text-center text-xs text-slate-400">
                     Nicio linie. Apasă Adaugă linie.
                   </td>
                 </tr>
@@ -676,34 +677,45 @@ export default function NIRCreate() {
                       <td className="px-2 py-1.5 text-slate-400">{idx + 1}</td>
                       <td className="px-2 py-1.5">
                         <input
-                          list="saga-articles-list"
                           value={line.description}
-                          onChange={e => {
-                            const val = e.target.value;
-                            const found = articles.find((a: any) => a.name === val || `${a.code} - ${a.name}` === val);
-                            if (found) {
-                              // Force update all fields via a grouped update if possible, 
-                              // but since updateLine only takes key-value, we will call it multiple times.
-                              // Wait, doing this might cause multiple renders. Let's just create a new lines array.
-                              setLines(curr => {
-                                const newLines = [...curr];
-                                newLines[idx] = {
-                                  ...newLines[idx],
-                                  description: found.name,
-                                  sagaArticleId: found.id,
-                                  unit: found.unit || "buc",
-                                  accountingAccount: found.accountingAccount || "371",
-                                  accountingType: found.category || "Marfa"
-                                };
-                                return newLines;
-                              });
-                            } else {
-                              updateLine(idx, "description", val);
-                              updateLine(idx, "sagaArticleId", undefined);
-                            }
-                          }}
+                          onChange={e => updateLine(idx, "description", e.target.value)}
                           className="w-full h-7 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-teal-500 text-xs"
                         />
+                      </td>
+                      <td className="px-1 py-1.5">
+                        <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                          <select
+                            value={line.sagaArticleId || ""}
+                            onChange={e => {
+                              const val = e.target.value;
+                              if (val) {
+                                const found = articles.find((a: any) => String(a.id) === val);
+                                if (found) {
+                                  setLines(curr => {
+                                    const newLines = [...curr];
+                                    newLines[idx] = {
+                                      ...newLines[idx],
+                                      sagaArticleId: found.id,
+                                      unit: found.unit || "buc",
+                                      accountingAccount: found.accountingAccount || "371",
+                                      accountingType: found.category || "Marfuri"
+                                    };
+                                    return newLines;
+                                  });
+                                }
+                              } else {
+                                updateLine(idx, "sagaArticleId", "");
+                              }
+                            }}
+                            style={SELECT_SM_STYLE}
+                            className="w-full h-7 px-2 pr-6 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none border-none"
+                          >
+                            <option value="">-- Neselectat --</option>
+                            {articles.map((a: any) => (
+                              <option key={a.id} value={a.id}>{a.code ? `${a.code} - ` : ""}{a.name}</option>
+                            ))}
+                          </select>
+                        </div>
                       </td>
                       {showAccounting && (
                         <td className="px-1 py-1.5">
