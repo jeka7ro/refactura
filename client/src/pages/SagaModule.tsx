@@ -1230,6 +1230,13 @@ function IntrariTab() {
   });
 
   const [showForm, setShowForm] = useState(false);
+  const [selectedIntrareId, setSelectedIntrareId] = useState<number | null>(null);
+  
+  const { data: intrareDetails, isLoading: isLoadingDetails } = trpc.saga.intrari.getById.useQuery(
+    { id: selectedIntrareId! },
+    { enabled: !!selectedIntrareId }
+  );
+
   const [form, setForm] = useState({
     tip: "Factura", nrDoc: "", numeFurnizor: "", cuiFurnizor: "",
     data: new Date().toISOString().split("T")[0], scadent: "",
@@ -1301,32 +1308,96 @@ function IntrariTab() {
           <tbody>
             {isLoading && <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>}
             {intrari.map((intr: any) => (
-              <tr key={intr.id} className="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                <td className="px-4 py-2 font-mono text-blue-600">{intr.nrIntern}</td>
-                <td className="px-4 py-2 text-slate-500">{intr.tip}</td>
-                <td className="px-4 py-2 text-slate-900 dark:text-white">{intr.nrDoc || "—"}</td>
-                <td className="px-4 py-2 text-slate-500">{intr.data}</td>
-                <td className="px-4 py-2 text-slate-900 dark:text-white">{intr.numeFurnizor || "—"}</td>
-                <td className="px-4 py-2 text-right font-mono">{Number(intr.valoare || 0).toFixed(2)}</td>
-                <td className="px-4 py-2 text-right font-mono text-slate-500">{Number(intr.tva || 0).toFixed(2)}</td>
-                <td className="px-4 py-2 text-right font-mono font-semibold">{Number(intr.total || 0).toFixed(2)}</td>
-                <td className="px-4 py-2">
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                    intr.status === "validat" ? "bg-green-100 text-green-700" :
-                    intr.status === "stornat" ? "bg-red-100 text-red-700" :
-                    "bg-yellow-100 text-yellow-700"
-                  }`}>{intr.status}</span>
-                </td>
-                <td className="px-4 py-2">
-                  <ConfirmDeleteWrapper onConfirm={() => deleteMut.mutate({ id: intr.id })} title="Ștergi intrarea?">
-                    {(openModal) => (
-                      <button onClick={openModal} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                  </ConfirmDeleteWrapper>
-                </td>
-              </tr>
+              <React.Fragment key={intr.id}>
+                <tr
+                  onClick={() => setSelectedIntrareId(selectedIntrareId === intr.id ? null : intr.id)}
+                  className={`border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30 cursor-pointer ${
+                    selectedIntrareId === intr.id ? "bg-blue-50/50 dark:bg-blue-900/10" : ""
+                  }`}
+                >
+                  <td className="px-4 py-2 font-mono text-blue-600">{intr.nrIntern}</td>
+                  <td className="px-4 py-2 text-slate-500">{intr.tip}</td>
+                  <td className="px-4 py-2 text-slate-900 dark:text-white font-medium">{intr.nrDoc || "—"}</td>
+                  <td className="px-4 py-2 text-slate-500">{intr.data}</td>
+                  <td className="px-4 py-2 text-slate-900 dark:text-white">{intr.numeFurnizor || "—"}</td>
+                  <td className="px-4 py-2 text-right font-mono">{Number(intr.valoare || 0).toFixed(2)}</td>
+                  <td className="px-4 py-2 text-right font-mono text-slate-500">{Number(intr.tva || 0).toFixed(2)}</td>
+                  <td className="px-4 py-2 text-right font-mono font-bold text-slate-900 dark:text-white">{Number(intr.total || 0).toFixed(2)}</td>
+                  <td className="px-4 py-2">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                      intr.status === "validat" ? "bg-green-100 text-green-700" :
+                      intr.status === "stornat" ? "bg-red-100 text-red-700" :
+                      "bg-yellow-100 text-yellow-700"
+                    }`}>{intr.status}</span>
+                  </td>
+                  <td className="px-4 py-2 text-right">
+                    <ConfirmDeleteWrapper onConfirm={() => deleteMut.mutate({ id: intr.id })} title="Ștergi intrarea?">
+                      {(openModal) => (
+                        <button onClick={(e) => { e.stopPropagation(); openModal(); }} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </ConfirmDeleteWrapper>
+                  </td>
+                </tr>
+                
+                {/* Expandable Details Row */}
+                {selectedIntrareId === intr.id && (
+                  <tr className="bg-slate-50/80 dark:bg-slate-800/80 border-b-2 border-slate-200 dark:border-slate-700">
+                    <td colSpan={10} className="p-0">
+                      <div className="p-4 pl-8 border-l-4 border-blue-500 shadow-inner">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                            Linii document (Detalii Recepție)
+                          </div>
+                          {isLoadingDetails && <Loader2 className="w-3 h-3 animate-spin text-slate-400" />}
+                        </div>
+                        
+                        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                          <table className="w-full text-xs">
+                            <thead className="bg-slate-100 dark:bg-slate-800">
+                              <tr>
+                                <th className="px-3 py-2 text-left font-semibold text-slate-500">Denumire Articol</th>
+                                <th className="px-3 py-2 text-left font-semibold text-slate-500">Cod</th>
+                                <th className="px-3 py-2 text-left font-semibold text-slate-500">Tip / Cont</th>
+                                <th className="px-3 py-2 text-center font-semibold text-slate-500">U/M</th>
+                                <th className="px-3 py-2 text-right font-semibold text-slate-500">Cantitate</th>
+                                <th className="px-3 py-2 text-right font-semibold text-slate-500">Preț Unitar</th>
+                                <th className="px-3 py-2 text-center font-semibold text-slate-500">TVA %</th>
+                                <th className="px-3 py-2 text-right font-semibold text-slate-500">Total</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                              {intrareDetails?.lines && intrareDetails.lines.length > 0 ? (
+                                intrareDetails.lines.map((line: any) => (
+                                  <tr key={line.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                    <td className="px-3 py-2 font-medium">{line.denumire}</td>
+                                    <td className="px-3 py-2 font-mono text-slate-500">{line.cod || "—"}</td>
+                                    <td className="px-3 py-2 text-slate-500">{line.tip || "—"} {line.cont ? `/ ${line.cont}` : ""}</td>
+                                    <td className="px-3 py-2 text-center">{line.um || "BUC"}</td>
+                                    <td className="px-3 py-2 text-right font-mono">{Number(line.cantitate || 0).toFixed(2)}</td>
+                                    <td className="px-3 py-2 text-right font-mono">{Number(line.pretUnitar || 0).toFixed(2)}</td>
+                                    <td className="px-3 py-2 text-center font-mono">{line.tvaPercent}%</td>
+                                    <td className="px-3 py-2 text-right font-mono font-semibold">
+                                      {Number(line.total || (Number(line.cantitate || 0) * Number(line.pretUnitar || 0) * (1 + Number(line.tvaPercent || 0)/100))).toFixed(2)}
+                                    </td>
+                                  </tr>
+                                ))
+                              ) : (
+                                <tr>
+                                  <td colSpan={8} className="px-3 py-6 text-center text-slate-400 italic">
+                                    {!isLoadingDetails ? "Această intrare nu are nicio linie de produse înregistrată." : "Se încarcă liniile..."}
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
             ))}
             {!isLoading && intrari.length === 0 && (
               <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-400">Nicio intrare.</td></tr>
