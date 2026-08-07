@@ -21,8 +21,9 @@ router.get("/", async (req, res) => {
     // Importăm dinamic pentru a nu încărca fișierul prematur
     const { generateSagaExportXML } = await import("./sagaXmlGenerator.js");
     
-    // Găsim exportul pentru tenant-ul 1 (implicit)
-    const xmlContent = await generateSagaExportXML(1, exportMonth, exportYear);
+    // Extragem tenantId din URL, altfel default la 1
+    const tenantId = req.query.tenantId ? parseInt(String(req.query.tenantId)) : 1;
+    const xmlContent = await generateSagaExportXML(tenantId, exportMonth, exportYear);
 
     // Creăm arhiva ZIP folosind adm-zip (SAGA necesită arhiva)
     const zip = new AdmZip();
