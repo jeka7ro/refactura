@@ -2754,7 +2754,7 @@ export const appRouter = router({
       .input(
         z.object({
           invoiceArchiveId: z.number().optional(),
-          nirNumber: z.string(),
+          nirNumber: z.string().optional(),
           invoiceNumber: z.string().optional(),
           avizNumber: z.string().optional(),
           supplierName: z.string().optional(),

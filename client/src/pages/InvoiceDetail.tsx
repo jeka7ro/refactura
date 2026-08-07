@@ -84,6 +84,14 @@ export default function InvoiceDetail() {
           >
             {(invoiceStatusLabels as any)[status] || status}
           </span>
+          {invoice.type === "primit" && (
+            <Link href={`/nir/nou/${invoice.id}`}>
+              <button className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.97]">
+                Creează NIR
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </Link>
+          )}
           <Link href={`/re-facturare/${invoice.id}`}>
             <button className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.97]">
               Re-facturează

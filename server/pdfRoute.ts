@@ -539,11 +539,23 @@ export function registerPdfRoute(app: any) {
         return;
       }
 
-      const lines = await db
+      const linesRaw = await db
         .select()
         .from(nirLines)
         .where(eqOp(nirLines.nirId, id))
         .orderBy(nirLines.lineOrder);
+
+      const { sagaArticles } = await import("../modules/saga/schema");
+      const articles = await db.select().from(sagaArticles).where(eqOp(sagaArticles.tenantId, nirRow.tenantId));
+      
+      const lines = linesRaw.map(l => {
+        const article = l.sagaArticleId ? articles.find(a => a.id === l.sagaArticleId) : null;
+        return {
+          ...l,
+          articleCode: article ? article.code : "",
+        };
+      });
+
       const [tenant] = await db
         .select()
         .from(tenants)
@@ -781,11 +793,12 @@ export function registerPdfRoute(app: any) {
 
       // Header tabel
       const cols = showAccounting 
-        ? [20, 120, 55, 40, 25, 45, 45, 60, 35, 70] 
-        : [20, 215, 25, 45, 45, 60, 35, 70]; // Redistribuit spatiul
+        ? [20, 45, 75, 55, 40, 25, 45, 45, 60, 35, 70] 
+        : [20, 45, 170, 25, 45, 45, 60, 35, 70];
       const headers = showAccounting
         ? [
             "Nr.",
+            "Cod",
             "Denumire produs",
             "Tip",
             "Cont",
@@ -798,6 +811,7 @@ export function registerPdfRoute(app: any) {
           ]
         : [
             "Nr.",
+            "Cod",
             "Denumire produs",
             "U/M",
             "Cant. doc",
@@ -839,6 +853,7 @@ export function registerPdfRoute(app: any) {
         let xc = 40;
         const cells = [
           { val: String(idx + 1), align: "left" as const },
+          { val: (line as any).articleCode || "—", align: "left" as const },
           { val: line.description, align: "left" as const },
         ];
         
