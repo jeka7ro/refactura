@@ -28,7 +28,7 @@ router.get("/", async (req, res) => {
     const zip = new AdmZip();
     // SAGA API-ul caută specific fișiere numite "Facturi.xml" sau "Intrari.xml" în arhivă
     zip.addFile(
-      "Facturi.xml",
+      "Intrari.xml",
       Buffer.from(xmlContent, "utf8")
     );
 
