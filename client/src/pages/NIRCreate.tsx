@@ -17,6 +17,16 @@ import {
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
+const normalizeName = (name: string) => {
+  if (!name) return "";
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // remove diacritics
+    .replace(/\s+/g, " ") // replace multiple spaces with single space
+    .trim()
+    .toLowerCase();
+};
+
 interface NirLineForm {
   id?: number;
   sagaArticleId?: number;
@@ -233,9 +243,9 @@ export default function NIRCreate() {
             const received = parseFloat(String(l.receivedQuantity || "0"));
             const remaining = Math.max(0, qty - received);
             const unitPrice = parseFloat(String(l.unitPrice || "0"));
-            const descLower = (l.description || "").trim().toLowerCase();
+            const descNorm = normalizeName(l.description);
             const matchedArticle = articles.find(
-              (a: any) => a.name.trim().toLowerCase() === descLower
+              (a: any) => normalizeName(a.name) === descNorm
             );
 
             return {
@@ -318,8 +328,8 @@ export default function NIRCreate() {
       
       // Auto-link article if description matches perfectly
       if (field === "description") {
-        const descLower = value.trim().toLowerCase();
-        const matched = articles.find((a: any) => a.name.trim().toLowerCase() === descLower);
+        const descNorm = normalizeName(value);
+        const matched = articles.find((a: any) => normalizeName(a.name) === descNorm);
         if (matched) {
           updated[idx].sagaArticleId = matched.id;
           updated[idx].unit = matched.unit || updated[idx].unit;
