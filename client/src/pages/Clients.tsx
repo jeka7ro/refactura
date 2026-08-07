@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   Eye,
 } from "lucide-react";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 
 export default function Clients() {
   const [showForm, setShowForm] = useState(false);
@@ -114,10 +115,10 @@ export default function Clients() {
     setShowForm(true);
   };
 
+  const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
+
   const handleDelete = (id: number) => {
-    if (confirm("Sigur vrei să ștergi acest client?")) {
-      deleteMutation.mutate({ id });
-    }
+    setDeleteTarget(id);
   };
 
   const columns: DataTableColumn<any>[] = [
@@ -195,6 +196,16 @@ export default function Clients() {
 
   return (
     <div className="p-3 sm:p-5 max-w-full space-y-3">
+      <ConfirmModal
+        isOpen={deleteTarget !== null}
+        title="Ștergere Client"
+        message="Această acțiune este ireversibilă. Ești sigur că vrei să ștergi acest client?"
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          if (deleteTarget !== null) deleteMutation.mutate({ id: deleteTarget });
+          setDeleteTarget(null);
+        }}
+      />
       {/* Header + KPI — ascunse când formularul e deschis */}
       {!showForm && (
         <>

@@ -17,7 +17,6 @@ import {
   FileText,
   Loader2,
   AlertCircle,
-  Sparkles,
   ChevronDown,
   Warehouse,
   Users,
@@ -31,6 +30,7 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { ConfirmDeleteWrapper } from "@/components/ui/ConfirmModal";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type SagaPage =
@@ -384,6 +384,7 @@ function NomenclatorTab() {
               <label className="block text-xs text-slate-500 mb-1">TVA %</label>
               <select value={form.vatRate} onChange={(e) => setForm({ ...form, vatRate: Number(e.target.value) })}
                 className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 dark:text-white">
+                <option value={21}>21%</option>
                 <option value={19}>19%</option>
                 <option value={9}>9%</option>
                 <option value={5}>5%</option>
@@ -405,7 +406,7 @@ function NomenclatorTab() {
               </select>
             </div>
           </div>
-          <div className="flex gap-2 pt-2">
+          <div className="flex gap-2">
             <button
               onClick={() => createMut.mutate(form)}
               disabled={!form.code || !form.name || createMut.isPending}
@@ -459,13 +460,17 @@ function NomenclatorTab() {
                     <td className="px-4 py-3 font-mono text-xs text-slate-500">{art.accountingAccount}</td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => deleteMut.mutate({ id: art.id })}
-                          className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                          title="Șterge"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <ConfirmDeleteWrapper onConfirm={() => deleteMut.mutate({ id: art.id })} title="Ștergi articolul?">
+                          {(openModal) => (
+                            <button
+                              onClick={openModal}
+                              className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                              title="Șterge"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </ConfirmDeleteWrapper>
                       </div>
                     </td>
                   </tr>
@@ -657,12 +662,16 @@ function MapareTab() {
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-500">{m.supplierCUI || "—"}</td>
                     <td className="px-4 py-3 text-center">
-                      <button
-                        onClick={() => deleteMut.mutate({ id: m.id })}
-                        className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <ConfirmDeleteWrapper onConfirm={() => deleteMut.mutate({ id: m.id })} title="Ștergi maparea?">
+                        {(openModal) => (
+                          <button
+                            onClick={openModal}
+                            className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </ConfirmDeleteWrapper>
                     </td>
                   </tr>
                 ))
@@ -854,6 +863,7 @@ function SetariTab() {
             defaultValue="19"
             className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 dark:text-white"
           >
+            <option value="21">21%</option>
             <option value="19">19%</option>
             <option value="9">9%</option>
             <option value="5">5%</option>
@@ -966,8 +976,13 @@ function GestiuniTab() {
                 <td className="px-4 py-2 text-slate-500 font-mono text-xs">{g.analitic607 || "—"}</td>
                 <td className="px-4 py-2 text-slate-500 font-mono text-xs">{g.analitic707 || "—"}</td>
                 <td className="px-4 py-2">
-                  <button onClick={() => { if(confirm("Ștergi gestiunea?")) deleteMut.mutate({ id: g.id }); }}
-                    className="p-1 text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                  <ConfirmDeleteWrapper onConfirm={() => deleteMut.mutate({ id: g.id })} title="Ștergi gestiunea?">
+                    {(openModal) => (
+                      <button onClick={openModal} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </ConfirmDeleteWrapper>
                 </td>
               </tr>
             ))}
@@ -1135,8 +1150,13 @@ function FurnizoriTab() {
                 <td className="px-4 py-2 text-slate-500">{f.telefon || "—"}</td>
                 <td className="px-4 py-2 text-slate-500 font-mono text-xs">{f.contFurnizor}</td>
                 <td className="px-4 py-2">
-                  <button onClick={() => { if(confirm("Ștergi furnizorul?")) deleteMut.mutate({ id: f.id }); }}
-                    className="p-1 text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                  <ConfirmDeleteWrapper onConfirm={() => deleteMut.mutate({ id: f.id })} title="Ștergi furnizorul?">
+                    {(openModal) => (
+                      <button onClick={openModal} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </ConfirmDeleteWrapper>
                 </td>
               </tr>
             ))}
@@ -1298,8 +1318,13 @@ function IntrariTab() {
                   }`}>{intr.status}</span>
                 </td>
                 <td className="px-4 py-2">
-                  <button onClick={() => { if(confirm("Ștergi intrarea?")) deleteMut.mutate({ id: intr.id }); }}
-                    className="p-1 text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                  <ConfirmDeleteWrapper onConfirm={() => deleteMut.mutate({ id: intr.id })} title="Ștergi intrarea?">
+                    {(openModal) => (
+                      <button onClick={openModal} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </ConfirmDeleteWrapper>
                 </td>
               </tr>
             ))}

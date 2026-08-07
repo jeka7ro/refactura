@@ -581,6 +581,7 @@ export default function NIRCreate() {
                 className="w-full h-8 px-2.5 pr-7 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none border-none"
               >
                 <option value="21">21</option>
+                <option value="21">21</option>
                 <option value="19">19</option>
                 <option value="9">9</option>
                 <option value="5">5</option>

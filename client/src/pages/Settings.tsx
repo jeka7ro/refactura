@@ -632,6 +632,7 @@ export default function Settings() {
                     onChange={e => update("defaultVatRate", +e.target.value)}
                     className="w-full h-10 px-4 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
                   >
+                    <option value={21}>21% — Special</option>
                     <option value={19}>19% — Standard</option>
                     <option value={9}>9% — Redusă</option>
                     <option value={5}>5% — Super-redusă</option>
