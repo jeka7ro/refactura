@@ -125,14 +125,40 @@ export default function AllInvoices() {
   const [search, setSearch] = useState(() => sessionStorage.getItem("allInvoices_search") || "");
 
   // Helper: forțează download în loc de preview în browser
-  const downloadFile = (url: string, filename: string) => {
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.target = "_blank";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  const downloadFile = async (url: string, filename: string) => {
+    const safeFilename = filename.toLowerCase().endsWith(".pdf") ? filename : `${filename}.pdf`;
+    try {
+      toast.loading("Descărcare în curs...", { id: "download" });
+      const token = localStorage.getItem("authToken");
+      const response = await fetch(url, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+      });
+      if (!response.ok) throw new Error("Network response was not ok");
+      
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = safeFilename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+      toast.success("Descărcat cu succes!", { id: "download" });
+    } catch (error) {
+      console.error("Eroare la descarcare:", error);
+      // Fallback
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = safeFilename;
+      a.target = "_blank";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      toast.dismiss("download");
+    }
   };
   const [page, setPage] = useState(() => parseInt(sessionStorage.getItem("allInvoices_page") || "1", 10));
   const [rowsPerPage, setRowsPerPage] = useState(15);
@@ -227,7 +253,9 @@ export default function AllInvoices() {
       const link = document.createElement("a");
       link.href = url;
       link.download = `Facturi_Selectate_${new Date().toISOString().slice(0, 10)}.zip`;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
       toast.success(`Arhiva conține ${added} facturi descărcate.`, {
@@ -567,7 +595,9 @@ export default function AllInvoices() {
       const link = document.createElement("a");
       link.href = url;
       link.download = `${row.number}.pdf`;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
       toast.dismiss("pdf");
     } catch {
       toast.error("Eroare download", { id: "pdf" });
@@ -651,6 +681,12 @@ export default function AllInvoices() {
               className="px-3 h-7 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-semibold transition-colors"
             >
               Anulează
+            </button>
+            <button
+              onClick={handleDownloadSelectedZip}
+              className="px-3 h-7 rounded-lg bg-white text-blue-600 hover:bg-blue-50 text-xs font-bold transition-colors shadow-sm"
+            >
+              Descarcă selectate
             </button>
             <button
               onClick={async () => {
