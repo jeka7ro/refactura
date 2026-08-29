@@ -415,3 +415,43 @@ export const horecaKioskSettings = mysqlTable("horecaKioskSettings", {
 
 export type HorecaKioskSetting = typeof horecaKioskSettings.$inferSelect;
 export type InsertHorecaKioskSetting = typeof horecaKioskSettings.$inferInsert;
+
+/**
+ * HORECA Consumption Receipts — Bonuri de Consum (Antet)
+ */
+export const horecaConsumptionReceipts = mysqlTable("horecaConsumptionReceipts", {
+  id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId").notNull(),
+  locationId: int("locationId").notNull(),
+  documentNumber: varchar("documentNumber", { length: 50 }).notNull(),
+  date: timestamp("date").defaultNow().notNull(),
+  status: mysqlEnum("status", ["draft", "validated", "exported"]).default("draft"),
+  totalValue: decimal("totalValue", { precision: 12, scale: 2 }).default("0.00"),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type HorecaConsumptionReceipt = typeof horecaConsumptionReceipts.$inferSelect;
+export type InsertHorecaConsumptionReceipt = typeof horecaConsumptionReceipts.$inferInsert;
+
+/**
+ * HORECA Consumption Receipt Items — Liniile Bonului de Consum
+ */
+export const horecaConsumptionReceiptItems = mysqlTable("horecaConsumptionReceiptItems", {
+  id: int("id").autoincrement().primaryKey(),
+  receiptId: int("receiptId").notNull(), // FK la horecaConsumptionReceipts
+  tenantId: int("tenantId").notNull(),
+  ingredientId: int("ingredientId"), // FK la horecaIngredients (daca este materie prima)
+  productId: int("productId"), // FK la products din core (daca este marfa)
+  name: varchar("name", { length: 255 }).notNull(),
+  quantity: decimal("quantity", { precision: 12, scale: 4 }).notNull(),
+  unit: varchar("unit", { length: 20 }).notNull(),
+  unitCost: decimal("unitCost", { precision: 12, scale: 4 }).notNull(), // CMP sau pret achizitie
+  totalValue: decimal("totalValue", { precision: 12, scale: 4 }).notNull(),
+  accountingAccount: varchar("accountingAccount", { length: 20 }), // ex: '601', '6028', '607'
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type HorecaConsumptionReceiptItem = typeof horecaConsumptionReceiptItems.$inferSelect;
+export type InsertHorecaConsumptionReceiptItem = typeof horecaConsumptionReceiptItems.$inferInsert;

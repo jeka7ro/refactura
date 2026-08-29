@@ -1,13 +1,15 @@
 import { Router } from "express";
 import AdmZip from "adm-zip";
+import axios from "axios";
+import FormData from "form-data";
 
 const router = Router();
 
-// SAGA calls this endpoint to pull the XML files bundled in a ZIP archive.
-// URL format for SAGA: /api/saga-sync?token=saga2026
+// 1. Varianta de descărcare manuală (ZIP)
+// URL format for SAGA: /api/saga-sync?cui=12345&month=8&year=2026
 router.get("/", async (req, res) => {
   try {
-    const { token, month, year } = req.query;
+    const { token, month, year, cui } = req.query;
     console.log("SAGA Sync request:", { query: req.query, headers: req.headers });
     
     // Simplă validare de securitate (temporar dezactivată pentru a vedea ce trimite SAGA)
@@ -25,32 +27,15 @@ router.get("/", async (req, res) => {
     const tenantId = req.query.tenantId ? parseInt(String(req.query.tenantId)) : 1;
     const xmlContent = await generateSagaExportXML(tenantId, exportMonth, exportYear);
 
-    // Creăm arhiva ZIP folosind adm-zip (SAGA necesită arhiva)
+    // Creăm arhiva ZIP folosind adm-zip
     const zip = new AdmZip();
     
-    // API-ul SAGA necesită mereu aceste fișiere, altfel dă eroare "Fisier inexistent"
-    const iesiriMatch = xmlContent.match(/<Iesiri>[\s\S]*?<\/Iesiri>/);
-    let facturiXmlStr = `<?xml version="1.0" encoding="Windows-1250"?>\n<Facturi></Facturi>`;
-    if (iesiriMatch) {
-      // SAGA așteaptă tagul <Facturi> în loc de <Iesiri> la importul prin API
-      const safeXml = iesiriMatch[0].replace(/<Iesiri>/g, '<Facturi>').replace(/<\/Iesiri>/g, '</Facturi>');
-      facturiXmlStr = `<?xml version="1.0" encoding="Windows-1250"?>\n${safeXml}`;
-    }
-    zip.addFile("Facturi.xml", Buffer.from(facturiXmlStr, "utf8"));
-
-    const intrariMatch = xmlContent.match(/<Intrari>[\s\S]*?<\/Intrari>/);
-    let intrariXmlStr = `<?xml version="1.0" encoding="Windows-1250"?>\n<Intrari></Intrari>`;
-    if (intrariMatch) {
-      intrariXmlStr = `<?xml version="1.0" encoding="Windows-1250"?>\n${intrariMatch[0]}`;
-    }
-    zip.addFile("Intrari.xml", Buffer.from(intrariXmlStr, "utf8"));
-
-    const clientiMatch = xmlContent.match(/<Clienti>[\s\S]*?<\/Clienti>/);
-    let clientiXmlStr = `<?xml version="1.0" encoding="Windows-1250"?>\n<Clienti></Clienti>`;
-    if (clientiMatch) {
-      clientiXmlStr = `<?xml version="1.0" encoding="Windows-1250"?>\n${clientiMatch[0]}`;
-    }
-    zip.addFile("Clienti.xml", Buffer.from(clientiXmlStr, "utf8"));
+    // API-ul și SAGA așteaptă Facturi sub forma F_CUI_NUMAR_DATA.xml
+    // Dacă e un export bulk, F_CUI_LUNA_AN.xml e acceptat atâta timp cât are <Facturi>
+    const safeCui = cui ? String(cui).trim() : "EXPORT";
+    const fileName = `F_${safeCui}_${exportMonth}_${exportYear}.xml`;
+    
+    zip.addFile(fileName, Buffer.from(xmlContent, "utf8"));
 
     const zipBuffer = zip.toBuffer();
 
@@ -65,6 +50,58 @@ router.get("/", async (req, res) => {
   } catch (err: any) {
     console.error("SAGA API Sync Error:", err);
     res.status(500).send(`Internal Server Error: ${err.message}`);
+  }
+});
+
+
+// 2. Varianta de Push Automat (API SAGA Web)
+router.post("/push", async (req, res) => {
+  try {
+    const { month, year, tenantId, sagaToken, sagaCui } = req.body;
+    
+    if (!sagaToken || !sagaCui) {
+      return res.status(400).json({ success: false, message: "Missing sagaToken or sagaCui" });
+    }
+
+    const exportMonth = month ? parseInt(String(month)) : new Date().getMonth() + 1;
+    const exportYear = year ? parseInt(String(year)) : new Date().getFullYear();
+    const tId = tenantId ? parseInt(String(tenantId)) : 1;
+
+    const { generateSagaExportXML } = await import("./sagaXmlGenerator.js");
+    const xmlContent = await generateSagaExportXML(tId, exportMonth, exportYear);
+    
+    const fileName = `F_${sagaCui}_${exportMonth}_${exportYear}.xml`;
+
+    const form = new FormData();
+    form.append("file", Buffer.from(xmlContent, "utf8"), {
+      filename: fileName,
+      contentType: "application/xml",
+    });
+
+    // Trimitem direct către SAGA Web API
+    const response = await axios.post("https://web.sagasoft.ro/api/v20260225/Import", form, {
+      headers: {
+        ...form.getHeaders(),
+        "X-Saga-Cod-Fiscal": sagaCui,
+        "Authorization": `Bearer ${sagaToken}`
+      }
+    });
+
+    const newToken = response.headers["x-saga-refresh-token"];
+
+    res.json({
+      success: true,
+      sagaResponse: response.data,
+      newToken: newToken || null
+    });
+
+  } catch (err: any) {
+    console.error("SAGA API Push Error:", err?.response?.data || err.message);
+    res.status(500).json({ 
+      success: false, 
+      message: err.message, 
+      sagaError: err?.response?.data 
+    });
   }
 });
 
