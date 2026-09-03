@@ -15,10 +15,12 @@ import {
   Eye,
 } from "lucide-react";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { toast } from "sonner";
 
 export default function Clients() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [mutationError, setMutationError] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     cui: "",
@@ -57,6 +59,9 @@ export default function Clients() {
       });
       setShowForm(false);
     },
+    onError: (err) => {
+      setMutationError("Eroare creare: " + err.message);
+    }
   });
 
   // Update mutation
@@ -78,6 +83,9 @@ export default function Clients() {
       setEditingId(null);
       setShowForm(false);
     },
+    onError: (err) => {
+      setMutationError("Eroare la actualizare: " + err.message);
+    }
   });
 
   // Delete mutation
@@ -85,6 +93,9 @@ export default function Clients() {
     onSuccess: () => {
       refetch();
     },
+    onError: (err) => {
+      toast.error("Eroare la ștergere: " + err.message);
+    }
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -109,7 +120,7 @@ export default function Clients() {
       phone: client.phone || "",
       currency: client.currency || "RON",
       regCom: client.regCom || "",
-      tva: client.tva ?? false,
+      tva: !!client.tva,
     });
     setEditingId(client.id);
     setShowForm(true);
@@ -241,6 +252,13 @@ export default function Clients() {
               Client nou
             </button>
           </div>
+          
+          {mutationError && !showForm && (
+            <div className="p-3 mb-4 rounded bg-red-50 text-red-600 border border-red-200 text-sm">
+              <AlertCircle className="w-4 h-4 inline mr-2" />
+              {mutationError}
+            </div>
+          )}
 
           {/* KPI Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -292,23 +310,33 @@ export default function Clients() {
 
       {/* Form */}
       {showForm && (
-        <ClientForm
-          key={editingId ?? "new"}
-          editingId={editingId}
-          initial={formData}
-          onSubmit={data => {
-            if (editingId) {
-              updateMutation.mutate({ id: editingId, ...data });
-            } else {
-              createMutation.mutate(data);
-            }
-          }}
-          onCancel={() => {
-            setShowForm(false);
-            setEditingId(null);
-          }}
-          isPending={createMutation.isPending || updateMutation.isPending}
-        />
+        <div className="space-y-3">
+          {mutationError && (
+            <div className="p-3 rounded bg-red-50 text-red-600 border border-red-200 text-sm">
+              <AlertCircle className="w-4 h-4 inline mr-2" />
+              {mutationError}
+            </div>
+          )}
+          <ClientForm
+            key={editingId ?? "new"}
+            editingId={editingId}
+            initial={formData}
+            onSubmit={data => {
+              setMutationError("");
+              if (editingId) {
+                updateMutation.mutate({ id: editingId, ...data });
+              } else {
+                createMutation.mutate(data);
+              }
+            }}
+            onCancel={() => {
+              setShowForm(false);
+              setEditingId(null);
+              setMutationError("");
+            }}
+            isPending={createMutation.isPending || updateMutation.isPending}
+          />
+        </div>
       )}
 
       {/* Tabel */}

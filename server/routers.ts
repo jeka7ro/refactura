@@ -927,7 +927,7 @@ export const appRouter = router({
           phone: z.string().optional(),
           currency: z.string().optional(),
           regCom: z.string().optional(),
-          tva: z.boolean().optional(),
+          tva: z.coerce.boolean().optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -1690,6 +1690,54 @@ export const appRouter = router({
         });
         return { id: result[0].insertId };
       }),
+    upsert: protectedProcedure
+      .input(
+        z.object({
+          name: z.string(),
+          unit: z.string().optional(),
+          defaultPrice: z.number().optional(),
+          defaultVatRate: z.number().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const trimmedName = input.name.trim();
+        if (!trimmedName) return { id: 0 };
+
+        const [existing] = await db
+          .select()
+          .from(products)
+          .where(
+            and(
+              eq(products.tenantId, (ctx.user?.tenantId || 1)),
+              eq(products.name, trimmedName)
+            )
+          )
+          .limit(1);
+
+        if (existing) {
+          await db
+            .update(products)
+            .set({
+              unit: input.unit || existing.unit || "buc",
+              defaultPrice: String(input.defaultPrice ?? existing.defaultPrice ?? 0),
+              defaultVatRate: input.defaultVatRate ?? existing.defaultVatRate ?? 21,
+            })
+            .where(eq(products.id, existing.id));
+          return { id: existing.id };
+        } else {
+          const result = await db.insert(products).values({
+            tenantId: (ctx.user?.tenantId || 1),
+            name: trimmedName,
+            unit: input.unit || "buc",
+            defaultPrice: String(input.defaultPrice || 0),
+            defaultVatRate: input.defaultVatRate ?? 21,
+          });
+          return { id: result[0].insertId };
+        }
+      }),
   }),
 
   emittedInvoice: router({
@@ -1824,11 +1872,66 @@ export const appRouter = router({
         const { emittedInvoices, emittedInvoiceLines } =
           await import("../drizzle/schema");
         const { lines, ...invoiceData } = input;
+
+        let safeCountry = "RO";
+        if (invoiceData.clientCountry) {
+          safeCountry = invoiceData.clientCountry.trim().slice(0, 2).toUpperCase();
+        } else if (invoiceData.clientCUI) {
+          const m = invoiceData.clientCUI.trim().match(/^([A-Za-z]{2})/);
+          if (m && m[1].toUpperCase() !== "RO") {
+            safeCountry = m[1].toUpperCase();
+          }
+        }
+
+        let assignedClientId = invoiceData.clientId;
+        if (!assignedClientId && invoiceData.clientName) {
+          try {
+            const { clients } = await import("../drizzle/schema");
+            const existing = await db
+              .select({ id: clients.id })
+              .from(clients)
+              .where(
+                and(
+                  eq(clients.tenantId, (ctx.user?.tenantId || 1)),
+                  invoiceData.clientCUI
+                    ? eq(clients.cui, invoiceData.clientCUI.trim())
+                    : eq(clients.name, invoiceData.clientName.trim())
+                )
+              )
+              .limit(1);
+
+            if (existing.length > 0) {
+              assignedClientId = existing[0].id;
+            } else {
+              const [newClient] = await db
+                .insert(clients)
+                .values({
+                  tenantId: (ctx.user?.tenantId || 1),
+                  name: invoiceData.clientName.trim(),
+                  cui: invoiceData.clientCUI?.trim() || null,
+                  regCom: invoiceData.clientRegCom?.trim() || null,
+                  address: invoiceData.clientAddress?.trim() || null,
+                  city: invoiceData.clientCity?.trim() || null,
+                  country: safeCountry,
+                  email: invoiceData.clientEmail?.trim() || null,
+                  phone: invoiceData.clientPhone?.trim() || null,
+                  currency: invoiceData.currency || "RON",
+                })
+                .$returningId();
+              if (newClient?.id) assignedClientId = newClient.id;
+            }
+          } catch (err) {
+            console.error("Failed to auto-save client:", err);
+          }
+        }
+
         const [result] = await db
           .insert(emittedInvoices)
           .values({
             tenantId: (ctx.user?.tenantId || 1),
             ...invoiceData,
+            clientId: assignedClientId || null,
+            clientCountry: safeCountry,
             subtotal: String(invoiceData.subtotal),
             totalVAT: String(invoiceData.totalVAT),
             total: String(invoiceData.total),
@@ -1964,6 +2067,47 @@ export const appRouter = router({
             )
           );
         }
+
+        // Salvează / actualizează produsele din linii în nomenclatorul de produse
+        try {
+          const { products } = await import("../drizzle/schema");
+          for (const l of lines) {
+            const pName = l.description?.trim();
+            if (!pName) continue;
+            const [existing] = await db
+              .select({ id: products.id })
+              .from(products)
+              .where(
+                and(
+                  eq(products.tenantId, (ctx.user?.tenantId || 1)),
+                  eq(products.name, pName)
+                )
+              )
+              .limit(1);
+
+            if (existing) {
+              await db
+                .update(products)
+                .set({
+                  unit: l.unit || "buc",
+                  defaultPrice: String(l.unitPrice || 0),
+                  defaultVatRate: Math.round(l.vatRate ?? 21),
+                })
+                .where(eq(products.id, existing.id));
+            } else {
+              await db.insert(products).values({
+                tenantId: (ctx.user?.tenantId || 1),
+                name: pName,
+                unit: l.unit || "buc",
+                defaultPrice: String(l.unitPrice || 0),
+                defaultVatRate: Math.round(l.vatRate ?? 21),
+              });
+            }
+          }
+        } catch (prodErr) {
+          console.error("Failed to auto-save products on invoice creation:", prodErr);
+        }
+
         return { id: invoiceId };
       }),
 
@@ -3022,6 +3166,61 @@ export const appRouter = router({
                 sagaArticleId: l.sagaArticleId,
               }))
             );
+          }
+          
+          // Also sync to sagaIntrari
+          const { sagaIntrari, sagaIntrariLinii, sagaArticles } = await import("../modules/saga/schema");
+          const { inArray } = await import("drizzle-orm");
+          
+          const existingSagaIntrari = await db.select().from(sagaIntrari).where(eq(sagaIntrari.nirId, id));
+          if (existingSagaIntrari.length > 0) {
+            const intrareId = existingSagaIntrari[0].id;
+            let totalValoare = 0;
+            let totalTvaSuma = 0;
+            lines.forEach(l => {
+              totalValoare += parseFloat(l.total || "0");
+              totalTvaSuma += (parseFloat(l.total || "0") * parseFloat(l.vatRate || "19")) / 100;
+            });
+            
+            await db.update(sagaIntrari).set({
+              valoare: totalValoare.toString(),
+              tva: totalTvaSuma.toString(),
+              total: (totalValoare + totalTvaSuma).toString(),
+              neachitat: (totalValoare + totalTvaSuma).toString(),
+            }).where(eq(sagaIntrari.id, intrareId));
+            
+            await db.delete(sagaIntrariLinii).where(eq(sagaIntrariLinii.intrareId, intrareId));
+            
+            if (lines.length > 0) {
+              const articleIds = lines.map(l => l.sagaArticleId).filter(Boolean) as number[];
+              const loadedArticles = articleIds.length > 0 
+                ? await db.select().from(sagaArticles).where(inArray(sagaArticles.id, articleIds))
+                : [];
+                
+              await db.insert(sagaIntrariLinii).values(
+                lines.map((l, idx) => {
+                  const art = loadedArticles.find(a => a.id === l.sagaArticleId);
+                  const val = parseFloat(l.total || "0");
+                  const tva = (val * parseFloat(l.vatRate || "19")) / 100;
+                  return {
+                    intrareId,
+                    tip: l.accountingType || "Marfa",
+                    articolId: l.sagaArticleId,
+                    cod: art?.code || undefined,
+                    denumire: l.description,
+                    um: l.unit || "buc",
+                    tvaPercent: l.vatRate || "19",
+                    cantitate: l.cantitateReceptionata,
+                    pretUnitar: l.unitPrice || "0",
+                    valoare: val.toString(),
+                    tvaSuma: tva.toString(),
+                    total: (val + tva).toString(),
+                    cont: l.accountingAccount || "371",
+                    lineOrder: l.lineOrder ?? idx,
+                  };
+                })
+              );
+            }
           }
         }
         return { success: true };

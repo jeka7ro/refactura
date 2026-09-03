@@ -87,6 +87,7 @@ export default function EmitInvoice() {
   const [clientRegCom, setClientRegCom] = useState("");
   const [clientAddress, setClientAddress] = useState("");
   const [clientCity, setClientCity] = useState("");
+  const [clientCountry, setClientCountry] = useState("RO");
   const [clientEmail, setClientEmail] = useState("");
   const [clientPhone, setClientPhone] = useState("");
   const [showClientDropdown, setShowClientDropdown] = useState(false);
@@ -165,6 +166,9 @@ export default function EmitInvoice() {
   const createProductMutation = trpc.products.create.useMutation({
     onSuccess: () => utils.products.list.invalidate(),
   });
+  const upsertProductMutation = trpc.products.upsert.useMutation({
+    onSuccess: () => utils.products.list.invalidate(),
+  });
 
   const consumeLineMutation = trpc.nir.consumeLine.useMutation();
 
@@ -202,15 +206,15 @@ export default function EmitInvoice() {
   const devizeUpdateMutation = trpc.devize.update.useMutation();
 
   const clients = clientsData || [];
-  const filteredClients = useMemo(
-    () =>
-      clients.filter(
-        c =>
-          c.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
-          (c.cui || "").includes(clientSearch)
-      ),
-    [clients, clientSearch]
-  );
+  const filteredClients = useMemo(() => {
+    const q = (clientName || clientSearch || "").trim().toLowerCase();
+    if (!q) return clients.slice(0, 8);
+    return clients.filter(
+      c =>
+        c.name.toLowerCase().includes(q) ||
+        (c.cui || "").toLowerCase().includes(q)
+    );
+  }, [clients, clientName, clientSearch]);
 
   useEffect(() => {
     if (nextNumber && !invoiceNumber) setInvoiceNumber(nextNumber);
@@ -335,19 +339,32 @@ export default function EmitInvoice() {
   const selectClient = (c: any) => {
     setSelectedClientId(String(c.id));
     setClientName(c.name);
+    setClientSearch(c.name);
     setClientCUI(c.cui || "");
     setClientRegCom(c.regCom || "");
     setClientAddress(c.address || "");
     setClientCity(c.city || "");
+    setClientCountry(c.country || "RO");
     setClientEmail(c.email || "");
     setClientPhone(c.phone || "");
     setShowClientDropdown(false);
-    setClientSearch("");
   };
 
   const lookupCui = async () => {
-    const cui = clientCUI.replace(/^RO/i, "").replace(/\s/g, "");
+    const rawCui = clientCUI.trim();
+    const cui = rawCui.replace(/^RO/i, "").replace(/\s/g, "");
     if (!cui || cui.length < 2) return;
+
+    // Detect country if CUI starts with 2 letters (e.g. BE0785292895 -> BE)
+    const prefixMatch = rawCui.match(/^([A-Za-z]{2})/);
+    if (prefixMatch && prefixMatch[1].toUpperCase() !== "RO") {
+      setClientCountry(prefixMatch[1].toUpperCase());
+      // Non-Romanian / Intracommunity CUI: ANAF only has Romanian companies, skip ANAF lookup
+      return;
+    }
+
+    if (!/^\d{2,10}$/.test(cui)) return;
+
     setCuiLoading(true);
     try {
       const res = await fetch(`/api/anaf/${cui}`);
@@ -358,9 +375,11 @@ export default function EmitInvoice() {
       }
       const d = await res.json();
       setClientName(d.denumire || clientName);
+      setClientSearch(d.denumire || clientName);
       setClientAddress(d.adresa || clientAddress);
       setClientCity(d.judet || clientCity);
       setClientRegCom(d.nrRegCom || clientRegCom);
+      setClientCountry("RO");
       toast.success("Date extrase de la ANAF cu succes.");
     } catch {
       toast.error("Eroare conexiune la ANAF.");
@@ -370,11 +389,11 @@ export default function EmitInvoice() {
   };
 
   const lookupCuiFromSearch = async (searchTerm: string) => {
-    const cui = searchTerm.replace(/^RO/i, "").replace(/\s/g, "");
-    if (!cui || cui.length < 2) return;
+    const digits = searchTerm.replace(/[^0-9]/g, "");
+    if (!digits || digits.length < 2) return;
     setCuiLoading(true);
     try {
-      const res = await fetch(`/api/anaf/${cui}`);
+      const res = await fetch(`/api/anaf/${digits}`);
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         toast.error(err.error || "CUI negăsit în ANAF.");
@@ -382,11 +401,12 @@ export default function EmitInvoice() {
       }
       const d = await res.json();
       setClientName(d.denumire || "");
+      setClientSearch(d.denumire || "");
       setClientAddress(d.adresa || "");
       setClientCity(d.judet || "");
       setClientRegCom(d.nrRegCom || "");
-      setClientCUI(d.cui ? `RO${d.cui}` : cui);
-      setClientSearch(d.denumire || "");
+      setClientCUI(d.cui ? `RO${d.cui}` : digits);
+      setClientCountry("RO");
       setShowClientDropdown(false);
       toast.success("Date extrase din ANAF!");
     } catch {
@@ -407,6 +427,37 @@ export default function EmitInvoice() {
     },
     []
   );
+
+  const matchingProducts = useMemo(() => {
+    const q = (catalogQuery || "").trim().toLowerCase();
+    if (!q) return products.slice(0, 10);
+    return products.filter(
+      p =>
+        p.name.toLowerCase().includes(q) ||
+        (p.unit && p.unit.toLowerCase().includes(q))
+    ).slice(0, 15);
+  }, [products, catalogQuery]);
+
+  const handleSelectProduct = (lineId: string, p: any) => {
+    setLines(prev =>
+      prev.map(l => {
+        if (l.id === lineId) {
+          return {
+            ...l,
+            description: p.name,
+            unit: p.unit || "buc",
+            unitPrice: parseFloat(p.defaultPrice) || 0,
+            vatRate:
+              p.defaultVatRate !== undefined && p.defaultVatRate !== null
+                ? Number(p.defaultVatRate)
+                : 21,
+          };
+        }
+        return l;
+      })
+    );
+    setFocusedLineId(null);
+  };
 
   const handleSelectFromCatalog = (lineId: string, item: any) => {
     setLines(prev =>
@@ -480,33 +531,34 @@ export default function EmitInvoice() {
     setSaving(true);
     try {
       for (const line of lines) {
-        if (
-          !products.some(
-            p => p.name.toLowerCase() === line.description.toLowerCase().trim()
-          )
-        ) {
-          await createProductMutation
+        if (line.description.trim()) {
+          await upsertProductMutation
             .mutateAsync({
               name: line.description.trim(),
-              unit: line.unit,
+              unit: line.unit || "buc",
               defaultPrice: parseFloat(String(line.unitPrice)) || 0,
-              defaultVatRate: line.vatRate,
+              defaultVatRate: parseFloat(String(line.vatRate)) || 0,
             })
             .catch(console.error);
         }
       }
 
+      const detectedCountry =
+        clientCountry ||
+        (clientCUI.trim().match(/^([A-Za-z]{2})/)?.[1]?.toUpperCase() || "RO");
+
       const payload = {
         number: invoiceNumber,
         series,
         clientId: selectedClientId ? parseInt(selectedClientId) : undefined,
-        clientName,
-        clientCUI,
-        clientRegCom,
-        clientAddress,
-        clientCity,
-        clientEmail,
-        clientPhone,
+        clientName: clientName.trim(),
+        clientCUI: clientCUI.trim() || undefined,
+        clientRegCom: clientRegCom.trim() || undefined,
+        clientAddress: clientAddress.trim() || undefined,
+        clientCity: clientCity.trim() || undefined,
+        clientCountry: detectedCountry.slice(0, 2).toUpperCase(),
+        clientEmail: clientEmail.trim() || undefined,
+        clientPhone: clientPhone.trim() || undefined,
         issueDate,
         dueDate,
         subtotal,
@@ -590,13 +642,12 @@ export default function EmitInvoice() {
               <input
                 type="text"
                 placeholder="Nume, CUI sau caută în ANAF..."
-                value={showClientDropdown ? clientSearch : clientName}
+                value={clientName}
                 onChange={e => {
-                  if (!showClientDropdown) {
-                    setClientName(e.target.value);
-                    setSelectedClientId("");
-                  }
+                  setClientName(e.target.value);
                   setClientSearch(e.target.value);
+                  setSelectedClientId("");
+                  setShowClientDropdown(true);
                 }}
                 onFocus={() => setShowClientDropdown(true)}
                 onBlur={() =>
@@ -604,12 +655,13 @@ export default function EmitInvoice() {
                 }
                 className={inputCls}
               />
-              {showClientDropdown && clientSearch.trim() && (
+              {showClientDropdown && (
                 <div className="absolute z-20 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded shadow-lg max-h-64 overflow-y-auto">
                   {filteredClients.length > 0 &&
-                    filteredClients.slice(0, 8).map(c => (
+                    filteredClients.map(c => (
                       <button
                         key={c.id}
+                        type="button"
                         onMouseDown={() => selectClient(c)}
                         className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm border-b border-slate-100 dark:border-slate-800 last:border-0"
                       >
@@ -623,17 +675,18 @@ export default function EmitInvoice() {
                         )}
                       </button>
                     ))}
-                  {clientSearch.replace(/[^0-9]/g, "").length >= 2 && (
+                  {(clientName || clientSearch).replace(/[^0-9]/g, "").length >= 2 && (
                     <button
+                      type="button"
                       onMouseDown={e => {
                         e.preventDefault();
-                        lookupCuiFromSearch(clientSearch);
+                        lookupCuiFromSearch(clientName || clientSearch);
                       }}
                       className="w-full flex items-center gap-2 px-3 py-2.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-sm font-semibold transition-colors"
                     >
                       <Search className="w-4 h-4" />
                       <span>
-                        Caută CUI "{clientSearch.replace(/[^0-9]/g, "")}" în
+                        Caută CUI "{(clientName || clientSearch).replace(/[^0-9]/g, "")}" în
                         ANAF
                       </span>
                       {cuiLoading && (
@@ -721,7 +774,14 @@ export default function EmitInvoice() {
                   </label>
                   <input
                     value={clientCUI}
-                    onChange={e => setClientCUI(e.target.value)}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setClientCUI(val);
+                      const m = val.trim().match(/^([A-Za-z]{2})/);
+                      if (m && m[1].toUpperCase() !== "RO") {
+                        setClientCountry(m[1].toUpperCase());
+                      }
+                    }}
                     onBlur={lookupCui}
                     className={inputCls}
                   />
@@ -755,7 +815,7 @@ export default function EmitInvoice() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-              <div className="lg:col-span-8">
+              <div className="lg:col-span-6">
                 <label className={labelCls}>Adresă</label>
                 <input
                   value={clientAddress}
@@ -768,6 +828,16 @@ export default function EmitInvoice() {
                 <input
                   value={clientCity}
                   onChange={e => setClientCity(e.target.value)}
+                  className={inputCls}
+                />
+              </div>
+              <div className="lg:col-span-2">
+                <label className={labelCls}>Țară</label>
+                <input
+                  value={clientCountry}
+                  placeholder="RO, BE..."
+                  maxLength={2}
+                  onChange={e => setClientCountry(e.target.value.toUpperCase())}
                   className={inputCls}
                 />
               </div>
@@ -897,70 +967,86 @@ export default function EmitInvoice() {
                   }
                   className="w-full h-8 px-2 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
-                {focusedLineId === line.id &&
-                  catalogQuery.trim().length > 0 && (
-                    <div className="absolute top-11 left-3 right-3 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl max-h-64 overflow-y-auto">
-                      {catalogLoading ? (
-                        <div className="p-4 flex justify-center">
-                          <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+                {focusedLineId === line.id && (
+                  <div className="absolute top-11 left-0 right-0 md:left-3 md:right-3 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl max-h-72 overflow-y-auto rounded-md">
+                    {matchingProducts.length > 0 && (
+                      <div>
+                        <div className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center justify-between border-b border-slate-200 dark:border-slate-700">
+                          <span>📦 Produsele Tale Salvate ({matchingProducts.length})</span>
+                          <span className="text-[9px] text-blue-600 dark:text-blue-400 font-normal lowercase">completează automat U.M. și prețul</span>
                         </div>
-                      ) : catalogData?.items?.length === 0 ? (
-                        <div className="p-4 text-xs text-slate-500 text-center">
-                          Niciun rezultat în catalog.
-                        </div>
-                      ) : (
-                        catalogData?.items?.map((item: any, i: number) => (
+                        {matchingProducts.map((p: any) => (
                           <button
-                            key={i}
+                            key={`prod-${p.id}`}
+                            type="button"
+                            onMouseDown={e => {
+                              e.preventDefault();
+                              handleSelectProduct(line.id, p);
+                            }}
+                            className="w-full text-left px-3 py-2 border-b border-slate-100 dark:border-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between gap-2"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                                {p.name}
+                              </div>
+                              <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                  U.M: {p.unit || "buc"}
+                                </span>
+                                <span>Preț: {p.defaultPrice} {currency}</span>
+                                {p.defaultVatRate !== undefined && (
+                                  <span>TVA: {p.defaultVatRate}%</span>
+                                )}
+                              </div>
+                            </div>
+                            <span className="text-xs text-blue-600 dark:text-blue-400 font-medium whitespace-nowrap">
+                              Selectează &rarr;
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {catalogData?.items && catalogData.items.length > 0 && (
+                      <div>
+                        <div className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
+                          Catalog Devize & Norme
+                        </div>
+                        {catalogData.items.map((item: any, i: number) => (
+                          <button
+                            key={`cat-${i}`}
+                            type="button"
                             onMouseDown={e => {
                               e.preventDefault();
                               handleSelectFromCatalog(line.id, item);
                             }}
-                            onMouseEnter={() => setHighlightedIdx(i)}
-                            className={cn(
-                              "catalog-dropdown-item w-full text-left px-3 py-2 border-b border-slate-100 dark:border-slate-800 last:border-0 transition-colors",
-                              highlightedIdx === i
-                                ? "bg-blue-600 text-white"
-                                : "hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                            )}
+                            className="w-full text-left px-3 py-2 border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                           >
                             <div className="flex items-center gap-2 mb-0.5">
-                              <span
-                                className={cn(
-                                  "text-[9px] font-bold px-1.5 py-0.5 uppercase tracking-wider",
-                                  highlightedIdx === i
-                                    ? "bg-white/20 text-white"
-                                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
-                                )}
-                              >
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                                 {item.tip}
                               </span>
-                              <span
-                                className={cn(
-                                  "text-xs font-mono",
-                                  highlightedIdx === i
-                                    ? "text-blue-100"
-                                    : "text-slate-500"
-                                )}
-                              >
+                              <span className="text-xs font-mono text-slate-500">
                                 {item.cod}
                               </span>
                             </div>
-                            <div
-                              className={cn(
-                                "text-sm font-medium line-clamp-2 leading-tight",
-                                highlightedIdx === i
-                                  ? "text-white"
-                                  : "text-slate-900 dark:text-slate-100"
-                              )}
-                            >
+                            <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
                               {item.denumire}
                             </div>
                           </button>
-                        ))
+                        ))}
+                      </div>
+                    )}
+
+                    {matchingProducts.length === 0 &&
+                      (!catalogData?.items || catalogData.items.length === 0) &&
+                      catalogQuery.trim().length > 0 && (
+                        <div className="p-3 text-xs text-slate-500 text-center">
+                          Produs nou. Va fi salvat automat în nomenclator cu U.M. și prețul ales la emitere.
+                        </div>
                       )}
-                    </div>
-                  )}
+                  </div>
+                )}
               </div>
               <div className="col-span-1 md:col-span-1 px-0 md:px-2 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 h-full flex flex-col justify-center">
                 <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">U.M.</label>
@@ -969,6 +1055,9 @@ export default function EmitInvoice() {
                   onChange={e => updateLine(line.id, "unit", e.target.value)}
                   className="w-full h-8 px-1 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                 >
+                  {!UNITS.includes(line.unit) && (
+                    <option value={line.unit}>{line.unit}</option>
+                  )}
                   {UNITS.map(u => (
                     <option key={u} value={u}>
                       {u}

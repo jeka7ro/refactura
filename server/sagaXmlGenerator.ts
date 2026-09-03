@@ -45,13 +45,17 @@ export async function generateSagaExportXML(tenantId: number, month: number, yea
     xml += `    <Detalii>\n`;
     xml += `      <Continut>\n`;
     for (const line of lines) {
+      const qty = parseFloat(String(line.quantity)) || 0;
+      const price = parseFloat(String(line.unitPrice)) || 0;
+      const rate = parseFloat(String(line.vatRate)) || 0;
+      const lineVat = Math.round(qty * price * (rate / 100) * 100) / 100;
       xml += `        <Linie>\n`;
       xml += `          <Descriere>${escapeXml(line.description)}</Descriere>\n`;
       xml += `          <UM>${escapeXml(line.unit || "buc")}</UM>\n`;
       xml += `          <Cantitate>${line.quantity}</Cantitate>\n`;
       xml += `          <Pret>${line.unitPrice}</Pret>\n`;
-      xml += `          <TVA>${line.vatAmount || 0}</TVA>\n`;
-      xml += `          <ProcTVA>${line.vatRate || 0}</ProcTVA>\n`;
+      xml += `          <TVA>${lineVat}</TVA>\n`;
+      xml += `          <ProcTVA>${rate}</ProcTVA>\n`;
       xml += `          <Cont>704</Cont>\n`; 
       xml += `        </Linie>\n`;
     }

@@ -244,18 +244,19 @@ export default function ReInvoice() {
   const utils = trpc.useUtils();
 
   const filteredClients = useMemo(() => {
-    if (!clientSearch) return realClients;
-    const lower = clientSearch.toLowerCase();
+    const q = (clientName || clientSearch || "").trim().toLowerCase();
+    if (!q) return realClients.slice(0, 8);
     return realClients.filter(
       c =>
-        c.name.toLowerCase().includes(lower) ||
-        (c.cui && c.cui.toLowerCase().includes(lower))
+        c.name.toLowerCase().includes(q) ||
+        (c.cui && c.cui.toLowerCase().includes(q))
     );
-  }, [clientSearch, realClients]);
+  }, [clientName, clientSearch, realClients]);
 
   const selectClient = (c: any) => {
     setSelectedClientId(String(c.id));
     setClientName(c.name);
+    setClientSearch(c.name);
     setClientCUI(c.cui || "");
     setClientRegCom(c.regCom || "");
     setClientAddress(c.address || "");
@@ -263,12 +264,21 @@ export default function ReInvoice() {
     setClientEmail(c.email || "");
     setClientPhone(c.phone || "");
     setShowClientDropdown(false);
-    setClientSearch("");
   };
 
   const lookupCui = async () => {
-    const cui = clientCUI.replace(/^RO/i, "").replace(/\s/g, "");
+    const rawCui = clientCUI.trim();
+    const cui = rawCui.replace(/^RO/i, "").replace(/\s/g, "");
     if (!cui || cui.length < 2) return;
+
+    // Detect foreign / intracommunity CUI
+    const prefixMatch = rawCui.match(/^([A-Za-z]{2})/);
+    if (prefixMatch && prefixMatch[1].toUpperCase() !== "RO") {
+      return;
+    }
+
+    if (!/^\d{2,10}$/.test(cui)) return;
+
     setCuiLoading(true);
     try {
       const res = await fetch(`/api/anaf/${cui}`);
@@ -279,6 +289,7 @@ export default function ReInvoice() {
       }
       const d = await res.json();
       setClientName(d.denumire || clientName);
+      setClientSearch(d.denumire || clientName);
       setClientAddress(d.adresa || clientAddress);
       setClientCity(d.judet || clientCity);
       setClientRegCom(d.nrRegCom || clientRegCom);
@@ -291,11 +302,11 @@ export default function ReInvoice() {
   };
 
   const lookupCuiFromSearch = async (searchTerm: string) => {
-    const cui = searchTerm.replace(/^RO/i, "").replace(/\s/g, "");
-    if (!cui || cui.length < 2) return;
+    const digits = searchTerm.replace(/[^0-9]/g, "");
+    if (!digits || digits.length < 2) return;
     setCuiLoading(true);
     try {
-      const res = await fetch(`/api/anaf/${cui}`);
+      const res = await fetch(`/api/anaf/${digits}`);
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         toast.error(err.error || "CUI negăsit în ANAF.");
@@ -303,11 +314,11 @@ export default function ReInvoice() {
       }
       const d = await res.json();
       setClientName(d.denumire || "");
+      setClientSearch(d.denumire || "");
       setClientAddress(d.adresa || "");
       setClientCity(d.judet || "");
       setClientRegCom(d.nrRegCom || "");
-      setClientCUI(d.cui ? `RO${d.cui}` : cui);
-      setClientSearch(d.denumire || "");
+      setClientCUI(d.cui ? `RO${d.cui}` : digits);
       setShowClientDropdown(false);
       toast.success("Date extrase din ANAF!");
     } catch {
@@ -1120,13 +1131,12 @@ export default function ReInvoice() {
                 <input
                   type="text"
                   placeholder="Nume, CUI sau caută în ANAF..."
-                  value={showClientDropdown ? clientSearch : clientName}
+                  value={clientName}
                   onChange={e => {
-                    if (!showClientDropdown) {
-                      setClientName(e.target.value);
-                      setSelectedClientId("");
-                    }
+                    setClientName(e.target.value);
                     setClientSearch(e.target.value);
+                    setSelectedClientId("");
+                    setShowClientDropdown(true);
                   }}
                   onFocus={() => setShowClientDropdown(true)}
                   onBlur={() =>
@@ -1134,12 +1144,13 @@ export default function ReInvoice() {
                   }
                   className="w-full h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                {showClientDropdown && clientSearch.trim() && (
+                {showClientDropdown && (
                   <div className="absolute z-20 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded shadow-lg max-h-64 overflow-y-auto">
                     {filteredClients.length > 0 &&
-                      filteredClients.slice(0, 8).map(c => (
+                      filteredClients.map(c => (
                         <button
                           key={c.id}
+                          type="button"
                           onMouseDown={() => selectClient(c)}
                           className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm border-b border-slate-100 dark:border-slate-800 last:border-0"
                         >
@@ -1153,17 +1164,18 @@ export default function ReInvoice() {
                           )}
                         </button>
                       ))}
-                    {clientSearch.replace(/[^0-9]/g, "").length >= 2 && (
+                    {(clientName || clientSearch).replace(/[^0-9]/g, "").length >= 2 && (
                       <button
+                        type="button"
                         onMouseDown={e => {
                           e.preventDefault();
-                          lookupCuiFromSearch(clientSearch);
+                          lookupCuiFromSearch(clientName || clientSearch);
                         }}
                         className="w-full flex items-center gap-2 px-3 py-2.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-sm font-semibold transition-colors"
                       >
                         <Search className="w-4 h-4" />
                         <span>
-                          Caută CUI "{clientSearch.replace(/[^0-9]/g, "")}" în
+                          Caută CUI "{(clientName || clientSearch).replace(/[^0-9]/g, "")}" în
                           ANAF
                         </span>
                         {cuiLoading && (
