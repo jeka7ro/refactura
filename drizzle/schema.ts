@@ -3,6 +3,7 @@ import {
   mysqlEnum,
   mysqlTable,
   text,
+  longtext,
   timestamp,
   varchar,
   decimal,
@@ -55,7 +56,7 @@ export const tenants = mysqlTable("tenants", {
   ]).default("active"),
   subscriptionStartDate: timestamp("subscriptionStartDate"),
   subscriptionEndDate: timestamp("subscriptionEndDate"),
-  settings: text("settings"), // JSON stringified company settings
+  settings: longtext("settings"), // JSON stringified company settings (supports large base64 logos)
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -446,6 +447,7 @@ export const reInvoices = mysqlTable("reInvoices", {
     "in_procesare",
     "validat",
     "eroare",
+    "extern",
   ]).default("nesincronizat"),
   spvError: text("spvError"),
   rawXml: text("rawXml"),
@@ -572,6 +574,8 @@ export const emittedInvoices = mysqlTable("emittedInvoices", {
   totalVAT: decimal("totalVAT", { precision: 12, scale: 2 }).notNull(),
   total: decimal("total", { precision: 12, scale: 2 }).notNull(),
   currency: varchar("currency", { length: 3 }).default("RON"),
+  companyIBAN: varchar("companyIBAN", { length: 50 }),
+  companyBank: varchar("companyBank", { length: 100 }),
   status: mysqlEnum("status", [
     "draft",
     "sent",
@@ -586,6 +590,7 @@ export const emittedInvoices = mysqlTable("emittedInvoices", {
     "in_procesare",
     "validat",
     "eroare",
+    "extern",
   ]).default("nesincronizat"),
   spvError: text("spvError"),
   rawXml: text("rawXml"),

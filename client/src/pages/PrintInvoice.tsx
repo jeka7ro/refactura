@@ -10,8 +10,9 @@ export default function PrintInvoice() {
     { id: Number(id) },
     { enabled: !!id }
   );
+  const { data: currentTenantObj } = trpc.tenants.current.useQuery();
   const { data: tenantsData = [] } = trpc.tenants.list.useQuery();
-  const tenant = (tenantsData as any[])[0];
+  const tenant = currentTenantObj || (tenantsData as any[])[0]?.tenants || (tenantsData as any[])[0];
   const settings = useMemo(() => {
     try {
       return JSON.parse(tenant?.settings || "{}");
@@ -19,6 +20,14 @@ export default function PrintInvoice() {
       return {};
     }
   }, [tenant]);
+
+  const isForeign = useMemo(() => {
+    const country = (invoice?.clientCountry || "").trim().toUpperCase();
+    if (country && country !== "RO") return true;
+    const cui = (invoice?.clientCUI || "").trim().toUpperCase();
+    if (cui && !cui.startsWith("RO") && /^[A-Z]{2}/.test(cui)) return true;
+    return false;
+  }, [invoice]);
 
   useEffect(() => {
     if (invoice && tenant && !window.location.search.includes("view=1")) {
@@ -47,11 +56,13 @@ export default function PrintInvoice() {
       <div className="flex justify-between items-start border-b border-gray-200 pb-8 mb-8">
         <div>
           {settings.logoBase64 ? (
-            <img
-              src={settings.logoBase64}
-              alt="Logo"
-              className="h-16 w-auto mb-4"
-            />
+            <div className="inline-flex items-center justify-center bg-slate-900 px-3.5 py-1.5 rounded-xl mb-4 shadow-sm border border-slate-800">
+              <img
+                src={settings.logoBase64}
+                alt="Logo"
+                className="h-9 w-auto object-contain"
+              />
+            </div>
           ) : (
             <h1 className="text-2xl font-black mb-4">{tenant?.name}</h1>
           )}
@@ -83,17 +94,19 @@ export default function PrintInvoice() {
           </div>
         </div>
         <div className="text-right">
-          <h2 className="text-3xl font-black text-gray-800 mb-2">FACTURĂ</h2>
+          <h2 className="text-3xl font-black text-gray-800 mb-2">
+            {isForeign ? "FACTURĂ / INVOICE" : "FACTURĂ"}
+          </h2>
           <div className="text-sm text-gray-600">
             <p>
-              <strong>Serie / Număr:</strong> {invoice.series} {invoice.number}
+              <strong>{isForeign ? "Serie / Număr (Series / No):" : "Serie / Număr:"}</strong> {(invoice.number || "").toUpperCase().startsWith((invoice.series || "").toUpperCase()) ? invoice.number : `${invoice.series} ${invoice.number}`.trim()}
             </p>
             <p>
-              <strong>Data emiterii:</strong> {formatDate(invoice.issueDate)}
+              <strong>{isForeign ? "Data emiterii / Issue date:" : "Data emiterii:"}</strong> {formatDate(invoice.issueDate)}
             </p>
             {invoice.dueDate && (
               <p>
-                <strong>Scadență:</strong> {formatDate(invoice.dueDate)}
+                <strong>{isForeign ? "Scadență / Due date:" : "Scadență:"}</strong> {formatDate(invoice.dueDate)}
               </p>
             )}
           </div>
@@ -102,21 +115,21 @@ export default function PrintInvoice() {
 
       <div className="mb-8">
         <h3 className="text-sm font-bold text-gray-400 uppercase mb-2">
-          Client
+          {isForeign ? "Client / Customer" : "Client"}
         </h3>
         <h4 className="text-lg font-bold">{invoice.clientName}</h4>
         <div className="text-sm text-gray-600">
           <p>
-            <strong>CUI:</strong> {invoice.clientCUI}
+            <strong>{isForeign ? "CIF / VAT ID:" : "CUI:"}</strong> {invoice.clientCUI}
           </p>
           {invoice.clientRegCom && (
             <p>
-              <strong>Reg. Com:</strong> {invoice.clientRegCom}
+              <strong>{isForeign ? "Reg. Com. / Trade Reg.:" : "Reg. Com.:"}</strong> {invoice.clientRegCom}
             </p>
           )}
           {invoice.clientAddress && (
             <p>
-              <strong>Adresă:</strong> {invoice.clientAddress}
+              <strong>{isForeign ? "Adresă / Address:" : "Adresă:"}</strong> {invoice.clientAddress}
             </p>
           )}
         </div>
@@ -125,13 +138,13 @@ export default function PrintInvoice() {
       <table className="w-full text-left mb-8 border-collapse">
         <thead>
           <tr className="border-b-2 border-gray-800 text-sm">
-            <th className="py-2">Nr.</th>
-            <th className="py-2">Denumire produse / servicii</th>
-            <th className="py-2">U.M.</th>
-            <th className="py-2 text-right">Cant.</th>
-            <th className="py-2 text-right">Preț unitar</th>
-            <th className="py-2 text-right">Valoare</th>
-            <th className="py-2 text-right">TVA</th>
+            <th className="py-2">{isForeign ? "Nr. / No." : "Nr."}</th>
+            <th className="py-2">{isForeign ? "Denumire / Description" : "Denumire produse / servicii"}</th>
+            <th className="py-2">{isForeign ? "U.M. / Unit" : "U.M."}</th>
+            <th className="py-2 text-right">{isForeign ? "Cant. / Qty" : "Cant."}</th>
+            <th className="py-2 text-right">{isForeign ? "Preț unitar / Unit price" : "Preț unitar"}</th>
+            <th className="py-2 text-right">{isForeign ? "Valoare / Amount" : "Valoare"}</th>
+            <th className="py-2 text-right">{isForeign ? "TVA / VAT" : "TVA"}</th>
           </tr>
         </thead>
         <tbody className="text-sm border-b border-gray-200">
@@ -162,7 +175,7 @@ export default function PrintInvoice() {
       <div className="flex justify-end mb-12">
         <div className="w-64">
           <div className="flex justify-between py-2 text-sm border-b border-gray-200">
-            <span className="text-gray-600">Subtotal</span>
+            <span className="text-gray-600">{isForeign ? "Subtotal (excl. VAT)" : "Subtotal"}</span>
             <span className="font-bold">
               {formatCurrency(
                 parseFloat(String(invoice.subtotal)),
@@ -171,7 +184,7 @@ export default function PrintInvoice() {
             </span>
           </div>
           <div className="flex justify-between py-2 text-sm border-b border-gray-200">
-            <span className="text-gray-600">Total TVA</span>
+            <span className="text-gray-600">{isForeign ? "Total TVA / Total VAT" : "Total TVA"}</span>
             <span className="font-bold">
               {formatCurrency(
                 parseFloat(String(invoice.totalVAT)),
@@ -179,8 +192,11 @@ export default function PrintInvoice() {
               )}
             </span>
           </div>
-          <div className="flex justify-between py-3 text-lg font-black border-b-2 border-gray-800">
-            <span>Total</span>
+          <div
+            className="flex justify-between py-2.5 px-3 text-base font-black text-white rounded-lg shadow-sm mt-2"
+            style={{ backgroundColor: "#0088fe" }}
+          >
+            <span>{isForeign ? "TOTAL DE PLATĂ / TOTAL DUE:" : "TOTAL DE PLATĂ:"}</span>
             <span>
               {formatCurrency(
                 parseFloat(String(invoice.total)),
@@ -193,7 +209,7 @@ export default function PrintInvoice() {
 
       {invoice.notes && (
         <div className="text-sm text-gray-500 border-t border-gray-200 pt-4">
-          <strong>Mențiuni:</strong> {invoice.notes}
+          <strong>{isForeign ? "Mențiuni / Notes:" : "Mențiuni:"}</strong> {invoice.notes}
         </div>
       )}
     </div>

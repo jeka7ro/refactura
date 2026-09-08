@@ -1,7 +1,7 @@
 // Settings — RefacturaRO
 // Company profile, multi-currency, multi-language, multi-country, invoice defaults
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   Building2,
   Globe,
@@ -16,8 +16,11 @@ import {
   Upload,
   X,
   Palette,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import {
   currencies,
   languages,
@@ -26,6 +29,7 @@ import {
   type Language,
   type Country,
   type CompanySettings,
+  type BankAccount,
 } from "@/lib/store";
 import { trpc } from "@/lib/trpc";
 
@@ -41,9 +45,13 @@ const tabs = [
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState("company");
-  const { data: userTenants = [], isLoading: isLoadingTenants } =
-    trpc.tenants.list.useQuery();
-  const currentTenant = userTenants[0];
+  const { data: currentTenantData, isLoading: isLoadingTenants } =
+    trpc.tenants.current.useQuery();
+  const { data: userTenants = [] } = trpc.tenants.list.useQuery();
+  const currentTenant = useMemo(() => {
+    if (currentTenantData) return { tenants: currentTenantData };
+    return userTenants[0];
+  }, [currentTenantData, userTenants]);
 
   const [logoBase64, setLogoBase64] = useState<string>("");
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -102,10 +110,20 @@ export default function Settings() {
     defaultMarkupPercent: 20,
   }));
 
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([
+    {
+      id: "ron-1",
+      currency: "RON",
+      iban: "",
+      bank: "",
+      isDefault: true,
+    },
+  ]);
+
   // Update settings when tenant data is loaded
   useEffect(() => {
     if (currentTenant && currentTenant.tenants) {
-      let parsedSettings = {};
+      let parsedSettings: any = {};
       try {
         if (currentTenant.tenants.settings) {
           parsedSettings = JSON.parse(currentTenant.tenants.settings);
@@ -121,11 +139,70 @@ export default function Settings() {
         cui: currentTenant.tenants.cui || "",
         ...parsedSettings,
       }));
-      if ((parsedSettings as any).logoBase64) {
-        setLogoBase64((parsedSettings as any).logoBase64);
+
+      let accounts: BankAccount[] = [];
+      if (parsedSettings.bankAccounts && Array.isArray(parsedSettings.bankAccounts) && parsedSettings.bankAccounts.length > 0) {
+        accounts = parsedSettings.bankAccounts;
+      } else {
+        const defaultIban = parsedSettings.iban || "";
+        const defaultBank = parsedSettings.bank || "";
+        accounts.push({
+          id: "acc_ron",
+          currency: "RON",
+          iban: defaultIban,
+          bank: defaultBank,
+          isDefault: true,
+        });
+        if (parsedSettings.ibanEur) {
+          accounts.push({
+            id: "acc_eur",
+            currency: "EUR",
+            iban: parsedSettings.ibanEur,
+            bank: parsedSettings.bankEur || "",
+            isDefault: false,
+          });
+        }
+      }
+      if (accounts.length > 0) {
+        accounts[0].currency = "RON";
+        accounts[0].isDefault = true;
+      }
+      setBankAccounts(accounts);
+
+      if (parsedSettings.logoBase64) {
+        setLogoBase64(parsedSettings.logoBase64);
       }
     }
-  }, [currentTenant]);
+  }, [currentTenant?.tenants?.id]);
+
+  const addBankAccount = (curr: string = "EUR") => {
+    setBankAccounts(prev => [
+      ...prev,
+      {
+        id: "acc_" + Date.now() + "_" + Math.floor(Math.random() * 10000),
+        currency: curr,
+        iban: "",
+        bank: "",
+        isDefault: false,
+      },
+    ]);
+  };
+
+  const updateBankAccount = (index: number, field: keyof BankAccount, val: any) => {
+    setBankAccounts(prev =>
+      prev.map((acc, i) => (i === index ? { ...acc, [field]: val } : acc))
+    );
+  };
+
+  const removeBankAccount = (index: number) => {
+    setBankAccounts(prev => {
+      const filtered = prev.filter((_, i) => i !== index);
+      if (filtered.length === 0) {
+        return [{ id: "acc_ron", currency: "RON", iban: "", bank: "", isDefault: true }];
+      }
+      return filtered;
+    });
+  };
 
   const [saving, setSaving] = useState(false);
   const [cuiLookupLoading, setCuiLookupLoading] = useState(false);
@@ -169,13 +246,19 @@ export default function Settings() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      const primaryRon = bankAccounts.find(a => a.currency === "RON") || bankAccounts[0];
+      const primaryEur = bankAccounts.find(a => a.currency === "EUR");
+
       const settingsStr = JSON.stringify({
         regCom: settings.regCom,
         city: settings.city,
         county: settings.county,
         country: settings.country,
-        iban: settings.iban,
-        bank: settings.bank,
+        iban: primaryRon?.iban || settings.iban,
+        bank: primaryRon?.bank || settings.bank,
+        ibanEur: primaryEur?.iban || "",
+        bankEur: primaryEur?.bank || "",
+        bankAccounts: bankAccounts,
         defaultCurrency: settings.defaultCurrency,
         defaultLanguage: settings.defaultLanguage,
         defaultVatRate: settings.defaultVatRate,
@@ -409,24 +492,99 @@ export default function Settings() {
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
-                <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2">
-                  Date Bancare
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                  <SettingField
-                    label="IBAN"
-                    value={settings.iban}
-                    onChange={v => update("iban", v)}
-                    placeholder="RO49AAAA..."
-                    mono
-                  />
-                  <SettingField
-                    label="Bancă"
-                    value={settings.bank}
-                    onChange={v => update("bank", v)}
-                    placeholder="BCR"
-                  />
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                      Date Bancare & Conturi (IBAN)
+                    </h3>
+                    <p className="text-[11px] text-slate-500">
+                      Adaugă conturile bancare ale firmei în RON, EUR, USD etc.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => addBankAccount("EUR")}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg transition-colors border border-blue-200 dark:border-blue-800"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Adaugă Cont / IBAN
+                  </button>
+                </div>
+
+                <div className="space-y-2.5">
+                  {bankAccounts.map((acc, idx) => (
+                    <div
+                      key={acc.id || idx}
+                      className="p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg space-y-2 relative"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                            Cont {idx + 1}
+                          </span>
+                          {idx === 0 && (
+                            <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300">
+                              Principal
+                            </span>
+                          )}
+                        </div>
+                        {bankAccounts.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeBankAccount(idx)}
+                            className="text-slate-400 hover:text-red-500 p-1 transition-colors"
+                            title="Șterge acest cont"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
+                        <div className="sm:col-span-3">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                            Valută
+                          </label>
+                          <select
+                            value={acc.currency || "RON"}
+                            onChange={e => updateBankAccount(idx, "currency", e.target.value)}
+                            className="w-full h-8 px-2 text-xs font-semibold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500"
+                          >
+                            <option value="RON">RON (Lei)</option>
+                            <option value="EUR">EUR (€)</option>
+                            <option value="USD">USD ($)</option>
+                            <option value="GBP">GBP (£)</option>
+                            <option value="CHF">CHF</option>
+                          </select>
+                        </div>
+                        <div className="sm:col-span-5">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                            IBAN
+                          </label>
+                          <input
+                            type="text"
+                            value={acc.iban}
+                            onChange={e => updateBankAccount(idx, "iban", e.target.value.toUpperCase())}
+                            placeholder="RO49AAAA..."
+                            className="w-full h-8 px-2.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div className="sm:col-span-4">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                            Bancă
+                          </label>
+                          <input
+                            type="text"
+                            value={acc.bank}
+                            onChange={e => updateBankAccount(idx, "bank", e.target.value)}
+                            placeholder="ex: Unicredit, BCR..."
+                            className="w-full h-8 px-2.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -437,16 +595,16 @@ export default function Settings() {
                 </h3>
                 <div className="flex items-center gap-3">
                   {logoBase64 ? (
-                    <div className="relative">
+                    <div className="relative inline-flex items-center justify-center bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800 shadow-sm">
                       <img
                         src={logoBase64}
                         alt="Logo"
-                        className="h-10 w-auto max-w-[100px] object-contain rounded-lg border border-slate-200 dark:border-slate-700 p-1 bg-white"
+                        className="h-8 w-auto max-w-[110px] object-contain"
                       />
                       <button
                         type="button"
                         onClick={() => setLogoBase64("")}
-                        className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600"
+                        className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 shadow"
                       >
                         <X className="w-2.5 h-2.5" />
                       </button>

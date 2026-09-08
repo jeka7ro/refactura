@@ -49,13 +49,24 @@ const SPV_LABELS: Record<string, string> = {
   in_procesare: "Trimisă",
   validat: "Validată",
   eroare: "Eroare",
+  extern: "Extern (D390)",
 };
 const SPV_COLORS: Record<string, string> = {
   nesincronizat: "text-slate-400",
   in_procesare: "text-blue-500",
   validat: "text-emerald-500 font-bold",
   eroare: "text-rose-500",
+  extern: "text-amber-600 dark:text-amber-400 font-bold",
 };
+
+function isExternalInvoice(row: any) {
+  if (row?.spvStatus === "extern") return true;
+  const country = (row?.clientCountry || "").trim().toUpperCase();
+  if (country && country !== "RO") return true;
+  const cui = (row?.clientCUI || "").trim().toUpperCase();
+  if (cui && /^[A-Z]{2}/.test(cui) && !cui.startsWith("RO")) return true;
+  return false;
+}
 
 export default function EmittedInvoices() {
   const [, navigate] = useLocation();
@@ -412,6 +423,13 @@ export default function EmittedInvoices() {
                         <span className="text-[10px] font-semibold text-violet-600">
                           Din SPV
                         </span>
+                      ) : isExternalInvoice(row) ? (
+                        <span
+                          className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800"
+                          title="Factură externă (UE/Non-UE). Nu se transmite în RO e-Factura, se declară prin D390/D300."
+                        >
+                          Extern (D390)
+                        </span>
                       ) : (
                         <span
                           className={`text-[10px] font-semibold ${SPV_COLORS[row.spvStatus || "nesincronizat"]}`}
@@ -460,7 +478,7 @@ export default function EmittedInvoices() {
                           <Download className="w-3.5 h-3.5" />
                         </button>
 
-                        {row._source !== "archive" && (!row.spvStatus ||
+                        {row._source !== "archive" && !isExternalInvoice(row) && (!row.spvStatus ||
                           row.spvStatus === "nesincronizat" ||
                           row.spvStatus === "eroare") && (
                           <button

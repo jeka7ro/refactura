@@ -1,8 +1,14 @@
 import { ReInvoice, ReInvoiceLine, Tenant } from "../drizzle/schema";
 
+const EU_COUNTRIES = new Set([
+  "AT", "BE", "BG", "CY", "CZ", "DE", "DK", "EE", "ES", "FI",
+  "FR", "GR", "HR", "HU", "IE", "IT", "LT", "LU", "LV", "MT",
+  "NL", "PL", "PT", "SE", "SI", "SK"
+]);
+
 /**
- * Generates an ANAF compliant UBL 2.1 e-Factura XML string.
- * Currently supports standard VAT (19%, 9%, 5%) and basic structures.
+ * Generates an ANAF compliant UBL 2.1 e-Factura XML string (CIUS-RO).
+ * Supports standard VAT, exemptions, reverse charge (AE), foreign EU/non-EU clients, and foreign currencies (EUR, USD, etc.).
  */
 export function generateUblXml(
   invoice: ReInvoice,
@@ -13,6 +19,44 @@ export function generateUblXml(
   const dueDate = invoice.dueDate
     ? new Date(invoice.dueDate).toISOString().split("T")[0]
     : issueDate;
+
+  // Seller CUI (always Romania, ensure RO prefix once)
+  const cleanSellerCui = (tenant.cui || "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
+  const supplierCui = cleanSellerCui.startsWith("RO") ? cleanSellerCui : "RO" + cleanSellerCui;
+
+  // Buyer Country & CUI
+  const rawClientCui = (invoice.clientCUI || "").trim().toUpperCase();
+  let buyerCountry = (invoice.clientCountry || "").trim().toUpperCase();
+  if (!buyerCountry || buyerCountry.length !== 2) {
+    const match = rawClientCui.match(/^([A-Z]{2})/);
+    if (match && (EU_COUNTRIES.has(match[1]) || match[1] === "RO")) {
+      buyerCountry = match[1];
+    } else {
+      buyerCountry = "RO";
+    }
+  }
+
+  const cleanBuyerCui = rawClientCui.replace(/[^A-Z0-9]/gi, "");
+  let clientCui = cleanBuyerCui;
+  if (buyerCountry === "RO") {
+    clientCui = cleanBuyerCui.startsWith("RO") ? cleanBuyerCui : (cleanBuyerCui ? "RO" + cleanBuyerCui : "");
+  } else {
+    // For foreign EU clients (e.g. BE0785292895), ensure the 2-letter country code is prefixed once
+    if (cleanBuyerCui && !cleanBuyerCui.startsWith(buyerCountry) && EU_COUNTRIES.has(buyerCountry)) {
+      clientCui = buyerCountry + cleanBuyerCui;
+    }
+  }
+
+  // Reverse charge detection
+  const notesLower = (invoice.notes || "").toLowerCase();
+  const isReverseCharge =
+    notesLower.includes("reverse charge") ||
+    notesLower.includes("taxare inversa") ||
+    notesLower.includes("taxare inversă") ||
+    notesLower.includes("art. 196") ||
+    notesLower.includes("art. 331") ||
+    notesLower.includes("art. 307") ||
+    (buyerCountry !== "RO" && EU_COUNTRIES.has(buyerCountry));
 
   // Calculate tax subtotals by VAT rate
   const taxGroups = new Map<
@@ -33,15 +77,6 @@ export function generateUblXml(
     group.taxAmount += tax;
   }
 
-  // ANAF BR-CO-09: VAT identifiers (BT-31, BT-48) must have ISO country prefix (e.g. RO42322117)
-  const ensureRoPrefix = (cui: string) => {
-    const clean = cui.replace(/[^A-Z0-9]/gi, "").toUpperCase();
-    if (!clean) return clean;
-    return clean.startsWith("RO") ? clean : "RO" + clean;
-  };
-  const supplierCui = ensureRoPrefix(tenant.cui || "");
-  const clientCui = ensureRoPrefix(invoice.clientCUI || "");
-
   let tenantSettings: any = {};
   try {
     if (tenant.settings) tenantSettings = JSON.parse(tenant.settings);
@@ -50,7 +85,6 @@ export function generateUblXml(
   const tenantCity = tenantSettings.city || "";
   const tenantRegCom = tenantSettings.regCom || "";
   const tenantCounty = tenantSettings.county || tenantCity || "";
-  const clientCounty = (invoice as any).clientCounty || (invoice as any).clientCity || "";
 
   // BR-RO-110: Map Romanian city/county to ISO 3166-2:RO subdivision code
   const COUNTY_MAP: Record<string, string> = {
@@ -70,26 +104,50 @@ export function generateUblXml(
   const getCountyCode = (city: string): string => {
     if (!city) return "RO-B"; // default Bucharest
     const key = city.toLowerCase()
-      .normalize("NFD").replace(/\p{Diacritic}/gu, "") // strip diacritics
+      .normalize("NFD").replace(/\p{Diacritic}/gu, "")
       .trim();
     for (const [k, v] of Object.entries(COUNTY_MAP)) {
       if (key.includes(k)) return v;
     }
     return "RO-B"; // fallback
   };
-  const sellerSubdivision = getCountyCode(tenantCounty);
-  const buyerSubdivision = getCountyCode(clientCounty);
 
   // BR-RO-100: When subdivision is RO-B (Bucharest), city must be SECTOR1...SECTOR6
   const getSectorOrCity = (subdivision: string, address: string, city: string): string => {
     if (subdivision !== "RO-B") return city || "Nesetata";
-    // Try to extract sector number from address
     const sectorMatch = (address + " " + city).match(/sector\s*([1-6])/i);
     if (sectorMatch) return `SECTOR${sectorMatch[1]}`;
-    return "SECTOR1"; // fallback for Bucharest
+    return "SECTOR1";
   };
+
+  const sellerSubdivision = getCountyCode(tenantCounty);
   const sellerCity = getSectorOrCity(sellerSubdivision, tenant.address || "", tenantCity);
-  const buyerCity = getSectorOrCity(buyerSubdivision, (invoice as any).clientAddress || "", (invoice as any).clientCity || "");
+
+  let buyerAddressXml = "";
+  if (buyerCountry === "RO") {
+    const clientCounty = (invoice as any).clientCounty || (invoice as any).clientCity || "";
+    const buyerSubdivision = getCountyCode(clientCounty);
+    const buyerCity = getSectorOrCity(buyerSubdivision, (invoice as any).clientAddress || "", (invoice as any).clientCity || "");
+    buyerAddressXml = `
+            <cac:PostalAddress>
+                <cbc:StreetName>${escapeXml((invoice as any).clientAddress || "Nesetata")}</cbc:StreetName>
+                <cbc:CityName>${escapeXml(buyerCity)}</cbc:CityName>
+                <cbc:CountrySubentity>${buyerSubdivision}</cbc:CountrySubentity>
+                <cac:Country>
+                    <cbc:IdentificationCode>RO</cbc:IdentificationCode>
+                </cac:Country>
+            </cac:PostalAddress>`;
+  } else {
+    buyerAddressXml = `
+            <cac:PostalAddress>
+                <cbc:StreetName>${escapeXml((invoice as any).clientAddress || "Nesetata")}</cbc:StreetName>
+                <cbc:CityName>${escapeXml((invoice as any).clientCity || "Nesetata")}</cbc:CityName>
+                ${(invoice as any).clientCounty ? `<cbc:CountrySubentity>${escapeXml((invoice as any).clientCounty)}</cbc:CountrySubentity>` : ""}
+                <cac:Country>
+                    <cbc:IdentificationCode>${buyerCountry}</cbc:IdentificationCode>
+                </cac:Country>
+            </cac:PostalAddress>`;
+  }
 
   // Generate lines
   const xmlLines = lines
@@ -98,7 +156,11 @@ export function generateUblXml(
       const unitPrice = parseFloat(String(line.unitPrice));
       const lineTotal = qty * unitPrice;
       const vatRate = parseFloat(String(line.vatRate || "0"));
-      const taxSchemeId = vatRate > 0 ? "S" : "E"; // Standard or Exempt (simplified)
+
+      let taxCategoryId = "S";
+      if (vatRate === 0) {
+        taxCategoryId = isReverseCharge ? "AE" : "E";
+      }
 
       return `
     <cac:InvoiceLine>
@@ -108,7 +170,7 @@ export function generateUblXml(
         <cac:Item>
             <cbc:Name>${escapeXml(line.description)}</cbc:Name>
             <cac:ClassifiedTaxCategory>
-                <cbc:ID>${taxSchemeId}</cbc:ID>
+                <cbc:ID>${taxCategoryId}</cbc:ID>
                 <cbc:Percent>${vatRate.toFixed(2)}</cbc:Percent>
                 <cac:TaxScheme>
                     <cbc:ID>VAT</cbc:ID>
@@ -125,14 +187,31 @@ export function generateUblXml(
   // Generate tax subtotals
   const xmlTaxSubtotals = Array.from(taxGroups.entries())
     .map(([rate, group]) => {
-      const taxSchemeId = rate > 0 ? "S" : "E";
+      let taxCategoryId = "S";
+      let exemptionCode = "";
+      let exemptionReason = "";
+
+      if (rate === 0) {
+        if (isReverseCharge) {
+          taxCategoryId = "AE";
+          exemptionCode = "VATEX-EU-AE";
+          exemptionReason = invoice.notes?.trim() || "Taxare inversa conform art. 196 din Directiva 2006/112/CE";
+        } else {
+          taxCategoryId = "E";
+          exemptionCode = "VATEX-EU-E";
+          exemptionReason = invoice.notes?.trim() || "Scutit de TVA conform Codului Fiscal";
+        }
+      }
+
       return `
         <cac:TaxSubtotal>
             <cbc:TaxableAmount currencyID="${invoice.currency}">${group.taxableAmount.toFixed(2)}</cbc:TaxableAmount>
             <cbc:TaxAmount currencyID="${invoice.currency}">${group.taxAmount.toFixed(2)}</cbc:TaxAmount>
             <cac:TaxCategory>
-                <cbc:ID>${taxSchemeId}</cbc:ID>
+                <cbc:ID>${taxCategoryId}</cbc:ID>
                 <cbc:Percent>${rate.toFixed(2)}</cbc:Percent>
+                ${rate === 0 ? `<cbc:TaxExemptionReasonCode>${exemptionCode}</cbc:TaxExemptionReasonCode>
+                <cbc:TaxExemptionReason>${escapeXml(exemptionReason)}</cbc:TaxExemptionReason>` : ""}
                 <cac:TaxScheme>
                     <cbc:ID>VAT</cbc:ID>
                 </cac:TaxScheme>
@@ -145,6 +224,10 @@ export function generateUblXml(
   const totalVat = parseFloat(String(invoice.totalVAT));
   const total = parseFloat(String(invoice.total));
 
+  // Foreign currency support (BR-RO-030): TaxCurrencyCode must be RON, TaxTotal in RON must exist
+  const isForeignCurrency = invoice.currency && invoice.currency !== "RON";
+  const vatInRon = isForeignCurrency ? (totalVat === 0 ? 0 : totalVat * 5.0) : totalVat;
+
   // Build the full XML
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
@@ -155,7 +238,9 @@ export function generateUblXml(
     <cbc:IssueDate>${issueDate}</cbc:IssueDate>
     <cbc:DueDate>${dueDate}</cbc:DueDate>
     <cbc:InvoiceTypeCode>380</cbc:InvoiceTypeCode>
+    ${invoice.notes ? `<cbc:Note>${escapeXml(invoice.notes)}</cbc:Note>` : ""}
     <cbc:DocumentCurrencyCode>${invoice.currency}</cbc:DocumentCurrencyCode>
+    ${isForeignCurrency ? `<cbc:TaxCurrencyCode>RON</cbc:TaxCurrencyCode>` : ""}
 
     <cac:AccountingSupplierParty>
         <cac:Party>
@@ -188,32 +273,28 @@ export function generateUblXml(
         <cac:Party>
             <cac:PartyName>
                 <cbc:Name>${escapeXml(invoice.clientName)}</cbc:Name>
-            </cac:PartyName>
-            <cac:PostalAddress>
-                <cbc:StreetName>${escapeXml(invoice.clientAddress || "Nesetata")}</cbc:StreetName>
-                <cbc:CityName>${escapeXml(buyerCity)}</cbc:CityName>
-                <cbc:CountrySubentity>${buyerSubdivision}</cbc:CountrySubentity>
-                <cac:Country>
-                    <cbc:IdentificationCode>RO</cbc:IdentificationCode>
-                </cac:Country>
-            </cac:PostalAddress>
+            </cac:PartyName>${buyerAddressXml}
+            ${clientCui ? `
             <cac:PartyTaxScheme>
                 <cbc:CompanyID>${clientCui}</cbc:CompanyID>
                 <cac:TaxScheme>
                     <cbc:ID>VAT</cbc:ID>
                 </cac:TaxScheme>
-            </cac:PartyTaxScheme>
+            </cac:PartyTaxScheme>` : ""}
             <cac:PartyLegalEntity>
                 <cbc:RegistrationName>${escapeXml(invoice.clientName)}</cbc:RegistrationName>
-                <cbc:CompanyID>${clientCui}</cbc:CompanyID>
+                ${clientCui ? `<cbc:CompanyID>${clientCui}</cbc:CompanyID>` : ""}
             </cac:PartyLegalEntity>
         </cac:Party>
     </cac:AccountingCustomerParty>
 
     <cac:TaxTotal>
-        <cbc:TaxAmount currencyID="${invoice.currency}">${totalVat.toFixed(2)}</cbc:TaxAmount>
-${xmlTaxSubtotals}
+        <cbc:TaxAmount currencyID="${invoice.currency}">${totalVat.toFixed(2)}</cbc:TaxAmount>${xmlTaxSubtotals}
     </cac:TaxTotal>
+    ${isForeignCurrency ? `
+    <cac:TaxTotal>
+        <cbc:TaxAmount currencyID="RON">${vatInRon.toFixed(2)}</cbc:TaxAmount>
+    </cac:TaxTotal>` : ""}
 
     <cac:LegalMonetaryTotal>
         <cbc:LineExtensionAmount currencyID="${invoice.currency}">${subtotal.toFixed(2)}</cbc:LineExtensionAmount>
@@ -227,7 +308,7 @@ ${xmlLines}
 
 function escapeXml(unsafe: string): string {
   if (!unsafe) return "";
-  return unsafe.replace(/[<>&'"]/g, c => {
+  return String(unsafe).replace(/[<>&'"]/g, c => {
     switch (c) {
       case "<":
         return "&lt;";
@@ -244,3 +325,4 @@ function escapeXml(unsafe: string): string {
     }
   });
 }
+

@@ -43,6 +43,13 @@ export async function getDb() {
         // Column already exists — ignore
       }
 
+      // Safe migration: ensure tenants.settings is LONGTEXT for large base64 logos
+      try {
+        await _db.execute(
+          sql`ALTER TABLE tenants MODIFY COLUMN settings LONGTEXT NULL`
+        );
+      } catch {}
+
       // Safe migrations: add indexes for lines tables to prevent full table scans
       try {
         await _db.execute(
@@ -675,6 +682,147 @@ export async function getAllTenants() {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(tenants).orderBy(desc(tenants.createdAt));
+}
+
+export async function getAdminUserActivity() {
+  const db = await getDb();
+  if (!db) {
+    return {
+      summary: {
+        totalUsers: 0,
+        activeToday: 0,
+        activeThisWeek: 0,
+        inactive: 0,
+        neverLoggedIn: 0,
+        totalTenants: 0,
+      },
+      tenants: [],
+      allUsers: [],
+    };
+  }
+
+  const [allAccounts, allTenantsList, allUserTenants] = await Promise.all([
+    db.select().from(accounts).orderBy(desc(accounts.lastLoginAt)),
+    db.select().from(tenants).orderBy(desc(tenants.createdAt)),
+    db.select().from(userTenants),
+  ]);
+
+  const now = new Date().getTime();
+  const ONE_DAY = 24 * 60 * 60 * 1000;
+  const SEVEN_DAYS = 7 * ONE_DAY;
+  const THIRTY_DAYS = 30 * ONE_DAY;
+
+  // Build a tenant map
+  const tenantMap = new Map<number, any>();
+  for (const t of allTenantsList) {
+    tenantMap.set(t.id, {
+      id: t.id,
+      name: t.name,
+      cui: t.cui,
+      createdAt: t.createdAt,
+      users: [],
+      lastActiveAt: null as Date | null,
+    });
+  }
+
+  // Account -> tenants mappings
+  const accountTenantsMap = new Map<number, number[]>();
+  for (const ut of allUserTenants) {
+    const list = accountTenantsMap.get(ut.userId) || [];
+    if (!list.includes(ut.tenantId)) {
+      list.push(ut.tenantId);
+    }
+    accountTenantsMap.set(ut.userId, list);
+  }
+
+  let activeToday = 0;
+  let activeThisWeek = 0;
+  let inactive = 0;
+  let neverLoggedIn = 0;
+
+  const enrichedUsers = allAccounts.map(acc => {
+    let activityStatus: "today" | "week" | "month" | "inactive" | "never" = "never";
+    let diffDays: number | null = null;
+
+    if (acc.lastLoginAt) {
+      const diffMs = now - new Date(acc.lastLoginAt).getTime();
+      diffDays = Math.floor(diffMs / ONE_DAY);
+      if (diffMs <= ONE_DAY) {
+        activityStatus = "today";
+        activeToday++;
+      } else if (diffMs <= SEVEN_DAYS) {
+        activityStatus = "week";
+        activeThisWeek++;
+      } else if (diffMs <= THIRTY_DAYS) {
+        activityStatus = "month";
+      } else {
+        activityStatus = "inactive";
+        inactive++;
+      }
+    } else {
+      activityStatus = "never";
+      neverLoggedIn++;
+    }
+
+    // Resolve tenant IDs
+    let tenantIds = accountTenantsMap.get(acc.id) || [];
+    if (tenantIds.length === 0 && acc.tenantId) {
+      tenantIds = [acc.tenantId];
+    }
+
+    const tenantNames = tenantIds
+      .map(tid => tenantMap.get(tid)?.name)
+      .filter(Boolean);
+
+    const userObj = {
+      id: acc.id,
+      email: acc.email,
+      role: acc.role,
+      isActive: acc.isActive,
+      phone: acc.phone,
+      lastLoginAt: acc.lastLoginAt,
+      createdAt: acc.createdAt,
+      activityStatus,
+      diffDays,
+      tenantIds,
+      tenantNames,
+      primaryTenantName: tenantNames[0] || "Fără companie",
+    };
+
+    // Push into tenant users list
+    for (const tid of tenantIds) {
+      const t = tenantMap.get(tid);
+      if (t) {
+        t.users.push(userObj);
+        if (acc.lastLoginAt) {
+          if (!t.lastActiveAt || new Date(acc.lastLoginAt) > new Date(t.lastActiveAt)) {
+            t.lastActiveAt = acc.lastLoginAt;
+          }
+        }
+      }
+    }
+
+    return userObj;
+  });
+
+  const tenantsArray = Array.from(tenantMap.values()).map(t => ({
+    ...t,
+    usersCount: t.users.length,
+    activeUsersCount: t.users.filter((u: any) => u.activityStatus === "today" || u.activityStatus === "week").length,
+  }));
+
+  return {
+    summary: {
+      totalUsers: allAccounts.length,
+      activeToday,
+      activeThisWeek,
+      inactive,
+      neverLoggedIn,
+      totalTenants: allTenantsList.length,
+    },
+    tenants: tenantsArray,
+    allUsers: enrichedUsers,
+  };
 }
 
 // ─── Page Visits ──────────────────────────────────────────────────────────────

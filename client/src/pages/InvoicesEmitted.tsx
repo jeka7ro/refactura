@@ -98,8 +98,8 @@ export default function InvoicesEmitted() {
     { description: "", quantity: 1, unitPrice: 0, vatRate: 21, unit: "buc" },
   ]);
 
-  const tenantObj = tenants[0];
-  const tenant = tenantObj?.tenants;
+  const { data: currentTenantObj } = trpc.tenants.current.useQuery();
+  const tenant = currentTenantObj || tenants[0]?.tenants;
   const tenantSettings = useMemo(() => {
     try {
       return JSON.parse(tenant?.settings || "{}");

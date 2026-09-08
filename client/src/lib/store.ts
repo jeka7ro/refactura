@@ -97,6 +97,14 @@ export interface Integration {
   logoColor: string;
 }
 
+export interface BankAccount {
+  id: string;
+  currency: string;
+  iban: string;
+  bank: string;
+  isDefault?: boolean;
+}
+
 export interface CompanySettings {
   name: string;
   cui: string;
@@ -109,6 +117,9 @@ export interface CompanySettings {
   phone: string;
   iban: string;
   bank: string;
+  ibanEur?: string;
+  bankEur?: string;
+  bankAccounts?: BankAccount[];
   defaultCurrency: Currency;
   defaultLanguage: Language;
   defaultVatRate: number;

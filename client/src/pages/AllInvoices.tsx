@@ -22,6 +22,10 @@ import {
   CheckCircle,
   ClipboardList,
   MoreVertical,
+  Coins,
+  Tag,
+  Globe,
+  Clock,
 } from "lucide-react";
 import { formatCurrency, formatDate, type Currency } from "@/lib/store";
 import { trpc } from "@/lib/trpc";
@@ -61,6 +65,7 @@ interface UnifiedRow {
   number: string;
   partnerName: string;
   partnerCui?: string;
+  clientCountry?: string;
   date: string;
   dueDate: string;
   total: number;
@@ -368,8 +373,9 @@ export default function AllInvoices() {
     refetch: r3,
   } = trpc.emittedInvoice.list.useQuery();
 
+  const { data: currentTenantObj } = trpc.tenants.current.useQuery();
   const { data: tenantsData = [] } = trpc.tenants.list.useQuery();
-  const tenant = (tenantsData as any[])[0];
+  const tenant = currentTenantObj || (tenantsData as any[])[0]?.tenants || (tenantsData as any[])[0];
   const tenantSettings = useMemo(() => {
     try {
       return JSON.parse(tenant?.settings || "{}");
@@ -510,6 +516,8 @@ export default function AllInvoices() {
           source: "manual",
           itemsText: i.itemsText || "",
           spvStatus: i.spvStatus,
+          partnerCui: i.clientCUI || "",
+          clientCountry: i.clientCountry || "",
         });
       }
     );
@@ -587,6 +595,24 @@ export default function AllInvoices() {
     emis: allRows.filter(r => r.type === "emis").length,
   };
 
+  const filteredTotals = useMemo(() => {
+    const sums: Record<string, number> = {};
+    for (const r of filtered) {
+      const c = (r.currency || "RON").toUpperCase();
+      sums[c] = (sums[c] || 0) + (Number(r.total) || 0);
+    }
+    const entries = Object.entries(sums).sort((a, b) => {
+      if (a[0] === "RON") return -1;
+      if (b[0] === "RON") return 1;
+      return b[1] - a[1];
+    });
+    return {
+      sums,
+      entries,
+      isFiltered: filtered.length !== allRows.length,
+    };
+  }, [filtered, allRows.length]);
+
   const handleDownloadReInvoicePDF = async (row: UnifiedRow) => {
     toast.loading("Se descarcă PDF...", { id: "pdf" });
     try {
@@ -620,50 +646,132 @@ export default function AllInvoices() {
           </div>
         </div>
 
-      {/* KPI Cards (Grid uniform pe mobile si desktop) */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-4 pb-2">
+        {/* KPI Cards (Grid uniform pe mobile si desktop) */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 pb-2">
           {/* TOTAL */}
           <div
-            className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3 sm:p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md cursor-pointer"
+            className={`bg-white dark:bg-slate-900 rounded-2xl border p-3 sm:p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md cursor-pointer ${
+              typeFilter === "all"
+                ? "border-blue-500/60 ring-1 ring-blue-500/20"
+                : "border-slate-200 dark:border-slate-800"
+            }`}
             onClick={() => { setTypeFilter("all"); setPage(1); }}
           >
             <div>
               <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 truncate">
                 Total
               </p>
-              <p className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white leading-none">
-                {allRows.length}
-              </p>
+              <div className="flex items-baseline gap-1.5">
+                <p className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white leading-none">
+                  {allRows.length}
+                </p>
+                {filtered.length !== allRows.length && (
+                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                    ({filtered.length})
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
           {/* EMISE */}
           <div
-            className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3 sm:p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md cursor-pointer"
+            className={`bg-white dark:bg-slate-900 rounded-2xl border p-3 sm:p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md cursor-pointer ${
+              typeFilter === "emis"
+                ? "border-blue-500/60 ring-1 ring-blue-500/20"
+                : "border-slate-200 dark:border-slate-800"
+            }`}
             onClick={() => { setTypeFilter("emis"); setPage(1); }}
           >
             <div>
               <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 truncate">
                 Emise
               </p>
-              <p className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white leading-none">
-                {allRows.filter(r => r.type === "emis").length}
-              </p>
+              <div className="flex items-baseline gap-1.5">
+                <p className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white leading-none">
+                  {allRows.filter(r => r.type === "emis").length}
+                </p>
+                {filtered.length !== allRows.length && (
+                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                    ({filtered.filter(r => r.type === "emis").length})
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
           {/* PRIMITE */}
           <div
-             className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3 sm:p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md cursor-pointer"
+             className={`bg-white dark:bg-slate-900 rounded-2xl border p-3 sm:p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md cursor-pointer ${
+              typeFilter === "primit"
+                ? "border-blue-500/60 ring-1 ring-blue-500/20"
+                : "border-slate-200 dark:border-slate-800"
+            }`}
              onClick={() => { setTypeFilter("primit"); setPage(1); }}
           >
             <div>
               <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 truncate">
                 Primite
               </p>
-              <p className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white leading-none">
-                {allRows.filter(r => r.type === "primit").length}
-              </p>
+              <div className="flex items-baseline gap-1.5">
+                <p className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white leading-none">
+                  {allRows.filter(r => r.type === "primit").length}
+                </p>
+                {filtered.length !== allRows.length && (
+                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                    ({filtered.filter(r => r.type === "primit").length})
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* TOTAL SUMĂ (PENTRU CELE AFIȘATE / FILTRATE) */}
+          <div
+            className={`bg-white dark:bg-slate-900 rounded-2xl border p-3 sm:p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md ${
+              filteredTotals.isFiltered
+                ? "border-blue-400/80 dark:border-blue-700/80 bg-blue-50/20 dark:bg-blue-950/20"
+                : "border-slate-200 dark:border-slate-800"
+            }`}
+          >
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 mb-1">
+                <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">
+                  Total Sumă
+                </p>
+                {filteredTotals.isFiltered ? (
+                  <span className="text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 leading-none">
+                    Filtrate
+                  </span>
+                ) : (
+                  <span className="text-[8px] sm:text-[9px] font-medium text-slate-400 leading-none">
+                    (Toate)
+                  </span>
+                )}
+              </div>
+              {filteredTotals.entries.length === 0 ? (
+                <p className="text-base sm:text-lg font-black text-slate-800 dark:text-white leading-none">
+                  0,00 RON
+                </p>
+              ) : (
+                <div className="flex flex-col justify-center">
+                  <p className="text-sm sm:text-base lg:text-lg font-black text-slate-900 dark:text-white leading-tight truncate">
+                    {formatCurrency(filteredTotals.entries[0][1], (filteredTotals.entries[0][0] as Currency) || "RON")}
+                  </p>
+                  {filteredTotals.entries.length > 1 && (
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {filteredTotals.entries.slice(1).map(([curr, val]) => (
+                        <span key={curr} className="text-[9px] sm:text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                          + {formatCurrency(val, (curr as Currency) || "EUR")}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-900/40 flex items-center justify-center flex-shrink-0 ml-2">
+              <Coins className="w-4 h-4 text-amber-500" />
             </div>
           </div>
         </div>
@@ -684,7 +792,7 @@ export default function AllInvoices() {
             </button>
             <button
               onClick={handleDownloadSelectedZip}
-              className="px-3 h-7 rounded-lg bg-white text-blue-600 hover:bg-blue-50 text-xs font-bold transition-colors shadow-sm"
+              className="px-3 h-7 rounded-lg bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-700 text-xs font-bold transition-colors shadow-sm"
             >
               Descarcă selectate
             </button>
@@ -724,33 +832,17 @@ export default function AllInvoices() {
 
       {/* Card tabel */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-6">
-        {/* Search & Filtre */}
-        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800/50 flex flex-col gap-3 bg-white dark:bg-slate-900">
-          
-          {/* Randul 1: Cautare si Buton Sync (Mobile-first layout) */}
-          <div className="flex items-center gap-3 w-full">
-            <div style={{ position: "relative" }} className="flex-1 flex-shrink-0">
+        {/* Search & Filtre — Pe un singur rând */}
+        <div className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800/50 flex flex-col gap-2 bg-white dark:bg-slate-900">
+          <div className="flex items-center gap-2.5 w-full flex-wrap xl:flex-nowrap">
+            {/* Cautare */}
+            <div className="relative flex-1 min-w-[200px]">
               <Search
-                className="w-3.5 h-3.5 text-slate-400"
-                style={{
-                  position: "absolute",
-                  left: 8,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                }}
+                className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
               />
               <input
-                style={{
-                  paddingLeft: 26,
-                  paddingRight: search ? 60 : 10,
-                  borderRadius: 9999,
-                  width: "100%",
-                  height: 32,
-                  border: "1px solid #e2e8f0",
-                  outline: "none",
-                  fontSize: 12,
-                }}
-                className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white dark:border-slate-700"
+                style={{ paddingLeft: 34, paddingRight: search ? 68 : 14 }}
+                className="rounded-full w-full h-8 border border-slate-200 dark:border-slate-700 outline-none text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all shadow-none"
                 placeholder="Caută factură..."
                 value={search}
                 onChange={e => {
@@ -760,37 +852,95 @@ export default function AllInvoices() {
               />
               {search && (
                 <>
-                  <div
-                    style={{
-                      position: "absolute",
-                      right: 22,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      background: "#2563eb",
-                      color: "white",
-                      borderRadius: 9999,
-                      padding: "1px 6px",
-                      fontSize: 10,
-                      fontWeight: 700,
-                    }}
-                  >
+                  <div className="absolute right-7 top-1/2 -translate-y-1/2 bg-blue-600 text-white rounded-full px-1.5 py-0.5 text-[9px] font-bold">
                     {filtered.length}/{allRows.length}
                   </div>
                   <button
                     onClick={() => setSearch("")}
-                    style={{
-                      position: "absolute",
-                      right: 6,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                    }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2"
                   >
-                    <X className="w-3 h-3 text-slate-400 hover:text-slate-700" />
+                    <X className="w-3 h-3 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" />
                   </button>
                 </>
               )}
             </div>
-            
+
+            {/* Perioadă Filter */}
+            <div className="w-[140px] sm:w-[155px] flex-shrink-0">
+              <Select
+                value={period}
+                onValueChange={val => {
+                  setPeriod(val as any);
+                  const range = getDateRange(val);
+                  if (range && val !== "custom") {
+                    setCustomFrom(range[0]);
+                    setCustomTo(range[1]);
+                  }
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 shadow-none flex items-center gap-1.5 px-3">
+                  <Calendar className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+                  <SelectValue placeholder="Perioadă" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toate dățile</SelectItem>
+                  <SelectItem value="today">Azi</SelectItem>
+                  <SelectItem value="week">Săpt. curentă</SelectItem>
+                  <SelectItem value="month">Luna curentă</SelectItem>
+                  <SelectItem value="lastMonth">Luna trecută</SelectItem>
+                  <SelectItem value="year">Anul curent</SelectItem>
+                  <SelectItem value="lastYear">Anul trecut</SelectItem>
+                  <SelectItem value="custom">Personalizat...</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Type Filter */}
+            <div className="w-[110px] sm:w-[125px] flex-shrink-0">
+              <Select
+                value={typeFilter}
+                onValueChange={val => {
+                  setTypeFilter(val as any);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 shadow-none flex items-center gap-1.5 px-3">
+                  <Tag className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
+                  <SelectValue placeholder="Tip" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toate</SelectItem>
+                  <SelectItem value="primit">Primite</SelectItem>
+                  <SelectItem value="emis">Emise</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Source Filter */}
+            <div className="w-[135px] sm:w-[150px] flex-shrink-0">
+              <Select
+                value={sourceFilter}
+                onValueChange={val => {
+                  setSourceFilter(val);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 shadow-none flex items-center gap-1.5 px-3">
+                  <Globe className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                  <SelectValue placeholder="Sursă" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toate sursele</SelectItem>
+                  <SelectItem value="spv_anaf">SPV ANAF</SelectItem>
+                  <SelectItem value="oblio">Oblio</SelectItem>
+                  <SelectItem value="smartbill">SmartBill</SelectItem>
+                  <SelectItem value="manual">Manual</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Buton Sync */}
             <button
               onClick={async () => {
                 const hasOblio = (dbIntegrations as any[]).some(
@@ -814,12 +964,10 @@ export default function AllInvoices() {
                   await Promise.all(tasks);
                   syncedAny = true;
 
-                  // Refetch tables after sync
                   r1();
                   r2();
                   r3();
 
-                  // Show result message
                   if (spvResult?.limitHit > 0) {
                     const facturiNoi = spvResult.imported === 1 ? "1 factură nouă importată" : `${spvResult.imported} facturi noi importate`;
                     const facturiLimita = spvResult.limitHit === 1 ? "1 factură" : `${spvResult.limitHit} facturi`;
@@ -854,78 +1002,9 @@ export default function AllInvoices() {
             </button>
           </div>
 
-          {/* Randul 2: Restul filtrelor (wrap inteligent) */}
-          <div className="grid grid-cols-3 w-full gap-2">
-            {/* Period Filter */}
-            <Select
-              value={period}
-              onValueChange={val => {
-                setPeriod(val as any);
-                const range = getDateRange(val);
-                if (range && val !== "custom") {
-                  setCustomFrom(range[0]);
-                  setCustomTo(range[1]);
-                }
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">
-                <SelectValue placeholder="Perioadă" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toate dățile</SelectItem>
-                <SelectItem value="today">Azi</SelectItem>
-                <SelectItem value="week">Săpt. curentă</SelectItem>
-                <SelectItem value="month">Luna curentă</SelectItem>
-                <SelectItem value="lastMonth">Luna trecută</SelectItem>
-                <SelectItem value="year">Anul curent</SelectItem>
-                <SelectItem value="lastYear">Anul trecut</SelectItem>
-                <SelectItem value="custom">Personalizat...</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Type Filter */}
-            <Select
-              value={typeFilter}
-              onValueChange={val => {
-                setTypeFilter(val as any);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">
-                <SelectValue placeholder="Tip" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toate</SelectItem>
-                <SelectItem value="primit">Primite</SelectItem>
-                <SelectItem value="emis">Emise</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Source Filter */}
-            <Select
-              value={sourceFilter}
-              onValueChange={val => {
-                setSourceFilter(val);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">
-                <SelectValue placeholder="Sursă" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toate sursele</SelectItem>
-                <SelectItem value="spv_anaf">SPV ANAF</SelectItem>
-                <SelectItem value="oblio">Oblio</SelectItem>
-                <SelectItem value="smartbill">SmartBill</SelectItem>
-                <SelectItem value="manual">Manual</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Arată input-urile doar dacă este pe "custom", acum sub filtre */}
+          {/* Arată input-urile doar dacă este pe "custom" */}
           {period === "custom" && (
-            <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700 w-fit mt-1">
+            <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700 w-fit mt-0.5">
               <input
                 type="date"
                 value={customFrom}
@@ -957,7 +1036,7 @@ export default function AllInvoices() {
                 <th className="px-4 py-3 w-10 text-center">
                   <input
                     type="checkbox"
-                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    className="rounded border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-blue-600 focus:ring-blue-500 cursor-pointer"
                     checked={
                       paginated.length > 0 &&
                       paginated.every(r => selectedIds.has(`${r.source}-${r.id}`))
@@ -966,11 +1045,11 @@ export default function AllInvoices() {
                     title="Selectează/Deselectează toate de pe această pagină"
                   />
                 </th>
-                <th className="px-4 py-3 w-16 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                <th className="px-4 py-3 w-16 text-left text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Nr. Crt.
                 </th>
                 <th
-                  className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide cursor-pointer hover:text-slate-700"
+                  className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700 dark:hover:text-slate-200"
                   onClick={() => handleSort("number")}
                 >
                   <div className="flex items-center gap-1">
@@ -981,7 +1060,7 @@ export default function AllInvoices() {
                   </div>
                 </th>
                 <th
-                  className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide cursor-pointer hover:text-slate-700"
+                  className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700 dark:hover:text-slate-200"
                   onClick={() => handleSort("type")}
                 >
                   <div className="flex items-center gap-1">
@@ -990,7 +1069,7 @@ export default function AllInvoices() {
                   </div>
                 </th>
                 <th
-                  className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide cursor-pointer hover:text-slate-700"
+                  className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700 dark:hover:text-slate-200"
                   onClick={() => handleSort("date")}
                 >
                   <div className="flex items-center gap-1">
@@ -999,7 +1078,7 @@ export default function AllInvoices() {
                   </div>
                 </th>
                 <th
-                  className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide cursor-pointer hover:text-slate-700"
+                  className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700 dark:hover:text-slate-200"
                   onClick={() => handleSort("dueDate")}
                 >
                   <div className="flex items-center gap-1">
@@ -1010,7 +1089,7 @@ export default function AllInvoices() {
                   </div>
                 </th>
                 <th
-                  className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide cursor-pointer hover:text-slate-700"
+                  className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700 dark:hover:text-slate-200"
                   onClick={() => handleSort("total")}
                 >
                   <div className="flex items-center justify-end gap-1">
@@ -1021,7 +1100,7 @@ export default function AllInvoices() {
                   </div>
                 </th>
                 <th
-                  className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide cursor-pointer hover:text-slate-700"
+                  className="px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700 dark:hover:text-slate-200"
                   onClick={() => handleSort("source")}
                 >
                   <div className="flex items-center justify-center gap-1">
@@ -1031,7 +1110,7 @@ export default function AllInvoices() {
                     </span>
                   </div>
                 </th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   Acțiuni
                 </th>
               </tr>
@@ -1065,12 +1144,12 @@ export default function AllInvoices() {
                       <td className="px-4 py-3 text-center">
                         <input
                           type="checkbox"
-                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          className="rounded border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-blue-600 focus:ring-blue-500 cursor-pointer"
                           checked={selectedIds.has(`${row.source}-${row.id}`)}
                           onChange={() => toggleSelect(row)}
                         />
                       </td>
-                      <td className="px-4 py-3 text-center text-[11px] font-medium text-slate-500">
+                      <td className="px-4 py-3 text-center text-[11px] font-medium text-slate-500 dark:text-slate-400">
                         {(page - 1) * rowsPerPage + i + 1}
                       </td>
                       <td className="px-4 py-3">
@@ -1110,8 +1189,20 @@ export default function AllInvoices() {
                               {getStatusLabel(row.status, row.type)}
                             </span>
                             {row.spvStatus && (row.spvStatus.toLowerCase() === "validat" || row.spvStatus.toLowerCase() === "trimisa") && (
-                              <span className="text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded border border-green-200">
+                              <span className="text-[10px] font-bold text-green-600 dark:text-emerald-400 bg-green-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-green-200 dark:border-emerald-800/80">
                                 {row.spvStatus.toLowerCase() === "validat" ? "Validată SPV" : "Trimisă SPV"}
+                              </span>
+                            )}
+                            {((row.spvStatus && row.spvStatus.toLowerCase() === "extern") ||
+                              (row.type === "emis" && (
+                                (row.clientCountry && row.clientCountry.toUpperCase() !== "RO") ||
+                                (row.partnerCui && !row.partnerCui.toUpperCase().startsWith("RO") && /^[A-Z]{2}/.test(row.partnerCui))
+                              ))) && (
+                              <span
+                                className="text-[10px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/80"
+                                title="Factură externă (UE/Non-UE) - declarată prin D390/D300, nu se transmite în SPV"
+                              >
+                                Extern (D390)
                               </span>
                             )}
                           </div>
@@ -1151,7 +1242,7 @@ export default function AllInvoices() {
                         <div className="flex items-center gap-1 justify-end">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <button className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-500 border border-slate-200 transition-colors">
+                              <button className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 transition-colors">
                                 <MoreVertical className="w-4 h-4" />
                               </button>
                             </DropdownMenuTrigger>
@@ -1329,7 +1420,7 @@ export default function AllInvoices() {
                       </span>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <button className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors">
+                          <button className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 transition-colors">
                             <MoreVertical className="w-3.5 h-3.5" />
                           </button>
                         </DropdownMenuTrigger>
@@ -1517,14 +1608,14 @@ export default function AllInvoices() {
             <button
               onClick={() => setPage(p => p - 1)}
               disabled={page === 1}
-              className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-white dark:hover:bg-slate-700 disabled:opacity-40 transition-colors"
+              className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 disabled:opacity-40 transition-colors shadow-none"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => setPage(p => p + 1)}
               disabled={page >= totalPages}
-              className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-white dark:hover:bg-slate-700 disabled:opacity-40 transition-colors"
+              className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 disabled:opacity-40 transition-colors shadow-none"
             >
               <ChevronRight className="w-3.5 h-3.5" />
             </button>

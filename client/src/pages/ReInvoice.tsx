@@ -63,9 +63,9 @@ export default function ReInvoice() {
 
   const loadingInvoice = isMulti ? l2 : l1;
 
+  const { data: currentTenantObj } = trpc.tenants.current.useQuery();
   const { data: tenantsData = [] } = trpc.tenants.list.useQuery();
-  const tenantObj = tenantsData[0];
-  const tenant = tenantObj?.tenants;
+  const tenant = currentTenantObj || tenantsData[0]?.tenants;
   const tenantSettings = useMemo(() => {
     try {
       return JSON.parse(tenant?.settings || "{}");

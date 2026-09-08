@@ -21,15 +21,23 @@ import {
   Building2,
   Calendar,
   FileText,
+  Activity,
+  Clock,
+  Search,
+  Filter,
+  Loader2,
+  CheckCircle2,
+  AlertTriangle,
 } from "lucide-react";
 
-type Tab = "overview" | "registrations" | "users" | "pricing" | "seo";
+type Tab = "overview" | "activity" | "registrations" | "users" | "pricing" | "seo";
 const CURRENCIES = ["RON", "EUR", "USD"];
 
 const NAV_ITEMS: { id: Tab; label: string; icon: any }[] = [
   { id: "overview", label: "Prezentare generală", icon: LayoutDashboard },
-  { id: "registrations", label: "Înregistrări / Leaduri", icon: UserCheck },
+  { id: "activity", label: "Activitate & Logări", icon: Activity },
   { id: "users", label: "Utilizatori", icon: Users },
+  { id: "registrations", label: "Înregistrări / Leaduri", icon: UserCheck },
   { id: "pricing", label: "Module & Prețuri", icon: Layers },
   { id: "seo", label: "SEO & Conținut", icon: Globe },
 ];
@@ -113,8 +121,9 @@ export default function SuperAdmin() {
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-5xl mx-auto px-6 py-6">
           {activeTab === "overview" && <OverviewTab />}
-          {activeTab === "registrations" && <RegistrationsTab />}
+          {activeTab === "activity" && <ActivityTab />}
           {activeTab === "users" && <UsersTab />}
+          {activeTab === "registrations" && <RegistrationsTab />}
           {activeTab === "pricing" && <PricingTab />}
           {activeTab === "seo" && <SeoTab />}
         </div>
@@ -542,6 +551,501 @@ function UsersTab() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Tab: Activity & Logins ──────────────────────────────────────────────────
+function ActivityTab() {
+  const { data, isLoading, refetch } = trpc.admin.userActivity.useQuery();
+  const [search, setSearch] = useState("");
+  const [selectedTenantId, setSelectedTenantId] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<"tenants" | "users">("tenants");
+
+  const summary = data?.summary || {
+    totalUsers: 0,
+    activeToday: 0,
+    activeThisWeek: 0,
+    inactive: 0,
+    neverLoggedIn: 0,
+    totalTenants: 0,
+  };
+
+  const allUsers = data?.allUsers || [];
+  const tenants = data?.tenants || [];
+
+  const formatActivityTime = (dateStr: string | Date | null) => {
+    if (!dateStr) return { relative: "Niciodată", exact: "Fără istoric", isNever: true };
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (60 * 1000));
+    const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
+    const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+
+    let relative = "";
+    if (diffMins < 1) relative = "Chiar acum";
+    else if (diffMins < 60) relative = `Acum ${diffMins} min`;
+    else if (diffHours < 24) relative = `Azi la ${date.toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })}`;
+    else if (diffDays === 1) relative = `Ieri la ${date.toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })}`;
+    else if (diffDays < 7) relative = `Acum ${diffDays} zile`;
+    else relative = date.toLocaleDateString("ro-RO", { day: "2-digit", month: "short", year: "numeric" });
+
+    const exact = date.toLocaleString("ro-RO", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    return { relative, exact, isNever: false };
+  };
+
+  const renderStatusBadge = (status: string) => {
+    switch (status) {
+      case "today":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            Activ Azi
+          </span>
+        );
+      case "week":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+            Activ în 7z
+          </span>
+        );
+      case "month":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            Activ în 30z
+          </span>
+        );
+      case "inactive":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+            Inactiv &gt; 30z
+          </span>
+        );
+      case "never":
+      default:
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-rose-50 text-rose-600 border border-rose-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+            Niciodată logat
+          </span>
+        );
+    }
+  };
+
+  // Filtering users
+  const filteredUsers = allUsers.filter(u => {
+    const q = search.toLowerCase();
+    const matchesSearch =
+      !search ||
+      u.email.toLowerCase().includes(q) ||
+      (u.primaryTenantName && u.primaryTenantName.toLowerCase().includes(q)) ||
+      (u.phone && u.phone.includes(q));
+
+    const matchesTenant =
+      selectedTenantId === "all" ||
+      u.tenantIds.includes(Number(selectedTenantId));
+
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "today" && u.activityStatus === "today") ||
+      (statusFilter === "week" && (u.activityStatus === "today" || u.activityStatus === "week")) ||
+      (statusFilter === "inactive" && (u.activityStatus === "inactive" || u.activityStatus === "never")) ||
+      (statusFilter === "never" && u.activityStatus === "never");
+
+    return matchesSearch && matchesTenant && matchesStatus;
+  });
+
+  // Filtering tenants
+  const filteredTenants = tenants
+    .filter(t => {
+      const q = search.toLowerCase();
+      const matchesSearch =
+        !search ||
+        t.name.toLowerCase().includes(q) ||
+        (t.cui && t.cui.toLowerCase().includes(q)) ||
+        t.users.some((u: any) => u.email.toLowerCase().includes(q));
+
+      const matchesTenant =
+        selectedTenantId === "all" || t.id === Number(selectedTenantId);
+
+      return matchesSearch && matchesTenant;
+    })
+    .map(t => {
+      const q = search.toLowerCase();
+      const usersInTenant = t.users.filter((u: any) => {
+        const matchesUserSearch =
+          !search ||
+          u.email.toLowerCase().includes(q) ||
+          t.name.toLowerCase().includes(q);
+
+        const matchesStatus =
+          statusFilter === "all" ||
+          (statusFilter === "today" && u.activityStatus === "today") ||
+          (statusFilter === "week" && (u.activityStatus === "today" || u.activityStatus === "week")) ||
+          (statusFilter === "inactive" && (u.activityStatus === "inactive" || u.activityStatus === "never")) ||
+          (statusFilter === "never" && u.activityStatus === "never");
+
+        return matchesUserSearch && matchesStatus;
+      });
+
+      return {
+        ...t,
+        visibleUsers: usersInTenant,
+      };
+    })
+    .filter(t => statusFilter === "all" || t.visibleUsers.length > 0);
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Activitate & Logări Utilizatori"
+        subtitle="Monitorizare activitate, ultimele logări și utilizatori arondați pe companii (tenanți)"
+        action={
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg shadow-sm transition-colors"
+          >
+            <Clock className="w-3.5 h-3.5 text-slate-500" />
+            Actualizează
+          </button>
+        }
+      />
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500">Total Utilizatori</span>
+            <Users className="w-4 h-4 text-slate-400" />
+          </div>
+          <div className="mt-2 text-2xl font-bold text-slate-900">{summary.totalUsers}</div>
+          <p className="text-[10px] text-slate-400 mt-0.5">în toate firmele</p>
+        </div>
+
+        <div className="bg-white p-3.5 rounded-xl border border-emerald-100 shadow-sm bg-gradient-to-br from-emerald-50/40 to-white">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-emerald-700">Activi Azi</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+          </div>
+          <div className="mt-2 text-2xl font-bold text-emerald-600">{summary.activeToday}</div>
+          <p className="text-[10px] text-emerald-600/80 mt-0.5">logări în ultimele 24h</p>
+        </div>
+
+        <div className="bg-white p-3.5 rounded-xl border border-blue-100 shadow-sm bg-gradient-to-br from-blue-50/40 to-white">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-blue-700">Activi în 7 zile</span>
+            <Activity className="w-4 h-4 text-blue-500" />
+          </div>
+          <div className="mt-2 text-2xl font-bold text-blue-600">{summary.activeThisWeek}</div>
+          <p className="text-[10px] text-blue-600/80 mt-0.5">utilizatori recenți</p>
+        </div>
+
+        <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500">Inactivi &gt; 30z</span>
+            <Clock className="w-4 h-4 text-slate-400" />
+          </div>
+          <div className="mt-2 text-2xl font-bold text-slate-700">{summary.inactive + summary.neverLoggedIn}</div>
+          <p className="text-[10px] text-slate-400 mt-0.5">{summary.neverLoggedIn} nelogați vreodată</p>
+        </div>
+
+        <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500">Total Tenanți</span>
+            <Building2 className="w-4 h-4 text-violet-500" />
+          </div>
+          <div className="mt-2 text-2xl font-bold text-violet-700">{summary.totalTenants}</div>
+          <p className="text-[10px] text-slate-400 mt-0.5">companii înregistrate</p>
+        </div>
+      </div>
+
+      {/* Toolbar & Filters */}
+      <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-3">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          {/* Căutare */}
+          <div className="relative w-full sm:w-72">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Caută utilizator sau companie..."
+              className="w-full h-9 pl-9 pr-3 text-xs rounded-lg border border-slate-200 focus:ring-1 focus:ring-blue-500 outline-none"
+            />
+          </div>
+
+          {/* Filtre */}
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <div className="flex items-center gap-1.5">
+              <Filter className="w-3.5 h-3.5 text-slate-400" />
+              <select
+                value={selectedTenantId}
+                onChange={e => setSelectedTenantId(e.target.value)}
+                className="h-9 px-2.5 text-xs rounded-lg border border-slate-200 bg-white text-slate-700 outline-none"
+              >
+                <option value="all">Toți Tenanții ({tenants.length})</option>
+                {tenants.map((t: any) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} ({t.usersCount} useri)
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="h-9 px-2.5 text-xs rounded-lg border border-slate-200 bg-white text-slate-700 outline-none"
+            >
+              <option value="all">Toate activitățile</option>
+              <option value="today">🟢 Conectați Azi</option>
+              <option value="week">🔵 Conectați în 7 zile</option>
+              <option value="inactive">⚪ Inactivi / Fără logare</option>
+              <option value="never">🔴 Niciodată logați</option>
+            </select>
+
+            {/* Toggle View */}
+            <div className="flex items-center p-0.5 bg-slate-100 rounded-lg border border-slate-200">
+              <button
+                type="button"
+                onClick={() => setViewMode("tenants")}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
+                  viewMode === "tenants"
+                    ? "bg-white text-blue-600 shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                🏢 Pe Tenanți
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("users")}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
+                  viewMode === "users"
+                    ? "bg-white text-blue-600 shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                👥 Listă Utilizatori
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      {isLoading ? (
+        <div className="bg-white p-12 rounded-xl border border-slate-200 text-center text-slate-400">
+          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-blue-500" />
+          Se încarcă activitatea...
+        </div>
+      ) : viewMode === "tenants" ? (
+        /* 🏢 Grupare pe Tenanți */
+        <div className="space-y-4">
+          {filteredTenants.map(t => {
+            const lastActive = formatActivityTime(t.lastActiveAt);
+            return (
+              <div
+                key={t.id}
+                className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"
+              >
+                {/* Antet Tenant */}
+                <div className="px-4 py-3 bg-slate-50/80 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center flex-shrink-0 text-violet-700 font-bold text-xs">
+                      {t.name?.[0]?.toUpperCase() || "T"}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-bold text-slate-900">{t.name}</h4>
+                        {t.cui && (
+                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-200/70 text-slate-700">
+                            CUI: {t.cui}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-500">
+                        {t.visibleUsers.length} utilizator(i) asociați
+                        {t.createdAt && ` • Înregistrat la ${new Date(t.createdAt).toLocaleDateString("ro-RO")}`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 text-xs">
+                    <div className="text-right">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                        Ultima activitate
+                      </span>
+                      <span className={`font-medium ${lastActive.isNever ? "text-slate-400" : "text-slate-700"}`}>
+                        {lastActive.relative}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Lista utilizatorilor din tenant */}
+                <div className="divide-y divide-slate-100">
+                  {t.visibleUsers.map((u: any) => {
+                    const activity = formatActivityTime(u.lastLoginAt);
+                    return (
+                      <div
+                        key={u.id}
+                        className="px-4 py-3 flex flex-wrap items-center justify-between gap-3 hover:bg-slate-50/60 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 min-w-[240px]">
+                          <div className="w-8 h-8 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
+                            {u.email?.[0]?.toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-slate-800">{u.email}</span>
+                              <span
+                                className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                                  u.role === "superadmin"
+                                    ? "bg-violet-100 text-violet-700"
+                                    : u.role === "admin"
+                                    ? "bg-blue-100 text-blue-700"
+                                    : "bg-slate-100 text-slate-600"
+                                }`}
+                              >
+                                {u.role}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-400">
+                              {u.phone ? `Tel: ${u.phone}` : "Fără număr de telefon"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                          {renderStatusBadge(u.activityStatus)}
+
+                          <div className="text-right min-w-[130px]">
+                            <div className="text-xs font-semibold text-slate-800">
+                              {activity.relative}
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-mono">
+                              {activity.exact}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {t.visibleUsers.length === 0 && (
+                    <div className="px-4 py-5 text-center text-xs text-slate-400">
+                      Niciun utilizator care să corespundă filtrului pentru această companie.
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          {filteredTenants.length === 0 && (
+            <div className="bg-white p-12 rounded-xl border border-slate-200 text-center text-slate-400">
+              Nicio companie găsită conform criteriilor de filtrare.
+            </div>
+          )}
+        </div>
+      ) : (
+        /* 👥 Listă Tabelară Utilizatori */
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                  <th className="px-4 py-3">Utilizator</th>
+                  <th className="px-4 py-3">Companie / Tenant</th>
+                  <th className="px-4 py-3">Rol</th>
+                  <th className="px-4 py-3">Statut Activitate</th>
+                  <th className="px-4 py-3">Ultima Logare</th>
+                  <th className="px-4 py-3">Creat La</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredUsers.map(u => {
+                  const activity = formatActivityTime(u.lastLoginAt);
+                  return (
+                    <tr key={u.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-700 text-xs">
+                            {u.email?.[0]?.toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="font-bold text-slate-800">{u.email}</div>
+                            {u.phone && (
+                              <div className="text-[10px] text-slate-400">{u.phone}</div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="font-semibold text-slate-700">
+                          {u.primaryTenantName}
+                        </div>
+                        {u.tenantNames.length > 1 && (
+                          <div className="text-[10px] text-slate-400">
+                            +{u.tenantNames.length - 1} alte companii
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`px-2 py-0.5 rounded font-semibold text-[10px] uppercase ${
+                            u.role === "superadmin"
+                              ? "bg-violet-100 text-violet-700"
+                              : u.role === "admin"
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-slate-100 text-slate-600"
+                          }`}
+                        >
+                          {u.role}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">{renderStatusBadge(u.activityStatus)}</td>
+                      <td className="px-4 py-3">
+                        <div className="font-bold text-slate-800">{activity.relative}</div>
+                        <div className="text-[10px] font-mono text-slate-400">
+                          {activity.exact}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-slate-500 font-mono text-[11px]">
+                        {u.createdAt
+                          ? new Date(u.createdAt).toLocaleDateString("ro-RO")
+                          : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {filteredUsers.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+                      Niciun utilizator găsit conform criteriilor.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

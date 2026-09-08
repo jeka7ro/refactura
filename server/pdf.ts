@@ -31,6 +31,7 @@ export interface ReInvoiceData {
   clientAddress: string;
   clientCity: string;
   clientCounty: string;
+  clientCountry?: string;
   clientEmail: string;
   clientPhone: string;
   companyName: string;
@@ -38,6 +39,7 @@ export interface ReInvoiceData {
   companyAddress: string;
   companyCity: string;
   companyCounty: string;
+  companyCountry?: string;
   companyEmail: string;
   companyPhone: string;
   companyIBAN: string;
@@ -61,62 +63,123 @@ export interface ReInvoiceData {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+export function isBilingualInvoice(data: ReInvoiceData): boolean {
+  const country = (data.clientCountry || "").trim().toUpperCase();
+  if (country && country !== "RO") return true;
+  const cui = (data.clientCUI || "").trim().toUpperCase();
+  if (cui && !cui.startsWith("RO") && /^[A-Z]{2}/.test(cui)) return true;
+  return false;
+}
+
+function getLabels(isBilingual: boolean) {
+  if (!isBilingual) {
+    return {
+      title: "Factura",
+      titleUpper: "FACTURĂ",
+      issueDate: "Data emiterii:",
+      dueDate: "Termen plata:",
+      supplier: "Furnizor:",
+      supplierUpper: "EMITENT",
+      customer: "Client:",
+      customerUpper: "CLIENT",
+      cif: "CIF:",
+      address: "Adresa:",
+      iban: "IBAN",
+      bank: "Banca:",
+      phone: "Tel.:",
+      email: "Email:",
+      from: "DE LA",
+      to: "CĂTRE",
+      number: "Nr.",
+      description: "Denumire produse / servicii",
+      descriptionUpper: "DESCRIERE",
+      unit: "UM",
+      qty: "Cantitate",
+      qtyShort: "CANT.",
+      price: "Preț unitar",
+      priceShort: "PREȚ/U",
+      val: "Valoare",
+      vat: "Valoare TVA",
+      vatUpper: "TVA",
+      total: "TOTAL",
+      subtotal: "Total fără TVA:",
+      subtotalAlt: "Subtotal (fără TVA):",
+      totalVat: "Total TVA:",
+      totalDue: "TOTAL DE PLATĂ:",
+      notes: "Observații:",
+      notesUpper: "OBSERVAȚII:",
+    };
+  }
+  return {
+    title: "Factură / Invoice",
+    titleUpper: "FACTURĂ / INVOICE",
+    issueDate: "Data emiterii / Issue date:",
+    dueDate: "Termen plată / Due date:",
+    supplier: "Furnizor / Supplier:",
+    supplierUpper: "EMITENT / SUPPLIER",
+    customer: "Client / Customer:",
+    customerUpper: "CLIENT / CUSTOMER",
+    cif: "CIF / VAT ID:",
+    address: "Adresă / Address:",
+    iban: "IBAN",
+    bank: "Bancă / Bank:",
+    phone: "Tel. / Phone:",
+    email: "Email:",
+    from: "DE LA / FROM",
+    to: "CĂTRE / TO",
+    number: "Nr. / No.",
+    description: "Denumire / Description",
+    descriptionUpper: "DESCRIERE / DESCRIPTION",
+    unit: "UM / Unit",
+    qty: "Cantitate / Qty",
+    qtyShort: "CANT. / QTY",
+    price: "Preț unitar / Unit price",
+    priceShort: "PREȚ / PRICE",
+    val: "Valoare / Amount",
+    vat: "Valoare TVA / VAT",
+    vatUpper: "TVA / VAT",
+    total: "TOTAL",
+    subtotal: "Total fără TVA / Subtotal:",
+    subtotalAlt: "Subtotal (excl. VAT):",
+    totalVat: "Total TVA / Total VAT:",
+    totalDue: "TOTAL DE PLATĂ / TOTAL DUE:",
+    notes: "Observații / Notes:",
+    notesUpper: "OBSERVAȚII / NOTES:",
+  };
+}
+
 function drawLogo(
   doc: PDFKit.PDFDocument,
   logoBase64: string,
   x: number,
   y: number,
-  w = 150,
-  h = 40
+  w = 115,
+  h = 34
 ) {
-  // Ignorăm logoBase64 din baza de date pentru că utilizatorul vrea exclusiv logoul GetApp peste tot
-  logoBase64 = "DEFAULT_TEXT_LOGO";
-
-  if (logoBase64 === "DEFAULT_TEXT_LOGO") {
-    // Folosim fix imaginea pusa de user
-    try {
-      const logoPaths = [
-        path.resolve(process.cwd(), "client/public/logo_spv2.png"),
-        path.resolve(process.cwd(), "../client/public/logo_spv2.png"),
-        path.resolve(process.cwd(), "dist/public/logo_spv2.png"),
-        path.resolve(process.cwd(), "server/assets/logo_spv2.png"),
-      ];
-
-      let foundPath = null;
-      for (const p of logoPaths) {
-        if (fs.existsSync(p)) {
-          foundPath = p;
-          break;
-        }
-      }
-
-      if (foundPath) {
-        const imgBuffer = fs.readFileSync(foundPath);
-        doc.image(imgBuffer, x, y, { width: 120 });
-        
-        // Text roșu facturaspv.ro sub logo
-        doc
-          .fontSize(5)
-          .font("Roboto-Bold")
-          .fillColor("#ef4444")
-          .text("facturaspv.ro", x + 28, y + 26, { width: 80, align: 'center', characterSpacing: 1 });
-          
-        // Adăugăm un link invizibil peste toată imaginea (inclusiv peste Factura / Spv și facturaspv.ro)
-        doc.link(x, y, 120, 45, "https://facturaspv.ro/");
-      }
-    } catch (err) {
-      console.error("[PDF] Failed to draw logo:", err);
-    }
-
-    // Resetează culorile
-    doc.fillColor("#1e293b");
+  if (!logoBase64 || logoBase64 === "DEFAULT_TEXT_LOGO") {
     return;
   }
+
+  // Card elegant cu fundal întunecat și colțuri rotunjite pentru contrast impecabil
+  const cardR = 7;
+  doc.save();
+  doc.fillColor("#0f172a");
+  doc.roundedRect(x, y, w, h, cardR).fill();
+  doc.restore();
+
+  const padX = 7;
+  const padY = 4;
+  const imgW = w - padX * 2;
+  const imgH = h - padY * 2;
 
   try {
     const base64Data = logoBase64.replace(/^data:image\/\w+;base64,/, "");
     const imgBuffer = Buffer.from(base64Data, "base64");
-    doc.image(imgBuffer, x, y, { fit: [w, h] });
+    doc.image(imgBuffer, x + padX, y + padY, {
+      fit: [imgW, imgH],
+      align: "center",
+      valign: "center",
+    });
   } catch (_) {
     /* ignoră logo invalid */
   }
@@ -194,32 +257,38 @@ function drawTotals(
   pageWidth: number,
   accentColor: string
 ) {
-  const totW = 220;
+  const isBilingual = isBilingualInvoice(data);
+  const L = getLabels(isBilingual);
+  const totW = isBilingual ? 260 : 220;
   const totX = leftX + pageWidth - totW;
+  const labelW = isBilingual ? 160 : 130;
+  const valW = totW - labelW;
   let y = afterY + 12;
 
   doc.fontSize(9).font("Roboto").fillColor("#64748b");
-  doc.text("Subtotal (fără TVA):", totX, y, { width: 130 });
-  doc.text(`${data.subtotal.toFixed(2)} ${data.currency}`, totX + 130, y, {
-    width: 85,
+  doc.text(L.subtotalAlt, totX, y, { width: labelW });
+  doc.text(`${data.subtotal.toFixed(2)} ${data.currency}`, totX + labelW, y, {
+    width: valW,
     align: "right",
   });
   y += 16;
-  doc.text("TVA:", totX, y, { width: 130 });
-  doc.text(`${data.totalVAT.toFixed(2)} ${data.currency}`, totX + 130, y, {
-    width: 85,
+  doc.text(L.totalVat, totX, y, { width: labelW });
+  doc.text(`${data.totalVAT.toFixed(2)} ${data.currency}`, totX + labelW, y, {
+    width: valW,
     align: "right",
   });
   y += 20;
 
-  doc
-    .rect(totX - 4, y - 4, totW + 4, 28)
-    .fillColor(accentColor)
-    .fill();
-  doc.fontSize(11).font("Roboto-Bold").fillColor("#ffffff");
-  doc.text("TOTAL:", totX, y + 6, { width: 130 });
-  doc.text(`${data.total.toFixed(2)} ${data.currency}`, totX + 130, y + 6, {
-    width: 85,
+  const totalDueBlue = accentColor || "#0088fe";
+  doc.save();
+  doc.fillColor(totalDueBlue);
+  doc.roundedRect(totX - 4, y - 4, totW + 4, 28, 6).fill();
+  doc.restore();
+
+  doc.fontSize(isBilingual ? 9.5 : 11).font("Roboto-Bold").fillColor("#ffffff");
+  doc.text(L.totalDue, totX + 4, y + 6, { width: labelW });
+  doc.text(`${data.total.toFixed(2)} ${data.currency}`, totX + labelW, y + 6, {
+    width: valW - 8,
     align: "right",
   });
   doc.fillColor("#1e293b");
@@ -231,43 +300,49 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   const pageWidth = doc.page.width - 80;
   let y = 40;
 
+  const isBilingual = isBilingualInvoice(data);
+  const L = getLabels(isBilingual);
+
   // Logo
   if (data.logoBase64) {
-    drawLogo(doc, data.logoBase64, leftX, y, 100, 30);
+    drawLogo(doc, data.logoBase64, leftX, y, 115, 34);
   }
 
   // Header: Left "Factura", Right "Seria și numărul"
   doc
-    .fontSize(24)
+    .fontSize(isBilingual ? 18 : 24)
     .font("Roboto-Bold")
     .fillColor("#000000")
-    .text("Factura", leftX + 180, y + 5);
+    .text(L.title, leftX + (data.logoBase64 && data.logoBase64 !== "DEFAULT_TEXT_LOGO" ? (isBilingual ? 130 : 180) : 0), y + 5);
 
-  const rightColX = leftX + pageWidth - 180;
+  const rightColW = isBilingual ? 215 : 180;
+  const rightColX = leftX + pageWidth - rightColW;
   doc
     .fontSize(16)
     .font("Roboto-Bold")
-    .text(data.number, rightColX, y, { width: 180, align: "right" });
+    .text(data.number, rightColX, y, { width: rightColW, align: "right" });
 
   y += 30;
-  doc.fontSize(9).font("Roboto-Bold");
-  doc.text("Data emiterii:", rightColX, y, { width: 80 });
+  const metaLabelW = isBilingual ? 120 : 80;
+  const metaValW = rightColW - metaLabelW;
+  doc.fontSize(8.5).font("Roboto-Bold");
+  doc.text(L.issueDate, rightColX, y, { width: metaLabelW });
   doc
     .font("Roboto")
-    .text(new Date(data.date).toLocaleDateString("ro-RO"), rightColX + 80, y, {
-      width: 100,
+    .text(new Date(data.date).toLocaleDateString("ro-RO"), rightColX + metaLabelW, y, {
+      width: metaValW,
       align: "right",
     });
 
-  y += 12;
-  doc.font("Roboto-Bold").text("Termen plata:", rightColX, y, { width: 80 });
+  y += 14;
+  doc.font("Roboto-Bold").text(L.dueDate, rightColX, y, { width: metaLabelW });
   doc
     .font("Roboto")
     .text(
       new Date(data.dueDate).toLocaleDateString("ro-RO"),
-      rightColX + 80,
+      rightColX + metaLabelW,
       y,
-      { width: 100, align: "right" }
+      { width: metaValW, align: "right" }
     );
 
   y += 30;
@@ -283,7 +358,7 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   const colW = pageWidth / 2 - 20;
 
   // Furnizor Column
-  doc.fontSize(9).font("Roboto-Bold").text("Furnizor:", leftX, y);
+  doc.fontSize(9).font("Roboto-Bold").text(L.supplier, leftX, y);
   doc.fontSize(11).text(data.companyName, leftX, y + 12, { width: colW });
 
   let leftInfoY = y + 30;
@@ -295,52 +370,61 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
       const textHeight = doc.heightOfString(fullText, { width: colW });
       return currY + Math.max(12, textHeight + 2);
     } else {
-      doc.fontSize(8).font("Roboto-Bold").text(label, x, currY, { width: 60 });
-      const textHeight = doc.font("Roboto").heightOfString(val, { width: colW - 60 });
-      doc.text(val, x + 60, currY, { width: colW - 60 });
+      const labelW = isBilingual ? 85 : 60;
+      doc.fontSize(8).font("Roboto-Bold").text(label, x, currY, { width: labelW });
+      const textHeight = doc.font("Roboto").heightOfString(val, { width: colW - labelW });
+      doc.text(val, x + labelW, currY, { width: colW - labelW });
       return currY + Math.max(12, textHeight + 2);
     }
   };
 
-  leftInfoY = addInfo("CIF:", data.companyCUI, leftX, leftInfoY);
+  const formatAddr = (address?: string, city?: string, county?: string, country?: string) => {
+    return [address, city, county, country]
+      .map(s => (s || "").trim().replace(/,+$/, ""))
+      .filter(Boolean)
+      .join(", ");
+  };
+
+  leftInfoY = addInfo(L.cif, data.companyCUI, leftX, leftInfoY);
   leftInfoY = addInfo(
-    "Adresa:",
-    `${data.companyAddress}, ${data.companyCity}`,
+    L.address,
+    formatAddr(data.companyAddress, data.companyCity, data.companyCounty, data.companyCountry),
     leftX,
     leftInfoY
   );
-  leftInfoY = addInfo("IBAN (RON):", data.companyIBAN, leftX, leftInfoY);
-  leftInfoY = addInfo("Banca:", data.companyBank, leftX, leftInfoY);
-  leftInfoY = addInfo("Tel.:", data.companyPhone, leftX, leftInfoY);
-  leftInfoY = addInfo("Email:", data.companyEmail, leftX, leftInfoY);
+  const ibanLabel = data.currency ? `IBAN (${data.currency}):` : "IBAN:";
+  leftInfoY = addInfo(ibanLabel, data.companyIBAN, leftX, leftInfoY);
+  leftInfoY = addInfo(L.bank, data.companyBank, leftX, leftInfoY);
+  leftInfoY = addInfo(L.phone, data.companyPhone, leftX, leftInfoY);
+  leftInfoY = addInfo(L.email, data.companyEmail, leftX, leftInfoY);
 
   // Client Column
   doc
     .fontSize(9)
     .font("Roboto-Bold")
-    .text("Client:", leftX + colW + 20, y, { width: colW, align: "right" });
+    .text(L.customer, leftX + colW + 20, y, { width: colW, align: "right" });
   doc
     .fontSize(11)
     .text(data.clientName, leftX + colW + 20, y + 12, { width: colW, align: "right" });
 
   let rightInfoY = y + 30;
-  rightInfoY = addInfo("CIF:", data.clientCUI, leftX + colW + 20, rightInfoY, true);
+  rightInfoY = addInfo(L.cif, data.clientCUI, leftX + colW + 20, rightInfoY, true);
   rightInfoY = addInfo(
-    "Adresa:",
-    `${data.clientAddress}, ${data.clientCity}`,
+    L.address,
+    formatAddr(data.clientAddress, data.clientCity, data.clientCounty, data.clientCountry),
     leftX + colW + 20,
     rightInfoY,
     true
   );
   rightInfoY = addInfo(
-    "Tel.:",
+    L.phone,
     data.clientPhone,
     leftX + colW + 20,
     rightInfoY,
     true
   );
   rightInfoY = addInfo(
-    "Email:",
+    L.email,
     data.clientEmail,
     leftX + colW + 20,
     rightInfoY,
@@ -357,33 +441,85 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     .stroke();
   y += 6;
 
-  const colWidths = {
-    crt: 30,
-    desc: 180,
-    um: 30,
-    qty: 50,
-    price: 70,
-    val: 70,
-    vat: 50,
-  };
-  doc.fontSize(8).font("Roboto-Bold");
+  const colWidths = isBilingual
+    ? {
+        crt: 25,
+        desc: 180,
+        um: 35,
+        qty: 50,
+        price: 75,
+        val: 75,
+        vat: 75,
+      }
+    : {
+        crt: 30,
+        desc: 180,
+        um: 30,
+        qty: 50,
+        price: 70,
+        val: 70,
+        vat: 85,
+      };
 
   let curX = leftX;
-  doc.text("Nr.", curX, y, { width: colWidths.crt });
-  curX += colWidths.crt;
-  doc.text("Denumire produse / servicii", curX, y, { width: colWidths.desc });
-  curX += colWidths.desc;
-  doc.text("UM", curX, y, { width: colWidths.um, align: "center" });
-  curX += colWidths.um;
-  doc.text("Cantitate", curX, y, { width: colWidths.qty, align: "center" });
-  curX += colWidths.qty;
-  doc.text("Preț unitar", curX, y, { width: colWidths.price, align: "right" });
-  curX += colWidths.price;
-  doc.text("Valoare", curX, y, { width: colWidths.val, align: "right" });
-  curX += colWidths.val;
-  doc.text("Valoare TVA", curX, y, { width: colWidths.vat, align: "right" });
 
-  y += 15;
+  if (isBilingual) {
+    // Rândul 1: Română (Bold, negru)
+    doc.fontSize(7.5).font("Roboto-Bold").fillColor("#000000");
+    curX = leftX;
+    doc.text("Nr. crt.", curX, y, { width: colWidths.crt });
+    curX += colWidths.crt;
+    doc.text("Denumire produse / servicii", curX, y, { width: colWidths.desc });
+    curX += colWidths.desc;
+    doc.text("U.M.", curX, y, { width: colWidths.um, align: "center" });
+    curX += colWidths.um;
+    doc.text("Cantitate", curX, y, { width: colWidths.qty, align: "center" });
+    curX += colWidths.qty;
+    doc.text("Preț unitar", curX, y, { width: colWidths.price, align: "right" });
+    curX += colWidths.price;
+    doc.text("Valoare", curX, y, { width: colWidths.val, align: "right" });
+    curX += colWidths.val;
+    doc.text("Valoare TVA", curX, y, { width: colWidths.vat, align: "right" });
+
+    // Rândul 2: Engleză (Regular, gri)
+    doc.fontSize(6.5).font("Roboto").fillColor("#64748b");
+    curX = leftX;
+    doc.text("No.", curX, y + 9, { width: colWidths.crt });
+    curX += colWidths.crt;
+    doc.text("Description of goods / services", curX, y + 9, { width: colWidths.desc });
+    curX += colWidths.desc;
+    doc.text("Unit", curX, y + 9, { width: colWidths.um, align: "center" });
+    curX += colWidths.um;
+    doc.text("Quantity", curX, y + 9, { width: colWidths.qty, align: "center" });
+    curX += colWidths.qty;
+    doc.text("Unit price", curX, y + 9, { width: colWidths.price, align: "right" });
+    curX += colWidths.price;
+    doc.text("Amount", curX, y + 9, { width: colWidths.val, align: "right" });
+    curX += colWidths.val;
+    doc.text("VAT amount", curX, y + 9, { width: colWidths.vat, align: "right" });
+
+    y += 21;
+    doc.fillColor("#000000");
+  } else {
+    doc.fontSize(8).font("Roboto-Bold").fillColor("#000000");
+    curX = leftX;
+    doc.text("Nr.", curX, y, { width: colWidths.crt });
+    curX += colWidths.crt;
+    doc.text("Denumire produse / servicii", curX, y, { width: colWidths.desc });
+    curX += colWidths.desc;
+    doc.text("UM", curX, y, { width: colWidths.um, align: "center" });
+    curX += colWidths.um;
+    doc.text("Cantitate", curX, y, { width: colWidths.qty, align: "center" });
+    curX += colWidths.qty;
+    doc.text("Preț unitar", curX, y, { width: colWidths.price, align: "right" });
+    curX += colWidths.price;
+    doc.text("Valoare", curX, y, { width: colWidths.val, align: "right" });
+    curX += colWidths.val;
+    doc.text("Valoare TVA", curX, y, { width: colWidths.vat, align: "right" });
+
+    y += 14;
+  }
+
   doc
     .moveTo(leftX, y)
     .lineTo(leftX + pageWidth, y)
@@ -403,6 +539,9 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     const rowH =
       doc.heightOfString(line.description, { width: colWidths.desc }) + 5;
 
+    const lineVal = line.quantity * line.unitPrice;
+    const lineVat = (lineVal * (line.vatRate || 0)) / 100;
+
     doc.text((idx + 1).toString(), curX, y, { width: colWidths.crt });
     curX += colWidths.crt;
     doc.text(line.description, curX, y, { width: colWidths.desc });
@@ -419,12 +558,12 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
       align: "right",
     });
     curX += colWidths.price;
-    doc.text((line.quantity * line.unitPrice).toFixed(2), curX, y, {
+    doc.text(lineVal.toFixed(2), curX, y, {
       width: colWidths.val,
       align: "right",
     });
     curX += colWidths.val;
-    doc.text(line.total.toFixed(2), curX, y, {
+    doc.text(lineVat.toFixed(2), curX, y, {
       width: colWidths.vat,
       align: "right",
     });
@@ -442,41 +581,49 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   y += 10;
 
   // Footer Totals
-  const totW = 200;
+  const totW = isBilingual ? 260 : 200;
   const totX = leftX + pageWidth - totW;
+  const labelW = isBilingual ? 160 : 100;
+  const valW = totW - labelW;
 
   doc.font("Roboto-Bold").fontSize(9);
-  doc.text("Total fără TVA:", totX, y, { width: 100 });
+  doc.text(L.subtotal, totX, y, { width: labelW });
   doc
     .font("Roboto")
-    .text(`${data.subtotal.toFixed(2)} ${data.currency}`, totX + 100, y, {
-      width: 100,
+    .text(`${data.subtotal.toFixed(2)} ${data.currency}`, totX + labelW, y, {
+      width: valW,
       align: "right",
     });
   y += 15;
 
-  doc.font("Roboto-Bold").text("Total TVA:", totX, y, { width: 100 });
+  doc.font("Roboto-Bold").text(L.totalVat, totX, y, { width: labelW });
   doc
     .font("Roboto")
-    .text(`${data.totalVAT.toFixed(2)} ${data.currency}`, totX + 100, y, {
-      width: 100,
+    .text(`${data.totalVAT.toFixed(2)} ${data.currency}`, totX + labelW, y, {
+      width: valW,
       align: "right",
     });
   y += 15;
 
-  doc.rect(totX, y, totW, 25).fillColor("#f1f5f9").fill();
-  doc.fillColor("#000000").font("Roboto-Bold").fontSize(11);
-  doc.text("TOTAL DE PLATĂ:", totX + 5, y + 8, { width: 100 });
-  doc.text(`${data.total.toFixed(2)} ${data.currency}`, totX + 95, y + 8, {
-    width: 100,
+  const totalDueBg = "#0088fe";
+  doc.save();
+  doc.fillColor(totalDueBg);
+  doc.roundedRect(totX, y, totW, 26, 6).fill();
+  doc.restore();
+
+  doc.fillColor("#ffffff").font("Roboto-Bold").fontSize(isBilingual ? 9.5 : 11);
+  doc.text(L.totalDue, totX + 8, y + 7, { width: labelW });
+  doc.text(`${data.total.toFixed(2)} ${data.currency}`, totX + labelW, y + 7, {
+    width: valW - 8,
     align: "right",
   });
+  doc.fillColor("#000000");
 
   if (data.notes) {
     doc
       .fontSize(8)
       .font("Roboto-Bold")
-      .text("Observații:", leftX, y + 35);
+      .text(L.notes, leftX, y + 35);
     doc.font("Roboto").text(data.notes, leftX, y + 47, { width: pageWidth });
   }
 
@@ -503,6 +650,9 @@ function generateModern(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   const accentBlue = "#2563eb";
   const now = new Date();
 
+  const isBilingual = isBilingualInvoice(data);
+  const L = getLabels(isBilingual);
+
   // Header band
   doc.rect(0, 0, doc.page.width, 90).fillColor("#0f172a").fill();
 
@@ -528,23 +678,23 @@ function generateModern(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
 
   // Invoice badge top-right
   doc
-    .rect(doc.page.width - 180, 18, 140, 54)
+    .rect(doc.page.width - 190, 18, 150, 54)
     .fillColor(accentBlue)
     .fill();
   doc
-    .fontSize(14)
+    .fontSize(isBilingual ? 11 : 14)
     .font("Roboto-Bold")
     .fillColor("#ffffff")
-    .text("RE-FACTURĂ", doc.page.width - 175, 26, {
-      width: 130,
+    .text(isBilingual ? "FACTURĂ / INVOICE" : "FACTURĂ", doc.page.width - 185, 26, {
+      width: 140,
       align: "center",
     });
   doc
     .fontSize(9)
     .font("Roboto")
     .fillColor("#bfdbfe")
-    .text(`Nr. ${data.number}`, doc.page.width - 175, 44, {
-      width: 130,
+    .text(`Nr. ${data.number}`, doc.page.width - 185, 44, {
+      width: 140,
       align: "center",
     });
   doc
@@ -553,9 +703,9 @@ function generateModern(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     .fillColor("#bfdbfe")
     .text(
       `${new Date(data.date).toLocaleDateString("ro-RO")}`,
-      doc.page.width - 175,
+      doc.page.width - 185,
       57,
-      { width: 130, align: "center" }
+      { width: 140, align: "center" }
     );
 
   // Dates row
@@ -564,28 +714,34 @@ function generateModern(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     .fontSize(8)
     .font("Roboto-Bold")
     .fillColor("#64748b")
-    .text("DATA EMITERII", leftX, y)
-    .text("SCADENȚĂ", leftX + 140, y);
+    .text(isBilingual ? "DATA EMITERII / ISSUE" : "DATA EMITERII", leftX, y)
+    .text(isBilingual ? "SCADENȚĂ / DUE" : "SCADENȚĂ", leftX + 160, y);
   y += 12;
   doc
     .fontSize(10)
     .font("Roboto-Bold")
     .fillColor("#1e293b")
     .text(new Date(data.date).toLocaleDateString("ro-RO"), leftX, y)
-    .text(new Date(data.dueDate).toLocaleDateString("ro-RO"), leftX + 140, y);
+    .text(new Date(data.dueDate).toLocaleDateString("ro-RO"), leftX + 160, y);
 
   // Emitent / Client cards
   y += 28;
   [
-    { label: "EMITENT", x: leftX },
-    { label: "CLIENT", x: leftX + pageWidth / 2 + 8 },
+    { label: isBilingual ? "EMITENT / SUPPLIER" : "EMITENT", x: leftX },
+    { label: isBilingual ? "CLIENT / CUSTOMER" : "CLIENT", x: leftX + pageWidth / 2 + 8 },
   ].forEach((col, idx) => {
     const isClient = idx === 1;
     const name = isClient ? data.clientName : data.companyName;
     const cui = isClient ? data.clientCUI : data.companyCUI;
     const addr = isClient
-      ? `${data.clientAddress}, ${data.clientCity}`
-      : `${data.companyAddress}, ${data.companyCity}`;
+      ? [data.clientAddress, data.clientCity, data.clientCounty, data.clientCountry]
+          .map(s => (s || "").trim().replace(/,+$/, ""))
+          .filter(Boolean)
+          .join(", ")
+      : [data.companyAddress, data.companyCity, data.companyCounty, data.companyCountry]
+          .map(s => (s || "").trim().replace(/,+$/, ""))
+          .filter(Boolean)
+          .join(", ");
     const contact = isClient
       ? `${data.clientPhone} | ${data.clientEmail}`
       : `${data.companyPhone} | ${data.companyEmail}`;
@@ -612,7 +768,7 @@ function generateModern(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
       .fontSize(8)
       .font("Roboto")
       .fillColor("#475569")
-      .text(`CUI: ${cui}`, col.x + 10, y + 36);
+      .text(`${L.cif} ${cui}`, col.x + 10, y + 36);
     doc.text(addr, col.x + 10, y + 48, { width: pageWidth / 2 - 22 });
     if (banking)
       doc.text(banking, col.x + 10, y + 60, { width: pageWidth / 2 - 22 });
@@ -625,17 +781,17 @@ function generateModern(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   const colWidths = { desc: 210, qty: 55, price: 85, vat: 45, total: 85 };
   doc.rect(leftX, y, pageWidth, 22).fillColor(accentBlue).fill();
   doc.fontSize(8).font("Roboto-Bold").fillColor("#ffffff");
-  doc.text("DESCRIERE", leftX + 5, y + 6, { width: colWidths.desc - 8 });
-  doc.text("CANT.", leftX + colWidths.desc, y + 6, {
+  doc.text(isBilingual ? "DESCRIERE / DESCRIPTION" : "DESCRIERE", leftX + 5, y + 6, { width: colWidths.desc - 8 });
+  doc.text(isBilingual ? "CANT./QTY" : "CANT.", leftX + colWidths.desc, y + 6, {
     width: colWidths.qty - 4,
     align: "right",
   });
-  doc.text("PREȚ/U", leftX + colWidths.desc + colWidths.qty, y + 6, {
+  doc.text(isBilingual ? "PREȚ / UNIT" : "PREȚ/U", leftX + colWidths.desc + colWidths.qty, y + 6, {
     width: colWidths.price - 4,
     align: "right",
   });
   doc.text(
-    "TVA",
+    isBilingual ? "TVA/VAT" : "TVA",
     leftX + colWidths.desc + colWidths.qty + colWidths.price,
     y + 6,
     { width: colWidths.vat - 4, align: "right" }
@@ -657,7 +813,7 @@ function generateModern(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
       .fontSize(8.5)
       .font("Roboto-Bold")
       .fillColor("#64748b")
-      .text("OBSERVAȚII:", leftX, y);
+      .text(L.notesUpper, leftX, y);
     doc
       .fontSize(8.5)
       .font("Roboto")
@@ -691,6 +847,9 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   const now = new Date();
   const accentGreen = "#059669";
 
+  const isBilingual = isBilingualInvoice(data);
+  const L = getLabels(isBilingual);
+
   let y = 50;
 
   if (data.logoBase64) {
@@ -700,13 +859,13 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
 
   // Title left-aligned
   doc
-    .fontSize(28)
+    .fontSize(isBilingual ? 22 : 28)
     .font("Roboto-Bold")
     .fillColor("#0f172a")
-    .text("Factură", leftX, y);
+    .text(L.title, leftX, y);
   doc
-    .moveTo(leftX, y + 38)
-    .lineTo(leftX + 60, y + 38)
+    .moveTo(leftX, y + (isBilingual ? 32 : 38))
+    .lineTo(leftX + 60, y + (isBilingual ? 32 : 38))
     .strokeColor(accentGreen)
     .lineWidth(3)
     .stroke();
@@ -714,14 +873,14 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
 
   // Metadata pills
   doc.fontSize(9).font("Roboto").fillColor("#64748b");
-  doc.text(`Nr. ${data.number}`, leftX, y);
+  doc.text(`${L.number} ${data.number}`, leftX, y);
   doc.text(
-    `Emisă: ${new Date(data.date).toLocaleDateString("ro-RO")}`,
+    `${isBilingual ? "Date:" : "Emisă:"} ${new Date(data.date).toLocaleDateString("ro-RO")}`,
     leftX + 120,
     y
   );
   doc.text(
-    `Scadentă: ${new Date(data.dueDate).toLocaleDateString("ro-RO")}`,
+    `${isBilingual ? "Due:" : "Scadentă:"} ${new Date(data.dueDate).toLocaleDateString("ro-RO")}`,
     leftX + 260,
     y
   );
@@ -740,8 +899,8 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     .fontSize(8)
     .font("Roboto-Bold")
     .fillColor("#94a3b8")
-    .text("DE LA", leftX, y)
-    .text("CĂTRE", leftX + pageWidth / 2, y);
+    .text(L.from, leftX, y)
+    .text(L.to, leftX + pageWidth / 2, y);
   y += 12;
   doc
     .fontSize(10)
@@ -752,12 +911,20 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   y += 15;
   doc.fontSize(8.5).font("Roboto").fillColor("#475569");
   doc
-    .text(`CUI: ${data.companyCUI}`, leftX, y)
-    .text(`CUI: ${data.clientCUI}`, leftX + pageWidth / 2, y);
+    .text(`${L.cif} ${data.companyCUI}`, leftX, y)
+    .text(`${L.cif} ${data.clientCUI}`, leftX + pageWidth / 2, y);
   y += 12;
+  const minCompAddr = [data.companyAddress, data.companyCity, data.companyCounty, data.companyCountry]
+    .map(s => (s || "").trim().replace(/,+$/, ""))
+    .filter(Boolean)
+    .join(", ");
+  const minCliAddr = [data.clientAddress, data.clientCity, data.clientCounty, data.clientCountry]
+    .map(s => (s || "").trim().replace(/,+$/, ""))
+    .filter(Boolean)
+    .join(", ");
   doc
-    .text(data.companyAddress, leftX, y, { width: pageWidth / 2 - 20 })
-    .text(data.clientAddress, leftX + pageWidth / 2, y, {
+    .text(minCompAddr, leftX, y, { width: pageWidth / 2 - 20 })
+    .text(minCliAddr, leftX + pageWidth / 2, y, {
       width: pageWidth / 2,
     });
   y += 12;
@@ -778,16 +945,16 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   // Table — minimal, no box, just subtle lines
   const colWidths = { desc: 210, qty: 55, price: 85, vat: 45, total: 85 };
   doc.fontSize(8).font("Roboto-Bold").fillColor("#94a3b8");
-  doc.text("DESCRIERE", leftX, y, { width: colWidths.desc });
-  doc.text("CANT.", leftX + colWidths.desc, y, {
+  doc.text(isBilingual ? "DESCRIERE / DESCRIPTION" : "DESCRIERE", leftX, y, { width: colWidths.desc });
+  doc.text(isBilingual ? "CANT./QTY" : "CANT.", leftX + colWidths.desc, y, {
     width: colWidths.qty,
     align: "right",
   });
-  doc.text("PREȚ/U", leftX + colWidths.desc + colWidths.qty, y, {
+  doc.text(isBilingual ? "PREȚ / UNIT" : "PREȚ/U", leftX + colWidths.desc + colWidths.qty, y, {
     width: colWidths.price,
     align: "right",
   });
-  doc.text("TVA", leftX + colWidths.desc + colWidths.qty + colWidths.price, y, {
+  doc.text(isBilingual ? "TVA/VAT" : "TVA", leftX + colWidths.desc + colWidths.qty + colWidths.price, y, {
     width: colWidths.vat,
     align: "right",
   });
@@ -817,6 +984,10 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
         .fillColor("#f8fafc")
         .fill();
     }
+    const lineVal = line.quantity * line.unitPrice;
+    const lineVat = (lineVal * (line.vatRate || 0)) / 100;
+    const lineTotal = lineVal + lineVat;
+
     doc.fontSize(9).font("Roboto").fillColor("#1e293b");
     doc.text(line.description, leftX, y + 3, { width: colWidths.desc - 8 });
     doc.text(String(line.quantity), leftX + colWidths.desc, y + 3, {
@@ -836,7 +1007,7 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
       { width: colWidths.vat - 4, align: "right" }
     );
     doc.text(
-      `${line.total.toFixed(2)} ${data.currency}`,
+      `${lineTotal.toFixed(2)} ${data.currency}`,
       leftX + colWidths.desc + colWidths.qty + colWidths.price + colWidths.vat,
       y + 3,
       { width: colWidths.total - 4, align: "right" }
@@ -853,20 +1024,23 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   y += 18;
 
   // Totals right-aligned, minimal
-  const totW = 220;
+  const totW = isBilingual ? 260 : 220;
   const totX = leftX + pageWidth - totW;
+  const labelW = isBilingual ? 160 : 130;
+  const valW = totW - labelW;
+
   doc.fontSize(9).font("Roboto").fillColor("#64748b");
   doc
-    .text("Subtotal:", totX, y)
-    .text(`${data.subtotal.toFixed(2)} ${data.currency}`, totX + 130, y, {
-      width: 85,
+    .text(L.subtotalAlt, totX, y, { width: labelW })
+    .text(`${data.subtotal.toFixed(2)} ${data.currency}`, totX + labelW, y, {
+      width: valW,
       align: "right",
     });
   y += 16;
   doc
-    .text("TVA:", totX, y)
-    .text(`${data.totalVAT.toFixed(2)} ${data.currency}`, totX + 130, y, {
-      width: 85,
+    .text(L.totalVat, totX, y, { width: labelW })
+    .text(`${data.totalVAT.toFixed(2)} ${data.currency}`, totX + labelW, y, {
+      width: valW,
       align: "right",
     });
   y += 16;
@@ -877,11 +1051,11 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     .lineWidth(1.5)
     .stroke();
   y += 10;
-  doc.fontSize(13).font("Roboto-Bold").fillColor("#0f172a");
+  doc.fontSize(isBilingual ? 11 : 13).font("Roboto-Bold").fillColor("#0f172a");
   doc
-    .text("Total:", totX, y)
-    .text(`${data.total.toFixed(2)} ${data.currency}`, totX + 130, y, {
-      width: 85,
+    .text(L.totalDue, totX, y, { width: labelW })
+    .text(`${data.total.toFixed(2)} ${data.currency}`, totX + labelW, y, {
+      width: valW,
       align: "right",
     });
 
@@ -891,7 +1065,7 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
       .fontSize(8.5)
       .font("Roboto-Bold")
       .fillColor("#94a3b8")
-      .text("OBSERVAȚII", leftX, y);
+      .text(L.notesUpper, leftX, y);
     y += 12;
     doc
       .fontSize(8.5)

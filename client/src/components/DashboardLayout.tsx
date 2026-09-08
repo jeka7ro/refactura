@@ -337,7 +337,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               </div>
               <div className="text-slate-500 font-medium text-xs truncate mt-0.5">
                 {(user as any)?.tenantCUI
-                  ? `RO${(user as any).tenantCUI}`
+                  ? String((user as any).tenantCUI).toUpperCase().startsWith("RO")
+                    ? String((user as any).tenantCUI).toUpperCase()
+                    : `RO${(user as any).tenantCUI}`
                   : user?.email || ""}
               </div>
             </div>
@@ -380,11 +382,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Logo */}
         <Link href="/">
           <div className="flex items-center flex-shrink-0 mr-2 cursor-pointer hover:opacity-90 transition-opacity">
-            <img
-              src="/logo_spv2.png"
-              alt="Factura SPV"
-              className="h-14 sm:h-16 w-auto object-contain flex-shrink-0 z-10"
-            />
+            {collapsed ? (
+              <img
+                src="/logo_icon_spv.png"
+                alt="Factura SPV"
+                className="h-10 w-10 object-contain flex-shrink-0 z-10 transition-all duration-200"
+              />
+            ) : (
+              <img
+                src="/logo_spv2.png"
+                alt="Factura SPV"
+                className="h-14 sm:h-16 w-auto object-contain flex-shrink-0 z-10 transition-all duration-200"
+              />
+            )}
           </div>
         </Link>
 

@@ -34,11 +34,16 @@ export async function uploadInvoiceToSPV(
       return { success: false, error: "SPV Nu este integrat sau token lipsă." };
     }
 
+    const cleanCif = (cif || "").replace(/\D/g, "");
+    if (!cleanCif) {
+      return { success: false, error: "CIF/CUI invalid sau lipsă pentru trimitere SPV." };
+    }
+
     const token = intg[0].apiKey;
-    const url = `${ANAF_UPLOAD_URL}${cif}`;
+    const url = `${ANAF_UPLOAD_URL}${cleanCif}`;
 
     console.log(
-      `[SPV Upload] Trimitere factura ID ${invoiceId} pentru CIF ${cif}`
+      `[SPV Upload] Trimitere factura ID ${invoiceId} pentru CIF ${cleanCif}`
     );
 
     // Create a Blob from the XML string to send as multipart/form-data if required, or raw body?
@@ -58,20 +63,24 @@ export async function uploadInvoiceToSPV(
       `[SPV Upload] Status HTTP: ${response.status}. Răspuns: ${responseText}`
     );
 
+    let errorMatch =
+      responseText.match(/errorMessage=["'](.*?)["']/i) ||
+      responseText.match(/<Errors[^>]*>([\s\S]*?)<\/Errors>/i) ||
+      responseText.match(/<eroare>(.*?)<\/eroare>/i);
+
     if (!response.ok) {
+      const errMsg = errorMatch ? errorMatch[1].trim() : responseText;
       return {
         success: false,
-        error: `Eroare ${response.status}: ${responseText}`,
+        error: `Eroare ${response.status}: ${errMsg}`,
       };
     }
 
     // Response structure:
     // <?xml version="1.0" encoding="UTF-8" standalone="yes"?><dateRsp><cui>42322117</cui><dateResponse><ExecutionStatus>0</ExecutionStatus><index_incarcare>66612345</index_incarcare></dateResponse></dateRsp>
-    // Sometimes it's JSON if we ask for it? Let's parse XML simply via regex or fast-xml-parser
     let indexMatch =
       responseText.match(/<index_incarcare>(\d+)<\/index_incarcare>/i) ||
       responseText.match(/index_incarcare=["'](\d+)["']/i);
-    let errorMatch = responseText.match(/<Errors[^>]*>(.*?)<\/Errors>/i) || responseText.match(/errorMessage=["'](.*?)["']/i);
 
     if (indexMatch && indexMatch[1]) {
       const spvIndex = indexMatch[1];
@@ -89,7 +98,7 @@ export async function uploadInvoiceToSPV(
       return { success: true, index_incarcare: spvIndex };
     } else {
       // Failed to parse index, likely an ANAF error response
-      const errMsg = errorMatch ? errorMatch[1] : responseText;
+      const errMsg = errorMatch ? errorMatch[1].trim() : responseText;
       await db
         .update(reInvoices)
         .set({

@@ -34,6 +34,7 @@ import {
   getAdminStats,
   getAllAccounts,
   getAllTenants,
+  getAdminUserActivity,
   recordPageVisit,
   getPageVisitStats,
   getAllModules,
@@ -191,6 +192,20 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         return createTenant(input);
       }),
+    current: protectedProcedure.query(async ({ ctx }) => {
+      const tenantId = ctx.user?.tenantId;
+      if (!tenantId) return null;
+      const db = await getDb();
+      if (!db) return null;
+      const { tenants } = await import("../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      const [t] = await db
+        .select()
+        .from(tenants)
+        .where(eq(tenants.id, tenantId))
+        .limit(1);
+      return t || null;
+    }),
     updateSettings: protectedProcedure
       .input(
         z.object({
@@ -203,7 +218,8 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        
+        const tenantId = ctx.user?.tenantId;
+        if (!tenantId) throw new Error("No active tenant");
         const db = await getDb();
         if (!db) throw new Error("No DB");
         const { tenants } = await import("../drizzle/schema");
@@ -211,7 +227,7 @@ export const appRouter = router({
         await db
           .update(tenants)
           .set(input)
-          .where(eq(tenants.id, (ctx.user?.tenantId || 1)));
+          .where(eq(tenants.id, tenantId));
         return { success: true };
       }),
   }),
@@ -957,35 +973,99 @@ export const appRouter = router({
         const db = await import("./db").then(m => m.getDb());
         if (!db) throw new Error("DB not available");
 
-        const { eq, or, and } = await import("drizzle-orm");
-        const { reInvoices, invoiceArchive } =
+        const { eq, or, and, sql, desc } = await import("drizzle-orm");
+        const { emittedInvoices, reInvoices, invoiceArchive } =
           await import("../drizzle/schema");
 
-        // Facturi emise către client
-        const sentInvoices = await db
+        const rawCui = (client.cui || "").trim();
+        const cleanCui = rawCui.replace(/^[A-Z]{2}/i, "").trim();
+
+        // Facturi emise către client (atât din modulul nou de Facturi Emise cât și din Re-Facturi)
+        const emitted = await db
+          .select()
+          .from(emittedInvoices)
+          .where(
+            and(
+              eq(emittedInvoices.tenantId, (ctx.user?.tenantId || 1)),
+              or(
+                eq(emittedInvoices.clientId, client.id),
+                rawCui ? eq(emittedInvoices.clientCUI, rawCui) : sql`1=0`,
+                cleanCui
+                  ? sql`REPLACE(REPLACE(REPLACE(UPPER(${emittedInvoices.clientCUI}), 'RO', ''), 'BE', ''), ' ', '') = ${cleanCui.toUpperCase()}`
+                  : sql`1=0`,
+                sql`LOWER(TRIM(${emittedInvoices.clientName})) = LOWER(TRIM(${client.name}))`
+              )
+            )
+          )
+          .orderBy(desc(emittedInvoices.issueDate), desc(emittedInvoices.id));
+
+        const reinv = await db
           .select()
           .from(reInvoices)
           .where(
             and(
               eq(reInvoices.tenantId, (ctx.user?.tenantId || 1)),
-              eq(reInvoices.clientId, client.id)
+              or(
+                eq(reInvoices.clientId, client.id),
+                rawCui ? eq(reInvoices.clientCUI, rawCui) : sql`1=0`,
+                cleanCui
+                  ? sql`REPLACE(REPLACE(REPLACE(UPPER(${reInvoices.clientCUI}), 'RO', ''), 'BE', ''), ' ', '') = ${cleanCui.toUpperCase()}`
+                  : sql`1=0`,
+                sql`LOWER(TRIM(${reInvoices.clientName})) = LOWER(TRIM(${client.name}))`
+              )
             )
           )
-          .orderBy(reInvoices.issueDate);
+          .orderBy(desc(reInvoices.issueDate), desc(reInvoices.id));
 
-        // Facturi primite de la client (după CUI)
+        const sentInvoices = [
+          ...emitted.map(e => {
+            const rawNum = (e.number || `FACT-${e.id}`).trim();
+            const rawSer = (e.series || "").trim();
+            const fullNum = rawNum.toUpperCase().startsWith(rawSer.toUpperCase())
+              ? rawNum
+              : `${rawSer} ${rawNum}`.trim();
+            return {
+              id: e.id,
+              number: fullNum,
+              issueDate: e.issueDate,
+              dueDate: e.dueDate,
+              total: e.total,
+              currency: e.currency || "RON",
+              status: e.status || "draft",
+              type: "emitted",
+            };
+          }),
+          ...reinv.map(r => ({
+            id: r.id,
+            number: r.number || `RF-${r.id}`,
+            issueDate: r.issueDate,
+            dueDate: r.dueDate,
+            total: r.total,
+            currency: r.currency || "RON",
+            status: r.status || "draft",
+            type: "reinvoice",
+          })),
+        ];
+
+        // Facturi primite de la client (în cazul în care este și furnizor)
         let receivedInvoices: any[] = [];
-        if (client.cui) {
+        if (client.cui || client.name) {
           receivedInvoices = await db
             .select()
             .from(invoiceArchive)
             .where(
               and(
                 eq(invoiceArchive.tenantId, (ctx.user?.tenantId || 1)),
-                eq(invoiceArchive.supplierCUI, client.cui)
+                or(
+                  rawCui ? eq(invoiceArchive.supplierCUI, rawCui) : sql`1=0`,
+                  cleanCui
+                    ? sql`REPLACE(REPLACE(REPLACE(UPPER(${invoiceArchive.supplierCUI}), 'RO', ''), 'BE', ''), ' ', '') = ${cleanCui.toUpperCase()}`
+                    : sql`1=0`,
+                  sql`LOWER(TRIM(${invoiceArchive.supplierName})) = LOWER(TRIM(${client.name}))`
+                )
               )
             )
-            .orderBy(invoiceArchive.issueDate);
+            .orderBy(desc(invoiceArchive.issueDate), desc(invoiceArchive.id));
         }
 
         return { client, sentInvoices, receivedInvoices };
@@ -1094,6 +1174,12 @@ export const appRouter = router({
       if (ctx.user?.role !== "superadmin" && ctx.user?.role !== "admin")
         throw new Error("Forbidden");
       return getAllTenants();
+    }),
+    // User Activity & Logins list
+    userActivity: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user?.role !== "superadmin" && ctx.user?.role !== "admin")
+        throw new Error("Forbidden");
+      return getAdminUserActivity();
     }),
     // Subscription plans CRUD
     plans: protectedProcedure.query(async ({ ctx }) => {
@@ -1686,7 +1772,8 @@ export const appRouter = router({
           name: input.name,
           unit: input.unit || "buc",
           defaultPrice: String(input.defaultPrice || 0),
-          defaultVatRate: input.defaultVatRate || 21,
+          defaultVatRate:
+            input.defaultVatRate !== undefined ? input.defaultVatRate : 21,
         });
         return { id: result[0].insertId };
       }),
@@ -1798,6 +1885,21 @@ export const appRouter = router({
         return { ...inv, lines };
       }),
 
+    seriesList: protectedProcedure.query(async ({ ctx }) => {
+      if (!ctx.user?.tenantId) return ["FACT", "INV"];
+      const db = await getDb();
+      if (!db) return ["FACT", "INV"];
+      const { emittedInvoices } = await import("../drizzle/schema");
+      const rows = await db
+        .selectDistinct({ series: emittedInvoices.series })
+        .from(emittedInvoices)
+        .where(eq(emittedInvoices.tenantId, (ctx.user?.tenantId || 1)));
+      const list = rows.map(r => r.series).filter(Boolean) as string[];
+      if (!list.includes("FACT")) list.unshift("FACT");
+      if (!list.includes("INV")) list.push("INV");
+      return list;
+    }),
+
     nextNumber: protectedProcedure
       .input(z.object({ series: z.string().default("FACT") }))
       .query(async ({ input, ctx }) => {
@@ -1807,13 +1909,14 @@ export const appRouter = router({
         const { emittedInvoices } = await import("../drizzle/schema");
         const { desc } = await import("drizzle-orm");
         const { sql } = await import("drizzle-orm");
+        const cleanSeries = (input.series || "FACT").trim().toUpperCase();
         const last = await db
           .select({ number: emittedInvoices.number })
           .from(emittedInvoices)
           .where(
             and(
               eq(emittedInvoices.tenantId, (ctx.user?.tenantId || 1)),
-              sql`${emittedInvoices.series} = ${input.series}`
+              sql`UPPER(${emittedInvoices.series}) = ${cleanSeries}`
             )
           )
           .orderBy(desc(emittedInvoices.id))
@@ -1823,7 +1926,7 @@ export const appRouter = router({
           const match = last[0].number.match(/(\d+)$/);
           if (match) nextNum = parseInt(match[1]) + 1;
         }
-        return `${input.series}-${String(nextNum).padStart(4, "0")}`;
+        return `${cleanSeries}-${String(nextNum).padStart(4, "0")}`;
       }),
 
     create: protectedProcedure
@@ -1831,6 +1934,8 @@ export const appRouter = router({
         z.object({
           number: z.string(),
           series: z.string().optional(),
+          companyIBAN: z.string().optional(),
+          companyBank: z.string().optional(),
           clientId: z.number().optional(),
           clientName: z.string(),
           clientCUI: z.string().optional(),
@@ -1863,6 +1968,7 @@ export const appRouter = router({
               devizType: z.string().nullable().optional(),
             })
           ),
+          createDeviz: z.boolean().default(false).optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -1871,7 +1977,7 @@ export const appRouter = router({
         if (!db) throw new Error("No DB");
         const { emittedInvoices, emittedInvoiceLines } =
           await import("../drizzle/schema");
-        const { lines, ...invoiceData } = input;
+        const { lines, createDeviz, ...invoiceData } = input;
 
         let safeCountry = "RO";
         if (invoiceData.clientCountry) {
@@ -1902,6 +2008,17 @@ export const appRouter = router({
 
             if (existing.length > 0) {
               assignedClientId = existing[0].id;
+              const updateClientData: any = {};
+              if (invoiceData.clientAddress) updateClientData.address = invoiceData.clientAddress.trim();
+              if (invoiceData.clientCity) updateClientData.city = invoiceData.clientCity.trim();
+              if (safeCountry) updateClientData.country = safeCountry;
+              if (invoiceData.clientEmail) updateClientData.email = invoiceData.clientEmail.trim();
+              if (invoiceData.clientPhone) updateClientData.phone = invoiceData.clientPhone.trim();
+              if (invoiceData.clientRegCom) updateClientData.regCom = invoiceData.clientRegCom.trim();
+              if (invoiceData.clientCUI) updateClientData.cui = invoiceData.clientCUI.trim();
+              if (Object.keys(updateClientData).length > 0) {
+                await db.update(clients).set(updateClientData).where(eq(clients.id, assignedClientId));
+              }
             } else {
               const [newClient] = await db
                 .insert(clients)
@@ -1923,7 +2040,29 @@ export const appRouter = router({
           } catch (err) {
             console.error("Failed to auto-save client:", err);
           }
+        } else if (assignedClientId) {
+          try {
+            const { clients } = await import("../drizzle/schema");
+            const updateClientData: any = {};
+            if (invoiceData.clientAddress) updateClientData.address = invoiceData.clientAddress.trim();
+            if (invoiceData.clientCity) updateClientData.city = invoiceData.clientCity.trim();
+            if (safeCountry) updateClientData.country = safeCountry;
+            if (invoiceData.clientEmail) updateClientData.email = invoiceData.clientEmail.trim();
+            if (invoiceData.clientPhone) updateClientData.phone = invoiceData.clientPhone.trim();
+            if (invoiceData.clientRegCom) updateClientData.regCom = invoiceData.clientRegCom.trim();
+            if (invoiceData.clientCUI) updateClientData.cui = invoiceData.clientCUI.trim();
+            if (Object.keys(updateClientData).length > 0) {
+              await db.update(clients).set(updateClientData).where(eq(clients.id, assignedClientId));
+            }
+          } catch (err) {
+            console.error("Failed to sync client:", err);
+          }
         }
+
+        const isExternal =
+          (safeCountry && safeCountry.toUpperCase() !== "RO") ||
+          (invoiceData.currency && invoiceData.currency !== "RON" && safeCountry !== "RO") ||
+          (/^[A-Za-z]{2}/.test(invoiceData.clientCUI || "") && !invoiceData.clientCUI?.toUpperCase().startsWith("RO"));
 
         const [result] = await db
           .insert(emittedInvoices)
@@ -1935,6 +2074,7 @@ export const appRouter = router({
             subtotal: String(invoiceData.subtotal),
             totalVAT: String(invoiceData.totalVAT),
             total: String(invoiceData.total),
+            spvStatus: isExternal ? "extern" : "nesincronizat",
           } as any)
           .$returningId();
         const invoiceId = result.id;
@@ -1944,7 +2084,7 @@ export const appRouter = router({
           l => l.devizType && l.devizType !== "GROUPED_LABOR"
         );
 
-        if (catalogLines.length > 0) {
+        if (input.createDeviz && catalogLines.length > 0) {
           const { devize, devizeLines, bonuriConsum, bonuriConsumLines } =
             await import("../drizzle/schema");
           const devizNum = `DEV-${invoiceId}`;
@@ -2117,12 +2257,15 @@ export const appRouter = router({
           id: z.number(),
           number: z.string().optional(),
           series: z.string().optional(),
+          companyIBAN: z.string().optional(),
+          companyBank: z.string().optional(),
           clientId: z.number().optional(),
           clientName: z.string().optional(),
           clientCUI: z.string().optional(),
           clientRegCom: z.string().optional(),
           clientAddress: z.string().optional(),
           clientCity: z.string().optional(),
+          clientCountry: z.string().optional(),
           clientEmail: z.string().optional(),
           clientPhone: z.string().optional(),
           issueDate: z.string().optional(),
@@ -2150,6 +2293,7 @@ export const appRouter = router({
               })
             )
             .optional(),
+          createDeviz: z.boolean().optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -2158,7 +2302,7 @@ export const appRouter = router({
         if (!db) throw new Error("No DB");
         const { emittedInvoices, emittedInvoiceLines } =
           await import("../drizzle/schema");
-        const { id, lines, ...data } = input;
+        const { id, lines, createDeviz, ...data } = input;
         const updateData: any = {};
         if (data.subtotal !== undefined)
           updateData.subtotal = String(data.subtotal);
@@ -2173,6 +2317,14 @@ export const appRouter = router({
           updateData.clientAddress = data.clientAddress;
         if (data.clientCity !== undefined)
           updateData.clientCity = data.clientCity;
+        if (data.clientCountry !== undefined) {
+          updateData.clientCountry = data.clientCountry.trim().slice(0, 2).toUpperCase();
+        } else if (data.clientCUI) {
+          const m = data.clientCUI.trim().match(/^([A-Za-z]{2})/);
+          if (m && m[1].toUpperCase() !== "RO") {
+            updateData.clientCountry = m[1].toUpperCase();
+          }
+        }
         if (data.clientEmail !== undefined)
           updateData.clientEmail = data.clientEmail;
         if (data.clientPhone !== undefined)
@@ -2184,6 +2336,13 @@ export const appRouter = router({
         if (data.notes !== undefined) updateData.notes = data.notes;
         if (data.number) updateData.number = data.number;
         if (data.series) updateData.series = data.series;
+        if (updateData.clientCountry && updateData.clientCountry !== "RO") {
+          updateData.spvStatus = "extern";
+          updateData.spvError = null;
+        } else if (updateData.clientCUI && /^[A-Za-z]{2}/.test(updateData.clientCUI) && !updateData.clientCUI.toUpperCase().startsWith("RO")) {
+          updateData.spvStatus = "extern";
+          updateData.spvError = null;
+        }
         if (Object.keys(updateData).length > 0) {
           await db
             .update(emittedInvoices)
@@ -2194,6 +2353,25 @@ export const appRouter = router({
                 eq(emittedInvoices.tenantId, (ctx.user?.tenantId || 1))
               )
             );
+
+          if (data.clientId) {
+            try {
+              const { clients } = await import("../drizzle/schema");
+              const updateClientData: any = {};
+              if (data.clientAddress !== undefined) updateClientData.address = data.clientAddress.trim() || null;
+              if (data.clientCity !== undefined) updateClientData.city = data.clientCity.trim() || null;
+              if (updateData.clientCountry) updateClientData.country = updateData.clientCountry;
+              if (data.clientEmail !== undefined) updateClientData.email = data.clientEmail.trim() || null;
+              if (data.clientPhone !== undefined) updateClientData.phone = data.clientPhone.trim() || null;
+              if (data.clientRegCom !== undefined) updateClientData.regCom = data.clientRegCom.trim() || null;
+              if (data.clientCUI !== undefined) updateClientData.cui = data.clientCUI.trim() || null;
+              if (Object.keys(updateClientData).length > 0) {
+                await db.update(clients).set(updateClientData).where(eq(clients.id, data.clientId));
+              }
+            } catch (e) {
+              console.error("Failed to sync client on update:", e);
+            }
+          }
         }
         if (lines) {
           const { devize, devizeLines, bonuriConsum, bonuriConsumLines } =
@@ -2238,7 +2416,7 @@ export const appRouter = router({
               l => l.devizType && l.devizType !== "GROUPED_LABOR"
             );
 
-            if (devizAllLines.length > 0) {
+            if (createDeviz && devizAllLines.length > 0) {
               const devizNum = `DEV-${id}`;
               let tMat = 0;
               let tLab = 0;
@@ -2434,6 +2612,22 @@ export const appRouter = router({
             )
           );
         if (!inv) throw new Error("Invoice not found");
+
+        const isExternal =
+          inv.spvStatus === "extern" ||
+          (inv.clientCountry && inv.clientCountry.toUpperCase() !== "RO") ||
+          (/^[A-Za-z]{2}/.test(inv.clientCUI || "") && !inv.clientCUI?.toUpperCase().startsWith("RO"));
+
+        if (isExternal) {
+          await db
+            .update(emittedInvoices)
+            .set({ spvStatus: "extern", spvError: null })
+            .where(eq(emittedInvoices.id, input.id));
+          return {
+            success: false,
+            error: "Facturile emise către clienți din afara României (extern/intracomunitar) nu se transmit în sistemul RO e-Factura. Acestea se declară în Declarația 390 VIES și se transmit clientului pe e-mail.",
+          };
+        }
         const lines = await db
           .select()
           .from(emittedInvoiceLines)
@@ -2472,7 +2666,13 @@ export const appRouter = router({
             success: false,
             error: "SPV nu este conectat sau token lipsă.",
           };
-        const cui = (tenantData.cui || "").replace(/[^A-Z0-9]/gi, "");
+        const cui = (tenantData.cui || "").replace(/\D/g, "");
+        if (!cui) {
+          return {
+            success: false,
+            error: "CUI-ul companiei este invalid sau lipsește.",
+          };
+        }
         const uploadUrl = `https://api.anaf.ro/prod/FCTEL/rest/upload?standard=UBL&cif=${cui}`;
         const response = await fetch(uploadUrl, {
           method: "POST",
@@ -2503,8 +2703,11 @@ export const appRouter = router({
             .where(eq(emittedInvoices.id, input.id));
           return { success: true, index_incarcare: spvIndex };
         } else {
-          const errMatch = responseText.match(/<eroare>(.*?)<\/eroare>/i);
-          const errMsg = errMatch?.[1] || responseText;
+          const errMatch =
+            responseText.match(/errorMessage=["'](.*?)["']/i) ||
+            responseText.match(/<Errors[^>]*>([\s\S]*?)<\/Errors>/i) ||
+            responseText.match(/<eroare>(.*?)<\/eroare>/i);
+          const errMsg = errMatch?.[1]?.trim() || responseText;
           await db
             .update(emittedInvoices)
             .set({ spvStatus: "eroare", spvError: errMsg, rawXml: xmlContent })

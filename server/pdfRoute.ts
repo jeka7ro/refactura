@@ -71,7 +71,7 @@ export function registerPdfRoute(app: any) {
         `${isDownload ? "attachment" : "inline"}; filename="${filename}"`
       );
 
-      let logoBase64 = settings.logoBase64 || "DEFAULT_TEXT_LOGO";
+      let logoBase64 = settings.logoBase64 || undefined;
 
       const pdfStream = generateReInvoicePDF({
         number: ri.number || `RF-${id}`,
@@ -82,6 +82,7 @@ export function registerPdfRoute(app: any) {
         clientAddress: ri.clientAddress || "",
         clientCity: ri.clientCity || "",
         clientCounty: "",
+        clientCountry: (ri as any).clientCountry || "",
         clientEmail: ri.clientEmail || "",
         clientPhone: ri.clientPhone || "",
         companyName: tenant?.name || "",
@@ -89,6 +90,7 @@ export function registerPdfRoute(app: any) {
         companyAddress: tenant?.address || "",
         companyCity: settings.city || "",
         companyCounty: settings.county || "",
+        companyCountry: settings.country || "RO",
         companyEmail: tenant?.email || "",
         companyPhone: tenant?.phone || "",
         companyIBAN: settings.iban || "",
@@ -452,8 +454,13 @@ export function registerPdfRoute(app: any) {
         settings = JSON.parse(tenant?.settings || "{}");
       } catch {}
 
+      const rawNum = (inv.number || `FACT-${id}`).trim();
+      const rawSer = (inv.series || "").trim();
+      const cleanDisplayNum = rawNum.toUpperCase().startsWith(rawSer.toUpperCase())
+        ? rawNum
+        : `${rawSer} ${rawNum}`.trim();
+      const filename = `${rawNum.toUpperCase().startsWith(rawSer.toUpperCase()) ? rawNum : (rawSer ? `${rawSer}-${rawNum}` : rawNum)}.pdf`;
       const isDownload = req.query.download === "1";
-      const filename = `${inv.series}${inv.number || `FACT-${id}`}.pdf`;
 
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
@@ -461,28 +468,53 @@ export function registerPdfRoute(app: any) {
         `${isDownload ? "attachment" : "inline"}; filename="${filename}"`
       );
 
-      let logoBase64 = settings.logoBase64 || "DEFAULT_TEXT_LOGO";
+      let logoBase64 = settings.logoBase64 || undefined;
+
+      let targetIBAN = (inv as any).companyIBAN || "";
+      let targetBank = (inv as any).companyBank || "";
+
+      if (!targetIBAN) {
+        if (settings.bankAccounts && Array.isArray(settings.bankAccounts)) {
+          const matchingAcc = settings.bankAccounts.find(
+            (a: any) => a.currency?.toUpperCase() === (inv.currency || "RON").toUpperCase()
+          );
+          if (matchingAcc && matchingAcc.iban) {
+            targetIBAN = matchingAcc.iban;
+            targetBank = matchingAcc.bank || "";
+          }
+        }
+        if (!targetIBAN && (inv.currency || "").toUpperCase() === "EUR" && settings.ibanEur) {
+          targetIBAN = settings.ibanEur;
+          targetBank = settings.bankEur || "";
+        }
+        if (!targetIBAN) {
+          targetIBAN = settings.iban || "";
+          targetBank = settings.bank || "";
+        }
+      }
 
       const pdfStream = generateReInvoicePDF({
-        number: `${inv.series || ""} ${inv.number || ""}`.trim(),
+        number: cleanDisplayNum,
         date: inv.issueDate || new Date().toISOString().split("T")[0],
         dueDate: inv.dueDate || "",
         clientName: inv.clientName || "",
         clientCUI: inv.clientCUI || "",
         clientAddress: inv.clientAddress || "",
-        clientCity: "",
+        clientCity: inv.clientCity || "",
         clientCounty: "",
-        clientEmail: "",
-        clientPhone: "",
+        clientCountry: inv.clientCountry || "",
+        clientEmail: inv.clientEmail || "",
+        clientPhone: inv.clientPhone || "",
         companyName: tenant?.name || "",
         companyCUI: tenant?.cui || "",
         companyAddress: tenant?.address || "",
         companyCity: settings.city || "",
         companyCounty: settings.county || "",
+        companyCountry: settings.country || "RO",
         companyEmail: tenant?.email || "",
         companyPhone: tenant?.phone || "",
-        companyIBAN: settings.iban || "",
-        companyBank: settings.bank || "",
+        companyIBAN: targetIBAN,
+        companyBank: targetBank,
         logoBase64,
         template: settings.invoiceTemplate || "classic",
         lines: lines.map(l => ({
@@ -490,7 +522,12 @@ export function registerPdfRoute(app: any) {
           quantity: parseFloat(l.quantity || "1"),
           unitPrice: parseFloat(l.unitPrice || "0"),
           unit: l.unit || "buc",
-          vatRate: parseFloat(l.vatRate || "21"),
+          vatRate:
+            l.vatRate !== undefined &&
+            l.vatRate !== null &&
+            String(l.vatRate).trim() !== ""
+              ? parseFloat(String(l.vatRate))
+              : 21,
           total: parseFloat(l.total || "0"),
         })),
         subtotal: parseFloat(inv.subtotal || "0"),
@@ -608,7 +645,23 @@ export function registerPdfRoute(app: any) {
 
       // ── HEADER ──────────────────────────────────────────────────────────────
       // Logo stânga
-      const activeLogo = "DEFAULT_TEXT_LOGO"; // Ignorăm logoBase64 din baza de date pentru că utilizatorul vrea exclusiv logoul GetApp peste tot
+      const activeLogo = (logoBase64 && logoBase64 !== "DEFAULT_TEXT_LOGO") ? logoBase64 : "DEFAULT_TEXT_LOGO";
+      const cardX = 40;
+      const cardY = 20;
+      const cardW = 120;
+      const cardH = 36;
+      const cardR = 7;
+
+      doc.save();
+      doc.fillColor("#0f172a");
+      doc.roundedRect(cardX, cardY, cardW, cardH, cardR).fill();
+      doc.restore();
+
+      const padX = 7;
+      const padY = 4;
+      const imgW = cardW - padX * 2;
+      const imgH = cardH - padY * 2;
+
       if (activeLogo === "DEFAULT_TEXT_LOGO") {
         let foundPath = null;
         try {
@@ -627,17 +680,12 @@ export function registerPdfRoute(app: any) {
 
           if (foundPath) {
             const imgBuffer = fs.readFileSync(foundPath);
-            doc.image(imgBuffer, 40, 20, { width: 120 });
-            
-            // Text roșu facturaspv.ro sub logo
-            doc
-              .fontSize(5)
-              .font("Roboto-Bold")
-              .fillColor("#ef4444")
-              .text("facturaspv.ro", 68, 46, { width: 80, align: 'center', characterSpacing: 1 });
-              
-            // Adăugăm un link invizibil peste toată imaginea
-            doc.link(40, 20, 120, 45, "https://facturaspv.ro/");
+            doc.image(imgBuffer, cardX + padX, cardY + padY, {
+              fit: [imgW, imgH],
+              align: "center",
+              valign: "center",
+            });
+            doc.link(cardX, cardY, cardW, cardH, "https://facturaspv.ro/");
           } else {
             doc
               .fontSize(14)
@@ -658,7 +706,11 @@ export function registerPdfRoute(app: any) {
             logoBase64!.replace(/^data:image\/\w+;base64,/, ""),
             "base64"
           );
-          doc.image(imgBuf, 40, 30, { height: 50, fit: [160, 50] });
+          doc.image(imgBuf, cardX + padX, cardY + padY, {
+            fit: [imgW, imgH],
+            align: "center",
+            valign: "center",
+          });
         } catch {
           doc
             .fontSize(14)

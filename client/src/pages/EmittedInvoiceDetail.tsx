@@ -21,6 +21,26 @@ import {
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
+function formatInvoiceNumber(series?: string | null, num?: string | null) {
+  if (!num) return series || "";
+  if (!series) return num;
+  const s = series.trim();
+  const n = num.trim();
+  if (n.toUpperCase().startsWith(s.toUpperCase())) {
+    return n;
+  }
+  return `${s} ${n}`;
+}
+
+function isExternalInvoice(inv: any) {
+  if (inv?.spvStatus === "extern") return true;
+  const country = (inv?.clientCountry || "").trim().toUpperCase();
+  if (country && country !== "RO") return true;
+  const cui = (inv?.clientCUI || "").trim().toUpperCase();
+  if (cui && /^[A-Z]{2}/.test(cui) && !cui.startsWith("RO")) return true;
+  return false;
+}
+
 export default function EmittedInvoiceDetail() {
   const { id } = useParams<{ id: string }>();
   const invoiceId = parseInt(id || "0");
@@ -102,7 +122,7 @@ export default function EmittedInvoiceDetail() {
           </button>
           <div>
             <h1 className="text-xl font-bold text-slate-900 dark:text-white">
-              Factură {invoice.series} {invoice.number}
+              Factură {formatInvoiceNumber(invoice.series, invoice.number)}
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
               {invoice.clientName || "—"} ·{" "}
@@ -158,7 +178,7 @@ export default function EmittedInvoiceDetail() {
             <div className="flex justify-between">
               <span className="text-slate-500">Număr:</span>
               <span className="text-slate-900 dark:text-white font-mono">
-                {invoice.series} {invoice.number}
+                {formatInvoiceNumber(invoice.series, invoice.number)}
               </span>
             </div>
             <div className="flex justify-between">
@@ -176,9 +196,26 @@ export default function EmittedInvoiceDetail() {
             <div className="flex justify-between mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
               <span className="text-slate-500 font-bold">Stare SPV:</span>
               <span className="text-slate-900 dark:text-white font-bold">
-                {invoice.spvStatus || "Netrimisă"}
+                {isExternalInvoice(invoice) ? (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                    Extern (D390)
+                  </span>
+                ) : invoice.spvStatus === "validat" ? (
+                  <span className="text-emerald-600 font-bold">Validată</span>
+                ) : invoice.spvStatus === "eroare" ? (
+                  <span className="text-rose-600 font-bold">Eroare</span>
+                ) : invoice.spvStatus === "in_procesare" ? (
+                  <span className="text-blue-600 font-bold">Trimisă</span>
+                ) : (
+                  invoice.spvStatus || "Netrimisă"
+                )}
               </span>
             </div>
+            {isExternalInvoice(invoice) && (
+              <div className="mt-2.5 p-2.5 rounded-lg bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/60 text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                Factură externă ({invoice.clientCountry || "UE"}). Conform legislației fiscale, operațiunile externe nu se transmit în RO e-Factura, ci se raportează în <strong>Declarația 390 VIES</strong> și se transmit clientului în format PDF pe e-mail.
+              </div>
+            )}
           </div>
         </div>
 
@@ -251,39 +288,47 @@ export default function EmittedInvoiceDetail() {
               >
                 Descarcă
               </button>
-              {(!invoice.spvStatus ||
-                invoice.spvStatus === "nesincronizat" ||
-                invoice.spvStatus === "eroare") && (
-                <button
-                  onClick={() => sendToSpv.mutate({ id: invoice.id })}
-                  disabled={sendToSpv.isPending}
-                  className="flex items-center gap-1.5 px-3 h-7 text-xs font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
-                >
-                  {sendToSpv.isPending ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Send className="w-3.5 h-3.5" />
+              {isExternalInvoice(invoice) ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 h-7 text-xs font-semibold rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                  <Globe className="w-3.5 h-3.5" /> Client Extern (Non-SPV)
+                </span>
+              ) : (
+                <>
+                  {(!invoice.spvStatus ||
+                    invoice.spvStatus === "nesincronizat" ||
+                    invoice.spvStatus === "eroare") && (
+                    <button
+                      onClick={() => sendToSpv.mutate({ id: invoice.id })}
+                      disabled={sendToSpv.isPending}
+                      className="flex items-center gap-1.5 px-3 h-7 text-xs font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+                    >
+                      {sendToSpv.isPending ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Send className="w-3.5 h-3.5" />
+                      )}
+                      Trimite SPV
+                    </button>
                   )}
-                  Trimite SPV
-                </button>
-              )}
-              {(invoice.spvStatus === "in_procesare" || invoice.spvStatus === "eroare") && (
-                <button
-                  onClick={() => checkSpvStatus.mutate({ id: invoice.id })}
-                  disabled={checkSpvStatus.isPending}
-                  className={`flex items-center gap-1.5 px-3 h-7 text-xs font-bold rounded-lg text-white transition-colors ${
-                    invoice.spvStatus === "eroare"
-                      ? "bg-rose-500 hover:bg-rose-600"
-                      : "bg-amber-500 hover:bg-amber-600"
-                  }`}
-                >
-                  {checkSpvStatus.isPending ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <RefreshCw className="w-3.5 h-3.5" />
+                  {(invoice.spvStatus === "in_procesare" || invoice.spvStatus === "eroare") && (
+                    <button
+                      onClick={() => checkSpvStatus.mutate({ id: invoice.id })}
+                      disabled={checkSpvStatus.isPending}
+                      className={`flex items-center gap-1.5 px-3 h-7 text-xs font-bold rounded-lg text-white transition-colors ${
+                        invoice.spvStatus === "eroare"
+                          ? "bg-rose-500 hover:bg-rose-600"
+                          : "bg-amber-500 hover:bg-amber-600"
+                      }`}
+                    >
+                      {checkSpvStatus.isPending ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-3.5 h-3.5" />
+                      )}
+                      Verifică Status ANAF
+                    </button>
                   )}
-                  Verifică Status ANAF
-                </button>
+                </>
               )}
             </div>
           </div>
