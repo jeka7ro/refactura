@@ -168,19 +168,19 @@ export default function SpvLogs() {
                             <DownloadCloud className="h-5 w-5 text-purple-500 mx-auto" />
                           )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="whitespace-nowrap">
                           {(() => {
                             const inTermen = log.type === "trimisa" && (log as any).issueDate
                               ? isTransmittedInDeadline((log as any).issueDate, log.date)
                               : true;
                             return (
-                              <div className={inTermen ? "text-emerald-600 dark:text-emerald-500" : "text-slate-800 dark:text-slate-200"}>
-                                <div className="font-medium">
+                              <div className={`text-xs whitespace-nowrap ${inTermen ? "text-emerald-600 dark:text-emerald-500" : "text-slate-800 dark:text-slate-200"}`}>
+                                <span className="font-medium">
                                   {format(new Date(log.date), "dd MMM yyyy", { locale: ro })}
-                                </div>
-                                <div className={`text-xs ${inTermen ? "text-emerald-600/80 dark:text-emerald-500/80" : "text-slate-500"}`}>
-                                  {format(new Date(log.date), "HH:mm:ss")}
-                                </div>
+                                </span>
+                                <span className={`ml-1.5 ${inTermen ? "text-emerald-600/80 dark:text-emerald-500/80" : "text-slate-500"}`}>
+                                  {format(new Date(log.date), "HH:mm")}
+                                </span>
                               </div>
                             );
                           })()}

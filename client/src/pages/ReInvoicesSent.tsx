@@ -257,18 +257,21 @@ export default function ReInvoicesSent() {
       key: "date",
       label: "DATĂ",
       sortable: true,
+      className: "whitespace-nowrap",
       render: (value: any) => formatDate(value),
     },
     {
       key: "dueDate",
       label: "SCADENȚĂ",
       sortable: true,
+      className: "whitespace-nowrap",
       render: (value: any) => formatDate(value),
     },
     {
       key: "total",
       label: "TOTAL",
       sortable: true,
+      className: "whitespace-nowrap",
       render: (value: number, row: any) => (
         <span>{formatCurrency(value, row.currency)}</span>
       ),
@@ -277,6 +280,7 @@ export default function ReInvoicesSent() {
       key: "status",
       label: "STATUS",
       sortable: true,
+      className: "whitespace-nowrap",
       render: (value: string) => (
         <span
           className={`px-2.5 py-0.5 rounded-full text-[11px] font-normal border ${reInvoiceStatusColors[value as ReInvoiceStatus]}`}
@@ -289,6 +293,7 @@ export default function ReInvoicesSent() {
       key: "spvStatus",
       label: "SPV",
       sortable: true,
+      className: "whitespace-nowrap",
       render: (value: string, row: any) => {
         return (
           <div className="flex flex-col items-start gap-1">
@@ -337,20 +342,21 @@ export default function ReInvoicesSent() {
       key: "spvSentAt",
       label: "DATA TRANSMISĂ",
       sortable: true,
+      className: "whitespace-nowrap",
       render: (value: any, row: any) => {
         const sentDate =
           value || (row.spvIndex && (row.updatedAt || row.createdAt));
-        if (!sentDate) return <span className="text-xs text-slate-400">—</span>;
+        if (!sentDate) return <span className="text-xs text-slate-400 whitespace-nowrap">—</span>;
         const inTermen = isTransmittedInDeadline(row.issueDate || row.date, sentDate);
         return (
-          <div className={`text-xs ${inTermen ? "text-emerald-600 dark:text-emerald-500" : "text-slate-600 dark:text-slate-300"}`}>
-            <div className="font-medium">{formatDate(sentDate)}</div>
-            <div className={`text-[10px] ${inTermen ? "text-emerald-600/80 dark:text-emerald-500/80" : "text-slate-400"}`}>
+          <div className={`text-xs whitespace-nowrap ${inTermen ? "text-emerald-600 dark:text-emerald-500" : "text-slate-600 dark:text-slate-300"}`}>
+            <span className="font-medium">{formatDate(sentDate)}</span>
+            <span className={`ml-1.5 ${inTermen ? "text-emerald-600/80 dark:text-emerald-500/80" : "text-slate-400"}`}>
               {new Date(sentDate).toLocaleTimeString("ro-RO", {
                 hour: "2-digit",
                 minute: "2-digit",
               })}
-            </div>
+            </span>
           </div>
         );
       },

@@ -412,34 +412,34 @@ export default function EmittedInvoices() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-                <th className="text-center w-12 px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <th className="text-center w-12 px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
                   Nr.
                 </th>
-                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
                   Număr Factură
                 </th>
                 <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   Client
                 </th>
-                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden md:table-cell">
+                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden md:table-cell whitespace-nowrap">
                   Dată
                 </th>
-                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden md:table-cell">
+                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden md:table-cell whitespace-nowrap">
                   Scadență
                 </th>
-                <th className="text-right px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <th className="text-right px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
                   Total
                 </th>
-                <th className="text-center px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <th className="text-center px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
                   Status
                 </th>
-                <th className="text-center px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden lg:table-cell">
+                <th className="text-center px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden lg:table-cell whitespace-nowrap">
                   SPV
                 </th>
-                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden xl:table-cell">
+                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden xl:table-cell whitespace-nowrap">
                   Data Transmisă
                 </th>
-                <th className="text-right px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <th className="text-right px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
                   Acțiuni
                 </th>
               </tr>
@@ -473,10 +473,10 @@ export default function EmittedInvoices() {
                     }
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
                   >
-                    <td className="text-center px-4 py-3 text-slate-400 text-xs">
+                    <td className="text-center px-4 py-3 text-slate-400 text-xs whitespace-nowrap">
                       {(page - 1) * rowsPerPage + idx + 1}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-1.5">
                         <span className="text-sm font-bold text-blue-600 hover:underline text-left">
                           {row.number}
@@ -499,26 +499,26 @@ export default function EmittedInvoices() {
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-500 hidden md:table-cell">
+                    <td className="px-4 py-3 text-xs text-slate-500 hidden md:table-cell whitespace-nowrap">
                       {formatDate(row.issueDate)}
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-500 hidden md:table-cell">
+                    <td className="px-4 py-3 text-xs text-slate-500 hidden md:table-cell whitespace-nowrap">
                       {formatDate(row.dueDate || "")}
                     </td>
-                    <td className="px-4 py-3 text-right font-bold text-slate-900 dark:text-white text-xs">
+                    <td className="px-4 py-3 text-right font-bold text-slate-900 dark:text-white text-xs whitespace-nowrap">
                       {formatCurrency(
                         parseFloat(String(row.total)),
                         (row.currency || "RON") as any
                       )}
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
                       <span
                         className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${STATUS_COLORS[row.status || "draft"]}`}
                       >
                         {STATUS_LABELS[row.status || "draft"]}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-center hidden lg:table-cell">
+                    <td className="px-4 py-3 text-center hidden lg:table-cell whitespace-nowrap">
                       {row._source === "archive" ? (
                         <span className="text-[10px] font-semibold text-violet-600">
                           Din SPV
@@ -560,24 +560,24 @@ export default function EmittedInvoices() {
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-left hidden xl:table-cell">
+                    <td className="px-4 py-3 text-left hidden xl:table-cell whitespace-nowrap">
                       {row.spvSentAt || (row.spvIndex && (row.updatedAt || row.createdAt)) ? (
                         (() => {
                           const sentDate = row.spvSentAt || row.updatedAt || row.createdAt;
                           const inTermen = isTransmittedInDeadline(row.issueDate, sentDate);
                           return (
-                            <div className={`text-xs ${inTermen ? "text-emerald-600 dark:text-emerald-500" : "text-slate-600 dark:text-slate-300"}`}>
-                              <div className="font-medium">{formatDate(sentDate)}</div>
-                              <div className={`text-[10px] ${inTermen ? "text-emerald-600/80 dark:text-emerald-500/80" : "text-slate-400"}`}>
+                            <div className={`text-xs whitespace-nowrap ${inTermen ? "text-emerald-600 dark:text-emerald-500" : "text-slate-600 dark:text-slate-300"}`}>
+                              <span className="font-medium">{formatDate(sentDate)}</span>
+                              <span className={`ml-1.5 ${inTermen ? "text-emerald-600/80 dark:text-emerald-500/80" : "text-slate-400"}`}>
                                 {new Date(sentDate).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })}
-                              </div>
+                              </span>
                             </div>
                           );
                         })()
                       ) : isExternalInvoice(row) ? (
-                        <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">— (Non-SPV)</span>
+                        <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium whitespace-nowrap">— (Non-SPV)</span>
                       ) : (
-                        <span className="text-xs text-slate-400">—</span>
+                        <span className="text-xs text-slate-400 whitespace-nowrap">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
