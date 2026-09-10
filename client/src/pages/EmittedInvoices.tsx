@@ -473,15 +473,15 @@ export default function EmittedInvoices() {
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex flex-col items-start gap-1">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-bold text-blue-600 hover:underline text-left">
+                          <span className="text-xs font-bold text-blue-600 hover:underline text-left">
                             {row.number}
                           </span>
                           {row._source === "archive" && (
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-violet-100 text-violet-700 border border-violet-200">SPV</span>
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-violet-100 text-violet-700 border border-violet-200">SPV</span>
                           )}
                         </div>
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${STATUS_COLORS[row.status || "draft"]}`}
+                          className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${STATUS_COLORS[row.status || "draft"]}`}
                         >
                           {STATUS_LABELS[row.status || "draft"]}
                         </span>
@@ -489,13 +489,13 @@ export default function EmittedInvoices() {
                     </td>
                     <td className="px-4 py-3">
                       <div
-                        className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-[180px] truncate"
+                        className="text-xs font-bold text-slate-900 dark:text-white max-w-[200px] truncate"
                         title={row.clientName}
                       >
                         {row.clientName}
                       </div>
                       {row.clientCUI && (
-                        <div className="text-[10px] text-slate-400 font-medium">
+                        <div className="text-[11px] text-slate-400 font-normal">
                           CUI: {row.clientCUI}
                         </div>
                       )}
@@ -506,11 +506,11 @@ export default function EmittedInvoices() {
                           {formatDate(row.issueDate)}
                         </span>
                         {row.dueDate ? (
-                          <span className="text-[10px] text-slate-400">
+                          <span className="text-[11px] text-slate-400">
                             Scad: {formatDate(row.dueDate)}
                           </span>
                         ) : (
-                          <span className="text-[10px] text-slate-400">—</span>
+                          <span className="text-[11px] text-slate-400">—</span>
                         )}
                       </div>
                     </td>
@@ -522,12 +522,12 @@ export default function EmittedInvoices() {
                     </td>
                     <td className="px-4 py-3 text-center hidden lg:table-cell whitespace-nowrap">
                       {row._source === "archive" ? (
-                        <span className="text-[10px] font-semibold text-violet-600">
+                        <span className="text-xs font-semibold text-violet-600">
                           Din SPV
                         </span>
                       ) : isExternalInvoice(row) ? (
                         <span
-                          className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800"
+                          className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800"
                           title="Factură externă (UE/Non-UE). Nu se transmite în RO e-Factura, se declară prin D390/D300."
                         >
                           Extern (D390)
@@ -535,13 +535,13 @@ export default function EmittedInvoices() {
                       ) : (
                         <div className="flex flex-col items-center gap-0.5">
                           <span
-                            className={`text-[10px] font-semibold ${SPV_COLORS[row.spvStatus || "nesincronizat"]}`}
+                            className={`text-xs font-semibold ${SPV_COLORS[row.spvStatus || "nesincronizat"]}`}
                           >
                             {SPV_LABELS[row.spvStatus || "nesincronizat"]}
                           </span>
                           {row.spvIndex && (
                             <span
-                              className={`font-mono text-[10px] leading-tight ${
+                              className={`font-mono text-[11px] leading-tight ${
                                 row.spvStatus === "validat"
                                   ? "text-emerald-500 font-medium"
                                   : row.spvStatus === "in_procesare"

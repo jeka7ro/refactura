@@ -231,11 +231,11 @@ export default function ReInvoicesSent() {
       className: "whitespace-nowrap",
       render: (value: string, row: any) => (
         <div className="flex flex-col items-start gap-1">
-          <span className="text-sm font-bold text-blue-600 hover:underline text-left cursor-pointer">
+          <span className="text-xs font-bold text-blue-600 hover:underline text-left cursor-pointer">
             {value}
           </span>
           <span
-            className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${reInvoiceStatusColors[row.status as ReInvoiceStatus]}`}
+            className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${reInvoiceStatusColors[row.status as ReInvoiceStatus]}`}
           >
             {reInvoiceStatusLabels[row.status as ReInvoiceStatus]}
           </span>
@@ -248,7 +248,7 @@ export default function ReInvoicesSent() {
       sortable: true,
       render: (value: string) => (
         <div
-          className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-[180px] truncate"
+          className="text-xs font-bold text-slate-900 dark:text-white max-w-[200px] truncate"
           title={value}
         >
           {value}
@@ -259,7 +259,7 @@ export default function ReInvoicesSent() {
       key: "sourceInvoiceNumber",
       label: "FACTURĂ SURSĂ",
       sortable: true,
-      render: (value: string) => <span>{value}</span>,
+      render: (value: string) => <span className="text-xs text-slate-600 dark:text-slate-300">{value}</span>,
     },
     {
       key: "date",
@@ -272,11 +272,11 @@ export default function ReInvoicesSent() {
             {formatDate(row.date || row.issueDate)}
           </span>
           {row.dueDate ? (
-            <span className="text-[10px] text-slate-400">
+            <span className="text-[11px] text-slate-400">
               Scad: {formatDate(row.dueDate)}
             </span>
           ) : (
-            <span className="text-[10px] text-slate-400">—</span>
+            <span className="text-[11px] text-slate-400">—</span>
           )}
         </div>
       ),
@@ -287,7 +287,7 @@ export default function ReInvoicesSent() {
       sortable: true,
       className: "whitespace-nowrap",
       render: (value: number, row: any) => (
-        <span>{formatCurrency(value, row.currency)}</span>
+        <span className="text-xs font-bold text-slate-900 dark:text-white">{formatCurrency(value, row.currency)}</span>
       ),
     },
     {
@@ -299,25 +299,25 @@ export default function ReInvoicesSent() {
         return (
           <div className="flex flex-col items-start gap-1">
             {!value || value === "nesincronizat" ? (
-              <span className="text-[10px] font-bold text-slate-400">
+              <span className="text-xs font-semibold text-slate-400">
                 Nesincronizat
               </span>
             ) : value === "in_procesare" ? (
-              <span className="text-[10px] font-bold text-blue-500">
+              <span className="text-xs font-semibold text-blue-500">
                 Trimisă
               </span>
             ) : value === "validat" ? (
-              <span className="text-[10px] font-bold text-emerald-500">
+              <span className="text-xs font-semibold text-emerald-500">
                 Validat
               </span>
             ) : value === "eroare" ? (
-              <span className="text-[10px] font-bold text-rose-500">Eroare</span>
+              <span className="text-xs font-semibold text-rose-500">Eroare</span>
             ) : (
-              <span>{value}</span>
+              <span className="text-xs">{value}</span>
             )}
             {row.spvIndex && (
               <span
-                className={`font-mono text-[10px] leading-tight ${
+                className={`font-mono text-[11px] leading-tight ${
                   value === "validat"
                     ? "text-emerald-500 font-medium"
                     : value === "in_procesare"
