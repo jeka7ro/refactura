@@ -230,15 +230,19 @@ export default function ReInvoicesSent() {
       sortable: true,
       className: "whitespace-nowrap",
       render: (value: string, row: any) => (
-        <div className="flex flex-col items-start gap-1">
-          <span className="text-xs font-bold text-blue-600 hover:underline text-left cursor-pointer">
-            {value}
-          </span>
-          <span
-            className={`px-2 py-0.5 rounded-full text-[11px] font-normal border ${reInvoiceStatusColors[row.status as ReInvoiceStatus]}`}
-          >
-            {reInvoiceStatusLabels[row.status as ReInvoiceStatus]}
-          </span>
+        <div className="h-10 flex flex-col justify-center">
+          <div className="h-5 flex items-center">
+            <span className="text-xs font-bold text-blue-600 hover:underline text-left cursor-pointer">
+              {value}
+            </span>
+          </div>
+          <div className="h-5 flex items-center">
+            <span
+              className={`px-2 py-0.5 rounded-full text-[11px] font-normal border leading-none ${reInvoiceStatusColors[row.status as ReInvoiceStatus]}`}
+            >
+              {reInvoiceStatusLabels[row.status as ReInvoiceStatus]}
+            </span>
+          </div>
         </div>
       ),
     },
@@ -247,11 +251,18 @@ export default function ReInvoicesSent() {
       label: "CLIENT",
       sortable: true,
       render: (value: string) => (
-        <div
-          className="text-xs font-bold text-slate-900 dark:text-white max-w-[200px] truncate"
-          title={value}
-        >
-          {value}
+        <div className="h-10 flex flex-col justify-center">
+          <div className="h-5 flex items-center">
+            <div
+              className="text-xs font-bold text-slate-900 dark:text-white max-w-[200px] truncate"
+              title={value}
+            >
+              {value}
+            </div>
+          </div>
+          <div className="h-5 flex items-center text-[11px] text-slate-400 font-normal">
+            —
+          </div>
         </div>
       ),
     },
@@ -259,7 +270,16 @@ export default function ReInvoicesSent() {
       key: "sourceInvoiceNumber",
       label: "FACTURĂ SURSĂ",
       sortable: true,
-      render: (value: string) => <span className="text-xs font-bold text-slate-900 dark:text-white">{value}</span>,
+      render: (value: string) => (
+        <div className="h-10 flex flex-col justify-center">
+          <div className="h-5 flex items-center text-xs font-bold text-slate-900 dark:text-white">
+            {value}
+          </div>
+          <div className="h-5 flex items-center text-[11px] text-slate-400 font-normal">
+            —
+          </div>
+        </div>
+      ),
     },
     {
       key: "date",
@@ -267,17 +287,13 @@ export default function ReInvoicesSent() {
       sortable: true,
       className: "whitespace-nowrap",
       render: (_: any, row: any) => (
-        <div className="flex flex-col gap-0.5">
-          <span className="text-xs font-bold text-slate-900 dark:text-white">
+        <div className="h-10 flex flex-col justify-center">
+          <div className="h-5 flex items-center text-xs font-bold text-slate-900 dark:text-white">
             {formatDate(row.date || row.issueDate)}
-          </span>
-          {row.dueDate ? (
-            <span className="text-[11px] text-slate-400 font-normal">
-              Scad: {formatDate(row.dueDate)}
-            </span>
-          ) : (
-            <span className="text-[11px] text-slate-400 font-normal">—</span>
-          )}
+          </div>
+          <div className="h-5 flex items-center text-[11px] text-slate-400 font-normal">
+            {row.dueDate ? `Scad: ${formatDate(row.dueDate)}` : "—"}
+          </div>
         </div>
       ),
     },
@@ -287,34 +303,36 @@ export default function ReInvoicesSent() {
       sortable: true,
       className: "whitespace-nowrap",
       render: (value: number, row: any) => (
-        <div className="flex flex-col items-end gap-0.5">
-          <span className="text-xs font-bold text-slate-900 dark:text-white">
+        <div className="h-10 flex flex-col justify-center items-end">
+          <div className="h-5 flex items-center justify-end text-xs font-bold text-slate-900 dark:text-white">
             {formatCurrency(value, row.currency)}
-          </span>
-          <div className="flex items-center gap-1">
-            {!row.spvStatus || row.spvStatus === "nesincronizat" ? (
-              <span className="text-[11px] font-normal text-slate-400">
-                Nesincronizat
-              </span>
-            ) : row.spvStatus === "in_procesare" ? (
-              <span className="text-[11px] font-normal text-blue-500">
-                Trimisă
-              </span>
-            ) : row.spvStatus === "validat" ? (
-              <span className="text-[11px] font-normal text-emerald-500">
-                Validat
-              </span>
-            ) : row.spvStatus === "eroare" ? (
-              <span className="text-[11px] font-normal text-rose-500">Eroare</span>
-            ) : (
-              <span className="text-[11px] font-normal">{row.spvStatus}</span>
-            )}
-            <SpvDeadlineBadge
-              issueDate={row.issueDate || row.date}
-              spvStatus={row.spvStatus}
-              clientCountry={row.clientCountry}
-              clientCUI={row.clientCUI}
-            />
+          </div>
+          <div className="h-5 flex items-center justify-end leading-none">
+            <div className="flex items-center gap-1">
+              {!row.spvStatus || row.spvStatus === "nesincronizat" ? (
+                <span className="text-[11px] font-normal text-slate-400">
+                  Nesincronizat
+                </span>
+              ) : row.spvStatus === "in_procesare" ? (
+                <span className="text-[11px] font-normal text-blue-500">
+                  Trimisă
+                </span>
+              ) : row.spvStatus === "validat" ? (
+                <span className="text-[11px] font-normal text-emerald-500">
+                  Validat
+                </span>
+              ) : row.spvStatus === "eroare" ? (
+                <span className="text-[11px] font-normal text-rose-500">Eroare</span>
+              ) : (
+                <span className="text-[11px] font-normal">{row.spvStatus}</span>
+              )}
+              <SpvDeadlineBadge
+                issueDate={row.issueDate || row.date}
+                spvStatus={row.spvStatus}
+                clientCountry={row.clientCountry}
+                clientCUI={row.clientCUI}
+              />
+            </div>
           </div>
         </div>
       ),
@@ -327,11 +345,18 @@ export default function ReInvoicesSent() {
       render: (value: any, row: any) => {
         const sentDate =
           value || (row.spvIndex && (row.updatedAt || row.createdAt));
-        if (!sentDate) return <span className="text-xs text-slate-400 whitespace-nowrap">—</span>;
+        if (!sentDate) {
+          return (
+            <div className="h-10 flex flex-col justify-center text-slate-400">
+              <div className="h-5 flex items-center text-xs">—</div>
+              <div className="h-5 flex items-center text-[11px]">—</div>
+            </div>
+          );
+        }
         const inTermen = isTransmittedInDeadline(row.issueDate || row.date, sentDate);
         return (
-          <div className="flex flex-col gap-0.5">
-            <div className={`text-xs font-bold whitespace-nowrap ${inTermen ? "text-emerald-600 dark:text-emerald-500" : "text-slate-900 dark:text-white"}`}>
+          <div className="h-10 flex flex-col justify-center">
+            <div className={`h-5 flex items-center text-xs font-bold whitespace-nowrap ${inTermen ? "text-emerald-600 dark:text-emerald-500" : "text-slate-900 dark:text-white"}`}>
               <span>{formatDate(sentDate)}</span>
               <span className="ml-1.5 font-bold">
                 {new Date(sentDate).toLocaleTimeString("ro-RO", {
@@ -340,22 +365,24 @@ export default function ReInvoicesSent() {
                 })}
               </span>
             </div>
-            {row.spvIndex ? (
-              <span
-                className={`font-mono text-[11px] font-normal leading-tight ${
-                  row.spvStatus === "validat"
-                    ? "text-emerald-500"
-                    : row.spvStatus === "in_procesare"
-                    ? "text-blue-500"
-                    : "text-slate-400"
-                }`}
-                title={`Index încărcare SPV: ${row.spvIndex}`}
-              >
-                Index: {row.spvIndex}
-              </span>
-            ) : (
-              <span className="text-[11px] text-slate-400 font-normal">—</span>
-            )}
+            <div className="h-5 flex items-center font-mono text-[11px] font-normal">
+              {row.spvIndex ? (
+                <span
+                  className={
+                    row.spvStatus === "validat"
+                      ? "text-emerald-500"
+                      : row.spvStatus === "in_procesare"
+                      ? "text-blue-500"
+                      : "text-slate-400"
+                  }
+                  title={`Index încărcare SPV: ${row.spvIndex}`}
+                >
+                  Index: {row.spvIndex}
+                </span>
+              ) : (
+                <span className="text-slate-400">—</span>
+              )}
+            </div>
           </div>
         );
       },

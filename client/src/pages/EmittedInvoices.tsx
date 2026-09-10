@@ -464,130 +464,156 @@ export default function EmittedInvoices() {
                     }
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
                   >
-                    <td className="text-center px-4 py-3 text-slate-400 text-xs whitespace-nowrap">
-                      {(page - 1) * rowsPerPage + idx + 1}
+                    <td className="text-center px-4 py-2.5 text-slate-400 text-xs whitespace-nowrap">
+                      <div className="h-10 flex items-center justify-center font-medium">
+                        {(page - 1) * rowsPerPage + idx + 1}
+                      </div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="flex flex-col items-start gap-1">
-                        <div className="flex items-center gap-1.5">
+                    <td className="px-4 py-2.5 whitespace-nowrap">
+                      <div className="h-10 flex flex-col justify-center">
+                        <div className="h-5 flex items-center gap-1.5">
                           <span className="text-xs font-bold text-blue-600 hover:underline text-left">
                             {row.number}
                           </span>
                           {row._source === "archive" && (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-violet-100 text-violet-700 border border-violet-200">SPV</span>
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-violet-100 text-violet-700 border border-violet-200 leading-none">SPV</span>
                           )}
                         </div>
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[11px] font-normal border ${STATUS_COLORS[row.status || "draft"]}`}
-                        >
-                          {STATUS_LABELS[row.status || "draft"]}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div
-                        className="text-xs font-bold text-slate-900 dark:text-white max-w-[200px] truncate"
-                        title={row.clientName}
-                      >
-                        {row.clientName}
-                      </div>
-                      {row.clientCUI && (
-                        <div className="text-[11px] text-slate-400 font-normal">
-                          CUI: {row.clientCUI}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 hidden md:table-cell whitespace-nowrap">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-xs font-bold text-slate-900 dark:text-white">
-                          {formatDate(row.issueDate)}
-                        </span>
-                        {row.dueDate ? (
-                          <span className="text-[11px] text-slate-400 font-normal">
-                            Scad: {formatDate(row.dueDate)}
-                          </span>
-                        ) : (
-                          <span className="text-[11px] text-slate-400 font-normal">—</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      <div className="flex flex-col items-end gap-0.5">
-                        <span className="text-xs font-bold text-slate-900 dark:text-white">
-                          {formatCurrency(
-                            parseFloat(String(row.total)),
-                            (row.currency || "RON") as any
-                          )}
-                        </span>
-                        {row._source === "archive" ? (
-                          <span className="text-[11px] font-normal text-violet-600">
-                            Din SPV
-                          </span>
-                        ) : isExternalInvoice(row) ? (
+                        <div className="h-5 flex items-center">
                           <span
-                            className="px-2 py-0.5 rounded-full text-[10px] font-normal bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800"
-                            title="Factură externă (UE/Non-UE). Nu se transmite în RO e-Factura, se declară prin D390/D300."
+                            className={`px-2 py-0.5 rounded-full text-[11px] font-normal border leading-none ${STATUS_COLORS[row.status || "draft"]}`}
                           >
-                            Extern (D390)
+                            {STATUS_LABELS[row.status || "draft"]}
                           </span>
-                        ) : (
-                          <div className="flex items-center gap-1">
-                            <span
-                              className={`text-[11px] font-normal ${SPV_COLORS[row.spvStatus || "nesincronizat"]}`}
-                            >
-                              {SPV_LABELS[row.spvStatus || "nesincronizat"]}
-                            </span>
-                            <SpvDeadlineBadge
-                              issueDate={row.issueDate}
-                              spvStatus={row.spvStatus}
-                              clientCountry={row.clientCountry}
-                              clientCUI={row.clientCUI}
-                            />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="h-10 flex flex-col justify-center">
+                        <div className="h-5 flex items-center">
+                          <div
+                            className="text-xs font-bold text-slate-900 dark:text-white max-w-[200px] truncate"
+                            title={row.clientName}
+                          >
+                            {row.clientName}
                           </div>
+                        </div>
+                        <div className="h-5 flex items-center text-[11px] text-slate-400 font-normal">
+                          {row.clientCUI ? `CUI: ${row.clientCUI}` : "—"}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5 hidden md:table-cell whitespace-nowrap">
+                      <div className="h-10 flex flex-col justify-center">
+                        <div className="h-5 flex items-center">
+                          <span className="text-xs font-bold text-slate-900 dark:text-white">
+                            {formatDate(row.issueDate)}
+                          </span>
+                        </div>
+                        <div className="h-5 flex items-center text-[11px] text-slate-400 font-normal">
+                          {row.dueDate ? `Scad: ${formatDate(row.dueDate)}` : "—"}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                      <div className="h-10 flex flex-col justify-center items-end">
+                        <div className="h-5 flex items-center justify-end">
+                          <span className="text-xs font-bold text-slate-900 dark:text-white">
+                            {formatCurrency(
+                              parseFloat(String(row.total)),
+                              (row.currency || "RON") as any
+                            )}
+                          </span>
+                        </div>
+                        <div className="h-5 flex items-center justify-end">
+                          {row._source === "archive" ? (
+                            <span className="text-[11px] font-normal text-violet-600 leading-none">
+                              Din SPV
+                            </span>
+                          ) : isExternalInvoice(row) ? (
+                            <span
+                              className="px-2 py-0.5 rounded-full text-[10px] font-normal bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 leading-none"
+                              title="Factură externă (UE/Non-UE). Nu se transmite în RO e-Factura, se declară prin D390/D300."
+                            >
+                              Extern (D390)
+                            </span>
+                          ) : (
+                            <div className="flex items-center gap-1 leading-none">
+                              <span
+                                className={`text-[11px] font-normal ${SPV_COLORS[row.spvStatus || "nesincronizat"]}`}
+                              >
+                                {SPV_LABELS[row.spvStatus || "nesincronizat"]}
+                              </span>
+                              <SpvDeadlineBadge
+                                issueDate={row.issueDate}
+                                spvStatus={row.spvStatus}
+                                clientCountry={row.clientCountry}
+                                clientCUI={row.clientCUI}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5 text-left hidden lg:table-cell whitespace-nowrap">
+                      <div className="h-10 flex flex-col justify-center">
+                        {row.spvSentAt || (row.spvIndex && (row.updatedAt || row.createdAt)) ? (
+                          (() => {
+                            const sentDate = row.spvSentAt || row.updatedAt || row.createdAt;
+                            const inTermen = isTransmittedInDeadline(row.issueDate, sentDate);
+                            return (
+                              <>
+                                <div className={`h-5 flex items-center text-xs font-bold whitespace-nowrap ${inTermen ? "text-emerald-600 dark:text-emerald-500" : "text-slate-900 dark:text-white"}`}>
+                                  <span>{formatDate(sentDate)}</span>
+                                  <span className="ml-1.5 font-bold">
+                                    {new Date(sentDate).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })}
+                                  </span>
+                                </div>
+                                <div className="h-5 flex items-center font-mono text-[11px] font-normal">
+                                  {row.spvIndex ? (
+                                    <span
+                                      className={
+                                        row.spvStatus === "validat"
+                                          ? "text-emerald-500"
+                                          : row.spvStatus === "in_procesare"
+                                          ? "text-blue-500"
+                                          : "text-slate-400"
+                                      }
+                                      title={`Index încărcare SPV: ${row.spvIndex}`}
+                                    >
+                                      Index: {row.spvIndex}
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-400">—</span>
+                                  )}
+                                </div>
+                              </>
+                            );
+                          })()
+                        ) : isExternalInvoice(row) ? (
+                          <>
+                            <div className="h-5 flex items-center text-[11px] text-amber-600 dark:text-amber-400 font-normal whitespace-nowrap">
+                              — (Non-SPV)
+                            </div>
+                            <div className="h-5 flex items-center text-[11px] text-slate-400 font-normal">
+                              —
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="h-5 flex items-center text-xs text-slate-400 whitespace-nowrap">
+                              —
+                            </div>
+                            <div className="h-5 flex items-center text-[11px] text-slate-400 font-normal">
+                              —
+                            </div>
+                          </>
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-left hidden lg:table-cell whitespace-nowrap">
-                      {row.spvSentAt || (row.spvIndex && (row.updatedAt || row.createdAt)) ? (
-                        (() => {
-                          const sentDate = row.spvSentAt || row.updatedAt || row.createdAt;
-                          const inTermen = isTransmittedInDeadline(row.issueDate, sentDate);
-                          return (
-                            <div className="flex flex-col gap-0.5">
-                              <div className={`text-xs font-bold whitespace-nowrap ${inTermen ? "text-emerald-600 dark:text-emerald-500" : "text-slate-900 dark:text-white"}`}>
-                                <span>{formatDate(sentDate)}</span>
-                                <span className="ml-1.5 font-bold">
-                                  {new Date(sentDate).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })}
-                                </span>
-                              </div>
-                              {row.spvIndex ? (
-                                <span
-                                  className={`font-mono text-[11px] font-normal leading-tight ${
-                                    row.spvStatus === "validat"
-                                      ? "text-emerald-500"
-                                      : row.spvStatus === "in_procesare"
-                                      ? "text-blue-500"
-                                      : "text-slate-400"
-                                  }`}
-                                  title={`Index încărcare SPV: ${row.spvIndex}`}
-                                >
-                                  Index: {row.spvIndex}
-                                </span>
-                              ) : (
-                                <span className="text-[11px] text-slate-400 font-normal">—</span>
-                              )}
-                            </div>
-                          );
-                        })()
-                      ) : isExternalInvoice(row) ? (
-                        <span className="text-[11px] text-amber-600 dark:text-amber-400 font-normal whitespace-nowrap">— (Non-SPV)</span>
-                      ) : (
-                        <span className="text-xs text-slate-400 whitespace-nowrap">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-2.5 whitespace-nowrap">
                       <div
-                        className="flex items-center justify-end gap-1"
+                        className="h-10 flex items-center justify-end gap-1"
                         onClick={e => e.stopPropagation()}
                       >
                         {row._source !== "archive" && (
