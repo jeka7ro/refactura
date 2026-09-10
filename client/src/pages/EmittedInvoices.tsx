@@ -478,7 +478,7 @@ export default function EmittedInvoices() {
                           )}
                         </div>
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${STATUS_COLORS[row.status || "draft"]}`}
+                          className={`px-2 py-0.5 rounded-full text-[11px] font-normal border ${STATUS_COLORS[row.status || "draft"]}`}
                         >
                           {STATUS_LABELS[row.status || "draft"]}
                         </span>
@@ -499,15 +499,15 @@ export default function EmittedInvoices() {
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell whitespace-nowrap">
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                        <span className="text-xs font-bold text-slate-900 dark:text-white">
                           {formatDate(row.issueDate)}
                         </span>
                         {row.dueDate ? (
-                          <span className="text-[11px] text-slate-400">
+                          <span className="text-[11px] text-slate-400 font-normal">
                             Scad: {formatDate(row.dueDate)}
                           </span>
                         ) : (
-                          <span className="text-[11px] text-slate-400">—</span>
+                          <span className="text-[11px] text-slate-400 font-normal">—</span>
                         )}
                       </div>
                     </td>
@@ -520,12 +520,12 @@ export default function EmittedInvoices() {
                           )}
                         </span>
                         {row._source === "archive" ? (
-                          <span className="text-[11px] font-semibold text-violet-600">
+                          <span className="text-[11px] font-normal text-violet-600">
                             Din SPV
                           </span>
                         ) : isExternalInvoice(row) ? (
                           <span
-                            className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800"
+                            className="px-2 py-0.5 rounded-full text-[10px] font-normal bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800"
                             title="Factură externă (UE/Non-UE). Nu se transmite în RO e-Factura, se declară prin D390/D300."
                           >
                             Extern (D390)
@@ -533,7 +533,7 @@ export default function EmittedInvoices() {
                         ) : (
                           <div className="flex items-center gap-1">
                             <span
-                              className={`text-[11px] font-semibold ${SPV_COLORS[row.spvStatus || "nesincronizat"]}`}
+                              className={`text-[11px] font-normal ${SPV_COLORS[row.spvStatus || "nesincronizat"]}`}
                             >
                               {SPV_LABELS[row.spvStatus || "nesincronizat"]}
                             </span>
@@ -554,33 +554,33 @@ export default function EmittedInvoices() {
                           const inTermen = isTransmittedInDeadline(row.issueDate, sentDate);
                           return (
                             <div className="flex flex-col gap-0.5">
-                              <div className={`text-xs whitespace-nowrap ${inTermen ? "text-emerald-600 dark:text-emerald-500" : "text-slate-600 dark:text-slate-300"}`}>
-                                <span className="font-medium">{formatDate(sentDate)}</span>
-                                <span className={`ml-1.5 ${inTermen ? "text-emerald-600/80 dark:text-emerald-500/80" : "text-slate-400"}`}>
+                              <div className={`text-xs font-bold whitespace-nowrap ${inTermen ? "text-emerald-600 dark:text-emerald-500" : "text-slate-900 dark:text-white"}`}>
+                                <span>{formatDate(sentDate)}</span>
+                                <span className="ml-1.5 font-bold">
                                   {new Date(sentDate).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })}
                                 </span>
                               </div>
                               {row.spvIndex ? (
                                 <span
-                                  className={`font-mono text-[11px] leading-tight ${
+                                  className={`font-mono text-[11px] font-normal leading-tight ${
                                     row.spvStatus === "validat"
-                                      ? "text-emerald-500 font-medium"
+                                      ? "text-emerald-500"
                                       : row.spvStatus === "in_procesare"
                                       ? "text-blue-500"
                                       : "text-slate-400"
                                   }`}
                                   title={`Index încărcare SPV: ${row.spvIndex}`}
                                 >
-                                  {row.spvIndex}
+                                  Index: {row.spvIndex}
                                 </span>
                               ) : (
-                                <span className="text-[11px] text-slate-400">—</span>
+                                <span className="text-[11px] text-slate-400 font-normal">—</span>
                               )}
                             </div>
                           );
                         })()
                       ) : isExternalInvoice(row) ? (
-                        <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium whitespace-nowrap">— (Non-SPV)</span>
+                        <span className="text-[11px] text-amber-600 dark:text-amber-400 font-normal whitespace-nowrap">— (Non-SPV)</span>
                       ) : (
                         <span className="text-xs text-slate-400 whitespace-nowrap">—</span>
                       )}

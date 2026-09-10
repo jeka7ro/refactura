@@ -235,7 +235,7 @@ export default function ReInvoicesSent() {
             {value}
           </span>
           <span
-            className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${reInvoiceStatusColors[row.status as ReInvoiceStatus]}`}
+            className={`px-2 py-0.5 rounded-full text-[11px] font-normal border ${reInvoiceStatusColors[row.status as ReInvoiceStatus]}`}
           >
             {reInvoiceStatusLabels[row.status as ReInvoiceStatus]}
           </span>
@@ -259,7 +259,7 @@ export default function ReInvoicesSent() {
       key: "sourceInvoiceNumber",
       label: "FACTURĂ SURSĂ",
       sortable: true,
-      render: (value: string) => <span className="text-xs text-slate-600 dark:text-slate-300">{value}</span>,
+      render: (value: string) => <span className="text-xs font-bold text-slate-900 dark:text-white">{value}</span>,
     },
     {
       key: "date",
@@ -268,15 +268,15 @@ export default function ReInvoicesSent() {
       className: "whitespace-nowrap",
       render: (_: any, row: any) => (
         <div className="flex flex-col gap-0.5">
-          <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+          <span className="text-xs font-bold text-slate-900 dark:text-white">
             {formatDate(row.date || row.issueDate)}
           </span>
           {row.dueDate ? (
-            <span className="text-[11px] text-slate-400">
+            <span className="text-[11px] text-slate-400 font-normal">
               Scad: {formatDate(row.dueDate)}
             </span>
           ) : (
-            <span className="text-[11px] text-slate-400">—</span>
+            <span className="text-[11px] text-slate-400 font-normal">—</span>
           )}
         </div>
       ),
@@ -293,21 +293,21 @@ export default function ReInvoicesSent() {
           </span>
           <div className="flex items-center gap-1">
             {!row.spvStatus || row.spvStatus === "nesincronizat" ? (
-              <span className="text-[11px] font-semibold text-slate-400">
+              <span className="text-[11px] font-normal text-slate-400">
                 Nesincronizat
               </span>
             ) : row.spvStatus === "in_procesare" ? (
-              <span className="text-[11px] font-semibold text-blue-500">
+              <span className="text-[11px] font-normal text-blue-500">
                 Trimisă
               </span>
             ) : row.spvStatus === "validat" ? (
-              <span className="text-[11px] font-semibold text-emerald-500">
+              <span className="text-[11px] font-normal text-emerald-500">
                 Validat
               </span>
             ) : row.spvStatus === "eroare" ? (
-              <span className="text-[11px] font-semibold text-rose-500">Eroare</span>
+              <span className="text-[11px] font-normal text-rose-500">Eroare</span>
             ) : (
-              <span className="text-[11px]">{row.spvStatus}</span>
+              <span className="text-[11px] font-normal">{row.spvStatus}</span>
             )}
             <SpvDeadlineBadge
               issueDate={row.issueDate || row.date}
@@ -331,9 +331,9 @@ export default function ReInvoicesSent() {
         const inTermen = isTransmittedInDeadline(row.issueDate || row.date, sentDate);
         return (
           <div className="flex flex-col gap-0.5">
-            <div className={`text-xs whitespace-nowrap ${inTermen ? "text-emerald-600 dark:text-emerald-500" : "text-slate-600 dark:text-slate-300"}`}>
-              <span className="font-medium">{formatDate(sentDate)}</span>
-              <span className={`ml-1.5 ${inTermen ? "text-emerald-600/80 dark:text-emerald-500/80" : "text-slate-400"}`}>
+            <div className={`text-xs font-bold whitespace-nowrap ${inTermen ? "text-emerald-600 dark:text-emerald-500" : "text-slate-900 dark:text-white"}`}>
+              <span>{formatDate(sentDate)}</span>
+              <span className="ml-1.5 font-bold">
                 {new Date(sentDate).toLocaleTimeString("ro-RO", {
                   hour: "2-digit",
                   minute: "2-digit",
@@ -342,19 +342,19 @@ export default function ReInvoicesSent() {
             </div>
             {row.spvIndex ? (
               <span
-                className={`font-mono text-[11px] leading-tight ${
+                className={`font-mono text-[11px] font-normal leading-tight ${
                   row.spvStatus === "validat"
-                    ? "text-emerald-500 font-medium"
+                    ? "text-emerald-500"
                     : row.spvStatus === "in_procesare"
                     ? "text-blue-500"
                     : "text-slate-400"
                 }`}
                 title={`Index încărcare SPV: ${row.spvIndex}`}
               >
-                {row.spvIndex}
+                Index: {row.spvIndex}
               </span>
             ) : (
-              <span className="text-[11px] text-slate-400">—</span>
+              <span className="text-[11px] text-slate-400 font-normal">—</span>
             )}
           </div>
         );
