@@ -427,11 +427,8 @@ export default function EmittedInvoices() {
                 <th className="text-right px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
                   Total
                 </th>
-                <th className="text-center px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden lg:table-cell whitespace-nowrap">
-                  SPV
-                </th>
-                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden xl:table-cell whitespace-nowrap">
-                  Data Transmisă
+                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden lg:table-cell whitespace-nowrap">
+                  Data Transmisă / Index
                 </th>
                 <th className="text-right px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
                   Acțiuni
@@ -441,14 +438,14 @@ export default function EmittedInvoices() {
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-12">
+                  <td colSpan={7} className="text-center py-12">
                     <Loader2 className="w-6 h-6 animate-spin text-slate-400 mx-auto" />
                   </td>
                 </tr>
               ) : paged.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={7}
                     className="text-center py-12 text-slate-400 text-sm"
                   >
                     {data.length === 0
@@ -514,65 +511,71 @@ export default function EmittedInvoices() {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-right font-bold text-slate-900 dark:text-white text-xs whitespace-nowrap">
-                      {formatCurrency(
-                        parseFloat(String(row.total)),
-                        (row.currency || "RON") as any
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-center hidden lg:table-cell whitespace-nowrap">
-                      {row._source === "archive" ? (
-                        <span className="text-xs font-semibold text-violet-600">
-                          Din SPV
-                        </span>
-                      ) : isExternalInvoice(row) ? (
-                        <span
-                          className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800"
-                          title="Factură externă (UE/Non-UE). Nu se transmite în RO e-Factura, se declară prin D390/D300."
-                        >
-                          Extern (D390)
-                        </span>
-                      ) : (
-                        <div className="flex flex-col items-center gap-0.5">
-                          <span
-                            className={`text-xs font-semibold ${SPV_COLORS[row.spvStatus || "nesincronizat"]}`}
-                          >
-                            {SPV_LABELS[row.spvStatus || "nesincronizat"]}
-                          </span>
-                          {row.spvIndex && (
-                            <span
-                              className={`font-mono text-[11px] leading-tight ${
-                                row.spvStatus === "validat"
-                                  ? "text-emerald-500 font-medium"
-                                  : row.spvStatus === "in_procesare"
-                                  ? "text-blue-500"
-                                  : "text-slate-400"
-                              }`}
-                              title={`Index încărcare SPV: ${row.spvIndex}`}
-                            >
-                              {row.spvIndex}
-                            </span>
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span className="text-xs font-bold text-slate-900 dark:text-white">
+                          {formatCurrency(
+                            parseFloat(String(row.total)),
+                            (row.currency || "RON") as any
                           )}
-                          <SpvDeadlineBadge
-                            issueDate={row.issueDate}
-                            spvStatus={row.spvStatus}
-                            clientCountry={row.clientCountry}
-                            clientCUI={row.clientCUI}
-                          />
-                        </div>
-                      )}
+                        </span>
+                        {row._source === "archive" ? (
+                          <span className="text-[11px] font-semibold text-violet-600">
+                            Din SPV
+                          </span>
+                        ) : isExternalInvoice(row) ? (
+                          <span
+                            className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800"
+                            title="Factură externă (UE/Non-UE). Nu se transmite în RO e-Factura, se declară prin D390/D300."
+                          >
+                            Extern (D390)
+                          </span>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <span
+                              className={`text-[11px] font-semibold ${SPV_COLORS[row.spvStatus || "nesincronizat"]}`}
+                            >
+                              {SPV_LABELS[row.spvStatus || "nesincronizat"]}
+                            </span>
+                            <SpvDeadlineBadge
+                              issueDate={row.issueDate}
+                              spvStatus={row.spvStatus}
+                              clientCountry={row.clientCountry}
+                              clientCUI={row.clientCUI}
+                            />
+                          </div>
+                        )}
+                      </div>
                     </td>
-                    <td className="px-4 py-3 text-left hidden xl:table-cell whitespace-nowrap">
+                    <td className="px-4 py-3 text-left hidden lg:table-cell whitespace-nowrap">
                       {row.spvSentAt || (row.spvIndex && (row.updatedAt || row.createdAt)) ? (
                         (() => {
                           const sentDate = row.spvSentAt || row.updatedAt || row.createdAt;
                           const inTermen = isTransmittedInDeadline(row.issueDate, sentDate);
                           return (
-                            <div className={`text-xs whitespace-nowrap ${inTermen ? "text-emerald-600 dark:text-emerald-500" : "text-slate-600 dark:text-slate-300"}`}>
-                              <span className="font-medium">{formatDate(sentDate)}</span>
-                              <span className={`ml-1.5 ${inTermen ? "text-emerald-600/80 dark:text-emerald-500/80" : "text-slate-400"}`}>
-                                {new Date(sentDate).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })}
-                              </span>
+                            <div className="flex flex-col gap-0.5">
+                              <div className={`text-xs whitespace-nowrap ${inTermen ? "text-emerald-600 dark:text-emerald-500" : "text-slate-600 dark:text-slate-300"}`}>
+                                <span className="font-medium">{formatDate(sentDate)}</span>
+                                <span className={`ml-1.5 ${inTermen ? "text-emerald-600/80 dark:text-emerald-500/80" : "text-slate-400"}`}>
+                                  {new Date(sentDate).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })}
+                                </span>
+                              </div>
+                              {row.spvIndex ? (
+                                <span
+                                  className={`font-mono text-[11px] leading-tight ${
+                                    row.spvStatus === "validat"
+                                      ? "text-emerald-500 font-medium"
+                                      : row.spvStatus === "in_procesare"
+                                      ? "text-blue-500"
+                                      : "text-slate-400"
+                                  }`}
+                                  title={`Index încărcare SPV: ${row.spvIndex}`}
+                                >
+                                  {row.spvIndex}
+                                </span>
+                              ) : (
+                                <span className="text-[11px] text-slate-400">—</span>
+                              )}
                             </div>
                           );
                         })()

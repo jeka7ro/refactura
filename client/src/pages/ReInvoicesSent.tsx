@@ -287,61 +287,41 @@ export default function ReInvoicesSent() {
       sortable: true,
       className: "whitespace-nowrap",
       render: (value: number, row: any) => (
-        <span className="text-xs font-bold text-slate-900 dark:text-white">{formatCurrency(value, row.currency)}</span>
-      ),
-    },
-    {
-      key: "spvStatus",
-      label: "SPV",
-      sortable: true,
-      className: "whitespace-nowrap",
-      render: (value: string, row: any) => {
-        return (
-          <div className="flex flex-col items-start gap-1">
-            {!value || value === "nesincronizat" ? (
-              <span className="text-xs font-semibold text-slate-400">
+        <div className="flex flex-col items-end gap-0.5">
+          <span className="text-xs font-bold text-slate-900 dark:text-white">
+            {formatCurrency(value, row.currency)}
+          </span>
+          <div className="flex items-center gap-1">
+            {!row.spvStatus || row.spvStatus === "nesincronizat" ? (
+              <span className="text-[11px] font-semibold text-slate-400">
                 Nesincronizat
               </span>
-            ) : value === "in_procesare" ? (
-              <span className="text-xs font-semibold text-blue-500">
+            ) : row.spvStatus === "in_procesare" ? (
+              <span className="text-[11px] font-semibold text-blue-500">
                 Trimisă
               </span>
-            ) : value === "validat" ? (
-              <span className="text-xs font-semibold text-emerald-500">
+            ) : row.spvStatus === "validat" ? (
+              <span className="text-[11px] font-semibold text-emerald-500">
                 Validat
               </span>
-            ) : value === "eroare" ? (
-              <span className="text-xs font-semibold text-rose-500">Eroare</span>
+            ) : row.spvStatus === "eroare" ? (
+              <span className="text-[11px] font-semibold text-rose-500">Eroare</span>
             ) : (
-              <span className="text-xs">{value}</span>
-            )}
-            {row.spvIndex && (
-              <span
-                className={`font-mono text-[11px] leading-tight ${
-                  value === "validat"
-                    ? "text-emerald-500 font-medium"
-                    : value === "in_procesare"
-                    ? "text-blue-500"
-                    : "text-slate-400"
-                }`}
-                title={`Index încărcare SPV: ${row.spvIndex}`}
-              >
-                {row.spvIndex}
-              </span>
+              <span className="text-[11px]">{row.spvStatus}</span>
             )}
             <SpvDeadlineBadge
               issueDate={row.issueDate || row.date}
-              spvStatus={value}
+              spvStatus={row.spvStatus}
               clientCountry={row.clientCountry}
               clientCUI={row.clientCUI}
             />
           </div>
-        );
-      },
+        </div>
+      ),
     },
     {
       key: "spvSentAt",
-      label: "DATA TRANSMISĂ",
+      label: "DATA TRANSMISĂ / INDEX",
       sortable: true,
       className: "whitespace-nowrap",
       render: (value: any, row: any) => {
@@ -350,14 +330,32 @@ export default function ReInvoicesSent() {
         if (!sentDate) return <span className="text-xs text-slate-400 whitespace-nowrap">—</span>;
         const inTermen = isTransmittedInDeadline(row.issueDate || row.date, sentDate);
         return (
-          <div className={`text-xs whitespace-nowrap ${inTermen ? "text-emerald-600 dark:text-emerald-500" : "text-slate-600 dark:text-slate-300"}`}>
-            <span className="font-medium">{formatDate(sentDate)}</span>
-            <span className={`ml-1.5 ${inTermen ? "text-emerald-600/80 dark:text-emerald-500/80" : "text-slate-400"}`}>
-              {new Date(sentDate).toLocaleTimeString("ro-RO", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </span>
+          <div className="flex flex-col gap-0.5">
+            <div className={`text-xs whitespace-nowrap ${inTermen ? "text-emerald-600 dark:text-emerald-500" : "text-slate-600 dark:text-slate-300"}`}>
+              <span className="font-medium">{formatDate(sentDate)}</span>
+              <span className={`ml-1.5 ${inTermen ? "text-emerald-600/80 dark:text-emerald-500/80" : "text-slate-400"}`}>
+                {new Date(sentDate).toLocaleTimeString("ro-RO", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            </div>
+            {row.spvIndex ? (
+              <span
+                className={`font-mono text-[11px] leading-tight ${
+                  row.spvStatus === "validat"
+                    ? "text-emerald-500 font-medium"
+                    : row.spvStatus === "in_procesare"
+                    ? "text-blue-500"
+                    : "text-slate-400"
+                }`}
+                title={`Index încărcare SPV: ${row.spvIndex}`}
+              >
+                {row.spvIndex}
+              </span>
+            ) : (
+              <span className="text-[11px] text-slate-400">—</span>
+            )}
           </div>
         );
       },
