@@ -430,9 +430,6 @@ export default function EmittedInvoices() {
                 <th className="text-right px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
                   Total
                 </th>
-                <th className="text-center px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
-                  Status
-                </th>
                 <th className="text-center px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden lg:table-cell whitespace-nowrap">
                   SPV
                 </th>
@@ -447,14 +444,14 @@ export default function EmittedInvoices() {
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={10} className="text-center py-12">
+                  <td colSpan={9} className="text-center py-12">
                     <Loader2 className="w-6 h-6 animate-spin text-slate-400 mx-auto" />
                   </td>
                 </tr>
               ) : paged.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={10}
+                    colSpan={9}
                     className="text-center py-12 text-slate-400 text-sm"
                   >
                     {data.length === 0
@@ -477,9 +474,14 @@ export default function EmittedInvoices() {
                       {(page - 1) * rowsPerPage + idx + 1}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-2">
                         <span className="text-sm font-bold text-blue-600 hover:underline text-left">
                           {row.number}
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${STATUS_COLORS[row.status || "draft"]}`}
+                        >
+                          {STATUS_LABELS[row.status || "draft"]}
                         </span>
                         {row._source === "archive" && (
                           <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-violet-100 text-violet-700 border border-violet-200">SPV</span>
@@ -510,13 +512,6 @@ export default function EmittedInvoices() {
                         parseFloat(String(row.total)),
                         (row.currency || "RON") as any
                       )}
-                    </td>
-                    <td className="px-4 py-3 text-center whitespace-nowrap">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${STATUS_COLORS[row.status || "draft"]}`}
-                      >
-                        {STATUS_LABELS[row.status || "draft"]}
-                      </span>
                     </td>
                     <td className="px-4 py-3 text-center hidden lg:table-cell whitespace-nowrap">
                       {row._source === "archive" ? (

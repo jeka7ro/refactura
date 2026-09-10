@@ -228,10 +228,18 @@ export default function ReInvoicesSent() {
       key: "number",
       label: "NR. RE-FACTURĂ",
       sortable: true,
-      render: (value: string) => (
-        <span className="text-sm font-bold text-blue-600 hover:underline text-left cursor-pointer">
-          {value}
-        </span>
+      className: "whitespace-nowrap",
+      render: (value: string, row: any) => (
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold text-blue-600 hover:underline text-left cursor-pointer">
+            {value}
+          </span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${reInvoiceStatusColors[row.status as ReInvoiceStatus]}`}
+          >
+            {reInvoiceStatusLabels[row.status as ReInvoiceStatus]}
+          </span>
+        </div>
       ),
     },
     {
@@ -274,19 +282,6 @@ export default function ReInvoicesSent() {
       className: "whitespace-nowrap",
       render: (value: number, row: any) => (
         <span>{formatCurrency(value, row.currency)}</span>
-      ),
-    },
-    {
-      key: "status",
-      label: "STATUS",
-      sortable: true,
-      className: "whitespace-nowrap",
-      render: (value: string) => (
-        <span
-          className={`px-2.5 py-0.5 rounded-full text-[11px] font-normal border ${reInvoiceStatusColors[value as ReInvoiceStatus]}`}
-        >
-          {reInvoiceStatusLabels[value as ReInvoiceStatus]}
-        </span>
       ),
     },
     {
