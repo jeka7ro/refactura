@@ -263,17 +263,23 @@ export default function ReInvoicesSent() {
     },
     {
       key: "date",
-      label: "DATĂ",
+      label: "DATĂ / SCADENȚĂ",
       sortable: true,
       className: "whitespace-nowrap",
-      render: (value: any) => formatDate(value),
-    },
-    {
-      key: "dueDate",
-      label: "SCADENȚĂ",
-      sortable: true,
-      className: "whitespace-nowrap",
-      render: (value: any) => formatDate(value),
+      render: (_: any, row: any) => (
+        <div className="flex flex-col gap-0.5">
+          <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+            {formatDate(row.date || row.issueDate)}
+          </span>
+          {row.dueDate ? (
+            <span className="text-[10px] text-slate-400">
+              Scad: {formatDate(row.dueDate)}
+            </span>
+          ) : (
+            <span className="text-[10px] text-slate-400">—</span>
+          )}
+        </div>
+      ),
     },
     {
       key: "total",

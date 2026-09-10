@@ -422,10 +422,7 @@ export default function EmittedInvoices() {
                   Client
                 </th>
                 <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden md:table-cell whitespace-nowrap">
-                  Dată
-                </th>
-                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden md:table-cell whitespace-nowrap">
-                  Scadență
+                  Dată / Scadență
                 </th>
                 <th className="text-right px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
                   Total
@@ -444,14 +441,14 @@ export default function EmittedInvoices() {
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-12">
+                  <td colSpan={8} className="text-center py-12">
                     <Loader2 className="w-6 h-6 animate-spin text-slate-400 mx-auto" />
                   </td>
                 </tr>
               ) : paged.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={8}
                     className="text-center py-12 text-slate-400 text-sm"
                   >
                     {data.length === 0
@@ -503,11 +500,19 @@ export default function EmittedInvoices() {
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-500 hidden md:table-cell whitespace-nowrap">
-                      {formatDate(row.issueDate)}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-500 hidden md:table-cell whitespace-nowrap">
-                      {formatDate(row.dueDate || "")}
+                    <td className="px-4 py-3 hidden md:table-cell whitespace-nowrap">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                          {formatDate(row.issueDate)}
+                        </span>
+                        {row.dueDate ? (
+                          <span className="text-[10px] text-slate-400">
+                            Scad: {formatDate(row.dueDate)}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-400">—</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-right font-bold text-slate-900 dark:text-white text-xs whitespace-nowrap">
                       {formatCurrency(
