@@ -2698,6 +2698,7 @@ export const appRouter = router({
             .set({
               spvIndex: spvIndex,
               spvStatus: "in_procesare",
+              spvSentAt: new Date(),
               rawXml: xmlContent,
             })
             .where(eq(emittedInvoices.id, input.id));
@@ -2710,7 +2711,7 @@ export const appRouter = router({
           const errMsg = errMatch?.[1]?.trim() || responseText;
           await db
             .update(emittedInvoices)
-            .set({ spvStatus: "eroare", spvError: errMsg, rawXml: xmlContent })
+            .set({ spvStatus: "eroare", spvError: errMsg, spvSentAt: new Date(), rawXml: xmlContent })
             .where(eq(emittedInvoices.id, input.id));
           return { success: false, error: errMsg };
         }
@@ -2889,7 +2890,8 @@ export const appRouter = router({
           partnerName: i.clientName,
           total: i.total,
           currency: i.currency,
-          date: i.createdAt,
+          date: i.spvSentAt || i.updatedAt || i.createdAt,
+          issueDate: i.issueDate,
           spvIndex: i.spvIndex,
           spvStatus: i.spvStatus,
           spvError: i.spvError,
@@ -2903,7 +2905,8 @@ export const appRouter = router({
           partnerName: i.clientName,
           total: i.total,
           currency: i.currency,
-          date: i.createdAt,
+          date: i.spvSentAt || i.updatedAt || i.createdAt,
+          issueDate: i.issueDate,
           spvIndex: i.spvIndex,
           spvStatus: i.spvStatus,
           spvError: i.spvError,
@@ -2921,6 +2924,7 @@ export const appRouter = router({
             total: i.total ? String(i.total) : "0",
             currency: i.currency || "RON",
             date: i.createdAt,
+            issueDate: i.issueDate,
             spvIndex: spvIdx,
             spvStatus: "validat" as const, // primite sunt mereu validate
             spvError: null,

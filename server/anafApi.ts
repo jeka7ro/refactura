@@ -91,6 +91,7 @@ export async function uploadInvoiceToSPV(
         .set({
           spvIndex,
           spvStatus: "in_procesare",
+          spvSentAt: new Date(),
           rawXml: xmlContent,
         })
         .where(eq(reInvoices.id, invoiceId));
@@ -104,6 +105,7 @@ export async function uploadInvoiceToSPV(
         .set({
           spvStatus: "eroare",
           spvError: errMsg,
+          spvSentAt: new Date(),
           rawXml: xmlContent,
         })
         .where(eq(reInvoices.id, invoiceId));

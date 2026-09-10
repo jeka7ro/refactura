@@ -20,6 +20,8 @@ import {
 } from "@/lib/store";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import SpvDeadlineBadge from "@/components/SpvDeadlineBadge";
+import { isTransmittedInDeadline } from "@/lib/spvDeadline";
 
 function formatInvoiceNumber(series?: string | null, num?: string | null) {
   if (!num) return series || "";
@@ -211,6 +213,39 @@ export default function EmittedInvoiceDetail() {
                 )}
               </span>
             </div>
+            {(invoice.spvSentAt || (invoice.spvIndex && (invoice.updatedAt || invoice.createdAt))) && (
+              <div className="flex justify-between">
+                <span className="text-slate-500">Data Transmisă:</span>
+                {(() => {
+                  const d = invoice.spvSentAt || invoice.updatedAt || invoice.createdAt;
+                  const inTermen = isTransmittedInDeadline(invoice.issueDate, d);
+                  return (
+                    <span className={`font-medium ${inTermen ? "text-emerald-600 dark:text-emerald-500" : "text-slate-900 dark:text-white"}`}>
+                      {formatDate(d)} {new Date(d).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  );
+                })()}
+              </div>
+            )}
+            {invoice.spvIndex && (
+              <div className="flex justify-between">
+                <span className="text-slate-500">Index SPV:</span>
+                <span className="font-mono text-slate-700 dark:text-slate-300">
+                  {invoice.spvIndex}
+                </span>
+              </div>
+            )}
+            {!isExternalInvoice(invoice) && invoice.spvStatus !== "validat" && (
+              <div className="mt-2.5">
+                <SpvDeadlineBadge
+                  detailed={true}
+                  issueDate={invoice.issueDate || invoice.createdAt}
+                  clientCountry={invoice.clientCountry}
+                  clientCUI={invoice.clientCUI}
+                  spvStatus={invoice.spvStatus}
+                />
+              </div>
+            )}
             {isExternalInvoice(invoice) && (
               <div className="mt-2.5 p-2.5 rounded-lg bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/60 text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
                 Factură externă ({invoice.clientCountry || "UE"}). Conform legislației fiscale, operațiunile externe nu se transmit în RO e-Factura, ci se raportează în <strong>Declarația 390 VIES</strong> și se transmit clientului în format PDF pe e-mail.

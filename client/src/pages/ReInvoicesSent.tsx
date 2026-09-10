@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import {
   Plus,
@@ -9,8 +9,14 @@ import {
   Mail,
   Send,
   Calendar,
+  Tag,
+  Search,
+  X,
 } from "lucide-react";
 import { DataTable, DataTableColumn } from "@/components/DataTable";
+import SpvDeadlineBadge from "@/components/SpvDeadlineBadge";
+import SpvDeadlineBanner from "@/components/SpvDeadlineBanner";
+import { isTransmittedInDeadline } from "@/lib/spvDeadline";
 import {
   formatCurrency,
   formatDate,
@@ -40,9 +46,11 @@ import {
 } from "@/components/ui/select";
 
 export default function ReInvoicesSent() {
+  const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ReInvoiceStatus | "all">(
     "all"
   );
+  const [spvFilter, setSpvFilter] = useState<string>("all");
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [period, setPeriod] = useState<string>("all");
   const [customFrom, setCustomFrom] = useState(
@@ -122,17 +130,58 @@ export default function ReInvoicesSent() {
     }
   };
 
-  const filtered = reInvoices.filter(ri => {
-    const matchStatus = statusFilter === "all" || ri.status === statusFilter;
-    if (!matchStatus) return false;
+  const filtered = useMemo(() => {
+    return reInvoices.filter(ri => {
+      const matchStatus = statusFilter === "all" || ri.status === statusFilter;
+      if (!matchStatus) return false;
 
-    const range = getDateRange(period);
-    if (range && ri.issueDate) {
-      const rowDate = ri.issueDate.substring(0, 10);
-      if (rowDate < range[0] || rowDate > range[1]) return false;
-    }
-    return true;
-  });
+      if (spvFilter !== "all") {
+        const currentSpv = ri.spvStatus || "nesincronizat";
+        if (currentSpv !== spvFilter) return false;
+      }
+
+      const range = getDateRange(period);
+      if (range && ri.issueDate) {
+        const rowDate = ri.issueDate.substring(0, 10);
+        if (rowDate < range[0] || rowDate > range[1]) return false;
+      }
+
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        const matchSearch =
+          (ri.number || "").toLowerCase().includes(q) ||
+          (ri.clientName || "").toLowerCase().includes(q) ||
+          (ri.sourceInvoiceNumber || "").toLowerCase().includes(q);
+        if (!matchSearch) return false;
+      }
+
+      return true;
+    });
+  }, [reInvoices, statusFilter, spvFilter, period, customFrom, customTo, search]);
+
+  const counts = useMemo(
+    () => ({
+      all: reInvoices.length,
+      draft: reInvoices.filter(r => r.status === "draft").length,
+      pending: reInvoices.filter(r => r.status === "pending").length,
+      sent: reInvoices.filter(r => r.status === "sent").length,
+      paid: reInvoices.filter(r => r.status === "paid").length,
+      overdue: reInvoices.filter(r => r.status === "overdue").length,
+      cancelled: reInvoices.filter(r => r.status === "cancelled").length,
+    }),
+    [reInvoices]
+  );
+
+  const spvCounts = useMemo(
+    () => ({
+      all: reInvoices.length,
+      validat: reInvoices.filter(r => r.spvStatus === "validat").length,
+      in_procesare: reInvoices.filter(r => r.spvStatus === "in_procesare").length,
+      eroare: reInvoices.filter(r => r.spvStatus === "eroare").length,
+      nesincronizat: reInvoices.filter(r => !r.spvStatus || r.spvStatus === "nesincronizat").length,
+    }),
+    [reInvoices]
+  );
 
   const exportToExcel = () => {
     if (!filtered.length) {
@@ -240,30 +289,70 @@ export default function ReInvoicesSent() {
       key: "spvStatus",
       label: "SPV",
       sortable: true,
-      render: (value: string) => {
-        if (!value || value === "nesincronizat")
-          return (
-            <span className="text-[10px] font-bold text-slate-400">
-              Nesincronizat
-            </span>
-          );
-        if (value === "in_procesare")
-          return (
-            <span className="text-[10px] font-bold text-blue-500">
-              Trimisă
-            </span>
-          );
-        if (value === "validat")
-          return (
-            <span className="text-[10px] font-bold text-emerald-500">
-              Validat
-            </span>
-          );
-        if (value === "eroare")
-          return (
-            <span className="text-[10px] font-bold text-rose-500">Eroare</span>
-          );
-        return <span>{value}</span>;
+      render: (value: string, row: any) => {
+        return (
+          <div className="flex flex-col items-start gap-1">
+            {!value || value === "nesincronizat" ? (
+              <span className="text-[10px] font-bold text-slate-400">
+                Nesincronizat
+              </span>
+            ) : value === "in_procesare" ? (
+              <span className="text-[10px] font-bold text-blue-500">
+                Trimisă
+              </span>
+            ) : value === "validat" ? (
+              <span className="text-[10px] font-bold text-emerald-500">
+                Validat
+              </span>
+            ) : value === "eroare" ? (
+              <span className="text-[10px] font-bold text-rose-500">Eroare</span>
+            ) : (
+              <span>{value}</span>
+            )}
+            {row.spvIndex && (
+              <span
+                className={`font-mono text-[10px] leading-tight ${
+                  value === "validat"
+                    ? "text-emerald-500 font-medium"
+                    : value === "in_procesare"
+                    ? "text-blue-500"
+                    : "text-slate-400"
+                }`}
+                title={`Index încărcare SPV: ${row.spvIndex}`}
+              >
+                {row.spvIndex}
+              </span>
+            )}
+            <SpvDeadlineBadge
+              issueDate={row.issueDate || row.date}
+              spvStatus={value}
+              clientCountry={row.clientCountry}
+              clientCUI={row.clientCUI}
+            />
+          </div>
+        );
+      },
+    },
+    {
+      key: "spvSentAt",
+      label: "DATA TRANSMISĂ",
+      sortable: true,
+      render: (value: any, row: any) => {
+        const sentDate =
+          value || (row.spvIndex && (row.updatedAt || row.createdAt));
+        if (!sentDate) return <span className="text-xs text-slate-400">—</span>;
+        const inTermen = isTransmittedInDeadline(row.issueDate || row.date, sentDate);
+        return (
+          <div className={`text-xs ${inTermen ? "text-emerald-600 dark:text-emerald-500" : "text-slate-600 dark:text-slate-300"}`}>
+            <div className="font-medium">{formatDate(sentDate)}</div>
+            <div className={`text-[10px] ${inTermen ? "text-emerald-600/80 dark:text-emerald-500/80" : "text-slate-400"}`}>
+              {new Date(sentDate).toLocaleTimeString("ro-RO", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </div>
+          </div>
+        );
       },
     },
   ];
@@ -335,83 +424,139 @@ export default function ReInvoicesSent() {
         </div>
       </div>
 
+      {/* Reminder Termen Legal SPV (5 zile lucrătoare) */}
+      <SpvDeadlineBanner invoices={reInvoices} />
+
+      {/* Toolbar Filtre — cu iconițe și dimensiuni identice cu AllInvoices și EmittedInvoices */}
+      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+        <div className="p-3 flex items-center gap-3 flex-wrap bg-white dark:bg-slate-900">
+          {/* Căutare */}
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              style={{ paddingLeft: 34, paddingRight: search ? 68 : 14 }}
+              className="rounded-full w-full h-8 border border-slate-200 dark:border-slate-700 outline-none text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all shadow-none"
+              placeholder="Caută re-factură, client, factură sursă..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            {search && (
+              <>
+                <div className="absolute right-7 top-1/2 -translate-y-1/2 bg-blue-600 text-white rounded-full px-1.5 py-0.5 text-[9px] font-bold">
+                  {filtered.length}/{reInvoices.length}
+                </div>
+                <button
+                  onClick={() => setSearch("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2"
+                >
+                  <X className="w-3 h-3 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" />
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Perioadă Filter */}
+          <div className="w-[140px] sm:w-[155px] flex-shrink-0">
+            <Select
+              value={period}
+              onValueChange={val => {
+                setPeriod(val as any);
+                const range = getDateRange(val);
+                if (range && val !== "custom") {
+                  setCustomFrom(range[0]);
+                  setCustomTo(range[1]);
+                }
+              }}
+            >
+              <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 shadow-none flex items-center gap-1.5 px-3">
+                <Calendar className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+                <SelectValue placeholder="Perioadă" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toate dățile</SelectItem>
+                <SelectItem value="today">Azi</SelectItem>
+                <SelectItem value="week">Săpt. curentă</SelectItem>
+                <SelectItem value="month">Luna curentă</SelectItem>
+                <SelectItem value="lastMonth">Luna trecută</SelectItem>
+                <SelectItem value="year">Anul curent</SelectItem>
+                <SelectItem value="lastYear">Anul trecut</SelectItem>
+                <SelectItem value="custom">Personalizat...</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Status Filter */}
+          <div className="w-[125px] sm:w-[140px] flex-shrink-0">
+            <Select
+              value={statusFilter}
+              onValueChange={val => setStatusFilter(val as any)}
+            >
+              <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 shadow-none flex items-center gap-1.5 px-3">
+                <Tag className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toate statusurile</SelectItem>
+                <SelectItem value="draft">Ciornă ({counts.draft})</SelectItem>
+                <SelectItem value="pending">În Așteptare ({counts.pending})</SelectItem>
+                <SelectItem value="sent">Trimise ({counts.sent})</SelectItem>
+                <SelectItem value="paid">Achitate ({counts.paid})</SelectItem>
+                <SelectItem value="overdue">Restanțe ({counts.overdue})</SelectItem>
+                <SelectItem value="cancelled">Anulate ({counts.cancelled})</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* SPV Filter */}
+          <div className="w-[130px] sm:w-[150px] flex-shrink-0">
+            <Select
+              value={spvFilter}
+              onValueChange={val => setSpvFilter(val as any)}
+            >
+              <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 shadow-none flex items-center gap-1.5 px-3">
+                <Send className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                <SelectValue placeholder="Stare SPV" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toate SPV</SelectItem>
+                <SelectItem value="validat">Validate ({spvCounts.validat})</SelectItem>
+                <SelectItem value="in_procesare">În procesare ({spvCounts.in_procesare})</SelectItem>
+                <SelectItem value="eroare">Erori SPV ({spvCounts.eroare})</SelectItem>
+                <SelectItem value="nesincronizat">Netrimise ({spvCounts.nesincronizat})</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {period === "custom" && (
+          <div className="px-4 py-2 border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30 flex items-center gap-2 text-xs">
+            <Calendar className="w-3.5 h-3.5 text-blue-500" />
+            <span className="text-slate-500 font-medium">De la:</span>
+            <input
+              type="date"
+              value={customFrom}
+              onChange={e => setCustomFrom(e.target.value)}
+              className="border border-slate-200 dark:border-slate-700 rounded-md px-2 py-0.5 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+            />
+            <span className="text-slate-500 font-medium ml-2">Până la:</span>
+            <input
+              type="date"
+              value={customTo}
+              onChange={e => setCustomTo(e.target.value)}
+              className="border border-slate-200 dark:border-slate-700 rounded-md px-2 py-0.5 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+            />
+          </div>
+        )}
+      </div>
+
       <DataTable
         columns={columns}
         data={filtered}
         rowKey="id"
-        searchable={true}
+        searchable={false}
         onRowClick={row => {
           window.location.href = `/re-facturi/${row.id}`;
         }}
-        toolbar={
-          <div className="w-full">
-            <div className="grid grid-cols-2 w-full gap-2">
-              {/* Period Filter */}
-              <Select
-                value={period}
-                onValueChange={val => {
-                  setPeriod(val as any);
-                  const range = getDateRange(val);
-                  if (range && val !== "custom") {
-                    setCustomFrom(range[0]);
-                    setCustomTo(range[1]);
-                  }
-                }}
-              >
-                <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">
-                  <SelectValue placeholder="Perioadă" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toate dățile</SelectItem>
-                  <SelectItem value="today">Azi</SelectItem>
-                  <SelectItem value="week">Săpt. curentă</SelectItem>
-                  <SelectItem value="month">Luna curentă</SelectItem>
-                  <SelectItem value="lastMonth">Luna trecută</SelectItem>
-                  <SelectItem value="year">Anul curent</SelectItem>
-                  <SelectItem value="lastYear">Anul trecut</SelectItem>
-                  <SelectItem value="custom">Personalizat...</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Status Filter */}
-              <Select
-                value={statusFilter}
-                onValueChange={val => setStatusFilter(val as any)}
-              >
-                <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toate</SelectItem>
-                  <SelectItem value="draft">Ciornă</SelectItem>
-                  <SelectItem value="pending">În Așteptare</SelectItem>
-                  <SelectItem value="sent">Trimisă</SelectItem>
-                  <SelectItem value="paid">Achitată</SelectItem>
-                  <SelectItem value="overdue">Restanță</SelectItem>
-                  <SelectItem value="cancelled">Anulată</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {period === "custom" && (
-              <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700 w-fit mt-2">
-                <input
-                  type="date"
-                  value={customFrom}
-                  onChange={e => setCustomFrom(e.target.value)}
-                  className="h-6 px-1.5 text-xs bg-transparent text-slate-600 dark:text-slate-300 outline-none w-[100px]"
-                />
-                <span className="text-[10px] text-slate-400 font-bold">-</span>
-                <input
-                  type="date"
-                  value={customTo}
-                  onChange={e => setCustomTo(e.target.value)}
-                  className="h-6 px-1.5 text-xs bg-transparent text-slate-600 dark:text-slate-300 outline-none w-[100px]"
-                />
-              </div>
-            )}
-          </div>
-        }
         isLoading={isLoading}
         actions={row => (
           <div className="flex items-center justify-end gap-1">

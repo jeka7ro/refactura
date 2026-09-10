@@ -32,6 +32,7 @@ import { trpc } from "@/lib/trpc";
 import { normalizeText } from "@/lib/utils";
 import { useTableSort } from "@/hooks/useTableSort";
 import { toast } from "sonner";
+import SpvDeadlineBadge from "@/components/SpvDeadlineBadge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1204,6 +1205,14 @@ export default function AllInvoices() {
                               >
                                 Extern (D390)
                               </span>
+                            )}
+                            {row.type === "emis" && (
+                              <SpvDeadlineBadge
+                                issueDate={row.date}
+                                spvStatus={row.spvStatus}
+                                clientCountry={row.clientCountry}
+                                clientCUI={row.partnerCui}
+                              />
                             )}
                           </div>
                         </div>

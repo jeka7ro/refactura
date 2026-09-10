@@ -22,6 +22,7 @@ import { ro } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DownloadCloud, UploadCloud, CheckCircle2, AlertCircle, Clock } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { isTransmittedInDeadline } from "@/lib/spvDeadline";
 
 export default function SpvLogs() {
   const { data: logs, isLoading } = trpc.spvLogs.list.useQuery();
@@ -149,7 +150,7 @@ export default function SpvLogs() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-12 text-center">Tip</TableHead>
-                      <TableHead>Dată / Oră</TableHead>
+                      <TableHead>Data Transmiterii</TableHead>
                       <TableHead>Index SPV</TableHead>
                       <TableHead>Număr Factură</TableHead>
                       <TableHead>Partener</TableHead>
@@ -168,12 +169,21 @@ export default function SpvLogs() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <div className="font-medium">
-                            {format(new Date(log.date), "dd MMM yyyy", { locale: ro })}
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            {format(new Date(log.date), "HH:mm:ss")}
-                          </div>
+                          {(() => {
+                            const inTermen = log.type === "trimisa" && (log as any).issueDate
+                              ? isTransmittedInDeadline((log as any).issueDate, log.date)
+                              : true;
+                            return (
+                              <div className={inTermen ? "text-emerald-600 dark:text-emerald-500" : "text-slate-800 dark:text-slate-200"}>
+                                <div className="font-medium">
+                                  {format(new Date(log.date), "dd MMM yyyy", { locale: ro })}
+                                </div>
+                                <div className={`text-xs ${inTermen ? "text-emerald-600/80 dark:text-emerald-500/80" : "text-slate-500"}`}>
+                                  {format(new Date(log.date), "HH:mm:ss")}
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="font-mono bg-slate-50">
@@ -181,7 +191,12 @@ export default function SpvLogs() {
                           </Badge>
                         </TableCell>
                         <TableCell className="font-medium">
-                          {log.invoiceNumber}
+                          <div>{log.invoiceNumber}</div>
+                          {(log as any).issueDate && (
+                            <div className="text-[11px] text-slate-400 font-normal">
+                              Emisă: {(log as any).issueDate}
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell>
                           <div className="max-w-[200px] truncate" title={log.partnerName}>

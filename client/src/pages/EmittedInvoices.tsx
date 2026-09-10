@@ -14,11 +14,17 @@ import {
   ChevronLeft,
   ChevronRight,
   Undo2,
+  Calendar,
+  Tag,
+  X,
 } from "lucide-react";
 
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { formatCurrency, formatDate } from "@/lib/store";
+import SpvDeadlineBadge from "@/components/SpvDeadlineBadge";
+import SpvDeadlineBanner from "@/components/SpvDeadlineBanner";
+import { isTransmittedInDeadline } from "@/lib/spvDeadline";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -72,6 +78,7 @@ export default function EmittedInvoices() {
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [spvFilter, setSpvFilter] = useState<string>("all");
   const [period, setPeriod] = useState<string>("all");
   const [customFrom, setCustomFrom] = useState(() => new Date().toISOString().split("T")[0]);
   const [customTo, setCustomTo] = useState(() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().split("T")[0]; });
@@ -127,6 +134,7 @@ export default function EmittedInvoices() {
         currency: r.currency || "RON",
         status: r.status || "sent",
         spvStatus: r.spvStatus,
+        spvIndex: r.spvIndex || (r.fileName ? (r.fileName.match(/SPV_(\d+)/)?.[1] ?? null) : null),
         series: "",
         _source: "archive" as const,
       }));
@@ -174,6 +182,13 @@ export default function EmittedInvoices() {
         });
       }
     }
+    if (spvFilter !== "all") {
+      if (spvFilter === "extern") {
+        rows = rows.filter(r => isExternalInvoice(r));
+      } else {
+        rows = rows.filter(r => !isExternalInvoice(r) && (r.spvStatus || "nesincronizat") === spvFilter);
+      }
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       rows = rows.filter(
@@ -184,7 +199,7 @@ export default function EmittedInvoices() {
       );
     }
     return rows;
-  }, [allData, statusFilter, search]);
+  }, [allData, statusFilter, spvFilter, period, customFrom, customTo, search]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
   const paged = filtered.slice((page - 1) * rowsPerPage, page * rowsPerPage);
@@ -253,28 +268,56 @@ export default function EmittedInvoices() {
         ))}
       </div>
 
+      {/* Reminder Termen Legal SPV (5 zile lucrătoare) */}
+      <SpvDeadlineBanner invoices={data} />
+
       {/* Table Card */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
-        {/* Search & Filtre */}
-        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800/50 flex flex-col gap-3 bg-white dark:bg-slate-900">
-          <div className="flex items-center gap-3 w-full">
-            <div style={{ position: "relative" }} className="flex-1 flex-shrink-0">
-              <Search className="w-3.5 h-3.5 text-slate-400" style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)" }} />
-              <input
-                style={{ paddingLeft: 26, paddingRight: search ? 60 : 10, borderRadius: 9999, width: "100%", height: 32, border: "1px solid #e2e8f0", outline: "none", fontSize: 12 }}
-                className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white dark:border-slate-700"
-                placeholder="Caută factură, client..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
-              />
-              {search && (
-                <div style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "#2563eb", color: "white", borderRadius: 9999, padding: "1px 6px", fontSize: 10, fontWeight: 700 }}>
-                  {filtered.length}/{data.length}
+      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+        {/* Search & Filtre — cu iconițe și dimensiuni ca în AllInvoices */}
+        <div className="p-3 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3 flex-wrap bg-white dark:bg-slate-900">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              style={{ paddingLeft: 34, paddingRight: search ? 68 : 14 }}
+              className="rounded-full w-full h-8 border border-slate-200 dark:border-slate-700 outline-none text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all shadow-none"
+              placeholder="Caută factură, client, CUI..."
+              value={search}
+              onChange={e => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+            />
+            {search && (
+              <>
+                <div className="absolute right-7 top-1/2 -translate-y-1/2 bg-blue-600 text-white rounded-full px-1.5 py-0.5 text-[9px] font-bold">
+                  {filtered.length}/{allData.length}
                 </div>
-              )}
-            </div>
+                <button
+                  onClick={() => setSearch("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2"
+                >
+                  <X className="w-3 h-3 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" />
+                </button>
+              </>
+            )}
           </div>
-          <div className="grid grid-cols-2 w-full gap-2">
-            <Select value={period} onValueChange={val => { setPeriod(val as any); const range = getDateRange(val); if (range && val !== "custom") { setCustomFrom(range[0]); setCustomTo(range[1]); } setPage(1); }}>
-              <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">
+
+          {/* Perioadă Filter */}
+          <div className="w-[140px] sm:w-[155px] flex-shrink-0">
+            <Select
+              value={period}
+              onValueChange={val => {
+                setPeriod(val as any);
+                const range = getDateRange(val);
+                if (range && val !== "custom") {
+                  setCustomFrom(range[0]);
+                  setCustomTo(range[1]);
+                }
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 shadow-none flex items-center gap-1.5 px-3">
+                <Calendar className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
                 <SelectValue placeholder="Perioadă" />
               </SelectTrigger>
               <SelectContent>
@@ -288,12 +331,23 @@ export default function EmittedInvoices() {
                 <SelectItem value="custom">Personalizat...</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={statusFilter} onValueChange={val => { setStatusFilter(val as any); setPage(1); }}>
-              <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">
+          </div>
+
+          {/* Status Filter */}
+          <div className="w-[125px] sm:w-[140px] flex-shrink-0">
+            <Select
+              value={statusFilter}
+              onValueChange={val => {
+                setStatusFilter(val as any);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 shadow-none flex items-center gap-1.5 px-3">
+                <Tag className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Toate ({counts.all})</SelectItem>
+                <SelectItem value="all">Toate statusurile</SelectItem>
                 <SelectItem value="draft">Ciornă ({counts.draft})</SelectItem>
                 <SelectItem value="sent">Emise ({counts.sent})</SelectItem>
                 <SelectItem value="paid">Achitate ({counts.paid})</SelectItem>
@@ -301,14 +355,57 @@ export default function EmittedInvoices() {
               </SelectContent>
             </Select>
           </div>
-          {period === "custom" && (
-            <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700 w-fit mt-1">
-              <input type="date" value={customFrom} onChange={e => { setCustomFrom(e.target.value); setPage(1); }} className="h-6 px-1.5 text-xs bg-transparent text-slate-600 dark:text-slate-300 outline-none w-[100px]" />
-              <span className="text-[10px] text-slate-400 font-bold">-</span>
-              <input type="date" value={customTo} onChange={e => { setCustomTo(e.target.value); setPage(1); }} className="h-6 px-1.5 text-xs bg-transparent text-slate-600 dark:text-slate-300 outline-none w-[100px]" />
-            </div>
-          )}
+
+          {/* SPV Filter */}
+          <div className="w-[130px] sm:w-[150px] flex-shrink-0">
+            <Select
+              value={spvFilter}
+              onValueChange={val => {
+                setSpvFilter(val as any);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 shadow-none flex items-center gap-1.5 px-3">
+                <Send className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                <SelectValue placeholder="Stare SPV" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toate SPV</SelectItem>
+                <SelectItem value="validat">Validate</SelectItem>
+                <SelectItem value="in_procesare">În procesare</SelectItem>
+                <SelectItem value="eroare">Erori SPV</SelectItem>
+                <SelectItem value="nesincronizat">Netrimise</SelectItem>
+                <SelectItem value="extern">Externe (D390)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
+
+        {period === "custom" && (
+          <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30 flex items-center gap-2 text-xs">
+            <Calendar className="w-3.5 h-3.5 text-blue-500" />
+            <span className="text-slate-500 font-medium">De la:</span>
+            <input
+              type="date"
+              value={customFrom}
+              onChange={e => {
+                setCustomFrom(e.target.value);
+                setPage(1);
+              }}
+              className="h-7 px-2 text-xs bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-blue-500"
+            />
+            <span className="text-slate-500 font-medium">Până la:</span>
+            <input
+              type="date"
+              value={customTo}
+              onChange={e => {
+                setCustomTo(e.target.value);
+                setPage(1);
+              }}
+              className="h-7 px-2 text-xs bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+        )}
 
         {/* Table */}
         <div className="overflow-x-auto">
@@ -339,6 +436,9 @@ export default function EmittedInvoices() {
                 <th className="text-center px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden lg:table-cell">
                   SPV
                 </th>
+                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden xl:table-cell">
+                  Data Transmisă
+                </th>
                 <th className="text-right px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   Acțiuni
                 </th>
@@ -347,14 +447,14 @@ export default function EmittedInvoices() {
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-12">
+                  <td colSpan={10} className="text-center py-12">
                     <Loader2 className="w-6 h-6 animate-spin text-slate-400 mx-auto" />
                   </td>
                 </tr>
               ) : paged.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     className="text-center py-12 text-slate-400 text-sm"
                   >
                     {data.length === 0
@@ -431,11 +531,53 @@ export default function EmittedInvoices() {
                           Extern (D390)
                         </span>
                       ) : (
-                        <span
-                          className={`text-[10px] font-semibold ${SPV_COLORS[row.spvStatus || "nesincronizat"]}`}
-                        >
-                          {SPV_LABELS[row.spvStatus || "nesincronizat"]}
-                        </span>
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span
+                            className={`text-[10px] font-semibold ${SPV_COLORS[row.spvStatus || "nesincronizat"]}`}
+                          >
+                            {SPV_LABELS[row.spvStatus || "nesincronizat"]}
+                          </span>
+                          {row.spvIndex && (
+                            <span
+                              className={`font-mono text-[10px] leading-tight ${
+                                row.spvStatus === "validat"
+                                  ? "text-emerald-500 font-medium"
+                                  : row.spvStatus === "in_procesare"
+                                  ? "text-blue-500"
+                                  : "text-slate-400"
+                              }`}
+                              title={`Index încărcare SPV: ${row.spvIndex}`}
+                            >
+                              {row.spvIndex}
+                            </span>
+                          )}
+                          <SpvDeadlineBadge
+                            issueDate={row.issueDate}
+                            spvStatus={row.spvStatus}
+                            clientCountry={row.clientCountry}
+                            clientCUI={row.clientCUI}
+                          />
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-left hidden xl:table-cell">
+                      {row.spvSentAt || (row.spvIndex && (row.updatedAt || row.createdAt)) ? (
+                        (() => {
+                          const sentDate = row.spvSentAt || row.updatedAt || row.createdAt;
+                          const inTermen = isTransmittedInDeadline(row.issueDate, sentDate);
+                          return (
+                            <div className={`text-xs ${inTermen ? "text-emerald-600 dark:text-emerald-500" : "text-slate-600 dark:text-slate-300"}`}>
+                              <div className="font-medium">{formatDate(sentDate)}</div>
+                              <div className={`text-[10px] ${inTermen ? "text-emerald-600/80 dark:text-emerald-500/80" : "text-slate-400"}`}>
+                                {new Date(sentDate).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })}
+                              </div>
+                            </div>
+                          );
+                        })()
+                      ) : isExternalInvoice(row) ? (
+                        <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">— (Non-SPV)</span>
+                      ) : (
+                        <span className="text-xs text-slate-400">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3">

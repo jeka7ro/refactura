@@ -43,6 +43,26 @@ export async function getDb() {
         // Column already exists — ignore
       }
 
+      // Safe migration: add spvSentAt column if missing
+      try {
+        await _db.execute(
+          sql`ALTER TABLE emittedInvoices ADD COLUMN spvSentAt TIMESTAMP NULL`
+        );
+      } catch {}
+      try {
+        await _db.execute(
+          sql`ALTER TABLE reInvoices ADD COLUMN spvSentAt TIMESTAMP NULL`
+        );
+      } catch {}
+      try {
+        await _db.execute(
+          sql`UPDATE emittedInvoices SET spvSentAt = COALESCE(updatedAt, createdAt) WHERE spvIndex IS NOT NULL AND spvSentAt IS NULL`
+        );
+        await _db.execute(
+          sql`UPDATE reInvoices SET spvSentAt = COALESCE(updatedAt, createdAt) WHERE spvIndex IS NOT NULL AND spvSentAt IS NULL`
+        );
+      } catch {}
+
       // Safe migration: ensure tenants.settings is LONGTEXT for large base64 logos
       try {
         await _db.execute(
