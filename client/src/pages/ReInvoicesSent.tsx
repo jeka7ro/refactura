@@ -365,7 +365,7 @@ export default function ReInvoicesSent() {
                 })}
               </span>
             </div>
-            <div className="h-5 flex items-center font-mono text-[11px] font-normal">
+            <div className="h-5 flex items-center text-[11px] font-normal">
               {row.spvIndex ? (
                 <span
                   className={

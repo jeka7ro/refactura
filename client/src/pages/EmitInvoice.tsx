@@ -1134,7 +1134,7 @@ export default function EmitInvoice() {
                     onChange={e =>
                       updateLine(line.id, "devizCode", e.target.value)
                     }
-                    className="w-full h-8 px-2 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                    className="w-full h-8 px-2 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
               )}
@@ -1250,7 +1250,7 @@ export default function EmitInvoice() {
                               <span className="text-[9px] font-bold px-1.5 py-0.5 uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                                 {item.tip}
                               </span>
-                              <span className="text-xs font-mono text-slate-500">
+                              <span className="text-xs font-medium text-slate-500">
                                 {item.cod}
                               </span>
                             </div>

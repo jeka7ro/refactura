@@ -139,7 +139,7 @@ export default function Catalog() {
                     >
                       {(page - 1) * rowsPerPage + index + 1}
                     </td>
-                    <td className="px-4 py-3 font-mono text-slate-500 text-xs">
+                    <td className="px-4 py-3 text-slate-500 text-xs">
                       {item.cod}
                     </td>
                     <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100 whitespace-normal min-w-[300px]">

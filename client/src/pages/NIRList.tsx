@@ -263,7 +263,7 @@ export default function NIRList() {
                     <td className="px-3 py-2.5 text-xs text-slate-700 dark:text-slate-300 max-w-[180px] truncate">
                       {row.supplierName || "—"}
                     </td>
-                    <td className="px-3 py-2.5 text-xs font-mono text-slate-500">
+                    <td className="px-3 py-2.5 text-xs text-slate-500">
                       {row.invoiceNumber || "—"}
                     </td>
                     <td className="px-3 py-2.5 text-[11px] text-slate-400">

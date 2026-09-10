@@ -121,7 +121,7 @@ export default function InvoiceDetail() {
           <div className="pt-4 sm:pt-0 sm:px-4 flex flex-col gap-1">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Date Factură</span>
             <div className="text-xs space-y-1.5 mt-1">
-              <div className="flex justify-between sm:block sm:mb-1"><span className="text-slate-500 sm:hidden">Număr:</span> <span className="font-mono font-semibold text-slate-900 dark:text-white">#{invoice.invoiceNumber || invoice.id}</span></div>
+              <div className="flex justify-between sm:block sm:mb-1"><span className="text-slate-500 sm:hidden">Număr:</span> <span className="font-semibold text-slate-900 dark:text-white">#{invoice.invoiceNumber || invoice.id}</span></div>
               <div className="flex justify-between sm:block sm:mb-1"><span className="text-slate-500 sm:hidden">Emisă:</span> <span className="text-slate-600 dark:text-slate-300"><span className="hidden sm:inline">Emisă: </span>{formatDate(invoice.issueDate || "")}</span></div>
               <div className="flex justify-between sm:block sm:mb-1"><span className="text-slate-500 sm:hidden">Scadență:</span> <span className="text-slate-600 dark:text-slate-300"><span className="hidden sm:inline">Scad: </span>{formatDate(invoice.dueDate || "")}</span></div>
             </div>

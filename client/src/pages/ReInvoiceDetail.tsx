@@ -177,7 +177,7 @@ export default function ReInvoiceDetail() {
           <div className="space-y-2 text-xs">
             <div className="flex justify-between">
               <span className="text-slate-500">Număr:</span>
-              <span className="text-slate-900 dark:text-white font-mono">
+              <span className="text-slate-900 dark:text-white font-medium">
                 {invoice.number || "—"}
               </span>
             </div>
@@ -196,7 +196,7 @@ export default function ReInvoiceDetail() {
             {invoice.sourceInvoiceNumber && (
               <div className="flex justify-between">
                 <span className="text-slate-500">Din factura:</span>
-                <span className="text-slate-900 dark:text-white font-mono text-right">
+                <span className="text-slate-900 dark:text-white font-medium text-right">
                   {invoice.sourceInvoiceNumber} ({invoice.sourceSupplierName})
                 </span>
               </div>

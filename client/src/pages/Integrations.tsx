@@ -909,7 +909,7 @@ export default function Integrations() {
                     className="border-b border-slate-100 dark:border-slate-700/60 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors"
                   >
                     {/* Nr */}
-                    <td className="px-4 py-3 text-slate-400 dark:text-slate-500 font-mono text-[11px]">
+                    <td className="px-4 py-3 text-slate-400 dark:text-slate-500 text-[11px]">
                       {idx + 1}
                     </td>
 

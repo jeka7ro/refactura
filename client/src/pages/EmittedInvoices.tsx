@@ -569,7 +569,7 @@ export default function EmittedInvoices() {
                                     {new Date(sentDate).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })}
                                   </span>
                                 </div>
-                                <div className="h-5 flex items-center font-mono text-[11px] font-normal">
+                                <div className="h-5 flex items-center text-[11px] font-normal">
                                   {row.spvIndex ? (
                                     <span
                                       className={

@@ -179,7 +179,7 @@ export default function EmittedInvoiceDetail() {
           <div className="space-y-2 text-xs">
             <div className="flex justify-between">
               <span className="text-slate-500">Număr:</span>
-              <span className="text-slate-900 dark:text-white font-mono">
+              <span className="text-slate-900 dark:text-white font-medium">
                 {formatInvoiceNumber(invoice.series, invoice.number)}
               </span>
             </div>
@@ -230,7 +230,7 @@ export default function EmittedInvoiceDetail() {
             {invoice.spvIndex && (
               <div className="flex justify-between">
                 <span className="text-slate-500">Index SPV:</span>
-                <span className="font-mono text-slate-700 dark:text-slate-300">
+                <span className="font-medium text-slate-700 dark:text-slate-300">
                   {invoice.spvIndex}
                 </span>
               </div>
