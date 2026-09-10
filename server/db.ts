@@ -22,17 +22,43 @@ import {
   InsertInvoiceArchive,
   integrations,
 } from "../drizzle/schema";
+import mysql from "mysql2/promise";
 import { ENV } from "./_core/env";
 import { runHorecaMigrations } from "../modules/horeca/migrations";
 import { runSagaMigrations } from "../modules/saga/migrations";
 
+let _pool: mysql.Pool | null = null;
 let _db: ReturnType<typeof drizzle> | null = null;
+
+export function getPool(): mysql.Pool | null {
+  if (!_pool && process.env.DATABASE_URL) {
+    _pool = mysql.createPool({
+      uri: process.env.DATABASE_URL,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 10000,
+      waitForConnections: true,
+      connectionLimit: 10,
+      idleTimeout: 30000,
+      maxIdle: 5,
+    });
+    _pool.on("error", err => {
+      console.warn("[DB Pool Warning]", err?.message || err);
+      if ((err as any)?.code === "EADDRNOTAVAIL" || (err as any)?.fatal) {
+        _pool = null;
+        _db = null;
+      }
+    });
+  }
+  return _pool;
+}
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      const pool = getPool();
+      if (!pool) return null;
+      _db = drizzle(pool);
       // Safe migration: add rawXml column if missing
       try {
         await _db.execute(

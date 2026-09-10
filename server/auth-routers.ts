@@ -253,7 +253,7 @@ export const authRouter = router({
         };
       } catch (error) {
         console.error("Google login error:", error);
-        throw new Error("Eroare la autentificarea cu Google");
+        throw new Error((error as Error)?.message || "Eroare la autentificarea cu Google");
       }
     }),
 });
