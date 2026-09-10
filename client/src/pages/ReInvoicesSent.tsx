@@ -230,7 +230,7 @@ export default function ReInvoicesSent() {
       sortable: true,
       className: "whitespace-nowrap",
       render: (value: string, row: any) => (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col items-start gap-1">
           <span className="text-sm font-bold text-blue-600 hover:underline text-left cursor-pointer">
             {value}
           </span>

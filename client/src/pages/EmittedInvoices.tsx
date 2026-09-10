@@ -474,18 +474,20 @@ export default function EmittedInvoices() {
                       {(page - 1) * rowsPerPage + idx + 1}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-blue-600 hover:underline text-left">
-                          {row.number}
-                        </span>
+                      <div className="flex flex-col items-start gap-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-bold text-blue-600 hover:underline text-left">
+                            {row.number}
+                          </span>
+                          {row._source === "archive" && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-violet-100 text-violet-700 border border-violet-200">SPV</span>
+                          )}
+                        </div>
                         <span
                           className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${STATUS_COLORS[row.status || "draft"]}`}
                         >
                           {STATUS_LABELS[row.status || "draft"]}
                         </span>
-                        {row._source === "archive" && (
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-violet-100 text-violet-700 border border-violet-200">SPV</span>
-                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3">
