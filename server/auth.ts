@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import { eq } from "drizzle-orm";
-import { getDb } from "./db";
+import { getDb, resetDb } from "./db";
 import { accounts, passwordResets } from "../drizzle/schema";
 import crypto from "crypto";
 
@@ -137,43 +137,70 @@ export async function authenticateAccount(email: string, password: string) {
  * Get account by email
  */
 export async function getAccountByEmail(email: string) {
-  const db = await getDb();
+  let db = await getDb();
   if (!db) return null;
 
-  const result = await db
-    .select()
-    .from(accounts)
-    .where(eq(accounts.email, email))
-    .limit(1);
-  return result.length > 0 ? result[0] : null;
+  try {
+    const result = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.email, email))
+      .limit(1);
+    return result.length > 0 ? result[0] : null;
+  } catch (err: any) {
+    console.warn("[Auth] getAccountByEmail failed, retrying with fresh connection...", err?.message || err);
+    resetDb();
+    db = await getDb();
+    if (!db) return null;
+    const result = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.email, email))
+      .limit(1);
+    return result.length > 0 ? result[0] : null;
+  }
 }
 
 /**
  * Get account by ID
  */
 export async function getAccountById(id: number) {
-  const db = await getDb();
+  let db = await getDb();
   if (!db) {
     // Fără DB (local testing) — returnăm un cont mock cu ID-ul cerut
     return {
       id,
       email: "local@refactura.ro",
-      passwordHash: "mock",
+      passwordHash: "",
       tenantId: 1,
-      role: "admin" as const,
-      isActive: 1,
+      role: "admin",
+      isActive: true,
+      phone: null,
+      lastLoginAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
-      lastLoginAt: new Date(),
     };
   }
 
-  const result = await db
-    .select()
-    .from(accounts)
-    .where(eq(accounts.id, id))
-    .limit(1);
-  return result.length > 0 ? result[0] : null;
+  try {
+    const result = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.id, id))
+      .limit(1);
+    return result.length > 0 ? result[0] : null;
+  } catch (err: any) {
+    console.warn("[Auth] getAccountById failed, retrying with fresh connection...", err?.message || err);
+    resetDb();
+    db = await getDb();
+    if (!db) return null;
+    const result = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.id, id))
+      .limit(1);
+    return result.length > 0 ? result[0] : null;
+  }
 }
 
 /**

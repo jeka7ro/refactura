@@ -35,7 +35,7 @@ export function getPool(): mysql.Pool | null {
     _pool = mysql.createPool({
       uri: process.env.DATABASE_URL,
       enableKeepAlive: true,
-      keepAliveInitialDelay: 10000,
+      keepAliveInitialDelay: 5000,
       waitForConnections: true,
       connectionLimit: 10,
       idleTimeout: 30000,
@@ -43,13 +43,20 @@ export function getPool(): mysql.Pool | null {
     });
     _pool.on("error", err => {
       console.warn("[DB Pool Warning]", err?.message || err);
-      if ((err as any)?.code === "EADDRNOTAVAIL" || (err as any)?.fatal) {
-        _pool = null;
-        _db = null;
-      }
+      resetDb();
     });
   }
   return _pool;
+}
+
+export function resetDb() {
+  if (_pool) {
+    try {
+      _pool.end().catch(() => {});
+    } catch {}
+  }
+  _pool = null;
+  _db = null;
 }
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
