@@ -100,6 +100,16 @@ const STATUS_CLS: Record<string, string> = {
   overdue: "text-rose-600 dark:text-rose-500",
   storno: "text-rose-600 dark:text-rose-500",
 };
+const STATUS_COLORS: Record<string, string> = {
+  draft: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
+  sent: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800",
+  paid: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800",
+  processed: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800",
+  pending: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800",
+  overdue: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800",
+  storno: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800",
+  archived: "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700",
+};
 const STATUS_LBL: Record<string, string> = {
   pending: "Neîncasat",
   processed: "Încasat",
@@ -463,11 +473,12 @@ export default function AllInvoices() {
     const rows: UnifiedRow[] = [];
     archiveItems.forEach((i: any) => {
       const t = parseFloat(i.total || "0");
+      const isPrimit = i.direction === "in";
       rows.push({
         id: i.id,
-        type: i.direction === "in" ? "primit" : "emis",
+        type: isPrimit ? "primit" : "emis",
         number: i.invoiceNumber || `#${i.id}`,
-        partnerName: i.supplierName || "—",
+        partnerName: isPrimit ? (i.supplierName || "—") : (i.customerName || i.supplierName || "—"),
         date: i.issueDate || i.createdAt || "",
         dueDate: i.dueDate || "",
         total: t,
@@ -476,6 +487,8 @@ export default function AllInvoices() {
         fileUrl: i.source === "spv_anaf" || i.fileUrl === "spv_import" ? `/api/pdf/archive/${i.id}` : i.fileUrl,
         source: i.source || "spv_anaf",
         itemsText: i.itemsText || "",
+        partnerCui: isPrimit ? (i.supplierCui || "") : (i.customerCui || i.supplierCui || ""),
+        spvStatus: i.spvStatus,
       });
     });
     (Array.isArray(reInvoices) ? reInvoices : []).forEach((i: any) => {
@@ -493,6 +506,8 @@ export default function AllInvoices() {
         fileUrl: i.pdfUrl && i.pdfUrl !== "spv_import" ? i.pdfUrl : `/api/pdf/reinvoice/${i.id}`,
         source: "refactura",
         itemsText: i.itemsText || "",
+        partnerCui: i.clientCUI || i.clientCui || "",
+        spvStatus: i.spvStatus,
       });
     });
     (Array.isArray(emittedInvoices) ? emittedInvoices : []).forEach(
@@ -1046,51 +1061,42 @@ export default function AllInvoices() {
                     title="Selectează/Deselectează toate de pe această pagină"
                   />
                 </th>
-                <th className="px-4 py-3 w-16 text-left text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="px-4 py-3 w-12 text-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
                   Nr. Crt.
                 </th>
                 <th
-                  className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700 dark:hover:text-slate-200"
+                  className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 whitespace-nowrap"
                   onClick={() => handleSort("number")}
                 >
                   <div className="flex items-center gap-1">
-                    Număr & Partener{" "}
+                    Număr Factură{" "}
                     <span className="text-blue-500">
                       {getSortIcon("number")}
                     </span>
                   </div>
                 </th>
                 <th
-                  className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700 dark:hover:text-slate-200"
-                  onClick={() => handleSort("type")}
+                  className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 whitespace-nowrap"
+                  onClick={() => handleSort("partnerName")}
                 >
                   <div className="flex items-center gap-1">
-                    Tip & Status{" "}
-                    <span className="text-blue-500">{getSortIcon("type")}</span>
-                  </div>
-                </th>
-                <th
-                  className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700 dark:hover:text-slate-200"
-                  onClick={() => handleSort("date")}
-                >
-                  <div className="flex items-center gap-1">
-                    Dată{" "}
-                    <span className="text-blue-500">{getSortIcon("date")}</span>
-                  </div>
-                </th>
-                <th
-                  className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700 dark:hover:text-slate-200"
-                  onClick={() => handleSort("dueDate")}
-                >
-                  <div className="flex items-center gap-1">
-                    Scadență{" "}
+                    Partener{" "}
                     <span className="text-blue-500">
-                      {getSortIcon("dueDate")}
+                      {getSortIcon("partnerName")}
                     </span>
                   </div>
                 </th>
                 <th
-                  className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700 dark:hover:text-slate-200"
+                  className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 whitespace-nowrap"
+                  onClick={() => handleSort("date")}
+                >
+                  <div className="flex items-center gap-1">
+                    Dată / Scadență{" "}
+                    <span className="text-blue-500">{getSortIcon("date")}</span>
+                  </div>
+                </th>
+                <th
+                  className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 whitespace-nowrap"
                   onClick={() => handleSort("total")}
                 >
                   <div className="flex items-center justify-end gap-1">
@@ -1100,18 +1106,7 @@ export default function AllInvoices() {
                     </span>
                   </div>
                 </th>
-                <th
-                  className="px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700 dark:hover:text-slate-200"
-                  onClick={() => handleSort("source")}
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    Sursă{" "}
-                    <span className="text-blue-500">
-                      {getSortIcon("source")}
-                    </span>
-                  </div>
-                </th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">
                   Acțiuni
                 </th>
               </tr>
@@ -1119,14 +1114,14 @@ export default function AllInvoices() {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center">
+                  <td colSpan={7} className="py-12 text-center">
                     <Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto" />
                   </td>
                 </tr>
               ) : paginated.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={7}
                     className="py-4 text-center text-slate-400 text-[11px] bg-slate-50/50 dark:bg-slate-800/20 border-b border-dashed border-slate-200 dark:border-slate-800"
                   >
                     {search || typeFilter !== "all"
@@ -1142,7 +1137,7 @@ export default function AllInvoices() {
                       key={`${row.source}-${row.type}-${row.id}`}
                       className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${selectedIds.has(`${row.source}-${row.id}`) ? "bg-blue-50/50 dark:bg-blue-900/10" : ""}`}
                     >
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-2.5 text-center">
                         <input
                           type="checkbox"
                           className="rounded border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-blue-600 focus:ring-blue-500 cursor-pointer"
@@ -1150,109 +1145,170 @@ export default function AllInvoices() {
                           onChange={() => toggleSelect(row)}
                         />
                       </td>
-                      <td className="px-4 py-3 text-center text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                        {(page - 1) * rowsPerPage + i + 1}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-col gap-0.5">
-                          <button
-                            onClick={() => {
-                              if (row.source === "refactura")
-                                navigate(`/re-facturi/${row.id}`);
-                              else if (
-                                row.type === "emis" &&
-                                row.source === "manual"
-                              )
-                                navigate(`/facturi-emise-nou/view/${row.id}`);
-                              else navigate(`/facturi-primite/${row.id}`);
-                            }}
-                            className="text-sm font-bold text-blue-600 hover:underline text-left"
-                          >
-                            {row.number}
-                          </button>
-                          <span
-                            className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-[180px] truncate"
-                            title={row.partnerName}
-                          >
-                            {row.partnerName}
-                          </span>
+                      <td className="px-4 py-2.5 text-center whitespace-nowrap">
+                        <div className="h-10 flex flex-col justify-center">
+                          <div className="h-5 flex items-center justify-center font-bold text-xs text-slate-700 dark:text-slate-300">
+                            {(page - 1) * rowsPerPage + i + 1}
+                          </div>
+                          <div className="h-5 flex items-center justify-center text-[11px] text-slate-400 font-normal">
+                            —
+                          </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-col gap-0.5 items-start">
-                          <span className={`text-sm font-bold ${tb.cls}`}>
-                            {tb.label}
-                          </span>
-                          <div className="flex items-center gap-1.5">
+                      <td className="px-4 py-2.5 whitespace-nowrap">
+                        <div className="h-10 flex flex-col justify-center">
+                          <div className="h-5 flex items-center gap-1.5">
+                            <button
+                              onClick={() => {
+                                if (row.source === "refactura")
+                                  navigate(`/re-facturi/${row.id}`);
+                                else if (
+                                  row.type === "emis" &&
+                                  row.source === "manual"
+                                )
+                                  navigate(`/facturi-emise-nou/view/${row.id}`);
+                                else navigate(`/facturi-primite/${row.id}`);
+                              }}
+                              className="text-xs font-bold text-blue-600 hover:underline text-left truncate"
+                            >
+                              {row.number}
+                            </button>
                             <span
-                              className={`text-sm font-bold ${STATUS_CLS[row.status] || STATUS_CLS.pending}`}
+                              className={`px-1.5 py-0.5 rounded text-[10px] font-bold border leading-none ${
+                                row.type === "emis"
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800"
+                                  : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800"
+                              }`}
+                            >
+                              {tb.label}
+                            </span>
+                          </div>
+                          <div className="h-5 flex items-center">
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[11px] font-normal border leading-none ${STATUS_COLORS[row.status] || STATUS_COLORS.pending}`}
                             >
                               {getStatusLabel(row.status, row.type)}
                             </span>
-                            {row.spvStatus && (row.spvStatus.toLowerCase() === "validat" || row.spvStatus.toLowerCase() === "trimisa") && (
-                              <span className="text-[10px] font-bold text-green-600 dark:text-emerald-400 bg-green-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-green-200 dark:border-emerald-800/80">
-                                {row.spvStatus.toLowerCase() === "validat" ? "Validată SPV" : "Trimisă SPV"}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <div className="h-10 flex flex-col justify-center">
+                          <div className="h-5 flex items-center">
+                            <div
+                              className="text-xs font-bold text-slate-900 dark:text-white max-w-[200px] truncate"
+                              title={row.partnerName}
+                            >
+                              {row.partnerName}
+                            </div>
+                          </div>
+                          <div className="h-5 flex items-center text-[11px] text-slate-400 font-normal gap-1.5 whitespace-nowrap">
+                            <span>{row.partnerCui ? `CUI: ${row.partnerCui}` : "—"}</span>
+                            <span>•</span>
+                            <span className={`font-normal ${SOURCE_BADGE[row.source]?.cls || "text-slate-500"}`}>
+                              {SOURCE_BADGE[row.source]?.label || row.source}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2.5 whitespace-nowrap">
+                        <div className="h-10 flex flex-col justify-center">
+                          <div className="h-5 flex items-center">
+                            <span className="text-xs font-bold text-slate-900 dark:text-white">
+                              {formatDate(row.date)}
+                            </span>
+                          </div>
+                          <div className="h-5 flex items-center text-[11px] text-slate-400 font-normal">
+                            {row.dueDate ? `Scad: ${formatDate(row.dueDate)}` : "—"}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                        <div className="h-10 flex flex-col justify-center items-end">
+                          <div className="h-5 flex items-center justify-end">
+                            <span className="text-xs font-bold text-slate-900 dark:text-white">
+                              {formatCurrency(row.total, row.currency as Currency)}
+                            </span>
+                          </div>
+                          <div className="h-5 flex items-center justify-end leading-none text-[11px] font-normal">
+                            {row.spvStatus &&
+                            (row.spvStatus.toLowerCase() === "validat" ||
+                              row.spvStatus.toLowerCase() === "trimisa") ? (
+                              <span className="text-[10px] font-normal text-green-600 dark:text-emerald-400 bg-green-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-green-200 dark:border-emerald-800/80 leading-none">
+                                {row.spvStatus.toLowerCase() === "validat"
+                                  ? "Validată SPV"
+                                  : "Trimisă SPV"}
                               </span>
-                            )}
-                            {((row.spvStatus && row.spvStatus.toLowerCase() === "extern") ||
-                              (row.type === "emis" && (
-                                (row.clientCountry && row.clientCountry.toUpperCase() !== "RO") ||
-                                (row.partnerCui && !row.partnerCui.toUpperCase().startsWith("RO") && /^[A-Z]{2}/.test(row.partnerCui))
-                              ))) && (
+                            ) : (row.spvStatus && row.spvStatus.toLowerCase() === "extern") ||
+                              (row.type === "emis" &&
+                                ((row.clientCountry &&
+                                  row.clientCountry.toUpperCase() !== "RO") ||
+                                  (row.partnerCui &&
+                                    !row.partnerCui.toUpperCase().startsWith("RO") &&
+                                    /^[A-Z]{2}/.test(row.partnerCui)))) ? (
                               <span
-                                className="text-[10px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/80"
+                                className="text-[10px] font-normal text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/80 leading-none"
                                 title="Factură externă (UE/Non-UE) - declarată prin D390/D300, nu se transmite în SPV"
                               >
                                 Extern (D390)
                               </span>
-                            )}
-                            {row.type === "emis" && (
+                            ) : row.type === "emis" ? (
                               <SpvDeadlineBadge
                                 issueDate={row.date}
                                 spvStatus={row.spvStatus}
                                 clientCountry={row.clientCountry}
                                 clientCUI={row.partnerCui}
                               />
+                            ) : (
+                              <span className="text-slate-400">—</span>
                             )}
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">
-                        {formatDate(row.date)}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">
-                        {formatDate(row.dueDate)}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-right font-semibold text-slate-900 dark:text-white whitespace-nowrap">
-                        {formatCurrency(row.total, row.currency as Currency)}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {(() => {
-                          const sb =
-                            SOURCE_BADGE[row.source] || SOURCE_BADGE.manual;
-                          if (row.source === "spv_anaf") {
-                            return (
-                              <div
-                                className={`flex flex-col items-center leading-tight text-xs font-bold ${sb.cls}`}
-                              >
-                                <span>SPV</span>
-                                <span>ANAF</span>
-                              </div>
-                            );
-                          }
-                          return (
-                            <span className={`text-xs font-bold ${sb.cls}`}>
-                              {sb.label}
-                            </span>
-                          );
-                        })()}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1 justify-end">
+                      <td className="px-4 py-2.5 whitespace-nowrap">
+                        <div className="h-10 flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => {
+                              if (row.source === "refactura") {
+                                handleDownloadReInvoicePDF(row);
+                              } else if (
+                                row.type === "emis" &&
+                                row.source === "manual"
+                              ) {
+                                downloadFile(
+                                  `/api/pdf/emitted/${row.id}?download=1`,
+                                  `${row.number}.pdf`
+                                );
+                              } else if (
+                                row.fileUrl &&
+                                row.fileUrl !== "spv_import"
+                              ) {
+                                downloadFile(
+                                  row.fileUrl,
+                                  `${row.number}.pdf`
+                                );
+                              } else if (
+                                row.type === "primit" ||
+                                (row.type === "emis" &&
+                                  row.source === "spv_anaf")
+                              ) {
+                                downloadFile(
+                                  `/api/pdf/archive/${row.id}?download=1`,
+                                  `${row.number}.pdf`
+                                );
+                              } else {
+                                toast.error("PDF-ul nu este disponibil.");
+                              }
+                            }}
+                            className="flex items-center justify-center w-7 h-7 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 transition-colors"
+                            title="Descarcă PDF"
+                          >
+                            <FileDown className="w-3.5 h-3.5" />
+                          </button>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <button className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 transition-colors">
-                                <MoreVertical className="w-4 h-4" />
+                              <button className="flex items-center justify-center w-7 h-7 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 transition-colors">
+                                <MoreVertical className="w-3.5 h-3.5" />
                               </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
