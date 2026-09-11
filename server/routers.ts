@@ -230,6 +230,38 @@ export const appRouter = router({
           .where(eq(tenants.id, tenantId));
         return { success: true };
       }),
+    switchTenant: protectedProcedure
+      .input(z.object({ tenantId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new Error("Neautentificat");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { accounts, userTenants } = await import("../drizzle/schema");
+        const { eq, and } = await import("drizzle-orm");
+
+        // Verificare strictă de securitate: tenant-ul trebuie să fie explicit asignat utilizatorului în userTenants
+        const [hasAccess] = await db
+          .select()
+          .from(userTenants)
+          .where(
+            and(
+              eq(userTenants.userId, ctx.user.id),
+              eq(userTenants.tenantId, input.tenantId),
+              eq(userTenants.isActive, 1)
+            )
+          );
+
+        if (!hasAccess) {
+          throw new Error("Acces interzis: datele fiecărui tenant sunt strict confidențiale.");
+        }
+
+        await db
+          .update(accounts)
+          .set({ tenantId: input.tenantId })
+          .where(eq(accounts.id, ctx.user.id));
+
+        return { success: true, tenantId: input.tenantId };
+      }),
   }),
 
   invoices: router({

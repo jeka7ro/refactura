@@ -23,6 +23,7 @@ import Clients from "./pages/Clients";
 import Integrations from "./pages/Integrations";
 import Settings from "./pages/Settings";
 import Reports from "./pages/Reports";
+import CursValutar from "./pages/CursValutar";
 import CostCenters from "./pages/CostCenters";
 import CostCenterDetail from "./pages/CostCenterDetail";
 import ApiKeys from "./pages/ApiKeys";
@@ -221,6 +222,11 @@ function Router() {
       <Route path="/rapoarte">
         <DashboardLayout>
           <Reports />
+        </DashboardLayout>
+      </Route>
+      <Route path="/curs-valutar">
+        <DashboardLayout>
+          <CursValutar />
         </DashboardLayout>
       </Route>
       <Route path="/clienti">

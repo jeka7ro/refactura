@@ -670,3 +670,14 @@ textarea:not(.rounded-full) {
 .catalog-dropdown-item {
   border-radius: 0 !important;
 }
+
+/* Disable spin buttons on number inputs to avoid overlapping text/badges */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+input[type="number"] {
+  -moz-appearance: textfield !important;
+}
+

@@ -49,6 +49,7 @@ import {
   MonitorSmartphone,
   Key,
   Database,
+  Coins,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -58,6 +59,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { BnrExchangeRateHeader } from "./BnrExchangeRateHeader";
+
 
 const LOGO_URL = "/gettsapp_logo_ver2.png";
 const APP_NAME = "Smart Invoice";
@@ -117,6 +120,12 @@ const navItems: NavItem[] = [
     href: "/rapoarte",
     label: "Rapoarte",
     icon: TrendingUp,
+    section: "analize",
+  },
+  {
+    href: "/curs-valutar",
+    label: "Curs Valutar",
+    icon: Coins,
     section: "analize",
   },
   { href: "/clienti", label: "Clienți", icon: Users, section: "gestiune" },
@@ -415,6 +424,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </button>
 
         <div className="flex-1" />
+
+        {/* Live BNR Exchange Rate with date & live indicator */}
+        <BnrExchangeRateHeader />
 
         {/* Multi-currency / country indicator */}
         <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
