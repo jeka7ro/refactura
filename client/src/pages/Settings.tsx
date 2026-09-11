@@ -173,7 +173,7 @@ export default function Settings() {
         setLogoBase64(parsedSettings.logoBase64);
       }
     }
-  }, [currentTenant?.tenants?.id]);
+  }, [currentTenant?.tenants?.id, currentTenant?.tenants?.settings, currentTenant?.tenants?.name]);
 
   const addBankAccount = (curr: string = "EUR") => {
     setBankAccounts(prev => [
