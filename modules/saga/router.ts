@@ -363,9 +363,7 @@ export const sagaRouter = router({
       );
       const tenantId = ctx.user?.tenantId || 1;
       const xml = await generateSagaExportXML(tenantId, input.month, input.year);
-      const company = await getTenantCompanyProfile(tenantId);
-      const safeCui = company.cui.replace(/^RO/i, "").trim() || "EXPORT";
-      const filename = `F_${safeCui}_${input.month}_${input.year}.xml`;
+      const filename = `FACTURI.XML`;
 
       // Save export history
       const db = await getDb();
@@ -382,19 +380,17 @@ export const sagaRouter = router({
 
   exportArticole: protectedProcedure.mutation(async ({ ctx }) => {
     const { generateSagaArticlesXML } = await import("../../server/sagaXmlGenerator");
-    const { format } = await import("date-fns");
     const tenantId = ctx.user?.tenantId || 1;
     const xml = await generateSagaArticlesXML(tenantId);
-    const filename = `ART_${format(new Date(), "ddMMyyyy")}.xml`;
+    const filename = `ARTICOLE.XML`;
     return { xml, filename };
   }),
 
   exportClienti: protectedProcedure.mutation(async ({ ctx }) => {
     const { generateSagaClientsXML } = await import("../../server/sagaXmlGenerator");
-    const { format } = await import("date-fns");
     const tenantId = ctx.user?.tenantId || 1;
     const xml = await generateSagaClientsXML(tenantId);
-    const filename = `CLI_${format(new Date(), "ddMMyyyy")}.xml`;
+    const filename = `CLIENTI.XML`;
     return { xml, filename };
   }),
 

@@ -36,7 +36,7 @@ router.get("/", async (req, res) => {
 
     if (type === "facturi") {
       const xmlContent = await generateSagaExportXML(tenantId, exportMonth, exportYear);
-      const fileName = `F_${safeCui}_${exportMonth}_${exportYear}.xml`;
+      const fileName = `FACTURI.XML`;
       res.set("Content-Type", "application/xml; charset=windows-1250");
       res.set("Content-Disposition", `attachment; filename="${fileName}"`);
       return res.send(Buffer.from(xmlContent, "utf8"));
@@ -44,7 +44,7 @@ router.get("/", async (req, res) => {
 
     if (type === "articole") {
       const xmlContent = await generateSagaArticlesXML(tenantId);
-      const fileName = `ART_${dateStr}.xml`;
+      const fileName = `ARTICOLE.XML`;
       res.set("Content-Type", "application/xml; charset=windows-1250");
       res.set("Content-Disposition", `attachment; filename="${fileName}"`);
       return res.send(Buffer.from(xmlContent, "utf8"));
@@ -52,7 +52,7 @@ router.get("/", async (req, res) => {
 
     if (type === "clienti") {
       const xmlContent = await generateSagaClientsXML(tenantId);
-      const fileName = `CLI_${dateStr}.xml`;
+      const fileName = `CLIENTI.XML`;
       res.set("Content-Type", "application/xml; charset=windows-1250");
       res.set("Content-Disposition", `attachment; filename="${fileName}"`);
       return res.send(Buffer.from(xmlContent, "utf8"));
@@ -64,6 +64,11 @@ router.get("/", async (req, res) => {
     const xmlClienti = await generateSagaClientsXML(tenantId);
 
     const zip = new AdmZip();
+    // Nume standard recunoscute instant de ecranul "Import date" din SAGA C
+    zip.addFile(`FACTURI.XML`, Buffer.from(xmlFacturi, "utf8"));
+    zip.addFile(`CLIENTI.XML`, Buffer.from(xmlClienti, "utf8"));
+    zip.addFile(`ARTICOLE.XML`, Buffer.from(xmlArticole, "utf8"));
+    // Păstrăm și denumirile alternative cu CUI și dată
     zip.addFile(`F_${safeCui}_${exportMonth}_${exportYear}.xml`, Buffer.from(xmlFacturi, "utf8"));
     zip.addFile(`ART_${dateStr}.xml`, Buffer.from(xmlArticole, "utf8"));
     zip.addFile(`CLI_${dateStr}.xml`, Buffer.from(xmlClienti, "utf8"));

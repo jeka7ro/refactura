@@ -845,6 +845,7 @@ function ExportTab() {
                 onChange={(e) => setMonth(Number(e.target.value))}
                 className="px-3.5 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 dark:text-white font-medium"
               >
+                <option value={0}>📅 Tot Anul ({year}) — Toate Lunile</option>
                 {MONTHS.map((m, i) => (
                   <option key={i} value={i + 1}>
                     {m}

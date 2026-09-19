@@ -77,10 +77,11 @@ export async function generateSagaExportXML(tenantId: number, month: number, yea
 
   const company = await getTenantCompanyProfile(tenantId);
 
-  // Format dates for filtering
-  const startDateStr = `${year}-${String(month).padStart(2, "0")}-01`;
-  const lastDay = new Date(year, month, 0).getDate();
-  const endDateStr = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+  // Format dates for filtering (month === 0 means entire year)
+  const isAllYear = !month || month === 0;
+  const startDateStr = isAllYear ? `${year}-01-01` : `${year}-${String(month).padStart(2, "0")}-01`;
+  const lastDay = isAllYear ? 31 : new Date(year, month, 0).getDate();
+  const endDateStr = isAllYear ? `${year}-12-31` : `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
   let xml = `<?xml version="1.0" encoding="Windows-1250"?>\n`;
   xml += `<Facturi>\n`;
