@@ -27,6 +27,7 @@ import {
   ShoppingCart,
   Layers,
   FileSpreadsheet,
+  Eye,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -792,6 +793,7 @@ function ExportTab() {
   };
 
   const { data: history = [], refetch: refetchHistory } = trpc.saga.exportHistory.useQuery();
+  const { data: previewData, isLoading: isLoadingPreview } = trpc.saga.getExportPreview.useQuery({ month, year });
 
   return (
     <div className="space-y-6">
@@ -974,6 +976,120 @@ function ExportTab() {
                   )}
                   Descarcă Clienți.xml
                 </button>
+              </div>
+            </div>
+
+            {/* PREVIEW DOCUMENTELOR CE SE VOR EXPORTA */}
+            <div className="space-y-4 pt-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-blue-600" />
+                    Ce conține acest export ({MONTHS[month - 1]} {year})
+                  </h4>
+                  <p className="text-xs text-slate-500">
+                    Verifică documentele împachetate în fișierul XML înainte de a-l importa în SAGA.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                    {previewData?.invoices.length || 0} Facturi Emise (Ieșiri)
+                  </span>
+                  <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                    {previewData?.nirs.length || 0} Recepții NIR (Intrări)
+                  </span>
+                </div>
+              </div>
+
+              {/* Informare SAGA: "Deja au fost importate" */}
+              <div className="p-3.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 text-xs text-slate-700 dark:text-slate-300 space-y-1">
+                <span className="font-bold text-blue-800 dark:text-blue-300 flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4 text-blue-600" />
+                  De ce zice SAGA C: „Deja au fost importate”?
+                </span>
+                <p>
+                  Dacă SAGA afișează acest mesaj la import, înseamnă că <strong>fișierul a fost citit cu succes</strong>, însă facturile sau NIR-urile din el există deja salvate în SAGA la <strong>Operații &gt; Intrări</strong> sau <strong>Operații &gt; Ieșiri</strong>!
+                </p>
+                <p className="text-slate-500">
+                  Pentru a forța re-importul și actualizarea lor în SAGA, bifează în fereastra din SAGA opțiunea <em>„Actualizare poziții existente”</em> sau verifică documentele direct în meniul Intrări/Ieșiri.
+                </p>
+              </div>
+
+              {/* Tabele Documente */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* 1. Facturi Vânzare (Ieșiri) */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                  <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <FileText className="w-3.5 h-3.5 text-blue-600" />
+                      Ieșiri — Facturi Emise ({previewData?.invoices.length || 0})
+                    </span>
+                  </div>
+                  <div className="max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                    {isLoadingPreview ? (
+                      <div className="p-4 text-center text-xs text-slate-400"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></div>
+                    ) : (previewData?.invoices.length || 0) === 0 ? (
+                      <div className="p-4 text-center text-xs text-slate-400">Nicio factură emisă în luna {MONTHS[month - 1]}.</div>
+                    ) : (
+                      previewData?.invoices.map((inv) => (
+                        <div key={inv.id} className="p-3 text-xs flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                          <div>
+                            <span className="font-bold text-slate-900 dark:text-white">{inv.number}</span>
+                            <span className="text-slate-400 ml-2">{inv.issueDate}</span>
+                            <div className="text-slate-600 dark:text-slate-300 truncate max-w-[200px]">
+                              {inv.clientName || "Client"} {inv.clientCui ? `(CUI: ${inv.clientCui})` : ""}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-bold font-mono text-slate-900 dark:text-white">{Number(inv.total).toFixed(2)} {inv.currency || "RON"}</span>
+                            <div className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold">Ieșire SAGA</div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* 2. Recepții NIR (Intrări) */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                  <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <Download className="w-3.5 h-3.5 text-emerald-600" />
+                      Intrări — Recepții NIR ({previewData?.nirs.length || 0})
+                    </span>
+                  </div>
+                  <div className="max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                    {isLoadingPreview ? (
+                      <div className="p-4 text-center text-xs text-slate-400"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></div>
+                    ) : (previewData?.nirs.length || 0) === 0 ? (
+                      <div className="p-4 text-center text-xs text-slate-400">
+                        Niciun NIR înregistrat în luna {MONTHS[month - 1]}.
+                        {(previewData?.totalAllNirs || 0) > 0 && (
+                          <div className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                            (Există {previewData?.totalAllNirs} NIR-uri în alte luni din sistem)
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      previewData?.nirs.map((n) => (
+                        <div key={n.id} className="p-3 text-xs flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                          <div>
+                            <span className="font-bold text-emerald-700 dark:text-emerald-400">{n.nirNumber}</span>
+                            {n.invoiceNumber && <span className="text-slate-400 ml-1.5 font-mono">Doc: {n.invoiceNumber}</span>}
+                            <div className="text-slate-600 dark:text-slate-300 font-medium truncate max-w-[200px]">
+                              {n.supplierName || "Furnizor"} {n.supplierCUI ? `(CUI: ${n.supplierCUI})` : ""}
+                            </div>
+                            <div className="text-[10px] text-slate-400">Dată: {n.receiptDate} | Cont: {n.accountingAccount || "371"}</div>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-bold font-mono text-slate-900 dark:text-white">{n.total} RON</span>
+                            <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Intrare SAGA</div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 

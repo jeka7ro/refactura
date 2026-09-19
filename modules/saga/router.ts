@@ -549,6 +549,103 @@ export const sagaRouter = router({
       .limit(20);
   }),
 
+  getExportPreview: protectedProcedure
+    .input(
+      z
+        .object({
+          month: z.number().optional(),
+          year: z.number().optional(),
+        })
+        .optional()
+    )
+    .query(async ({ input, ctx }) => {
+      const db = await getDb();
+      const tenantId = ctx.user?.tenantId || 1;
+      if (!db) return { invoices: [], nirs: [], totalAllInvoices: 0, totalAllNirs: 0 };
+
+      const schema = await import("../../drizzle/schema");
+
+      // Query Emitted Invoices
+      const invoices = await db
+        .select({
+          id: schema.emittedInvoices.id,
+          number: schema.emittedInvoices.number,
+          issueDate: schema.emittedInvoices.issueDate,
+          dueDate: schema.emittedInvoices.dueDate,
+          total: schema.emittedInvoices.total,
+          currency: schema.emittedInvoices.currency,
+          clientName: schema.clients.name,
+          clientCui: schema.clients.cui,
+        })
+        .from(schema.emittedInvoices)
+        .leftJoin(schema.clients, eq(schema.emittedInvoices.clientId, schema.clients.id))
+        .where(eq(schema.emittedInvoices.tenantId, tenantId))
+        .orderBy(desc(schema.emittedInvoices.issueDate));
+
+      // Query NIRs
+      const nirs = await db
+        .select({
+          id: schema.nir.id,
+          nirNumber: schema.nir.nirNumber,
+          invoiceNumber: schema.nir.invoiceNumber,
+          receiptDate: schema.nir.receiptDate,
+          supplierName: schema.nir.supplierName,
+          supplierCUI: schema.nir.supplierCUI,
+          accountingAccount: schema.nir.accountingAccount,
+          status: schema.nir.status,
+        })
+        .from(schema.nir)
+        .where(eq(schema.nir.tenantId, tenantId))
+        .orderBy(desc(schema.nir.receiptDate));
+
+      const nirLines = await db
+        .select({
+          nirId: schema.nirLines.nirId,
+          total: schema.nirLines.total,
+        })
+        .from(schema.nirLines);
+
+      const nirTotals = new Map<number, number>();
+      for (const l of nirLines) {
+        const val = parseFloat(String(l.total)) || 0;
+        nirTotals.set(l.nirId, (nirTotals.get(l.nirId) || 0) + val);
+      }
+
+      const nirsWithTotals = nirs.map((n) => ({
+        ...n,
+        total: (nirTotals.get(n.id) || 0).toFixed(2),
+      }));
+
+      // Filter by month/year if specified
+      let filteredInvoices = invoices;
+      let filteredNirs = nirsWithTotals;
+
+      if (input?.month && input?.year) {
+        const startStr = `${input.year}-${String(input.month).padStart(2, "0")}-01`;
+        const lastDay = new Date(input.year, input.month, 0).getDate();
+        const endStr = `${input.year}-${String(input.month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+
+        filteredInvoices = invoices.filter((i) => {
+          if (!i.issueDate) return false;
+          const d = i.issueDate.substring(0, 10);
+          return d >= startStr && d <= endStr;
+        });
+
+        filteredNirs = nirsWithTotals.filter((n) => {
+          if (!n.receiptDate) return false;
+          const d = n.receiptDate.substring(0, 10);
+          return d >= startStr && d <= endStr;
+        });
+      }
+
+      return {
+        invoices: filteredInvoices,
+        nirs: filteredNirs,
+        totalAllInvoices: invoices.length,
+        totalAllNirs: nirs.length,
+      };
+    }),
+
   // Plan de Conturi — returneaza lista completa de conturi SAGA
   planConturi: protectedProcedure
     .input(z.object({ query: z.string().optional(), stockOnly: z.boolean().optional() }).optional())
