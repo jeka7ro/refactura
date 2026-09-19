@@ -378,6 +378,18 @@ export const sagaRouter = router({
       return { xml, filename };
     }),
 
+  exportNir: protectedProcedure
+    .input(z.object({ nirId: z.number().optional() }).optional())
+    .mutation(async ({ input, ctx }) => {
+      const { generateSagaNirXML } = await import(
+        "../../server/sagaXmlGenerator"
+      );
+      const tenantId = ctx.user?.tenantId || 1;
+      const xml = await generateSagaNirXML(tenantId, input?.nirId);
+      const filename = `FACTURI.XML`;
+      return { xml, filename };
+    }),
+
   exportArticole: protectedProcedure.mutation(async ({ ctx }) => {
     const { generateSagaArticlesXML } = await import("../../server/sagaXmlGenerator");
     const tenantId = ctx.user?.tenantId || 1;

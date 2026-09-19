@@ -347,6 +347,102 @@ export async function generateSagaExportXML(tenantId: number, month: number, yea
 }
 
 /**
+ * Generează XML de Facturi (<Facturi>) strict pentru recepții / NIR-uri (Intrări în SAGA C)
+ */
+export async function generateSagaNirXML(tenantId: number, nirId?: number) {
+  const db = await getDb();
+  if (!db) throw new Error("No DB");
+
+  const company = await getTenantCompanyProfile(tenantId);
+  const { sagaArticles } = await import("../modules/saga/schema");
+
+  let nirs = await db
+    .select()
+    .from(schema.nir)
+    .where(eq(schema.nir.tenantId, tenantId));
+
+  if (nirId) {
+    nirs = nirs.filter((n) => n.id === nirId);
+  }
+
+  let xml = `<?xml version="1.0" encoding="Windows-1250"?>\n`;
+  xml += `<Facturi>\n`;
+
+  for (const n of nirs) {
+    const linesData = await db
+      .select({
+        line: schema.nirLines,
+        articleCode: sagaArticles.code,
+      })
+      .from(schema.nirLines)
+      .leftJoin(
+        sagaArticles,
+        eq(schema.nirLines.sagaArticleId, sagaArticles.id)
+      )
+      .where(eq(schema.nirLines.nirId, n.id));
+
+    xml += `  <Factura>\n`;
+    xml += `    <Antet>\n`;
+    // Furnizorul (de la cine s-a recepționat)
+    xml += `      <FurnizorNume>${escapeXml(n.supplierName || "")}</FurnizorNume>\n`;
+    xml += `      <FurnizorCIF>${escapeXml(n.supplierCUI || "")}</FurnizorCIF>\n`;
+
+    // Clientul suntem NOI (astfel SAGA C știe că este achiziție / intrare de marfă)
+    xml += `      <ClientNume>${escapeXml(company.name)}</ClientNume>\n`;
+    xml += `      <ClientCIF>${escapeXml(company.cui)}</ClientCIF>\n`;
+    if (company.regCom) xml += `      <ClientNrRegCom>${escapeXml(company.regCom)}</ClientNrRegCom>\n`;
+    if (company.county) xml += `      <ClientJudet>${escapeXml(company.county)}</ClientJudet>\n`;
+    xml += `      <ClientTara>${escapeXml(company.country || "RO")}</ClientTara>\n`;
+    if (company.city) xml += `      <ClientLocalitate>${escapeXml(company.city)}</ClientLocalitate>\n`;
+    if (company.address) xml += `      <ClientAdresa>${escapeXml(company.address)}</ClientAdresa>\n`;
+
+    // Date document
+    xml += `      <FacturaNumar>${escapeXml(n.invoiceNumber || n.nirNumber)}</FacturaNumar>\n`;
+    xml += `      <FacturaData>${formatDate(n.receiptDate)}</FacturaData>\n`;
+    xml += `      <FacturaMoneda>RON</FacturaMoneda>\n`;
+    xml += `    </Antet>\n`;
+    xml += `    <Detalii>\n`;
+    xml += `      <Continut>\n`;
+
+    let lineIndex = 1;
+    for (const row of linesData) {
+      const line = row.line;
+      const code = row.articleCode;
+      const qty = parseFloat(String(line.cantitateReceptionata)) || 0;
+      const price = parseFloat(String(line.unitPrice)) || 0;
+      const rate = parseFloat(String(line.vatRate)) || 0;
+      const lineVal = Math.round(qty * price * 100) / 100;
+      const lineVat = Math.round(lineVal * (rate / 100) * 100) / 100;
+
+      xml += `        <Linie>\n`;
+      xml += `          <LinieNrCrt>${lineIndex++}</LinieNrCrt>\n`;
+      if (n.gestiune) {
+        xml += `          <Gestiune>${escapeXml(n.gestiune)}</Gestiune>\n`;
+      }
+      xml += `          <Descriere>${escapeXml(line.description)}</Descriere>\n`;
+      if (code) {
+        xml += `          <CodArticolFurnizor>${escapeXml(code)}</CodArticolFurnizor>\n`;
+      }
+      xml += `          <UM>${escapeXml(line.unit || "buc")}</UM>\n`;
+      xml += `          <Cantitate>${qty}</Cantitate>\n`;
+      xml += `          <Pret>${price.toFixed(4)}</Pret>\n`;
+      xml += `          <Valoare>${lineVal.toFixed(2)}</Valoare>\n`;
+      xml += `          <ProcTVA>${rate}</ProcTVA>\n`;
+      xml += `          <TVA>${lineVat.toFixed(2)}</TVA>\n`;
+      xml += `          <Cont>${escapeXml(line.accountingAccount || n.accountingAccount || "371")}</Cont>\n`;
+      xml += `        </Linie>\n`;
+    }
+    xml += `      </Continut>\n`;
+    xml += `    </Detalii>\n`;
+    xml += `  </Factura>\n`;
+  }
+
+  xml += `</Facturi>\n`;
+  return xml;
+}
+
+
+/**
  * Generează fișierul XML de Articole (<Articole>) conform specificațiilor SAGA (ART_<data>.xml)
  */
 export async function generateSagaArticlesXML(tenantId: number) {

@@ -13,6 +13,7 @@ import {
   Save,
   AlertTriangle,
   FileDown,
+  FileCode,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -167,6 +168,22 @@ export default function NIRCreate() {
       utils.nir.getById.invalidate({ id: nirId! });
     },
     onError: e => toast.error("Eroare: " + e.message),
+  });
+
+  const exportNirMut = trpc.saga.exportNir.useMutation({
+    onSuccess: (data) => {
+      const blob = new Blob([data.xml], { type: "text/xml;charset=windows-1250" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = data.filename || "FACTURI.XML";
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success(`Fișierul ${data.filename} a fost descărcat pentru import în SAGA C!`);
+    },
+    onError: (e) => toast.error("Eroare export SAGA: " + e.message),
   });
 
   // Reset when invoice changes
@@ -446,16 +463,32 @@ export default function NIRCreate() {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {isEdit && (
-            <a
-              href={`/api/pdf/nir/${nirId}?download=1&showAccounting=${showAccounting}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Descarcă PDF NIR"
-              className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-200 transition-colors"
-            >
-              <FileDown className="w-3.5 h-3.5" />
-              PDF NIR
-            </a>
+            <>
+              <button
+                type="button"
+                onClick={() => exportNirMut.mutate({ nirId })}
+                disabled={exportNirMut.isPending}
+                title="Descarcă fișier XML pentru SAGA C (FACTURI.XML)"
+                className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 transition-colors disabled:opacity-50"
+              >
+                {exportNirMut.isPending ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <FileCode className="w-3.5 h-3.5" />
+                )}
+                SAGA XML
+              </button>
+              <a
+                href={`/api/pdf/nir/${nirId}?download=1&showAccounting=${showAccounting}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Descarcă PDF NIR"
+                className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-200 transition-colors"
+              >
+                <FileDown className="w-3.5 h-3.5" />
+                PDF NIR
+              </a>
+            </>
           )}
           {status !== "finalizat" && isEdit && (
             <button

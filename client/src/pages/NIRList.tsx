@@ -13,6 +13,7 @@ import {
   Eye,
   ClipboardCheck,
   FileDown,
+  FileCode,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -37,6 +38,22 @@ export default function NIRList() {
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
   const { data: nirList = [], isLoading, refetch } = trpc.nir.list.useQuery();
+
+  const exportNirMut = trpc.saga.exportNir.useMutation({
+    onSuccess: (data) => {
+      const blob = new Blob([data.xml], { type: "text/xml;charset=windows-1250" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = data.filename || "FACTURI.XML";
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success(`Fișierul ${data.filename} a fost descărcat pentru import în SAGA C!`);
+    },
+    onError: (e) => toast.error("Eroare export: " + e.message),
+  });
 
   const deleteNir = trpc.nir.delete.useMutation({
     onSuccess: () => {
@@ -84,12 +101,27 @@ export default function NIRList() {
             Gestionează recepția mărfurilor de la furnizori
           </p>
         </div>
-        <button
-          onClick={() => navigate("/nir/nou")}
-          className="flex items-center gap-1.5 px-4 h-9 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition-colors shadow-sm"
-        >
-          <Plus className="w-4 h-4" /> NIR Nou
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => exportNirMut.mutate({})}
+            disabled={exportNirMut.isPending}
+            title="Exportă toate recepțiile / NIR-urile în format SAGA C (FACTURI.XML)"
+            className="flex items-center gap-1.5 px-3.5 h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold transition-colors shadow-sm disabled:opacity-50"
+          >
+            {exportNirMut.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <FileCode className="w-4 h-4" />
+            )}
+            Export SAGA (Toate NIR)
+          </button>
+          <button
+            onClick={() => navigate("/nir/nou")}
+            className="flex items-center gap-1.5 px-4 h-9 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition-colors shadow-sm"
+          >
+            <Plus className="w-4 h-4" /> NIR Nou
+          </button>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -299,6 +331,13 @@ export default function NIRList() {
                         >
                           <FileDown className="w-3 h-3" />
                         </a>
+                        <button
+                          onClick={() => exportNirMut.mutate({ nirId: row.id })}
+                          title={`Exportă NIR ${row.nirNumber} în SAGA C (FACTURI.XML)`}
+                          className="flex items-center justify-center w-6 h-6 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors"
+                        >
+                          <FileCode className="w-3 h-3" />
+                        </button>
                         <button
                           onClick={() => setDeleteTarget(row.id)}
                           title="Șterge NIR"

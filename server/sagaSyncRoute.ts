@@ -5,6 +5,7 @@ import FormData from "form-data";
 import { format } from "date-fns";
 import {
   generateSagaExportXML,
+  generateSagaNirXML,
   generateSagaArticlesXML,
   generateSagaClientsXML,
   getTenantCompanyProfile,
@@ -20,11 +21,12 @@ const router = Router();
  * 1. Endpoint de descărcare fișiere / ZIP pentru SAGA C Desktop
  * Exemplu: /api/saga-sync?month=9&year=2026&tenantId=1
  * Parametri opționali:
- * - type: "zip" (implicit) | "facturi" | "articole" | "clienti"
+ * - type: "zip" (implicit) | "facturi" | "nir" | "articole" | "clienti"
+ * - nirId: ID-ul unui NIR specific pentru descărcare directă
  */
 router.get("/", async (req, res) => {
   try {
-    const { month, year, cui, type = "zip" } = req.query;
+    const { month, year, cui, type = "zip", nirId } = req.query;
     const tenantId = req.query.tenantId ? parseInt(String(req.query.tenantId)) : 1;
 
     const exportMonth = month ? parseInt(String(month)) : new Date().getMonth() + 1;
@@ -33,6 +35,15 @@ router.get("/", async (req, res) => {
     const company = await getTenantCompanyProfile(tenantId);
     const safeCui = (cui ? String(cui).trim() : company.cui.replace(/^RO/i, "")).trim() || "EXPORT";
     const dateStr = format(new Date(), "ddMMyyyy");
+
+    if (type === "nir" || nirId) {
+      const targetNirId = nirId ? parseInt(String(nirId)) : undefined;
+      const xmlContent = await generateSagaNirXML(tenantId, targetNirId);
+      const fileName = `FACTURI.XML`;
+      res.set("Content-Type", "application/xml; charset=windows-1250");
+      res.set("Content-Disposition", `attachment; filename="${fileName}"`);
+      return res.send(Buffer.from(xmlContent, "utf8"));
+    }
 
     if (type === "facturi") {
       const xmlContent = await generateSagaExportXML(tenantId, exportMonth, exportYear);
