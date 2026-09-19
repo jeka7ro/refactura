@@ -784,8 +784,11 @@ function ExportTab() {
     onError: (e) => toast.error("Eroare: " + e.message),
   });
 
+  const { data: me } = trpc.auth.me.useQuery();
+  const currentTenantId = me?.tenantId || 1;
+
   const downloadZip = () => {
-    window.location.href = `/api/saga-sync?month=${month}&year=${year}`;
+    window.location.href = `/api/saga-sync?month=${month}&year=${year}&tenantId=${currentTenantId}`;
   };
 
   const { data: history = [], refetch: refetchHistory } = trpc.saga.exportHistory.useQuery();
