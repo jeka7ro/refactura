@@ -363,7 +363,9 @@ export const sagaRouter = router({
       );
       const tenantId = ctx.user?.tenantId || 1;
       const xml = await generateSagaExportXML(tenantId, input.month, input.year);
-      const filename = `FACTURI.XML`;
+      const company = await getTenantCompanyProfile(tenantId);
+      const safeCui = company.cui.replace(/^RO/i, "").trim() || "EXPORT";
+      const filename = input.month === 0 ? `F_${safeCui}_ALL_${input.year}.xml` : `F_${safeCui}_${input.month}_${input.year}.xml`;
 
       // Save export history
       const db = await getDb();
@@ -381,28 +383,32 @@ export const sagaRouter = router({
   exportNir: protectedProcedure
     .input(z.object({ nirId: z.number().optional() }).optional())
     .mutation(async ({ input, ctx }) => {
-      const { generateSagaNirXML } = await import(
+      const { generateSagaNirXML, getTenantCompanyProfile } = await import(
         "../../server/sagaXmlGenerator"
       );
       const tenantId = ctx.user?.tenantId || 1;
       const xml = await generateSagaNirXML(tenantId, input?.nirId);
-      const filename = `FACTURI.XML`;
+      const company = await getTenantCompanyProfile(tenantId);
+      const safeCui = company.cui.replace(/^RO/i, "").trim() || "EXPORT";
+      const filename = input?.nirId ? `F_${safeCui}_NIR_${input.nirId}.xml` : `F_${safeCui}_NIR_ALL.xml`;
       return { xml, filename };
     }),
 
   exportArticole: protectedProcedure.mutation(async ({ ctx }) => {
     const { generateSagaArticlesXML } = await import("../../server/sagaXmlGenerator");
+    const { format } = await import("date-fns");
     const tenantId = ctx.user?.tenantId || 1;
     const xml = await generateSagaArticlesXML(tenantId);
-    const filename = `ARTICOLE.XML`;
+    const filename = `ART_${format(new Date(), "ddMMyyyy")}.xml`;
     return { xml, filename };
   }),
 
   exportClienti: protectedProcedure.mutation(async ({ ctx }) => {
     const { generateSagaClientsXML } = await import("../../server/sagaXmlGenerator");
+    const { format } = await import("date-fns");
     const tenantId = ctx.user?.tenantId || 1;
     const xml = await generateSagaClientsXML(tenantId);
-    const filename = `CLIENTI.XML`;
+    const filename = `CLI_${format(new Date(), "ddMMyyyy")}.xml`;
     return { xml, filename };
   }),
 

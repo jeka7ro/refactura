@@ -39,7 +39,7 @@ router.get("/", async (req, res) => {
     if (type === "nir" || nirId) {
       const targetNirId = nirId ? parseInt(String(nirId)) : undefined;
       const xmlContent = await generateSagaNirXML(tenantId, targetNirId);
-      const fileName = `FACTURI.XML`;
+      const fileName = targetNirId ? `F_${safeCui}_NIR_${targetNirId}.xml` : `F_${safeCui}_NIR_ALL.xml`;
       res.set("Content-Type", "application/xml; charset=windows-1250");
       res.set("Content-Disposition", `attachment; filename="${fileName}"`);
       return res.send(Buffer.from(xmlContent, "utf8"));
@@ -47,7 +47,7 @@ router.get("/", async (req, res) => {
 
     if (type === "facturi") {
       const xmlContent = await generateSagaExportXML(tenantId, exportMonth, exportYear);
-      const fileName = `FACTURI.XML`;
+      const fileName = exportMonth === 0 ? `F_${safeCui}_ALL_${exportYear}.xml` : `F_${safeCui}_${exportMonth}_${exportYear}.xml`;
       res.set("Content-Type", "application/xml; charset=windows-1250");
       res.set("Content-Disposition", `attachment; filename="${fileName}"`);
       return res.send(Buffer.from(xmlContent, "utf8"));
@@ -55,7 +55,7 @@ router.get("/", async (req, res) => {
 
     if (type === "articole") {
       const xmlContent = await generateSagaArticlesXML(tenantId);
-      const fileName = `ARTICOLE.XML`;
+      const fileName = `ART_${dateStr}.xml`;
       res.set("Content-Type", "application/xml; charset=windows-1250");
       res.set("Content-Disposition", `attachment; filename="${fileName}"`);
       return res.send(Buffer.from(xmlContent, "utf8"));
@@ -63,7 +63,7 @@ router.get("/", async (req, res) => {
 
     if (type === "clienti") {
       const xmlContent = await generateSagaClientsXML(tenantId);
-      const fileName = `CLIENTI.XML`;
+      const fileName = `CLI_${dateStr}.xml`;
       res.set("Content-Type", "application/xml; charset=windows-1250");
       res.set("Content-Disposition", `attachment; filename="${fileName}"`);
       return res.send(Buffer.from(xmlContent, "utf8"));
