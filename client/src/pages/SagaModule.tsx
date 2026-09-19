@@ -195,6 +195,19 @@ export default function SagaModule() {
               activePage={activePage}
             />
           ))}
+
+          {/* Quick Direct Export Button */}
+          <button
+            onClick={() => setActivePage("export")}
+            className={`ml-auto px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg flex items-center gap-1.5 transition-all shadow-sm ${
+              activePage === "export"
+                ? "bg-blue-600 text-white shadow-blue-500/20"
+                : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+            }`}
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Export SAGA (XML / ZIP)</span>
+          </button>
         </div>
       </div>
 

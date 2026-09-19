@@ -130,7 +130,7 @@ const navItems: NavItem[] = [
   },
   { href: "/clienti", label: "Clienți", icon: Users, section: "gestiune" },
   { href: "/integrari", label: "Integrări", icon: Plug, section: "gestiune" },
-  { href: "/saga", label: "SAGA Sync", icon: Database, section: "gestiune" },
+  { href: "/saga", label: "SAGA", icon: Database, section: "gestiune" },
   { href: "/api-keys", label: "API Keys", icon: Key, section: "gestiune" },
   {
     href: "/centre-cost",
