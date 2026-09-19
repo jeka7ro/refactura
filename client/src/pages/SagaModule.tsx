@@ -689,110 +689,452 @@ function ExportTab() {
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
+  const [activeChannel, setActiveChannel] = useState<"desktop" | "web">("desktop");
 
-  const exportMut = trpc.saga.export.useMutation({
+  // SAGA Web Cloud API Configuration
+  const { data: webConfig, refetch: refetchWebConfig } = trpc.saga.getSagaWebConfig.useQuery();
+  const [tokenInput, setTokenInput] = useState("");
+  const [cuiInput, setCuiInput] = useState("");
+  const [isEditingConfig, setIsEditingConfig] = useState(false);
+
+  useEffect(() => {
+    if (webConfig) {
+      setTokenInput(webConfig.sagaWebToken || "");
+      setCuiInput(webConfig.sagaWebCui || "");
+    }
+  }, [webConfig]);
+
+  const saveConfigMut = trpc.saga.saveSagaWebConfig.useMutation({
+    onSuccess: () => {
+      toast.success("Configurația SAGA Web a fost salvată!");
+      setIsEditingConfig(false);
+      refetchWebConfig();
+    },
+    onError: (e) => toast.error("Eroare: " + e.message),
+  });
+
+  const pushWebMut = trpc.saga.pushToSagaWeb.useMutation({
+    onSuccess: (res) => {
+      toast.success(res.message || "Facturile au fost importate cu succes în SAGA Web!");
+      refetchHistory();
+      refetchWebConfig();
+    },
+    onError: (e) => toast.error("Eroare SAGA Web: " + e.message),
+  });
+
+  const exportFacturiMut = trpc.saga.export.useMutation({
     onSuccess: (data) => {
       const blob = new Blob([data.xml], { type: "text/xml;charset=windows-1250" });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `Export_SAGA_${year}_${String(month).padStart(2, "0")}.xml`;
+      a.download = data.filename || `F_EXPORT_${month}_${year}.xml`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      toast.success("Fișierul SAGA a fost descărcat!");
+      toast.success(`Fișierul ${data.filename} a fost descărcat!`);
       refetchHistory();
     },
     onError: (e) => toast.error("Eroare: " + e.message),
   });
 
+  const exportArticoleMut = trpc.saga.exportArticole.useMutation({
+    onSuccess: (data) => {
+      const blob = new Blob([data.xml], { type: "text/xml;charset=windows-1250" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = data.filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success(`Fișierul ${data.filename} a fost descărcat!`);
+    },
+    onError: (e) => toast.error("Eroare: " + e.message),
+  });
+
+  const exportClientiMut = trpc.saga.exportClienti.useMutation({
+    onSuccess: (data) => {
+      const blob = new Blob([data.xml], { type: "text/xml;charset=windows-1250" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = data.filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success(`Fișierul ${data.filename} a fost descărcat!`);
+    },
+    onError: (e) => toast.error("Eroare: " + e.message),
+  });
+
+  const downloadZip = () => {
+    window.location.href = `/api/saga-sync?month=${month}&year=${year}`;
+  };
+
   const { data: history = [], refetch: refetchHistory } = trpc.saga.exportHistory.useQuery();
 
   return (
     <div className="space-y-6">
-      {/* Export Controls */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
-        <h3 className="text-sm font-semibold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-          <FileText className="w-4 h-4 text-emerald-500" />
-          Generează Export XML pentru SAGA
-        </h3>
-        <p className="text-xs text-slate-500 mb-6">
-          Selectează luna și anul, apoi generează fișierul XML pe care îl importezi în SAGA din{" "}
-          <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-emerald-700 dark:text-emerald-400">
-            Diverse → Import date
-          </code>.
-        </p>
-
-        <div className="flex items-end gap-4">
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Luna</label>
-            <select
-              value={month}
-              onChange={(e) => setMonth(Number(e.target.value))}
-              className="px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 dark:text-white"
-            >
-              {MONTHS.map((m, i) => (
-                <option key={i} value={i + 1}>{m}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Anul</label>
-            <select
-              value={year}
-              onChange={(e) => setYear(Number(e.target.value))}
-              className="px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 dark:text-white"
-            >
-              {[2024, 2025, 2026, 2027].map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          </div>
-          <button
-            onClick={() => exportMut.mutate({ month, year })}
-            disabled={exportMut.isPending}
-            className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-colors"
-          >
-            {exportMut.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4" />
-            )}
-            Generează XML
-          </button>
-        </div>
+      {/* Canal Selector: Desktop vs Web */}
+      <div className="flex items-center gap-3 bg-white dark:bg-slate-900 p-2 rounded-2xl border border-slate-200 dark:border-slate-800">
+        <button
+          onClick={() => setActiveChannel("desktop")}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium text-sm transition-all ${
+            activeChannel === "desktop"
+              ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+              : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+          }`}
+        >
+          <Download className="w-4 h-4" />
+          <span>SAGA C (Desktop / Diverse &gt; Import date)</span>
+        </button>
+        <button
+          onClick={() => setActiveChannel("web")}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium text-sm transition-all ${
+            activeChannel === "web"
+              ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+              : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+          }`}
+        >
+          <Upload className="w-4 h-4" />
+          <span>SAGA Web (Sincronizare Automată Cloud API)</span>
+        </button>
       </div>
 
-      {/* Export History */}
+      {/* Selector Perioadă */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
+        <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+              <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              Selectează Perioada Documentelor
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Se exportă automat atât facturile emise (Ieșiri), cât și recepțiile furnizori (Intrări / NIR).
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                Luna
+              </label>
+              <select
+                value={month}
+                onChange={(e) => setMonth(Number(e.target.value))}
+                className="px-3.5 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 dark:text-white font-medium"
+              >
+                {MONTHS.map((m, i) => (
+                  <option key={i} value={i + 1}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                Anul
+              </label>
+              <select
+                value={year}
+                onChange={(e) => setYear(Number(e.target.value))}
+                className="px-3.5 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 dark:text-white font-medium"
+              >
+                {[2024, 2025, 2026, 2027].map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* CANALUL 1: SAGA C DESKTOP */}
+        {activeChannel === "desktop" && (
+          <div className="pt-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Pachet ZIP Complet */}
+              <div className="p-4 rounded-xl bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 flex flex-col justify-between">
+                <div>
+                  <div className="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider mb-1">
+                    Recomandat SAGA C
+                  </div>
+                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
+                    Pachet Arhivă ZIP
+                  </h4>
+                  <p className="text-xs text-slate-500 mb-4">
+                    Conține fișierele sincronizate: Facturi (F_), Articole (ART_) și Clienți (CLI_).
+                  </p>
+                </div>
+                <button
+                  onClick={downloadZip}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Descarcă Arhiva ZIP
+                </button>
+              </div>
+
+              {/* Facturi XML */}
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
+                <div>
+                  <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    Format &lt;Facturi&gt;
+                  </div>
+                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
+                    Doar Facturi XML
+                  </h4>
+                  <p className="text-xs text-slate-500 mb-4">
+                    Fișierul standardizat F_CUI_Luna_An.xml (Ieșiri vânzări + Intrări furnizori).
+                  </p>
+                </div>
+                <button
+                  onClick={() => exportFacturiMut.mutate({ month, year })}
+                  disabled={exportFacturiMut.isPending}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
+                >
+                  {exportFacturiMut.isPending ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <FileText className="w-3.5 h-3.5" />
+                  )}
+                  Descarcă Facturi.xml
+                </button>
+              </div>
+
+              {/* Nomenclator Articole */}
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
+                <div>
+                  <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    Format &lt;Articole&gt;
+                  </div>
+                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
+                    Articole (Nomenclator)
+                  </h4>
+                  <p className="text-xs text-slate-500 mb-4">
+                    Fișierul ART_data.xml cu toate codurile de produs, UM și cote TVA.
+                  </p>
+                </div>
+                <button
+                  onClick={() => exportArticoleMut.mutate()}
+                  disabled={exportArticoleMut.isPending}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
+                >
+                  {exportArticoleMut.isPending ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Package className="w-3.5 h-3.5" />
+                  )}
+                  Descarcă Articole.xml
+                </button>
+              </div>
+
+              {/* Nomenclator Clienți */}
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
+                <div>
+                  <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+                    Format &lt;Clienti&gt;
+                  </div>
+                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
+                    Clienți (Nomenclator)
+                  </h4>
+                  <p className="text-xs text-slate-500 mb-4">
+                    Fișierul CLI_data.xml cu lista partenerilor, CUI, RegCom și adrese.
+                  </p>
+                </div>
+                <button
+                  onClick={() => exportClientiMut.mutate()}
+                  disabled={exportClientiMut.isPending}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
+                >
+                  {exportClientiMut.isPending ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Users className="w-3.5 h-3.5" />
+                  )}
+                  Descarcă Clienți.xml
+                </button>
+              </div>
+            </div>
+
+            {/* Ghid Import SAGA C Desktop */}
+            <div className="p-4 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50 text-xs text-amber-900 dark:text-amber-200 space-y-1.5">
+              <div className="font-bold flex items-center gap-1.5">
+                <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                Cum imporți fișierele în SAGA C Desktop (clasic):
+              </div>
+              <ol className="list-decimal list-inside space-y-1 text-slate-700 dark:text-slate-300 pl-1">
+                <li>Deschide aplicația <strong>SAGA C</strong> pe calculator.</li>
+                <li>Mergi în meniul <strong>Diverse &gt; Import date</strong>.</li>
+                <li>Alege tabul <strong>Import date din fișiere XML</strong>.</li>
+                <li>Selectează fișierul XML sau ZIP descărcat de mai sus și apasă <strong>Validare</strong>.</li>
+                <li>SAGA C va aloca automat facturile la <strong>Ieșiri</strong> (cele emise de tine) și la <strong>Intrări</strong> (achizițiile de la furnizori).</li>
+              </ol>
+            </div>
+          </div>
+        )}
+
+        {/* CANALUL 2: SAGA WEB CLOUD API */}
+        {activeChannel === "web" && (
+          <div className="pt-6 space-y-6">
+            {/* Box Configurare Credențiale */}
+            <div className="p-5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Settings className="w-4 h-4 text-blue-600" />
+                    Configurare Cheie API SAGA Web
+                  </h4>
+                  <p className="text-xs text-slate-500">
+                    Cheia se generează în contul Saga Web din ecranul{" "}
+                    <code className="bg-slate-200 dark:bg-slate-700 px-1 py-0.5 rounded text-blue-700 dark:text-blue-300 font-mono">
+                      Administrare &gt; Utilizatori &gt; Integrare API
+                    </code>.
+                  </p>
+                </div>
+                {!isEditingConfig ? (
+                  <button
+                    onClick={() => setIsEditingConfig(true)}
+                    className="px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300"
+                  >
+                    Modifică
+                  </button>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        saveConfigMut.mutate({
+                          sagaWebToken: tokenInput,
+                          sagaWebCui: cuiInput,
+                        });
+                      }}
+                      disabled={saveConfigMut.isPending}
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold"
+                    >
+                      {saveConfigMut.isPending ? "Se salvează..." : "Salvează"}
+                    </button>
+                    <button
+                      onClick={() => setIsEditingConfig(false)}
+                      className="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold"
+                    >
+                      Anulează
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 mb-1">
+                    Cod Fiscal Firmă (CUI SAGA)
+                  </label>
+                  <input
+                    type="text"
+                    value={cuiInput}
+                    onChange={(e) => setCuiInput(e.target.value)}
+                    disabled={!isEditingConfig}
+                    placeholder="Ex: 42322117"
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-900 dark:text-white font-mono disabled:opacity-75"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-500 mb-1">
+                    Cheie de Acces SAGA Web (Bearer Token)
+                  </label>
+                  <input
+                    type="password"
+                    value={tokenInput}
+                    onChange={(e) => setTokenInput(e.target.value)}
+                    disabled={!isEditingConfig}
+                    placeholder="Lipește aici tokenul generat din Saga Web..."
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-900 dark:text-white font-mono disabled:opacity-75"
+                  />
+                </div>
+              </div>
+
+              {tokenInput && (
+                <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5" />
+                  Token configurat activ. Sincronizarea automată gestionează și salvarea noului token la fiecare rotație (X-Saga-Refresh-Token).
+                </div>
+              )}
+            </div>
+
+            {/* Buton Trimitere Directă */}
+            <div className="flex flex-wrap items-center gap-4 pt-2">
+              <button
+                onClick={() =>
+                  pushWebMut.mutate({
+                    month,
+                    year,
+                    sagaToken: tokenInput,
+                    sagaCui: cuiInput,
+                  })
+                }
+                disabled={pushWebMut.isPending || !tokenInput}
+                className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold shadow-md shadow-blue-500/20 transition-all"
+              >
+                {pushWebMut.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Upload className="w-4 h-4" />
+                )}
+                Trimite Facturile în SAGA Web ({MONTHS[month - 1]} {year})
+              </button>
+
+              <p className="text-xs text-slate-500">
+                După trimitere, fișierele apar imediat în Saga Web în meniul{" "}
+                <strong>Diverse &gt; Import Date</strong>.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Istoric Exporturi */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
-          <h3 className="text-sm font-semibold text-slate-800 dark:text-white flex items-center gap-2">
+        <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
             <History className="w-4 h-4 text-slate-400" />
-            Istoric Exporturi
+            Istoric Operațiuni SAGA
           </h3>
+          <span className="text-xs text-slate-400">{history.length} înregistrări</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left whitespace-nowrap">
             <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 uppercase text-[10px] font-bold tracking-wider">
               <tr>
-                <th className="px-4 py-3">Nr.</th>
-                <th className="px-4 py-3">Perioadă</th>
-                <th className="px-4 py-3 text-center">Data Export</th>
+                <th className="px-5 py-3">Nr.</th>
+                <th className="px-5 py-3">Perioadă</th>
+                <th className="px-5 py-3 text-center">Data Procesare</th>
+                <th className="px-5 py-3 text-right">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
               {history.length === 0 ? (
-                <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-500">Niciun export încă.</td></tr>
+                <tr>
+                  <td colSpan={4} className="px-5 py-6 text-center text-slate-500">
+                    Nicio operațiune de export înregistrată încă.
+                  </td>
+                </tr>
               ) : (
                 history.map((h: any, i: number) => (
                   <tr key={h.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                    <td className="px-4 py-3 text-slate-400">{i + 1}</td>
-                    <td className="px-4 py-3 text-slate-900 dark:text-white font-medium">
+                    <td className="px-5 py-3 text-slate-400 font-mono text-xs">{i + 1}</td>
+                    <td className="px-5 py-3 text-slate-900 dark:text-white font-medium">
                       {MONTHS[h.month - 1]} {h.year}
                     </td>
-                    <td className="px-4 py-3 text-center text-slate-500">
+                    <td className="px-5 py-3 text-center text-slate-500 text-xs">
                       {new Date(h.createdAt).toLocaleString("ro-RO")}
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
+                        <Check className="w-3 h-3" /> Generat
+                      </span>
                     </td>
                   </tr>
                 ))
@@ -1421,6 +1763,7 @@ function ComenziTab() {
   });
 
   const [showForm, setShowForm] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [form, setForm] = useState({
     tipComanda: "Productie", data: new Date().toISOString().split("T")[0],
     denumireClient: "", dataLivrarii: "", notes: "",
@@ -1468,7 +1811,7 @@ function ComenziTab() {
       {/* Table */}
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 dark:bg-slate-800/50">
+          <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800">
             <tr>
               <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Nr.</th>
               <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Tip</th>
@@ -1500,9 +1843,34 @@ function ComenziTab() {
                     "bg-yellow-100 text-yellow-700"
                   }`}>{cmd.status}</span>
                 </td>
-                <td className="px-4 py-2">
-                  <button onClick={() => { if(confirm("Ștergi comanda?")) deleteMut.mutate({ id: cmd.id }); }}
-                    className="p-1 text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                <td className="px-4 py-2 text-right">
+                  {confirmDeleteId === cmd.id ? (
+                    <div className="inline-flex items-center gap-1">
+                      <button
+                        onClick={() => {
+                          deleteMut.mutate({ id: cmd.id });
+                          setConfirmDeleteId(null);
+                        }}
+                        className="px-2 py-0.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs"
+                      >
+                        Șterge
+                      </button>
+                      <button
+                        onClick={() => setConfirmDeleteId(null)}
+                        className="px-2 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded text-xs"
+                      >
+                        Nu
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmDeleteId(cmd.id)}
+                      className="p-1 text-slate-400 hover:text-red-600 rounded"
+                      title="Șterge comanda"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

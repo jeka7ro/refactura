@@ -358,31 +358,187 @@ export const sagaRouter = router({
   export: protectedProcedure
     .input(z.object({ month: z.number(), year: z.number() }))
     .mutation(async ({ input, ctx }) => {
-      
-      const { generateSagaExportXML } = await import(
+      const { generateSagaExportXML, getTenantCompanyProfile } = await import(
         "../../server/sagaXmlGenerator"
       );
-      const xml = await generateSagaExportXML(
-        (ctx.user?.tenantId || 1),
-        input.month,
-        input.year
-      );
+      const tenantId = ctx.user?.tenantId || 1;
+      const xml = await generateSagaExportXML(tenantId, input.month, input.year);
+      const company = await getTenantCompanyProfile(tenantId);
+      const safeCui = company.cui.replace(/^RO/i, "").trim() || "EXPORT";
+      const filename = `F_${safeCui}_${input.month}_${input.year}.xml`;
 
       // Save export history
       const db = await getDb();
       if (db) {
         await db.insert(sagaExportHistory).values({
-          tenantId: (ctx.user?.tenantId || 1),
+          tenantId,
           month: input.month,
           year: input.year,
         });
       }
 
-      return { xml };
+      return { xml, filename };
+    }),
+
+  exportArticole: protectedProcedure.mutation(async ({ ctx }) => {
+    const { generateSagaArticlesXML } = await import("../../server/sagaXmlGenerator");
+    const { format } = await import("date-fns");
+    const tenantId = ctx.user?.tenantId || 1;
+    const xml = await generateSagaArticlesXML(tenantId);
+    const filename = `ART_${format(new Date(), "ddMMyyyy")}.xml`;
+    return { xml, filename };
+  }),
+
+  exportClienti: protectedProcedure.mutation(async ({ ctx }) => {
+    const { generateSagaClientsXML } = await import("../../server/sagaXmlGenerator");
+    const { format } = await import("date-fns");
+    const tenantId = ctx.user?.tenantId || 1;
+    const xml = await generateSagaClientsXML(tenantId);
+    const filename = `CLI_${format(new Date(), "ddMMyyyy")}.xml`;
+    return { xml, filename };
+  }),
+
+  getSagaWebConfig: protectedProcedure.query(async ({ ctx }) => {
+    const db = await getDb();
+    const tenantId = ctx.user?.tenantId || 1;
+    if (!db) return { sagaWebToken: "", sagaWebCui: "" };
+    const { tenants } = await import("../../drizzle/schema");
+    const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
+    let sagaWebToken = "";
+    let sagaWebCui = tenant?.cui?.replace(/^RO/i, "").trim() || "";
+    if (tenant?.settings) {
+      try {
+        const s = JSON.parse(tenant.settings);
+        if (s.sagaWebToken) sagaWebToken = s.sagaWebToken;
+        if (s.sagaWebCui) sagaWebCui = s.sagaWebCui;
+      } catch {}
+    }
+    return { sagaWebToken, sagaWebCui };
+  }),
+
+  saveSagaWebConfig: protectedProcedure
+    .input(
+      z.object({
+        sagaWebToken: z.string().optional(),
+        sagaWebCui: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      const tenantId = ctx.user?.tenantId || 1;
+      if (!db) throw new Error("DB unavailable");
+      const { tenants } = await import("../../drizzle/schema");
+      const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
+      let settings: any = {};
+      if (tenant?.settings) {
+        try {
+          settings = JSON.parse(tenant.settings);
+        } catch {}
+      }
+      if (input.sagaWebToken !== undefined) settings.sagaWebToken = input.sagaWebToken.trim();
+      if (input.sagaWebCui !== undefined) settings.sagaWebCui = input.sagaWebCui.trim();
+
+      await db
+        .update(tenants)
+        .set({ settings: JSON.stringify(settings) })
+        .where(eq(tenants.id, tenantId));
+
+      return { success: true };
+    }),
+
+  pushToSagaWeb: protectedProcedure
+    .input(
+      z.object({
+        month: z.number(),
+        year: z.number(),
+        sagaToken: z.string().optional(),
+        sagaCui: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const axios = (await import("axios")).default;
+      const FormData = (await import("form-data")).default;
+      const { generateSagaExportXML, getTenantCompanyProfile, updateTenantSagaToken } =
+        await import("../../server/sagaXmlGenerator");
+      const tenantId = ctx.user?.tenantId || 1;
+
+      const db = await getDb();
+      let token = input.sagaToken?.trim();
+      let cui = input.sagaCui?.trim();
+
+      if (!token || !cui) {
+        if (db) {
+          const { tenants } = await import("../../drizzle/schema");
+          const [t] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
+          if (t?.settings) {
+            try {
+              const s = JSON.parse(t.settings);
+              if (!token) token = s.sagaWebToken;
+              if (!cui) cui = s.sagaWebCui || t.cui?.replace(/^RO/i, "");
+            } catch {}
+          }
+          if (!cui && t?.cui) cui = t.cui.replace(/^RO/i, "");
+        }
+      }
+
+      if (!token) {
+        throw new Error("Lipsește token-ul SAGA Web. Completează cheia generată din Saga Web: Administrare > Utilizatori > Integrare API.");
+      }
+      if (!cui) {
+        const company = await getTenantCompanyProfile(tenantId);
+        cui = company.cui.replace(/^RO/i, "").trim();
+      }
+
+      const xmlContent = await generateSagaExportXML(tenantId, input.month, input.year);
+      const fileName = `F_${cui}_${input.month}_${input.year}.xml`;
+
+      const form = new FormData();
+      form.append("file", Buffer.from(xmlContent, "utf8"), {
+        filename: fileName,
+        contentType: "application/xml",
+      });
+
+      try {
+        const response = await axios.post("https://web.sagasoft.ro/api/v20260225/Import", form, {
+          headers: {
+            ...form.getHeaders(),
+            "X-Saga-Cod-Fiscal": cui,
+            Authorization: `Bearer ${token}`,
+          },
+          timeout: 30000,
+        });
+
+        const newToken = response.headers["x-saga-refresh-token"];
+        if (newToken) {
+          await updateTenantSagaToken(tenantId, newToken);
+        }
+
+        // Salvează în istoric
+        if (db) {
+          await db.insert(sagaExportHistory).values({
+            tenantId,
+            month: input.month,
+            year: input.year,
+          });
+        }
+
+        return {
+          success: true,
+          message: response.data?.message || "Import realizat cu succes în SAGA Web!",
+          data: response.data,
+          newToken: newToken || null,
+        };
+      } catch (err: any) {
+        const errMsg =
+          err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          err.message ||
+          "Eroare la apelul către SAGA Web API";
+        throw new Error(errMsg);
+      }
     }),
 
   exportHistory: protectedProcedure.query(async ({ ctx }) => {
-    
     const db = await getDb();
     if (!db) return [];
     return db

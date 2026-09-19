@@ -496,7 +496,7 @@ export default function Integrations() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `Export_SAGA.xml`;
+      a.download = data.filename || `Export_SAGA.xml`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);

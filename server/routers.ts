@@ -1557,14 +1557,17 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        
-        const { generateSagaExportXML } = await import("./sagaXmlGenerator");
+        const { generateSagaExportXML, getTenantCompanyProfile } = await import("./sagaXmlGenerator");
+        const tenantId = ctx.user?.tenantId || 1;
         const xml = await generateSagaExportXML(
-          (ctx.user?.tenantId || 1),
+          tenantId,
           input.month,
           input.year
         );
-        return { xml };
+        const company = await getTenantCompanyProfile(tenantId);
+        const safeCui = company.cui.replace(/^RO/i, "").trim() || "EXPORT";
+        const filename = `F_${safeCui}_${input.month}_${input.year}.xml`;
+        return { xml, filename };
       }),
     upsert: protectedProcedure
       .input(
