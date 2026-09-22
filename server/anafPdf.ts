@@ -35,42 +35,52 @@ export async function convertXmlToPdf(
     // Wrap PDFKit in a promise to generate the buffer
     const pdfBuffer: Buffer = await new Promise(async (resolve, reject) => {
       try {
-        const { generateReInvoicePDF } = await import("./pdf");
+        const getXmlText = (node: any, fallback = ""): string => {
+          if (node === null || node === undefined) return fallback;
+          if (typeof node === "string") return node.trim() || fallback;
+          if (typeof node === "number") return String(node);
+          if (typeof node === "object") {
+            if (node["#text"] !== undefined) return String(node["#text"]).trim() || fallback;
+            if (node["_text"] !== undefined) return String(node["_text"]).trim() || fallback;
+          }
+          const str = String(node).trim();
+          return str === "[object Object]" ? fallback : (str || fallback);
+        };
 
-        const invNumber = invoice["cbc:ID"] || "";
-        const issueDate = invoice["cbc:IssueDate"] || "";
-        const dueDate = invoice["cbc:DueDate"] || issueDate;
-        const currency = invoice["cbc:DocumentCurrencyCode"] || "RON";
+        const invNumber = getXmlText(invoice["cbc:ID"]);
+        const issueDate = getXmlText(invoice["cbc:IssueDate"]);
+        const dueDate = getXmlText(invoice["cbc:DueDate"], issueDate);
+        const currency = getXmlText(invoice["cbc:DocumentCurrencyCode"], "RON");
 
         // Supplier
         const supParty =
           invoice["cac:AccountingSupplierParty"]?.["cac:Party"] || {};
         const supName =
-          supParty["cac:PartyName"]?.["cbc:Name"] ||
-          supParty["cac:PartyLegalEntity"]?.["cbc:RegistrationName"] ||
+          getXmlText(supParty["cac:PartyName"]?.["cbc:Name"]) ||
+          getXmlText(supParty["cac:PartyLegalEntity"]?.["cbc:RegistrationName"]) ||
           "";
         const supCUI =
-          supParty["cac:PartyTaxScheme"]?.["cbc:CompanyID"] ||
-          supParty["cac:PartyLegalEntity"]?.["cbc:CompanyID"] ||
+          getXmlText(supParty["cac:PartyTaxScheme"]?.["cbc:CompanyID"]) ||
+          getXmlText(supParty["cac:PartyLegalEntity"]?.["cbc:CompanyID"]) ||
           "";
         const supAddress =
-          supParty["cac:PostalAddress"]?.["cbc:StreetName"] || "";
-        const supCity = supParty["cac:PostalAddress"]?.["cbc:CityName"] || "";
+          getXmlText(supParty["cac:PostalAddress"]?.["cbc:StreetName"]) || "";
+        const supCity = getXmlText(supParty["cac:PostalAddress"]?.["cbc:CityName"]) || "";
 
         // Customer
         const cusParty =
           invoice["cac:AccountingCustomerParty"]?.["cac:Party"] || {};
         const cusName =
-          cusParty["cac:PartyName"]?.["cbc:Name"] ||
-          cusParty["cac:PartyLegalEntity"]?.["cbc:RegistrationName"] ||
+          getXmlText(cusParty["cac:PartyName"]?.["cbc:Name"]) ||
+          getXmlText(cusParty["cac:PartyLegalEntity"]?.["cbc:RegistrationName"]) ||
           "";
         const cusCUI =
-          cusParty["cac:PartyTaxScheme"]?.["cbc:CompanyID"] ||
-          cusParty["cac:PartyLegalEntity"]?.["cbc:CompanyID"] ||
+          getXmlText(cusParty["cac:PartyTaxScheme"]?.["cbc:CompanyID"]) ||
+          getXmlText(cusParty["cac:PartyLegalEntity"]?.["cbc:CompanyID"]) ||
           "";
         const cusAddress =
-          cusParty["cac:PostalAddress"]?.["cbc:StreetName"] || "";
-        const cusCity = cusParty["cac:PostalAddress"]?.["cbc:CityName"] || "";
+          getXmlText(cusParty["cac:PostalAddress"]?.["cbc:StreetName"]) || "";
+        const cusCity = getXmlText(cusParty["cac:PostalAddress"]?.["cbc:CityName"]) || "";
 
         let lines = invoice["cac:InvoiceLine"];
         if (!lines) lines = [];

@@ -71,6 +71,31 @@ export function isBilingualInvoice(data: ReInvoiceData): boolean {
   return false;
 }
 
+export function formatPdfDate(dateInput: any): string {
+  if (!dateInput) return "";
+  if (typeof dateInput === "object" && dateInput["#text"]) {
+    dateInput = dateInput["#text"];
+  }
+  const str = String(dateInput).trim();
+  if (!str || str === "[object Object]") return "";
+  try {
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString("ro-RO");
+    }
+  } catch {}
+  return str;
+}
+
+export function formatPdfNumber(numInput: any): string {
+  if (!numInput) return "";
+  if (typeof numInput === "object" && numInput["#text"]) {
+    return String(numInput["#text"]).trim();
+  }
+  const str = String(numInput).trim();
+  return str === "[object Object]" ? "" : str;
+}
+
 function getLabels(isBilingual: boolean) {
   if (!isBilingual) {
     return {
@@ -320,7 +345,7 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   doc
     .fontSize(16)
     .font("Roboto-Bold")
-    .text(data.number, rightColX, y, { width: rightColW, align: "right" });
+    .text(formatPdfNumber(data.number), rightColX, y, { width: rightColW, align: "right" });
 
   y += 30;
   const metaLabelW = isBilingual ? 120 : 80;
@@ -329,7 +354,7 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   doc.text(L.issueDate, rightColX, y, { width: metaLabelW });
   doc
     .font("Roboto")
-    .text(new Date(data.date).toLocaleDateString("ro-RO"), rightColX + metaLabelW, y, {
+    .text(formatPdfDate(data.date), rightColX + metaLabelW, y, {
       width: metaValW,
       align: "right",
     });
@@ -339,7 +364,7 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   doc
     .font("Roboto")
     .text(
-      new Date(data.dueDate).toLocaleDateString("ro-RO"),
+      formatPdfDate(data.dueDate),
       rightColX + metaLabelW,
       y,
       { width: metaValW, align: "right" }
@@ -702,7 +727,7 @@ function generateModern(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     .font("Roboto")
     .fillColor("#bfdbfe")
     .text(
-      `${new Date(data.date).toLocaleDateString("ro-RO")}`,
+      formatPdfDate(data.date),
       doc.page.width - 185,
       57,
       { width: 140, align: "center" }
@@ -721,8 +746,8 @@ function generateModern(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     .fontSize(10)
     .font("Roboto-Bold")
     .fillColor("#1e293b")
-    .text(new Date(data.date).toLocaleDateString("ro-RO"), leftX, y)
-    .text(new Date(data.dueDate).toLocaleDateString("ro-RO"), leftX + 160, y);
+    .text(formatPdfDate(data.date), leftX, y)
+    .text(formatPdfDate(data.dueDate), leftX + 160, y);
 
   // Emitent / Client cards
   y += 28;
@@ -873,14 +898,14 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
 
   // Metadata pills
   doc.fontSize(9).font("Roboto").fillColor("#64748b");
-  doc.text(`${L.number} ${data.number}`, leftX, y);
+  doc.text(`${L.number} ${formatPdfNumber(data.number)}`, leftX, y);
   doc.text(
-    `${isBilingual ? "Date:" : "Emisă:"} ${new Date(data.date).toLocaleDateString("ro-RO")}`,
+    `${isBilingual ? "Date:" : "Emisă:"} ${formatPdfDate(data.date)}`,
     leftX + 120,
     y
   );
   doc.text(
-    `${isBilingual ? "Due:" : "Scadentă:"} ${new Date(data.dueDate).toLocaleDateString("ro-RO")}`,
+    `${isBilingual ? "Due:" : "Scadentă:"} ${formatPdfDate(data.dueDate)}`,
     leftX + 260,
     y
   );

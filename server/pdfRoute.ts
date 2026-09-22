@@ -260,6 +260,18 @@ export function registerPdfRoute(app: any) {
         }
       } catch (_) {}
 
+      const getXmlText = (node: any, fallback = ""): string => {
+        if (node === null || node === undefined) return fallback;
+        if (typeof node === "string") return node.trim() || fallback;
+        if (typeof node === "number") return String(node);
+        if (typeof node === "object") {
+          if (node["#text"] !== undefined) return String(node["#text"]).trim() || fallback;
+          if (node["_text"] !== undefined) return String(node["_text"]).trim() || fallback;
+        }
+        const str = String(node).trim();
+        return str === "[object Object]" ? fallback : (str || fallback);
+      };
+
       const direction = inv.direction; // 'in' or 'out'
       const supplierParty =
         invoiceObj["cac:AccountingSupplierParty"]?.["cac:Party"];
@@ -268,20 +280,19 @@ export function registerPdfRoute(app: any) {
 
       const extractPartyDetails = (party: any) => ({
         name:
-          party?.["cac:PartyName"]?.["cbc:Name"] ||
-          party?.["cac:PartyLegalEntity"]?.["cbc:RegistrationName"] ||
+          getXmlText(party?.["cac:PartyName"]?.["cbc:Name"]) ||
+          getXmlText(party?.["cac:PartyLegalEntity"]?.["cbc:RegistrationName"]) ||
           "",
         cui:
-          party?.["cac:PartyTaxScheme"]?.["cbc:CompanyID"] ||
-          party?.["cac:PartyLegalEntity"]?.["cbc:CompanyID"] ||
+          getXmlText(party?.["cac:PartyTaxScheme"]?.["cbc:CompanyID"]) ||
+          getXmlText(party?.["cac:PartyLegalEntity"]?.["cbc:CompanyID"]) ||
           "",
-        address: party?.["cac:PostalAddress"]?.["cbc:StreetName"] || "",
-        city: party?.["cac:PostalAddress"]?.["cbc:CityName"] || "",
-        county: party?.["cac:PostalAddress"]?.["cbc:CountrySubentity"] || "",
-        email: party?.["cac:Contact"]?.["cbc:ElectronicMail"] || "",
-        phone: party?.["cac:Contact"]?.["cbc:Telephone"] || "",
-        iban:
-          party?.["cac:PartyTaxScheme"]?.["cac:TaxScheme"]?.["cbc:ID"] || "", // Simplified, usually IBAN is in PaymentMeans
+        address: getXmlText(party?.["cac:PostalAddress"]?.["cbc:StreetName"]),
+        city: getXmlText(party?.["cac:PostalAddress"]?.["cbc:CityName"]),
+        county: getXmlText(party?.["cac:PostalAddress"]?.["cbc:CountrySubentity"]),
+        email: getXmlText(party?.["cac:Contact"]?.["cbc:ElectronicMail"]),
+        phone: getXmlText(party?.["cac:Contact"]?.["cbc:Telephone"]),
+        iban: getXmlText(party?.["cac:PartyTaxScheme"]?.["cac:TaxScheme"]?.["cbc:ID"]),
       });
 
       const supplierDetails = extractPartyDetails(supplierParty);
@@ -297,8 +308,9 @@ export function registerPdfRoute(app: any) {
         const taxCategory = item?.["cac:ClassifiedTaxCategory"];
 
         return {
-          description: String(
-            item?.["cbc:Name"] || item?.["cbc:Description"] || "Articol"
+          description: getXmlText(
+            item?.["cbc:Name"] || item?.["cbc:Description"],
+            "Articol"
           ),
           quantity: parseFloat(
             line["cbc:InvoicedQuantity"]?.["#text"] ||
@@ -334,12 +346,11 @@ export function registerPdfRoute(app: any) {
       const taxTotal = invoiceObj["cac:TaxTotal"];
 
       const pdfData = {
-        number: String(invoiceObj["cbc:ID"] || inv.invoiceNumber),
-        date: String(invoiceObj["cbc:IssueDate"] || inv.issueDate),
-        dueDate: String(
-          invoiceObj["cbc:DueDate"] ||
-            invoiceObj["cbc:IssueDate"] ||
-            inv.dueDate
+        number: getXmlText(invoiceObj["cbc:ID"], inv.invoiceNumber || ""),
+        date: getXmlText(invoiceObj["cbc:IssueDate"], inv.issueDate || ""),
+        dueDate: getXmlText(
+          invoiceObj["cbc:DueDate"],
+          getXmlText(invoiceObj["cbc:IssueDate"], inv.dueDate || inv.issueDate || "")
         ),
 
         companyName: supplierDetails.name,
@@ -380,10 +391,9 @@ export function registerPdfRoute(app: any) {
             legalTotal?.["cbc:PayableAmount"]?.["#text"] ||
             "0"
         ),
-        currency: String(
-          invoiceObj["cbc:DocumentCurrencyCode"]?.["#text"] ||
-            invoiceObj["cbc:DocumentCurrencyCode"] ||
-            "RON"
+        currency: getXmlText(
+          invoiceObj["cbc:DocumentCurrencyCode"],
+          "RON"
         ),
       };
 
