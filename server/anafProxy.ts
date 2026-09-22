@@ -3,11 +3,24 @@
  * GET /api/anaf/:cui  → returnează date firmă
  */
 import type { Express } from "express";
+import { fetchViesData } from "./viesProxy";
 
 export function registerAnafProxy(app: Express) {
   app.get("/api/anaf/:cui", async (req, res) => {
     const { cui } = req.params;
-    const cuiNum = cui.replace(/^ro/i, "").replace(/\s/g, "");
+    const trimmed = (cui || "").trim().replace(/\s/g, "");
+
+    // Dacă CUI începe cu un prefix de țară UE diferit de RO (ex: BE0785292895, DE123456789, IE6388047V)
+    const euPrefixMatch = trimmed.match(/^([A-Za-z]{2})(.*)$/);
+    if (euPrefixMatch && euPrefixMatch[1].toUpperCase() !== "RO") {
+      const viesRes = await fetchViesData(euPrefixMatch[1], euPrefixMatch[2]);
+      if (!viesRes.valid) {
+        return res.status(404).json(viesRes);
+      }
+      return res.json(viesRes);
+    }
+
+    const cuiNum = trimmed.replace(/^ro/i, "");
 
     if (!cuiNum || !/^\d{2,10}$/.test(cuiNum)) {
       return res.status(400).json({ error: "CUI invalid" });

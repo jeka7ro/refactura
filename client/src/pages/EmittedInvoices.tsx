@@ -112,7 +112,7 @@ export default function EmittedInvoices() {
   const [rowsPerPage, setRowsPerPage] = useState(15);
 
   const { data = [], isLoading, refetch } = trpc.emittedInvoice.list.useQuery();
-  const { data: archiveRaw = [], refetch: refetchArchive } = trpc.invoiceArchive.list.useQuery({});
+  const { data: archiveRaw = [], refetch: refetchArchive } = trpc.invoiceArchive.list.useQuery({ limit: 5000 });
 
   // Combine both sources: emitted invoices (FACT-*) + archive OUT invoices (TON-*)
   const allData = useMemo(() => {

@@ -1328,7 +1328,7 @@ export async function getInvoiceArchiveList(
 ) {
   const db = await getDb();
   if (!db) return { items: [], total: 0 };
-  const limit = filters?.limit ?? 50;
+  const limit = filters?.limit ?? 5000;
   const offset = filters?.offset ?? 0;
 
   let query = db

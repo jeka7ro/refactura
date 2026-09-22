@@ -488,18 +488,43 @@ export default function EmitInvoice() {
   };
 
   const lookupCui = async () => {
-    const rawCui = clientCUI.trim();
-    const cui = rawCui.replace(/^RO/i, "").replace(/\s/g, "");
-    if (!cui || cui.length < 2) return;
+    const rawCui = clientCUI.trim().replace(/\s/g, "");
+    if (!rawCui || rawCui.length < 2) return;
 
     // Detect country if CUI starts with 2 letters (e.g. BE0785292895 -> BE)
-    const prefixMatch = rawCui.match(/^([A-Za-z]{2})/);
-    if (prefixMatch && prefixMatch[1].toUpperCase() !== "RO") {
-      setClientCountry(prefixMatch[1].toUpperCase());
-      // Non-Romanian / Intracommunity CUI: ANAF only has Romanian companies, skip ANAF lookup
+    const prefixMatch = rawCui.match(/^([A-Za-z]{2})(.*)$/);
+    const isEuForeign = prefixMatch && prefixMatch[1].toUpperCase() !== "RO";
+
+    if (isEuForeign) {
+      const country = prefixMatch[1].toUpperCase();
+      setClientCountry(country);
+      setShowAdvancedClientInfo(true);
+      setCuiLoading(true);
+      try {
+        const res = await fetch(`/api/vies/${encodeURIComponent(rawCui)}`);
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok || !d.valid) {
+          toast.error(d.error || `Codul de TVA ${rawCui} nu a fost găsit sau nu este valid în VIES.`);
+          return;
+        }
+        setClientName(d.denumire || clientName);
+        setClientSearch(d.denumire || clientName);
+        setClientAddress(d.adresa || clientAddress);
+        if (d.oras) setClientCity(d.oras);
+        setClientCountry(d.country || country);
+        setClientCUI(d.cui || rawCui.toUpperCase());
+        toast.success(`Operator validat în VIES (${d.country}): ${d.denumire}`);
+        // Pentru tranzacții intracomunitare, de regulă TVA este 0% (taxare inversă / scutit)
+        setLines(prev => prev.map(l => ({ ...l, vatRate: 0 })));
+      } catch {
+        toast.error("Eroare la verificarea codului în VIES.");
+      } finally {
+        setCuiLoading(false);
+      }
       return;
     }
 
+    const cui = rawCui.replace(/^RO/i, "");
     if (!/^\d{2,10}$/.test(cui)) return;
 
     setCuiLoading(true);
@@ -526,28 +551,55 @@ export default function EmitInvoice() {
   };
 
   const lookupCuiFromSearch = async (searchTerm: string) => {
-    const digits = searchTerm.replace(/[^0-9]/g, "");
-    if (!digits || digits.length < 2) return;
+    const clean = searchTerm.trim().replace(/\s/g, "");
+    const euMatch = clean.match(/^([A-Za-z]{2})(.*)$/);
+    const isEuForeign = euMatch && euMatch[1].toUpperCase() !== "RO" && euMatch[2].length >= 2;
+
     setCuiLoading(true);
     try {
-      const res = await fetch(`/api/anaf/${digits}`);
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        toast.error(err.error || "CUI negăsit în ANAF.");
-        return;
+      if (isEuForeign) {
+        const res = await fetch(`/api/vies/${encodeURIComponent(clean)}`);
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok || !d.valid) {
+          toast.error(d.error || `Codul ${clean} nu a fost găsit în VIES.`);
+          return;
+        }
+        setClientName(d.denumire || "");
+        setClientSearch(d.denumire || "");
+        setClientAddress(d.adresa || "");
+        setClientCity(d.oras || "");
+        setClientRegCom("");
+        setClientCUI(d.cui || clean.toUpperCase());
+        setClientCountry(d.country || euMatch[1].toUpperCase());
+        setShowAdvancedClientInfo(true);
+        setShowClientDropdown(false);
+        toast.success(`Operator validat în VIES (${d.country}): ${d.denumire}`);
+        setLines(prev => prev.map(l => ({ ...l, vatRate: 0 })));
+      } else {
+        const digits = clean.replace(/^RO/i, "").replace(/[^0-9]/g, "");
+        if (!digits || digits.length < 2) {
+          toast.error("Introduceți un CUI valid.");
+          return;
+        }
+        const res = await fetch(`/api/anaf/${digits}`);
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          toast.error(err.error || "CUI negăsit în ANAF.");
+          return;
+        }
+        const d = await res.json();
+        setClientName(d.denumire || "");
+        setClientSearch(d.denumire || "");
+        setClientAddress(d.adresa || "");
+        setClientCity(d.judet || "");
+        setClientRegCom(d.nrRegCom || "");
+        setClientCUI(d.cui ? `RO${d.cui}` : digits);
+        setClientCountry("RO");
+        setShowClientDropdown(false);
+        toast.success("Date extrase din ANAF!");
       }
-      const d = await res.json();
-      setClientName(d.denumire || "");
-      setClientSearch(d.denumire || "");
-      setClientAddress(d.adresa || "");
-      setClientCity(d.judet || "");
-      setClientRegCom(d.nrRegCom || "");
-      setClientCUI(d.cui ? `RO${d.cui}` : digits);
-      setClientCountry("RO");
-      setShowClientDropdown(false);
-      toast.success("Date extrase din ANAF!");
     } catch {
-      toast.error("Eroare conexiune la ANAF.");
+      toast.error("Eroare conexiune la server.");
     } finally {
       setCuiLoading(false);
     }
@@ -795,7 +847,7 @@ export default function EmitInvoice() {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Nume, CUI sau caută în ANAF..."
+                placeholder="Nume, CUI (ANAF) sau CIF european (VIES)..."
                 value={clientName}
                 onChange={e => {
                   setClientName(e.target.value);
@@ -829,24 +881,56 @@ export default function EmitInvoice() {
                         )}
                       </button>
                     ))}
-                  {(clientName || clientSearch).replace(/[^0-9]/g, "").length >= 2 && (
-                    <button
-                      type="button"
-                      onMouseDown={e => {
-                        e.preventDefault();
-                        lookupCuiFromSearch(clientName || clientSearch);
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-sm font-semibold transition-colors"
-                    >
-                      <Search className="w-4 h-4" />
-                      <span>
-                        Caută CUI "{(clientName || clientSearch).replace(/[^0-9]/g, "")}" în ANAF
-                      </span>
-                      {cuiLoading && (
-                        <Loader2 className="w-4 h-4 animate-spin ml-auto" />
-                      )}
-                    </button>
-                  )}
+                  {(() => {
+                    const raw = (clientName || clientSearch || "").trim().replace(/\s/g, "");
+                    const euMatch = raw.match(/^([A-Za-z]{2})([A-Za-z0-9]+)$/);
+                    const isEu = euMatch && euMatch[1].toUpperCase() !== "RO" && euMatch[2].length >= 2;
+                    const digits = raw.replace(/^RO/i, "").replace(/[^0-9]/g, "");
+
+                    if (isEu) {
+                      return (
+                        <button
+                          type="button"
+                          onMouseDown={e => {
+                            e.preventDefault();
+                            lookupCuiFromSearch(raw);
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-sm font-semibold transition-colors"
+                        >
+                          <Search className="w-4 h-4" />
+                          <span>
+                            Caută CUI "{raw.toUpperCase()}" în VIES (UE)
+                          </span>
+                          {cuiLoading && (
+                            <Loader2 className="w-4 h-4 animate-spin ml-auto" />
+                          )}
+                        </button>
+                      );
+                    }
+
+                    if (digits.length >= 2) {
+                      return (
+                        <button
+                          type="button"
+                          onMouseDown={e => {
+                            e.preventDefault();
+                            lookupCuiFromSearch(raw);
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-sm font-semibold transition-colors"
+                        >
+                          <Search className="w-4 h-4" />
+                          <span>
+                            Caută CUI "{digits}" în ANAF
+                          </span>
+                          {cuiLoading && (
+                            <Loader2 className="w-4 h-4 animate-spin ml-auto" />
+                          )}
+                        </button>
+                      );
+                    }
+
+                    return null;
+                  })()}
                 </div>
               )}
             </div>
@@ -1002,8 +1086,14 @@ export default function EmitInvoice() {
                     }
                   }}
                   onBlur={lookupCui}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      lookupCui();
+                    }
+                  }}
                   className={inputCls}
-                  placeholder="ex: RO12345678"
+                  placeholder="ex: RO12345678 sau DE123456789 (VIES)"
                 />
               </div>
               <div className="lg:col-span-3">

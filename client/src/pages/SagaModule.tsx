@@ -795,6 +795,41 @@ function ExportTab() {
   const { data: history = [], refetch: refetchHistory } = trpc.saga.exportHistory.useQuery();
   const { data: previewData, isLoading: isLoadingPreview } = trpc.saga.getExportPreview.useQuery({ month, year });
 
+  // Import Facturi Externe din SAGA
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importResult, setImportResult] = useState<any>(null);
+
+  const handleImportInvoices = async () => {
+    if (!importFile) return;
+    setIsImporting(true);
+    setImportResult(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", importFile);
+      formData.append("tenantId", String(currentTenantId));
+
+      const res = await fetch("/api/saga/import-invoices", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setImportResult({ success: false, error: data.error || "Eroare la import." });
+        toast.error(data.error || "Eroare la importul facturilor SAGA.");
+        return;
+      }
+      setImportResult(data);
+      toast.success(data.message || "Facturi externe importate cu succes!");
+      refetchHistory();
+    } catch (e: any) {
+      setImportResult({ success: false, error: e.message || "Eroare conexiune." });
+      toast.error("Eroare de conexiune la server.");
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Canal Selector: Desktop vs Web */}
@@ -976,6 +1011,67 @@ function ExportTab() {
                     <Users className="w-3.5 h-3.5" />
                   )}
                   Descarcă Clienți.xml
+                </button>
+              </div>
+            </div>
+
+            {/* Import Facturi Externe din SAGA Card */}
+            <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-50/70 to-teal-50/70 dark:from-emerald-950/20 dark:to-teal-950/20 border border-emerald-200 dark:border-emerald-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-600 text-white">
+                    Import SAGA
+                  </span>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Importă Facturi Externe generate în SAGA
+                  </h4>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-400 max-w-2xl">
+                  Încarcă fișierul XML (exportat din SAGA Diverse &gt; Export facturi) sau fișierul Excel (din Ieșiri valută). Facturile vor fi importate automat în secțiunea Facturi Emise cu status extern și curs BNR.
+                </p>
+                {importResult && (
+                  <p className={`text-xs font-semibold ${importResult.success ? "text-emerald-700 dark:text-emerald-300" : "text-red-600"}`}>
+                    {importResult.message || importResult.error}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <input
+                  type="file"
+                  id="saga-exporttab-import"
+                  accept=".xml,.xlsx,.xls,.csv"
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files?.[0]) {
+                      setImportFile(e.target.files[0]);
+                      setImportResult(null);
+                    }
+                  }}
+                />
+                <label
+                  htmlFor="saga-exporttab-import"
+                  className="cursor-pointer flex items-center gap-1.5 px-3.5 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 shadow-sm transition-all"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                  <span>{importFile ? importFile.name.slice(0, 20) + "..." : "Alege XML / Excel"}</span>
+                </label>
+                <button
+                  type="button"
+                  disabled={!importFile || isImporting}
+                  onClick={handleImportInvoices}
+                  className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
+                >
+                  {isImporting ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Se importă...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-3.5 h-3.5" />
+                      Importă în Aplicație
+                    </>
+                  )}
                 </button>
               </div>
             </div>

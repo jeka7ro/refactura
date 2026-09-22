@@ -37,7 +37,7 @@ export default function Reports() {
   const { data: dbClients = [], isLoading: loadingCl } =
     trpc.clients.list.useQuery();
   const { data: archiveData, isLoading: loadingAI } =
-    trpc.invoiceArchive.list.useQuery();
+    trpc.invoiceArchive.list.useQuery({ limit: 5000 });
   const archiveInvoices = (archiveData as any)?.items ?? [];
 
   const loading = loadingRI || loadingCl || loadingAI;

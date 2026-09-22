@@ -14,6 +14,10 @@ import {
   Send,
   X,
   FileText,
+  Upload,
+  FileSpreadsheet,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import { formatCurrency, formatDate, type Currency } from "@/lib/store";
 import { trpc } from "@/lib/trpc";
@@ -97,6 +101,44 @@ export default function InvoicesEmitted() {
   const [lines, setLines] = useState<NewInvoiceLine[]>([
     { description: "", quantity: 1, unitPrice: 0, vatRate: 21, unit: "buc" },
   ]);
+
+  // SAGA Import Modal State
+  const [showSagaModal, setShowSagaModal] = useState(false);
+  const [sagaFile, setSagaFile] = useState<File | null>(null);
+  const [sagaUploading, setSagaUploading] = useState(false);
+  const [sagaUploadResult, setSagaUploadResult] = useState<any>(null);
+
+  const handleSagaUpload = async () => {
+    if (!sagaFile) return;
+    setSagaUploading(true);
+    setSagaUploadResult(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", sagaFile);
+      formData.append("tenantId", String(user?.tenantId || 1));
+
+      const res = await fetch("/api/saga/import-invoices", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setSagaUploadResult({ success: false, error: data.error || "Eroare la import." });
+        toast.error(data.error || "Eroare la importul facturilor SAGA.");
+        return;
+      }
+
+      setSagaUploadResult(data);
+      toast.success(data.message || "Import realizat cu succes!");
+      refetch();
+    } catch (err: any) {
+      setSagaUploadResult({ success: false, error: err.message || "Eroare conexiune rețea." });
+      toast.error("Eroare la conectarea cu serverul.");
+    } finally {
+      setSagaUploading(false);
+    }
+  };
 
   const { data: currentTenantObj } = trpc.tenants.current.useQuery();
   const tenant = currentTenantObj || tenants[0]?.tenants;
@@ -241,7 +283,7 @@ export default function InvoicesEmitted() {
             <button
               onClick={() => syncOblioMutation.mutate()}
               disabled={syncOblioMutation.isPending}
-              className="flex items-center gap-1.5 px-4 h-9 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition-all disabled:opacity-60"
+              className="flex items-center gap-1.5 px-3.5 h-9 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition-all disabled:opacity-60"
             >
               {syncOblioMutation.isPending ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -249,6 +291,18 @@ export default function InvoicesEmitted() {
                 <RefreshCw className="w-3.5 h-3.5" />
               )}
               Sync Oblio
+            </button>
+            <button
+              onClick={() => {
+                setShowSagaModal(true);
+                setSagaUploadResult(null);
+                setSagaFile(null);
+              }}
+              className="flex items-center gap-1.5 px-3.5 h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm"
+              title="Importă facturi externe exportate din SAGA (XML sau Excel)"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              Import SAGA
             </button>
             <button
               onClick={() => {
@@ -806,6 +860,145 @@ export default function InvoicesEmitted() {
                 className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-white dark:hover:bg-slate-700 disabled:opacity-40 transition-colors"
               >
                 <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL IMPORT SAGA (FACTURI EXTERNE) */}
+      {showSagaModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-lg w-full overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 flex items-center justify-center">
+                  <Upload className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    Import Facturi Externe SAGA
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    SAGA XML sau Excel (Ieșiri valută)
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowSagaModal(false)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="p-3.5 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
+                Importă facturile emise către clienți externi create în SAGA. Sistemul va prelua automat seria, numărul, data, clientul, CUI-ul, valuta (EUR/USD), cursul și liniile de factură. Facturile vor fi marcate ca operațiuni externe (scutite TVA / D390).
+              </div>
+
+              <div
+                onDragOver={e => e.preventDefault()}
+                onDrop={e => {
+                  e.preventDefault();
+                  if (e.dataTransfer.files?.[0]) {
+                    setSagaFile(e.dataTransfer.files[0]);
+                    setSagaUploadResult(null);
+                  }
+                }}
+                className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${
+                  sagaFile
+                    ? "border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20"
+                    : "border-slate-200 dark:border-slate-700 hover:border-emerald-500 bg-slate-50/50 dark:bg-slate-800/30"
+                }`}
+              >
+                <input
+                  type="file"
+                  id="saga-file-input"
+                  accept=".xml,.xlsx,.xls,.csv"
+                  className="hidden"
+                  onChange={e => {
+                    if (e.target.files?.[0]) {
+                      setSagaFile(e.target.files[0]);
+                      setSagaUploadResult(null);
+                    }
+                  }}
+                />
+                <label
+                  htmlFor="saga-file-input"
+                  className="cursor-pointer flex flex-col items-center gap-2"
+                >
+                  <FileSpreadsheet className={`w-10 h-10 ${sagaFile ? "text-emerald-600" : "text-slate-400"}`} />
+                  {sagaFile ? (
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                        {sagaFile.name}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {(sagaFile.size / 1024).toFixed(1)} KB • Click pentru a schimba fișierul
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        Trage fișierul aici sau <span className="text-emerald-600 font-semibold underline">răsfoiește</span>
+                      </p>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Fișiere acceptate: .XML (SAGA Facturi), .XLSX, .XLS, .CSV
+                      </p>
+                    </div>
+                  )}
+                </label>
+              </div>
+
+              {sagaUploadResult && (
+                <div className={`p-3.5 rounded-lg border text-xs flex items-start gap-2 ${
+                  sagaUploadResult.success
+                    ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 text-emerald-800 dark:text-emerald-200"
+                    : "bg-red-50 dark:bg-red-900/20 border-red-200 text-red-800 dark:text-red-200"
+                }`}>
+                  {sagaUploadResult.success ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
+                  )}
+                  <div>
+                    <p className="font-semibold">{sagaUploadResult.message || sagaUploadResult.error}</p>
+                    {sagaUploadResult.success && (
+                      <p className="mt-0.5 text-slate-600 dark:text-slate-400">
+                        {sagaUploadResult.imported} adăugate, {sagaUploadResult.skipped} omise (deja existente).
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+              <button
+                type="button"
+                onClick={() => setShowSagaModal(false)}
+                className="px-4 h-9 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-white dark:hover:bg-slate-700 transition-colors"
+              >
+                Închide
+              </button>
+              <button
+                type="button"
+                disabled={!sagaFile || sagaUploading}
+                onClick={handleSagaUpload}
+                className="flex items-center gap-1.5 px-5 h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm disabled:opacity-50"
+              >
+                {sagaUploading ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Se importă...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-3.5 h-3.5" />
+                    Importă Facturile
+                  </>
+                )}
               </button>
             </div>
           </div>

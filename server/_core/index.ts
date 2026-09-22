@@ -5,11 +5,16 @@ import path from "path";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
-import { registerUploadRoute, attachSagaFurnizoriImportRoute } from "../uploadRoute";
+import {
+  registerUploadRoute,
+  attachSagaFurnizoriImportRoute,
+  attachSagaInvoicesImportRoute,
+} from "../uploadRoute";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { registerAnafProxy } from "../anafProxy";
+import { registerViesProxy } from "../viesProxy";
 import { registerPdfRoute } from "../pdfRoute";
 import { registerPublicApi } from "../publicApi";
 import { registerSagaSyncRoute } from "../sagaSyncRoute";
@@ -24,7 +29,9 @@ async function startServer() {
   registerOAuthRoutes(app);
   registerUploadRoute(app);
   attachSagaFurnizoriImportRoute(app);
+  attachSagaInvoicesImportRoute(app);
   registerAnafProxy(app);
+  registerViesProxy(app);
   registerPdfRoute(app);
   registerPublicApi(app);
   registerSagaSyncRoute(app);

@@ -372,7 +372,7 @@ export default function AllInvoices() {
     data: archiveData,
     isLoading: l1,
     refetch: r1,
-  } = trpc.invoiceArchive.list.useQuery({});
+  } = trpc.invoiceArchive.list.useQuery({ limit: 5000 });
   const {
     data: reInvoices = [],
     isLoading: l2,

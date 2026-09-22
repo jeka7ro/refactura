@@ -39,6 +39,71 @@ const sagaUpload = multer({
   },
 });
 
+// SAGA Invoice import — accepts .xml/.xlsx/.xls/.csv
+const sagaInvoiceUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 32 * 1024 * 1024 },
+  fileFilter: (
+    _req: Request,
+    file: Express.Multer.File,
+    cb: FileFilterCallback
+  ) => {
+    const extOk = /\.(xml|xlsx|xls|csv)$/i.test(file.originalname);
+    if (extOk) {
+      cb(null, true);
+    } else {
+      cb(new Error("Doar fișiere XML, XLSX, XLS sau CSV sunt acceptate"));
+    }
+  },
+});
+
+// SAGA FACTURI EXTERNE Import Route
+export function attachSagaInvoicesImportRoute(app: Express) {
+  app.post(
+    "/api/saga/import-invoices",
+    sagaInvoiceUpload.single("file"),
+    async (req: Request, res: Response) => {
+      try {
+        const file = req.file;
+        const tenantIdStr = req.body.tenantId;
+        if (!file) return res.status(400).json({ error: "Niciun fișier primit." });
+
+        const tenantId = tenantIdStr ? parseInt(tenantIdStr, 10) : 1;
+        const ext = path.extname(file.originalname).toLowerCase();
+
+        const {
+          parseSagaXmlInvoices,
+          parseSagaXlsxInvoices,
+          saveSagaInvoicesToDb,
+        } = await import("./sagaInvoiceImporter");
+
+        let parsedInvoices = [];
+        if (ext === ".xml") {
+          parsedInvoices = parseSagaXmlInvoices(file.buffer);
+        } else if ([".xlsx", ".xls", ".csv"].includes(ext)) {
+          parsedInvoices = parseSagaXlsxInvoices(file.buffer);
+        } else {
+          return res.status(400).json({ error: "Format neacceptat. Încărcați XML sau Excel." });
+        }
+
+        if (parsedInvoices.length === 0) {
+          return res.status(400).json({ error: "Nu a fost găsită nicio factură în fișier." });
+        }
+
+        const result = await saveSagaInvoicesToDb(tenantId, parsedInvoices);
+        return res.json({
+          success: true,
+          ...result,
+          message: `${result.imported} facturi externe importate cu succes (${result.skipped} omise/deja existente).`,
+        });
+      } catch (err: any) {
+        console.error("[SAGA Import Invoices] Error:", err);
+        return res.status(500).json({ error: err.message || "Eroare la importul facturilor SAGA." });
+      }
+    }
+  );
+}
+
 // SAGA FURNIZORI (Suppliers) XLSX Import Route
 export function attachSagaFurnizoriImportRoute(app: Express) {
   app.post(

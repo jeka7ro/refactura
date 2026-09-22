@@ -414,12 +414,37 @@ function ClientForm({
     setData(p => ({ ...p, [k]: v }));
 
   const lookupCui = async () => {
-    const cui = data.cui.replace(/^RO/i, "").replace(/\s/g, "");
-    if (!cui || cui.length < 2) return;
+    const rawCui = data.cui.trim().replace(/\s/g, "");
+    if (!rawCui || rawCui.length < 2) return;
     setCuiLoading(true);
     setCuiError("");
     setCuiFilled(false);
     try {
+      const euMatch = rawCui.match(/^([A-Za-z]{2})(.*)$/);
+      const isEuForeign = euMatch && euMatch[1].toUpperCase() !== "RO";
+
+      if (isEuForeign) {
+        const res = await fetch(`/api/vies/${encodeURIComponent(rawCui)}`);
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok || !d.valid) {
+          setCuiError(d.error || `Codul ${rawCui} nu a fost găsit în VIES.`);
+          return;
+        }
+        setData(prev => ({
+          ...prev,
+          name: d.denumire || prev.name,
+          address: d.adresa || prev.address,
+          city: d.oras || prev.city,
+          country: d.country || euMatch[1].toUpperCase(),
+          cui: d.cui || rawCui.toUpperCase(),
+          tva: true,
+        }));
+        setCuiFilled(true);
+        toast.success(`Operator validat în VIES (${d.country}): ${d.denumire}`);
+        return;
+      }
+
+      const cui = rawCui.replace(/^RO/i, "");
       const res = await fetch(`/api/anaf/${cui}`);
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -438,7 +463,7 @@ function ClientForm({
       }));
       setCuiFilled(true);
     } catch {
-      setCuiError("Eroare conexiune la ANAF.");
+      setCuiError("Eroare conexiune la server.");
     } finally {
       setCuiLoading(false);
     }
