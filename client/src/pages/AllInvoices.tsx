@@ -487,7 +487,9 @@ export default function AllInvoices() {
         fileUrl: i.source === "spv_anaf" || i.fileUrl === "spv_import" ? `/api/pdf/archive/${i.id}` : i.fileUrl,
         source: i.source || "spv_anaf",
         itemsText: i.itemsText || "",
-        partnerCui: isPrimit ? (i.supplierCui || "") : (i.customerCui || i.supplierCui || ""),
+        partnerCui: isPrimit
+          ? (i.supplierCUI || i.supplierCui || "")
+          : (i.customerCUI || i.customerCui || i.supplierCUI || i.supplierCui || ""),
         spvStatus: i.spvStatus,
       });
     });
@@ -532,7 +534,7 @@ export default function AllInvoices() {
           source: "manual",
           itemsText: i.itemsText || "",
           spvStatus: i.spvStatus,
-          partnerCui: i.clientCUI || "",
+          partnerCui: i.clientCUI || i.clientCui || "",
           clientCountry: i.clientCountry || "",
         });
       }
@@ -574,6 +576,7 @@ export default function AllInvoices() {
         r =>
           normalizeText(r.number).includes(q) ||
           normalizeText(r.partnerName).includes(q) ||
+          (r.partnerCui && normalizeText(r.partnerCui).includes(q)) ||
           normalizeText(STATUS_LBL[r.status] || r.status).includes(q) ||
           r.total.toString().includes(q) ||
           normalizeText(SOURCE_BADGE[r.source]?.label || r.source).includes(
@@ -1146,13 +1149,8 @@ export default function AllInvoices() {
                         />
                       </td>
                       <td className="px-4 py-2.5 text-center whitespace-nowrap">
-                        <div className="h-10 flex flex-col justify-center">
-                          <div className="h-5 flex items-center justify-center font-bold text-xs text-slate-700 dark:text-slate-300">
-                            {(page - 1) * rowsPerPage + i + 1}
-                          </div>
-                          <div className="h-5 flex items-center justify-center text-[11px] text-slate-400 font-normal">
-                            —
-                          </div>
+                        <div className="h-10 flex items-center justify-center font-bold text-xs text-slate-700 dark:text-slate-300">
+                          {(page - 1) * rowsPerPage + i + 1}
                         </div>
                       </td>
                       <td className="px-4 py-2.5 whitespace-nowrap">
@@ -1203,8 +1201,12 @@ export default function AllInvoices() {
                             </div>
                           </div>
                           <div className="h-5 flex items-center text-[11px] text-slate-400 font-normal gap-1.5 whitespace-nowrap">
-                            <span>{row.partnerCui ? `CUI: ${row.partnerCui}` : "—"}</span>
-                            <span>•</span>
+                            {row.partnerCui ? (
+                              <>
+                                <span>{`CUI: ${row.partnerCui}`}</span>
+                                <span>•</span>
+                              </>
+                            ) : null}
                             <span className={`font-normal ${SOURCE_BADGE[row.source]?.cls || "text-slate-500"}`}>
                               {SOURCE_BADGE[row.source]?.label || row.source}
                             </span>
