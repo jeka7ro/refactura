@@ -6,6 +6,7 @@ import {
   Plus,
   Eye,
   Download,
+  Upload,
   Pencil,
   Trash2,
   Send,
@@ -113,6 +114,24 @@ export default function EmittedInvoices() {
 
   const { data = [], isLoading, refetch } = trpc.emittedInvoice.list.useQuery();
   const { data: archiveRaw = [], refetch: refetchArchive } = trpc.invoiceArchive.list.useQuery({ limit: 5000 });
+  const { data: clientsData = [] } = trpc.clients.list.useQuery();
+
+  const getClientId = (r: any) => {
+    if (r.clientId) return r.clientId;
+    if (!clientsData || !Array.isArray(clientsData)) return null;
+    const clean = (s?: string) => (s || "").replace(/^[A-Z]{2}/i, "").trim().toLowerCase();
+    const cCui = clean(r.clientCUI);
+    const cName = (r.clientName || "").trim().toLowerCase();
+    if (cCui) {
+      const match = (clientsData as any[]).find((c: any) => clean(c.cui) === cCui);
+      if (match) return match.id;
+    }
+    if (cName) {
+      const match = (clientsData as any[]).find((c: any) => (c.name || "").trim().toLowerCase() === cName);
+      if (match) return match.id;
+    }
+    return null;
+  };
 
   // Combine both sources: emitted invoices (FACT-*) + archive OUT invoices (TON-*)
   const allData = useMemo(() => {
@@ -144,6 +163,41 @@ export default function EmittedInvoices() {
   }, [data, archiveRaw]);
 
   const refetchAll = () => { refetch(); refetchArchive(); };
+
+  // Stare pentru import facturi externe SAGA
+  const [showSagaModal, setShowSagaModal] = useState(false);
+  const [sagaFile, setSagaFile] = useState<File | null>(null);
+  const [isImportingSaga, setIsImportingSaga] = useState(false);
+  const [sagaImportResult, setSagaImportResult] = useState<any>(null);
+
+  const handleImportSagaInvoices = async () => {
+    if (!sagaFile) return;
+    setIsImportingSaga(true);
+    setSagaImportResult(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", sagaFile);
+      const res = await fetch("/api/saga/import-invoices", {
+        method: "POST",
+        body: formData,
+      });
+      const resData = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setSagaImportResult({ success: false, error: resData.error || "Eroare la import." });
+        toast.error(resData.error || "Eroare la importul facturilor SAGA.");
+        return;
+      }
+      setSagaImportResult(resData);
+      toast.success(resData.message || "Facturi externe importate cu succes!");
+      refetchAll();
+    } catch (e: any) {
+      setSagaImportResult({ success: false, error: e.message || "Eroare conexiune." });
+      toast.error("Eroare de conexiune la server.");
+    } finally {
+      setIsImportingSaga(false);
+    }
+  };
+
   const deleteMutation = trpc.emittedInvoice.delete.useMutation({
     onSuccess: () => {
       toast.success("Factura ștearsă");
@@ -232,12 +286,27 @@ export default function EmittedInvoices() {
             Facturi emise direct din platformă
           </p>
         </div>
-        <Link href="/facturi-emise-nou/new">
-          <button className="flex items-center justify-center sm:gap-1.5 w-10 h-10 sm:w-auto sm:h-9 sm:px-4 rounded-full sm:rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition-colors shadow-sm flex-shrink-0">
-            <Plus className="w-5 h-5 sm:w-4 sm:h-4" />
-            <span className="hidden sm:inline">Emite Factură Nouă</span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setSagaFile(null);
+              setSagaImportResult(null);
+              setShowSagaModal(true);
+            }}
+            className="flex items-center justify-center sm:gap-1.5 h-9 px-3 sm:px-4 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-xs sm:text-sm font-bold transition-colors shadow-sm"
+            title="Importă facturi externe din SAGA (XML sau Excel)"
+          >
+            <Upload className="w-4 h-4" />
+            <span className="hidden sm:inline">Import SAGA (Externe)</span>
+            <span className="inline sm:hidden">SAGA Externe</span>
           </button>
-        </Link>
+          <Link href="/facturi-emise-nou/new">
+            <button className="flex items-center justify-center sm:gap-1.5 w-10 h-10 sm:w-auto sm:h-9 sm:px-4 rounded-full sm:rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition-colors shadow-sm flex-shrink-0">
+              <Plus className="w-5 h-5 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Emite Factură Nouă</span>
+            </button>
+          </Link>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -491,12 +560,18 @@ export default function EmittedInvoices() {
                     <td className="px-4 py-2.5">
                       <div className="h-10 flex flex-col justify-center">
                         <div className="h-5 flex items-center">
-                          <div
-                            className="text-xs font-bold text-slate-900 dark:text-white max-w-[200px] truncate"
-                            title={row.clientName}
-                          >
-                            {row.clientName}
-                          </div>
+                          {(() => {
+                            const cId = getClientId(row);
+                            return (
+                              <Link
+                                href={cId ? `/client/${cId}` : `/clienti?search=${encodeURIComponent(row.clientName)}`}
+                                className="text-xs font-bold text-slate-900 dark:text-white max-w-[200px] truncate hover:underline hover:text-primary transition-colors cursor-pointer block"
+                                title={row.clientName}
+                              >
+                                {row.clientName}
+                              </Link>
+                            );
+                          })()}
                         </div>
                         <div className="h-5 flex items-center text-[11px] text-slate-400 font-normal">
                           {row.clientCUI ? `CUI: ${row.clientCUI}` : "—"}
@@ -792,6 +867,107 @@ export default function EmittedInvoices() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Modal Import Facturi Externe SAGA */}
+      {showSagaModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-lg w-full p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-600 text-white">
+                  SAGA
+                </span>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Import Facturi Externe din SAGA
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowSagaModal(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-xs text-amber-800 dark:text-amber-300">
+              <p className="font-semibold mb-1">ℹ️ Notă importantă privind facturile din România:</p>
+              <p>
+                Facturile din România se preiau automat prin sincronizarea SPV e-Factura. Acest modul importă <strong>exclusiv facturile externe</strong> (în valută precum EUR, USD sau către clienți externi). Facturile de România din fișier sunt omise automat.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Selectează fișierul exportat din SAGA (.xml sau .xlsx / .xls / .csv)
+              </label>
+              <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-6 text-center hover:border-emerald-500 transition-colors">
+                <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                <input
+                  type="file"
+                  id="saga-file-input"
+                  accept=".xml,.xlsx,.xls,.csv"
+                  className="hidden"
+                  onChange={e => {
+                    if (e.target.files?.[0]) {
+                      setSagaFile(e.target.files[0]);
+                      setSagaImportResult(null);
+                    }
+                  }}
+                />
+                <label
+                  htmlFor="saga-file-input"
+                  className="cursor-pointer text-xs font-bold text-emerald-600 hover:text-emerald-700 underline block"
+                >
+                  {sagaFile ? sagaFile.name : "Alege fișierul din calculator"}
+                </label>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Suportă SAGA XML (&lt;Facturi&gt;) sau Excel din Operații &gt; Ieșiri valută
+                </p>
+              </div>
+
+              {sagaImportResult && (
+                <div
+                  className={`p-3 rounded-xl text-xs font-semibold ${
+                    sagaImportResult.success
+                      ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                      : "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800"
+                  }`}
+                >
+                  {sagaImportResult.message || sagaImportResult.error}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setShowSagaModal(false)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                Închide
+              </button>
+              <button
+                type="button"
+                onClick={handleImportSagaInvoices}
+                disabled={!sagaFile || isImportingSaga}
+                className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all disabled:opacity-50"
+              >
+                {isImportingSaga ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Se importă...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-3.5 h-3.5" />
+                    Importă Facturile Externe
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

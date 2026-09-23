@@ -7,7 +7,17 @@ import { Router, type Request, type Response } from "express";
 import fs from "fs";
 import path from "path";
 import { generateReInvoicePDF } from "./pdf";
-import { getReInvoiceById } from "./db";
+import { formatCurrency } from "../client/src/lib/utils";
+import { translateProductDescription } from "./invoiceTranslator";
+
+const THEME_MAP: Record<string, string> = {
+  blue: "#2563eb",
+  teal: "#0d9488",
+  green: "#16a34a",
+  rose: "#e11d48",
+  violet: "#7c3aed",
+  navy: "#003366",
+};
 import { getDb } from "./db";
 import { tenants } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
@@ -72,6 +82,29 @@ export function registerPdfRoute(app: any) {
       );
 
       let logoBase64 = settings.logoBase64 || undefined;
+      let logoHasBackground = Boolean(settings.logoHasBackground);
+      let logoBgColor = settings.logoBgColor || "#0f172a";
+      let themeColor = settings.themeColor || (settings.theme && THEME_MAP[settings.theme]) || "#2563eb";
+
+      const isForeign = Boolean(
+        ((ri as any).clientCountry && (ri as any).clientCountry !== "RO") ||
+        (ri.clientCUI && !ri.clientCUI.startsWith("RO") && /^[A-Z]{2}/.test(ri.clientCUI)) ||
+        (ri.currency && ri.currency !== "RON" && ri.currency !== "LEI")
+      );
+
+      const translatedLines = await Promise.all(
+        lines.map(async l => ({
+          description: l.description || "",
+          translatedDescription: isForeign
+            ? await translateProductDescription(l.description || "")
+            : undefined,
+          quantity: parseFloat(l.quantity || "1"),
+          unitPrice: parseFloat(l.unitPrice || "0"),
+          unit: l.unit || "buc",
+          vatRate: parseFloat(l.vatRate || "21"),
+          total: parseFloat(l.total || "0"),
+        }))
+      );
 
       const pdfStream = generateReInvoicePDF({
         number: ri.number || `RF-${id}`,
@@ -96,20 +129,17 @@ export function registerPdfRoute(app: any) {
         companyIBAN: settings.iban || "",
         companyBank: settings.bank || "",
         logoBase64: logoBase64 || undefined,
-        template: settings.invoiceTemplate || "classic",
-        lines: lines.map(l => ({
-          description: l.description || "",
-          quantity: parseFloat(l.quantity || "1"),
-          unitPrice: parseFloat(l.unitPrice || "0"),
-          unit: l.unit || "buc",
-          vatRate: parseFloat(l.vatRate || "21"),
-          total: parseFloat(l.total || "0"),
-        })),
+        logoHasBackground,
+        logoBgColor,
+        themeColor,
+        template: settings.invoiceTemplate === "modern" ? "classic" : (settings.invoiceTemplate || "classic"),
+        lines: translatedLines,
         subtotal: parseFloat(ri.subtotal || "0"),
         totalVAT: parseFloat(ri.totalVAT || "0"),
         total: parseFloat(ri.total || "0"),
         currency: ri.currency || "RON",
         notes: ri.notes || undefined,
+        spvIndex: ri.spvIndex || undefined,
       });
 
       pdfStream.on("error", (err: any) => {
@@ -248,6 +278,9 @@ export function registerPdfRoute(app: any) {
 
       // Default logo string for the text-based layout
       let logoBase64 = "DEFAULT_TEXT_LOGO";
+      let logoHasBackground = false;
+      let logoBgColor = "#0f172a";
+      let themeColor = "#2563eb";
       try {
         const { tenants } = await import("../drizzle/schema");
         const [tenant] = await db
@@ -257,6 +290,10 @@ export function registerPdfRoute(app: any) {
         if (tenant?.settings) {
           const settings = JSON.parse(tenant.settings);
           if (settings.logoBase64) logoBase64 = settings.logoBase64;
+          if (settings.logoHasBackground !== undefined) logoHasBackground = Boolean(settings.logoHasBackground);
+          if (settings.logoBgColor) logoBgColor = settings.logoBgColor;
+          if (settings.themeColor) themeColor = settings.themeColor;
+          else if (settings.theme && THEME_MAP[settings.theme]) themeColor = THEME_MAP[settings.theme];
         }
       } catch (_) {}
 
@@ -345,6 +382,30 @@ export function registerPdfRoute(app: any) {
       const legalTotal = invoiceObj["cac:LegalMonetaryTotal"];
       const taxTotal = invoiceObj["cac:TaxTotal"];
 
+      // Extragere număr index SPV
+      let spvIndex: string | null = (inv as any).spvIndex || null;
+      if (!spvIndex && inv.fileName) {
+        const m = inv.fileName.match(/SPV_(\d+)/i);
+        if (m) spvIndex = m[1];
+      }
+      if (!spvIndex && inv.notes) {
+        const m = inv.notes.match(/Index(?:\s*SPV|\s*încărcare)?\s*:?\s*(\d+)/i);
+        if (m) spvIndex = m[1];
+      }
+      if (!spvIndex && inv.invoiceNumber) {
+        const { emittedInvoices } = await import("../drizzle/schema");
+        const [emitted] = await db
+          .select({ spvIndex: emittedInvoices.spvIndex })
+          .from(emittedInvoices)
+          .where(
+            andOp(
+              eq(emittedInvoices.tenantId, inv.tenantId),
+              eq(emittedInvoices.number, inv.invoiceNumber)
+            )
+          );
+        if (emitted?.spvIndex) spvIndex = emitted.spvIndex;
+      }
+
       const pdfData = {
         number: getXmlText(invoiceObj["cbc:ID"], inv.invoiceNumber || ""),
         date: getXmlText(invoiceObj["cbc:IssueDate"], inv.issueDate || ""),
@@ -362,6 +423,7 @@ export function registerPdfRoute(app: any) {
         companyPhone: supplierDetails.phone,
         companyIBAN: supplierDetails.iban,
         companyBank: "",
+        spvIndex: spvIndex || undefined,
 
         clientName: customerDetails.name,
         clientCUI: customerDetails.cui,
@@ -372,6 +434,9 @@ export function registerPdfRoute(app: any) {
         clientPhone: customerDetails.phone,
 
         logoBase64,
+        logoHasBackground,
+        logoBgColor,
+        themeColor,
         template: "classic" as any,
         lines,
 
@@ -437,7 +502,7 @@ export function registerPdfRoute(app: any) {
         return;
       }
 
-      const { emittedInvoices, emittedInvoiceLines, tenants } =
+      const { emittedInvoices, emittedInvoiceLines, tenants, clients } =
         await import("../drizzle/schema");
       const { eq } = await import("drizzle-orm");
 
@@ -448,6 +513,15 @@ export function registerPdfRoute(app: any) {
       if (!inv) {
         res.status(404).json({ error: "Factura nu a fost găsită" });
         return;
+      }
+
+      let clientRecord: any = null;
+      if (inv.clientId) {
+        const [c] = await db
+          .select()
+          .from(clients)
+          .where(eq(clients.id, inv.clientId));
+        clientRecord = c;
       }
 
       const lines = await db
@@ -479,6 +553,9 @@ export function registerPdfRoute(app: any) {
       );
 
       let logoBase64 = settings.logoBase64 || undefined;
+      let logoHasBackground = Boolean(settings.logoHasBackground);
+      let logoBgColor = settings.logoBgColor || "#0f172a";
+      let themeColor = settings.themeColor || (settings.theme && THEME_MAP[settings.theme]) || "#2563eb";
 
       let targetIBAN = (inv as any).companyIBAN || "";
       let targetBank = (inv as any).companyBank || "";
@@ -503,18 +580,43 @@ export function registerPdfRoute(app: any) {
         }
       }
 
+      const isForeign = Boolean(
+        (inv.clientCountry && inv.clientCountry !== "RO") ||
+        (inv.clientCUI && !inv.clientCUI.startsWith("RO") && /^[A-Z]{2}/.test(inv.clientCUI)) ||
+        (inv.currency && inv.currency !== "RON" && inv.currency !== "LEI")
+      );
+
+      const translatedLines = await Promise.all(
+        lines.map(async l => ({
+          description: l.description || "",
+          translatedDescription: isForeign
+            ? await translateProductDescription(l.description || "")
+            : undefined,
+          quantity: parseFloat(l.quantity || "1"),
+          unitPrice: parseFloat(l.unitPrice || "0"),
+          unit: l.unit || "buc",
+          vatRate:
+            l.vatRate !== undefined &&
+            l.vatRate !== null &&
+            String(l.vatRate).trim() !== ""
+              ? parseFloat(String(l.vatRate))
+              : 21,
+          total: parseFloat(l.total || "0"),
+        }))
+      );
+
       const pdfStream = generateReInvoicePDF({
         number: cleanDisplayNum,
         date: inv.issueDate || new Date().toISOString().split("T")[0],
         dueDate: inv.dueDate || "",
-        clientName: inv.clientName || "",
-        clientCUI: inv.clientCUI || "",
-        clientAddress: inv.clientAddress || "",
-        clientCity: inv.clientCity || "",
-        clientCounty: "",
-        clientCountry: inv.clientCountry || "",
-        clientEmail: inv.clientEmail || "",
-        clientPhone: inv.clientPhone || "",
+        clientName: inv.clientName || clientRecord?.name || "",
+        clientCUI: inv.clientCUI || clientRecord?.cui || "",
+        clientAddress: inv.clientAddress || clientRecord?.address || "",
+        clientCity: inv.clientCity || clientRecord?.city || "",
+        clientCounty: clientRecord?.county || "",
+        clientCountry: inv.clientCountry || clientRecord?.country || "",
+        clientEmail: inv.clientEmail || clientRecord?.email || "",
+        clientPhone: inv.clientPhone || clientRecord?.phone || "",
         companyName: tenant?.name || "",
         companyCUI: tenant?.cui || "",
         companyAddress: tenant?.address || "",
@@ -526,25 +628,17 @@ export function registerPdfRoute(app: any) {
         companyIBAN: targetIBAN,
         companyBank: targetBank,
         logoBase64,
-        template: settings.invoiceTemplate || "classic",
-        lines: lines.map(l => ({
-          description: l.description || "",
-          quantity: parseFloat(l.quantity || "1"),
-          unitPrice: parseFloat(l.unitPrice || "0"),
-          unit: l.unit || "buc",
-          vatRate:
-            l.vatRate !== undefined &&
-            l.vatRate !== null &&
-            String(l.vatRate).trim() !== ""
-              ? parseFloat(String(l.vatRate))
-              : 21,
-          total: parseFloat(l.total || "0"),
-        })),
+        logoHasBackground,
+        logoBgColor,
+        themeColor,
+        template: settings.invoiceTemplate === "modern" ? "classic" : (settings.invoiceTemplate || "classic"),
+        lines: translatedLines,
         subtotal: parseFloat(inv.subtotal || "0"),
         totalVAT: parseFloat(inv.totalVAT || "0"),
         total: parseFloat(inv.total || "0"),
         currency: inv.currency || "RON",
         notes: inv.notes || undefined,
+        spvIndex: inv.spvIndex || undefined,
       });
 
       pdfStream.on("error", (err: any) => {
@@ -613,6 +707,8 @@ export function registerPdfRoute(app: any) {
       } catch {}
 
       const logoBase64: string | undefined = settings.logoBase64 || undefined;
+      const logoHasBackground: boolean = Boolean(settings.logoHasBackground);
+      const logoBgColor: string = settings.logoBgColor || "#0f172a";
       const isDownload = req.query.download === "1";
       const showAccounting = req.query.showAccounting !== "false";
       const filename = `NIR-${nirRow.nirNumber || id}.pdf`;
@@ -662,13 +758,15 @@ export function registerPdfRoute(app: any) {
       const cardH = 36;
       const cardR = 7;
 
-      doc.save();
-      doc.fillColor("#0f172a");
-      doc.roundedRect(cardX, cardY, cardW, cardH, cardR).fill();
-      doc.restore();
+      if (logoHasBackground) {
+        doc.save();
+        doc.fillColor(logoBgColor);
+        doc.roundedRect(cardX, cardY, cardW, cardH, cardR).fill();
+        doc.restore();
+      }
 
-      const padX = 7;
-      const padY = 4;
+      const padX = logoHasBackground ? 7 : 0;
+      const padY = logoHasBackground ? 4 : 0;
       const imgW = cardW - padX * 2;
       const imgH = cardH - padY * 2;
 

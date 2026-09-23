@@ -84,6 +84,7 @@ interface UnifiedInvoice {
   number: string;
   partnerName: string;
   partnerCui: string;
+  clientId?: number;
   date: string;
   dueDate: string;
   totalRon: number;
@@ -228,6 +229,22 @@ export default function Dashboard() {
     trpc.reinvoice.list.useQuery(undefined, { enabled: !!user });
   const { data: clients = [], isLoading: loadingClients } =
     trpc.clients.list.useQuery(undefined, { enabled: !!user });
+
+  const findClientId = (name?: string, cui?: string) => {
+    if (!clients || !Array.isArray(clients)) return null;
+    const clean = (s?: string) => (s || "").replace(/^[A-Z]{2}/i, "").trim().toLowerCase();
+    const cCui = clean(cui);
+    const cName = (name || "").trim().toLowerCase();
+    if (cCui) {
+      const match = (clients as any[]).find((c: any) => clean(c.cui) === cCui);
+      if (match) return match.id;
+    }
+    if (cName) {
+      const match = (clients as any[]).find((c: any) => (c.name || "").trim().toLowerCase() === cName);
+      if (match) return match.id;
+    }
+    return null;
+  };
   const { data: currentTenant, isLoading: loadingTenant } =
     trpc.tenants.current.useQuery(undefined, { enabled: !!user });
   const { data: tenantsList = [] } =
@@ -314,6 +331,7 @@ export default function Dashboard() {
         number: e.number || `FACT-${e.id}`,
         partnerName: e.clientName || "Client",
         partnerCui: e.clientCUI || "",
+        clientId: e.clientId || undefined,
         date: e.issueDate || e.createdAt || "",
         dueDate: e.dueDate || "",
         rawTotal: rawTot,
@@ -1303,9 +1321,22 @@ export default function Dashboard() {
                       <span className="w-5 h-5 rounded-md bg-slate-100 dark:bg-slate-800 text-[11px] font-black text-slate-700 dark:text-slate-300 flex items-center justify-center flex-shrink-0">
                         {idx + 1}
                       </span>
-                      <span className="font-bold text-slate-900 dark:text-white truncate">
-                        {partner.name}
-                      </span>
+                      {partnerTab === "clients" ? (
+                        <Link
+                          href={
+                            findClientId(partner.name, partner.cui)
+                              ? `/client/${findClientId(partner.name, partner.cui)}`
+                              : `/clienti?search=${encodeURIComponent(partner.name)}`
+                          }
+                          className="font-bold text-slate-900 dark:text-white truncate hover:underline hover:text-primary transition-colors cursor-pointer"
+                        >
+                          {partner.name}
+                        </Link>
+                      ) : (
+                        <span className="font-bold text-slate-900 dark:text-white truncate">
+                          {partner.name}
+                        </span>
+                      )}
                       {partner.cui && (
                         <span className="text-[10px] text-slate-400 flex-shrink-0">
                           ({partner.cui})
@@ -1448,7 +1479,16 @@ export default function Dashboard() {
                 >
                   <div className="min-w-0">
                     <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
-                      {inv.partnerName}
+                      <Link
+                        href={
+                          inv.clientId || findClientId(inv.partnerName, inv.partnerCui)
+                            ? `/client/${inv.clientId || findClientId(inv.partnerName, inv.partnerCui)}`
+                            : `/clienti?search=${encodeURIComponent(inv.partnerName)}`
+                        }
+                        className="hover:underline hover:text-primary transition-colors cursor-pointer"
+                      >
+                        {inv.partnerName}
+                      </Link>
                     </div>
                     <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2">
                       <span className="font-semibold text-slate-700 dark:text-slate-300">

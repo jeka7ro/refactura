@@ -102,7 +102,7 @@ export const authRouter = router({
     const user = ctx.user;
     if (!user) return null;
     
-    // Attach tenant name + CUI for sidebar display
+    // Attach tenant name + CUI + logo for sidebar and navbar display
     if (user.tenantId) {
       try {
         const { getDb } = await import("./db");
@@ -111,15 +111,30 @@ export const authRouter = router({
           const { tenants } = await import("../drizzle/schema");
           const { eq } = await import("drizzle-orm");
           const [tenant] = await db
-            .select({ name: tenants.name, cui: tenants.cui })
+            .select({ name: tenants.name, cui: tenants.cui, settings: tenants.settings })
             .from(tenants)
             .where(eq(tenants.id, user.tenantId));
-          if (tenant)
+          if (tenant) {
+            let tenantLogo: string | null = null;
+            let logoHasBackground = false;
+            let logoBgColor: string | null = null;
+            if (tenant.settings) {
+              try {
+                const s = typeof tenant.settings === "string" ? JSON.parse(tenant.settings) : tenant.settings;
+                tenantLogo = s.logoBase64 || null;
+                logoHasBackground = Boolean(s.logoHasBackground);
+                logoBgColor = s.logoBgColor || null;
+              } catch (_) {}
+            }
             return {
               ...user,
               tenantName: tenant.name,
               tenantCUI: tenant.cui,
+              tenantLogo,
+              logoHasBackground,
+              logoBgColor,
             };
+          }
         }
       } catch (_) {}
     }

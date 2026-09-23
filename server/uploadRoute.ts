@@ -200,6 +200,106 @@ export function attachSagaFurnizoriImportRoute(app: Express) {
   );
 }
 
+// SAGA CLIENȚI (Clients) XLSX Import Route
+export function attachSagaClientiImportRoute(app: Express) {
+  app.post(
+    "/api/saga/import-clienti",
+    sagaUpload.single("file"),
+    async (req: Request, res: Response) => {
+      try {
+        const file = req.file;
+        const tenantIdStr = req.body.tenantId;
+        const XLSX = await import("xlsx");
+        const { getDb } = await import("./db");
+        const { clients } = await import("../drizzle/schema");
+        const { eq, and, sql } = await import("drizzle-orm");
+        const db = await getDb();
+
+        if (!file) return res.status(400).json({ error: "Missing file" });
+        if (!db) return res.status(500).json({ error: "DB unavailable" });
+
+        const tenantId = tenantIdStr ? parseInt(tenantIdStr, 10) : 1;
+        console.log(`[SAGA Import Clienti] Processing file for tenant ${tenantId}`);
+
+        const workbook = XLSX.read(file.buffer, { type: "buffer" });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+        let imported = 0;
+        let updated = 0;
+        let skipped = 0;
+
+        for (const row of rows) {
+          const cod = String(row.COD || row.Cod || row.cod || "").trim();
+          const denumire = String(row.DENUMIRE || row.Denumire || row.denumire || "").trim();
+          if (!cod || !denumire) { skipped++; continue; }
+
+          const cui = String(row.COD_FISCAL || row.Cui || row.cui || "").trim();
+          const regCom = String(row.REG_COM || row.Reg_com || "").trim();
+          const adresa = String(row.ADRESA || row.Adresa || "").trim();
+          const judet = String(row.JUDET || row.Judet || "").trim();
+          const localitate = String(row.LOCALITATE || row.Localitate || "").trim();
+          const telefon = String(row.TELEFON || row.Telefon || "").trim();
+          const email = String(row.EMAIL || row.Email || "").trim();
+
+          // Căutăm dacă clientul există deja după CUI sau nume
+          const [existing] = await db
+            .select()
+            .from(clients)
+            .where(
+              and(
+                eq(clients.tenantId, tenantId),
+                cui
+                  ? sql`REPLACE(${clients.cui}, "RO", "") = ${cui.replace(/^RO/i, "")}`
+                  : eq(clients.name, denumire)
+              )
+            )
+            .limit(1);
+
+          if (existing) {
+            await db
+              .update(clients)
+              .set({
+                sagaCode: cod,
+                regCom: regCom || existing.regCom,
+                address: adresa || existing.address,
+                city: localitate || existing.city,
+                phone: telefon || existing.phone,
+                email: email || existing.email,
+              })
+              .where(eq(clients.id, existing.id));
+            updated++;
+          } else {
+            await db.insert(clients).values({
+              tenantId,
+              name: denumire,
+              cui: cui || null,
+              sagaCode: cod,
+              regCom: regCom || null,
+              address: adresa || null,
+              city: localitate || null,
+              country: "RO",
+              phone: telefon || null,
+              email: email || null,
+              currency: "RON",
+              isSupplier: 0,
+              isActive: 1,
+            });
+            imported++;
+          }
+        }
+
+        console.log(`[SAGA Import Clienti] Done: ${imported} imported, ${updated} updated, ${skipped} skipped`);
+        return res.json({ success: true, imported, updated, skipped, total: rows.length });
+      } catch (err: any) {
+        console.error("[SAGA Import Clienti] Error:", err);
+        return res.status(500).json({ error: err.message });
+      }
+    }
+  );
+}
+
 export function registerUploadRoute(app: Express) {
   app.post(
     "/api/upload-invoice",

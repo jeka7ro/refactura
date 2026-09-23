@@ -25,6 +25,30 @@
       rel="stylesheet"
     />
     <script type="text/javascript" src="https://embeds.iubenda.com/widgets/d2940833-37bf-4921-a438-49c9da8f99b1.js"></script>
+    <script>
+      (function() {
+        try {
+          var color = localStorage.getItem("tenant-theme-color") || localStorage.getItem("app-theme-color");
+          if (!color) {
+            var theme = localStorage.getItem("app-theme");
+            if (theme === "green") color = "#16a34a";
+            else if (theme === "teal") color = "#0d9488";
+            else if (theme === "purple") color = "#9333ea";
+            else if (theme === "coral") color = "#e11d48";
+            else if (theme === "slate") color = "#475569";
+            else if (theme === "blue") color = "#2563eb";
+          }
+          if (color) {
+            document.documentElement.style.setProperty("--tenant-theme-color", color);
+            document.documentElement.style.setProperty("--primary", color);
+            document.documentElement.style.setProperty("--sidebar-primary", color);
+            document.documentElement.style.setProperty("--color-primary", color);
+          }
+          var tmpl = localStorage.getItem("invoice-template");
+          if (tmpl === "modern") localStorage.setItem("invoice-template", "classic");
+        } catch(e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

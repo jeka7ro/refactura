@@ -96,6 +96,16 @@ function Router() {
           <AllInvoices />
         </DashboardLayout>
       </Route>
+      <Route path="/facturi/:id">
+        <DashboardLayout>
+          <InvoiceDetail />
+        </DashboardLayout>
+      </Route>
+      <Route path="/factura/:id">
+        <DashboardLayout>
+          <InvoiceDetail />
+        </DashboardLayout>
+      </Route>
       {/* /facturi-primite redirects to unified page but keep detail route */}
       <Route path="/facturi-primite">
         <DashboardLayout>
@@ -109,6 +119,11 @@ function Router() {
       </Route>
       <Route path="/facturi-emise">
         <RedirectTo to="/facturi-emise-nou" />
+      </Route>
+      <Route path="/facturi-emise/:id">
+        <DashboardLayout>
+          <InvoiceDetail />
+        </DashboardLayout>
       </Route>
       <Route path="/facturi-emise-nou">
         <DashboardLayout>
@@ -235,6 +250,16 @@ function Router() {
         </DashboardLayout>
       </Route>
       <Route path="/client/:id">
+        <DashboardLayout>
+          <ClientDetails />
+        </DashboardLayout>
+      </Route>
+      <Route path="/clients/:id">
+        <DashboardLayout>
+          <ClientDetails />
+        </DashboardLayout>
+      </Route>
+      <Route path="/clienti/:id">
         <DashboardLayout>
           <ClientDetails />
         </DashboardLayout>

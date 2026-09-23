@@ -8,6 +8,7 @@ import { registerStorageProxy } from "./storageProxy";
 import {
   registerUploadRoute,
   attachSagaFurnizoriImportRoute,
+  attachSagaClientiImportRoute,
   attachSagaInvoicesImportRoute,
 } from "../uploadRoute";
 import { appRouter } from "../routers";
@@ -29,6 +30,7 @@ async function startServer() {
   registerOAuthRoutes(app);
   registerUploadRoute(app);
   attachSagaFurnizoriImportRoute(app);
+  attachSagaClientiImportRoute(app);
   attachSagaInvoicesImportRoute(app);
   registerAnafProxy(app);
   registerViesProxy(app);

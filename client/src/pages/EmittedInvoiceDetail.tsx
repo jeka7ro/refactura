@@ -157,8 +157,13 @@ export default function EmittedInvoiceDetail() {
             </span>
           </div>
           <div className="space-y-2">
-            <div className="text-sm font-semibold text-slate-900 dark:text-white">
-              {invoice.clientName || "—"}
+            <div className="text-sm font-semibold text-slate-900 dark:text-white flex items-center justify-between gap-2">
+              <span>{invoice.clientName || "—"}</span>
+              {invoice.clientCode && (
+                <span className="px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs font-mono font-bold">
+                  Cod SAGA: {invoice.clientCode}
+                </span>
+              )}
             </div>
             {invoice.clientCUI && (
               <div className="text-xs text-slate-500">

@@ -2,6 +2,7 @@ import PDFDocument from "pdfkit";
 import { Readable } from "stream";
 import fs from "fs";
 import path from "path";
+import { translateProductDescriptionSync } from "./invoiceTranslator";
 
 function sanitizeData(obj: any): any {
   if (typeof obj === "string") return obj; // Removed stripDiacritics
@@ -9,8 +10,10 @@ function sanitizeData(obj: any): any {
   if (obj !== null && typeof obj === "object") {
     const res: any = {};
     for (const key of Object.keys(obj)) {
-      if (key === "logoBase64") {
+      if (key === "logoBase64" || key === "logoBgColor" || key === "themeColor") {
         res[key] = obj[key];
+      } else if (key === "logoHasBackground") {
+        res[key] = Boolean(obj[key]);
       } else {
         res[key] = sanitizeData(obj[key]);
       }
@@ -45,9 +48,13 @@ export interface ReInvoiceData {
   companyIBAN: string;
   companyBank: string;
   logoBase64?: string;
+  logoHasBackground?: boolean;
+  logoBgColor?: string;
+  themeColor?: string;
   template?: InvoiceTemplate;
   lines: Array<{
     description: string;
+    translatedDescription?: string;
     quantity: number;
     unitPrice: number;
     unit: string;
@@ -59,15 +66,19 @@ export interface ReInvoiceData {
   total: number;
   currency: string;
   notes?: string;
+  spvIndex?: string | number | null;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 export function isBilingualInvoice(data: ReInvoiceData): boolean {
+  if ((data as any).isForeign) return true;
   const country = (data.clientCountry || "").trim().toUpperCase();
   if (country && country !== "RO") return true;
   const cui = (data.clientCUI || "").trim().toUpperCase();
   if (cui && !cui.startsWith("RO") && /^[A-Z]{2}/.test(cui)) return true;
+  const curr = (data.currency || "").trim().toUpperCase();
+  if (curr && curr !== "RON" && curr !== "LEI") return true;
   return false;
 }
 
@@ -113,6 +124,7 @@ function getLabels(isBilingual: boolean) {
       bank: "Banca:",
       phone: "Tel.:",
       email: "Email:",
+      spvIndex: "Index SPV:",
       from: "DE LA",
       to: "CĂTRE",
       number: "Nr.",
@@ -150,6 +162,7 @@ function getLabels(isBilingual: boolean) {
     bank: "Bancă / Bank:",
     phone: "Tel. / Phone:",
     email: "Email:",
+    spvIndex: "Index SPV / SPV Index:",
     from: "DE LA / FROM",
     to: "CĂTRE / TO",
     number: "Nr. / No.",
@@ -179,30 +192,34 @@ function drawLogo(
   x: number,
   y: number,
   w = 115,
-  h = 34
+  h = 34,
+  hasBackground = false,
+  bgColor = "#0f172a"
 ) {
   if (!logoBase64 || logoBase64 === "DEFAULT_TEXT_LOGO") {
     return;
   }
 
-  // Card elegant cu fundal întunecat și colțuri rotunjite pentru contrast impecabil
-  const cardR = 7;
-  doc.save();
-  doc.fillColor("#0f172a");
-  doc.roundedRect(x, y, w, h, cardR).fill();
-  doc.restore();
-
-  const padX = 7;
-  const padY = 4;
+  const padX = hasBackground ? 7 : 0;
+  const padY = hasBackground ? 4 : 0;
   const imgW = w - padX * 2;
   const imgH = h - padY * 2;
+
+  if (hasBackground) {
+    // Card elegant cu fundal și colțuri rotunjite pentru contrast
+    const cardR = 7;
+    doc.save();
+    doc.fillColor(bgColor || "#0f172a");
+    doc.roundedRect(x, y, w, h, cardR).fill();
+    doc.restore();
+  }
 
   try {
     const base64Data = logoBase64.replace(/^data:image\/\w+;base64,/, "");
     const imgBuffer = Buffer.from(base64Data, "base64");
     doc.image(imgBuffer, x + padX, y + padY, {
       fit: [imgW, imgH],
-      align: "center",
+      align: hasBackground ? "center" : "left",
       valign: "center",
     });
   } catch (_) {
@@ -219,11 +236,22 @@ function drawTableRows(
   rowBg: string | null,
   altBg: string | null
 ) {
+  const isBilingual = isBilingualInvoice(data);
   const colWidths = { desc: 210, qty: 55, price: 85, vat: 45, total: 85 };
   let y = startY;
 
   data.lines.forEach((line, idx) => {
-    const rowH = 30;
+    const trans =
+      line.translatedDescription ||
+      (isBilingual ? translateProductDescriptionSync(line.description) : undefined);
+    const hasTranslation =
+      isBilingual &&
+      Boolean(
+        trans &&
+        trans.trim() &&
+        trans.trim().toLowerCase() !== line.description.trim().toLowerCase()
+      );
+    const rowH = hasTranslation ? 38 : 30;
     if (y + rowH > doc.page.height - 60) {
       doc.addPage();
       y = 50;
@@ -241,11 +269,23 @@ function drawTableRows(
       .lineWidth(0.5)
       .stroke();
 
+    if (hasTranslation) {
+      doc.fillColor("#1e293b").fontSize(8.5).font("Roboto");
+      doc.text(line.description, leftX + 5, y + 5, {
+        width: colWidths.desc - 8,
+      });
+      doc.fillColor("#64748b").fontSize(7.5).font("Roboto");
+      doc.text(trans!, leftX + 5, y + 19, {
+        width: colWidths.desc - 8,
+      });
+    } else {
+      doc.fillColor("#1e293b").fontSize(9).font("Roboto");
+      doc.text(line.description, leftX + 5, y + 9, {
+        width: colWidths.desc - 8,
+        height: rowH - 8,
+      });
+    }
     doc.fillColor("#1e293b").fontSize(9).font("Roboto");
-    doc.text(line.description, leftX + 5, y + 9, {
-      width: colWidths.desc - 8,
-      height: rowH - 8,
-    });
     doc.text(line.quantity.toString(), leftX + colWidths.desc, y + 9, {
       width: colWidths.qty - 4,
       align: "right",
@@ -304,7 +344,7 @@ function drawTotals(
   });
   y += 20;
 
-  const totalDueBlue = accentColor || "#0088fe";
+  const totalDueBlue = data.themeColor || accentColor || "#2563eb";
   doc.save();
   doc.fillColor(totalDueBlue);
   doc.roundedRect(totX - 4, y - 4, totW + 4, 28, 6).fill();
@@ -330,7 +370,16 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
 
   // Logo
   if (data.logoBase64) {
-    drawLogo(doc, data.logoBase64, leftX, y, 115, 34);
+    drawLogo(
+      doc,
+      data.logoBase64,
+      leftX,
+      y,
+      115,
+      34,
+      data.logoHasBackground,
+      data.logoBgColor
+    );
   }
 
   // Header: Left "Factura", Right "Seria și numărul"
@@ -395,7 +444,8 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
       const textHeight = doc.heightOfString(fullText, { width: colW });
       return currY + Math.max(12, textHeight + 2);
     } else {
-      const labelW = isBilingual ? 85 : 60;
+      const measuredW = Math.ceil(doc.fontSize(8).font("Roboto-Bold").widthOfString(label)) + 6;
+      const labelW = Math.max(isBilingual ? 85 : 60, measuredW);
       doc.fontSize(8).font("Roboto-Bold").text(label, x, currY, { width: labelW });
       const textHeight = doc.font("Roboto").heightOfString(val, { width: colW - labelW });
       doc.text(val, x + labelW, currY, { width: colW - labelW });
@@ -422,6 +472,9 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   leftInfoY = addInfo(L.bank, data.companyBank, leftX, leftInfoY);
   leftInfoY = addInfo(L.phone, data.companyPhone, leftX, leftInfoY);
   leftInfoY = addInfo(L.email, data.companyEmail, leftX, leftInfoY);
+  if (data.spvIndex) {
+    leftInfoY = addInfo(L.spvIndex, String(data.spvIndex), leftX, leftInfoY);
+  }
 
   // Client Column
   doc
@@ -561,16 +614,44 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     }
 
     curX = leftX;
-    const rowH =
-      doc.heightOfString(line.description, { width: colWidths.desc }) + 5;
+    const trans =
+      line.translatedDescription ||
+      (isBilingual ? translateProductDescriptionSync(line.description) : undefined);
+    const hasTranslation =
+      isBilingual &&
+      Boolean(
+        trans &&
+        trans.trim() &&
+        trans.trim().toLowerCase() !== line.description.trim().toLowerCase()
+      );
+
+    const roHeight = doc.heightOfString(line.description, { width: colWidths.desc });
+    const enHeight = hasTranslation
+      ? doc.heightOfString(trans!, { width: colWidths.desc })
+      : 0;
+    const textH = roHeight + (hasTranslation ? enHeight + 3 : 0);
+    const rowH = Math.max(textH + 5, 18);
 
     const lineVal = line.quantity * line.unitPrice;
     const lineVat = (lineVal * (line.vatRate || 0)) / 100;
 
+    doc.fillColor("#000000").font("Roboto").fontSize(8);
     doc.text((idx + 1).toString(), curX, y, { width: colWidths.crt });
     curX += colWidths.crt;
-    doc.text(line.description, curX, y, { width: colWidths.desc });
+
+    if (hasTranslation) {
+      doc.fillColor("#000000").font("Roboto").fontSize(8);
+      doc.text(line.description, curX, y, { width: colWidths.desc });
+      doc.fillColor("#64748b").font("Roboto").fontSize(7.5);
+      doc.text(trans!, curX, y + roHeight + 1.5, {
+        width: colWidths.desc,
+      });
+      doc.fillColor("#000000").font("Roboto").fontSize(8);
+    } else {
+      doc.text(line.description, curX, y, { width: colWidths.desc });
+    }
     curX += colWidths.desc;
+
     doc.text(line.unit, curX, y, { width: colWidths.um, align: "center" });
     curX += colWidths.um;
     doc.text(line.quantity.toString(), curX, y, {
@@ -593,7 +674,7 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
       align: "right",
     });
 
-    y += Math.max(rowH, 15);
+    y += rowH;
   });
 
   y += 10;
@@ -630,7 +711,7 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     });
   y += 15;
 
-  const totalDueBg = "#0088fe";
+  const totalDueBg = data.themeColor || "#2563eb";
   doc.save();
   doc.fillColor(totalDueBg);
   doc.roundedRect(totX, y, totW, 26, 6).fill();
@@ -672,7 +753,7 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
 function generateModern(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   const leftX = 40;
   const pageWidth = doc.page.width - 80;
-  const accentBlue = "#2563eb";
+  const accentBlue = data.themeColor || "#2563eb";
   const now = new Date();
 
   const isBilingual = isBilingualInvoice(data);
@@ -682,7 +763,16 @@ function generateModern(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   doc.rect(0, 0, doc.page.width, 90).fillColor("#0f172a").fill();
 
   if (data.logoBase64) {
-    drawLogo(doc, data.logoBase64, leftX, 18, 90, 54);
+    drawLogo(
+      doc,
+      data.logoBase64,
+      leftX,
+      18,
+      90,
+      54,
+      data.logoHasBackground,
+      data.logoBgColor
+    );
   }
 
   // Company name top-left
@@ -750,57 +840,84 @@ function generateModern(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     .text(formatPdfDate(data.dueDate), leftX + 160, y);
 
   // Emitent / Client cards
-  y += 28;
-  [
-    { label: isBilingual ? "EMITENT / SUPPLIER" : "EMITENT", x: leftX },
-    { label: isBilingual ? "CLIENT / CUSTOMER" : "CLIENT", x: leftX + pageWidth / 2 + 8 },
-  ].forEach((col, idx) => {
-    const isClient = idx === 1;
-    const name = isClient ? data.clientName : data.companyName;
-    const cui = isClient ? data.clientCUI : data.companyCUI;
-    const addr = isClient
-      ? [data.clientAddress, data.clientCity, data.clientCounty, data.clientCountry]
-          .map(s => (s || "").trim().replace(/,+$/, ""))
-          .filter(Boolean)
-          .join(", ")
-      : [data.companyAddress, data.companyCity, data.companyCounty, data.companyCountry]
-          .map(s => (s || "").trim().replace(/,+$/, ""))
-          .filter(Boolean)
-          .join(", ");
-    const contact = isClient
-      ? `${data.clientPhone} | ${data.clientEmail}`
-      : `${data.companyPhone} | ${data.companyEmail}`;
-    const banking = isClient
-      ? ""
-      : `IBAN: ${data.companyIBAN} | ${data.companyBank}`;
+  y += 20;
+  const cardW = pageWidth / 2 - 8;
+  const innerW = cardW - 20;
 
-    doc
-      .rect(col.x, y, pageWidth / 2 - 8, 75)
-      .fillColor("#f1f5f9")
-      .fill();
-    doc.rect(col.x, y, 3, 75).fillColor(accentBlue).fill();
-    doc
-      .fontSize(7.5)
-      .font("Roboto-Bold")
-      .fillColor("#64748b")
-      .text(col.label, col.x + 10, y + 8);
-    doc
-      .fontSize(9.5)
-      .font("Roboto-Bold")
-      .fillColor("#0f172a")
-      .text(name, col.x + 10, y + 20, { width: pageWidth / 2 - 22 });
-    doc
-      .fontSize(8)
-      .font("Roboto")
-      .fillColor("#475569")
-      .text(`${L.cif} ${cui}`, col.x + 10, y + 36);
-    doc.text(addr, col.x + 10, y + 48, { width: pageWidth / 2 - 22 });
-    if (banking)
-      doc.text(banking, col.x + 10, y + 60, { width: pageWidth / 2 - 22 });
-    else doc.text(contact, col.x + 10, y + 60, { width: pageWidth / 2 - 22 });
+  const clientAddr = [data.clientAddress, data.clientCity, data.clientCounty, data.clientCountry]
+    .map(s => (s || "").trim().replace(/,+$/, ""))
+    .filter(Boolean)
+    .join(", ");
+  const companyAddr = [data.companyAddress, data.companyCity, data.companyCounty, data.companyCountry]
+    .map(s => (s || "").trim().replace(/,+$/, ""))
+    .filter(Boolean)
+    .join(", ");
+
+  const clientContact = [data.clientPhone, data.clientEmail].filter(Boolean).join(" | ");
+  const companyContact = [data.companyPhone, data.companyEmail, data.spvIndex ? `Index SPV: ${data.spvIndex}` : ""].filter(Boolean).join(" | ");
+  const companyBanking = [data.companyIBAN ? `IBAN: ${data.companyIBAN}` : "", data.companyBank].filter(Boolean).join(" | ");
+
+  const cards = [
+    {
+      label: isBilingual ? "EMITENT / SUPPLIER" : "EMITENT",
+      x: leftX,
+      name: data.companyName,
+      cui: data.companyCUI,
+      addr: companyAddr,
+      contact: companyContact,
+      banking: companyBanking,
+    },
+    {
+      label: isBilingual ? "CLIENT / CUSTOMER" : "CLIENT",
+      x: leftX + cardW + 16,
+      name: data.clientName,
+      cui: data.clientCUI,
+      addr: clientAddr,
+      contact: clientContact,
+      banking: "",
+    },
+  ];
+
+  const calcCardH = (c: typeof cards[0]) => {
+    let h = 8 + 12;
+    h += doc.fontSize(9.5).font("Roboto-Bold").heightOfString(c.name, { width: innerW }) + 4;
+    if (c.cui) h += 12;
+    if (c.addr) h += doc.fontSize(8).font("Roboto").heightOfString(c.addr, { width: innerW }) + 4;
+    if (c.banking) h += doc.fontSize(8).font("Roboto").heightOfString(c.banking, { width: innerW }) + 4;
+    else if (c.contact) h += doc.fontSize(8).font("Roboto").heightOfString(c.contact, { width: innerW }) + 4;
+    return Math.max(75, h + 10);
+  };
+
+  const cardH = Math.max(calcCardH(cards[0]), calcCardH(cards[1]));
+
+  cards.forEach(col => {
+    doc.rect(col.x, y, cardW, cardH).fillColor("#f1f5f9").fill();
+    doc.rect(col.x, y, 3, cardH).fillColor(accentBlue).fill();
+
+    let curY = y + 8;
+    doc.fontSize(7.5).font("Roboto-Bold").fillColor("#64748b").text(col.label, col.x + 10, curY);
+    curY += 12;
+
+    doc.fontSize(9.5).font("Roboto-Bold").fillColor("#0f172a").text(col.name, col.x + 10, curY, { width: innerW });
+    curY += doc.fontSize(9.5).font("Roboto-Bold").heightOfString(col.name, { width: innerW }) + 4;
+
+    doc.fontSize(8).font("Roboto").fillColor("#475569");
+    if (col.cui) {
+      doc.text(`${L.cif} ${col.cui}`, col.x + 10, curY, { width: innerW });
+      curY += 12;
+    }
+    if (col.addr) {
+      doc.text(col.addr, col.x + 10, curY, { width: innerW });
+      curY += doc.heightOfString(col.addr, { width: innerW }) + 4;
+    }
+    if (col.banking) {
+      doc.text(col.banking, col.x + 10, curY, { width: innerW });
+    } else if (col.contact) {
+      doc.text(col.contact, col.x + 10, curY, { width: innerW });
+    }
   });
 
-  y += 85;
+  y += cardH + 12;
 
   // Table header
   const colWidths = { desc: 210, qty: 55, price: 85, vat: 45, total: 85 };
@@ -870,7 +987,7 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   const leftX = 50;
   const pageWidth = doc.page.width - 100;
   const now = new Date();
-  const accentGreen = "#059669";
+  const accentGreen = data.themeColor || "#059669";
 
   const isBilingual = isBilingualInvoice(data);
   const L = getLabels(isBilingual);
@@ -878,7 +995,16 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   let y = 50;
 
   if (data.logoBase64) {
-    drawLogo(doc, data.logoBase64, leftX, y, 90, 45);
+    drawLogo(
+      doc,
+      data.logoBase64,
+      leftX,
+      y,
+      90,
+      45,
+      data.logoHasBackground,
+      data.logoBgColor
+    );
     y += 60;
   }
 
@@ -999,13 +1125,25 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   y += 8;
 
   data.lines.forEach((line, idx) => {
-    if (y + 25 > doc.page.height - 80) {
+    const trans =
+      line.translatedDescription ||
+      (isBilingual ? translateProductDescriptionSync(line.description) : undefined);
+    const hasTranslation =
+      isBilingual &&
+      Boolean(
+        trans &&
+        trans.trim() &&
+        trans.trim().toLowerCase() !== line.description.trim().toLowerCase()
+      );
+    const rowH = hasTranslation ? 36 : 24;
+
+    if (y + rowH > doc.page.height - 80) {
       doc.addPage();
       y = 50;
     }
     if (idx % 2 === 0) {
       doc
-        .rect(leftX - 6, y - 3, pageWidth + 12, 23)
+        .rect(leftX - 6, y - 3, pageWidth + 12, rowH - 1)
         .fillColor("#f8fafc")
         .fill();
     }
@@ -1013,8 +1151,16 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     const lineVat = (lineVal * (line.vatRate || 0)) / 100;
     const lineTotal = lineVal + lineVat;
 
+    if (hasTranslation) {
+      doc.fontSize(8.5).font("Roboto").fillColor("#1e293b");
+      doc.text(line.description, leftX, y + 2, { width: colWidths.desc - 8 });
+      doc.fontSize(7.5).font("Roboto").fillColor("#64748b");
+      doc.text(trans!, leftX, y + 16, { width: colWidths.desc - 8 });
+    } else {
+      doc.fontSize(9).font("Roboto").fillColor("#1e293b");
+      doc.text(line.description, leftX, y + 3, { width: colWidths.desc - 8 });
+    }
     doc.fontSize(9).font("Roboto").fillColor("#1e293b");
-    doc.text(line.description, leftX, y + 3, { width: colWidths.desc - 8 });
     doc.text(String(line.quantity), leftX + colWidths.desc, y + 3, {
       width: colWidths.qty - 4,
       align: "right",
@@ -1037,7 +1183,7 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
       y + 3,
       { width: colWidths.total - 4, align: "right" }
     );
-    y += 24;
+    y += rowH;
   });
 
   doc
@@ -1135,10 +1281,19 @@ export function generateReInvoicePDF(rawData: ReInvoiceData): Readable {
 
   const data = sanitizeData(rawData);
 
+  const isBilingual = isBilingualInvoice(data);
+  if (isBilingual && data.lines && Array.isArray(data.lines)) {
+    for (const line of data.lines) {
+      if (!line.translatedDescription && line.description) {
+        line.translatedDescription = translateProductDescriptionSync(line.description);
+      }
+    }
+  }
+
   const template: InvoiceTemplate = data.template ?? "classic";
 
   if (template === "modern") {
-    generateModern(doc, data);
+    generateClassic(doc, data);
   } else if (template === "minimal") {
     generateMinimal(doc, data);
   } else {

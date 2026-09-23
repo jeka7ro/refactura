@@ -31,12 +31,14 @@ export interface ParsedSagaInvoice {
   totalVAT: number;
   total: number;
   clientName: string;
+  clientCode?: string;
   clientCUI?: string;
   clientCountry?: string;
   clientAddress?: string;
   clientCity?: string;
   clientRegCom?: string;
   notes?: string;
+  status?: "draft" | "sent" | "paid" | "overdue" | "cancelled";
   lines: ParsedSagaInvoiceLine[];
 }
 
@@ -94,9 +96,123 @@ export function parseSagaXmlInvoices(buffer: Buffer): ParsedSagaInvoice[] {
   });
 
   const parsed = parser.parse(xmlString);
+
+  // 1. Format SAGA Visual FoxPro XML (<VFPData><c_xml>...</c_xml></VFPData>)
+  if (parsed.VFPData) {
+    let rows = parsed.VFPData.c_xml || [];
+    if (!Array.isArray(rows)) {
+      rows = rows ? [rows] : [];
+    }
+
+    const groups = new Map<string, any[]>();
+    for (const r of rows) {
+      const invId = String(r.id_iesire || r.nr_iesire || "").trim();
+      if (!groups.has(invId)) {
+        groups.set(invId, []);
+      }
+      groups.get(invId)!.push(r);
+    }
+
+    const invoices: ParsedSagaInvoice[] = [];
+
+    for (const [, items] of groups.entries()) {
+      if (items.length === 0) continue;
+      const head = items[0];
+      const fullNum = String(head.nr_iesire || "").trim();
+      let series = "EXT";
+      let number = fullNum;
+      const match = fullNum.match(/^([A-Za-z]+)\s*(.*)$/);
+      if (match) {
+        series = match[1].toUpperCase();
+        number = fullNum;
+      } else {
+        series = "EXT";
+        number = fullNum;
+      }
+
+      const clientName = String(head.denumire || "").trim() || "Client Extern";
+      const clientCode = head.cod !== undefined && head.cod !== null ? String(head.cod).padStart(5, "0") : undefined;
+      const currency = String(head.cod_valuta || "EUR").trim().toUpperCase();
+      const exchangeRate = parseFloat(String(head.curs || "1")) || 1;
+      const issueDate = normalizeDate(head.data);
+      const dueDate = head.scadent ? normalizeDate(head.scadent) : undefined;
+      const isPaid = parseFloat(String(head.neachitat || "0")) === 0;
+
+      // Deduct country from name or default to UE
+      let clientCountry = "UE";
+      const upperName = clientName.toUpperCase();
+      if (/\b(SAS|SASU|SARL|EURL)\b/.test(upperName)) {
+        clientCountry = "FR";
+      } else if (/\b(BVBA|SPRL)\b/.test(upperName)) {
+        clientCountry = "BE";
+      } else if (/\b(GMBH|AG)\b/.test(upperName)) {
+        clientCountry = "DE";
+      } else if (/\b(SNC)\b/.test(upperName)) {
+        clientCountry = "IT";
+      }
+
+      const lines: ParsedSagaInvoiceLine[] = [];
+      let subtotal = 0;
+      let totalVAT = 0;
+
+      for (const it of items) {
+        const desc = String(it.denumire1 || it.denumire2 || "Articol").trim();
+        const qty = parseFloat(String(it.cantitate || it.cantitate1 || "1")) || 1;
+        const puVal = parseFloat(String(it.pu_val || it.pu_val1 || "0")) || 0;
+        const lineTotal = parseFloat(String(it.val_val1 || it.val_val2 || (qty * puVal) || "0")) || 0;
+        const vatRate = parseFloat(String(it.tva_art || it.tva_art1 || "0")) || 0;
+        const vatVal = parseFloat(String(it.tva_val1 || it.tva_val2 || "0")) || 0;
+
+        subtotal += lineTotal;
+        totalVAT += vatVal;
+
+        lines.push({
+          description: desc,
+          quantity: qty,
+          unitPrice: puVal,
+          unit: String(it.um || it.um1 || "buc").trim() || "buc",
+          vatRate,
+          total: lineTotal,
+          vatAmount: vatVal,
+        });
+      }
+
+      const total = subtotal + totalVAT;
+
+      invoices.push({
+        series,
+        number,
+        issueDate,
+        dueDate,
+        currency,
+        exchangeRate,
+        subtotal,
+        totalVAT,
+        total,
+        clientName,
+        clientCode,
+        clientCountry,
+        notes: head.inf_suplm ? String(head.inf_suplm).trim() : `Factură externă importată din SAGA (${currency} la curs ${exchangeRate})`,
+        status: isPaid ? "paid" : "sent",
+        lines: lines.length > 0 ? lines : [{
+          description: "Servicii / Produse externe conform export SAGA",
+          quantity: 1,
+          unitPrice: subtotal,
+          unit: "buc",
+          vatRate: 0,
+          total,
+          vatAmount: 0,
+        }],
+      });
+    }
+
+    return invoices;
+  }
+
+  // 2. Format SAGA XML clasic (<Facturi><Factura>...</Facturi>)
   const facturiRoot = parsed.Facturi || parsed.facturi;
   if (!facturiRoot) {
-    throw new Error("Fișierul XML nu conține tag-ul rădăcină <Facturi> specific SAGA.");
+    throw new Error("Fișierul XML nu conține un format recunoscut de export SAGA (<Facturi> sau <VFPData>).");
   }
 
   let rawFacturi = facturiRoot.Factura || facturiRoot.factura || [];
@@ -129,7 +245,7 @@ export function parseSagaXmlInvoices(buffer: Buffer): ParsedSagaInvoice[] {
 
     const issueDate = normalizeDate(antet.FacturaData || antet.Data);
     const dueDate = antet.FacturaScadenta || antet.Scadenta ? normalizeDate(antet.FacturaScadenta || antet.Scadenta) : undefined;
-    const currency = String(antet.FacturaMoneda || antet.Moneda || antet.Valuta || "EUR").trim().toUpperCase();
+    const currency = String(antet.FacturaMoneda || antet.Moneda || antet.Valuta || "").trim().toUpperCase() || "RON";
     const exchangeRate = parseFloat(antet.FacturaCurs || antet.Curs || "1") || 1;
 
     // Client
@@ -140,9 +256,18 @@ export function parseSagaXmlInvoices(buffer: Buffer): ParsedSagaInvoice[] {
     let clientCountry = String(antet.ClientTara || antet.Tara || "").trim().toUpperCase();
     if (!clientCountry && clientCUI) {
       const matchCountry = clientCUI.match(/^([A-Za-z]{2})/);
-      if (matchCountry) clientCountry = matchCountry[1].toUpperCase();
+      if (matchCountry) {
+        clientCountry = matchCountry[1].toUpperCase();
+      } else if (/^\d+$/.test(clientCUI)) {
+        clientCountry = "RO";
+      }
     }
-    if (!clientCountry) clientCountry = "UE";
+    if (clientCountry === "ROMANIA" || clientCountry === "ROMÂNIA" || clientCountry === "ROU") {
+      clientCountry = "RO";
+    }
+    if (!clientCountry) {
+      clientCountry = currency !== "RON" ? "UE" : "RO";
+    }
 
     const clientAddress = String(antet.ClientAdresa || antet.Adresa || "").trim();
     const clientCity = String(antet.ClientLocalitate || antet.Localitate || antet.ClientJudet || "").trim();
@@ -245,11 +370,20 @@ export function parseSagaXlsxInvoices(buffer: Buffer): ParsedSagaInvoice[] {
     let clientCountry = String(row["Tara"] || row["Cod tara"] || "").trim().toUpperCase();
     if (!clientCountry && clientCUI) {
       const matchCountry = clientCUI.match(/^([A-Za-z]{2})/);
-      if (matchCountry) clientCountry = matchCountry[1].toUpperCase();
+      if (matchCountry) {
+        clientCountry = matchCountry[1].toUpperCase();
+      } else if (/^\d+$/.test(clientCUI)) {
+        clientCountry = "RO";
+      }
     }
-    if (!clientCountry) clientCountry = "UE";
+    if (clientCountry === "ROMANIA" || clientCountry === "ROMÂNIA" || clientCountry === "ROU") {
+      clientCountry = "RO";
+    }
+    if (!clientCountry) {
+      clientCountry = "UE";
+    }
 
-    const currency = String(row["Valuta"] || row["Moneda"] || row["VALUTA"] || "EUR").trim().toUpperCase();
+    const currency = String(row["Valuta"] || row["Moneda"] || row["VALUTA"] || "").trim().toUpperCase() || "EUR";
     const exchangeRate = parseFloat(row["Curs"] || row["CURS"] || "1") || 1;
 
     const totalValuta = parseFloat(row["Total valuta"] || row["Total"] || row["TOTAL"] || row["Valoare"] || "0") || 0;
@@ -290,60 +424,108 @@ export function parseSagaXlsxInvoices(buffer: Buffer): ParsedSagaInvoice[] {
 }
 
 /**
+ * Determină dacă o factură este EXTERNĂ (în valută sau către partener străin).
+ * Facturile din România se preiau automat prin SPV e-Factura și sunt ignorate la importul din SAGA.
+ */
+export function isExternalSagaInvoice(inv: {
+  currency?: string;
+  clientCountry?: string;
+  clientCUI?: string;
+}): boolean {
+  const curr = (inv.currency || "RON").trim().toUpperCase();
+  const country = (inv.clientCountry || "").trim().toUpperCase();
+  const cui = (inv.clientCUI || "").trim().toUpperCase();
+
+  // 1. Dacă valuta este diferită de RON (ex: EUR, USD, GBP, CHF), este cert factură externă
+  if (curr && curr !== "RON") {
+    return true;
+  }
+
+  // 2. Dacă țara este specificată și NU este România (RO, ROMANIA, ROU)
+  if (country && country !== "RO" && country !== "ROMANIA" && country !== "ROMÂNIA" && country !== "ROU") {
+    return true;
+  }
+
+  // 3. Dacă CUI-ul are prefix de altă țară UE/non-UE (ex: DE123456, FR123456, BG123456, etc.)
+  if (cui && /^[A-Z]{2}/.test(cui) && !cui.startsWith("RO")) {
+    return true;
+  }
+
+  // Altfel este factură internă de România
+  return false;
+}
+
+/**
  * Salvează facturile extrase în baza de date (tabelul emittedInvoices + emittedInvoiceLines)
+ * Notă: Se importă EXCLUSIV facturile externe. Facturile din România sunt ignorate automat.
  */
 export async function saveSagaInvoicesToDb(tenantId: number, invoices: ParsedSagaInvoice[]) {
   const db = await getDb();
   if (!db) throw new Error("Database unavailable");
 
   let imported = 0;
-  let skipped = 0;
+  let skippedDuplicates = 0;
+  let skippedRo = 0;
   const createdIds: number[] = [];
 
   for (const inv of invoices) {
-    // Verificăm dacă factura există deja pentru a evita duplicatele
+    // 1. Filtrare strictă: facturile din România se preiau automat prin SPV e-Factura
+    if (!isExternalSagaInvoice(inv)) {
+      skippedRo++;
+      continue;
+    }
+
+    // 2. Verificăm dacă factura există deja pentru a evita duplicatele
     const [existing] = await db
       .select({ id: schema.emittedInvoices.id })
       .from(schema.emittedInvoices)
       .where(
         and(
           eq(schema.emittedInvoices.tenantId, tenantId),
-          eq(schema.emittedInvoices.series, inv.series),
           eq(schema.emittedInvoices.number, inv.number)
         )
       );
 
     if (existing) {
-      skipped++;
+      skippedDuplicates++;
       continue;
     }
 
     // Găsire sau inserare client în nomenclatorul de clienți
     let clientId: number | undefined;
-    if (inv.clientCUI || inv.clientName) {
+    if (inv.clientCUI || inv.clientName || inv.clientCode) {
       const [existingClient] = await db
-        .select({ id: schema.clients.id })
+        .select({ id: schema.clients.id, sagaCode: schema.clients.sagaCode })
         .from(schema.clients)
         .where(
           and(
             eq(schema.clients.tenantId, tenantId),
             inv.clientCUI
               ? eq(schema.clients.cui, inv.clientCUI)
-              : eq(schema.clients.name, inv.clientName)
+              : inv.clientCode
+                ? eq(schema.clients.sagaCode, inv.clientCode)
+                : eq(schema.clients.name, inv.clientName)
           )
         );
 
       if (existingClient) {
         clientId = existingClient.id;
+        if (!existingClient.sagaCode && inv.clientCode) {
+          await db
+            .update(schema.clients)
+            .set({ sagaCode: inv.clientCode })
+            .where(eq(schema.clients.id, existingClient.id));
+        }
       } else {
         const [insertedClient] = await db.insert(schema.clients).values({
           tenantId,
           name: inv.clientName,
           cui: inv.clientCUI || null,
+          sagaCode: inv.clientCode || null,
           regCom: inv.clientRegCom || null,
           address: inv.clientAddress || null,
           city: inv.clientCity || null,
-          country: inv.clientCountry || "UE",
+          country: (inv.clientCountry || "UE").slice(0, 2).toUpperCase(),
           currency: inv.currency || "EUR",
           tva: 0,
           isActive: 1,
@@ -359,6 +541,7 @@ export async function saveSagaInvoicesToDb(tenantId: number, invoices: ParsedSag
       number: inv.number,
       clientId: clientId || null,
       clientName: inv.clientName,
+      clientCode: inv.clientCode || null,
       clientCUI: inv.clientCUI || null,
       clientRegCom: inv.clientRegCom || null,
       clientAddress: inv.clientAddress || null,
@@ -370,7 +553,7 @@ export async function saveSagaInvoicesToDb(tenantId: number, invoices: ParsedSag
       totalVAT: String(inv.totalVAT.toFixed(2)),
       total: String(inv.total.toFixed(2)),
       currency: inv.currency,
-      status: "sent",
+      status: inv.status || "sent",
       spvStatus: "extern", // Factură externă - raportată în 390 VIES, nu în RO e-Factura
       notes: inv.notes || "Factură externă importată din SAGA",
     });
@@ -396,5 +579,26 @@ export async function saveSagaInvoicesToDb(tenantId: number, invoices: ParsedSag
     imported++;
   }
 
-  return { imported, skipped, total: invoices.length, createdIds };
+  const messageParts: string[] = [];
+  if (imported > 0) {
+    messageParts.push(`${imported} ${imported === 1 ? "factură externă importată" : "facturi externe importate"}`);
+  } else {
+    messageParts.push("Nu au fost găsite facturi externe noi");
+  }
+  if (skippedRo > 0) {
+    messageParts.push(`${skippedRo} ${skippedRo === 1 ? "factură din România omisă" : "facturi din România omise"} automat (se preiau prin SPV)`);
+  }
+  if (skippedDuplicates > 0) {
+    messageParts.push(`${skippedDuplicates} duplicate omise`);
+  }
+
+  return {
+    imported,
+    skipped: skippedDuplicates + skippedRo,
+    skippedDuplicates,
+    skippedRo,
+    total: invoices.length,
+    createdIds,
+    message: messageParts.join(", ") + ".",
+  };
 }

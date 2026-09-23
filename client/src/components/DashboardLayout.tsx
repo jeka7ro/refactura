@@ -2,7 +2,7 @@
 // Fixed sidebar (240px) + main content area
 // Design: slate-900 sidebar, white content, blue-600 accents
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -172,6 +172,44 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { theme, toggleTheme } = useTheme();
   const { user, loading, logout } = useAuth();
 
+  const { data: currentTenant } = trpc.tenants.current.useQuery(undefined, {
+    enabled: !!user,
+  });
+
+  const parsedTenantSettings = useMemo(() => {
+    if (!currentTenant?.settings) return null;
+    try {
+      return typeof currentTenant.settings === "string"
+        ? JSON.parse(currentTenant.settings)
+        : currentTenant.settings;
+    } catch {
+      return null;
+    }
+  }, [currentTenant?.settings]);
+
+  const themeColor =
+    parsedTenantSettings?.themeColor ||
+    localStorage.getItem("tenant-theme-color") ||
+    "#16a34a";
+
+  useEffect(() => {
+    if (themeColor) {
+      document.documentElement.style.setProperty("--primary", themeColor);
+      document.documentElement.style.setProperty("--sidebar-primary", themeColor);
+      document.documentElement.style.setProperty("--color-primary", themeColor);
+      document.documentElement.style.setProperty("--tenant-theme-color", themeColor);
+      localStorage.setItem("tenant-theme-color", themeColor);
+    }
+  }, [themeColor]);
+
+  const companyLogo = parsedTenantSettings?.logoBase64 || (user as any)?.tenantLogo || "";
+  const companyName = (user as any)?.tenantName || currentTenant?.name || user?.name || "Companie";
+  const [logoError, setLogoError] = useState(false);
+
+  useEffect(() => {
+    setLogoError(false);
+  }, [companyLogo]);
+
   // Count-uri reale din DB (zero hardcodat)
   const { data: receivedInvoices = [] } = trpc.invoices.list.useQuery(undefined, {
     enabled: !!user,
@@ -228,10 +266,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div key={item.href}>
               <Link href={item.href} onClick={() => setMobileOpen(false)}>
                 <div
+                  style={active && !item.subItems ? { backgroundColor: themeColor } : undefined}
                   className={cn(
                     "flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all duration-150 cursor-pointer group",
                     active && !item.subItems
-                      ? "bg-blue-600 text-white shadow-sm font-bold"
+                      ? "text-white shadow-sm font-bold"
                       : (active || hasExpandedSubs) && item.subItems
                         ? "text-slate-900 dark:text-white font-bold"
                         : "text-slate-700 font-bold hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800",
@@ -239,13 +278,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   )}
                 >
                   <Icon
+                    style={active && !item.subItems ? undefined : (active || hasExpandedSubs) && item.subItems ? { color: themeColor } : undefined}
                     className={cn(
                       "w-4 h-4 flex-shrink-0",
                       active && !item.subItems
                         ? "text-white"
                         : (active || hasExpandedSubs) && item.subItems
-                          ? "text-blue-600 dark:text-blue-400"
-                          : "text-slate-500 group-hover:text-blue-600 dark:group-hover:text-white"
+                          ? ""
+                          : "text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white"
                     )}
                   />
                   {!collapsed && (
@@ -267,10 +307,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         onClick={() => setMobileOpen(false)}
                       >
                         <div
+                          style={subActive ? { backgroundColor: themeColor } : undefined}
                           className={cn(
                             "flex items-center gap-2 px-2 py-1.5 rounded-md text-xs font-medium transition-all duration-150 cursor-pointer group",
                             subActive
-                              ? "bg-[var(--color-primary)] text-white shadow-sm font-bold"
+                              ? "text-white shadow-sm font-bold"
                               : "text-slate-500 font-medium hover:text-slate-900 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-white dark:hover:bg-slate-800"
                           )}
                         >
@@ -337,18 +378,36 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {!collapsed && (
         <div className="px-4 py-4 border-t border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
-              <Building2 className="w-4 h-4 text-slate-500 dark:text-slate-500" />
+            <div
+              className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0 overflow-hidden border border-slate-200/60 dark:border-slate-700/60"
+              style={
+                companyLogo &&
+                !logoError &&
+                parsedTenantSettings?.logoHasBackground &&
+                parsedTenantSettings?.logoBgColor
+                  ? { backgroundColor: parsedTenantSettings.logoBgColor }
+                  : undefined
+              }
+            >
+              {companyLogo && !logoError ? (
+                <img
+                  src={companyLogo}
+                  alt={companyName}
+                  className="w-full h-full object-contain p-0.5"
+                />
+              ) : (
+                <Building2 className="w-4 h-4 text-slate-500 dark:text-slate-500" />
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-slate-900 dark:text-white text-sm font-bold leading-tight break-words">
-                {(user as any)?.tenantName || user?.name || "—"}
+                {companyName}
               </div>
               <div className="text-slate-500 font-medium text-xs truncate mt-0.5">
-                {(user as any)?.tenantCUI
-                  ? String((user as any).tenantCUI).toUpperCase().startsWith("RO")
-                    ? String((user as any).tenantCUI).toUpperCase()
-                    : `RO${(user as any).tenantCUI}`
+                {(user as any)?.tenantCUI || currentTenant?.cui
+                  ? String((user as any)?.tenantCUI || currentTenant?.cui).toUpperCase().startsWith("RO")
+                    ? String((user as any)?.tenantCUI || currentTenant?.cui).toUpperCase()
+                    : `RO${(user as any)?.tenantCUI || currentTenant?.cui}`
                   : user?.email || ""}
               </div>
             </div>
@@ -453,19 +512,64 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           )}
         </button>
 
-        {/* User menu */}
+        {/* User menu / Company Logo */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white text-xs font-bold shadow-sm cursor-pointer hover:shadow-md transition-shadow">
-              {user?.name?.charAt(0).toUpperCase() || "U"}
+            <button
+              className={cn(
+                "w-8 h-8 rounded-full flex items-center justify-center shadow-sm cursor-pointer hover:shadow-md transition-all",
+                companyLogo && !logoError
+                  ? "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden p-0.5"
+                  : "bg-gradient-to-br from-blue-500 to-blue-700 text-white text-xs font-bold"
+              )}
+              style={
+                companyLogo &&
+                !logoError &&
+                parsedTenantSettings?.logoHasBackground &&
+                parsedTenantSettings?.logoBgColor
+                  ? { backgroundColor: parsedTenantSettings.logoBgColor }
+                  : undefined
+              }
+              title={companyName}
+            >
+              {companyLogo && !logoError ? (
+                <img
+                  src={companyLogo}
+                  alt={companyName}
+                  onError={() => setLogoError(true)}
+                  className="w-full h-full object-contain rounded-full"
+                />
+              ) : (
+                user?.name?.charAt(0).toUpperCase() || "U"
+              )}
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent align="end" className="w-56">
             <div className="px-3 py-2 text-xs text-slate-500">
-              <div className="font-semibold text-slate-900 dark:text-white">
-                {user?.name || "User"}
+              <div className="flex items-center gap-2.5 mb-1">
+                {companyLogo && !logoError && (
+                  <div
+                    className="w-7 h-7 rounded border border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden flex-shrink-0 bg-white dark:bg-slate-800 p-0.5"
+                    style={
+                      parsedTenantSettings?.logoHasBackground && parsedTenantSettings?.logoBgColor
+                        ? { backgroundColor: parsedTenantSettings.logoBgColor }
+                        : undefined
+                    }
+                  >
+                    <img
+                      src={companyLogo}
+                      alt={companyName}
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="font-semibold text-slate-900 dark:text-white truncate">
+                    {companyName}
+                  </div>
+                  <div className="text-[11px] truncate text-slate-500">{user?.email || ""}</div>
+                </div>
               </div>
-              <div className="text-[11px] truncate">{user?.email || ""}</div>
             </div>
             <div className="border-t border-slate-200 dark:border-slate-700 my-1" />
             <DropdownMenuItem

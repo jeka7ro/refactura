@@ -478,6 +478,7 @@ export async function createClient(data: {
   tenantId: number;
   name: string;
   cui?: string;
+  sagaCode?: string;
   regCom?: string;
   tva?: boolean;
   address?: string;
@@ -518,6 +519,7 @@ export async function updateClient(
   data: Partial<{
     name: string;
     cui: string;
+    sagaCode: string;
     regCom: string;
     tva: boolean;
     address: string;
@@ -1354,9 +1356,16 @@ export async function getInvoiceArchiveList(
     // Get NIRs and NIR lines to calculate NIR status
     const { nir, nirLines } = await import("../drizzle/schema");
     const nirs = await db
-      .select({ id: nir.id, invoiceArchiveId: nir.invoiceArchiveId })
+      .select({ id: nir.id, invoiceArchiveId: nir.invoiceArchiveId, nirNumber: nir.nirNumber })
       .from(nir)
       .where(inArray(nir.invoiceArchiveId, itemIds));
+
+    const nirInfoMap = new Map<number, { id: number; nirNumber: string }>();
+    for (const n of nirs) {
+      if (n.invoiceArchiveId && !nirInfoMap.has(n.invoiceArchiveId)) {
+        nirInfoMap.set(n.invoiceArchiveId, { id: n.id, nirNumber: n.nirNumber });
+      }
+    }
 
     const nirIds = nirs.map(n => n.id);
     let allNirLines: any[] = [];
@@ -1401,11 +1410,14 @@ export async function getInvoiceArchiveList(
       if (receivedQty > 0) {
         nirStatus = receivedQty >= totalQty - 0.001 ? "full" : "partial";
       }
+      const nirInfo = nirInfoMap.get(item.id);
 
       return {
         ...item,
         itemsText: (linesMap.get(item.id) || []).join(" "),
-        nirStatus,
+        nirStatus: nirInfo ? (nirStatus === "none" ? "full" : nirStatus) : nirStatus,
+        nirId: nirInfo?.id || null,
+        nirNumber: nirInfo?.nirNumber || null,
       };
     });
   }

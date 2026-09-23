@@ -612,6 +612,9 @@ export const appRouter = router({
           currency: z.string(),
           notes: z.string().optional(),
           logoBase64: z.string().optional(),
+          logoHasBackground: z.boolean().optional(),
+          logoBgColor: z.string().optional(),
+          themeColor: z.string().optional(),
           template: z.enum(["classic", "modern", "minimal"]).optional(),
         })
       )
@@ -940,11 +943,102 @@ export const appRouter = router({
       
       return getClientsByTenant((ctx.user?.tenantId || 1));
     }),
+    searchPartners: protectedProcedure
+      .input(z.object({ query: z.string().optional(), limit: z.number().optional() }).optional())
+      .query(async ({ input, ctx }) => {
+        const tenantId = ctx.user?.tenantId || 1;
+        const q = (input?.query || "").trim().toLowerCase();
+        const limit = input?.limit || 50;
+
+        const db = await import("./db").then(m => m.getDb());
+        if (!db) return [];
+
+        const { clients } = await import("../drizzle/schema");
+        const { sagaFurnizori } = await import("../modules/saga/schema");
+
+        const clientList = await db
+          .select()
+          .from(clients)
+          .where(eq(clients.tenantId, tenantId));
+
+        const furnizoriList = await db
+          .select()
+          .from(sagaFurnizori)
+          .where(eq(sagaFurnizori.tenantId, tenantId));
+
+        const partners: Array<{
+          id: number | string;
+          clientId?: number;
+          name: string;
+          cui?: string | null;
+          regCom?: string | null;
+          address?: string | null;
+          city?: string | null;
+          country?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          sagaCode?: string | null;
+          isSupplier: boolean;
+          source: "client" | "saga_furnizor";
+        }> = [];
+
+        const seenCui = new Set<string>();
+
+        for (const c of clientList) {
+          const cleanCui = (c.cui || "").replace(/^RO/i, "").trim().toLowerCase();
+          if (cleanCui) seenCui.add(cleanCui);
+          partners.push({
+            id: c.id,
+            clientId: c.id,
+            name: c.name,
+            cui: c.cui,
+            regCom: c.regCom,
+            address: c.address,
+            city: c.city,
+            country: c.country,
+            email: c.email,
+            phone: c.phone,
+            sagaCode: c.sagaCode,
+            isSupplier: c.isSupplier === 1,
+            source: "client",
+          });
+        }
+
+        for (const f of furnizoriList) {
+          const cleanCui = (f.cui || "").replace(/^RO/i, "").trim().toLowerCase();
+          if (cleanCui && seenCui.has(cleanCui)) continue;
+          partners.push({
+            id: `sf-${f.id}`,
+            name: f.denumire,
+            cui: f.cui,
+            regCom: f.regCom,
+            address: f.adresa,
+            city: f.localitate,
+            country: "RO",
+            email: f.email,
+            phone: f.telefon,
+            sagaCode: f.cod,
+            isSupplier: true,
+            source: "saga_furnizor",
+          });
+        }
+
+        if (!q) return partners.slice(0, limit);
+
+        return partners
+          .filter(p =>
+            p.name.toLowerCase().includes(q) ||
+            (p.cui || "").toLowerCase().includes(q) ||
+            (p.sagaCode || "").toLowerCase().includes(q)
+          )
+          .slice(0, limit);
+      }),
     create: protectedProcedure
       .input(
         z.object({
           name: z.string().min(1),
           cui: z.string().optional(),
+          sagaCode: z.string().optional(),
           address: z.string().optional(),
           city: z.string().optional(),
           country: z.string().optional(),
@@ -968,6 +1062,7 @@ export const appRouter = router({
           id: z.number(),
           name: z.string().min(1).optional(),
           cui: z.string().optional(),
+          sagaCode: z.string().optional(),
           address: z.string().optional(),
           city: z.string().optional(),
           country: z.string().optional(),
@@ -1049,6 +1144,25 @@ export const appRouter = router({
           )
           .orderBy(desc(reInvoices.issueDate), desc(reInvoices.id));
 
+        // Also fetch from invoiceArchive where direction = 'out' (e.g. WOODR invoices emitted via SPV)
+        const archiveOut = await db
+          .select()
+          .from(invoiceArchive)
+          .where(
+            and(
+              eq(invoiceArchive.tenantId, (ctx.user?.tenantId || 1)),
+              eq(invoiceArchive.direction, "out"),
+              or(
+                rawCui ? eq(invoiceArchive.supplierCUI, rawCui) : sql`1=0`,
+                cleanCui
+                  ? sql`REPLACE(REPLACE(REPLACE(UPPER(${invoiceArchive.supplierCUI}), 'RO', ''), 'BE', ''), ' ', '') = ${cleanCui.toUpperCase()}`
+                  : sql`1=0`,
+                sql`LOWER(TRIM(${invoiceArchive.supplierName})) = LOWER(TRIM(${client.name}))`
+              )
+            )
+          )
+          .orderBy(desc(invoiceArchive.issueDate), desc(invoiceArchive.id));
+
         const sentInvoices = [
           ...emitted.map(e => {
             const rawNum = (e.number || `FACT-${e.id}`).trim();
@@ -1067,6 +1181,16 @@ export const appRouter = router({
               type: "emitted",
             };
           }),
+          ...archiveOut.map(a => ({
+            id: a.id,
+            number: a.invoiceNumber || `FACT-${a.id}`,
+            issueDate: a.issueDate,
+            dueDate: a.dueDate,
+            total: a.total,
+            currency: a.currency || "RON",
+            status: a.status || "sent",
+            type: "archive",
+          })),
           ...reinv.map(r => ({
             id: r.id,
             number: r.number || `RF-${r.id}`,
@@ -1088,6 +1212,7 @@ export const appRouter = router({
             .where(
               and(
                 eq(invoiceArchive.tenantId, (ctx.user?.tenantId || 1)),
+                eq(invoiceArchive.direction, "in"),
                 or(
                   rawCui ? eq(invoiceArchive.supplierCUI, rawCui) : sql`1=0`,
                   cleanCui
@@ -1100,7 +1225,100 @@ export const appRouter = router({
             .orderBy(desc(invoiceArchive.issueDate), desc(invoiceArchive.id));
         }
 
-        return { client, sentInvoices, receivedInvoices };
+        // Top product lines for this client
+        let topLines: any[] = [];
+        const emittedIds = emitted.map(e => e.id);
+        if (emittedIds.length > 0) {
+          const { emittedInvoiceLines } = await import("../drizzle/schema");
+          const { inArray } = await import("drizzle-orm");
+          topLines = await db
+            .select({
+              description: emittedInvoiceLines.description,
+              quantity: emittedInvoiceLines.quantity,
+              total: emittedInvoiceLines.total,
+            })
+            .from(emittedInvoiceLines)
+            .where(inArray(emittedInvoiceLines.emittedInvoiceId, emittedIds))
+            .limit(100);
+        }
+
+        return { client, sentInvoices, receivedInvoices, topLines };
+      }),
+    getFirmeApiData: protectedProcedure
+      .input(
+        z.object({
+          cui: z.string(),
+          forceRefresh: z.boolean().optional(),
+        })
+      )
+      .query(async ({ input }) => {
+        const { getCompanyFullDossier } = await import("./firmeApiService");
+        const dossier = await getCompanyFullDossier(input.cui, input.forceRefresh);
+        return dossier;
+      }),
+    syncFromFirmeApi: protectedProcedure
+      .input(
+        z.object({
+          clientId: z.number(),
+          cui: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const tenantId = ctx.user?.tenantId || 1;
+        const client = await getClientById(input.clientId, tenantId);
+        if (!client) throw new Error("Clientul nu a fost găsit");
+
+        const targetCui = input.cui || client.cui;
+        if (!targetCui) throw new Error("Clientul nu are CUI completat");
+
+        const { getCompanyFullDossier } = await import("./firmeApiService");
+        const dossier = await getCompanyFullDossier(targetCui, true);
+        if (!dossier || !dossier.general) {
+          throw new Error("Nu s-au putut prelua datele din FirmeAPI pentru acest CUI");
+        }
+
+        const g = dossier.general;
+        const updatedFields: string[] = [];
+        const patch: any = {};
+
+        if (g.denumire && g.denumire !== client.name) {
+          patch.name = g.denumire;
+          updatedFields.push("Denumire");
+        }
+        if (g.nr_reg_com && g.nr_reg_com !== client.regCom) {
+          patch.regCom = g.nr_reg_com;
+          updatedFields.push("Nr. Reg. Com.");
+        }
+        if (g.adresa && (!client.address || client.address.length < 5)) {
+          patch.address = g.adresa;
+          updatedFields.push("Adresă");
+        } else if (g.adresa_sediu_social?.strada && (!client.address || client.address.length < 5)) {
+          const streetPart = `${g.adresa_sediu_social.strada} ${g.adresa_sediu_social.numar || ""}`.trim();
+          patch.address = streetPart;
+          updatedFields.push("Adresă");
+        }
+        if (g.adresa_sediu_social?.localitate && !client.city) {
+          patch.city = g.adresa_sediu_social.localitate;
+          updatedFields.push("Localitate");
+        }
+        if (g.tva !== undefined && g.tva.platitor !== undefined) {
+          patch.tva = g.tva.platitor;
+          updatedFields.push("Plătitor TVA");
+        }
+        if (g.telefon && !client.phone) {
+          patch.phone = g.telefon;
+          updatedFields.push("Telefon");
+        }
+
+        if (Object.keys(patch).length > 0) {
+          await updateClient(input.clientId, tenantId, patch);
+        }
+
+        return {
+          success: true,
+          updatedFields,
+          patch,
+        };
       }),
   }),
 
@@ -1916,22 +2134,89 @@ export const appRouter = router({
           .select()
           .from(emittedInvoiceLines)
           .where(eq(emittedInvoiceLines.emittedInvoiceId, input.id))
-          .orderBy(emittedInvoiceLines.lineOrder);
-        return { ...inv, lines };
+        const isForeign = Boolean(
+          (inv.clientCountry && inv.clientCountry !== "RO") ||
+          (inv.clientCUI && !inv.clientCUI.startsWith("RO") && /^[A-Z]{2}/.test(inv.clientCUI)) ||
+          (inv.currency && inv.currency !== "RON" && inv.currency !== "LEI")
+        );
+        const { translateProductDescription } = await import("./invoiceTranslator");
+        const linesWithTrans = await Promise.all(
+          lines.map(async (l) => {
+            const translatedDescription = isForeign
+              ? await translateProductDescription(l.description || "")
+              : undefined;
+            return {
+              ...l,
+              translatedDescription,
+            };
+          })
+        );
+        let clientRecord: any = null;
+        if (inv.clientId) {
+          const { clients } = await import("../drizzle/schema");
+          const [c] = await db
+            .select()
+            .from(clients)
+            .where(eq(clients.id, inv.clientId));
+          clientRecord = c;
+        }
+
+        return {
+          ...inv,
+          clientName: inv.clientName || clientRecord?.name || "",
+          clientCUI: inv.clientCUI || clientRecord?.cui || null,
+          clientRegCom: inv.clientRegCom || clientRecord?.regCom || null,
+          clientAddress: inv.clientAddress || clientRecord?.address || null,
+          clientCity: inv.clientCity || clientRecord?.city || null,
+          clientCountry: inv.clientCountry || clientRecord?.country || null,
+          lines: linesWithTrans,
+        };
       }),
 
     seriesList: protectedProcedure.query(async ({ ctx }) => {
       if (!ctx.user?.tenantId) return ["FACT", "INV"];
       const db = await getDb();
       if (!db) return ["FACT", "INV"];
-      const { emittedInvoices } = await import("../drizzle/schema");
-      const rows = await db
+      const { emittedInvoices, invoiceArchive } = await import("../drizzle/schema");
+      const { eq, and } = await import("drizzle-orm");
+
+      const emittedRows = await db
         .selectDistinct({ series: emittedInvoices.series })
         .from(emittedInvoices)
         .where(eq(emittedInvoices.tenantId, (ctx.user?.tenantId || 1)));
-      const list = rows.map(r => r.series).filter(Boolean) as string[];
+
+      const archiveRows = await db
+        .selectDistinct({ invoiceNumber: invoiceArchive.invoiceNumber })
+        .from(invoiceArchive)
+        .where(
+          and(
+            eq(invoiceArchive.tenantId, (ctx.user?.tenantId || 1)),
+            eq(invoiceArchive.direction, "out")
+          )
+        );
+
+      const seriesSet = new Set<string>();
+      emittedRows.forEach(r => {
+        if (r.series && r.series.trim()) seriesSet.add(r.series.trim().toUpperCase());
+      });
+
+      archiveRows.forEach(r => {
+        if (r.invoiceNumber) {
+          const match = r.invoiceNumber.trim().match(/^([A-Za-z]+)/);
+          if (match) seriesSet.add(match[1].toUpperCase());
+        }
+      });
+
+      // Special support for RoWood tenant (ID 4)
+      if (ctx.user?.tenantId === 4) {
+        seriesSet.add("WOODR");
+        seriesSet.add("WOODE");
+        const list = Array.from(seriesSet);
+        return ["WOODR", "WOODE", ...list.filter(s => s !== "WOODR" && s !== "WOODE")];
+      }
+
+      const list = Array.from(seriesSet);
       if (!list.includes("FACT")) list.unshift("FACT");
-      if (!list.includes("INV")) list.push("INV");
       return list;
     }),
 
@@ -1941,26 +2226,79 @@ export const appRouter = router({
         if (!ctx.user?.tenantId) throw new Error("No tenant");
         const db = await getDb();
         if (!db) throw new Error("No DB");
-        const { emittedInvoices } = await import("../drizzle/schema");
-        const { desc } = await import("drizzle-orm");
-        const { sql } = await import("drizzle-orm");
+        const { emittedInvoices, invoiceArchive } = await import("../drizzle/schema");
+        const { sql, and, eq, like, or } = await import("drizzle-orm");
         const cleanSeries = (input.series || "FACT").trim().toUpperCase();
-        const last = await db
+
+        // 1. Get from emittedInvoices
+        const emittedMatches = await db
           .select({ number: emittedInvoices.number })
           .from(emittedInvoices)
           .where(
             and(
               eq(emittedInvoices.tenantId, (ctx.user?.tenantId || 1)),
-              sql`UPPER(${emittedInvoices.series}) = ${cleanSeries}`
+              or(
+                sql`UPPER(${emittedInvoices.series}) = ${cleanSeries}`,
+                like(emittedInvoices.number, `${cleanSeries}%`)
+              )
             )
-          )
-          .orderBy(desc(emittedInvoices.id))
-          .limit(1);
-        let nextNum = 1;
-        if (last.length > 0) {
-          const match = last[0].number.match(/(\d+)$/);
-          if (match) nextNum = parseInt(match[1]) + 1;
+          );
+
+        // 2. Get from invoiceArchive (direction: out)
+        const archiveMatches = await db
+          .select({ invoiceNumber: invoiceArchive.invoiceNumber })
+          .from(invoiceArchive)
+          .where(
+            and(
+              eq(invoiceArchive.tenantId, (ctx.user?.tenantId || 1)),
+              eq(invoiceArchive.direction, "out"),
+              like(invoiceArchive.invoiceNumber, `${cleanSeries}%`)
+            )
+          );
+
+        let maxNum = 0;
+        let sampleNum = "";
+
+        for (const row of emittedMatches) {
+          const m = (row.number || "").match(/(\d+)$/);
+          if (m) {
+            const val = parseInt(m[1], 10);
+            if (val > maxNum) {
+              maxNum = val;
+              sampleNum = m[1];
+            }
+          }
         }
+
+        for (const row of archiveMatches) {
+          const m = (row.invoiceNumber || "").match(/(\d+)$/);
+          if (m) {
+            const val = parseInt(m[1], 10);
+            if (val > maxNum) {
+              maxNum = val;
+              sampleNum = m[1];
+            }
+          }
+        }
+
+        // Specific overrides requested for RoWood (tenant 4)
+        if (ctx.user?.tenantId === 4) {
+          if (cleanSeries === "WOODE" && maxNum < 903) maxNum = 903;
+          if (cleanSeries === "WOODR" && maxNum < 741) maxNum = 741;
+        }
+
+        const nextNum = maxNum > 0 ? maxNum + 1 : 1;
+
+        // If existing numbers did not have leading zeros (e.g. 741 or 903), keep natural number
+        if (sampleNum && !sampleNum.startsWith("0")) {
+          return `${cleanSeries}-${nextNum}`;
+        }
+
+        // If it starts with WOOD, no leading zero padding
+        if (cleanSeries.startsWith("WOOD")) {
+          return `${cleanSeries}-${nextNum}`;
+        }
+
         return `${cleanSeries}-${String(nextNum).padStart(4, "0")}`;
       }),
 
@@ -1973,6 +2311,7 @@ export const appRouter = router({
           companyBank: z.string().optional(),
           clientId: z.number().optional(),
           clientName: z.string(),
+          clientCode: z.string().optional(),
           clientCUI: z.string().optional(),
           clientRegCom: z.string().optional(),
           clientAddress: z.string().optional(),
@@ -2051,6 +2390,7 @@ export const appRouter = router({
               if (invoiceData.clientPhone) updateClientData.phone = invoiceData.clientPhone.trim();
               if (invoiceData.clientRegCom) updateClientData.regCom = invoiceData.clientRegCom.trim();
               if (invoiceData.clientCUI) updateClientData.cui = invoiceData.clientCUI.trim();
+              if (invoiceData.clientCode) updateClientData.sagaCode = invoiceData.clientCode.trim();
               if (Object.keys(updateClientData).length > 0) {
                 await db.update(clients).set(updateClientData).where(eq(clients.id, assignedClientId));
               }
@@ -2061,6 +2401,7 @@ export const appRouter = router({
                   tenantId: (ctx.user?.tenantId || 1),
                   name: invoiceData.clientName.trim(),
                   cui: invoiceData.clientCUI?.trim() || null,
+                  sagaCode: invoiceData.clientCode?.trim() || null,
                   regCom: invoiceData.clientRegCom?.trim() || null,
                   address: invoiceData.clientAddress?.trim() || null,
                   city: invoiceData.clientCity?.trim() || null,
@@ -2086,6 +2427,7 @@ export const appRouter = router({
             if (invoiceData.clientPhone) updateClientData.phone = invoiceData.clientPhone.trim();
             if (invoiceData.clientRegCom) updateClientData.regCom = invoiceData.clientRegCom.trim();
             if (invoiceData.clientCUI) updateClientData.cui = invoiceData.clientCUI.trim();
+            if (invoiceData.clientCode) updateClientData.sagaCode = invoiceData.clientCode.trim();
             if (Object.keys(updateClientData).length > 0) {
               await db.update(clients).set(updateClientData).where(eq(clients.id, assignedClientId));
             }
@@ -2296,6 +2638,7 @@ export const appRouter = router({
           companyBank: z.string().optional(),
           clientId: z.number().optional(),
           clientName: z.string().optional(),
+          clientCode: z.string().optional(),
           clientCUI: z.string().optional(),
           clientRegCom: z.string().optional(),
           clientAddress: z.string().optional(),
@@ -2685,21 +3028,12 @@ export const appRouter = router({
         const { uploadInvoiceToSPV } = await import("./anafApi");
         // uploadInvoiceToSPV works on reInvoices; we need a version for emittedInvoices
         // We'll do the upload inline here and update emittedInvoices directly
-        const { integrations } = await import("../drizzle/schema");
-        const [intg] = await db
-          .select()
-          .from(integrations)
-          .where(
-            and(
-              eq(integrations.tenantId, (ctx.user?.tenantId || 1)),
-              eq(integrations.provider, "spv"),
-              eq(integrations.status, "active")
-            )
-          );
-        if (!intg?.apiKey)
+        const { getValidSpvToken, refreshSpvToken } = await import("./anafApi");
+        const tokenData = await getValidSpvToken(ctx.user?.tenantId || 1);
+        if (!tokenData?.token)
           return {
             success: false,
-            error: "SPV nu este conectat sau token lipsă.",
+            error: "SPV nu este conectat sau token lipsă. Te rugăm să reconectezi SPV în Setări.",
           };
         const cui = (tenantData.cui || "").replace(/\D/g, "");
         if (!cui) {
@@ -2709,15 +3043,34 @@ export const appRouter = router({
           };
         }
         const uploadUrl = `https://api.anaf.ro/prod/FCTEL/rest/upload?standard=UBL&cif=${cui}`;
-        const response = await fetch(uploadUrl, {
+        let token = tokenData.token;
+        let response = await fetch(uploadUrl, {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${intg.apiKey}`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/xml",
           },
           body: xmlContent,
         });
-        const responseText = await response.text();
+        let responseText = await response.text();
+
+        // Immediate retry on 401
+        if (response.status === 401 && tokenData.integration?.apiSecret) {
+          console.log(`[SPV Upload Emitted] 401 Unauthorized, refreshing token immediately...`);
+          const refreshedToken = await refreshSpvToken(tokenData.integration);
+          if (refreshedToken) {
+            token = refreshedToken;
+            response = await fetch(uploadUrl, {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/xml",
+              },
+              body: xmlContent,
+            });
+            responseText = await response.text();
+          }
+        }
         console.log(`[SPV Upload Emitted] Invoice ${input.id} Response:`, responseText);
         
         let spvIndex: string | null = null;
@@ -2771,24 +3124,30 @@ export const appRouter = router({
         if (!inv) throw new Error("Factura nu a fost găsită");
         if (!inv.spvIndex) throw new Error("Factura nu are index SPV. Trimite-o mai întâi.");
 
-        const [intg] = await db
-          .select()
-          .from(integrations)
-          .where(
-            and(
-              eq(integrations.tenantId, (ctx.user?.tenantId || 1)),
-              eq(integrations.provider, "spv"),
-              eq(integrations.status, "active")
-            )
-          );
-        if (!intg?.apiKey) throw new Error("SPV nu este conectat.");
+        const { getValidSpvToken, refreshSpvToken } = await import("./anafApi");
+        const tokenData = await getValidSpvToken(ctx.user?.tenantId || 1);
+        if (!tokenData?.token) throw new Error("SPV nu este conectat.");
 
+        let token = tokenData.token;
         const statusUrl = `https://api.anaf.ro/prod/FCTEL/rest/stareMesaj?id_incarcare=${inv.spvIndex}`;
-        const resp = await fetch(statusUrl, {
-          headers: { Authorization: `Bearer ${intg.apiKey}` },
+        let resp = await fetch(statusUrl, {
+          headers: { Authorization: `Bearer ${token}` },
           signal: AbortSignal.timeout(15000),
         });
-        const text = await resp.text();
+        let text = await resp.text();
+
+        if (resp.status === 401 && tokenData.integration?.apiSecret) {
+          console.log(`[SPV Status] 401 Unauthorized, refreshing token immediately...`);
+          const refreshedToken = await refreshSpvToken(tokenData.integration);
+          if (refreshedToken) {
+            token = refreshedToken;
+            resp = await fetch(statusUrl, {
+              headers: { Authorization: `Bearer ${token}` },
+              signal: AbortSignal.timeout(15000),
+            });
+            text = await resp.text();
+          }
+        }
         console.log(`[SPV Status] Invoice ${input.id} index ${inv.spvIndex}:`, text);
 
         // ANAF returns XML: <header stare="ok|nok|in prelucrare" id_descarcare="..." />
@@ -2818,7 +3177,7 @@ export const appRouter = router({
             const AdmZip = (await import("adm-zip")).default;
             const errResp = await fetch(
               `https://api.anaf.ro/prod/FCTEL/rest/descarcare?id=${idDescarcare}`,
-              { headers: { Authorization: `Bearer ${intg.apiKey}` }, signal: AbortSignal.timeout(15000) }
+              { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(15000) }
             );
             const buf = Buffer.from(await errResp.arrayBuffer());
             console.log(`[SPV Error Details] ${idDescarcare}: ${buf.length} bytes, first4=${buf.slice(0,4).toString("hex")}`);

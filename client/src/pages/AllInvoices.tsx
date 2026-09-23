@@ -21,6 +21,7 @@ import {
   Download,
   CheckCircle,
   ClipboardList,
+  ClipboardCheck,
   MoreVertical,
   Coins,
   Tag,
@@ -59,6 +60,8 @@ import {
 } from "@/components/ui/select";
 
 type InvoiceType = "primit" | "emis";
+type InvoiceTypeFilter = "all" | "primit" | "emis";
+type NirFilterType = "all" | "cu_nir" | "fara_nir";
 
 interface UnifiedRow {
   id: number;
@@ -76,6 +79,10 @@ interface UnifiedRow {
   source: string;
   itemsText?: string;
   spvStatus?: string | null;
+  spvIndex?: string | null;
+  nirId?: number | null;
+  nirNumber?: string | null;
+  nirStatus?: string | null;
 }
 
 const SOURCE_BADGE: Record<string, { label: string; cls: string }> = {
@@ -178,7 +185,8 @@ export default function AllInvoices() {
   };
   const [page, setPage] = useState(() => parseInt(sessionStorage.getItem("allInvoices_page") || "1", 10));
   const [rowsPerPage, setRowsPerPage] = useState(15);
-  const [typeFilter, setTypeFilter] = useState<InvoiceType | "all">(() => (sessionStorage.getItem("allInvoices_type") as any) || "all");
+  const [typeFilter, setTypeFilter] = useState<InvoiceTypeFilter>(() => (sessionStorage.getItem("allInvoices_type") as any) || "all");
+  const [nirFilter, setNirFilter] = useState<NirFilterType>(() => (sessionStorage.getItem("allInvoices_nir") as any) || "all");
   const [filterStatus, setFilterStatus] = useState<string>(() => sessionStorage.getItem("allInvoices_status") || "all");
   const [sourceFilter, setSourceFilter] = useState<string>(() => sessionStorage.getItem("allInvoices_source") || "all");
 
@@ -186,9 +194,10 @@ export default function AllInvoices() {
     sessionStorage.setItem("allInvoices_search", search);
     sessionStorage.setItem("allInvoices_page", page.toString());
     sessionStorage.setItem("allInvoices_type", typeFilter);
+    sessionStorage.setItem("allInvoices_nir", nirFilter);
     sessionStorage.setItem("allInvoices_status", filterStatus);
     sessionStorage.setItem("allInvoices_source", sourceFilter);
-  }, [search, page, typeFilter, filterStatus, sourceFilter]);
+  }, [search, page, typeFilter, nirFilter, filterStatus, sourceFilter]);
 
   // Șterge memoria filtrelor la refresh-ul complet al paginii (F5)
   useEffect(() => {
@@ -196,6 +205,7 @@ export default function AllInvoices() {
       sessionStorage.removeItem("allInvoices_search");
       sessionStorage.removeItem("allInvoices_page");
       sessionStorage.removeItem("allInvoices_type");
+      sessionStorage.removeItem("allInvoices_nir");
       sessionStorage.removeItem("allInvoices_status");
       sessionStorage.removeItem("allInvoices_source");
     };
@@ -383,6 +393,25 @@ export default function AllInvoices() {
     isLoading: l3,
     refetch: r3,
   } = trpc.emittedInvoice.list.useQuery();
+  const { data: nirList = [], refetch: rNir } = trpc.nir.list.useQuery();
+  const { data: clientsList = [] } = trpc.clients.list.useQuery();
+
+  const getClientId = (r: any) => {
+    if (r.clientId) return r.clientId;
+    if (!clientsList || !Array.isArray(clientsList)) return null;
+    const clean = (s?: string) => (s || "").replace(/^[A-Z]{2}/i, "").trim().toLowerCase();
+    const cCui = clean(r.partnerCui);
+    const cName = (r.partnerName || "").trim().toLowerCase();
+    if (cCui) {
+      const match = (clientsList as any[]).find((c: any) => clean(c.cui) === cCui);
+      if (match) return match.id;
+    }
+    if (cName && cName !== "—") {
+      const match = (clientsList as any[]).find((c: any) => (c.name || "").trim().toLowerCase() === cName);
+      if (match) return match.id;
+    }
+    return null;
+  };
 
   const { data: currentTenantObj } = trpc.tenants.current.useQuery();
   const { data: tenantsData = [] } = trpc.tenants.list.useQuery();
@@ -471,9 +500,45 @@ export default function AllInvoices() {
 
   const allRows: UnifiedRow[] = useMemo(() => {
     const rows: UnifiedRow[] = [];
+    const emittedIndexByNumber = new Map<string, string>();
+    (Array.isArray(emittedInvoices) ? emittedInvoices : []).forEach((i: any) => {
+      if (i.number && i.spvIndex) {
+        emittedIndexByNumber.set(String(i.number).trim().toLowerCase(), String(i.spvIndex));
+      }
+    });
+
+    const nirByArchiveId = new Map<number, any>();
+    const nirByInvoiceNumber = new Map<string, any>();
+    (Array.isArray(nirList) ? nirList : []).forEach((n: any) => {
+      if (n.invoiceArchiveId) {
+        nirByArchiveId.set(Number(n.invoiceArchiveId), n);
+      }
+      if (n.invoiceNumber) {
+        const clean = String(n.invoiceNumber).trim().toLowerCase();
+        if (clean && !nirByInvoiceNumber.has(clean)) {
+          nirByInvoiceNumber.set(clean, n);
+        }
+      }
+    });
+
     archiveItems.forEach((i: any) => {
       const t = parseFloat(i.total || "0");
       const isPrimit = i.direction === "in";
+      const spvIdx =
+        i.spvIndex ||
+        (i.fileName ? i.fileName.match(/SPV_(\d+)/i)?.[1] : null) ||
+        (i.notes ? i.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i)?.[1] : null) ||
+        (i.invoiceNumber ? emittedIndexByNumber.get(String(i.invoiceNumber).trim().toLowerCase()) : null) ||
+        null;
+
+      const cleanInvNum = String(i.invoiceNumber || "").trim().toLowerCase();
+      const matchedNir =
+        nirByArchiveId.get(Number(i.id)) ||
+        (cleanInvNum ? nirByInvoiceNumber.get(cleanInvNum) : null);
+      const nirId = matchedNir?.id || i.nirId || null;
+      const nirNumber = matchedNir?.nirNumber || i.nirNumber || null;
+      const nirStatus = matchedNir ? "full" : (i.nirStatus || "none");
+
       rows.push({
         id: i.id,
         type: isPrimit ? "primit" : "emis",
@@ -491,6 +556,10 @@ export default function AllInvoices() {
           ? (i.supplierCUI || i.supplierCui || "")
           : (i.customerCUI || i.customerCui || i.supplierCUI || i.supplierCui || ""),
         spvStatus: i.spvStatus,
+        spvIndex: spvIdx,
+        nirId,
+        nirNumber,
+        nirStatus,
       });
     });
     (Array.isArray(reInvoices) ? reInvoices : []).forEach((i: any) => {
@@ -510,6 +579,7 @@ export default function AllInvoices() {
         itemsText: i.itemsText || "",
         partnerCui: i.clientCUI || i.clientCui || "",
         spvStatus: i.spvStatus,
+        spvIndex: i.spvIndex || null,
       });
     });
     (Array.isArray(emittedInvoices) ? emittedInvoices : []).forEach(
@@ -534,19 +604,43 @@ export default function AllInvoices() {
           source: "manual",
           itemsText: i.itemsText || "",
           spvStatus: i.spvStatus,
+          spvIndex: i.spvIndex || null,
           partnerCui: i.clientCUI || i.clientCui || "",
           clientCountry: i.clientCountry || "",
         });
       }
     );
     return rows.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
-  }, [archiveItems, reInvoices, emittedInvoices]);
+  }, [archiveItems, reInvoices, emittedInvoices, nirList]);
+
+  const nirCounts = useMemo(() => {
+    let cuNir = 0;
+    let faraNir = 0;
+    allRows.forEach(r => {
+      if (r.nirNumber || r.nirId) {
+        cuNir++;
+      } else if (r.type === "primit") {
+        faraNir++;
+      }
+    });
+    return { cuNir, faraNir };
+  }, [allRows]);
 
   const filtered = useMemo(() => {
     let rows =
       typeFilter === "all"
         ? allRows
         : allRows.filter(r => r.type === typeFilter);
+
+    // Filtru NIR dedicat (Toate / Cu NIR / Fără NIR)
+    if (nirFilter === "cu_nir") {
+      rows = rows.filter(r => !!r.nirNumber || !!r.nirId);
+    } else if (nirFilter === "fara_nir") {
+      rows = rows.filter(
+        r => (typeFilter === "emis" ? true : r.type === "primit") && !r.nirNumber && !r.nirId
+      );
+    }
+
     if (filterStatus !== "all") {
       if (filterStatus === "paid" || filterStatus === "processed") {
         rows = rows.filter(
@@ -576,6 +670,7 @@ export default function AllInvoices() {
         r =>
           normalizeText(r.number).includes(q) ||
           normalizeText(r.partnerName).includes(q) ||
+          (r.nirNumber && normalizeText(r.nirNumber).includes(q)) ||
           (r.partnerCui && normalizeText(r.partnerCui).includes(q)) ||
           normalizeText(STATUS_LBL[r.status] || r.status).includes(q) ||
           r.total.toString().includes(q) ||
@@ -583,7 +678,8 @@ export default function AllInvoices() {
             q
           ) ||
           normalizeText(r.source).includes(q) ||
-          (r.itemsText && normalizeText(r.itemsText).includes(q))
+          (r.itemsText && normalizeText(r.itemsText).includes(q)) ||
+          (r.spvIndex && r.spvIndex.includes(q))
       );
     }
     return rows;
@@ -591,6 +687,7 @@ export default function AllInvoices() {
     allRows,
     search,
     typeFilter,
+    nirFilter,
     filterStatus,
     sourceFilter,
     period,
@@ -817,13 +914,7 @@ export default function AllInvoices() {
             </button>
             <button
               onClick={async () => {
-                if (
-                  !window.confirm(
-                    `Ștergi ${selectedIds.size} facturi selectate?`
-                  )
-                )
-                  return;
-                toast.loading("Ștergere în curs...", { id: "bulk-del" });
+                toast.loading(`Se șterg ${selectedIds.size} facturi selectate...`, { id: "bulk-del" });
                 let ok = 0;
                 for (const key of Array.from(selectedIds)) {
                   const [source, idStr] = key.split("-");
@@ -929,9 +1020,42 @@ export default function AllInvoices() {
                   <SelectValue placeholder="Tip" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Toate</SelectItem>
+                  <SelectItem value="all">Tip: Toate</SelectItem>
                   <SelectItem value="primit">Primite</SelectItem>
                   <SelectItem value="emis">Emise</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Filtru NIR dedicat (Cu / Fara NIR) */}
+            <div className="w-[130px] sm:w-[155px] flex-shrink-0">
+              <Select
+                value={nirFilter}
+                onValueChange={val => {
+                  setNirFilter(val as any);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger
+                  className={`h-8 w-full rounded-full text-xs font-bold border ${
+                    nirFilter !== "all"
+                      ? "border-teal-500 bg-teal-50/70 text-teal-800 dark:bg-teal-950/50 dark:text-teal-300 dark:border-teal-700"
+                      : "border-slate-200 bg-white text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
+                  } hover:bg-slate-50 focus:ring-2 focus:ring-teal-500 shadow-none flex items-center gap-1.5 px-3`}
+                >
+                  <ClipboardCheck
+                    className={`w-3.5 h-3.5 ${
+                      nirFilter !== "all"
+                        ? "text-teal-600 dark:text-teal-400"
+                        : "text-teal-600"
+                    } flex-shrink-0`}
+                  />
+                  <SelectValue placeholder="NIR" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">NIR: Toate</SelectItem>
+                  <SelectItem value="cu_nir">✓ Cu NIR ({nirCounts.cuNir})</SelectItem>
+                  <SelectItem value="fara_nir">○ Fără NIR ({nirCounts.faraNir})</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1127,7 +1251,7 @@ export default function AllInvoices() {
                     colSpan={7}
                     className="py-4 text-center text-slate-400 text-[11px] bg-slate-50/50 dark:bg-slate-800/20 border-b border-dashed border-slate-200 dark:border-slate-800"
                   >
-                    {search || typeFilter !== "all"
+                    {search || typeFilter !== "all" || nirFilter !== "all"
                       ? "Nicio factură pentru filtrele aplicate."
                       : "Nu există facturi. Apasă Sync sau importă XML din pagina Integrări."}
                   </td>
@@ -1180,25 +1304,50 @@ export default function AllInvoices() {
                             >
                               {tb.label}
                             </span>
+                            {row.nirNumber && (
+                              <Link href={`/nir/edit/${row.nirId}`}>
+                                <span
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border leading-none bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100 hover:border-teal-300 dark:bg-teal-950/50 dark:text-teal-300 dark:border-teal-800 transition-colors cursor-pointer"
+                                  title={`NIR asociat: ${row.nirNumber}. Click pentru vizualizare / editare NIR.`}
+                                >
+                                  <ClipboardCheck className="w-3 h-3 text-teal-600 dark:text-teal-400 shrink-0" />
+                                  <span>{row.nirNumber}</span>
+                                </span>
+                              </Link>
+                            )}
                           </div>
-                          <div className="h-5 flex items-center">
+                          <div className="h-5 flex items-center gap-2">
                             <span
                               className={`px-2 py-0.5 rounded-full text-[11px] font-normal border leading-none ${STATUS_COLORS[row.status] || STATUS_COLORS.pending}`}
                             >
                               {getStatusLabel(row.status, row.type)}
                             </span>
+                            {row.spvIndex && (
+                              <span
+                                className="text-[11px] font-mono text-slate-500 dark:text-slate-400 font-normal leading-none"
+                                title={`Index încărcare SPV: ${row.spvIndex}`}
+                              >
+                                Index: {row.spvIndex}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-2.5">
                         <div className="h-10 flex flex-col justify-center">
                           <div className="h-5 flex items-center">
-                            <div
-                              className="text-xs font-bold text-slate-900 dark:text-white max-w-[200px] truncate"
-                              title={row.partnerName}
-                            >
-                              {row.partnerName}
-                            </div>
+                            {(() => {
+                              const cId = getClientId(row);
+                              return (
+                                <Link
+                                  href={cId ? `/client/${cId}` : `/clienti?search=${encodeURIComponent(row.partnerName)}`}
+                                  className="text-xs font-bold text-slate-900 dark:text-white max-w-[200px] truncate hover:underline hover:text-primary transition-colors cursor-pointer block"
+                                  title={row.partnerName}
+                                >
+                                  {row.partnerName}
+                                </Link>
+                              );
+                            })()}
                           </div>
                           <div className="h-5 flex items-center text-[11px] text-slate-400 font-normal gap-1.5 whitespace-nowrap">
                             {row.partnerCui ? (
@@ -1307,6 +1456,16 @@ export default function AllInvoices() {
                           >
                             <FileDown className="w-3.5 h-3.5" />
                           </button>
+                          {row.nirId && (
+                            <Link href={`/nir/edit/${row.nirId}`}>
+                              <button
+                                className="flex items-center justify-center w-7 h-7 rounded-lg bg-teal-50 dark:bg-teal-950/40 hover:bg-teal-100 dark:hover:bg-teal-900/60 text-teal-600 dark:text-teal-400 border border-teal-200 dark:border-teal-800 transition-colors"
+                                title={`Vezi NIR: ${row.nirNumber || ""}`}
+                              >
+                                <ClipboardCheck className="w-3.5 h-3.5" />
+                              </button>
+                            </Link>
+                          )}
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <button className="flex items-center justify-center w-7 h-7 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 transition-colors">
@@ -1359,7 +1518,14 @@ export default function AllInvoices() {
                                 </Link>
                               )}
 
-                              {row.type === "primit" && (row as any).nirStatus !== "full" && (
+                              {row.nirId ? (
+                                <Link href={`/nir/edit/${row.nirId}`}>
+                                  <DropdownMenuItem className="cursor-pointer text-teal-600 focus:text-teal-700 font-medium">
+                                    <ClipboardCheck className="w-4 h-4 mr-2 text-teal-600" />
+                                    <span>Vezi NIR {row.nirNumber ? `(${row.nirNumber})` : ""}</span>
+                                  </DropdownMenuItem>
+                                </Link>
+                              ) : row.type === "primit" ? (
                                 <Link href={`/nir/nou/${row.id}`}>
                                   <DropdownMenuItem className="cursor-pointer text-teal-600 focus:text-teal-700">
                                     <ClipboardList className="w-4 h-4 mr-2" />
@@ -1368,7 +1534,7 @@ export default function AllInvoices() {
                                     </span>
                                   </DropdownMenuItem>
                                 </Link>
-                              )}
+                              ) : null}
 
                               <DropdownMenuSeparator />
 
@@ -1537,7 +1703,14 @@ export default function AllInvoices() {
                             </Link>
                           )}
 
-                          {row.type === "primit" && (row as any).nirStatus !== "full" && (
+                          {row.nirId ? (
+                            <Link href={`/nir/edit/${row.nirId}`}>
+                              <DropdownMenuItem className="cursor-pointer text-teal-600 focus:text-teal-700 font-medium">
+                                <ClipboardCheck className="w-4 h-4 mr-2 text-teal-600" />
+                                <span>Vezi NIR {row.nirNumber ? `(${row.nirNumber})` : ""}</span>
+                              </DropdownMenuItem>
+                            </Link>
+                          ) : row.type === "primit" ? (
                             <Link href={`/nir/nou/${row.id}`}>
                               <DropdownMenuItem className="cursor-pointer text-teal-600 focus:text-teal-700">
                                 <ClipboardList className="w-4 h-4 mr-2" />
@@ -1546,7 +1719,7 @@ export default function AllInvoices() {
                                 </span>
                               </DropdownMenuItem>
                             </Link>
-                          )}
+                          ) : null}
 
                           <DropdownMenuSeparator />
 
@@ -1620,11 +1793,28 @@ export default function AllInvoices() {
                       >
                         {tb.label}
                       </span>
+                      {row.nirNumber && (
+                        <Link href={`/nir/edit/${row.nirId}`}>
+                          <span
+                            className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] font-bold border bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/50 dark:text-teal-300 dark:border-teal-800"
+                            title={`NIR: ${row.nirNumber}`}
+                          >
+                            <ClipboardCheck className="w-2.5 h-2.5 text-teal-600 dark:text-teal-400 shrink-0" />
+                            <span>{row.nirNumber}</span>
+                          </span>
+                        </Link>
+                      )}
                       <span>{formatDate(row.date)}</span>
                       {row.dueDate && (
                         <>
                           <span>·</span>
                           <span>Scad. {formatDate(row.dueDate)}</span>
+                        </>
+                      )}
+                      {row.spvIndex && (
+                        <>
+                          <span>·</span>
+                          <span className="font-mono">Index: {row.spvIndex}</span>
                         </>
                       )}
                     </div>

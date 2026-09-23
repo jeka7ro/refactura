@@ -21,11 +21,29 @@ export default function PrintInvoice() {
     }
   }, [tenant]);
 
+  const totalDueColor = useMemo(() => {
+    const THEME_COLORS: Record<string, string> = {
+      blue: "#2563eb",
+      teal: "#0d9488",
+      green: "#16a34a",
+      rose: "#e11d48",
+      violet: "#7c3aed",
+      navy: "#003366",
+    };
+    return (
+      settings.themeColor ||
+      (settings.theme && THEME_COLORS[settings.theme]) ||
+      "#2563eb"
+    );
+  }, [settings]);
+
   const isForeign = useMemo(() => {
     const country = (invoice?.clientCountry || "").trim().toUpperCase();
     if (country && country !== "RO") return true;
     const cui = (invoice?.clientCUI || "").trim().toUpperCase();
     if (cui && !cui.startsWith("RO") && /^[A-Z]{2}/.test(cui)) return true;
+    const curr = (invoice?.currency || "").trim().toUpperCase();
+    if (curr && curr !== "RON" && curr !== "LEI") return true;
     return false;
   }, [invoice]);
 
@@ -56,13 +74,29 @@ export default function PrintInvoice() {
       <div className="flex justify-between items-start border-b border-gray-200 pb-8 mb-8">
         <div>
           {settings.logoBase64 ? (
-            <div className="inline-flex items-center justify-center bg-slate-900 px-3.5 py-1.5 rounded-xl mb-4 shadow-sm border border-slate-800">
-              <img
-                src={settings.logoBase64}
-                alt="Logo"
-                className="h-9 w-auto object-contain"
-              />
-            </div>
+            settings.logoHasBackground ? (
+              <div
+                className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-xl mb-4 shadow-sm border"
+                style={{
+                  backgroundColor: settings.logoBgColor || "#0f172a",
+                  borderColor: settings.logoBgColor || "#0f172a",
+                }}
+              >
+                <img
+                  src={settings.logoBase64}
+                  alt="Logo"
+                  className="h-9 w-auto object-contain"
+                />
+              </div>
+            ) : (
+              <div className="inline-flex items-center mb-4">
+                <img
+                  src={settings.logoBase64}
+                  alt="Logo"
+                  className="h-10 w-auto max-w-[160px] object-contain"
+                />
+              </div>
+            )
           ) : (
             <h1 className="text-2xl font-black mb-4">{tenant?.name}</h1>
           )}
@@ -151,7 +185,18 @@ export default function PrintInvoice() {
           {invoice.lines?.map((line: any, idx: number) => (
             <tr key={idx} className="border-b border-gray-100 last:border-0">
               <td className="py-3 text-gray-500">{idx + 1}</td>
-              <td className="py-3 font-medium">{line.description}</td>
+              <td className="py-3 font-medium">
+                <div>{line.description}</div>
+                {isForeign &&
+                  line.translatedDescription &&
+                  line.translatedDescription.trim() &&
+                  line.translatedDescription.trim().toLowerCase() !==
+                    line.description.trim().toLowerCase() && (
+                    <div className="text-xs text-slate-500 font-normal mt-0.5">
+                      {line.translatedDescription}
+                    </div>
+                  )}
+              </td>
               <td className="py-3 text-gray-500">{line.unit}</td>
               <td className="py-3 text-right">{line.quantity}</td>
               <td className="py-3 text-right">
@@ -194,7 +239,7 @@ export default function PrintInvoice() {
           </div>
           <div
             className="flex justify-between py-2.5 px-3 text-base font-black text-white rounded-lg shadow-sm mt-2"
-            style={{ backgroundColor: "#0088fe" }}
+            style={{ backgroundColor: totalDueColor }}
           >
             <span>{isForeign ? "TOTAL DE PLATĂ / TOTAL DUE:" : "TOTAL DE PLATĂ:"}</span>
             <span>

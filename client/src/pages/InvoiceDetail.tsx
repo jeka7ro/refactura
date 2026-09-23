@@ -1,8 +1,10 @@
 // InvoiceDetail — date reale din DB (zero mock-uri)
-import { Link, useParams } from "wouter";
+import { useEffect } from "react";
+import { Link, useParams, useLocation } from "wouter";
 import {
   ArrowLeft,
   ArrowRight,
+  ClipboardCheck,
   FileText,
   Building2,
   Calendar,
@@ -20,15 +22,30 @@ import {
 import { trpc } from "@/lib/trpc";
 
 export default function InvoiceDetail() {
+  const [, navigate] = useLocation();
   const { id } = useParams<{ id: string }>();
   const invoiceId = parseInt(id || "0");
 
-  const { data: invoice, isLoading } = trpc.invoiceArchive.getById.useQuery(
+  const { data: invoice, isLoading: isArchiveLoading } = trpc.invoiceArchive.getById.useQuery(
     { id: invoiceId },
     { enabled: !!id && !isNaN(invoiceId) }
   );
 
-  if (isLoading) {
+  const { data: nirList = [] } = trpc.nir.list.useQuery();
+
+  const { data: emittedInv, isLoading: isEmittedLoading } = trpc.emittedInvoice.getById.useQuery(
+    { id: invoiceId },
+    { enabled: !!id && !isNaN(invoiceId) && !invoice && !isArchiveLoading }
+  );
+
+  // Dacă ID-ul aparține unei facturi emise direct în aplicație, redirecționăm către vizualizarea dedicată
+  useEffect(() => {
+    if (!isArchiveLoading && !invoice && emittedInv) {
+      navigate(`/facturi-emise-nou/view/${invoiceId}`, { replace: true });
+    }
+  }, [isArchiveLoading, invoice, emittedInv, invoiceId, navigate]);
+
+  if (isArchiveLoading || (isEmittedLoading && !invoice)) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
@@ -36,19 +53,23 @@ export default function InvoiceDetail() {
     );
   }
 
-  if (!invoice) {
+  if (!invoice && !emittedInv) {
     return (
       <div className="p-8 text-center">
         <div className="text-slate-500">Factura nu a fost găsită.</div>
-        <Link href="/facturi-primite">
-          <button className="mt-4 px-5 h-10 rounded-full bg-blue-600 text-white text-sm font-bold">
-            ← Înapoi
-          </button>
-        </Link>
+        <button
+          onClick={() => window.history.back()}
+          className="mt-4 px-5 h-10 rounded-full bg-blue-600 text-white text-sm font-bold shadow-sm hover:bg-blue-700 transition-colors"
+        >
+          ← Înapoi
+        </button>
       </div>
     );
   }
 
+  if (!invoice) return null;
+
+  const isEmitted = invoice.direction === "out";
   const total = parseFloat(String(invoice.total || "0"));
   const totalVAT = parseFloat(String(invoice.totalVAT || "0"));
   const subtotal = total - totalVAT;
@@ -56,6 +77,18 @@ export default function InvoiceDetail() {
   const isStorno = total < 0;
   const status = isStorno ? "storno" : ((invoice.status || "pending") as any);
   const source = (invoice.source || "other") as any;
+  const spvIndex =
+    (invoice as any).spvIndex ||
+    (invoice.fileName ? invoice.fileName.match(/SPV_(\d+)/i)?.[1] : null) ||
+    (invoice.notes ? invoice.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i)?.[1] : null);
+
+  const existingNir = (Array.isArray(nirList) ? nirList : []).find(
+    (n: any) =>
+      Number(n.invoiceArchiveId) === invoiceId ||
+      (invoice?.invoiceNumber &&
+        n.invoiceNumber &&
+        String(n.invoiceNumber).trim().toLowerCase() === String(invoice.invoiceNumber).trim().toLowerCase())
+  );
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -70,32 +103,57 @@ export default function InvoiceDetail() {
           </button>
           <div>
             <h1 className="text-xl font-bold text-slate-900 dark:text-white">
-              Factură {invoice.invoiceNumber || `#${invoice.id}`}
+              Factură {isEmitted ? "emisă " : ""}{invoice.invoiceNumber || `#${invoice.id}`}
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              {isEmitted ? "Client: " : "Furnizor: "}
               {invoice.supplierName || "—"} ·{" "}
               {formatDate(invoice.issueDate || "")}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span
             className={`px-2.5 h-8 flex items-center rounded-lg text-xs font-bold border ${(invoiceStatusColors as any)[status] || "bg-slate-50 text-slate-600 border-slate-200"}`}
           >
             {(invoiceStatusLabels as any)[status] || status}
           </span>
-          <Link href={`/nir/nou/${invoice.id}`}>
-            <button className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.97]">
-              Creează NIR
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </Link>
-          <Link href={`/re-facturare/${invoice.id}`}>
-            <button className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.97]">
-              Re-facturează
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </Link>
+          {isEmitted ? (
+            <div className="flex items-center gap-1.5">
+              <span className="px-2.5 h-8 flex items-center rounded-lg text-xs font-bold bg-violet-100 text-violet-700 border border-violet-200">
+                Factură Emisă (SPV)
+              </span>
+              {spvIndex && (
+                <span className="px-2.5 h-8 flex items-center rounded-lg text-xs font-mono font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                  Index SPV: {spvIndex}
+                </span>
+              )}
+            </div>
+          ) : (
+            <>
+              {existingNir ? (
+                <Link href={`/nir/edit/${existingNir.id}`}>
+                  <button className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.97]">
+                    <ClipboardCheck className="w-3.5 h-3.5" />
+                    <span>Vezi NIR ({existingNir.nirNumber})</span>
+                  </button>
+                </Link>
+              ) : (
+                <Link href={`/nir/nou/${invoice.id}`}>
+                  <button className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.97]">
+                    Creează NIR
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </Link>
+              )}
+              <Link href={`/re-facturare/${invoice.id}`}>
+                <button className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.97]">
+                  Re-facturează
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </Link>
+            </>
+          )}
         </div>
       </div>
 
@@ -104,7 +162,9 @@ export default function InvoiceDetail() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 dark:divide-slate-800">
           
           <div className="pt-0 sm:px-4 first:px-0 flex flex-col gap-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Furnizor</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              {isEmitted ? "Client / Cumpărător" : "Furnizor"}
+            </span>
             <div className="text-sm font-bold text-slate-900 dark:text-white mt-1">
               {invoice.supplierName || "—"}
             </div>
@@ -113,7 +173,7 @@ export default function InvoiceDetail() {
             )}
             <div className="mt-2 pt-2 border-t border-slate-50 dark:border-slate-800/50">
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border inline-block ${(sourceColors as any)[source] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
-                Sursă: {source}
+                {isEmitted ? "Tip: Emisă SPV" : `Sursă: ${source}`}
               </span>
             </div>
           </div>
@@ -124,6 +184,14 @@ export default function InvoiceDetail() {
               <div className="flex justify-between sm:block sm:mb-1"><span className="text-slate-500 sm:hidden">Număr:</span> <span className="font-semibold text-slate-900 dark:text-white">#{invoice.invoiceNumber || invoice.id}</span></div>
               <div className="flex justify-between sm:block sm:mb-1"><span className="text-slate-500 sm:hidden">Emisă:</span> <span className="text-slate-600 dark:text-slate-300"><span className="hidden sm:inline">Emisă: </span>{formatDate(invoice.issueDate || "")}</span></div>
               <div className="flex justify-between sm:block sm:mb-1"><span className="text-slate-500 sm:hidden">Scadență:</span> <span className="text-slate-600 dark:text-slate-300"><span className="hidden sm:inline">Scad: </span>{formatDate(invoice.dueDate || "")}</span></div>
+              {spvIndex && (
+                <div className="flex justify-between sm:block sm:mb-1">
+                  <span className="text-slate-500 sm:hidden">Index SPV:</span>{" "}
+                  <span className="text-slate-600 dark:text-slate-300 font-mono">
+                    <span className="hidden sm:inline">Index SPV: </span>{spvIndex}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -144,8 +212,8 @@ export default function InvoiceDetail() {
         // Determine PDF URL — either stored file or on-demand ANAF conversion
         const isSpv = invoice.source === "spv_anaf";
         const hasPdf =
-          isSpv || (invoice.fileUrl && invoice.fileUrl !== "spv_import");
-        const pdfUrl = isSpv
+          isSpv || (invoice.fileUrl && invoice.fileUrl !== "spv_import") || !!invoice.rawXml;
+        const pdfUrl = (isSpv || invoice.rawXml)
           ? `/api/pdf/archive/${invoiceId}`
           : invoice.fileUrl;
 

@@ -174,6 +174,7 @@ export async function convertXmlToPdf(
           totalVAT: parseFloat(totalTaxAmt),
           total: parseFloat(payable),
           lines: mappedLines,
+          spvIndex: (fileNameBase || "").match(/SPV_(\d+)/i)?.[1] || undefined,
         };
 
         const pdfStream = generateReInvoicePDF(data);

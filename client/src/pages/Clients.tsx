@@ -24,6 +24,7 @@ export default function Clients() {
   const [formData, setFormData] = useState({
     name: "",
     cui: "",
+    sagaCode: "",
     address: "",
     city: "",
     country: "",
@@ -48,6 +49,7 @@ export default function Clients() {
       setFormData({
         name: "",
         cui: "",
+        sagaCode: "",
         address: "",
         city: "",
         country: "",
@@ -71,6 +73,7 @@ export default function Clients() {
       setFormData({
         name: "",
         cui: "",
+        sagaCode: "",
         address: "",
         city: "",
         country: "",
@@ -113,6 +116,7 @@ export default function Clients() {
     setFormData({
       name: client.name,
       cui: client.cui || "",
+      sagaCode: client.sagaCode || "",
       address: client.address || "",
       city: client.city || "",
       country: client.country || "",
@@ -167,6 +171,19 @@ export default function Clients() {
       key: "cui",
       label: "CUI",
       sortable: true,
+    },
+    {
+      key: "sagaCode",
+      label: "COD SAGA",
+      sortable: true,
+      render: (val: string) =>
+        val ? (
+          <span className="inline-block px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[11px] font-mono font-bold">
+            {val}
+          </span>
+        ) : (
+          <span className="text-slate-400 text-xs">-</span>
+        ),
     },
     {
       key: "city",
@@ -378,6 +395,7 @@ export default function Clients() {
 type ClientFormData = {
   name: string;
   cui: string;
+  sagaCode?: string;
   address: string;
   city: string;
   country: string;
@@ -403,6 +421,7 @@ function ClientForm({
 }) {
   const [data, setData] = useState<ClientFormData>({
     ...initial,
+    sagaCode: initial.sagaCode || "",
     regCom: (initial as any).regCom || "",
     tva: (initial as any).tva ?? false,
   });
@@ -536,7 +555,16 @@ function ClientForm({
           />
         </div>
 
-        {/* Reg. Com. + TVA */}
+        {/* Cod SAGA + Reg. Com. + TVA */}
+        <div>
+          <label className={lbl}>Cod SAGA (Partener)</label>
+          <input
+            className={inp}
+            placeholder="ex: 00001 sau 01209"
+            value={data.sagaCode || ""}
+            onChange={e => set("sagaCode", e.target.value)}
+          />
+        </div>
         <div>
           <label className={lbl}>Reg. Com. (J..)</label>
           <input
@@ -546,7 +574,7 @@ function ClientForm({
             onChange={e => set("regCom", e.target.value)}
           />
         </div>
-        <div>
+        <div className="md:col-span-2">
           <label className={lbl}>Status TVA</label>
           <button
             type="button"

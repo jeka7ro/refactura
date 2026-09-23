@@ -28,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import NirSelectorModal from "@/components/NirSelectorModal";
+import { InvoiceCurrencyCalculator } from "@/components/InvoiceCurrencyCalculator";
 import {
   formatCurrency,
   currencies,
@@ -737,6 +738,20 @@ export default function ReInvoice() {
                   companyIBAN: tenantSettings.iban || "",
                   companyBank: tenantSettings.bank || "",
                   logoBase64: tenantSettings.logoBase64 || undefined,
+                  logoHasBackground: Boolean(tenantSettings.logoHasBackground),
+                  logoBgColor: tenantSettings.logoBgColor || "#0f172a",
+                  themeColor:
+                    tenantSettings.themeColor ||
+                    (tenantSettings.theme &&
+                      ({
+                        blue: "#2563eb",
+                        teal: "#0d9488",
+                        green: "#16a34a",
+                        rose: "#e11d48",
+                        violet: "#7c3aed",
+                        navy: "#003366",
+                      } as Record<string, string>)[tenantSettings.theme]) ||
+                    "#2563eb",
                   template:
                     (localStorage.getItem("invoice-template") as any) ||
                     "classic",
@@ -1283,9 +1298,27 @@ export default function ReInvoice() {
             </span>
 
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
-                Monedă
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Monedă
+                </label>
+                <InvoiceCurrencyCalculator
+                  currentCurrency={currency}
+                  onSelectCurrency={c => {
+                    setCurrency(c as Currency);
+                    toast(`Moneda facturii a fost comutată în ${c}`);
+                  }}
+                  onApplyPrice={(price, lineId) => {
+                    const targetId = lineId || lines[0]?.id;
+                    if (targetId) {
+                      setLines(prev =>
+                        prev.map(l => (l.id === targetId ? { ...l, unitPrice: price } : l))
+                      );
+                      toast(`Preț actualizat: ${price}`);
+                    }
+                  }}
+                />
+              </div>
               <select
                 value={currency}
                 onChange={e => setCurrency(e.target.value as Currency)}

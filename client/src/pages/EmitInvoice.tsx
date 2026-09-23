@@ -14,12 +14,14 @@ import {
   EyeOff,
   Eye,
   FileText,
+  Calculator,
 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { formatCurrency, currencies, type Currency } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
+import { InvoiceCurrencyCalculator } from "@/components/InvoiceCurrencyCalculator";
 
 const VAT_RATES = [0, 5, 9, 19, 21];
 const UNITS = [
@@ -84,6 +86,7 @@ export default function EmitInvoice() {
   // Client fields
   const [selectedClientId, setSelectedClientId] = useState("");
   const [clientName, setClientName] = useState("");
+  const [clientCode, setClientCode] = useState("");
   const [clientCUI, setClientCUI] = useState("");
   const [clientRegCom, setClientRegCom] = useState("");
   const [clientAddress, setClientAddress] = useState("");
@@ -100,9 +103,15 @@ export default function EmitInvoice() {
   const [invoiceNumDigits, setInvoiceNumDigits] = useState("");
   const fullInvoiceNumber = useMemo(() => {
     const s = series.trim();
-    const n = invoiceNumDigits.trim();
+    let n = invoiceNumDigits.trim();
     if (!s) return n;
     if (!n) return s;
+    // Strip series prefix if already present in n (prevents FACT-FACT 0009)
+    const prefixRegex = new RegExp(`^${s}[\\s_-]*`, "i");
+    n = n.replace(prefixRegex, "").trim();
+    if (s.startsWith("WOOD")) {
+      return `${s} ${n}`;
+    }
     return `${s}-${n}`;
   }, [series, invoiceNumDigits]);
   const [currency, setCurrency] = useState<Currency>("RON");
@@ -150,6 +159,9 @@ export default function EmitInvoice() {
 
   // Data
   const { data: clientsData } = trpc.clients.list.useQuery();
+  const { data: searchPartnersData } = trpc.clients.searchPartners.useQuery({
+    query: clientSearch || clientName || undefined,
+  });
   const { data: productsData } = trpc.products.list.useQuery();
   const { data: seriesListData = [] } = trpc.emittedInvoice.seriesList.useQuery();
   const { data: nextNumber, isFetching: nextNumberLoading } =
@@ -217,15 +229,18 @@ export default function EmitInvoice() {
   const devizeUpdateMutation = trpc.devize.update.useMutation();
 
   const clients = clientsData || [];
+  const partnerResults = searchPartnersData || [];
   const filteredClients = useMemo(() => {
+    if (partnerResults.length > 0) return partnerResults;
     const q = (clientName || clientSearch || "").trim().toLowerCase();
-    if (!q) return clients.slice(0, 8);
+    if (!q) return clients.slice(0, 10);
     return clients.filter(
-      c =>
+      (c: any) =>
         c.name.toLowerCase().includes(q) ||
-        (c.cui || "").toLowerCase().includes(q)
+        (c.cui || "").toLowerCase().includes(q) ||
+        (c.sagaCode || c.code || "").toLowerCase().includes(q)
     );
-  }, [clients, clientName, clientSearch]);
+  }, [partnerResults, clients, clientName, clientSearch]);
 
   // Parse tenant settings and bank accounts
   const tenantSettings = useMemo(() => {
@@ -291,8 +306,12 @@ export default function EmitInvoice() {
 
   const handleNumDigitsChange = (val: string) => {
     let clean = val;
-    const match = clean.match(/^([A-Za-z0-9_-]+?)-(.*)$/);
-    if (match) {
+    if (series) {
+      const prefixRegex = new RegExp(`^${series.trim()}[\\s_-]*`, "i");
+      clean = clean.replace(prefixRegex, "");
+    }
+    const match = clean.match(/^([A-Za-z0-9_-]+?)[\s_-]+(.*)$/);
+    if (match && !/^\d+$/.test(match[1])) {
       if (!series || series === "FACT") {
         setSeries(match[1].toUpperCase());
       }
@@ -303,15 +322,68 @@ export default function EmitInvoice() {
 
   useEffect(() => {
     if (!editId && nextNumber) {
-      const match = nextNumber.match(/^([A-Za-z0-9_-]+?)-(.*)$/);
+      const match = nextNumber.match(/^([A-Za-z0-9_-]+?)[\s_-]+(.*)$/);
       if (match) {
         setSeries(match[1]);
-        setInvoiceNumDigits(match[2]);
+        let digits = match[2];
+        const prefixRegex = new RegExp(`^${match[1]}[\\s_-]*`, "i");
+        digits = digits.replace(prefixRegex, "").trim();
+        setInvoiceNumDigits(digits);
       } else {
         setInvoiceNumDigits(nextNumber);
       }
     }
   }, [nextNumber, editId]);
+
+  // Set default series from seriesListData (e.g. WOODR for RoWood)
+  useEffect(() => {
+    if (!editId && seriesListData.length > 0 && (series === "FACT" || !series)) {
+      if (!seriesListData.includes("FACT")) {
+        setSeries(seriesListData[0]);
+      }
+    }
+  }, [seriesListData, editId, series]);
+
+  // Switch between external and internal series on currency change if available
+  useEffect(() => {
+    if (!editId && seriesListData.length > 0) {
+      if (currency !== "RON" && seriesListData.includes("WOODE") && series === "WOODR") {
+        setSeries("WOODE");
+      } else if (currency === "RON" && seriesListData.includes("WOODR") && series === "WOODE") {
+        setSeries("WOODR");
+      }
+    }
+  }, [currency, seriesListData, editId, series]);
+
+  // Support ?clientId= in query string
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const cId = searchParams.get("clientId");
+    if (cId && clientsData && clientsData.length > 0 && !editId && !stornoId && !selectedClientId) {
+      const match = clientsData.find((c: any) => String(c.id) === cId);
+      if (match) {
+        setSelectedClientId(String(match.id));
+        setClientName(match.name || "");
+        setClientCode((match as any).sagaCode || "");
+        setClientCUI(match.cui || "");
+        setClientRegCom(match.regCom || "");
+        setClientAddress(match.address || "");
+        setClientCity(match.city || "");
+        const invCountry =
+          match.country ||
+          (match.cui?.trim().match(/^([A-Za-z]{2})/)?.[1]?.toUpperCase() || "RO");
+        setClientCountry(invCountry);
+        setClientEmail(match.email || "");
+        setClientPhone(match.phone || "");
+        if (match.currency && (match.currency === "RON" || match.currency === "EUR" || match.currency === "USD")) {
+          setCurrency(match.currency as Currency);
+        }
+        if (match.address || match.city || (match as any).sagaCode || (invCountry && invCountry !== "RO")) {
+          setShowAdvancedClientInfo(true);
+        }
+      }
+    }
+  }, [clientsData, editId, stornoId, selectedClientId]);
 
   // Pre-fill Edit or Storno data
   useEffect(() => {
@@ -319,6 +391,7 @@ export default function EmitInvoice() {
       if (originalInvoice.clientId)
         setSelectedClientId(String(originalInvoice.clientId));
       setClientName(originalInvoice.clientName || "");
+      setClientCode((originalInvoice as any).clientCode || "");
       setClientCUI(originalInvoice.clientCUI || "");
       setClientRegCom(originalInvoice.clientRegCom || "");
       setClientAddress(originalInvoice.clientAddress || "");
@@ -332,6 +405,7 @@ export default function EmitInvoice() {
       if (
         originalInvoice.clientAddress ||
         originalInvoice.clientCity ||
+        (originalInvoice as any).clientCode ||
         (invCountry && invCountry !== "RO")
       ) {
         setShowAdvancedClientInfo(true);
@@ -468,9 +542,11 @@ export default function EmitInvoice() {
   const [cuiLoading, setCuiLoading] = useState(false);
 
   const selectClient = (c: any) => {
-    setSelectedClientId(String(c.id));
+    setSelectedClientId(c.source === "client" ? String(c.id) : "");
     setClientName(c.name);
     setClientSearch(c.name);
+    const code = c.sagaCode || c.code || "";
+    setClientCode(code);
     setClientCUI(c.cui || "");
     setClientRegCom(c.regCom || "");
     setClientAddress(c.address || "");
@@ -481,7 +557,7 @@ export default function EmitInvoice() {
     setClientCountry(resolvedCountry);
     setClientEmail(c.email || "");
     setClientPhone(c.phone || "");
-    if (c.address || c.city || (resolvedCountry && resolvedCountry !== "RO")) {
+    if (c.address || c.city || code || (resolvedCountry && resolvedCountry !== "RO")) {
       setShowAdvancedClientInfo(true);
     }
     setShowClientDropdown(false);
@@ -756,6 +832,7 @@ export default function EmitInvoice() {
         companyBank: selectedBank || undefined,
         clientId: selectedClientId ? parseInt(selectedClientId) : undefined,
         clientName: clientName.trim(),
+        clientCode: clientCode.trim() || undefined,
         clientCUI: clientCUI.trim() || undefined,
         clientRegCom: clientRegCom.trim() || undefined,
         clientAddress: clientAddress.trim() || undefined,
@@ -839,105 +916,61 @@ export default function EmitInvoice() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4 space-y-3.5 shadow-xs">
-        {/* Row 1: Client Name, Data Emiterii, Data Scadenței, Monedă */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-start">
-          <div className="sm:col-span-2 lg:col-span-5 relative">
-            <label className={labelCls}>Nume sau Cod Fiscal Client *</label>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Nume, CUI (ANAF) sau CIF european (VIES)..."
-                value={clientName}
-                onChange={e => {
-                  setClientName(e.target.value);
-                  setClientSearch(e.target.value);
-                  setSelectedClientId("");
-                  setShowClientDropdown(true);
-                }}
-                onFocus={() => setShowClientDropdown(true)}
-                onBlur={() =>
-                  setTimeout(() => setShowClientDropdown(false), 200)
-                }
-                className={inputCls}
-              />
-              {showClientDropdown && (
-                <div className="absolute z-20 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md shadow-lg max-h-64 overflow-y-auto">
-                  {filteredClients.length > 0 &&
-                    filteredClients.map(c => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onMouseDown={() => selectClient(c)}
-                        className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm border-b border-slate-100 dark:border-slate-800 last:border-0"
-                      >
-                        <div className="font-medium text-slate-900 dark:text-white">
-                          {c.name}
-                        </div>
-                        {c.cui && (
-                          <div className="text-xs text-slate-400">
-                            CUI: {c.cui}
-                          </div>
-                        )}
-                      </button>
-                    ))}
-                  {(() => {
-                    const raw = (clientName || clientSearch || "").trim().replace(/\s/g, "");
-                    const euMatch = raw.match(/^([A-Za-z]{2})([A-Za-z0-9]+)$/);
-                    const isEu = euMatch && euMatch[1].toUpperCase() !== "RO" && euMatch[2].length >= 2;
-                    const digits = raw.replace(/^RO/i, "").replace(/[^0-9]/g, "");
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4 space-y-4 shadow-xs">
+        {/* Date Factură: Serie, Număr, Data Emiterii, Data Scadenței, Monedă, Cont Bancar */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end pb-3.5 border-b border-slate-100 dark:border-slate-800">
+          <div className="lg:col-span-1">
+            <div className="h-6 flex items-center mb-1">
+              <label className={labelCls + " !mb-0"}>Serie</label>
+            </div>
+            <input
+              type="text"
+              value={series}
+              onChange={e => handleSeriesChange(e.target.value)}
+              className={inputCls}
+              placeholder="FACT"
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </div>
 
-                    if (isEu) {
-                      return (
-                        <button
-                          type="button"
-                          onMouseDown={e => {
-                            e.preventDefault();
-                            lookupCuiFromSearch(raw);
-                          }}
-                          className="w-full flex items-center gap-2 px-3 py-2.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-sm font-semibold transition-colors"
-                        >
-                          <Search className="w-4 h-4" />
-                          <span>
-                            Caută CUI "{raw.toUpperCase()}" în VIES (UE)
-                          </span>
-                          {cuiLoading && (
-                            <Loader2 className="w-4 h-4 animate-spin ml-auto" />
-                          )}
-                        </button>
-                      );
-                    }
-
-                    if (digits.length >= 2) {
-                      return (
-                        <button
-                          type="button"
-                          onMouseDown={e => {
-                            e.preventDefault();
-                            lookupCuiFromSearch(raw);
-                          }}
-                          className="w-full flex items-center gap-2 px-3 py-2.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-sm font-semibold transition-colors"
-                        >
-                          <Search className="w-4 h-4" />
-                          <span>
-                            Caută CUI "{digits}" în ANAF
-                          </span>
-                          {cuiLoading && (
-                            <Loader2 className="w-4 h-4 animate-spin ml-auto" />
-                          )}
-                        </button>
-                      );
-                    }
-
-                    return null;
-                  })()}
+          <div className="lg:col-span-2">
+            <div className="h-6 flex items-center mb-1">
+              <label className={labelCls + " !mb-0"}>Număr</label>
+            </div>
+            <div className="relative flex items-center">
+              {series.trim() ? (
+                <div className="flex w-full items-center">
+                  <span className="inline-flex items-center h-9 px-2.5 !rounded-l-md border border-r-0 border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold tracking-wider select-none shrink-0">
+                    {series.trim()}{series.trim().startsWith("WOOD") ? "" : " -"}
+                  </span>
+                  <input
+                    value={invoiceNumDigits}
+                    onChange={e => handleNumDigitsChange(e.target.value)}
+                    className={cn(inputCls, "!rounded-l-none")}
+                    placeholder="0001"
+                    autoComplete="off"
+                  />
                 </div>
+              ) : (
+                <input
+                  value={invoiceNumDigits}
+                  onChange={e => handleNumDigitsChange(e.target.value)}
+                  className={inputCls}
+                  placeholder="0001"
+                  autoComplete="off"
+                />
+              )}
+              {nextNumberLoading && (
+                <Loader2 className="w-3.5 h-3.5 animate-spin absolute right-2.5 top-2.5 text-blue-500" />
               )}
             </div>
           </div>
 
           <div className="lg:col-span-2">
-            <label className={labelCls}>Data Emiterii *</label>
+            <div className="h-6 flex items-center mb-1">
+              <label className={labelCls + " !mb-0"}>Data Emiterii *</label>
+            </div>
             <input
               type="date"
               value={issueDate}
@@ -947,7 +980,9 @@ export default function EmitInvoice() {
           </div>
 
           <div className="lg:col-span-2">
-            <label className={labelCls}>Data Scadenței</label>
+            <div className="h-6 flex items-center mb-1">
+              <label className={labelCls + " !mb-0"}>Data Scadenței</label>
+            </div>
             <input
               type="date"
               value={dueDate}
@@ -956,8 +991,10 @@ export default function EmitInvoice() {
             />
           </div>
 
-          <div className="sm:col-span-2 lg:col-span-3">
-            <label className={labelCls}>Monedă</label>
+          <div className="sm:col-span-1 lg:col-span-2">
+            <div className="h-6 flex items-center mb-1">
+              <label className={labelCls + " !mb-0"}>Monedă</label>
+            </div>
             <select
               value={currency}
               onChange={e => setCurrency(e.target.value as Currency)}
@@ -969,60 +1006,11 @@ export default function EmitInvoice() {
               <option value="GBP">GBP</option>
             </select>
           </div>
-        </div>
 
-        {/* Row 2: Serie, Număr, Cont Bancar (IBAN) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-start">
-          <div className="lg:col-span-2">
-            <label className={labelCls}>Serie</label>
-            <input
-              list="series-suggestions"
-              value={series}
-              onChange={e => handleSeriesChange(e.target.value)}
-              className={inputCls}
-              placeholder="FACT, INV..."
-            />
-            <datalist id="series-suggestions">
-              {seriesListData.map((s: string) => (
-                <option key={s} value={s} />
-              ))}
-            </datalist>
-          </div>
-
-          <div className="lg:col-span-3">
-            <label className={labelCls}>Număr</label>
-            <div className="relative flex items-center">
-              {series.trim() ? (
-                <div className="flex w-full items-center">
-                  <span className="inline-flex items-center h-9 px-3 !rounded-l-md border border-r-0 border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold tracking-wider select-none shrink-0">
-                    {series.trim()} -
-                  </span>
-                  <input
-                    value={invoiceNumDigits}
-                    onChange={e => handleNumDigitsChange(e.target.value)}
-                    className={cn(
-                      inputCls,
-                      "!rounded-l-none"
-                    )}
-                    placeholder="0001"
-                  />
-                </div>
-              ) : (
-                <input
-                  value={invoiceNumDigits}
-                  onChange={e => handleNumDigitsChange(e.target.value)}
-                  className={inputCls}
-                  placeholder="0001"
-                />
-              )}
-              {nextNumberLoading && (
-                <Loader2 className="w-3.5 h-3.5 animate-spin absolute right-2.5 top-2.5 text-blue-500" />
-              )}
+          <div className="sm:col-span-2 lg:col-span-3">
+            <div className="h-6 flex items-center mb-1">
+              <label className={labelCls + " !mb-0 truncate"}>Cont Bancar (IBAN Factură)</label>
             </div>
-          </div>
-
-          <div className="sm:col-span-2 lg:col-span-7">
-            <label className={labelCls}>Cont Bancar (IBAN Factură)</label>
             <select
               value={selectedIban}
               onChange={e => {
@@ -1048,116 +1036,237 @@ export default function EmitInvoice() {
           </div>
         </div>
 
-        <div className="pt-1">
-          <button
-            type="button"
-            onClick={() => setShowAdvancedClientInfo(!showAdvancedClientInfo)}
-            className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-          >
-            {showAdvancedClientInfo ? (
-              <ChevronUp className="w-3.5 h-3.5" />
-            ) : (
-              <ChevronDown className="w-3.5 h-3.5" />
+        {/* Date Client (CUI, Nume, Reg Com, Cod SAGA, Țară, Adresă, Localitate, Contact) — ÎNTOTDEAUNA VIZIBIL DIRECT */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              Date Client / Cumpărător
+            </span>
+            {clientCode && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-[11px] font-medium border border-amber-200 dark:border-amber-800">
+                Cod SAGA: <strong className="font-mono font-bold">{clientCode}</strong>
+              </span>
             )}
-            {showAdvancedClientInfo
-              ? "Ascunde Informații Opționale Client"
-              : "Arată Informații Opționale Client (CUI, Adresă, etc.)"}
-          </button>
-        </div>
+          </div>
 
-        {showAdvancedClientInfo && (
-          <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-start">
-              <div className="lg:col-span-3">
-                <label className={labelCls}>
-                  CUI / CIF
-                  {cuiLoading && (
-                    <Loader2 className="w-3 h-3 ml-1 inline animate-spin text-blue-500" />
-                  )}
-                </label>
+          {/* Rând 1 Client: CUI/CIF primul, Nume Client al doilea, Reg. Com., Cod SAGA, Țară */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-start">
+            <div className="lg:col-span-3">
+              <label className={labelCls}>
+                CUI / CIF *
+                {cuiLoading && (
+                  <Loader2 className="w-3 h-3 ml-1 inline animate-spin text-blue-500" />
+                )}
+              </label>
+              <input
+                value={clientCUI}
+                onChange={e => {
+                  const val = e.target.value;
+                  setClientCUI(val);
+                  const m = val.trim().match(/^([A-Za-z]{2})/);
+                  if (m && m[1].toUpperCase() !== "RO") {
+                    setClientCountry(m[1].toUpperCase());
+                  }
+                }}
+                onBlur={lookupCui}
+                onKeyDown={e => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    lookupCui();
+                  }
+                }}
+                className={inputCls}
+                placeholder="ex: RO12345678 sau 12345678"
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </div>
+
+            <div className="sm:col-span-2 lg:col-span-4 relative">
+              <label className={labelCls}>Nume Client / Companie *</label>
+              <div className="relative">
                 <input
-                  value={clientCUI}
+                  type="text"
+                  placeholder="Nume, CUI, Cod SAGA sau CIF..."
+                  value={clientName}
                   onChange={e => {
-                    const val = e.target.value;
-                    setClientCUI(val);
-                    const m = val.trim().match(/^([A-Za-z]{2})/);
-                    if (m && m[1].toUpperCase() !== "RO") {
-                      setClientCountry(m[1].toUpperCase());
-                    }
+                    setClientName(e.target.value);
+                    setClientSearch(e.target.value);
+                    setSelectedClientId("");
+                    setShowClientDropdown(true);
                   }}
-                  onBlur={lookupCui}
-                  onKeyDown={e => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      lookupCui();
-                    }
-                  }}
+                  onFocus={() => setShowClientDropdown(true)}
+                  onBlur={() =>
+                    setTimeout(() => setShowClientDropdown(false), 200)
+                  }
                   className={inputCls}
-                  placeholder="ex: RO12345678 sau DE123456789 (VIES)"
+                  autoComplete="off"
+                  spellCheck={false}
                 />
-              </div>
-              <div className="lg:col-span-3">
-                <label className={labelCls}>Reg. Com.</label>
-                <input
-                  value={clientRegCom}
-                  onChange={e => setClientRegCom(e.target.value)}
-                  className={inputCls}
-                  placeholder="ex: J40/123/2020"
-                />
-              </div>
-              <div className="lg:col-span-3">
-                <label className={labelCls}>Telefon Client</label>
-                <input
-                  value={clientPhone}
-                  onChange={e => setClientPhone(e.target.value)}
-                  className={inputCls}
-                  placeholder="ex: 0722123456"
-                />
-              </div>
-              <div className="lg:col-span-3">
-                <label className={labelCls}>Email</label>
-                <input
-                  type="email"
-                  value={clientEmail}
-                  onChange={e => setClientEmail(e.target.value)}
-                  className={inputCls}
-                  placeholder="ex: client@exemplu.ro"
-                />
+                {showClientDropdown && (
+                  <div className="absolute z-20 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md shadow-lg max-h-64 overflow-y-auto">
+                    {filteredClients.length > 0 &&
+                      filteredClients.map((c: any) => (
+                        <button
+                          key={`${c.source || 'c'}-${c.id}`}
+                          type="button"
+                          onMouseDown={() => selectClient(c)}
+                          className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm border-b border-slate-100 dark:border-slate-800 last:border-0"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-medium text-slate-900 dark:text-white truncate">
+                              {c.name}
+                            </span>
+                            {(c.sagaCode || c.code) && (
+                              <span className="shrink-0 px-1.5 py-0.5 text-[10px] font-mono font-semibold rounded bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                Cod: {c.sagaCode || c.code}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                            {c.cui && <span>CUI: {c.cui}</span>}
+                            {c.city && <span>• {c.city}</span>}
+                            {c.source === "saga_furnizor" && (
+                              <span className="text-[10px] font-semibold text-blue-500 bg-blue-50 dark:bg-blue-900/30 px-1 rounded">SAGA</span>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    {(() => {
+                      const raw = (clientName || clientSearch || "").trim().replace(/\s/g, "");
+                      const euMatch = raw.match(/^([A-Za-z]{2})([A-Za-z0-9]+)$/);
+                      const isEu = euMatch && euMatch[1].toUpperCase() !== "RO" && euMatch[2].length >= 2;
+                      const digits = raw.replace(/^RO/i, "").replace(/[^0-9]/g, "");
+
+                      if (isEu) {
+                        return (
+                          <button
+                            type="button"
+                            onMouseDown={e => {
+                              e.preventDefault();
+                              lookupCuiFromSearch(raw);
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-sm font-semibold transition-colors"
+                          >
+                            <Search className="w-4 h-4" />
+                            <span>
+                              Caută CUI "{raw.toUpperCase()}" în VIES (UE)
+                            </span>
+                            {cuiLoading && (
+                              <Loader2 className="w-4 h-4 animate-spin ml-auto" />
+                            )}
+                          </button>
+                        );
+                      }
+
+                      if (digits.length >= 2) {
+                        return (
+                          <button
+                            type="button"
+                            onMouseDown={e => {
+                              e.preventDefault();
+                              lookupCuiFromSearch(raw);
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-sm font-semibold transition-colors"
+                          >
+                            <Search className="w-4 h-4" />
+                            <span>
+                              Caută CUI "{digits}" în ANAF
+                            </span>
+                            {cuiLoading && (
+                              <Loader2 className="w-4 h-4 animate-spin ml-auto" />
+                            )}
+                          </button>
+                        );
+                      }
+
+                      return null;
+                    })()}
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-start">
-              <div className="sm:col-span-2 lg:col-span-6">
-                <label className={labelCls}>Adresă</label>
-                <input
-                  value={clientAddress}
-                  onChange={e => setClientAddress(e.target.value)}
-                  className={inputCls}
-                  placeholder="ex: Str. Florilor nr. 1"
-                />
-              </div>
-              <div className="lg:col-span-4">
-                <label className={labelCls}>Localitate</label>
-                <input
-                  value={clientCity}
-                  onChange={e => setClientCity(e.target.value)}
-                  className={inputCls}
-                  placeholder="ex: București"
-                />
-              </div>
-              <div className="lg:col-span-2">
-                <label className={labelCls}>Țară</label>
-                <input
-                  value={clientCountry}
-                  placeholder="RO, BE..."
-                  maxLength={2}
-                  onChange={e => setClientCountry(e.target.value.toUpperCase())}
-                  className={inputCls}
-                />
-              </div>
+            <div className="lg:col-span-2">
+              <label className={labelCls}>Reg. Com.</label>
+              <input
+                value={clientRegCom}
+                onChange={e => setClientRegCom(e.target.value)}
+                className={inputCls}
+                placeholder="ex: J40/123/2020"
+                autoComplete="off"
+              />
+            </div>
+
+            <div className="lg:col-span-1">
+              <label className={labelCls}>Cod SAGA</label>
+              <input
+                value={clientCode}
+                onChange={e => setClientCode(e.target.value)}
+                className={inputCls}
+                placeholder="ex: 00001"
+                autoComplete="off"
+              />
+            </div>
+
+            <div className="lg:col-span-2">
+              <label className={labelCls}>Țară</label>
+              <input
+                value={clientCountry}
+                placeholder="RO, FR, BE..."
+                maxLength={2}
+                onChange={e => setClientCountry(e.target.value.toUpperCase())}
+                className={inputCls}
+                autoComplete="off"
+              />
             </div>
           </div>
-        )}
+
+          {/* Rând 2 Client: Adresă, Localitate, Telefon, Email */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-start">
+            <div className="sm:col-span-2 lg:col-span-5">
+              <label className={labelCls}>Adresă</label>
+              <input
+                value={clientAddress}
+                onChange={e => setClientAddress(e.target.value)}
+                className={inputCls}
+                placeholder="ex: Str. Florilor nr. 1"
+                autoComplete="off"
+              />
+            </div>
+            <div className="lg:col-span-3">
+              <label className={labelCls}>Localitate</label>
+              <input
+                value={clientCity}
+                onChange={e => setClientCity(e.target.value)}
+                className={inputCls}
+                placeholder="ex: Brașov"
+                autoComplete="off"
+              />
+            </div>
+            <div className="lg:col-span-2">
+              <label className={labelCls}>Telefon Client</label>
+              <input
+                value={clientPhone}
+                onChange={e => setClientPhone(e.target.value)}
+                className={inputCls}
+                placeholder="ex: 0722123456"
+                autoComplete="off"
+              />
+            </div>
+            <div className="lg:col-span-2">
+              <label className={labelCls}>Email</label>
+              <input
+                type="email"
+                value={clientEmail}
+                onChange={e => setClientEmail(e.target.value)}
+                className={inputCls}
+                placeholder="ex: client@exemplu.ro"
+                autoComplete="off"
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xs overflow-hidden">
@@ -1165,47 +1274,75 @@ export default function EmitInvoice() {
           <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
             Linii Factură
           </h3>
-          <button
-            onClick={() => setShowCodes(!showCodes)}
-            className="flex items-center gap-1.5 px-3 h-8 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
-          >
-            {showCodes ? (
-              <EyeOff className="w-3.5 h-3.5" />
-            ) : (
-              <Eye className="w-3.5 h-3.5" />
-            )}
-            {showCodes ? "Ascunde coduri" : "Arată coduri"}
-          </button>
+          <div className="flex items-center gap-2">
+            <InvoiceCurrencyCalculator
+              currentCurrency={currency}
+              lines={lines.map((l, idx) => ({
+                id: l.id,
+                description: l.description || `Linia ${idx + 1}`,
+                unitPrice: l.unitPrice,
+              }))}
+              onApplyPrice={(price, lineId) => {
+                if (lineId) {
+                  updateLine(lineId, "unitPrice", price);
+                } else if (lines.length > 0) {
+                  updateLine(lines[0].id, "unitPrice", price);
+                }
+              }}
+              trigger={
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 px-3 h-8 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-xs cursor-pointer"
+                  title="Calculator Valutar BNR"
+                >
+                  <Calculator className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>Calculator Valutar</span>
+                </button>
+              }
+            />
+            <button
+              type="button"
+              onClick={() => setShowCodes(!showCodes)}
+              className="flex items-center gap-1.5 px-3 h-8 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-xs cursor-pointer"
+            >
+              {showCodes ? (
+                <EyeOff className="w-3.5 h-3.5" />
+              ) : (
+                <Eye className="w-3.5 h-3.5" />
+              )}
+              {showCodes ? "Ascunde coduri" : "Arată coduri"}
+            </button>
+          </div>
         </div>
         <div className="hidden md:grid grid-cols-12 gap-0 bg-[#1e1b4b] dark:bg-slate-800 text-white text-[11px] font-bold uppercase tracking-wider">
           {showCodes ? (
             <>
-              <div className="col-span-1 px-4 py-2.5">Cod</div>
-              <div className="col-span-4 px-4 py-2.5 border-l border-slate-700">
+              <div className="col-span-1 px-3 py-2.5">Cod</div>
+              <div className="col-span-3 px-3 py-2.5 border-l border-slate-700">
                 Denumire Produs sau Serviciu
               </div>
             </>
           ) : (
-            <div className="col-span-5 px-4 py-2.5">
+            <div className="col-span-4 px-4 py-2.5">
               Denumire Produs sau Serviciu
             </div>
           )}
-          <div className="col-span-1 px-3 py-2.5 text-center border-l border-slate-700">
+          <div className="col-span-1 px-2 py-2.5 text-center border-l border-slate-700">
             U.M.
           </div>
-          <div className="col-span-1 px-3 py-2.5 text-center border-l border-slate-700">
+          <div className="col-span-1 px-2 py-2.5 text-center border-l border-slate-700">
             Cant.
           </div>
-          <div className="col-span-1 px-3 py-2.5 text-center border-l border-slate-700">
+          <div className="col-span-1 px-2 py-2.5 text-center border-l border-slate-700">
             Cotă TVA
           </div>
           <div className="col-span-2 px-3 py-2.5 text-right border-l border-slate-700">
             Preț (fără TVA)
           </div>
-          <div className="col-span-1 px-3 py-2.5 text-right border-l border-slate-700">
+          <div className="col-span-2 px-3 py-2.5 text-right border-l border-slate-700">
             Valoare
           </div>
-          <div className="col-span-1 px-3 py-2.5 text-center border-l border-slate-700"></div>
+          <div className="col-span-1 px-2 py-2.5 text-center border-l border-slate-700"></div>
         </div>
 
         <div className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -1232,8 +1369,8 @@ export default function EmitInvoice() {
                 className={cn(
                   "px-0 md:px-3 py-1 md:py-2 relative h-full flex flex-col justify-center col-span-2 sm:col-span-4",
                   showCodes
-                    ? "md:col-span-4 md:border-l border-slate-100 dark:border-slate-800"
-                    : "md:col-span-5"
+                    ? "md:col-span-3 md:border-l border-slate-100 dark:border-slate-800"
+                    : "md:col-span-4"
                 )}
               >
                 <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Denumire Produs / Serviciu</label>
@@ -1443,9 +1580,9 @@ export default function EmitInvoice() {
                   className="w-full h-8 px-2 text-sm text-left md:text-right border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
-              <div className="col-span-1 md:col-span-1 px-0 md:px-3 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 flex flex-col justify-center md:items-end">
+              <div className="col-span-1 md:col-span-2 px-0 md:px-3 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 flex flex-col justify-center md:items-end">
                 <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Valoare</label>
-                <span className="text-sm font-semibold text-slate-900 dark:text-white h-8 flex items-center justify-end">
+                <span className="text-sm font-semibold text-slate-900 dark:text-white h-8 flex items-center justify-end whitespace-nowrap text-right">
                   {formatCurrency(computeLineTotal(line), currency)}
                 </span>
               </div>

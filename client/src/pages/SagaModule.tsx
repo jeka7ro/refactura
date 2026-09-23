@@ -35,7 +35,7 @@ import { ConfirmDeleteWrapper } from "@/components/ui/ConfirmModal";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type SagaPage =
-  | "articole" | "gestiuni" | "furnizori" | "planConturi"
+  | "articole" | "gestiuni" | "furnizori" | "clienti" | "planConturi"
   | "intrari" | "comenzi" | "retete"
   | "situatieStocuri" | "fiseArticole" | "registruInventar"
   | "articoleContabile"
@@ -45,6 +45,7 @@ const SAGA_MENU = [
   {
     label: "Fișiere", items: [
       { id: "furnizori" as SagaPage, label: "Furnizori", icon: Users, shortcut: "ALT+1" },
+      { id: "clienti" as SagaPage, label: "Clienți", icon: Users, shortcut: "ALT+2" },
       { id: "articole" as SagaPage, label: "Articole", icon: Package },
       { id: "gestiuni" as SagaPage, label: "Gestiuni", icon: Warehouse },
       { id: "planConturi" as SagaPage, label: "Plan conturi", icon: BookOpen },
@@ -82,6 +83,7 @@ const PAGE_TITLES: Record<SagaPage, string> = {
   articole: "ARTICOLE",
   gestiuni: "GESTIUNI",
   furnizori: "FURNIZORI",
+  clienti: "CLIENȚI",
   planConturi: "PLAN CONTURI",
   intrari: "INTRĂRI",
   comenzi: "COMENZI",
@@ -229,6 +231,7 @@ export default function SagaModule() {
             {activePage === "nomenclator" && <NomenclatorTab />}
             {activePage === "gestiuni" && <GestiuniTab />}
             {activePage === "furnizori" && <FurnizoriTab />}
+            {activePage === "clienti" && <ClientiTab />}
             {activePage === "planConturi" && <PlanConturiTab />}
             {activePage === "retete" && <ReteteTab />}
             {activePage === "intrari" && <IntrariTab />}
@@ -1733,6 +1736,148 @@ function FurnizoriTab() {
             ))}
             {!isLoading && filtered.length === 0 && (
               <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400">Niciun furnizor.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ── CLIENȚI TAB ─────────────────────────────────────────────────────────────
+function ClientiTab() {
+  const utils = trpc.useUtils();
+  const { data: me } = trpc.auth.me.useQuery();
+  const { data: clients = [], isLoading } = trpc.clients.list.useQuery();
+  const [searchQ, setSearchQ] = useState("");
+  const [isImporting, setIsImporting] = useState(false);
+
+  const handleClientiImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    const toastId = toast.loading("Se importă clienții din SAGA (CLIENTI.xlsx)...");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("tenantId", String(me?.tenantId || 1));
+
+      const res = await fetch("/api/saga/import-clienti", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.error || "Eroare la import clienți SAGA");
+      }
+
+      const data = await res.json();
+      utils.clients.list.invalidate();
+      utils.clients.searchPartners.invalidate();
+      toast.success(
+        `Import clienți finalizat: ${data.imported} noi, ${data.updated} actualizați cu cod SAGA.`,
+        { id: toastId }
+      );
+    } catch (err: any) {
+      toast.error(err.message, { id: toastId });
+    } finally {
+      setIsImporting(false);
+      e.target.value = "";
+    }
+  };
+
+  const filtered = useMemo(() => {
+    if (!searchQ) return clients;
+    const q = searchQ.toLowerCase();
+    return clients.filter((c: any) =>
+      c.name?.toLowerCase().includes(q) ||
+      c.cui?.toLowerCase().includes(q) ||
+      c.sagaCode?.toLowerCase().includes(q) ||
+      c.city?.toLowerCase().includes(q)
+    );
+  }, [clients, searchQ]);
+
+  return (
+    <div className="space-y-4">
+      {/* Toolbar */}
+      <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+        <label className={`flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium cursor-pointer transition-colors ${isImporting ? 'opacity-50 pointer-events-none' : ''}`}>
+          <Upload className="w-4 h-4" /> Import Clienți din SAGA (XLSX)
+          <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleClientiImport} disabled={isImporting} />
+        </label>
+        <div className="ml-auto flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              value={searchQ}
+              onChange={e => setSearchQ(e.target.value)}
+              placeholder="Caută client, CUI sau cod SAGA..."
+              className="pl-8 pr-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white w-64"
+            />
+          </div>
+          <span className="text-xs text-slate-500">{filtered.length} clienți</span>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 dark:bg-slate-800/50">
+            <tr>
+              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Cod SAGA</th>
+              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Denumire Client</th>
+              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">CUI</th>
+              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Reg. Com.</th>
+              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Oraș / Adresă</th>
+              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Telefon / Email</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading && (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+                  <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+                </td>
+              </tr>
+            )}
+            {filtered.map((c: any) => (
+              <tr key={c.id} className="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                <td className="px-4 py-2 font-mono font-bold text-amber-600 dark:text-amber-400">
+                  {c.sagaCode ? (
+                    <span className="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs">
+                      {c.sagaCode}
+                    </span>
+                  ) : (
+                    <span className="text-slate-400 font-normal text-xs">—</span>
+                  )}
+                </td>
+                <td className="px-4 py-2 text-slate-900 dark:text-white font-medium">{c.name}</td>
+                <td className="px-4 py-2 text-slate-500 font-mono text-xs">{c.cui || "—"}</td>
+                <td className="px-4 py-2 text-slate-500 text-xs">{c.regCom || "—"}</td>
+                <td className="px-4 py-2 text-slate-500 text-xs max-w-[220px] truncate">
+                  {c.city ? `${c.city}${c.address ? `, ${c.address}` : ""}` : (c.address || "—")}
+                </td>
+                <td className="px-4 py-2 text-slate-500 text-xs">
+                  {c.phone || c.email ? (
+                    <div>
+                      {c.phone && <div>{c.phone}</div>}
+                      {c.email && <div className="text-[11px] text-slate-400">{c.email}</div>}
+                    </div>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+              </tr>
+            ))}
+            {!isLoading && filtered.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+                  Niciun client găsit.
+                </td>
+              </tr>
             )}
           </tbody>
         </table>

@@ -50,13 +50,14 @@
 }
 
 :root {
-  /* macOS Tahoe Palette */
-  --primary: #0071e3;
+  /* Dynamic Tenant Primary Theme System */
+  --tenant-theme-color: #16a34a;
+  --primary: var(--tenant-theme-color, #16a34a);
   --primary-foreground: #f5f5f7;
-  --sidebar-primary: #0071e3;
+  --sidebar-primary: var(--tenant-theme-color, #16a34a);
   --sidebar-primary-foreground: #f5f5f7;
   --chart-1: #34c759;
-  --chart-2: #0071e3;
+  --chart-2: var(--tenant-theme-color, #16a34a);
   --chart-3: #ff9500;
   --chart-4: #af52de;
   --chart-5: #ff3b30;
@@ -73,26 +74,26 @@
   --secondary-foreground: #555555;
   --muted: #e8e8ed;
   --muted-foreground: #86868b;
-  --accent: #0071e3;
+  --accent: var(--tenant-theme-color, #16a34a);
   --accent-foreground: #ffffff;
   --destructive: #ff3b30;
   --destructive-foreground: #ffffff;
   --border: #e5e5ea;
   --input: #f5f5f7;
-  --ring: #0071e3;
+  --ring: var(--tenant-theme-color, #16a34a);
   --sidebar: #f5f5f7;
   --sidebar-foreground: #1d1d1f;
-  --sidebar-accent: #0071e3;
+  --sidebar-accent: var(--tenant-theme-color, #16a34a);
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: #e5e5ea;
-  --sidebar-ring: #0071e3;
+  --sidebar-ring: var(--tenant-theme-color, #16a34a);
 }
 
 .dark {
   /* Dark Mode - Tahoe */
-  --primary: #0a84ff;
+  --primary: var(--tenant-theme-color, #16a34a);
   --primary-foreground: #f5f5f7;
-  --sidebar-primary: #0a84ff;
+  --sidebar-primary: var(--tenant-theme-color, #16a34a);
   --sidebar-primary-foreground: #f5f5f7;
   --background: #000000;
   --foreground: #f5f5f7;
@@ -680,4 +681,62 @@ input[type="number"]::-webkit-inner-spin-button {
 input[type="number"] {
   -moz-appearance: textfield !important;
 }
+
+/* ======================================================
+ * TENANT THEME DYNAMIC SYSTEM
+ * Overrides hardcoded Tailwind blue-600 / blue-500 classes
+ * across all buttons, active links, badges, checkboxes, rings,
+ * and toggles so the selected theme color applies globally.
+ * ====================================================== */
+
+.bg-blue-600,
+.bg-blue-500,
+button.bg-blue-600,
+button.bg-blue-500,
+a.bg-blue-600,
+a.bg-blue-500,
+div.bg-blue-600,
+div.bg-blue-500,
+span.bg-blue-600,
+span.bg-blue-500,
+.bg-primary {
+  background-color: var(--tenant-theme-color, var(--primary, #16a34a)) !important;
+}
+
+.hover\:bg-blue-700:hover,
+.hover\:bg-blue-600:hover,
+button.hover\:bg-blue-700:hover,
+button.hover\:bg-blue-600:hover,
+a.hover\:bg-blue-700:hover,
+a.hover\:bg-blue-600:hover,
+.hover\:bg-primary:hover {
+  background-color: var(--tenant-theme-color, var(--primary, #16a34a)) !important;
+  filter: brightness(0.9) !important;
+}
+
+.active\:bg-blue-800:active {
+  background-color: var(--tenant-theme-color, var(--primary, #16a34a)) !important;
+  filter: brightness(0.8) !important;
+}
+
+input[type="checkbox"]:checked,
+input[type="radio"]:checked,
+.peer:checked ~ .peer-checked\:bg-blue-600,
+.peer-checked\:bg-blue-600:is(:checked ~ *),
+.peer-checked\:bg-primary:is(:checked ~ *) {
+  background-color: var(--tenant-theme-color, var(--primary, #16a34a)) !important;
+}
+
+.border-blue-600,
+.border-blue-500,
+.focus\:border-blue-500:focus {
+  border-color: var(--tenant-theme-color, var(--primary, #16a34a)) !important;
+}
+
+.ring-blue-500,
+.focus\:ring-blue-500:focus,
+.focus-visible\:ring-blue-500:focus-visible {
+  --tw-ring-color: var(--tenant-theme-color, var(--primary, #16a34a)) !important;
+}
+
 
