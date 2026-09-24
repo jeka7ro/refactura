@@ -419,7 +419,41 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
       { width: metaValW, align: "right" }
     );
 
-  y += 30;
+  if (data.spvIndex) {
+    y += 14;
+    const spvLabel = isBilingual ? "Index e-Factura SPV:" : "Index încărcare SPV:";
+    const spvLabelW = isBilingual ? 120 : 95;
+    const spvValW = rightColW - spvLabelW;
+    doc.font("Roboto-Bold").fillColor("#047857").text(spvLabel, rightColX, y, { width: spvLabelW });
+    doc
+      .font("Roboto-Bold")
+      .fillColor("#047857")
+      .text(
+        String(data.spvIndex),
+        rightColX + spvLabelW,
+        y,
+        { width: spvValW, align: "right" }
+      );
+    doc.fillColor("#000000");
+
+    // E-Factura badge sub titlul Factura pe stânga
+    const badgeX = leftX + (data.logoBase64 && data.logoBase64 !== "DEFAULT_TEXT_LOGO" ? (isBilingual ? 130 : 180) : 0);
+    const badgeY = 56;
+    const badgeText = `RO e-Factura • Index SPV: ${data.spvIndex}`;
+    doc.fontSize(8).font("Roboto-Bold");
+    const badgeTextW = Math.ceil(doc.widthOfString(badgeText));
+    doc
+      .roundedRect(badgeX, badgeY, badgeTextW + 14, 18, 4)
+      .fillAndStroke("#ecfdf5", "#059669");
+    doc
+      .fontSize(8)
+      .font("Roboto-Bold")
+      .fillColor("#047857")
+      .text(badgeText, badgeX + 7, badgeY + 5);
+    doc.fillColor("#000000");
+  }
+
+  y += data.spvIndex ? 22 : 30;
   doc
     .moveTo(leftX, y)
     .lineTo(leftX + pageWidth, y)
@@ -790,6 +824,17 @@ function generateModern(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
       leftX + (data.logoBase64 ? 105 : 0),
       41
     );
+  if (data.spvIndex) {
+    doc
+      .fontSize(8)
+      .font("Roboto-Bold")
+      .fillColor("#34d399")
+      .text(
+        `RO e-Factura • Index SPV: ${data.spvIndex}`,
+        leftX + (data.logoBase64 ? 105 : 0),
+        54
+      );
+  }
 
   // Invoice badge top-right
   doc
@@ -831,6 +876,9 @@ function generateModern(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     .fillColor("#64748b")
     .text(isBilingual ? "DATA EMITERII / ISSUE" : "DATA EMITERII", leftX, y)
     .text(isBilingual ? "SCADENȚĂ / DUE" : "SCADENȚĂ", leftX + 160, y);
+  if (data.spvIndex) {
+    doc.fillColor("#047857").text(isBilingual ? "INDEX E-FACTURA SPV" : "INDEX ÎNCĂRCARE SPV", leftX + 320, y);
+  }
   y += 12;
   doc
     .fontSize(10)
@@ -838,6 +886,9 @@ function generateModern(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     .fillColor("#1e293b")
     .text(formatPdfDate(data.date), leftX, y)
     .text(formatPdfDate(data.dueDate), leftX + 160, y);
+  if (data.spvIndex) {
+    doc.fillColor("#047857").text(String(data.spvIndex), leftX + 320, y);
+  }
 
   // Emitent / Client cards
   y += 20;

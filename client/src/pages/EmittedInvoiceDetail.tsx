@@ -226,7 +226,7 @@ export default function EmittedInvoiceDetail() {
                   const inTermen = isTransmittedInDeadline(invoice.issueDate, d);
                   return (
                     <span className={`font-medium ${inTermen ? "text-emerald-600 dark:text-emerald-500" : "text-slate-900 dark:text-white"}`}>
-                      {formatDate(d)} {new Date(d).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })}
+                      {formatDate(d)} {new Date(d as any).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })}
                     </span>
                   );
                 })()}
@@ -374,7 +374,8 @@ export default function EmittedInvoiceDetail() {
           </div>
           <div className="bg-slate-50 dark:bg-slate-900/50 p-3 overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
             <iframe
-              src={`/api/pdf/emitted/${invoice.id}`}
+              key={`pdf-${invoice.id}-${invoice.spvIndex || "0"}`}
+              src={`/api/pdf/emitted/${invoice.id}?v=${invoice.spvIndex || (invoice.updatedAt ? new Date(invoice.updatedAt).getTime() : Date.now())}`}
               className="w-full min-w-[800px] sm:min-w-full h-[550px] border border-slate-200 dark:border-slate-700 bg-white"
               title="PDF Viewer"
             />

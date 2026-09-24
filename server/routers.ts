@@ -1864,7 +1864,7 @@ export const appRouter = router({
         );
       }
       const { syncAllSpv } = await import("./spvCron");
-      const result = await syncAllSpv(60);
+      const result = await syncAllSpv(60, (ctx.user?.tenantId || 1));
       return {
         success: true,
         imported: result?.imported || 0,
@@ -1905,7 +1905,7 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         
         const { syncAllSpv } = await import("./spvCron");
-        const result = await syncAllSpv(input?.zile || 60);
+        const result = await syncAllSpv(input?.zile || 60, (ctx.user?.tenantId || 1));
         return {
           success: true,
           imported: result?.imported || 0,

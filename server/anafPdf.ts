@@ -177,7 +177,8 @@ export async function convertXmlToPdf(
           spvIndex: (fileNameBase || "").match(/SPV_(\d+)/i)?.[1] || undefined,
         };
 
-        const pdfStream = generateReInvoicePDF(data);
+        const { generateReInvoicePDF } = await import("./pdf");
+        const pdfStream = generateReInvoicePDF(data as any);
         const buffers: Buffer[] = [];
         pdfStream.on("data", buffers.push.bind(buffers));
         pdfStream.on("end", () => resolve(Buffer.concat(buffers)));

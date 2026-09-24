@@ -19,16 +19,22 @@ export function startSpvCron() {
   });
 }
 
-export async function syncAllSpv(zile: number = 60) {
+export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
   const db = await getDb();
   if (!db) return { imported: 0, limitHit: 0, limitDetails: [] };
+
+  const conditions = [
+    eq(integrations.provider, "spv"),
+    eq(integrations.status, "active"),
+  ];
+  if (targetTenantId) {
+    conditions.push(eq(integrations.tenantId, targetTenantId));
+  }
 
   const spvIntegrations = await db
     .select()
     .from(integrations)
-    .where(
-      and(eq(integrations.provider, "spv"), eq(integrations.status, "active"))
-    );
+    .where(and(...conditions));
 
   let totalImported = 0;
   let totalLimitHit = 0;
@@ -49,48 +55,72 @@ export async function syncAllSpv(zile: number = 60) {
     );
 
     try {
-      const messages: any[] = [];
-      const CHUNK_DAYS = 3; // Reduced from 60 to 3 days to avoid ANAF pagination truncating results for high volume
-      let daysRemaining = zile;
-      let currentEndTime = Date.now();
+      let messages: any[] = [];
 
-      while (daysRemaining > 0) {
-        const daysToFetch = Math.min(daysRemaining, CHUNK_DAYS);
-        const currentStartTime =
-          currentEndTime - daysToFetch * 24 * 60 * 60 * 1000;
-
-        let pagina = 1;
-        let totalPagini = 1;
-
-        while (pagina <= totalPagini) {
-          const listUrl = `https://api.anaf.ro/prod/FCTEL/rest/listaMesajePaginatieFactura?startTime=${currentStartTime}&endTime=${currentEndTime}&cif=${cif}&pagina=${pagina}`;
-          console.log(
-            `[SPV Cron] Fetching: ${listUrl} (days chunk: ${daysToFetch}, page: ${pagina})`
-          );
-
-          const response = await fetch(listUrl, {
-            headers: { Authorization: `Bearer ${intg.apiKey}` },
-          });
-
-          if (!response.ok) {
-            const errText = await response.text();
-            console.error(
-              `[SPV Cron] Failed to fetch messages for chunk: ${response.status} ${errText}`
-            );
-            break; // Stop fetching further pages for this chunk if one fails
+      // 1. Try direct listaMesajeFactura first (reliable, all messages up to 60 days in one fast call)
+      try {
+        const directUrl = `${ANAF_LIST_URL}?zile=${zile}&cif=${cif}`;
+        console.log(`[SPV Cron] Fetching direct messages: ${directUrl}`);
+        const directRes = await fetch(directUrl, {
+          headers: { Authorization: `Bearer ${intg.apiKey}` },
+        });
+        if (directRes.ok) {
+          const directData = await directRes.json();
+          if (directData.mesaje && Array.isArray(directData.mesaje)) {
+            messages = directData.mesaje;
+            console.log(`[SPV Cron] Direct fetch got ${messages.length} messages`);
           }
-
-          const data = await response.json();
-          if (data.mesaje && Array.isArray(data.mesaje)) {
-            messages.push(...data.mesaje);
-          }
-
-          totalPagini = data.numar_total_pagini || 1;
-          pagina++;
+        } else {
+          console.warn(`[SPV Cron] Direct fetch returned ${directRes.status}`);
         }
+      } catch (directErr: any) {
+        console.warn(`[SPV Cron] Direct fetch failed, fallback to chunked: ${directErr.message}`);
+      }
 
-        daysRemaining -= daysToFetch;
-        currentEndTime = currentStartTime;
+      // 2. If direct fetch didn't return messages, fallback to chunked pagination
+      if (messages.length === 0) {
+        const CHUNK_DAYS = 3;
+        let daysRemaining = zile;
+        let currentEndTime = Date.now();
+
+        while (daysRemaining > 0) {
+          const daysToFetch = Math.min(daysRemaining, CHUNK_DAYS);
+          const currentStartTime =
+            currentEndTime - daysToFetch * 24 * 60 * 60 * 1000;
+
+          let pagina = 1;
+          let totalPagini = 1;
+
+          while (pagina <= totalPagini) {
+            const listUrl = `https://api.anaf.ro/prod/FCTEL/rest/listaMesajePaginatieFactura?startTime=${currentStartTime}&endTime=${currentEndTime}&cif=${cif}&pagina=${pagina}`;
+            console.log(
+              `[SPV Cron] Fetching: ${listUrl} (days chunk: ${daysToFetch}, page: ${pagina})`
+            );
+
+            const response = await fetch(listUrl, {
+              headers: { Authorization: `Bearer ${intg.apiKey}` },
+            });
+
+            if (!response.ok) {
+              const errText = await response.text();
+              console.error(
+                `[SPV Cron] Failed to fetch messages for chunk: ${response.status} ${errText}`
+              );
+              break;
+            }
+
+            const data = await response.json();
+            if (data.mesaje && Array.isArray(data.mesaje)) {
+              messages.push(...data.mesaje);
+            }
+
+            totalPagini = data.numar_total_pagini || 1;
+            pagina++;
+          }
+
+          daysRemaining -= daysToFetch;
+          currentEndTime = currentStartTime;
+        }
       }
 
       console.log(
@@ -103,6 +133,7 @@ export async function syncAllSpv(zile: number = 60) {
       const limitDetails: string[] = [];
 
       for (const msg of messages) {
+        try {
         // Log every message so we can see exactly what ANAF sends
         console.log(`[SPV Cron] MSG tip=${msg.tip} cif=${msg.cif} id=${msg.id} id_descarcare=${msg.id_descarcare} id_solicitare=${msg.id_solicitare} detalii=${msg.detalii || ""}`);
 
@@ -122,13 +153,20 @@ export async function syncAllSpv(zile: number = 60) {
         const downloadId = msg.id_descarcare || msg.id;
         if (!downloadId) { console.log(`[SPV Cron] SKIP (no downloadId)`); continue; }
 
-        // 1. Check if this message corresponds to a ReInvoice we sent to SPV
-        if (msg.id_solicitare) {
+        // 1. Check if this message corresponds to an outgoing ReInvoice or EmittedInvoice WE sent to SPV
+        // CRITICAL: Only check for outgoing confirmation (NOT incoming FACTURA PRIMITA!)
+        // AND MUST filter by tenantId so we don't accidentally match another tenant's invoice!
+        if (msg.id_solicitare && msg.tip !== "FACTURA PRIMITA") {
           const { reInvoices } = await import("../drizzle/schema");
           const [matchReInvoice] = await db
             .select({ id: reInvoices.id })
             .from(reInvoices)
-            .where(eq(reInvoices.spvIndex, String(msg.id_solicitare)));
+            .where(
+              and(
+                eq(reInvoices.tenantId, intg.tenantId),
+                eq(reInvoices.spvIndex, String(msg.id_solicitare))
+              )
+            );
 
           if (matchReInvoice) {
             await db
@@ -149,7 +187,12 @@ export async function syncAllSpv(zile: number = 60) {
           const [matchEmitted] = await db
             .select({ id: emittedInvoices.id })
             .from(emittedInvoices)
-            .where(eq(emittedInvoices.spvIndex, String(msg.id_solicitare)));
+            .where(
+              and(
+                eq(emittedInvoices.tenantId, intg.tenantId),
+                eq(emittedInvoices.spvIndex, String(msg.id_solicitare))
+              )
+            );
 
           if (matchEmitted) {
             await db
@@ -623,6 +666,13 @@ export async function syncAllSpv(zile: number = 60) {
         console.log(
           `[SPV Cron] ✓ Imported ${direction === "in" ? "received" : "sent"} invoice ${invoiceNumber} from ${supplierName}`
         );
+        } catch (msgErr: any) {
+          console.error(
+            `[SPV Cron] Error processing message ${msg?.id || msg?.id_descarcare}:`,
+            msgErr.message
+          );
+          skipped++;
+        }
       }
 
       // Update sync time

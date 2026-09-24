@@ -452,7 +452,7 @@ export const reInvoices = mysqlTable("reInvoices", {
   ]).default("nesincronizat"),
   spvError: text("spvError"),
   spvSentAt: timestamp("spvSentAt"),
-  rawXml: text("rawXml"),
+  rawXml: longtext("rawXml"),
   pdfUrl: varchar("pdfUrl", { length: 512 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -528,7 +528,7 @@ export const invoiceArchive = mysqlTable("invoiceArchive", {
   // Link to re-invoice if refactured
   reInvoiceId: int("reInvoiceId"),
   notes: text("notes"),
-  rawXml: text("rawXml"), // Store original XML for on-demand PDF conversion
+  rawXml: longtext("rawXml"), // Store original XML for on-demand PDF conversion
   tags: text("tags"), // JSON array of tags
   costCenterId: int("costCenterId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -597,7 +597,7 @@ export const emittedInvoices = mysqlTable("emittedInvoices", {
   ]).default("nesincronizat"),
   spvError: text("spvError"),
   spvSentAt: timestamp("spvSentAt"),
-  rawXml: text("rawXml"),
+  rawXml: longtext("rawXml"),
   pdfUrl: varchar("pdfUrl", { length: 512 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
