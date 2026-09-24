@@ -20,7 +20,7 @@ const THEME_MAP: Record<string, string> = {
 };
 import { getDb } from "./db";
 import { tenants } from "../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql, and } from "drizzle-orm";
 
 export function registerPdfRoute(app: any) {
   const router = Router();
@@ -329,11 +329,54 @@ export function registerPdfRoute(app: any) {
         county: getXmlText(party?.["cac:PostalAddress"]?.["cbc:CountrySubentity"]),
         email: getXmlText(party?.["cac:Contact"]?.["cbc:ElectronicMail"]),
         phone: getXmlText(party?.["cac:Contact"]?.["cbc:Telephone"]),
-        iban: getXmlText(party?.["cac:PartyTaxScheme"]?.["cac:TaxScheme"]?.["cbc:ID"]),
+        iban: "",
       });
 
       const supplierDetails = extractPartyDetails(supplierParty);
       const customerDetails = extractPartyDetails(customerParty);
+
+      // Extract real IBAN and Bank from PaymentMeans
+      let supplierIban = "";
+      let supplierBank = "";
+      const rawPm = invoiceObj["cac:PaymentMeans"];
+      const pmList = Array.isArray(rawPm) ? rawPm : (rawPm ? [rawPm] : []);
+      for (const pm of pmList) {
+        const acc = pm?.["cac:PayeeFinancialAccount"];
+        if (acc) {
+          const accId = getXmlText(acc["cbc:ID"]);
+          if (accId && accId.length > 5 && !accId.toUpperCase().includes("VAT")) {
+            supplierIban = accId;
+            supplierBank =
+              getXmlText(acc["cbc:Name"]) ||
+              getXmlText(
+                acc["cac:FinancialInstitutionBranch"]?.["cac:FinancialInstitution"]?.[
+                  "cbc:Name"
+                ]
+              ) ||
+              "";
+            break;
+          }
+        }
+      }
+
+      // If no IBAN in XML, check if supplier is a tenant on our platform
+      if (!supplierIban && supplierDetails.cui) {
+        const cleanSupCui = supplierDetails.cui.replace(/^RO/i, "").trim();
+        const { tenants } = await import("../drizzle/schema");
+        const [supTenant] = await db
+          .select()
+          .from(tenants)
+          .where(sql`REPLACE(UPPER(${tenants.cui}), 'RO', '') = ${cleanSupCui}`);
+        if (supTenant?.settings) {
+          try {
+            const parsedSettings = JSON.parse(supTenant.settings);
+            if (parsedSettings.iban && String(parsedSettings.iban).length > 8) {
+              supplierIban = String(parsedSettings.iban);
+              supplierBank = String(parsedSettings.bank || "");
+            }
+          } catch {}
+        }
+      }
 
       let xmlLines =
         invoiceObj["cac:InvoiceLine"] || invoiceObj["cac:CreditNoteLine"] || [];
@@ -384,26 +427,27 @@ export function registerPdfRoute(app: any) {
 
       // Extragere număr index SPV
       let spvIndex: string | null = (inv as any).spvIndex || null;
-      if (!spvIndex && inv.fileName) {
-        const m = inv.fileName.match(/SPV_(\d+)/i);
-        if (m) spvIndex = m[1];
-      }
       if (!spvIndex && inv.notes) {
         const m = inv.notes.match(/Index(?:\s*SPV|\s*încărcare)?\s*:?\s*(\d+)/i);
         if (m) spvIndex = m[1];
       }
       if (!spvIndex && inv.invoiceNumber) {
         const { emittedInvoices } = await import("../drizzle/schema");
+        const cleanInvNum = String(inv.invoiceNumber).replace(/[^a-zA-Z0-9]/g, "");
         const [emitted] = await db
           .select({ spvIndex: emittedInvoices.spvIndex })
           .from(emittedInvoices)
           .where(
-            andOp(
-              eq(emittedInvoices.tenantId, inv.tenantId),
-              eq(emittedInvoices.number, inv.invoiceNumber)
+            and(
+              sql`REPLACE(REPLACE(${emittedInvoices.number}, '-', ''), ' ', '') = ${cleanInvNum}`,
+              sql`${emittedInvoices.spvIndex} IS NOT NULL`
             )
           );
         if (emitted?.spvIndex) spvIndex = emitted.spvIndex;
+      }
+      if (!spvIndex && inv.fileName && inv.direction !== "in") {
+        const m = inv.fileName.match(/SPV_(\d+)/i);
+        if (m) spvIndex = m[1];
       }
 
       const pdfData = {
@@ -421,8 +465,8 @@ export function registerPdfRoute(app: any) {
         companyCounty: supplierDetails.county,
         companyEmail: supplierDetails.email,
         companyPhone: supplierDetails.phone,
-        companyIBAN: supplierDetails.iban,
-        companyBank: "",
+        companyIBAN: supplierIban,
+        companyBank: supplierBank,
         spvIndex: spvIndex || undefined,
 
         clientName: customerDetails.name,

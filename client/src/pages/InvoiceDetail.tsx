@@ -45,6 +45,22 @@ export default function InvoiceDetail() {
     }
   }, [isArchiveLoading, invoice, emittedInv, invoiceId, navigate]);
 
+  const markAsRead = trpc.invoiceArchive.markAsRead.useMutation();
+  const utils = trpc.useUtils();
+
+  useEffect(() => {
+    if (invoice && !(invoice as any).isRead) {
+      markAsRead.mutate(
+        { id: invoiceId },
+        {
+          onSuccess: () => {
+            utils.invoiceArchive.list.invalidate();
+          },
+        }
+      );
+    }
+  }, [invoice?.id, (invoice as any)?.isRead]);
+
   if (isArchiveLoading || (isEmittedLoading && !invoice)) {
     return (
       <div className="flex h-[50vh] items-center justify-center">

@@ -1,5 +1,6 @@
 import {
   int,
+  boolean,
   mysqlEnum,
   mysqlTable,
   text,
@@ -531,6 +532,8 @@ export const invoiceArchive = mysqlTable("invoiceArchive", {
   rawXml: longtext("rawXml"), // Store original XML for on-demand PDF conversion
   tags: text("tags"), // JSON array of tags
   costCenterId: int("costCenterId"),
+  isRead: boolean("isRead").default(false),
+  viewedAt: timestamp("viewedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

@@ -27,6 +27,8 @@ import {
   Tag,
   Globe,
   Clock,
+  Mail,
+  MailOpen,
 } from "lucide-react";
 import { formatCurrency, formatDate, type Currency } from "@/lib/store";
 import { trpc } from "@/lib/trpc";
@@ -62,6 +64,7 @@ import {
 type InvoiceType = "primit" | "emis";
 type InvoiceTypeFilter = "all" | "primit" | "emis";
 type NirFilterType = "all" | "cu_nir" | "fara_nir";
+type ReadFilterType = "all" | "unread" | "read";
 
 interface UnifiedRow {
   id: number;
@@ -83,6 +86,7 @@ interface UnifiedRow {
   nirId?: number | null;
   nirNumber?: string | null;
   nirStatus?: string | null;
+  isRead?: boolean;
 }
 
 const SOURCE_BADGE: Record<string, { label: string; cls: string }> = {
@@ -187,6 +191,7 @@ export default function AllInvoices() {
   const [rowsPerPage, setRowsPerPage] = useState(15);
   const [typeFilter, setTypeFilter] = useState<InvoiceTypeFilter>(() => (sessionStorage.getItem("allInvoices_type") as any) || "all");
   const [nirFilter, setNirFilter] = useState<NirFilterType>(() => (sessionStorage.getItem("allInvoices_nir") as any) || "all");
+  const [readFilter, setReadFilter] = useState<ReadFilterType>(() => (sessionStorage.getItem("allInvoices_read") as any) || "all");
   const [filterStatus, setFilterStatus] = useState<string>(() => sessionStorage.getItem("allInvoices_status") || "all");
   const [sourceFilter, setSourceFilter] = useState<string>(() => sessionStorage.getItem("allInvoices_source") || "all");
 
@@ -195,9 +200,10 @@ export default function AllInvoices() {
     sessionStorage.setItem("allInvoices_page", page.toString());
     sessionStorage.setItem("allInvoices_type", typeFilter);
     sessionStorage.setItem("allInvoices_nir", nirFilter);
+    sessionStorage.setItem("allInvoices_read", readFilter);
     sessionStorage.setItem("allInvoices_status", filterStatus);
     sessionStorage.setItem("allInvoices_source", sourceFilter);
-  }, [search, page, typeFilter, nirFilter, filterStatus, sourceFilter]);
+  }, [search, page, typeFilter, nirFilter, readFilter, filterStatus, sourceFilter]);
 
   // Șterge memoria filtrelor la refresh-ul complet al paginii (F5)
   useEffect(() => {
@@ -206,6 +212,7 @@ export default function AllInvoices() {
       sessionStorage.removeItem("allInvoices_page");
       sessionStorage.removeItem("allInvoices_type");
       sessionStorage.removeItem("allInvoices_nir");
+      sessionStorage.removeItem("allInvoices_read");
       sessionStorage.removeItem("allInvoices_status");
       sessionStorage.removeItem("allInvoices_source");
     };
@@ -465,6 +472,12 @@ export default function AllInvoices() {
     },
     onError: e => toast.error("Eroare: " + e.message),
   });
+  const markAsRead = trpc.invoiceArchive.markAsRead.useMutation({
+    onSuccess: () => r1(),
+  });
+  const markAsUnread = trpc.invoiceArchive.markAsUnread.useMutation({
+    onSuccess: () => r1(),
+  });
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
@@ -560,6 +573,7 @@ export default function AllInvoices() {
         nirId,
         nirNumber,
         nirStatus,
+        isRead: Boolean(i.isRead),
       });
     });
     (Array.isArray(reInvoices) ? reInvoices : []).forEach((i: any) => {
@@ -580,6 +594,7 @@ export default function AllInvoices() {
         partnerCui: i.clientCUI || i.clientCui || "",
         spvStatus: i.spvStatus,
         spvIndex: i.spvIndex || null,
+        isRead: true,
       });
     });
     (Array.isArray(emittedInvoices) ? emittedInvoices : []).forEach(
@@ -607,6 +622,7 @@ export default function AllInvoices() {
           spvIndex: i.spvIndex || null,
           partnerCui: i.clientCUI || i.clientCui || "",
           clientCountry: i.clientCountry || "",
+          isRead: true,
         });
       }
     );
@@ -626,6 +642,20 @@ export default function AllInvoices() {
     return { cuNir, faraNir };
   }, [allRows]);
 
+  const readCounts = useMemo(() => {
+    let unread = 0;
+    let read = 0;
+    allRows.forEach(r => {
+      if (r.type === "primit") {
+        if (!r.isRead) unread++;
+        else read++;
+      } else {
+        read++;
+      }
+    });
+    return { unread, read };
+  }, [allRows]);
+
   const filtered = useMemo(() => {
     let rows =
       typeFilter === "all"
@@ -639,6 +669,13 @@ export default function AllInvoices() {
       rows = rows.filter(
         r => (typeFilter === "emis" ? true : r.type === "primit") && !r.nirNumber && !r.nirId
       );
+    }
+
+    // Filtru Citite / Necitite
+    if (readFilter === "unread") {
+      rows = rows.filter(r => r.type === "primit" && !r.isRead);
+    } else if (readFilter === "read") {
+      rows = rows.filter(r => r.type !== "primit" || !!r.isRead);
     }
 
     if (filterStatus !== "all") {
@@ -688,6 +725,7 @@ export default function AllInvoices() {
     search,
     typeFilter,
     nirFilter,
+    readFilter,
     filterStatus,
     sourceFilter,
     period,
@@ -1027,6 +1065,43 @@ export default function AllInvoices() {
               </Select>
             </div>
 
+            {/* Read / Unread Filter */}
+            <div className="w-[125px] sm:w-[150px] flex-shrink-0">
+              <Select
+                value={readFilter}
+                onValueChange={val => {
+                  setReadFilter(val as any);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger
+                  className={`h-8 w-full rounded-full text-xs font-bold border ${
+                    readFilter !== "all"
+                      ? "border-blue-500 bg-blue-50/70 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-700"
+                      : "border-slate-200 bg-white text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
+                  } hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 shadow-none flex items-center gap-1.5 px-3`}
+                >
+                  {readFilter === "unread" ? (
+                    <Mail className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                  ) : readFilter === "read" ? (
+                    <MailOpen className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
+                  ) : (
+                    <Mail className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
+                  )}
+                  <SelectValue placeholder="Citire" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toate ({allRows.length})</SelectItem>
+                  <SelectItem value="unread">
+                    ● Necitite ({readCounts.unread})
+                  </SelectItem>
+                  <SelectItem value="read">
+                    ○ Citite ({readCounts.read})
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Filtru NIR dedicat (Cu / Fara NIR) */}
             <div className="w-[130px] sm:w-[155px] flex-shrink-0">
               <Select
@@ -1259,10 +1334,11 @@ export default function AllInvoices() {
               ) : (
                 paginated.map((row, i) => {
                   const tb = TYPE_BADGE[row.type];
+                  const isUnread = row.type === "primit" && !row.isRead;
                   return (
                     <tr
                       key={`${row.source}-${row.type}-${row.id}`}
-                      className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${selectedIds.has(`${row.source}-${row.id}`) ? "bg-blue-50/50 dark:bg-blue-900/10" : ""}`}
+                      className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${selectedIds.has(`${row.source}-${row.id}`) ? "bg-blue-50/50 dark:bg-blue-900/10" : isUnread ? "bg-blue-50/20 dark:bg-blue-950/20" : ""}`}
                     >
                       <td className="px-4 py-2.5 text-center">
                         <input
@@ -1280,8 +1356,15 @@ export default function AllInvoices() {
                       <td className="px-4 py-2.5 whitespace-nowrap">
                         <div className="h-10 flex flex-col justify-center">
                           <div className="h-5 flex items-center gap-1.5">
+                            {isUnread && (
+                              <span
+                                className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0 inline-block shadow-sm"
+                                title="Factură nouă (necitită)"
+                              />
+                            )}
                             <button
                               onClick={() => {
+                                if (isUnread) markAsRead.mutate({ id: row.id });
                                 if (row.source === "refactura")
                                   navigate(`/re-facturi/${row.id}`);
                                 else if (
@@ -1291,7 +1374,11 @@ export default function AllInvoices() {
                                   navigate(`/facturi-emise-nou/view/${row.id}`);
                                 else navigate(`/facturi-primite/${row.id}`);
                               }}
-                              className="text-xs font-bold text-blue-600 hover:underline text-left truncate"
+                              className={`text-xs text-left truncate hover:underline ${
+                                isUnread
+                                  ? "font-bold text-blue-700 dark:text-blue-400"
+                                  : "font-normal text-blue-600 dark:text-blue-500"
+                              }`}
                             >
                               {row.number}
                             </button>
@@ -1341,7 +1428,11 @@ export default function AllInvoices() {
                               return (
                                 <Link
                                   href={cId ? `/client/${cId}` : `/clienti?search=${encodeURIComponent(row.partnerName)}`}
-                                  className="text-xs font-bold text-slate-900 dark:text-white max-w-[200px] truncate hover:underline hover:text-primary transition-colors cursor-pointer block"
+                                  className={`text-xs max-w-[200px] truncate hover:underline hover:text-primary transition-colors cursor-pointer block ${
+                                    isUnread
+                                      ? "font-bold text-slate-900 dark:text-white"
+                                      : "font-normal text-slate-600 dark:text-slate-400"
+                                  }`}
                                   title={row.partnerName}
                                 >
                                   {row.partnerName}
@@ -1365,7 +1456,11 @@ export default function AllInvoices() {
                       <td className="px-4 py-2.5 whitespace-nowrap">
                         <div className="h-10 flex flex-col justify-center">
                           <div className="h-5 flex items-center">
-                            <span className="text-xs font-bold text-slate-900 dark:text-white">
+                            <span className={`text-xs ${
+                              isUnread
+                                ? "font-bold text-slate-900 dark:text-white"
+                                : "font-normal text-slate-600 dark:text-slate-400"
+                            }`}>
                               {formatDate(row.date)}
                             </span>
                           </div>
@@ -1377,7 +1472,11 @@ export default function AllInvoices() {
                       <td className="px-4 py-2.5 text-right whitespace-nowrap">
                         <div className="h-10 flex flex-col justify-center items-end">
                           <div className="h-5 flex items-center justify-end">
-                            <span className="text-xs font-bold text-slate-900 dark:text-white">
+                            <span className={`text-xs ${
+                              isUnread
+                                ? "font-bold text-slate-900 dark:text-white"
+                                : "font-normal text-slate-700 dark:text-slate-300"
+                            }`}>
                               {formatCurrency(row.total, row.currency as Currency)}
                             </span>
                           </div>
@@ -1506,6 +1605,26 @@ export default function AllInvoices() {
                                     </span>
                                   </DropdownMenuItem>
                                 )}
+
+                              {row.type === "primit" && (
+                                isUnread ? (
+                                  <DropdownMenuItem
+                                    onClick={() => markAsRead.mutate({ id: row.id })}
+                                    className="cursor-pointer text-slate-700 dark:text-slate-300"
+                                  >
+                                    <MailOpen className="w-4 h-4 mr-2 text-blue-600" />
+                                    <span>Marchează ca citită</span>
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem
+                                    onClick={() => markAsUnread.mutate({ id: row.id })}
+                                    className="cursor-pointer text-slate-700 dark:text-slate-300"
+                                  >
+                                    <Mail className="w-4 h-4 mr-2 text-slate-500" />
+                                    <span>Marchează ca necitită</span>
+                                  </DropdownMenuItem>
+                                )
+                              )}
 
                               {(row.type === "primit" ||
                                 (row.type === "emis" &&

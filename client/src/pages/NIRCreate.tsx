@@ -72,7 +72,8 @@ const TIP_TO_CONT: Record<string, string> = {
   "Materii prime": "301",
   Consumabile: "3028",
   Nedefinit: "371",
-  Servicii: "704",
+  Servicii: "628",
+  Avans: "4091",
 };
 
 export default function NIRCreate() {
@@ -264,12 +265,40 @@ export default function NIRCreate() {
           .map((l: any) => {
             const qty = parseFloat(String(l.quantity || "1"));
             const received = parseFloat(String(l.receivedQuantity || "0"));
-            const remaining = Math.max(0, qty - received);
+            let remaining = qty;
+            if (qty < 0) {
+              // Poziție storno / avans negativ
+              remaining = qty - received < 0 ? qty - received : 0;
+            } else {
+              remaining = Math.max(0, qty - received);
+            }
             const unitPrice = parseFloat(String(l.unitPrice || "0"));
             const descNorm = normalizeName(l.description);
             const matchedArticle = articles.find(
               (a: any) => normalizeName(a.name) === descNorm
             );
+
+            const isAvans = (l.description || "").toLowerCase().includes("avans") || qty < 0;
+            const isTransport = (l.description || "").toLowerCase().includes("transport");
+
+            let defType = "Marfuri";
+            let defAccount = "371";
+            if (matchedArticle) {
+              defType = matchedArticle.category || "Marfuri";
+              defAccount = matchedArticle.accountingAccount || "371";
+            } else if (isAvans) {
+              defType = "Avans";
+              defAccount = "4091";
+            } else if (isTransport) {
+              defType = "Servicii";
+              defAccount = "628";
+            }
+
+            const calcTotal = (remaining * unitPrice).toFixed(2);
+            const parsedLTotal = parseFloat(String(l.total || "0"));
+            const finalTotal = !isNaN(parsedLTotal) && parsedLTotal !== 0 && Math.abs(parseFloat(calcTotal)) !== Math.abs(parsedLTotal)
+              ? parsedLTotal.toFixed(2)
+              : calcTotal;
 
             return {
               sagaArticleId: matchedArticle ? matchedArticle.id : undefined,
@@ -282,13 +311,13 @@ export default function NIRCreate() {
               vatRate: matchedArticle && matchedArticle.vatRate !== null 
                 ? String(matchedArticle.vatRate) 
                 : ((l.vatRate !== undefined && l.vatRate !== null && l.vatRate !== "") ? String(l.vatRate) : "19"),
-              total: String((remaining * unitPrice).toFixed(2)),
+              total: finalTotal,
               observations: "",
-              accountingType: matchedArticle ? matchedArticle.category : "Marfuri",
-              accountingAccount: matchedArticle ? matchedArticle.accountingAccount : "371",
+              accountingType: defType,
+              accountingAccount: defAccount,
             };
           })
-          .filter((l: any) => parseFloat(l.cantitateReceptionata) > 0);
+          .filter((l: any) => Math.abs(parseFloat(l.cantitateReceptionata || "0")) > 0 || Math.abs(parseFloat(l.total || "0")) > 0);
 
         if (newLines.length > 0) {
           setLines(newLines);
@@ -361,6 +390,15 @@ export default function NIRCreate() {
           if (matched.vatRate !== null) updated[idx].vatRate = String(matched.vatRate);
           updated[idx].accountingType = matched.category || updated[idx].accountingType;
           updated[idx].accountingAccount = matched.accountingAccount || updated[idx].accountingAccount;
+        } else {
+          const lower = value.toLowerCase();
+          if (lower.includes("avans")) {
+            updated[idx].accountingType = "Avans";
+            updated[idx].accountingAccount = "4091";
+          } else if (lower.includes("transport")) {
+            updated[idx].accountingType = "Servicii";
+            updated[idx].accountingAccount = "628";
+          }
         }
       }
       
@@ -602,6 +640,7 @@ export default function NIRCreate() {
                     <option value="Consumabile">Consumabile</option>
                     <option value="Nedefinit">Nedefinit</option>
                     <option value="Servicii">Servicii</option>
+                    <option value="Avans">Avans</option>
                   </select>
                 </div>
               </div>
@@ -623,6 +662,8 @@ export default function NIRCreate() {
                     <option value="3028">3028 - Alte mat. consumabile</option>
                     <option value="3021">3021 - Mat. auxiliare</option>
                     <option value="3024">3024 - Piese de schimb</option>
+                    <option value="4091">4091 - Furnizori - debitori (Avansuri)</option>
+                    <option value="628">628 - Alte cheltuieli cu servicii</option>
                     <option value="704">704 - Servicii prestate</option>
                   </select>
                 </div>
@@ -806,6 +847,7 @@ export default function NIRCreate() {
                               <option value="Consumabile">Consumabile</option>
                               <option value="Nedefinit">Nedefinit</option>
                               <option value="Servicii">Servicii</option>
+                              <option value="Avans">Avans</option>
                             </select>
                           </div>
                         </td>
@@ -824,6 +866,8 @@ export default function NIRCreate() {
                               <option value="3028">3028</option>
                               <option value="3021">3021</option>
                               <option value="3024">3024</option>
+                              <option value="4091">4091</option>
+                              <option value="628">628</option>
                               <option value="704">704</option>
                             </select>
                           </div>

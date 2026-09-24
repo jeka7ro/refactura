@@ -1759,6 +1759,42 @@ export const appRouter = router({
           );
         return { success: true };
       }),
+
+    markAsRead: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { invoiceArchive } = await import("../drizzle/schema");
+        await db
+          .update(invoiceArchive)
+          .set({ isRead: true, viewedAt: new Date() })
+          .where(
+            and(
+              eq(invoiceArchive.id, input.id),
+              eq(invoiceArchive.tenantId, (ctx.user?.tenantId || 1))
+            )
+          );
+        return { success: true };
+      }),
+
+    markAsUnread: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { invoiceArchive } = await import("../drizzle/schema");
+        await db
+          .update(invoiceArchive)
+          .set({ isRead: false, viewedAt: null })
+          .where(
+            and(
+              eq(invoiceArchive.id, input.id),
+              eq(invoiceArchive.tenantId, (ctx.user?.tenantId || 1))
+            )
+          );
+        return { success: true };
+      }),
   }),
 
   // ─── Integrations Router ─────────────────────────────────────────────────────

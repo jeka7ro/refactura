@@ -132,6 +132,10 @@ export default function InvoiceArchive() {
     onError: e => toast.error(e.message),
   });
 
+  const markAsRead = trpc.invoiceArchive.markAsRead.useMutation({
+    onSuccess: () => refetch(),
+  });
+
   const handleFiles = useCallback(
     async (files: FileList | File[]) => {
       const fileArray = Array.from(files);
@@ -524,10 +528,13 @@ export default function InvoiceArchive() {
                 {items.map((item: any, index: number) => {
                   const st =
                     STATUS_LABELS[item.status] ?? STATUS_LABELS.pending;
+                  const isUnread = !item.isRead;
                   return (
                     <tr
                       key={item.id}
-                      className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors group"
+                      className={`hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors group ${
+                        isUnread ? "bg-blue-50/20 dark:bg-blue-950/20" : ""
+                      }`}
                     >
                       <td className="px-4 py-3 text-center">
                         <input
@@ -548,7 +555,11 @@ export default function InvoiceArchive() {
                       <td className="px-4 py-3">
                         {item.supplierName ? (
                           <div
-                            className="text-xs font-medium text-slate-500 dark:text-slate-400 max-w-[180px] truncate"
+                            className={`text-xs max-w-[180px] truncate ${
+                              isUnread
+                                ? "font-bold text-slate-900 dark:text-white"
+                                : "font-normal text-slate-600 dark:text-slate-400"
+                            }`}
                             title={item.supplierName}
                           >
                             {item.supplierName}
@@ -561,19 +572,37 @@ export default function InvoiceArchive() {
                       </td>
                       <td className="px-4 py-3">
                         {item.invoiceNumber ? (
-                          <span className="text-sm font-bold text-blue-600 hover:underline cursor-pointer">
-                            {item.invoiceNumber}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            {isUnread && (
+                              <span
+                                className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0 inline-block shadow-sm"
+                                title="Factură nouă (necitită)"
+                              />
+                            )}
+                            <span
+                              onClick={() => {
+                                if (isUnread) markAsRead.mutate({ id: item.id });
+                                setLocation(`/facturi-primite/${item.id}`);
+                              }}
+                              className={`text-sm hover:underline cursor-pointer ${
+                                isUnread
+                                  ? "font-bold text-blue-700 dark:text-blue-400"
+                                  : "font-normal text-blue-600 dark:text-blue-500"
+                              }`}
+                            >
+                              {item.invoiceNumber}
+                            </span>
+                          </div>
                         ) : (
                           <span className="text-slate-300 dark:text-slate-600">
                             —
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
+                      <td className={`px-4 py-3 ${isUnread ? "font-bold text-slate-900 dark:text-white" : "text-slate-600 dark:text-slate-400 font-normal"}`}>
                         {formatDate(item.issueDate)}
                       </td>
-                      <td className="px-4 py-3 text-right text-slate-800 dark:text-slate-200">
+                      <td className={`px-4 py-3 text-right ${isUnread ? "font-bold text-slate-900 dark:text-white" : "text-slate-700 dark:text-slate-300 font-normal"}`}>
                         {formatAmount(item.total, item.currency)}
                       </td>
                       <td className="px-4 py-3">

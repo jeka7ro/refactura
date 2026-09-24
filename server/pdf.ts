@@ -435,22 +435,6 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
         { width: spvValW, align: "right" }
       );
     doc.fillColor("#000000");
-
-    // E-Factura badge sub titlul Factura pe stânga
-    const badgeX = leftX + (data.logoBase64 && data.logoBase64 !== "DEFAULT_TEXT_LOGO" ? (isBilingual ? 130 : 180) : 0);
-    const badgeY = 56;
-    const badgeText = `RO e-Factura • Index SPV: ${data.spvIndex}`;
-    doc.fontSize(8).font("Roboto-Bold");
-    const badgeTextW = Math.ceil(doc.widthOfString(badgeText));
-    doc
-      .roundedRect(badgeX, badgeY, badgeTextW + 14, 18, 4)
-      .fillAndStroke("#ecfdf5", "#059669");
-    doc
-      .fontSize(8)
-      .font("Roboto-Bold")
-      .fillColor("#047857")
-      .text(badgeText, badgeX + 7, badgeY + 5);
-    doc.fillColor("#000000");
   }
 
   y += data.spvIndex ? 22 : 30;
@@ -506,9 +490,6 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   leftInfoY = addInfo(L.bank, data.companyBank, leftX, leftInfoY);
   leftInfoY = addInfo(L.phone, data.companyPhone, leftX, leftInfoY);
   leftInfoY = addInfo(L.email, data.companyEmail, leftX, leftInfoY);
-  if (data.spvIndex) {
-    leftInfoY = addInfo(L.spvIndex, String(data.spvIndex), leftX, leftInfoY);
-  }
 
   // Client Column
   doc
@@ -824,17 +805,6 @@ function generateModern(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
       leftX + (data.logoBase64 ? 105 : 0),
       41
     );
-  if (data.spvIndex) {
-    doc
-      .fontSize(8)
-      .font("Roboto-Bold")
-      .fillColor("#34d399")
-      .text(
-        `RO e-Factura • Index SPV: ${data.spvIndex}`,
-        leftX + (data.logoBase64 ? 105 : 0),
-        54
-      );
-  }
 
   // Invoice badge top-right
   doc
@@ -905,7 +875,7 @@ function generateModern(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     .join(", ");
 
   const clientContact = [data.clientPhone, data.clientEmail].filter(Boolean).join(" | ");
-  const companyContact = [data.companyPhone, data.companyEmail, data.spvIndex ? `Index SPV: ${data.spvIndex}` : ""].filter(Boolean).join(" | ");
+  const companyContact = [data.companyPhone, data.companyEmail].filter(Boolean).join(" | ");
   const companyBanking = [data.companyIBAN ? `IBAN: ${data.companyIBAN}` : "", data.companyBank].filter(Boolean).join(" | ");
 
   const cards = [
