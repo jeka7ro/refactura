@@ -28,6 +28,8 @@ import {
   Layers,
   FileSpreadsheet,
   Eye,
+  FileCode,
+  Hash,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -791,12 +793,95 @@ function ExportTab() {
   const { data: me } = trpc.auth.me.useQuery();
   const currentTenantId = me?.tenantId || 1;
 
-  const downloadZip = () => {
-    window.location.href = `/api/saga-sync?month=${month}&year=${year}&tenantId=${currentTenantId}`;
-  };
+  const [exportingNirId, setExportingNirId] = useState<number | null>(null);
+  const exportSingleNirMut = trpc.saga.exportNir.useMutation({
+    onSuccess: (data) => {
+      const blob = new Blob([data.xml], { type: "text/xml;charset=windows-1250" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = data.filename || "FACTURI.XML";
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success(`Fișierul ${data.filename} a fost descărcat pentru import în SAGA C!`);
+      setExportingNirId(null);
+    },
+    onError: (e) => {
+      toast.error("Eroare export: " + e.message);
+      setExportingNirId(null);
+    },
+  });
+
+  const [selectedNirIds, setSelectedNirIds] = useState<number[] | null>(null);
+  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<number[] | null>(null);
 
   const { data: history = [], refetch: refetchHistory } = trpc.saga.exportHistory.useQuery();
   const { data: previewData, isLoading: isLoadingPreview } = trpc.saga.getExportPreview.useQuery({ month, year });
+
+  // Sync selection when previewData changes
+  useEffect(() => {
+    if (previewData) {
+      setSelectedNirIds(previewData.nirs ? previewData.nirs.map((n: any) => n.id) : []);
+      setSelectedInvoiceIds(previewData.invoices ? previewData.invoices.map((inv: any) => inv.id) : []);
+    }
+  }, [previewData]);
+
+  const toggleNir = (id: number) => {
+    setSelectedNirIds((prev) => {
+      const allIds = previewData?.nirs ? previewData.nirs.map((n: any) => n.id) : [];
+      const current = prev ?? allIds;
+      if (current.includes(id)) {
+        return current.filter((x) => x !== id);
+      } else {
+        return [...current, id];
+      }
+    });
+  };
+
+  const toggleAllNirs = () => {
+    const allIds = previewData?.nirs ? previewData.nirs.map((n: any) => n.id) : [];
+    const current = selectedNirIds ?? allIds;
+    if (current.length === allIds.length) {
+      setSelectedNirIds([]);
+    } else {
+      setSelectedNirIds(allIds);
+    }
+  };
+
+  const toggleInvoice = (id: number) => {
+    setSelectedInvoiceIds((prev) => {
+      const allIds = previewData?.invoices ? previewData.invoices.map((i: any) => i.id) : [];
+      const current = prev ?? allIds;
+      if (current.includes(id)) {
+        return current.filter((x) => x !== id);
+      } else {
+        return [...current, id];
+      }
+    });
+  };
+
+  const toggleAllInvoices = () => {
+    const allIds = previewData?.invoices ? previewData.invoices.map((i: any) => i.id) : [];
+    const current = selectedInvoiceIds ?? allIds;
+    if (current.length === allIds.length) {
+      setSelectedInvoiceIds([]);
+    } else {
+      setSelectedInvoiceIds(allIds);
+    }
+  };
+
+  const downloadZip = () => {
+    let url = `/api/saga-sync?month=${month}&year=${year}&tenantId=${currentTenantId}`;
+    if (selectedNirIds !== null) {
+      url += `&nirIds=${selectedNirIds.join(",")}`;
+    }
+    if (selectedInvoiceIds !== null) {
+      url += `&invoiceIds=${selectedInvoiceIds.join(",")}`;
+    }
+    window.location.href = url;
+  };
 
   // Import Facturi Externe din SAGA
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -932,7 +1017,7 @@ function ExportTab() {
                   className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  Descarcă Arhiva ZIP
+                  Descarcă Arhiva ZIP {selectedNirIds !== null || selectedInvoiceIds !== null ? `(${(selectedNirIds?.length || 0) + (selectedInvoiceIds?.length || 0)} doc.)` : ""}
                 </button>
               </div>
 
@@ -950,7 +1035,12 @@ function ExportTab() {
                   </p>
                 </div>
                 <button
-                  onClick={() => exportFacturiMut.mutate({ month, year })}
+                  onClick={() => exportFacturiMut.mutate({
+                    month,
+                    year,
+                    nirIds: selectedNirIds !== null ? selectedNirIds : undefined,
+                    invoiceIds: selectedInvoiceIds !== null ? selectedInvoiceIds : undefined,
+                  })}
                   disabled={exportFacturiMut.isPending}
                   className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
                 >
@@ -959,7 +1049,7 @@ function ExportTab() {
                   ) : (
                     <FileText className="w-3.5 h-3.5" />
                   )}
-                  Descarcă Facturi.xml
+                  Descarcă Facturi.xml {selectedNirIds !== null || selectedInvoiceIds !== null ? `(${(selectedNirIds?.length || 0) + (selectedInvoiceIds?.length || 0)} doc.)` : ""}
                 </button>
               </div>
 
@@ -1093,10 +1183,10 @@ function ExportTab() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                    {previewData?.invoices.length || 0} Facturi Emise (Ieșiri)
+                    {selectedInvoiceIds ? selectedInvoiceIds.length : (previewData?.invoices.length || 0)} / {previewData?.invoices.length || 0} Facturi Emise (Ieșiri)
                   </span>
                   <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
-                    {previewData?.nirs.length || 0} Recepții NIR (Intrări)
+                    {selectedNirIds ? selectedNirIds.length : (previewData?.nirs.length || 0)} / {previewData?.nirs.length || 0} Recepții NIR (Intrări)
                   </span>
                 </div>
               </div>
@@ -1122,30 +1212,59 @@ function ExportTab() {
                   <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                       <FileText className="w-3.5 h-3.5 text-blue-600" />
-                      Ieșiri — Facturi Emise ({previewData?.invoices.length || 0})
+                      Ieșiri — Facturi Emise ({selectedInvoiceIds ? selectedInvoiceIds.length : (previewData?.invoices.length || 0)} / {previewData?.invoices.length || 0})
                     </span>
+                    {(previewData?.invoices.length || 0) > 0 && (
+                      <button
+                        type="button"
+                        onClick={toggleAllInvoices}
+                        className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 hover:underline cursor-pointer"
+                      >
+                        {(selectedInvoiceIds ?? []).length === (previewData?.invoices.length || 0) ? "Deselectează tot" : "Selectează tot"}
+                      </button>
+                    )}
                   </div>
-                  <div className="max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                  <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
                     {isLoadingPreview ? (
                       <div className="p-4 text-center text-xs text-slate-400"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></div>
                     ) : (previewData?.invoices.length || 0) === 0 ? (
                       <div className="p-4 text-center text-xs text-slate-400">Nicio factură emisă în luna {MONTHS[month - 1]}.</div>
                     ) : (
-                      previewData?.invoices.map((inv) => (
-                        <div key={inv.id} className="p-3 text-xs flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                          <div>
-                            <span className="font-bold text-slate-900 dark:text-white">{inv.number}</span>
-                            <span className="text-slate-400 ml-2">{inv.issueDate}</span>
-                            <div className="text-slate-600 dark:text-slate-300 truncate max-w-[200px]">
-                              {inv.clientName || "Client"} {inv.clientCui ? `(CUI: ${inv.clientCui})` : ""}
+                      previewData?.invoices.map((inv) => {
+                        const isSelected = (selectedInvoiceIds ?? []).includes(inv.id);
+                        return (
+                          <div
+                            key={inv.id}
+                            onClick={() => toggleInvoice(inv.id)}
+                            className={`p-3 text-xs flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/30 cursor-pointer transition-colors ${
+                              isSelected ? "bg-blue-50/20 dark:bg-blue-900/10" : "opacity-60 bg-slate-50/40"
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => toggleInvoice(inv.id)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+                              />
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-slate-900 dark:text-white">{inv.number}</span>
+                                  <span className="text-slate-400 font-mono text-[11px]">{inv.issueDate}</span>
+                                </div>
+                                <div className="text-slate-600 dark:text-slate-300 truncate max-w-[200px]">
+                                  {inv.clientName || "Client"} {inv.clientCui ? `(CUI: ${inv.clientCui})` : ""}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <span className="font-bold font-mono text-slate-900 dark:text-white">{Number(inv.total).toFixed(2)} {inv.currency || "RON"}</span>
+                              <div className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold">Ieșire SAGA</div>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <span className="font-bold font-mono text-slate-900 dark:text-white">{Number(inv.total).toFixed(2)} {inv.currency || "RON"}</span>
-                            <div className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold">Ieșire SAGA</div>
-                          </div>
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                 </div>
@@ -1155,10 +1274,19 @@ function ExportTab() {
                   <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                       <Download className="w-3.5 h-3.5 text-emerald-600" />
-                      Intrări — Recepții NIR ({previewData?.nirs.length || 0})
+                      Intrări — Recepții NIR ({selectedNirIds ? selectedNirIds.length : (previewData?.nirs.length || 0)} / {previewData?.nirs.length || 0})
                     </span>
+                    {(previewData?.nirs.length || 0) > 0 && (
+                      <button
+                        type="button"
+                        onClick={toggleAllNirs}
+                        className="text-[11px] font-semibold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 hover:underline cursor-pointer"
+                      >
+                        {(selectedNirIds ?? []).length === (previewData?.nirs.length || 0) ? "Deselectează tot" : "Selectează tot"}
+                      </button>
+                    )}
                   </div>
-                  <div className="max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                  <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
                     {isLoadingPreview ? (
                       <div className="p-4 text-center text-xs text-slate-400"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></div>
                     ) : (previewData?.nirs.length || 0) === 0 ? (
@@ -1171,22 +1299,88 @@ function ExportTab() {
                         )}
                       </div>
                     ) : (
-                      previewData?.nirs.map((n) => (
-                        <div key={n.id} className="p-3 text-xs flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                          <div>
-                            <span className="font-bold text-emerald-700 dark:text-emerald-400">{n.nirNumber}</span>
-                            {n.invoiceNumber && <span className="text-slate-400 ml-1.5 font-mono">Doc: {n.invoiceNumber}</span>}
-                            <div className="text-slate-600 dark:text-slate-300 font-medium truncate max-w-[200px]">
-                              {n.supplierName || "Furnizor"} {n.supplierCUI ? `(CUI: ${n.supplierCUI})` : ""}
+                      previewData?.nirs.map((n) => {
+                        const isSelected = (selectedNirIds ?? []).includes(n.id);
+                        return (
+                          <div
+                            key={n.id}
+                            onClick={() => toggleNir(n.id)}
+                            className={`p-3.5 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/30 cursor-pointer transition-colors ${
+                              isSelected ? "bg-emerald-50/20 dark:bg-emerald-900/10" : "opacity-60 bg-slate-50/40"
+                            }`}
+                          >
+                            <div className="flex items-start gap-3 w-full sm:w-auto">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => toggleNir(n.id)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-4 h-4 mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer shrink-0"
+                              />
+                              <div className="space-y-1 min-w-0">
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <span className="font-bold text-emerald-700 dark:text-emerald-400">
+                                    {n.nirNumber}
+                                  </span>
+                                  {n.invoiceNumber && (
+                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                      Doc: {n.invoiceNumber}
+                                    </span>
+                                  )}
+                                  {/* Prominent Index SPV */}
+                                  {n.spvIndex ? (
+                                    <span
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200 border border-blue-300 dark:border-blue-700 shadow-xs"
+                                      title="ID Încărcare SPV / Index ANAF preluat automat din e-Factura"
+                                    >
+                                      <Hash className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                                      Index SPV: {n.spvIndex}
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                                      Fără Index SPV
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-slate-700 dark:text-slate-200 font-semibold truncate max-w-xs sm:max-w-sm">
+                                  {n.supplierName || "Furnizor"} {n.supplierCUI ? `(CUI: ${n.supplierCUI})` : ""}
+                                </div>
+                                <div className="text-[11px] text-slate-500 dark:text-slate-400 flex flex-wrap items-center gap-x-2">
+                                  <span>Dată factură: <strong className="text-slate-700 dark:text-slate-300">{n.issueDate || n.receiptDate}</strong></span>
+                                  <span>•</span>
+                                  <span>Recepție: {n.receiptDate}</span>
+                                  <span>•</span>
+                                  <span>Cont: <strong className="text-emerald-700 dark:text-emerald-400 font-mono">{n.accountingAccount || "371"}</strong></span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="text-[10px] text-slate-400">Dată: {n.receiptDate} | Cont: {n.accountingAccount || "371"}</div>
+                            <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto shrink-0 gap-1.5">
+                              <div className="text-left sm:text-right">
+                                <span className="font-bold font-mono text-slate-900 dark:text-white text-sm">{n.total} RON</span>
+                                <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Intrare SAGA</div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setExportingNirId(n.id);
+                                  exportSingleNirMut.mutate({ nirId: n.id });
+                                }}
+                                disabled={exportSingleNirMut.isPending && exportingNirId === n.id}
+                                title="Descarcă doar acest NIR cu indexul SPV în format XML pentru SAGA C"
+                                className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-xs hover:shadow transition-all disabled:opacity-50 cursor-pointer"
+                              >
+                                {exportSingleNirMut.isPending && exportingNirId === n.id ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <FileCode className="w-3 h-3" />
+                                )}
+                                <span>Descarcă XML</span>
+                              </button>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <span className="font-bold font-mono text-slate-900 dark:text-white">{n.total} RON</span>
-                            <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Intrare SAGA</div>
-                          </div>
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                 </div>

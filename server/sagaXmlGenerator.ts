@@ -71,7 +71,15 @@ export async function getTenantCompanyProfile(tenantId: number): Promise<TenantC
  * - Dacă FurnizorCIF reprezintă CIF-ul societății -> import în Ieșiri (Facturi Emise/Vânzări)
  * - Dacă ClientCIF reprezintă CIF-ul societății -> import în Intrări (Achiziții/NIR)
  */
-export async function generateSagaExportXML(tenantId: number, month: number, year: number) {
+export async function generateSagaExportXML(
+  tenantId: number,
+  month: number,
+  year: number,
+  options?: {
+    nirIds?: number[];
+    invoiceIds?: number[];
+  }
+) {
   const db = await getDb();
   if (!db) throw new Error("No DB");
 
@@ -94,11 +102,15 @@ export async function generateSagaExportXML(tenantId: number, month: number, yea
     .from(schema.emittedInvoices)
     .where(eq(schema.emittedInvoices.tenantId, tenantId));
 
-  const monthInvoices = invoices.filter((inv) => {
+  let monthInvoices = invoices.filter((inv) => {
     if (!inv.issueDate) return false;
     const invDate = inv.issueDate.substring(0, 10);
     return invDate >= startDateStr && invDate <= endDateStr;
   });
+
+  if (options?.invoiceIds !== undefined) {
+    monthInvoices = monthInvoices.filter((inv) => options.invoiceIds!.includes(inv.id));
+  }
 
   const allClients = await db
     .select()
@@ -199,11 +211,15 @@ export async function generateSagaExportXML(tenantId: number, month: number, yea
     .from(sagaIntrari)
     .where(eq(sagaIntrari.tenantId, tenantId));
 
-  const monthNirs = nirList.filter((n) => {
+  let monthNirs = nirList.filter((n) => {
     if (!n.receiptDate) return false;
     const nDate = n.receiptDate.substring(0, 10);
     return nDate >= startDateStr && nDate <= endDateStr;
   });
+
+  if (options?.nirIds !== undefined) {
+    monthNirs = monthNirs.filter((n) => options.nirIds!.includes(n.id));
+  }
 
   const monthSagaIntrari = noileIntrari.filter((n) => {
     if (!n.data) return false;
@@ -240,10 +256,44 @@ export async function generateSagaExportXML(tenantId: number, month: number, yea
     if (company.city) xml += `      <ClientLocalitate>${escapeXml(company.city)}</ClientLocalitate>\n`;
     if (company.address) xml += `      <ClientAdresa>${escapeXml(company.address)}</ClientAdresa>\n`;
 
-    // Date document intrare
+    // Preia datele reale ale facturii (data emiterii furnizorului și index SPV)
+    let spvIndex = "";
+    let docDate = n.receiptDate;
+    let dueDate = "";
+    if (n.invoiceArchiveId) {
+      const [inv] = await db
+        .select()
+        .from(schema.invoiceArchive)
+        .where(eq(schema.invoiceArchive.id, n.invoiceArchiveId));
+      if (inv) {
+        if (inv.issueDate) docDate = inv.issueDate;
+        if (inv.dueDate) dueDate = inv.dueDate;
+        if (inv.spvIndex) {
+          spvIndex = inv.spvIndex;
+        } else if (inv.notes) {
+          const m = inv.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
+          if (m) spvIndex = m[1];
+        }
+        if (!spvIndex && inv.fileName) {
+          const m = inv.fileName.match(/(?:SPV_|_INDEX_|id_|index_)(\d{8,12})/i);
+          if (m) spvIndex = m[1];
+        }
+      }
+    }
+
+    // Date document intrare (folosim data reala a facturii furnizorului, nu data receptiei/importului)
     xml += `      <FacturaNumar>${escapeXml(n.invoiceNumber || n.nirNumber)}</FacturaNumar>\n`;
-    xml += `      <FacturaData>${formatDate(n.receiptDate)}</FacturaData>\n`;
+    xml += `      <FacturaData>${formatDate(docDate)}</FacturaData>\n`;
+    if (dueDate) {
+      xml += `      <FacturaScadenta>${formatDate(dueDate)}</FacturaScadenta>\n`;
+    }
     xml += `      <FacturaMoneda>RON</FacturaMoneda>\n`;
+    if (spvIndex) {
+      xml += `      <IdIncarcareSPV>${escapeXml(spvIndex)}</IdIncarcareSPV>\n`;
+      xml += `      <IdSPV>${escapeXml(spvIndex)}</IdSPV>\n`;
+      xml += `      <IndexSPV>${escapeXml(spvIndex)}</IndexSPV>\n`;
+      xml += `      <IdIncarcare>${escapeXml(spvIndex)}</IdIncarcare>\n`;
+    }
     xml += `    </Antet>\n`;
     xml += `    <Detalii>\n`;
     xml += `      <Continut>\n`;
@@ -265,6 +315,8 @@ export async function generateSagaExportXML(tenantId: number, month: number, yea
       }
       xml += `          <Descriere>${escapeXml(line.description)}</Descriere>\n`;
       if (code) {
+        xml += `          <Cod>${escapeXml(code)}</Cod>\n`;
+        xml += `          <CodArticol>${escapeXml(code)}</CodArticol>\n`;
         xml += `          <CodArticolFurnizor>${escapeXml(code)}</CodArticolFurnizor>\n`;
       }
       xml += `          <UM>${escapeXml(line.unit || "buc")}</UM>\n`;
@@ -310,6 +362,12 @@ export async function generateSagaExportXML(tenantId: number, month: number, yea
       xml += `      <FacturaScadenta>${formatDate(n.scadent)}</FacturaScadenta>\n`;
     }
     xml += `      <FacturaMoneda>RON</FacturaMoneda>\n`;
+    if (n.idSPV) {
+      xml += `      <IdIncarcareSPV>${escapeXml(n.idSPV)}</IdIncarcareSPV>\n`;
+      xml += `      <IdSPV>${escapeXml(n.idSPV)}</IdSPV>\n`;
+      xml += `      <IndexSPV>${escapeXml(n.idSPV)}</IndexSPV>\n`;
+      xml += `      <IdIncarcare>${escapeXml(n.idSPV)}</IdIncarcare>\n`;
+    }
     xml += `    </Antet>\n`;
     xml += `    <Detalii>\n`;
     xml += `      <Continut>\n`;
@@ -326,6 +384,8 @@ export async function generateSagaExportXML(tenantId: number, month: number, yea
       xml += `          <LinieNrCrt>${lineIndex++}</LinieNrCrt>\n`;
       xml += `          <Descriere>${escapeXml(line.denumire)}</Descriere>\n`;
       if (line.cod) {
+        xml += `          <Cod>${escapeXml(line.cod)}</Cod>\n`;
+        xml += `          <CodArticol>${escapeXml(line.cod)}</CodArticol>\n`;
         xml += `          <CodArticolFurnizor>${escapeXml(line.cod)}</CodArticolFurnizor>\n`;
       }
       xml += `          <UM>${escapeXml(line.um || "buc")}</UM>\n`;
@@ -381,6 +441,31 @@ export async function generateSagaNirXML(tenantId: number, nirId?: number) {
       )
       .where(eq(schema.nirLines.nirId, n.id));
 
+    // Preia datele reale ale facturii (data emiterii furnizorului și index SPV)
+    let spvIndex = "";
+    let docDate = n.receiptDate;
+    let dueDate = "";
+    if (n.invoiceArchiveId) {
+      const [inv] = await db
+        .select()
+        .from(schema.invoiceArchive)
+        .where(eq(schema.invoiceArchive.id, n.invoiceArchiveId));
+      if (inv) {
+        if (inv.issueDate) docDate = inv.issueDate;
+        if (inv.dueDate) dueDate = inv.dueDate;
+        if (inv.spvIndex) {
+          spvIndex = inv.spvIndex;
+        } else if (inv.notes) {
+          const m = inv.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
+          if (m) spvIndex = m[1];
+        }
+        if (!spvIndex && inv.fileName) {
+          const m = inv.fileName.match(/(?:SPV_|_INDEX_|id_|index_)(\d{8,12})/i);
+          if (m) spvIndex = m[1];
+        }
+      }
+    }
+
     xml += `  <Factura>\n`;
     xml += `    <Antet>\n`;
     // Furnizorul (de la cine s-a recepționat)
@@ -396,10 +481,19 @@ export async function generateSagaNirXML(tenantId: number, nirId?: number) {
     if (company.city) xml += `      <ClientLocalitate>${escapeXml(company.city)}</ClientLocalitate>\n`;
     if (company.address) xml += `      <ClientAdresa>${escapeXml(company.address)}</ClientAdresa>\n`;
 
-    // Date document
+    // Date document (folosim data facturii, nu data importului)
     xml += `      <FacturaNumar>${escapeXml(n.invoiceNumber || n.nirNumber)}</FacturaNumar>\n`;
-    xml += `      <FacturaData>${formatDate(n.receiptDate)}</FacturaData>\n`;
+    xml += `      <FacturaData>${formatDate(docDate)}</FacturaData>\n`;
+    if (dueDate) {
+      xml += `      <FacturaScadenta>${formatDate(dueDate)}</FacturaScadenta>\n`;
+    }
     xml += `      <FacturaMoneda>RON</FacturaMoneda>\n`;
+    if (spvIndex) {
+      xml += `      <IdIncarcareSPV>${escapeXml(spvIndex)}</IdIncarcareSPV>\n`;
+      xml += `      <IdSPV>${escapeXml(spvIndex)}</IdSPV>\n`;
+      xml += `      <IndexSPV>${escapeXml(spvIndex)}</IndexSPV>\n`;
+      xml += `      <IdIncarcare>${escapeXml(spvIndex)}</IdIncarcare>\n`;
+    }
     xml += `    </Antet>\n`;
     xml += `    <Detalii>\n`;
     xml += `      <Continut>\n`;
@@ -421,6 +515,8 @@ export async function generateSagaNirXML(tenantId: number, nirId?: number) {
       }
       xml += `          <Descriere>${escapeXml(line.description)}</Descriere>\n`;
       if (code) {
+        xml += `          <Cod>${escapeXml(code)}</Cod>\n`;
+        xml += `          <CodArticol>${escapeXml(code)}</CodArticol>\n`;
         xml += `          <CodArticolFurnizor>${escapeXml(code)}</CodArticolFurnizor>\n`;
       }
       xml += `          <UM>${escapeXml(line.unit || "buc")}</UM>\n`;

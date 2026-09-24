@@ -534,6 +534,7 @@ export const invoiceArchive = mysqlTable("invoiceArchive", {
   costCenterId: int("costCenterId"),
   isRead: boolean("isRead").default(false),
   viewedAt: timestamp("viewedAt"),
+  spvIndex: varchar("spvIndex", { length: 100 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

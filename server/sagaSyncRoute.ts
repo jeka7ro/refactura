@@ -26,7 +26,7 @@ const router = Router();
  */
 router.get("/", async (req, res) => {
   try {
-    const { month, year, cui, type = "zip", nirId } = req.query;
+    const { month, year, cui, type = "zip", nirId, nirIds, invoiceIds } = req.query;
     const tenantId = req.query.tenantId ? parseInt(String(req.query.tenantId)) : 1;
 
     const exportMonth = month ? parseInt(String(month)) : new Date().getMonth() + 1;
@@ -35,6 +35,9 @@ router.get("/", async (req, res) => {
     const company = await getTenantCompanyProfile(tenantId);
     const safeCui = (cui ? String(cui).trim() : company.cui.replace(/^RO/i, "")).trim() || "EXPORT";
     const dateStr = format(new Date(), "ddMMyyyy");
+
+    const parsedNirIds = nirIds !== undefined ? String(nirIds).split(",").map(Number).filter(n => !isNaN(n)) : undefined;
+    const parsedInvoiceIds = invoiceIds !== undefined ? String(invoiceIds).split(",").map(Number).filter(n => !isNaN(n)) : undefined;
 
     if (type === "nir" || nirId) {
       const targetNirId = nirId ? parseInt(String(nirId)) : undefined;
@@ -46,7 +49,10 @@ router.get("/", async (req, res) => {
     }
 
     if (type === "facturi") {
-      const xmlContent = await generateSagaExportXML(tenantId, exportMonth, exportYear);
+      const xmlContent = await generateSagaExportXML(tenantId, exportMonth, exportYear, {
+        nirIds: parsedNirIds,
+        invoiceIds: parsedInvoiceIds,
+      });
       const fileName = exportMonth === 0 ? `F_${safeCui}_ALL_${exportYear}.xml` : `F_${safeCui}_${exportMonth}_${exportYear}.xml`;
       res.set("Content-Type", "application/xml; charset=windows-1250");
       res.set("Content-Disposition", `attachment; filename="${fileName}"`);
@@ -70,7 +76,10 @@ router.get("/", async (req, res) => {
     }
 
     // Implicit: Pachet complet ZIP (conform SAGA C Diverse > Import date)
-    const xmlFacturi = await generateSagaExportXML(tenantId, exportMonth, exportYear);
+    const xmlFacturi = await generateSagaExportXML(tenantId, exportMonth, exportYear, {
+      nirIds: parsedNirIds,
+      invoiceIds: parsedInvoiceIds,
+    });
     const xmlArticole = await generateSagaArticlesXML(tenantId);
     const xmlClienti = await generateSagaClientsXML(tenantId);
 

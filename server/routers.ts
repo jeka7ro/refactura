@@ -3466,6 +3466,7 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new Error("No DB");
         const { nir, nirLines } = await import("../drizzle/schema");
+        const { sagaArticles } = await import("../modules/saga/schema");
         const [nirRow] = await db
           .select()
           .from(nir)
@@ -3474,8 +3475,26 @@ export const appRouter = router({
           );
         if (!nirRow) throw new Error("NIR not found");
         const lines = await db
-          .select()
+          .select({
+            id: nirLines.id,
+            nirId: nirLines.nirId,
+            sagaArticleId: nirLines.sagaArticleId,
+            description: nirLines.description,
+            unit: nirLines.unit,
+            cantitateComanda: nirLines.cantitateComanda,
+            cantitateReceptionata: nirLines.cantitateReceptionata,
+            consumedQty: nirLines.consumedQty,
+            unitPrice: nirLines.unitPrice,
+            vatRate: nirLines.vatRate,
+            total: nirLines.total,
+            observations: nirLines.observations,
+            accountingType: nirLines.accountingType,
+            accountingAccount: nirLines.accountingAccount,
+            lineOrder: nirLines.lineOrder,
+            articleCode: sagaArticles.code,
+          })
           .from(nirLines)
+          .leftJoin(sagaArticles, eq(nirLines.sagaArticleId, sagaArticles.id))
           .where(eq(nirLines.nirId, input.id))
           .orderBy(nirLines.lineOrder);
         return { ...nirRow, lines };
@@ -3568,6 +3587,7 @@ export const appRouter = router({
               accountingAccount: z.string().optional(),
               lineOrder: z.number().optional(),
               sagaArticleId: z.number().optional(),
+              articleCode: z.string().optional(),
             })
           ),
         })
@@ -3578,7 +3598,43 @@ export const appRouter = router({
         if (!db) throw new Error("No DB");
         const { nir, nirLines } = await import("../drizzle/schema");
         const { sagaIntrari, sagaIntrariLinii, sagaArticles } = await import("../modules/saga/schema");
-        const { desc, eq, inArray } = await import("drizzle-orm");
+        const { desc, eq, inArray, and } = await import("drizzle-orm");
+        const tenantId = ctx.user?.tenantId || 1;
+
+        // Auto-assign or create articles in sagaArticles if articleCode is given
+        for (const l of input.lines) {
+          if (!l.sagaArticleId && (l as any).articleCode) {
+            const cleanCode = String((l as any).articleCode).trim();
+            if (cleanCode) {
+              const [existingArt] = await db
+                .select({ id: sagaArticles.id })
+                .from(sagaArticles)
+                .where(
+                  and(
+                    eq(sagaArticles.tenantId, tenantId),
+                    eq(sagaArticles.code, cleanCode)
+                  )
+                )
+                .limit(1);
+              if (existingArt) {
+                l.sagaArticleId = existingArt.id;
+              } else {
+                const [ins] = await db.insert(sagaArticles).values({
+                  tenantId,
+                  code: cleanCode,
+                  name: l.description || `Articol ${cleanCode}`,
+                  unit: l.unit || "buc",
+                  vatRate: String(l.vatRate || "19"),
+                  category: l.accountingType || "Marfuri",
+                  accountingAccount: l.accountingAccount || "371",
+                  sagaCode: cleanCode,
+                  isActive: 1,
+                });
+                l.sagaArticleId = (ins as any).insertId;
+              }
+            }
+          }
+        }
 
         // 1. Auto-assign NIR if empty
         let finalNirNumber = input.nirNumber;
@@ -3587,7 +3643,7 @@ export const appRouter = router({
           const last = await db
             .select({ nirNumber: nir.nirNumber })
             .from(nir)
-            .where(eq(nir.tenantId, (ctx.user?.tenantId || 1)))
+            .where(eq(nir.tenantId, tenantId))
             .orderBy(desc(nir.id))
             .limit(1);
           let nextNum = 1;
@@ -3600,7 +3656,7 @@ export const appRouter = router({
 
         // 2. Insert into main NIR table
         const [result] = await db.insert(nir).values({
-          tenantId: (ctx.user?.tenantId || 1),
+          tenantId,
           nirNumber: finalNirNumber,
           invoiceArchiveId: input.invoiceArchiveId,
           invoiceNumber: input.invoiceNumber,
@@ -3655,18 +3711,46 @@ export const appRouter = router({
           totalTvaSuma += (parseFloat(l.total || "0") * parseFloat(l.vatRate || "19")) / 100;
         });
 
+        // Lookup invoice metadata (issueDate and SPV Index) for SAGA Intrari
+        let spvIndexToSave: string | undefined = undefined;
+        let invoiceDocDate: string = input.receiptDate;
+        let invoiceDueDate: string = input.receiptDate;
+
+        if (input.invoiceArchiveId) {
+          const { invoiceArchive } = await import("../drizzle/schema");
+          const [inv] = await db
+            .select()
+            .from(invoiceArchive)
+            .where(eq(invoiceArchive.id, input.invoiceArchiveId));
+          if (inv) {
+            if (inv.issueDate) invoiceDocDate = inv.issueDate;
+            if (inv.dueDate) invoiceDueDate = inv.dueDate;
+            if (inv.spvIndex) {
+              spvIndexToSave = inv.spvIndex;
+            } else if (inv.notes) {
+              const m = inv.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
+              if (m) spvIndexToSave = m[1];
+            }
+            if (!spvIndexToSave && inv.fileName) {
+              const m = inv.fileName.match(/(?:SPV_|_INDEX_|id_|index_)(\d{8,12})/i);
+              if (m) spvIndexToSave = m[1];
+            }
+          }
+        }
+
         const [sagaIntResult] = await db.insert(sagaIntrari).values({
-          tenantId: ctx.user?.tenantId || 1,
+          tenantId,
           tip: "Factura",
           nrDoc: input.invoiceNumber || finalNirNumber,
           numeFurnizor: input.supplierName,
           cuiFurnizor: input.supplierCUI,
-          data: input.receiptDate,
-          scadent: input.receiptDate,
+          data: invoiceDocDate,
+          scadent: invoiceDueDate,
           valoare: totalValoare.toString(),
           tva: totalTvaSuma.toString(),
           total: (totalValoare + totalTvaSuma).toString(),
           neachitat: (totalValoare + totalTvaSuma).toString(),
+          idSPV: spvIndexToSave,
           nirId: nirId,
           status: "draft",
         });
@@ -3688,7 +3772,7 @@ export const appRouter = router({
                 intrareId,
                 tip: l.accountingType || "Marfa",
                 articolId: l.sagaArticleId,
-                cod: art?.code || undefined,
+                cod: art?.code || (l as any).articleCode || undefined,
                 denumire: l.description,
                 um: l.unit || "buc",
                 tvaPercent: l.vatRate || "19",
@@ -3743,6 +3827,7 @@ export const appRouter = router({
                 accountingAccount: z.string().optional(),
                 lineOrder: z.number().optional(),
                 sagaArticleId: z.number().optional(),
+                articleCode: z.string().optional(),
               })
             )
             .optional(),
@@ -3753,7 +3838,47 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new Error("No DB");
         const { nir, nirLines } = await import("../drizzle/schema");
+        const { sagaIntrari, sagaIntrariLinii, sagaArticles } = await import("../modules/saga/schema");
+        const { inArray, and, eq } = await import("drizzle-orm");
+        const tenantId = ctx.user?.tenantId || 1;
         const { id, lines, ...updateData } = input;
+
+        if (lines) {
+          for (const l of lines) {
+            if (!l.sagaArticleId && (l as any).articleCode) {
+              const cleanCode = String((l as any).articleCode).trim();
+              if (cleanCode) {
+                const [existingArt] = await db
+                  .select({ id: sagaArticles.id })
+                  .from(sagaArticles)
+                  .where(
+                    and(
+                      eq(sagaArticles.tenantId, tenantId),
+                      eq(sagaArticles.code, cleanCode)
+                    )
+                  )
+                  .limit(1);
+                if (existingArt) {
+                  l.sagaArticleId = existingArt.id;
+                } else {
+                  const [ins] = await db.insert(sagaArticles).values({
+                    tenantId,
+                    code: cleanCode,
+                    name: l.description || `Articol ${cleanCode}`,
+                    unit: l.unit || "buc",
+                    vatRate: String(l.vatRate || "19"),
+                    category: l.accountingType || "Marfuri",
+                    accountingAccount: l.accountingAccount || "371",
+                    sagaCode: cleanCode,
+                    isActive: 1,
+                  });
+                  l.sagaArticleId = (ins as any).insertId;
+                }
+              }
+            }
+          }
+        }
+
         const filtered: any = {};
         const fields = [
           "receiptDate",
@@ -3781,7 +3906,7 @@ export const appRouter = router({
           await db
             .update(nir)
             .set(filtered)
-            .where(and(eq(nir.id, id), eq(nir.tenantId, (ctx.user?.tenantId || 1))));
+            .where(and(eq(nir.id, id), eq(nir.tenantId, tenantId)));
         }
         if (lines) {
           await db.delete(nirLines).where(eq(nirLines.nirId, id));

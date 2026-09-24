@@ -1,7 +1,7 @@
 // NIRCreate — Creare / Editare NIR (Nota de Intrare-Recepție)
 // Format legal OMFP 2634/2015, cod formular 14-3-1/aA
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams } from "wouter";
 import {
   ArrowLeft,
@@ -26,6 +26,18 @@ const normalizeName = (name: string) => {
     .replace(/\s+/g, " ") // replace multiple spaces with single space
     .trim()
     .toLowerCase();
+};
+
+const getAccountType = (accCode: string): string => {
+  if (!accCode) return "Marfuri";
+  const c = accCode.trim();
+  if (c.startsWith("371")) return "Marfuri";
+  if (c.startsWith("301")) return "Materii prime";
+  if (c.startsWith("302")) return "Consumabile";
+  if (c.startsWith("303")) return "Obiecte de inventar";
+  if (c.startsWith("409")) return "Avans";
+  if (c.startsWith("6") || c.startsWith("704")) return "Servicii";
+  return "Marfuri";
 };
 
 interface NirLineForm {
@@ -140,6 +152,8 @@ export default function NIRCreate() {
       { enabled: !!sourceInvoiceId, staleTime: 0 }
     );
   const { data: articles = [], isFetched: articlesFetched } = trpc.saga.articles.list.useQuery();
+  const { data: nextArticleCodeData } = trpc.saga.articles.nextCode.useQuery();
+  const { data: planConturiList = [] } = trpc.saga.planConturi.useQuery();
 
   const utils = trpc.useContext();
 
@@ -233,10 +247,10 @@ export default function NIRCreate() {
         (existingNir.lines || []).map((l: any) => ({
           id: l.id,
           sagaArticleId: l.sagaArticleId,
-          articleSearchText: l.sagaArticleId ? (() => {
-            const a = articles.find((art:any) => art.id === l.sagaArticleId);
+          articleSearchText: l.articleCode || (l.sagaArticleId ? (() => {
+            const a = articles.find((art: any) => art.id === l.sagaArticleId);
             return a ? (a.code || a.name) : "";
-          })() : "",
+          })() : ""),
           description: l.description,
           unit: l.unit || "buc",
           cantitateComanda: String(l.cantitateComanda || "0"),
@@ -251,7 +265,7 @@ export default function NIRCreate() {
       );
       setLoaded(true);
     }
-  }, [existingNir, isEdit, loaded]);
+  }, [existingNir, isEdit, loaded, articles]);
 
   // Init from source invoice (wait for both queries)
   useEffect(() => {
@@ -261,6 +275,22 @@ export default function NIRCreate() {
       setInvoiceNumber(sourceInvoice.invoiceNumber || "");
       const archLns = archiveLines as any[];
       if (archLns.length > 0) {
+        // Calculate highest existing numeric code
+        let maxCode = 0;
+        articles.forEach((a: any) => {
+          if (a.code && /^\d+$/.test(a.code.trim())) {
+            const n = parseInt(a.code.trim(), 10);
+            if (n > maxCode) maxCode = n;
+          }
+        });
+        if (nextArticleCodeData && /^\d+$/.test(nextArticleCodeData.trim())) {
+          const n = parseInt(nextArticleCodeData.trim(), 10);
+          if (n - 1 > maxCode) maxCode = n - 1;
+        }
+
+        let nextAvailableNum = maxCode + 1;
+        const assignedByDesc = new Map<string, { code: string; id?: number }>();
+
         const newLines = archLns
           .map((l: any) => {
             const qty = parseFloat(String(l.quantity || "1"));
@@ -274,9 +304,28 @@ export default function NIRCreate() {
             }
             const unitPrice = parseFloat(String(l.unitPrice || "0"));
             const descNorm = normalizeName(l.description);
+
+            // 1. Caută în cele existente conform denumirii produsului
             const matchedArticle = articles.find(
               (a: any) => normalizeName(a.name) === descNorm
             );
+
+            let assignedCode = "";
+            let matchedId: number | undefined = undefined;
+
+            if (matchedArticle) {
+              matchedId = matchedArticle.id;
+              assignedCode = matchedArticle.code || "";
+            } else if (assignedByDesc.has(descNorm)) {
+              const prev = assignedByDesc.get(descNorm)!;
+              assignedCode = prev.code;
+              matchedId = prev.id;
+            } else {
+              // 2. Dacă nu are, pune imediat următorul disponibil
+              assignedCode = String(nextAvailableNum).padStart(8, "0");
+              nextAvailableNum++;
+              assignedByDesc.set(descNorm, { code: assignedCode });
+            }
 
             const isAvans = (l.description || "").toLowerCase().includes("avans") || qty < 0;
             const isTransport = (l.description || "").toLowerCase().includes("transport");
@@ -301,10 +350,10 @@ export default function NIRCreate() {
               : calcTotal;
 
             return {
-              sagaArticleId: matchedArticle ? matchedArticle.id : undefined,
-              articleSearchText: matchedArticle ? (matchedArticle.code || matchedArticle.name) : "",
+              sagaArticleId: matchedId,
+              articleSearchText: assignedCode,
               description: l.description || "",
-              unit: matchedArticle ? matchedArticle.unit : (l.unit || "buc"),
+              unit: matchedArticle ? (matchedArticle.unit || l.unit || "buc") : (l.unit || "buc"),
               cantitateComanda: String(remaining),
               cantitateReceptionata: String(remaining),
               unitPrice: String(unitPrice),
@@ -326,8 +375,17 @@ export default function NIRCreate() {
           setLines([]);
         }
       } else {
+        let maxCode = 0;
+        articles.forEach((a: any) => {
+          if (a.code && /^\d+$/.test(a.code.trim())) {
+            const n = parseInt(a.code.trim(), 10);
+            if (n > maxCode) maxCode = n;
+          }
+        });
+        const fallbackCode = String(maxCode + 1).padStart(8, "0");
         setLines([
           {
+            articleSearchText: fallbackCode,
             description: `Marfă conform factură ${sourceInvoice.invoiceNumber || ""}`,
             unit: "buc",
             cantitateComanda: "1",
@@ -343,24 +401,40 @@ export default function NIRCreate() {
       }
       setLoaded(true);
     }
-  }, [sourceInvoice, archiveLines, archiveLinesFetched, isEdit, loaded, articles, articlesFetched]);
+  }, [sourceInvoice, archiveLines, archiveLinesFetched, isEdit, loaded, articles, articlesFetched, nextArticleCodeData]);
 
-  const addLine = () =>
+  const addLine = () => {
+    let max = 0;
+    articles.forEach((a: any) => {
+      if (a.code && /^\d+$/.test(a.code.trim())) {
+        const n = parseInt(a.code.trim(), 10);
+        if (n > max) max = n;
+      }
+    });
+    lines.forEach(l => {
+      if (l.articleSearchText && /^\d+$/.test(l.articleSearchText.trim())) {
+        const n = parseInt(l.articleSearchText.trim(), 10);
+        if (n > max) max = n;
+      }
+    });
+    const nextCode = String(max + 1).padStart(8, "0");
     setLines(prev => [
       ...prev,
       {
         description: "",
-        unit: "buc",
+        articleSearchText: nextCode,
+        unit: generalUnit || "buc",
         cantitateComanda: "1",
         cantitateReceptionata: "1",
         unitPrice: "0",
-        vatRate: "19",
+        vatRate: generalVat || "19",
         total: "0",
         observations: "",
-        accountingType: "Marfuri",
-        accountingAccount: "371",
+        accountingType: accountingType || "Marfuri",
+        accountingAccount: accountingAccount || "371",
       },
     ]);
+  };
 
   const removeLine = (idx: number) =>
     setLines(prev => prev.filter((_, i) => i !== idx));
@@ -378,6 +452,10 @@ export default function NIRCreate() {
       if (field === "accountingType") {
         updated[idx].accountingAccount = TIP_TO_CONT[value] || "371";
       }
+      if (field === "accountingAccount") {
+        const t = getAccountType(value);
+        if (t) updated[idx].accountingType = t;
+      }
       
       // Auto-link article if description matches perfectly
       if (field === "description") {
@@ -387,7 +465,7 @@ export default function NIRCreate() {
           updated[idx].sagaArticleId = matched.id;
           updated[idx].articleSearchText = matched.code || matched.name;
           updated[idx].unit = matched.unit || updated[idx].unit;
-          if (matched.vatRate !== null) updated[idx].vatRate = String(matched.vatRate);
+          if (matched.vatRate !== null && matched.vatRate !== undefined) updated[idx].vatRate = String(matched.vatRate);
           updated[idx].accountingType = matched.category || updated[idx].accountingType;
           updated[idx].accountingAccount = matched.accountingAccount || updated[idx].accountingAccount;
         } else {
@@ -402,19 +480,27 @@ export default function NIRCreate() {
         }
       }
       
-      // Auto-fill when selecting an article from datalist
+      // Auto-fill when selecting an article from datalist or typing code
       if (field === "articleSearchText") {
-        // value contains the code, name or 'code - name'
-        const matched = articles.find((a: any) => a.code === value || a.name === value || `${a.code} - ${a.name}` === value);
+        const cleanVal = value.trim();
+        const codePart = cleanVal.split(" - ")[0].trim();
+        const matched = articles.find(
+          (a: any) =>
+            a.code === cleanVal ||
+            a.code === codePart ||
+            a.name?.toLowerCase() === cleanVal.toLowerCase() ||
+            `${a.code} - ${a.name}` === cleanVal
+        );
         if (matched) {
           updated[idx].sagaArticleId = matched.id;
           updated[idx].articleSearchText = matched.code || matched.name;
           updated[idx].unit = matched.unit || updated[idx].unit;
-          if (matched.vatRate !== null) updated[idx].vatRate = String(matched.vatRate);
+          if (matched.vatRate !== null && matched.vatRate !== undefined) updated[idx].vatRate = String(matched.vatRate);
           updated[idx].accountingType = matched.category || updated[idx].accountingType;
           updated[idx].accountingAccount = matched.accountingAccount || updated[idx].accountingAccount;
         } else {
           updated[idx].sagaArticleId = undefined;
+          updated[idx].articleSearchText = value;
         }
       }
       return updated;
@@ -443,6 +529,7 @@ export default function NIRCreate() {
     differenceNotes: differenceNotes || undefined,
     notes: notes || undefined,
     lines: lines.map((l, idx) => ({
+      id: l.id,
       description: l.description || "—",
       unit: l.unit,
       cantitateComanda: l.cantitateComanda,
@@ -455,6 +542,7 @@ export default function NIRCreate() {
       accountingAccount: l.accountingAccount,
       lineOrder: idx,
       sagaArticleId: l.sagaArticleId,
+      articleCode: l.articleSearchText?.split(" - ")[0]?.trim() || undefined,
     })),
   });
 
@@ -647,25 +735,20 @@ export default function NIRCreate() {
               <div className="md:col-span-1">
                 <label className={LABEL_CLS}>Cont (General)</label>
                 <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-                  <select
+                  <input
+                    list="plan-conturi-datalist"
                     value={accountingAccount}
                     onChange={e => {
-                      const cont = e.target.value;
+                      const cont = e.target.value.split(" - ")[0].trim();
                       setAccountingAccount(cont);
-                      setLines(prev => prev.map(l => ({ ...l, accountingAccount: cont })));
+                      const t = getAccountType(cont);
+                      if (t) setAccountingType(t);
+                      setLines(prev => prev.map(l => ({ ...l, accountingAccount: cont, accountingType: t || l.accountingType })));
                     }}
-                    style={SELECT_STYLE}
-                    className="w-full h-8 px-2.5 pr-7 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none border-none"
-                  >
-                    <option value="371">371 - Mărfuri</option>
-                    <option value="301">301 - Materii prime</option>
-                    <option value="3028">3028 - Alte mat. consumabile</option>
-                    <option value="3021">3021 - Mat. auxiliare</option>
-                    <option value="3024">3024 - Piese de schimb</option>
-                    <option value="4091">4091 - Furnizori - debitori (Avansuri)</option>
-                    <option value="628">628 - Alte cheltuieli cu servicii</option>
-                    <option value="704">704 - Servicii prestate</option>
-                  </select>
+                    placeholder="Cont (ex: 371)"
+                    title={planConturiList.find((p: any) => p.cod === accountingAccount)?.denumire || accountingAccount}
+                    className="w-full h-8 px-2.5 bg-white dark:bg-slate-800 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none border-none"
+                  />
                 </div>
               </div>
             </>
@@ -814,22 +897,13 @@ export default function NIRCreate() {
                         />
                       </td>
                       <td className="px-1 py-1.5">
-                        <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                        <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 min-w-[110px]">
                           <input
                             list="saga-articles-list"
                             placeholder="Caută cod/articol..."
-                            value={line.articleSearchText !== undefined ? line.articleSearchText : (line.sagaArticleId ? (() => {
-                              const a = articles.find((art:any) => art.id === line.sagaArticleId);
-                              return a ? (a.code || a.name) : "";
-                            })() : "")}
+                            value={line.articleSearchText ?? ""}
                             onChange={e => updateLine(idx, "articleSearchText", e.target.value)}
-                            onBlur={e => {
-                              // If they typed something but didn't match, clear the sagaArticleId
-                              if (!line.sagaArticleId) {
-                                updateLine(idx, "articleSearchText", "");
-                              }
-                            }}
-                            className="w-full h-7 px-2 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none border-none"
+                            className="w-full h-7 px-2 bg-white dark:bg-slate-800 text-xs font-mono font-medium text-slate-900 dark:text-white focus:outline-none border-none"
                           />
                         </div>
                       </td>
@@ -854,22 +928,17 @@ export default function NIRCreate() {
                       )}
                       {showAccounting && (
                         <td className="px-1 py-1.5">
-                          <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-                            <select
+                          <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 min-w-[70px]">
+                            <input
+                              list="plan-conturi-datalist"
                               value={line.accountingAccount || "371"}
-                              onChange={e => updateLine(idx, "accountingAccount", e.target.value)}
-                              style={SELECT_SM_STYLE}
-                              className="w-full h-7 px-2 pr-6 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none border-none"
-                            >
-                              <option value="371">371</option>
-                              <option value="301">301</option>
-                              <option value="3028">3028</option>
-                              <option value="3021">3021</option>
-                              <option value="3024">3024</option>
-                              <option value="4091">4091</option>
-                              <option value="628">628</option>
-                              <option value="704">704</option>
-                            </select>
+                              onChange={e => {
+                                const val = e.target.value.split(" - ")[0].trim();
+                                updateLine(idx, "accountingAccount", val);
+                              }}
+                              title={planConturiList.find((p: any) => p.cod === line.accountingAccount)?.denumire || line.accountingAccount}
+                              className="w-full h-7 px-1.5 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none border-none text-center"
+                            />
                           </div>
                         </td>
                       )}
@@ -1009,7 +1078,15 @@ export default function NIRCreate() {
         
         <datalist id="saga-articles-list">
           {articles.map((a: any) => (
-            <option key={a.id} value={a.name}>{a.code} - {a.name}</option>
+            <option key={a.id} value={a.code}>{a.code} - {a.name}</option>
+          ))}
+        </datalist>
+
+        <datalist id="plan-conturi-datalist">
+          {planConturiList.map((pc: any) => (
+            <option key={pc.cod} value={pc.cod}>
+              {pc.cod} - {pc.denumire}
+            </option>
           ))}
         </datalist>
 

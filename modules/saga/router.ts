@@ -28,12 +28,36 @@ export const sagaRouter = router({
       
       const db = await getDb();
       if (!db) throw new Error("No DB");
-      const [result] = await db
-        .select({ total: count() })
+      const tenantId = ctx.user?.tenantId || 1;
+      const [maxRow] = await db
+        .select({ code: sagaArticles.code })
         .from(sagaArticles)
-        .where(eq(sagaArticles.tenantId, (ctx.user?.tenantId || 1)));
-      const next = (result?.total || 0) + 1;
-      return `ART-${String(next).padStart(4, "0")}`;
+        .where(
+          and(
+            eq(sagaArticles.tenantId, tenantId),
+            sql`${sagaArticles.code} REGEXP '^[0-9]+$'`
+          )
+        )
+        .orderBy(sql`CAST(${sagaArticles.code} AS UNSIGNED) DESC`)
+        .limit(1);
+
+      let maxNum = 0;
+      if (maxRow?.code) {
+        maxNum = parseInt(maxRow.code, 10) || 0;
+      } else {
+        // Fallback across all tenants if tenant has no numeric articles yet
+        const [anyMax] = await db
+          .select({ code: sagaArticles.code })
+          .from(sagaArticles)
+          .where(sql`${sagaArticles.code} REGEXP '^[0-9]+$'`)
+          .orderBy(sql`CAST(${sagaArticles.code} AS UNSIGNED) DESC`)
+          .limit(1);
+        if (anyMax?.code) {
+          maxNum = parseInt(anyMax.code, 10) || 0;
+        }
+      }
+      const next = maxNum + 1;
+      return String(next).padStart(8, "0");
     }),
 
     create: protectedProcedure
@@ -356,13 +380,23 @@ export const sagaRouter = router({
   }),
 
   export: protectedProcedure
-    .input(z.object({ month: z.number(), year: z.number() }))
+    .input(
+      z.object({
+        month: z.number(),
+        year: z.number(),
+        nirIds: z.array(z.number()).optional(),
+        invoiceIds: z.array(z.number()).optional(),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const { generateSagaExportXML, getTenantCompanyProfile } = await import(
         "../../server/sagaXmlGenerator"
       );
       const tenantId = ctx.user?.tenantId || 1;
-      const xml = await generateSagaExportXML(tenantId, input.month, input.year);
+      const xml = await generateSagaExportXML(tenantId, input.month, input.year, {
+        nirIds: input.nirIds,
+        invoiceIds: input.invoiceIds,
+      });
       const company = await getTenantCompanyProfile(tenantId);
       const safeCui = company.cui.replace(/^RO/i, "").trim() || "EXPORT";
       const filename = input.month === 0 ? `F_${safeCui}_ALL_${input.year}.xml` : `F_${safeCui}_${input.month}_${input.year}.xml`;
@@ -601,14 +635,20 @@ export const sagaRouter = router({
         .select({
           id: schema.nir.id,
           nirNumber: schema.nir.nirNumber,
+          invoiceArchiveId: schema.nir.invoiceArchiveId,
           invoiceNumber: schema.nir.invoiceNumber,
           receiptDate: schema.nir.receiptDate,
           supplierName: schema.nir.supplierName,
           supplierCUI: schema.nir.supplierCUI,
           accountingAccount: schema.nir.accountingAccount,
           status: schema.nir.status,
+          spvIndex: schema.invoiceArchive.spvIndex,
+          issueDate: schema.invoiceArchive.issueDate,
+          notes: schema.invoiceArchive.notes,
+          fileName: schema.invoiceArchive.fileName,
         })
         .from(schema.nir)
+        .leftJoin(schema.invoiceArchive, eq(schema.nir.invoiceArchiveId, schema.invoiceArchive.id))
         .where(eq(schema.nir.tenantId, tenantId))
         .orderBy(desc(schema.nir.receiptDate));
 
@@ -625,10 +665,30 @@ export const sagaRouter = router({
         nirTotals.set(l.nirId, (nirTotals.get(l.nirId) || 0) + val);
       }
 
-      const nirsWithTotals = nirs.map((n) => ({
-        ...n,
-        total: (nirTotals.get(n.id) || 0).toFixed(2),
-      }));
+      const nirsWithTotals = nirs.map((n) => {
+        let cleanSpv = n.spvIndex || "";
+        if (!cleanSpv && n.notes) {
+          const m = n.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
+          if (m) cleanSpv = m[1];
+        }
+        if (!cleanSpv && n.fileName) {
+          const m = n.fileName.match(/(?:SPV_|_INDEX_|id_|index_)(\d{8,12})/i);
+          if (m) cleanSpv = m[1];
+        }
+        return {
+          id: n.id,
+          nirNumber: n.nirNumber,
+          invoiceNumber: n.invoiceNumber,
+          receiptDate: n.receiptDate,
+          issueDate: n.issueDate || n.receiptDate,
+          supplierName: n.supplierName,
+          supplierCUI: n.supplierCUI,
+          accountingAccount: n.accountingAccount,
+          status: n.status,
+          spvIndex: cleanSpv,
+          total: (nirTotals.get(n.id) || 0).toFixed(2),
+        };
+      });
 
       // Filter by month/year if specified
       let filteredInvoices = invoices;

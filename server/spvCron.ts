@@ -530,6 +530,8 @@ export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
           currency,
           status: "pending",
           rawXml: xmlString,
+          spvIndex: msg.id_solicitare ? String(msg.id_solicitare) : undefined,
+          notes: msg.id_solicitare ? `Index încărcare SPV: ${msg.id_solicitare}` : undefined,
         });
 
         // --- ADD CLIENT IF NOT EXISTS ---
