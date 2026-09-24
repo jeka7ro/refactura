@@ -3601,8 +3601,16 @@ export const appRouter = router({
         const { desc, eq, inArray, and } = await import("drizzle-orm");
         const tenantId = ctx.user?.tenantId || 1;
 
-        // Auto-assign or create articles in sagaArticles if articleCode is given
+        // Auto-assign or create articles in sagaArticles if articleCode is given (materials only, never services)
         for (const l of input.lines) {
+          const acc = String(l.accountingAccount || input.accountingAccount || "371").trim();
+          const isService = acc.startsWith("6") || acc.startsWith("7") || acc.startsWith("409") || l.accountingType === "Servicii" || l.accountingType === "Avans";
+          if (isService) {
+            l.sagaArticleId = undefined;
+            (l as any).articleCode = undefined;
+            continue;
+          }
+
           if (!l.sagaArticleId && (l as any).articleCode) {
             const cleanCode = String((l as any).articleCode).trim();
             if (cleanCode) {
@@ -3765,14 +3773,16 @@ export const appRouter = router({
 
           await db.insert(sagaIntrariLinii).values(
             input.lines.map((l, idx) => {
-              const art = loadedArticles.find(a => a.id === l.sagaArticleId);
+              const acc = String(l.accountingAccount || input.accountingAccount || "371").trim();
+              const isService = acc.startsWith("6") || acc.startsWith("7") || acc.startsWith("409") || l.accountingType === "Servicii" || l.accountingType === "Avans";
+              const art = isService ? null : loadedArticles.find(a => a.id === l.sagaArticleId);
               const val = parseFloat(l.total || "0");
               const tva = (val * parseFloat(l.vatRate || "19")) / 100;
               return {
                 intrareId,
-                tip: l.accountingType || "Marfa",
-                articolId: l.sagaArticleId,
-                cod: art?.code || (l as any).articleCode || undefined,
+                tip: isService ? "Serviciu" : (l.accountingType || "Marfa"),
+                articolId: isService ? undefined : l.sagaArticleId,
+                cod: isService ? undefined : (art?.code || (l as any).articleCode || undefined),
                 denumire: l.description,
                 um: l.unit || "buc",
                 tvaPercent: l.vatRate || "19",
@@ -3845,6 +3855,14 @@ export const appRouter = router({
 
         if (lines) {
           for (const l of lines) {
+            const acc = String(l.accountingAccount || "371").trim();
+            const isService = acc.startsWith("6") || acc.startsWith("7") || acc.startsWith("409") || l.accountingType === "Servicii" || l.accountingType === "Avans";
+            if (isService) {
+              l.sagaArticleId = undefined;
+              (l as any).articleCode = undefined;
+              continue;
+            }
+
             if (!l.sagaArticleId && (l as any).articleCode) {
               const cleanCode = String((l as any).articleCode).trim();
               if (cleanCode) {

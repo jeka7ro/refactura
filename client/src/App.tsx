@@ -189,6 +189,11 @@ function Router() {
           <NIRCreate />
         </DashboardLayout>
       </Route>
+      <Route path="/nir/edit/:id">
+        <DashboardLayout>
+          <NIRCreate />
+        </DashboardLayout>
+      </Route>
       <Route path="/nir/:id">
         <DashboardLayout>
           <NIRCreate />

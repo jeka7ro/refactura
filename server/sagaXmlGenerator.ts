@@ -308,13 +308,16 @@ export async function generateSagaExportXML(
       const lineVal = Math.round(qty * price * 100) / 100;
       const lineVat = Math.round(lineVal * (rate / 100) * 100) / 100;
 
+      const lineAcc = String(line.accountingAccount || n.accountingAccount || "371").trim();
+      const isServiceOrAdvance = lineAcc.startsWith("6") || lineAcc.startsWith("7") || lineAcc.startsWith("409") || (line as any).accountingType === "Servicii" || (line as any).accountingType === "Avans";
+
       xml += `        <Linie>\n`;
       xml += `          <LinieNrCrt>${lineIndex++}</LinieNrCrt>\n`;
-      if (n.gestiune) {
+      if (n.gestiune && !isServiceOrAdvance) {
         xml += `          <Gestiune>${escapeXml(n.gestiune)}</Gestiune>\n`;
       }
       xml += `          <Descriere>${escapeXml(line.description)}</Descriere>\n`;
-      if (code) {
+      if (code && !isServiceOrAdvance) {
         xml += `          <Cod>${escapeXml(code)}</Cod>\n`;
         xml += `          <CodArticol>${escapeXml(code)}</CodArticol>\n`;
         xml += `          <CodArticolFurnizor>${escapeXml(code)}</CodArticolFurnizor>\n`;
@@ -325,7 +328,7 @@ export async function generateSagaExportXML(
       xml += `          <Valoare>${lineVal.toFixed(2)}</Valoare>\n`;
       xml += `          <ProcTVA>${rate}</ProcTVA>\n`;
       xml += `          <TVA>${lineVat.toFixed(2)}</TVA>\n`;
-      xml += `          <Cont>${escapeXml(line.accountingAccount || n.accountingAccount || "371")}</Cont>\n`;
+      xml += `          <Cont>${escapeXml(lineAcc)}</Cont>\n`;
       xml += `        </Linie>\n`;
     }
     xml += `      </Continut>\n`;
@@ -380,10 +383,13 @@ export async function generateSagaExportXML(
       const lineVal = parseFloat(String(line.valoare)) || Math.round(qty * price * 100) / 100;
       const lineVat = parseFloat(String(line.tvaSuma)) || Math.round(lineVal * (rate / 100) * 100) / 100;
 
+      const lineAcc = String(line.cont || "371").trim();
+      const isServiceOrAdvance = lineAcc.startsWith("6") || lineAcc.startsWith("7") || lineAcc.startsWith("409") || (line as any).tip === "Servicii" || (line as any).tip === "Serviciu";
+
       xml += `        <Linie>\n`;
       xml += `          <LinieNrCrt>${lineIndex++}</LinieNrCrt>\n`;
       xml += `          <Descriere>${escapeXml(line.denumire)}</Descriere>\n`;
-      if (line.cod) {
+      if (line.cod && !isServiceOrAdvance) {
         xml += `          <Cod>${escapeXml(line.cod)}</Cod>\n`;
         xml += `          <CodArticol>${escapeXml(line.cod)}</CodArticol>\n`;
         xml += `          <CodArticolFurnizor>${escapeXml(line.cod)}</CodArticolFurnizor>\n`;
@@ -394,7 +400,7 @@ export async function generateSagaExportXML(
       xml += `          <Valoare>${lineVal.toFixed(2)}</Valoare>\n`;
       xml += `          <ProcTVA>${rate}</ProcTVA>\n`;
       xml += `          <TVA>${lineVat.toFixed(2)}</TVA>\n`;
-      xml += `          <Cont>${escapeXml(line.cont || "371")}</Cont>\n`;
+      xml += `          <Cont>${escapeXml(lineAcc)}</Cont>\n`;
       xml += `        </Linie>\n`;
     }
     xml += `      </Continut>\n`;
@@ -508,13 +514,16 @@ export async function generateSagaNirXML(tenantId: number, nirId?: number) {
       const lineVal = Math.round(qty * price * 100) / 100;
       const lineVat = Math.round(lineVal * (rate / 100) * 100) / 100;
 
+      const lineAcc = String(line.accountingAccount || n.accountingAccount || "371").trim();
+      const isServiceOrAdvance = lineAcc.startsWith("6") || lineAcc.startsWith("7") || lineAcc.startsWith("409") || (line as any).accountingType === "Servicii" || (line as any).accountingType === "Avans";
+
       xml += `        <Linie>\n`;
       xml += `          <LinieNrCrt>${lineIndex++}</LinieNrCrt>\n`;
-      if (n.gestiune) {
+      if (n.gestiune && !isServiceOrAdvance) {
         xml += `          <Gestiune>${escapeXml(n.gestiune)}</Gestiune>\n`;
       }
       xml += `          <Descriere>${escapeXml(line.description)}</Descriere>\n`;
-      if (code) {
+      if (code && !isServiceOrAdvance) {
         xml += `          <Cod>${escapeXml(code)}</Cod>\n`;
         xml += `          <CodArticol>${escapeXml(code)}</CodArticol>\n`;
         xml += `          <CodArticolFurnizor>${escapeXml(code)}</CodArticolFurnizor>\n`;
@@ -525,7 +534,7 @@ export async function generateSagaNirXML(tenantId: number, nirId?: number) {
       xml += `          <Valoare>${lineVal.toFixed(2)}</Valoare>\n`;
       xml += `          <ProcTVA>${rate}</ProcTVA>\n`;
       xml += `          <TVA>${lineVat.toFixed(2)}</TVA>\n`;
-      xml += `          <Cont>${escapeXml(line.accountingAccount || n.accountingAccount || "371")}</Cont>\n`;
+      xml += `          <Cont>${escapeXml(lineAcc)}</Cont>\n`;
       xml += `        </Linie>\n`;
     }
     xml += `      </Continut>\n`;

@@ -305,30 +305,23 @@ export default function NIRCreate() {
             const unitPrice = parseFloat(String(l.unitPrice || "0"));
             const descNorm = normalizeName(l.description);
 
+            const isAvans = (l.description || "").toLowerCase().includes("avans") || qty < 0;
+            const isTransport = (l.description || "").toLowerCase().includes("transport");
+            const isServiceText = (l.description || "").toLowerCase().includes("servici") || 
+              (l.description || "").toLowerCase().includes("abonament") || 
+              (l.description || "").toLowerCase().includes("manopera") ||
+              (l.description || "").toLowerCase().includes("consultant") ||
+              (l.description || "").toLowerCase().includes("reparatii") ||
+              (l.description || "").toLowerCase().includes("intretinere") ||
+              (l.description || "").toLowerCase().includes("gaz") ||
+              (l.description || "").toLowerCase().includes("energie") ||
+              (l.description || "").toLowerCase().includes("curent") ||
+              isTransport;
+
             // 1. Caută în cele existente conform denumirii produsului
             const matchedArticle = articles.find(
               (a: any) => normalizeName(a.name) === descNorm
             );
-
-            let assignedCode = "";
-            let matchedId: number | undefined = undefined;
-
-            if (matchedArticle) {
-              matchedId = matchedArticle.id;
-              assignedCode = matchedArticle.code || "";
-            } else if (assignedByDesc.has(descNorm)) {
-              const prev = assignedByDesc.get(descNorm)!;
-              assignedCode = prev.code;
-              matchedId = prev.id;
-            } else {
-              // 2. Dacă nu are, pune imediat următorul disponibil
-              assignedCode = String(nextAvailableNum).padStart(8, "0");
-              nextAvailableNum++;
-              assignedByDesc.set(descNorm, { code: assignedCode });
-            }
-
-            const isAvans = (l.description || "").toLowerCase().includes("avans") || qty < 0;
-            const isTransport = (l.description || "").toLowerCase().includes("transport");
 
             let defType = "Marfuri";
             let defAccount = "371";
@@ -338,9 +331,30 @@ export default function NIRCreate() {
             } else if (isAvans) {
               defType = "Avans";
               defAccount = "4091";
-            } else if (isTransport) {
+            } else if (isServiceText) {
               defType = "Servicii";
               defAccount = "628";
+            }
+
+            const isServiceOrAdvance = defAccount.startsWith("6") || defAccount.startsWith("7") || defAccount.startsWith("409") || defType === "Servicii" || defType === "Avans";
+
+            let assignedCode = "";
+            let matchedId: number | undefined = undefined;
+
+            if (!isServiceOrAdvance) {
+              if (matchedArticle) {
+                matchedId = matchedArticle.id;
+                assignedCode = matchedArticle.code || "";
+              } else if (assignedByDesc.has(descNorm)) {
+                const prev = assignedByDesc.get(descNorm)!;
+                assignedCode = prev.code;
+                matchedId = prev.id;
+              } else {
+                // 2. Dacă nu are, pune imediat următorul disponibil
+                assignedCode = String(nextAvailableNum).padStart(8, "0");
+                nextAvailableNum++;
+                assignedByDesc.set(descNorm, { code: assignedCode });
+              }
             }
 
             const calcTotal = (remaining * unitPrice).toFixed(2);
