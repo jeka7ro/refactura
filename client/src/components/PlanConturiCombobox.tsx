@@ -12,11 +12,24 @@ export const POPULAR_NIR_ACCOUNTS: PlanContItem[] = [
   { cod: "371", denumire: "MĂRFURI", shortLabel: "Mărfuri" },
   { cod: "301", denumire: "MATERII PRIME", shortLabel: "Materii prime" },
   { cod: "3021", denumire: "MATERIALE AUXILIARE", shortLabel: "Materiale auxiliare" },
+  { cod: "3022", denumire: "COMBUSTIBILI", shortLabel: "Combustibili" },
   { cod: "3024", denumire: "PIESE DE SCHIMB", shortLabel: "Piese de schimb" },
   { cod: "3028", denumire: "ALTE MAT. CONSUMABILE", shortLabel: "Consumabile" },
   { cod: "303", denumire: "OBIECTE DE INVENTAR", shortLabel: "Obiecte inventar" },
+  { cod: "381", denumire: "AMBALAJE", shortLabel: "Ambalaje" },
+  { cod: "345", denumire: "PRODUSE FINITE", shortLabel: "Produse finite" },
+  { cod: "341", denumire: "SEMIFABRICATE", shortLabel: "Semifabricate" },
   { cod: "4091", denumire: "AVANSURI FURNIZORI STOCURI", shortLabel: "Avansuri" },
-  { cod: "628", denumire: "ALTE CHELTUIELI CU SERVICIILE", shortLabel: "Servicii" },
+  { cod: "605", denumire: "ENERGIE SI APA", shortLabel: "Utilități" },
+  { cod: "628", denumire: "ALTE CHELTUIELI CU SERVICIILE", shortLabel: "Servicii terți" },
+  { cod: "628.01", denumire: "ALTE CHELT CU SERVICIILE EXECUTATE DE TERTI DEDUCTIBIL", shortLabel: "Servicii terți" },
+  { cod: "628.02", denumire: "ALTE CHELT CU SERVICIILE - NEDEDUCTIBIL", shortLabel: "Servicii (neded.)" },
+  { cod: "627", denumire: "CHELTUIELI CU SERVICIILE BANCARE", shortLabel: "Servicii bancare" },
+  { cod: "626", denumire: "CHELTUIELI POSTALE SI TELECOMUNICATII", shortLabel: "Poștă & Telecom" },
+  { cod: "611", denumire: "CHELTUIELI CU INTRETINEREA SI REPARATIILE", shortLabel: "Întreținere & Rep." },
+  { cod: "612", denumire: "CHELTUIELI CU CHIRIILE", shortLabel: "Chirii" },
+  { cod: "613", denumire: "CHELTUIELI CU ASIGURARILE", shortLabel: "Asigurări" },
+  { cod: "623", denumire: "CHELTUIELI DE PROTOCOL, RECLAMA SI PUBLICITATE", shortLabel: "Protocol & Recl." },
 ];
 
 const normalizeText = (str: string) => {
@@ -28,6 +41,28 @@ const normalizeText = (str: string) => {
     .trim();
 };
 
+export const getCleanShortLabel = (account: { cod: string; denumire: string; shortLabel?: string }): string => {
+  if (account.shortLabel) return account.shortLabel;
+  const pop = POPULAR_NIR_ACCOUNTS.find(
+    (p) => p.cod === account.cod || p.cod === account.cod.split(".")[0]
+  );
+  if (pop && pop.shortLabel) {
+    if (account.cod.includes(".")) {
+      const sub = account.cod.split(".")[1];
+      return `${pop.shortLabel} .${sub}`;
+    }
+    return pop.shortLabel;
+  }
+  let clean = account.denumire
+    .replace(/^ALTE\s+CHELT(?:UIELI)?\s+(?:CU\s+)?(?:SERVICIILE\s+)?(?:EXECUTATE\s+DE\s+TERTI\s+)?/i, "Servicii ")
+    .replace(/^CHELTUIELI\s+(?:CU\s+|DE\s+)?/i, "")
+    .trim();
+  if (clean.length > 22) {
+    clean = clean.substring(0, 21) + "…";
+  }
+  return clean;
+};
+
 interface PlanConturiComboboxProps {
   value: string;
   onChange: (cod: string, denumire: string) => void;
@@ -36,6 +71,7 @@ interface PlanConturiComboboxProps {
   size?: "md" | "sm";
   className?: string;
   title?: string;
+  displayMode?: "code" | "name" | "both";
 }
 
 export default function PlanConturiCombobox({
@@ -46,6 +82,7 @@ export default function PlanConturiCombobox({
   size = "md",
   className = "",
   title,
+  displayMode = "code",
 }: PlanConturiComboboxProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -53,27 +90,65 @@ export default function PlanConturiCombobox({
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Sync internal search when value changes from outside (and dropdown is closed)
-  useEffect(() => {
-    if (!isOpen) {
-      setSearch(value || "");
-    }
-  }, [value, isOpen]);
-
-  // Current selected account
+  // Current selected account (matched by code or name)
   const selectedAccount = useMemo(() => {
     if (!value) return null;
     const clean = value.trim();
-    return (
-      accounts.find((a) => a.cod === clean) ||
-      POPULAR_NIR_ACCOUNTS.find((a) => a.cod === clean) ||
-      null
+    // 1. Direct match in popular accounts
+    const popDirect = POPULAR_NIR_ACCOUNTS.find(
+      (a) =>
+        a.cod === clean ||
+        a.denumire.toLowerCase() === clean.toLowerCase() ||
+        a.shortLabel?.toLowerCase() === clean.toLowerCase()
     );
+    if (popDirect) return popDirect;
+
+    // 2. Direct match in accounts
+    const match = accounts.find(
+      (a) =>
+        a.cod === clean ||
+        a.denumire.toLowerCase() === clean.toLowerCase() ||
+        a.shortLabel?.toLowerCase() === clean.toLowerCase()
+    );
+    if (match) {
+      return {
+        ...match,
+        shortLabel: getCleanShortLabel(match),
+      };
+    }
+
+    return null;
   }, [value, accounts]);
+
+  // Sync internal search when value changes from outside (and dropdown is closed)
+  useEffect(() => {
+    if (!isOpen) {
+      if (displayMode === "name") {
+        setSearch(
+          selectedAccount
+            ? selectedAccount.shortLabel || getCleanShortLabel(selectedAccount)
+            : value || ""
+        );
+      } else if (displayMode === "both") {
+        if (selectedAccount) {
+          const lbl = selectedAccount.shortLabel || getCleanShortLabel(selectedAccount);
+          setSearch(`${selectedAccount.cod} · ${lbl}`);
+        } else {
+          setSearch(value || "");
+        }
+      } else {
+        setSearch(selectedAccount ? selectedAccount.cod : value || "");
+      }
+    }
+  }, [value, selectedAccount, isOpen, displayMode]);
 
   // Smart filtering and scoring
   const filteredAccounts = useMemo(() => {
-    const query = normalizeText(search);
+    let rawQuery = normalizeText(search);
+    if (rawQuery.includes("·")) rawQuery = rawQuery.split("·")[0].trim();
+    else if (rawQuery.includes("—")) rawQuery = rawQuery.split("—")[0].trim();
+    const query = rawQuery;
+
     if (!query) {
       // Empty query: Show popular NIR accounts first, then standard synthesis accounts
       const popularCodes = new Set(POPULAR_NIR_ACCOUNTS.map((p) => p.cod));
@@ -97,7 +172,6 @@ export default function PlanConturiCombobox({
       } else if (nameNorm.includes(query)) {
         score = 200 - a.cod.length * 5;
       } else if (codeNorm.includes("." + query)) {
-        // Sub-account segment match (e.g. query "371" on "371.01")
         score = 100 - a.cod.length * 6;
       }
 
@@ -112,10 +186,13 @@ export default function PlanConturiCombobox({
       if (!exists) {
         const codeNorm = p.cod.toLowerCase();
         const nameNorm = normalizeText(p.denumire);
+        const shortNorm = p.shortLabel ? normalizeText(p.shortLabel) : "";
         let score = 0;
         if (codeNorm === query) score = 1000;
         else if (codeNorm.startsWith(query)) score = 500 - codeNorm.length * 10;
-        else if (nameNorm.includes(query)) score = 200;
+        else if (shortNorm && shortNorm.startsWith(query)) score = 400;
+        else if (nameNorm.startsWith(query)) score = 350;
+        else if (nameNorm.includes(query) || (shortNorm && shortNorm.includes(query))) score = 200;
         if (score > 0) scored.push({ item: p, score });
       }
     }
@@ -140,8 +217,15 @@ export default function PlanConturiCombobox({
   }, [activeIndex, isOpen]);
 
   const handleSelect = (account: PlanContItem) => {
-    onChange(account.cod, account.denumire);
-    setSearch(account.cod);
+    const lbl = account.shortLabel || getCleanShortLabel(account) || account.denumire;
+    onChange(account.cod, lbl);
+    if (displayMode === "name") {
+      setSearch(lbl);
+    } else if (displayMode === "both") {
+      setSearch(`${account.cod} · ${lbl}`);
+    } else {
+      setSearch(account.cod);
+    }
     setIsOpen(false);
   };
 
@@ -153,34 +237,60 @@ export default function PlanConturiCombobox({
         <div
           className={`flex items-center gap-1 rounded-lg bg-white dark:bg-slate-800 border transition-all ${
             isOpen
-              ? "border-teal-500 ring-2 ring-teal-500/20 shadow-xs"
+              ? "border-[var(--tenant-theme-color,#16a34a)] ring-2 ring-[var(--tenant-theme-color,#16a34a)]/20 shadow-xs"
               : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
-          } ${isSmall ? "h-7 px-1.5" : "h-8 px-2.5"} ${className}`}
-          title={title || selectedAccount?.denumire || value}
+          } ${isSmall ? "h-7 px-2" : "h-8 px-2.5"} ${className}`}
+          title={title || (selectedAccount ? `${selectedAccount.cod} — ${selectedAccount.denumire}` : value)}
         >
           <input
             ref={inputRef}
             type="text"
             value={search}
             placeholder={placeholder}
-            onClick={() => setIsOpen(true)}
-            onFocus={() => setIsOpen(true)}
+            onClick={() => {
+              setIsOpen(true);
+              inputRef.current?.select();
+            }}
+            onFocus={() => {
+              setIsOpen(true);
+              inputRef.current?.select();
+            }}
             onChange={(e) => {
               const val = e.target.value;
               setSearch(val);
               if (!isOpen) setIsOpen(true);
               const clean = val.trim();
-              const exact = accounts.find((a) => a.cod === clean);
+              const codePrefix = clean.split(/[·\-—\s]/)[0].trim();
+              const exact = accounts.find(
+                (a) =>
+                  a.cod.toLowerCase() === clean.toLowerCase() ||
+                  a.cod.toLowerCase() === codePrefix.toLowerCase() ||
+                  a.denumire.toLowerCase() === clean.toLowerCase() ||
+                  a.shortLabel?.toLowerCase() === clean.toLowerCase()
+              );
               if (exact) {
-                onChange(exact.cod, exact.denumire);
-              } else if (clean) {
-                onChange(clean, "");
+                onChange(exact.cod, exact.shortLabel || exact.denumire);
               }
             }}
             onKeyDown={(e) => {
               if (e.key === "Escape") {
                 setIsOpen(false);
-                setSearch(value || "");
+                if (displayMode === "name") {
+                  setSearch(
+                    selectedAccount
+                      ? selectedAccount.shortLabel || getCleanShortLabel(selectedAccount)
+                      : value || ""
+                  );
+                } else if (displayMode === "both") {
+                  if (selectedAccount) {
+                    const lbl = selectedAccount.shortLabel || getCleanShortLabel(selectedAccount);
+                    setSearch(`${selectedAccount.cod} · ${lbl}`);
+                  } else {
+                    setSearch(value || "");
+                  }
+                } else {
+                  setSearch(value || "");
+                }
               } else if (e.key === "ArrowDown") {
                 e.preventDefault();
                 if (!isOpen) {
@@ -200,15 +310,31 @@ export default function PlanConturiCombobox({
                 }
               }
             }}
-            className={`w-full bg-transparent font-semibold font-mono text-slate-900 dark:text-white focus:outline-none ${
-              isSmall ? "text-xs text-center" : "text-sm"
+            className={`w-full bg-transparent text-slate-900 dark:text-white focus:outline-none truncate ${
+              displayMode === "name"
+                ? `font-medium ${isSmall ? "text-xs text-left" : "text-sm text-left"}`
+                : `font-bold font-mono ${isSmall ? "text-xs text-left pl-1" : "text-sm text-left pl-1"}`
             }`}
           />
 
-          {/* Selected account badge description in md size */}
-          {!isSmall && selectedAccount && !isOpen && (
+          {/* Selected account badge description in md size for code mode */}
+          {displayMode === "code" && !isSmall && selectedAccount && !isOpen && (
             <span className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[11px] font-sans font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/50 truncate max-w-[130px]">
               {selectedAccount.denumire}
+            </span>
+          )}
+
+          {/* Selected account code badge in md size for name mode */}
+          {displayMode === "name" && !isSmall && selectedAccount && !isOpen && (
+            <span
+              style={{
+                backgroundColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 12%, transparent)",
+                borderColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 30%, transparent)",
+                color: "var(--tenant-theme-color, #16a34a)",
+              }}
+              className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[11px] font-mono font-bold border shrink-0"
+            >
+              {selectedAccount.cod}
             </span>
           )}
 
@@ -240,7 +366,8 @@ export default function PlanConturiCombobox({
             className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-0.5"
           >
             <ChevronDown
-              className={`w-3.5 h-3.5 transition-transform ${isOpen ? "rotate-180 text-teal-600" : ""}`}
+              className={`w-3.5 h-3.5 transition-transform ${isOpen ? "rotate-180" : ""}`}
+              style={isOpen ? { color: "var(--tenant-theme-color, #16a34a)" } : {}}
             />
           </button>
         </div>
@@ -252,7 +379,7 @@ export default function PlanConturiCombobox({
           sideOffset={4}
           onOpenAutoFocus={(e) => e.preventDefault()}
           className={`z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 ${
-            isSmall ? "w-72 min-w-[280px]" : "w-80 sm:w-96 min-w-[320px]"
+            isSmall ? "w-80 min-w-[340px]" : "w-80 sm:w-96 min-w-[360px]"
           }`}
           style={{ maxHeight: "350px" }}
         >
@@ -267,23 +394,36 @@ export default function PlanConturiCombobox({
               </span>
             </div>
             <div className="flex flex-wrap gap-1">
-              {POPULAR_NIR_ACCOUNTS.map((pop) => (
-                <button
-                  key={pop.cod}
-                  type="button"
-                  onClick={() => handleSelect(pop)}
-                  className={`px-2 py-0.5 rounded text-[11px] font-semibold border transition-all cursor-pointer ${
-                    value === pop.cod
-                      ? "bg-teal-600 text-white border-teal-600 shadow-xs"
-                      : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-teal-50 dark:hover:bg-slate-700 hover:border-teal-300"
-                  }`}
-                >
-                  <span className="font-mono font-bold">{pop.cod}</span>{" "}
-                  <span className="text-[10px] font-normal opacity-85">
-                    {pop.shortLabel || pop.denumire}
-                  </span>
-                </button>
-              ))}
+              {POPULAR_NIR_ACCOUNTS.map((pop) => {
+                const isSelected =
+                  value === pop.cod || (selectedAccount && selectedAccount.cod === pop.cod);
+                return (
+                  <button
+                    key={pop.cod}
+                    type="button"
+                    onClick={() => handleSelect(pop)}
+                    style={
+                      isSelected
+                        ? {
+                            backgroundColor: "var(--tenant-theme-color, #16a34a)",
+                            borderColor: "var(--tenant-theme-color, #16a34a)",
+                            color: "#ffffff",
+                          }
+                        : {}
+                    }
+                    className={`px-2 py-0.5 rounded text-[11px] font-semibold border transition-all cursor-pointer ${
+                      isSelected
+                        ? "shadow-xs"
+                        : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-400"
+                    }`}
+                  >
+                    <span className="font-mono font-bold">{pop.cod}</span>{" "}
+                    <span className="text-[10px] font-normal opacity-85">
+                      {pop.shortLabel || pop.denumire}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -299,7 +439,8 @@ export default function PlanConturiCombobox({
               </div>
             ) : (
               filteredAccounts.map((account, idx) => {
-                const isSelected = value === account.cod;
+                const isSelected =
+                  value === account.cod || (selectedAccount && selectedAccount.cod === account.cod);
                 const isActive = idx === activeIndex;
                 return (
                   <button
@@ -307,33 +448,60 @@ export default function PlanConturiCombobox({
                     type="button"
                     onClick={() => handleSelect(account)}
                     onMouseEnter={() => setActiveIndex(idx)}
+                    style={
+                      isActive
+                        ? {
+                            backgroundColor:
+                              "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 8%, transparent)",
+                          }
+                        : {}
+                    }
                     className={`w-full text-left p-2.5 flex items-center justify-between gap-2.5 transition-colors cursor-pointer ${
                       isActive
-                        ? "bg-teal-50/70 dark:bg-teal-950/50"
+                        ? ""
                         : "hover:bg-slate-50 dark:hover:bg-slate-800/60"
                     } ${
                       isSelected
-                        ? "text-teal-950 dark:text-teal-200 font-semibold"
+                        ? "font-semibold"
                         : "text-slate-700 dark:text-slate-200"
                     }`}
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <span
+                        style={
+                          isSelected
+                            ? {
+                                backgroundColor: "var(--tenant-theme-color, #16a34a)",
+                                borderColor: "var(--tenant-theme-color, #16a34a)",
+                                color: "#ffffff",
+                              }
+                            : {}
+                        }
                         className={`px-1.5 py-0.5 rounded font-mono font-bold text-xs shrink-0 border ${
                           isSelected
-                            ? "bg-teal-600 text-white border-teal-600"
+                            ? ""
                             : "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700"
                         }`}
                       >
                         {account.cod}
                       </span>
-                      <span className="text-xs truncate font-medium">
-                        {account.denumire}
+                      <span
+                        className="text-xs truncate font-medium"
+                        style={
+                          isSelected
+                            ? { color: "var(--tenant-theme-color, #16a34a)" }
+                            : {}
+                        }
+                      >
+                        {account.shortLabel || account.denumire}
                       </span>
                     </div>
 
                     {isSelected && (
-                      <Check className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" />
+                      <Check
+                        className="w-4 h-4 shrink-0"
+                        style={{ color: "var(--tenant-theme-color, #16a34a)" }}
+                      />
                     )}
                   </button>
                 );

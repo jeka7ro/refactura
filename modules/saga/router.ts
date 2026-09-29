@@ -415,16 +415,30 @@ export const sagaRouter = router({
     }),
 
   exportNir: protectedProcedure
-    .input(z.object({ nirId: z.number().optional() }).optional())
+    .input(
+      z
+        .object({
+          nirId: z.number().optional(),
+          nirIds: z.array(z.number()).optional(),
+        })
+        .optional()
+    )
     .mutation(async ({ input, ctx }) => {
       const { generateSagaNirXML, getTenantCompanyProfile } = await import(
         "../../server/sagaXmlGenerator"
       );
       const tenantId = ctx.user?.tenantId || 1;
-      const xml = await generateSagaNirXML(tenantId, input?.nirId);
+      const targetIds =
+        input?.nirIds && input.nirIds.length > 0 ? input.nirIds : input?.nirId;
+      const xml = await generateSagaNirXML(tenantId, targetIds);
       const company = await getTenantCompanyProfile(tenantId);
       const safeCui = company.cui.replace(/^RO/i, "").trim() || "EXPORT";
-      const filename = input?.nirId ? `F_${safeCui}_NIR_${input.nirId}.xml` : `F_${safeCui}_NIR_ALL.xml`;
+      let filename = `F_${safeCui}_NIR_ALL.xml`;
+      if (typeof targetIds === "number") {
+        filename = `F_${safeCui}_NIR_${targetIds}.xml`;
+      } else if (Array.isArray(targetIds)) {
+        filename = `F_${safeCui}_NIR_SEL_${targetIds.length}.xml`;
+      }
       return { xml, filename };
     }),
 

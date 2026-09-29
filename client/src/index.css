@@ -322,12 +322,9 @@ select:focus {
    Toate butoanele, input-urile și barele de căutare = PILL SHAPE
 ═══════════════════════════════════════════════════════════════ */
 
-/* Override global: Toate elementele interactive au border-radius extrem (pill) */
-input:not([type="range"]):not([type="checkbox"]):not([type="radio"]),
-textarea,
-select,
-button:not(.btn-icon) {
-  border-radius: 9999px !important;
+/* Override global: Butoanele interactive au border-radius de tip pill */
+button:not(.btn-icon):not([class*="rounded-none"]):not([class*="rounded-sm"]):not([class*="rounded-md"]):not([class*="rounded-lg"]):not([class*="rounded-xl"]) {
+  border-radius: 9999px;
 }
 
 /* Container-ele mari rămân rounded, dar fin (macOS style) */
@@ -653,18 +650,13 @@ html.dark[data-theme="navy"] {
 }
 
 /* ======================================================
- * REGULA GLOBALA: Campuri editabile = colturi drepte
- * Butoane, carduri, filtre = raman rotunjite
+ * REGULA GLOBALA: Câmpurile editabile folosesc rotunjirea
+ * de la containere (8px / rounded-lg), NU de la butoane (pill)
  * ====================================================== */
-input[type="text"]:not(.rounded-full),
-input[type="number"]:not(.rounded-full),
-input[type="email"]:not(.rounded-full),
-input[type="tel"]:not(.rounded-full),
-input[type="date"]:not(.rounded-full),
-input[type="search"]:not(.rounded-full),
-input[type="password"]:not(.rounded-full),
-textarea:not(.rounded-full) {
-  border-radius: 0 !important;
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.rounded-full),
+textarea:not(.rounded-full),
+select:not(.rounded-full) {
+  border-radius: 8px !important;
 }
 
 /* Butoanele din lista dropdown de catalog = colturi drepte */
@@ -684,11 +676,13 @@ input[type="number"] {
 
 /* ======================================================
  * TENANT THEME DYNAMIC SYSTEM
- * Overrides hardcoded Tailwind blue-600 / blue-500 classes
- * across all buttons, active links, badges, checkboxes, rings,
- * and toggles so the selected theme color applies globally.
+ * Unifies ALL buttons, action links, badges, checkboxes, rings,
+ * and toggles to strictly use the active tenant theme color
+ * (--tenant-theme-color), including any custom color selected.
+ * Eliminates clashing shades of emerald, teal, green, and blue.
  * ====================================================== */
 
+/* Solid action buttons, badges & elements */
 .bg-blue-600,
 .bg-blue-500,
 button.bg-blue-600,
@@ -699,44 +693,165 @@ div.bg-blue-600,
 div.bg-blue-500,
 span.bg-blue-600,
 span.bg-blue-500,
+button.bg-emerald-600,
+button.bg-emerald-500,
+button.bg-emerald-700,
+a.bg-emerald-600,
+a.bg-emerald-500,
+button.bg-teal-600,
+button.bg-teal-500,
+button.bg-teal-700,
+a.bg-teal-600,
+a.bg-teal-500,
+button.bg-green-600,
+button.bg-green-500,
+button.bg-green-700,
+a.bg-green-600,
+a.bg-green-500,
+.bg-emerald-600,
+.bg-teal-600,
+.bg-green-600,
 .bg-primary {
   background-color: var(--tenant-theme-color, var(--primary, #16a34a)) !important;
 }
 
+/* Button & Link Hover States */
 .hover\:bg-blue-700:hover,
 .hover\:bg-blue-600:hover,
 button.hover\:bg-blue-700:hover,
 button.hover\:bg-blue-600:hover,
 a.hover\:bg-blue-700:hover,
 a.hover\:bg-blue-600:hover,
+button.hover\:bg-emerald-700:hover,
+button.hover\:bg-emerald-600:hover,
+a.hover\:bg-emerald-700:hover,
+a.hover\:bg-emerald-600:hover,
+button.hover\:bg-teal-700:hover,
+button.hover\:bg-teal-600:hover,
+a.hover\:bg-teal-700:hover,
+a.hover\:bg-teal-600:hover,
+button.hover\:bg-green-700:hover,
+button.hover\:bg-green-600:hover,
+a.hover\:bg-green-700:hover,
+a.hover\:bg-green-600:hover,
+.hover\:bg-emerald-700:hover,
+.hover\:bg-emerald-600:hover,
+.hover\:bg-teal-700:hover,
+.hover\:bg-teal-600:hover,
+.hover\:bg-green-700:hover,
+.hover\:bg-green-600:hover,
 .hover\:bg-primary:hover {
   background-color: var(--tenant-theme-color, var(--primary, #16a34a)) !important;
   filter: brightness(0.9) !important;
 }
 
-.active\:bg-blue-800:active {
+/* Button Active States */
+.active\:bg-blue-800:active,
+.active\:bg-emerald-800:active,
+.active\:bg-teal-800:active,
+.active\:bg-green-800:active,
+button.active\:bg-blue-800:active,
+button.active\:bg-emerald-800:active,
+button.active\:bg-teal-800:active,
+button.active\:bg-green-800:active {
   background-color: var(--tenant-theme-color, var(--primary, #16a34a)) !important;
   filter: brightness(0.8) !important;
 }
 
+/* Form checkboxes, radios and toggles */
 input[type="checkbox"]:checked,
 input[type="radio"]:checked,
 .peer:checked ~ .peer-checked\:bg-blue-600,
+.peer:checked ~ .peer-checked\:bg-emerald-600,
+.peer:checked ~ .peer-checked\:bg-teal-500,
+.peer:checked ~ .peer-checked\:bg-teal-600,
 .peer-checked\:bg-blue-600:is(:checked ~ *),
 .peer-checked\:bg-primary:is(:checked ~ *) {
   background-color: var(--tenant-theme-color, var(--primary, #16a34a)) !important;
 }
 
+/* Borders */
 .border-blue-600,
 .border-blue-500,
-.focus\:border-blue-500:focus {
+.border-emerald-600,
+.border-emerald-500,
+.border-teal-600,
+.border-teal-500,
+.border-green-600,
+.border-green-500,
+.focus\:border-blue-500:focus,
+.focus\:border-emerald-500:focus,
+.focus\:border-teal-500:focus,
+.focus\:border-green-500:focus {
   border-color: var(--tenant-theme-color, var(--primary, #16a34a)) !important;
 }
 
+/* Focus Rings */
 .ring-blue-500,
+.ring-emerald-500,
+.ring-teal-500,
+.ring-green-500,
 .focus\:ring-blue-500:focus,
-.focus-visible\:ring-blue-500:focus-visible {
+.focus\:ring-emerald-500:focus,
+.focus\:ring-teal-500:focus,
+.focus\:ring-green-500:focus,
+.focus-visible\:ring-blue-500:focus-visible,
+.focus-visible\:ring-emerald-500:focus-visible,
+.focus-visible\:ring-teal-500:focus-visible,
+.focus-visible\:ring-green-500:focus-visible {
   --tw-ring-color: var(--tenant-theme-color, var(--primary, #16a34a)) !important;
 }
+
+/* Text links & action icons */
+button.text-teal-600,
+a.text-teal-600,
+button.text-emerald-600,
+a.text-emerald-600,
+button.text-blue-600,
+a.text-blue-600,
+button.text-green-600,
+a.text-green-600,
+.text-teal-600.hover\:underline:hover,
+.text-emerald-600.hover\:underline:hover {
+  color: var(--tenant-theme-color, var(--primary, #16a34a)) !important;
+}
+
+/* Soft / subtle action buttons (icon buttons, pills, add line buttons) */
+button.bg-teal-50,
+button.bg-emerald-50,
+button.bg-green-50,
+a.bg-teal-50,
+a.bg-emerald-50,
+a.bg-green-50 {
+  background-color: color-mix(in srgb, var(--tenant-theme-color, #16a34a) 12%, transparent) !important;
+}
+
+button.hover\:bg-teal-100:hover,
+button.hover\:bg-emerald-100:hover,
+button.hover\:bg-green-100:hover,
+a.hover\:bg-teal-100:hover,
+a.hover\:bg-emerald-100:hover,
+a.hover\:bg-green-100:hover {
+  background-color: color-mix(in srgb, var(--tenant-theme-color, #16a34a) 22%, transparent) !important;
+}
+
+button.text-teal-700,
+button.text-emerald-700,
+button.text-green-700,
+a.text-teal-700,
+a.text-emerald-700,
+a.text-green-700 {
+  color: var(--tenant-theme-color, var(--primary, #16a34a)) !important;
+}
+
+button.border-teal-200,
+button.border-emerald-200,
+button.border-green-200,
+a.border-teal-200,
+a.border-emerald-200,
+a.border-green-200 {
+  border-color: color-mix(in srgb, var(--tenant-theme-color, #16a34a) 28%, transparent) !important;
+}
+
 
 

@@ -3417,15 +3417,162 @@ export const appRouter = router({
   // ─── NIR Router ───────────────────────────────────────────────────────────────
   nir: router({
     list: protectedProcedure.query(async ({ ctx }) => {
-      
       const db = await getDb();
       if (!db) throw new Error("No DB");
-      const { nir } = await import("../drizzle/schema");
-      return db
+      const { nir, nirLines, invoiceArchive } = await import("../drizzle/schema");
+      const { inArray } = await import("drizzle-orm");
+      const tenantId = ctx.user?.tenantId || 1;
+      const nirs = await db
         .select()
         .from(nir)
-        .where(eq(nir.tenantId, (ctx.user?.tenantId || 1)))
+        .where(eq(nir.tenantId, tenantId))
         .orderBy(desc(nir.createdAt));
+
+      if (nirs.length === 0) return [];
+
+      const invIds = Array.from(new Set(nirs.map(n => n.invoiceArchiveId).filter(Boolean))) as number[];
+      const invNumbers = Array.from(new Set(nirs.filter(n => !n.invoiceArchiveId && n.invoiceNumber).map(n => n.invoiceNumber))) as string[];
+
+      const invRows = invIds.length > 0
+        ? await db
+            .select({ id: invoiceArchive.id, issueDate: invoiceArchive.issueDate })
+            .from(invoiceArchive)
+            .where(inArray(invoiceArchive.id, invIds))
+        : [];
+      const invoiceDateMap = new Map(invRows.map(r => [r.id, r.issueDate]));
+
+      const invRowsByNum = invNumbers.length > 0
+        ? await db
+            .select({ invoiceNumber: invoiceArchive.invoiceNumber, issueDate: invoiceArchive.issueDate })
+            .from(invoiceArchive)
+            .where(and(eq(invoiceArchive.tenantId, tenantId), inArray(invoiceArchive.invoiceNumber, invNumbers)))
+        : [];
+      const invoiceNumDateMap = new Map(invRowsByNum.map(r => [r.invoiceNumber, r.issueDate]));
+
+      const lines = await db
+        .select({
+          nirId: nirLines.nirId,
+          total: nirLines.total,
+          vatRate: nirLines.vatRate,
+          description: nirLines.description,
+          accountingAccount: nirLines.accountingAccount,
+          accountingType: nirLines.accountingType,
+          sagaArticleId: nirLines.sagaArticleId,
+          observations: nirLines.observations,
+        })
+        .from(nirLines)
+        .where(inArray(nirLines.nirId, nirs.map(n => n.id)));
+
+      const { sagaArticles } = await import("../modules/saga/schema");
+      const artIds = Array.from(new Set(lines.map(l => l.sagaArticleId).filter(Boolean))) as number[];
+      const articles = artIds.length > 0
+        ? await db
+            .select({ id: sagaArticles.id, code: sagaArticles.code, name: sagaArticles.name })
+            .from(sagaArticles)
+            .where(inArray(sagaArticles.id, artIds))
+        : [];
+      const artMap = new Map(articles.map(a => [a.id, a]));
+
+      interface NirStats {
+        linesCount: number;
+        totalNet: number;
+        totalVat: number;
+        totalWithVat: number;
+        accounts: string[];
+        articleCodes: string[];
+        lineDescriptions: string[];
+        lineObservations: string[];
+      }
+
+      const statsMap = new Map<number, NirStats>();
+      for (const l of lines) {
+        const cur: NirStats = statsMap.get(l.nirId) || {
+          linesCount: 0,
+          totalNet: 0,
+          totalVat: 0,
+          totalWithVat: 0,
+          accounts: [],
+          articleCodes: [],
+          lineDescriptions: [],
+          lineObservations: [],
+        };
+        cur.linesCount += 1;
+        const lineNet = parseFloat(String(l.total || "0")) || 0;
+        const lineVatRate = parseFloat(String(l.vatRate || "19")) || 0;
+        const lineVat = (lineNet * lineVatRate) / 100;
+        cur.totalNet += lineNet;
+        cur.totalVat += lineVat;
+        cur.totalWithVat += (lineNet + lineVat);
+
+        if (l.accountingAccount && !cur.accounts.includes(l.accountingAccount)) {
+          cur.accounts.push(l.accountingAccount);
+        }
+        if (l.sagaArticleId) {
+          const art = artMap.get(l.sagaArticleId);
+          if (art?.code && !cur.articleCodes.includes(art.code)) {
+            cur.articleCodes.push(art.code);
+          }
+        }
+        if (l.description) {
+          cur.lineDescriptions.push(l.description);
+        }
+        if (l.observations) {
+          cur.lineObservations.push(l.observations);
+        }
+        statsMap.set(l.nirId, cur);
+      }
+
+      return nirs.map(n => {
+        const stats = statsMap.get(n.id) || {
+          linesCount: 0,
+          totalNet: 0,
+          totalVat: 0,
+          totalWithVat: 0,
+          accounts: [],
+          articleCodes: [],
+          lineDescriptions: [],
+          lineObservations: [],
+        };
+
+        const allAccounts = Array.from(new Set([n.accountingAccount, ...stats.accounts].filter(Boolean))) as string[];
+
+        const invoiceDate =
+          (n.invoiceArchiveId ? invoiceDateMap.get(n.invoiceArchiveId) : null) ||
+          (n.invoiceNumber ? invoiceNumDateMap.get(n.invoiceNumber) : null) ||
+          null;
+
+        const searchTokens = [
+          n.nirNumber,
+          n.supplierName,
+          n.supplierCUI,
+          n.supplierAddress,
+          n.invoiceNumber,
+          invoiceDate,
+          n.avizNumber,
+          n.gestiune,
+          n.accountingAccount,
+          n.accountingType,
+          n.notes,
+          n.differenceNotes,
+          ...allAccounts,
+          ...stats.articleCodes,
+          ...stats.lineDescriptions,
+          ...stats.lineObservations,
+        ].filter(Boolean).join(" ").toLowerCase();
+
+        return {
+          ...n,
+          invoiceDate,
+          linesCount: stats.linesCount,
+          totalNet: stats.totalNet,
+          totalVat: stats.totalVat,
+          totalWithVat: stats.totalWithVat,
+          accounts: allAccounts,
+          articleCodes: stats.articleCodes,
+          lineDescriptions: stats.lineDescriptions,
+          searchContent: searchTokens,
+        };
+      });
     }),
 
     listWithLines: protectedProcedure.query(async ({ ctx }) => {
@@ -3601,15 +3748,9 @@ export const appRouter = router({
         const { desc, eq, inArray, and } = await import("drizzle-orm");
         const tenantId = ctx.user?.tenantId || 1;
 
-        // Auto-assign or create articles in sagaArticles if articleCode is given (materials only, never services)
+        // Auto-assign or create articles in sagaArticles if articleCode is given
         for (const l of input.lines) {
           const acc = String(l.accountingAccount || input.accountingAccount || "371").trim();
-          const isService = acc.startsWith("6") || acc.startsWith("7") || acc.startsWith("409") || l.accountingType === "Servicii" || l.accountingType === "Avans";
-          if (isService) {
-            l.sagaArticleId = undefined;
-            (l as any).articleCode = undefined;
-            continue;
-          }
 
           if (!l.sagaArticleId && (l as any).articleCode) {
             const cleanCode = String((l as any).articleCode).trim();
@@ -3775,14 +3916,14 @@ export const appRouter = router({
             input.lines.map((l, idx) => {
               const acc = String(l.accountingAccount || input.accountingAccount || "371").trim();
               const isService = acc.startsWith("6") || acc.startsWith("7") || acc.startsWith("409") || l.accountingType === "Servicii" || l.accountingType === "Avans";
-              const art = isService ? null : loadedArticles.find(a => a.id === l.sagaArticleId);
+              const art = loadedArticles.find(a => a.id === l.sagaArticleId);
               const val = parseFloat(l.total || "0");
               const tva = (val * parseFloat(l.vatRate || "19")) / 100;
               return {
                 intrareId,
-                tip: isService ? "Serviciu" : (l.accountingType || "Marfa"),
-                articolId: isService ? undefined : l.sagaArticleId,
-                cod: isService ? undefined : (art?.code || (l as any).articleCode || undefined),
+                tip: l.accountingType || (isService ? "Serviciu" : "Marfa"),
+                articolId: l.sagaArticleId || undefined,
+                cod: art?.code || (l as any).articleCode || undefined,
                 denumire: l.description,
                 um: l.unit || "buc",
                 tvaPercent: l.vatRate || "19",
@@ -3856,12 +3997,6 @@ export const appRouter = router({
         if (lines) {
           for (const l of lines) {
             const acc = String(l.accountingAccount || "371").trim();
-            const isService = acc.startsWith("6") || acc.startsWith("7") || acc.startsWith("409") || l.accountingType === "Servicii" || l.accountingType === "Avans";
-            if (isService) {
-              l.sagaArticleId = undefined;
-              (l as any).articleCode = undefined;
-              continue;
-            }
 
             if (!l.sagaArticleId && (l as any).articleCode) {
               const cleanCode = String((l as any).articleCode).trim();
@@ -4036,6 +4171,58 @@ export const appRouter = router({
             and(eq(nir.id, input.id), eq(nir.tenantId, (ctx.user?.tenantId || 1)))
           );
         return { success: true };
+      }),
+
+    bulkDelete: protectedProcedure
+      .input(z.object({ ids: z.array(z.number()) }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        if (input.ids.length === 0) return { count: 0 };
+        const { nir, nirLines } = await import("../drizzle/schema");
+        const { inArray, and, eq } = await import("drizzle-orm");
+        const tenantId = ctx.user?.tenantId || 1;
+        await db.delete(nirLines).where(inArray(nirLines.nirId, input.ids));
+        await db
+          .delete(nir)
+          .where(
+            and(inArray(nir.id, input.ids), eq(nir.tenantId, tenantId))
+          );
+        return { count: input.ids.length };
+      }),
+
+    bulkUpdate: protectedProcedure
+      .input(
+        z.object({
+          ids: z.array(z.number()),
+          status: z.enum(["draft", "finalizat"]).optional(),
+          gestiune: z.string().optional(),
+          accountingType: z.string().optional(),
+          accountingAccount: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        if (input.ids.length === 0) return { count: 0 };
+        const { nir } = await import("../drizzle/schema");
+        const { inArray, and, eq } = await import("drizzle-orm");
+        const tenantId = ctx.user?.tenantId || 1;
+        const updateData: Record<string, any> = {};
+        if (input.status) updateData.status = input.status;
+        if (input.gestiune !== undefined && input.gestiune !== "") updateData.gestiune = input.gestiune;
+        if (input.accountingType !== undefined && input.accountingType !== "") updateData.accountingType = input.accountingType;
+        if (input.accountingAccount !== undefined && input.accountingAccount !== "") updateData.accountingAccount = input.accountingAccount;
+
+        if (Object.keys(updateData).length > 0) {
+          await db
+            .update(nir)
+            .set(updateData)
+            .where(
+              and(inArray(nir.id, input.ids), eq(nir.tenantId, tenantId))
+            );
+        }
+        return { count: input.ids.length };
       }),
   }),
 

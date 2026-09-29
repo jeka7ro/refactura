@@ -415,7 +415,7 @@ export async function generateSagaExportXML(
 /**
  * Generează XML de Facturi (<Facturi>) strict pentru recepții / NIR-uri (Intrări în SAGA C)
  */
-export async function generateSagaNirXML(tenantId: number, nirId?: number) {
+export async function generateSagaNirXML(tenantId: number, nirId?: number | number[]) {
   const db = await getDb();
   if (!db) throw new Error("No DB");
 
@@ -428,7 +428,12 @@ export async function generateSagaNirXML(tenantId: number, nirId?: number) {
     .where(eq(schema.nir.tenantId, tenantId));
 
   if (nirId) {
-    nirs = nirs.filter((n) => n.id === nirId);
+    if (Array.isArray(nirId)) {
+      const idSet = new Set(nirId);
+      nirs = nirs.filter((n) => idSet.has(n.id));
+    } else {
+      nirs = nirs.filter((n) => n.id === nirId);
+    }
   }
 
   let xml = `<?xml version="1.0" encoding="Windows-1250"?>\n`;

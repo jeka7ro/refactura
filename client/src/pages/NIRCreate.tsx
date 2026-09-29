@@ -18,6 +18,7 @@ import {
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import PlanConturiCombobox from "@/components/PlanConturiCombobox";
+import ArticleCombobox from "@/components/ArticleCombobox";
 
 const normalizeName = (name: string) => {
   if (!name) return "";
@@ -29,18 +30,56 @@ const normalizeName = (name: string) => {
     .toLowerCase();
 };
 
+export const SAGA_NIR_TYPES = [
+  { code: "371", name: "Mărfuri", label: "371 — Mărfuri" },
+  { code: "301", name: "Materii prime", label: "301 — Materii prime" },
+  { code: "3021", name: "Materiale auxiliare", label: "3021 — Materiale auxiliare" },
+  { code: "3022", name: "Combustibili", label: "3022 — Combustibili" },
+  { code: "3024", name: "Piese de schimb", label: "3024 — Piese de schimb" },
+  { code: "3028", name: "Consumabile", label: "3028 — Alte materiale consumabile" },
+  { code: "303", name: "Obiecte de inventar", label: "303 — Obiecte de inventar" },
+  { code: "381", name: "Ambalaje", label: "381 — Ambalaje" },
+  { code: "345", name: "Produse finite", label: "345 — Produse finite" },
+  { code: "341", name: "Semifabricate", label: "341 — Semifabricate" },
+  { code: "361", name: "Animale și păsări", label: "361 — Animale și păsări" },
+  { code: "321", name: "Materii prime în curs", label: "321 — Materii prime în curs" },
+  { code: "327", name: "Mărfuri în curs", label: "327 — Mărfuri în curs" },
+  { code: "4091", name: "Avansuri", label: "4091 — Avansuri furnizori stocuri" },
+  { code: "605", name: "Utilități", label: "605 — Utilități (Energie și apă)" },
+  { code: "611", name: "Reparații", label: "611 — Întreținere și reparații" },
+  { code: "612", name: "Chirii", label: "612 — Chirii și redevențe" },
+  { code: "624", name: "Transport", label: "624 — Transport bunuri" },
+  { code: "626", name: "Telecomunicații", label: "626 — Poștă și telecomunicații" },
+  { code: "628", name: "Servicii", label: "628 — Alte cheltuieli cu serviciile" },
+  { code: "704", name: "Servicii prestate", label: "704 — Servicii prestate" },
+];
+
 const getAccountType = (accCode: string): string => {
-  if (!accCode) return "Marfuri";
+  if (!accCode) return "Mărfuri";
   const c = accCode.trim();
-  if (c.startsWith("371")) return "Marfuri";
+  const matched = SAGA_NIR_TYPES.find(t => t.code === c);
+  if (matched) return matched.name;
+  if (c.startsWith("371")) return "Mărfuri";
   if (c.startsWith("301")) return "Materii prime";
   if (c.startsWith("3021")) return "Materiale auxiliare";
+  if (c.startsWith("3022")) return "Combustibili";
   if (c.startsWith("3024")) return "Piese de schimb";
+  if (c.startsWith("3028")) return "Consumabile";
   if (c.startsWith("302")) return "Consumabile";
   if (c.startsWith("303")) return "Obiecte de inventar";
-  if (c.startsWith("409")) return "Avans";
+  if (c.startsWith("381")) return "Ambalaje";
+  if (c.startsWith("345")) return "Produse finite";
+  if (c.startsWith("341")) return "Semifabricate";
+  if (c.startsWith("361")) return "Animale și păsări";
+  if (c.startsWith("409")) return "Avansuri";
+  if (c.startsWith("605")) return "Utilități";
+  if (c.startsWith("611")) return "Reparații";
+  if (c.startsWith("612")) return "Chirii";
+  if (c.startsWith("624")) return "Transport";
+  if (c.startsWith("626")) return "Telecomunicații";
+  if (c.startsWith("628")) return "Servicii";
   if (c.startsWith("6") || c.startsWith("704")) return "Servicii";
-  return "Marfuri";
+  return "Mărfuri";
 };
 
 interface NirLineForm {
@@ -84,14 +123,30 @@ const SELECT_SM_STYLE: React.CSSProperties = {
 // Mapare automată Tip → Cont
 const TIP_TO_CONT: Record<string, string> = {
   Marfuri: "371",
+  "Mărfuri": "371",
   "Materii prime": "301",
   "Materiale auxiliare": "3021",
+  Combustibili: "3022",
   "Piese de schimb": "3024",
   Consumabile: "3028",
+  "Alte mat. consumabile": "3028",
   "Obiecte de inventar": "303",
+  Ambalaje: "381",
+  "Produse finite": "345",
+  Semifabricate: "341",
+  "Animale și păsări": "361",
+  "Materii prime în curs": "321",
+  "Mărfuri în curs": "327",
   Nedefinit: "371",
   Servicii: "628",
+  "Utilități": "605",
+  "Reparații": "611",
+  Chirii: "612",
+  Transport: "624",
+  "Telecomunicații": "626",
+  "Servicii prestate": "704",
   Avans: "4091",
+  Avansuri: "4091",
 };
 
 export default function NIRCreate() {
@@ -222,12 +277,17 @@ export default function NIRCreate() {
 
   // Init from next number
   useEffect(() => {
-    if (!isEdit && nextNumber && !nirNumber) setNirNumber(nextNumber.nextNumber);
+    if (!isEdit && nextNumber) {
+      const val = typeof nextNumber === "string" ? nextNumber : (nextNumber as any)?.nextNumber;
+      if (val && (!nirNumber || nirNumber.trim() === "")) {
+        setNirNumber(val);
+      }
+    }
   }, [nextNumber, isEdit, nirNumber]);
 
   // Init from existing NIR
   useEffect(() => {
-    if (isEdit && existingNir && !loaded) {
+    if (isEdit && existingNir && !loaded && articlesFetched) {
       setNirNumber(existingNir.nirNumber);
       setReceiptDate(existingNir.receiptDate);
       setAvizNumber(existingNir.avizNumber || "");
@@ -252,29 +312,70 @@ export default function NIRCreate() {
       setDifferenceNotes(existingNir.differenceNotes || "");
       setNotes(existingNir.notes || "");
       setStatus((existingNir.status as any) || "draft");
+
+      // Calculate highest numeric code in articles
+      let maxCode = 0;
+      articles.forEach((a: any) => {
+        if (a.code && /^\d+$/.test(a.code.trim())) {
+          const n = parseInt(a.code.trim(), 10);
+          if (n > maxCode) maxCode = n;
+        }
+      });
+      if (nextArticleCodeData && /^\d+$/.test(nextArticleCodeData.trim())) {
+        const n = parseInt(nextArticleCodeData.trim(), 10);
+        if (n - 1 > maxCode) maxCode = n - 1;
+      }
+      let nextAvailableNum = maxCode + 1;
+
       setLines(
-        (existingNir.lines || []).map((l: any) => ({
-          id: l.id,
-          sagaArticleId: l.sagaArticleId,
-          articleSearchText: l.articleCode || (l.sagaArticleId ? (() => {
-            const a = articles.find((art: any) => art.id === l.sagaArticleId);
-            return a ? (a.code || a.name) : "";
-          })() : ""),
-          description: l.description,
-          unit: l.unit || "buc",
-          cantitateComanda: String(l.cantitateComanda || "0"),
-          cantitateReceptionata: String(l.cantitateReceptionata || "0"),
-          unitPrice: String(l.unitPrice || "0"),
-          vatRate: (l.vatRate !== undefined && l.vatRate !== null && l.vatRate !== "") ? String(parseFloat(String(l.vatRate))) : "21",
-          total: String(l.total || ""),
-          observations: l.observations || "",
-          accountingType: l.accountingType || "Marfuri",
-          accountingAccount: l.accountingAccount || "371",
-        }))
+        (existingNir.lines || []).map((l: any) => {
+          let code = l.articleCode || "";
+          let artId = l.sagaArticleId;
+
+          if (!code && artId) {
+            const a = articles.find((art: any) => art.id === artId);
+            if (a) code = a.code || a.name || "";
+          }
+
+          if (!code && l.description) {
+            const descNorm = normalizeName(l.description);
+            const matched = articles.find((a: any) => {
+              const aNorm = normalizeName(a.name);
+              if (!aNorm) return false;
+              if (aNorm === descNorm) return true;
+              if (aNorm.length >= 6 && descNorm.startsWith(aNorm)) return true;
+              if (descNorm.length >= 6 && aNorm.startsWith(descNorm)) return true;
+              return false;
+            });
+            if (matched) {
+              code = matched.code || "";
+              artId = matched.id;
+            } else {
+              code = String(nextAvailableNum).padStart(8, "0");
+              nextAvailableNum++;
+            }
+          }
+
+          return {
+            id: l.id,
+            sagaArticleId: artId,
+            articleSearchText: code,
+            description: l.description,
+            unit: l.unit || "buc",
+            cantitateComanda: String(l.cantitateComanda || "0"),
+            cantitateReceptionata: String(l.cantitateReceptionata || "0"),
+            unitPrice: String(l.unitPrice || "0"),
+            vatRate: (l.vatRate !== undefined && l.vatRate !== null && l.vatRate !== "") ? String(parseFloat(String(l.vatRate))) : "21",
+            total: String(l.total || ""),
+            observations: l.observations || "",
+            accountingType: l.accountingType || "Marfuri",
+            accountingAccount: l.accountingAccount || "371",
+          };
+        })
       );
       setLoaded(true);
     }
-  }, [existingNir, isEdit, loaded, articles]);
+  }, [existingNir, isEdit, loaded, articles, articlesFetched, nextArticleCodeData]);
 
   // Init from source invoice (wait for both queries)
   useEffect(() => {
@@ -327,10 +428,15 @@ export default function NIRCreate() {
               (l.description || "").toLowerCase().includes("curent") ||
               isTransport;
 
-            // 1. Caută în cele existente conform denumirii produsului
-            const matchedArticle = articles.find(
-              (a: any) => normalizeName(a.name) === descNorm
-            );
+            // 1. Caută în cele existente conform denumirii produsului (exact sau prefix)
+            const matchedArticle = articles.find((a: any) => {
+              const aNorm = normalizeName(a.name);
+              if (!aNorm) return false;
+              if (aNorm === descNorm) return true;
+              if (aNorm.length >= 6 && descNorm.startsWith(aNorm)) return true;
+              if (descNorm.length >= 6 && aNorm.startsWith(descNorm)) return true;
+              return false;
+            });
 
             let defType = "Marfuri";
             let defAccount = "371";
@@ -345,25 +451,21 @@ export default function NIRCreate() {
               defAccount = "628";
             }
 
-            const isServiceOrAdvance = defAccount.startsWith("6") || defAccount.startsWith("7") || defAccount.startsWith("409") || defType === "Servicii" || defType === "Avans";
-
             let assignedCode = "";
             let matchedId: number | undefined = undefined;
 
-            if (!isServiceOrAdvance) {
-              if (matchedArticle) {
-                matchedId = matchedArticle.id;
-                assignedCode = matchedArticle.code || "";
-              } else if (assignedByDesc.has(descNorm)) {
-                const prev = assignedByDesc.get(descNorm)!;
-                assignedCode = prev.code;
-                matchedId = prev.id;
-              } else {
-                // 2. Dacă nu are, pune imediat următorul disponibil
-                assignedCode = String(nextAvailableNum).padStart(8, "0");
-                nextAvailableNum++;
-                assignedByDesc.set(descNorm, { code: assignedCode });
-              }
+            if (matchedArticle) {
+              matchedId = matchedArticle.id;
+              assignedCode = matchedArticle.code || "";
+            } else if (assignedByDesc.has(descNorm)) {
+              const prev = assignedByDesc.get(descNorm)!;
+              assignedCode = prev.code;
+              matchedId = prev.id;
+            } else {
+              // 2. Dacă nu are, pune imediat următorul disponibil
+              assignedCode = String(nextAvailableNum).padStart(8, "0");
+              nextAvailableNum++;
+              assignedByDesc.set(descNorm, { code: assignedCode });
             }
 
             const calcTotal = (remaining * unitPrice).toFixed(2);
@@ -466,7 +568,7 @@ export default function NIRCreate() {
   const removeLine = (idx: number) =>
     setLines(prev => prev.filter((_, i) => i !== idx));
 
-  const updateLine = (idx: number, field: keyof NirLineForm, value: string) => {
+  const updateLine = (idx: number, field: keyof NirLineForm, value: any) => {
     setLines(prev => {
       const updated = [...prev];
       updated[idx] = { ...updated[idx], [field]: value };
@@ -487,7 +589,13 @@ export default function NIRCreate() {
       // Auto-link article if description matches perfectly
       if (field === "description") {
         const descNorm = normalizeName(value);
-        const matched = articles.find((a: any) => normalizeName(a.name) === descNorm);
+        const matched = articles.find((a: any) => {
+          const aNorm = normalizeName(a.name);
+          if (!aNorm) return false;
+          if (aNorm === descNorm) return true;
+          if (aNorm.length >= 6 && descNorm.startsWith(aNorm)) return true;
+          return false;
+        });
         if (matched) {
           updated[idx].sagaArticleId = matched.id;
           updated[idx].articleSearchText = matched.code || matched.name;
@@ -500,16 +608,16 @@ export default function NIRCreate() {
           if (lower.includes("avans")) {
             updated[idx].accountingType = "Avans";
             updated[idx].accountingAccount = "4091";
-          } else if (lower.includes("transport")) {
+          } else if (lower.includes("transport") || lower.includes("servici")) {
             updated[idx].accountingType = "Servicii";
             updated[idx].accountingAccount = "628";
           }
         }
       }
       
-      // Auto-fill when selecting an article from datalist or typing code
+      // Auto-fill when selecting an article or typing code
       if (field === "articleSearchText") {
-        const cleanVal = value.trim();
+        const cleanVal = String(value || "").trim();
         const codePart = cleanVal.split(" - ")[0].trim();
         const matched = articles.find(
           (a: any) =>
@@ -606,8 +714,8 @@ export default function NIRCreate() {
           </button>
           <div>
             <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <ClipboardCheck className="w-5 h-5 text-teal-600" />
-              {isEdit ? nirNumber : "NIR Nou"}
+              <ClipboardCheck className="w-5 h-5" style={{ color: "var(--tenant-theme-color, #16a34a)" }} />
+              {isEdit ? nirNumber : (nirNumber ? `NIR Nou — ${nirNumber}` : "NIR Nou")}
             </h1>
             <p className="text-xs text-slate-500 mt-0.5">
               Notă de Intrare-Recepție — OMFP 2634/2015
@@ -622,7 +730,12 @@ export default function NIRCreate() {
                 onClick={() => exportNirMut.mutate({ nirId })}
                 disabled={exportNirMut.isPending}
                 title="Descarcă fișier XML pentru SAGA C (FACTURI.XML)"
-                className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 transition-colors disabled:opacity-50"
+                style={{
+                  backgroundColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 10%, transparent)",
+                  borderColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 25%, transparent)",
+                  color: "var(--tenant-theme-color, #16a34a)",
+                }}
+                className="flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-bold border transition-colors hover:brightness-95 disabled:opacity-50"
               >
                 {exportNirMut.isPending ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -647,7 +760,12 @@ export default function NIRCreate() {
             <button
               onClick={() => finalizeNir.mutate({ id: nirId! })}
               disabled={finalizeNir.isPending}
-              className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 transition-colors"
+              style={{
+                backgroundColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 10%, transparent)",
+                borderColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 25%, transparent)",
+                color: "var(--tenant-theme-color, #16a34a)",
+              }}
+              className="flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-bold border transition-colors hover:brightness-95"
             >
               {finalizeNir.isPending ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -660,7 +778,8 @@ export default function NIRCreate() {
           <button
             onClick={handleSave}
             disabled={createNir.isPending || updateNir.isPending}
-            className="flex items-center gap-1.5 px-4 h-8 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition-colors shadow-sm disabled:opacity-60"
+            style={{ backgroundColor: "var(--tenant-theme-color, #16a34a)" }}
+            className="flex items-center gap-1.5 px-4 h-8 rounded-lg text-white text-xs font-bold transition-all shadow-sm hover:brightness-90 active:brightness-75 disabled:opacity-60"
           >
             {createNir.isPending || updateNir.isPending ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -681,10 +800,11 @@ export default function NIRCreate() {
           <div>
             <label className={LABEL_CLS}>Nr. NIR *</label>
             <input
-              type="number"
+              type="text"
               value={nirNumber}
               onChange={e => setNirNumber(e.target.value)}
-              className={INPUT_CLS}
+              className="w-full h-8 px-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800 text-sm font-mono font-bold text-slate-900 dark:text-white shadow-xs focus:outline-none focus:ring-2 focus:ring-teal-500"
+              placeholder="ex: NIR-2026-0001"
             />
           </div>
           <div>
@@ -728,55 +848,28 @@ export default function NIRCreate() {
             <button
               type="button"
               onClick={() => setShowAccounting(v => !v)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${showAccounting ? 'bg-teal-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+              style={showAccounting ? { backgroundColor: "var(--tenant-theme-color, #16a34a)" } : {}}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${showAccounting ? '' : 'bg-slate-300 dark:bg-slate-600'}`}
             >
               <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform ${showAccounting ? 'translate-x-6' : 'translate-x-1'}`} />
             </button>
           </div>
           {showAccounting && (
-            <>
-              <div className="md:col-span-1">
-                <label className={LABEL_CLS}>Tip (General)</label>
-                <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-                  <select
-                    value={accountingType}
-                    onChange={e => {
-                      const tip = e.target.value;
-                      const cont = TIP_TO_CONT[tip] || "371";
-                      setAccountingType(tip);
-                      setAccountingAccount(cont);
-                      setLines(prev => prev.map(l => ({ ...l, accountingType: tip, accountingAccount: cont })));
-                    }}
-                    style={SELECT_STYLE}
-                    className="w-full h-8 px-2.5 pr-7 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none border-none"
-                  >
-                    <option value="Marfuri">Mărfuri (371)</option>
-                    <option value="Materii prime">Materii prime (301)</option>
-                    <option value="Materiale auxiliare">Materiale auxiliare (3021)</option>
-                    <option value="Piese de schimb">Piese de schimb (3024)</option>
-                    <option value="Consumabile">Consumabile (3028)</option>
-                    <option value="Obiecte de inventar">Obiecte de inventar (303)</option>
-                    <option value="Nedefinit">Nedefinit</option>
-                    <option value="Servicii">Servicii (628)</option>
-                    <option value="Avans">Avans (4091)</option>
-                  </select>
-                </div>
-              </div>
-              <div className="md:col-span-1">
-                <label className={LABEL_CLS}>Cont (General)</label>
-                <PlanConturiCombobox
-                  value={accountingAccount}
-                  accounts={planConturiList}
-                  onChange={(cont) => {
-                    setAccountingAccount(cont);
-                    const t = getAccountType(cont);
-                    if (t) setAccountingType(t);
-                    setLines(prev => prev.map(l => ({ ...l, accountingAccount: cont, accountingType: t || l.accountingType })));
-                  }}
-                  placeholder="Cont (ex: 371)"
-                />
-              </div>
-            </>
+            <div className="md:col-span-1">
+              <label className={LABEL_CLS}>Tip / Cont (General)</label>
+              <PlanConturiCombobox
+                displayMode="name"
+                value={accountingAccount}
+                accounts={planConturiList}
+                onChange={(cont, denumire) => {
+                  setAccountingAccount(cont);
+                  const t = denumire || getAccountType(cont);
+                  setAccountingType(t);
+                  setLines(prev => prev.map(l => ({ ...l, accountingType: t, accountingAccount: cont })));
+                }}
+                placeholder="Tip (ex: Mărfuri)"
+              />
+            </div>
           )}
           <div className="md:col-span-1">
             <label className={LABEL_CLS}>U/M (General)</label>
@@ -871,34 +964,43 @@ export default function NIRCreate() {
           </p>
           <button
             onClick={addLine}
-            className="flex items-center gap-1 px-3 h-7 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 text-xs font-bold border border-teal-200 transition-colors"
+            style={{
+              backgroundColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 10%, transparent)",
+              borderColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 25%, transparent)",
+              color: "var(--tenant-theme-color, #16a34a)",
+            }}
+            className="flex items-center gap-1 px-3 h-7 rounded-lg text-xs font-bold border transition-colors hover:brightness-95"
           >
             <Plus className="w-3 h-3" /> Adaugă linie
           </button>
         </div>
         <div className="overflow-x-auto pb-4">
-          <table className="w-full text-xs min-w-[1200px]">
+          <table className="w-full text-xs min-w-[1450px]">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800">
-                <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 w-[30px]">Nr.</th>
-                <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 min-w-[150px]">Denumire produs/serviciu</th>
-                <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 w-[140px]">Articol (Stoc)</th>
-                {showAccounting && <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 w-[120px]">Tip</th>}
-                {showAccounting && <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 w-[90px]">Cont</th>}
+                <th className="pl-4 pr-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 w-[45px]">Nr.</th>
+                <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 min-w-[260px] w-[300px]">Denumire produs/serviciu</th>
+                <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 min-w-[190px] w-[210px]">Articol (Stoc)</th>
+                {showAccounting && <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 min-w-[155px] w-[170px]">Tip</th>}
                 <th className="px-2 py-2 text-center text-[10px] font-bold uppercase text-slate-400 w-[70px]">U/M</th>
-                <th className="px-2 py-2 text-center text-[10px] font-bold uppercase text-slate-400 w-[80px]">Cant. doc.</th>
-                <th className="px-2 py-2 text-center text-[10px] font-bold uppercase text-slate-400 w-[80px] bg-teal-50 dark:bg-teal-900/20">Cant. recept.</th>
-                <th className="px-2 py-2 text-right text-[10px] font-bold uppercase text-slate-400 w-[100px]">Preț unit.</th>
+                <th className="px-2 py-2 text-center text-[10px] font-bold uppercase text-slate-400 w-[85px]">Cant. doc.</th>
+                <th
+                  style={{ backgroundColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 8%, transparent)" }}
+                  className="px-2 py-2 text-center text-[10px] font-bold uppercase text-slate-400 w-[90px]"
+                >
+                  Cant. recept.
+                </th>
+                <th className="px-2 py-2 text-right text-[10px] font-bold uppercase text-slate-400 w-[105px]">Preț unit.</th>
                 <th className="px-2 py-2 text-center text-[10px] font-bold uppercase text-slate-400 w-[70px]">TVA %</th>
-                <th className="px-2 py-2 text-right text-[10px] font-bold uppercase text-slate-400 w-[110px]">Valoare</th>
-                <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 w-[90px]">Obs.</th>
-                <th className="px-1 py-2 w-[40px]"></th>
+                <th className="px-2 py-2 text-right text-[10px] font-bold uppercase text-slate-400 w-[120px]">Valoare</th>
+                <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 min-w-[130px] w-[150px]">Obs.</th>
+                <th className="pr-4 pl-1 py-2 w-[45px]"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {lines.length === 0 ? (
                 <tr>
-                  <td colSpan={showAccounting ? 13 : 11} className="py-6 text-center text-xs text-slate-400">
+                  <td colSpan={showAccounting ? 12 : 11} className="py-6 text-center text-xs text-slate-400">
                     Nicio linie. Apasă Adaugă linie.
                   </td>
                 </tr>
@@ -912,68 +1014,59 @@ export default function NIRCreate() {
                       key={idx}
                       className={`hover:bg-slate-50/50 dark:hover:bg-slate-800/20 ${diff ? "bg-amber-50/40 dark:bg-amber-900/10" : ""}`}
                     >
-                      <td className="px-2 py-1.5 text-slate-400">{idx + 1}</td>
-                      <td className="px-2 py-1.5">
+                      <td className="pl-4 pr-2 py-1.5 text-slate-400 font-semibold">{idx + 1}</td>
+                      <td className="px-2 py-1.5 min-w-[260px]">
                         <input
                           value={line.description}
                           onChange={e => updateLine(idx, "description", e.target.value)}
-                          className="w-full h-7 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-teal-500 text-xs"
+                          className="w-full h-7 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-teal-500 text-xs"
+                          placeholder="Denumire produs sau serviciu..."
                         />
                       </td>
-                      <td className="px-1 py-1.5">
-                        <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 min-w-[110px]">
-                          <input
-                            list="saga-articles-list"
-                            placeholder="Caută cod/articol..."
+                      <td className="px-1 py-1.5 min-w-[200px]">
+                        <div className="min-w-[190px]">
+                          <ArticleCombobox
                             value={line.articleSearchText ?? ""}
-                            onChange={e => updateLine(idx, "articleSearchText", e.target.value)}
-                            className="w-full h-7 px-2 bg-white dark:bg-slate-800 text-xs font-mono font-medium text-slate-900 dark:text-white focus:outline-none border-none"
+                            articles={articles}
+                            onChange={(code, art) => {
+                              updateLine(idx, "articleSearchText", code);
+                              if (art) {
+                                if (art.id) updateLine(idx, "sagaArticleId", art.id);
+                                if (art.unit) updateLine(idx, "unit", art.unit);
+                                if (art.vatRate !== null && art.vatRate !== undefined) updateLine(idx, "vatRate", String(art.vatRate));
+                                if (art.category) updateLine(idx, "accountingType", art.category);
+                                if (art.accountingAccount) updateLine(idx, "accountingAccount", art.accountingAccount);
+                              }
+                            }}
+                            placeholder="Caută cod/articol..."
                           />
                         </div>
                       </td>
                       {showAccounting && (
-                        <td className="px-1 py-1.5">
-                          <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-                            <select
-                              value={line.accountingType || "Marfuri"}
-                              onChange={e => updateLine(idx, "accountingType", e.target.value)}
-                              style={SELECT_SM_STYLE}
-                              className="w-full h-7 px-2 pr-6 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none border-none"
-                            >
-                              <option value="Marfuri">Mărfuri</option>
-                              <option value="Materii prime">Materii prime</option>
-                              <option value="Materiale auxiliare">Materiale auxiliare (3021)</option>
-                              <option value="Piese de schimb">Piese de schimb (3024)</option>
-                              <option value="Consumabile">Consumabile</option>
-                              <option value="Obiecte de inventar">Obiecte de inventar (303)</option>
-                              <option value="Nedefinit">Nedefinit</option>
-                              <option value="Servicii">Servicii</option>
-                              <option value="Avans">Avans</option>
-                            </select>
-                          </div>
-                        </td>
-                      )}
-                      {showAccounting && (
-                        <td className="px-1 py-1.5">
-                          <div className="min-w-[80px]">
+                        <td className="px-1 py-1.5 min-w-[155px] w-[170px]">
+                          <div className="min-w-[150px]">
                             <PlanConturiCombobox
                               size="sm"
+                              displayMode="both"
                               value={line.accountingAccount || "371"}
                               accounts={planConturiList}
-                              onChange={(val) => updateLine(idx, "accountingAccount", val)}
-                              placeholder="Cont"
+                              onChange={(cont, denumire) => {
+                                updateLine(idx, "accountingAccount", cont);
+                                updateLine(idx, "accountingType", denumire);
+                              }}
+                              placeholder="Tip (ex: 371)"
                             />
                           </div>
                         </td>
                       )}
-                      <td className="px-1 py-1.5">
+                      <td className="px-1 py-1.5 w-[70px]">
                         <input
                           value={line.unit}
                           onChange={e => updateLine(idx, "unit", e.target.value)}
                           className="w-full h-7 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-center focus:outline-none focus:ring-1 focus:ring-teal-500 text-xs"
                         />
                       </td>
-                      <td className="px-1 py-1.5">
+                      <td className="px-1 py-1.5 w-[85px]">
                         <input
                           type="number"
                           value={line.cantitateComanda}
@@ -981,23 +1074,30 @@ export default function NIRCreate() {
                           className="w-full h-7 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 text-slate-600 focus:outline-none text-xs text-center"
                         />
                       </td>
-                      <td className="px-1 py-1.5 bg-teal-50/30 dark:bg-teal-900/10">
+                      <td
+                        style={{ backgroundColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 6%, transparent)" }}
+                        className="px-1 py-1.5 w-[90px]"
+                      >
                         <input
                           type="number"
                           value={line.cantitateReceptionata}
                           onChange={e => updateLine(idx, "cantitateReceptionata", e.target.value)}
-                          className={`w-full h-7 px-1 rounded-lg border focus:outline-none focus:ring-1 focus:ring-teal-500 text-xs text-center font-bold ${diff ? "border-amber-300 text-amber-700 bg-amber-50" : "border-teal-200 text-teal-700 bg-white dark:bg-slate-800"}`}
+                          style={!diff ? {
+                            borderColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 30%, transparent)",
+                            color: "var(--tenant-theme-color, #16a34a)",
+                          } : {}}
+                          className={`w-full h-7 px-1 rounded-lg border focus:outline-none focus:ring-1 focus:ring-primary text-xs text-center font-bold ${diff ? "border-amber-300 text-amber-700 bg-amber-50" : "bg-white dark:bg-slate-800"}`}
                         />
                       </td>
-                      <td className="px-1 py-1.5">
+                      <td className="px-1 py-1.5 w-[105px]">
                         <input
                           type="number"
                           value={line.unitPrice}
                           onChange={e => updateLine(idx, "unitPrice", e.target.value)}
-                          className="w-full h-7 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-500 text-xs text-right"
+                          className="w-full h-7 px-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-primary text-xs text-right"
                         />
                       </td>
-                      <td className="px-1 py-1.5">
+                      <td className="px-1 py-1.5 w-[70px]">
                         <input
                           type="number"
                           value={line.vatRate || "19"}
@@ -1005,18 +1105,18 @@ export default function NIRCreate() {
                           className="w-full h-7 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 text-slate-600 focus:outline-none text-xs text-center"
                         />
                       </td>
-                      <td className="px-1 py-1.5 text-right font-bold text-slate-700 dark:text-slate-300">
+                      <td className="px-1 py-1.5 w-[120px] text-right font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
                         {parseFloat(line.total || "0").toLocaleString("ro-RO", { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="px-1 py-1.5">
+                      <td className="px-1 py-1.5 min-w-[130px]">
                         <input
                           value={line.observations}
                           onChange={e => updateLine(idx, "observations", e.target.value)}
                           placeholder="obs..."
-                          className="w-full h-7 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-500 text-xs"
+                          className="w-full h-7 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-primary text-xs"
                         />
                       </td>
-                      <td className="px-1 py-1.5">
+                      <td className="pr-4 pl-1 py-1.5 w-[45px]">
                         <button
                           onClick={() => removeLine(idx)}
                           className="flex items-center justify-center w-6 h-6 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 border border-red-200 transition-colors"
@@ -1031,28 +1131,41 @@ export default function NIRCreate() {
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-                <td colSpan={showAccounting ? 9 : 7} className="px-3 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 text-right">
+                <td colSpan={showAccounting ? 9 : 8} className="px-3 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 text-right">
                   TOTAL FĂRĂ TVA:
                 </td>
-                <td className="px-1 py-2 text-right text-sm font-bold text-slate-700 dark:text-slate-300">
+                <td className="px-1 py-2 text-right text-sm font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
                   {totalFaraTva.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}
                 </td>
                 <td colSpan={2}></td>
               </tr>
               <tr className="bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700/50">
-                <td colSpan={showAccounting ? 9 : 7} className="px-3 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-400 text-right">
+                <td colSpan={showAccounting ? 9 : 8} className="px-3 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-400 text-right">
                   TOTAL TVA:
                 </td>
-                <td className="px-1 py-1.5 text-right text-sm font-bold text-slate-700 dark:text-slate-300">
+                <td className="px-1 py-1.5 text-right text-sm font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
                   {totalTva.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}
                 </td>
                 <td colSpan={2}></td>
               </tr>
-              <tr className="bg-teal-50/50 dark:bg-teal-900/10 border-t border-teal-100 dark:border-teal-800/50">
-                <td colSpan={showAccounting ? 9 : 7} className="px-3 py-2 text-xs font-black text-teal-700 dark:text-teal-400 text-right">
+              <tr
+                style={{
+                  backgroundColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 8%, transparent)",
+                  borderColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 20%, transparent)",
+                }}
+                className="border-t"
+              >
+                <td
+                  colSpan={showAccounting ? 9 : 8}
+                  style={{ color: "var(--tenant-theme-color, #16a34a)" }}
+                  className="px-3 py-2 text-xs font-black text-right"
+                >
                   TOTAL CU TVA:
                 </td>
-                <td className="px-1 py-2 text-right text-[15px] font-black text-teal-700 dark:text-teal-400">
+                <td
+                  style={{ color: "var(--tenant-theme-color, #16a34a)" }}
+                  className="px-1 py-2 text-right text-[15px] font-black whitespace-nowrap"
+                >
                   {totalCuTva.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}
                 </td>
                 <td colSpan={2}></td>
@@ -1099,12 +1212,7 @@ export default function NIRCreate() {
         <p className="text-xs text-slate-400 mb-3">
           Completați numele și funcția membrilor comisiei de recepție.
         </p>
-        
-        <datalist id="saga-articles-list">
-          {articles.map((a: any) => (
-            <option key={a.id} value={a.code}>{a.code} - {a.name}</option>
-          ))}
-        </datalist>
+
 
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1200,7 +1308,12 @@ export default function NIRCreate() {
             <button
               onClick={() => finalizeNir.mutate({ id: nirId! })}
               disabled={finalizeNir.isPending}
-              className="flex items-center gap-1.5 px-4 h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold transition-colors"
+              style={{
+                backgroundColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 12%, transparent)",
+                borderColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 30%, transparent)",
+                color: "var(--tenant-theme-color, #16a34a)",
+              }}
+              className="flex items-center gap-1.5 px-4 h-9 rounded-lg border text-sm font-bold transition-all hover:brightness-95"
             >
               <CheckCircle className="w-4 h-4" /> Finalizează NIR
             </button>
@@ -1208,7 +1321,8 @@ export default function NIRCreate() {
           <button
             onClick={handleSave}
             disabled={createNir.isPending || updateNir.isPending}
-            className="flex items-center gap-1.5 px-5 h-9 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-bold transition-colors shadow-sm disabled:opacity-60"
+            style={{ backgroundColor: "var(--tenant-theme-color, #16a34a)" }}
+            className="flex items-center gap-1.5 px-5 h-9 rounded-lg text-white text-sm font-bold transition-all shadow-sm hover:brightness-90 active:brightness-75 disabled:opacity-60"
           >
             {createNir.isPending || updateNir.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
