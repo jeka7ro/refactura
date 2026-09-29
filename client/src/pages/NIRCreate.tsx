@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import PlanConturiCombobox from "@/components/PlanConturiCombobox";
 
 const normalizeName = (name: string) => {
   if (!name) return "";
@@ -33,6 +34,8 @@ const getAccountType = (accCode: string): string => {
   const c = accCode.trim();
   if (c.startsWith("371")) return "Marfuri";
   if (c.startsWith("301")) return "Materii prime";
+  if (c.startsWith("3021")) return "Materiale auxiliare";
+  if (c.startsWith("3024")) return "Piese de schimb";
   if (c.startsWith("302")) return "Consumabile";
   if (c.startsWith("303")) return "Obiecte de inventar";
   if (c.startsWith("409")) return "Avans";
@@ -82,7 +85,10 @@ const SELECT_SM_STYLE: React.CSSProperties = {
 const TIP_TO_CONT: Record<string, string> = {
   Marfuri: "371",
   "Materii prime": "301",
+  "Materiale auxiliare": "3021",
+  "Piese de schimb": "3024",
   Consumabile: "3028",
+  "Obiecte de inventar": "303",
   Nedefinit: "371",
   Servicii: "628",
   Avans: "4091",
@@ -125,7 +131,7 @@ export default function NIRCreate() {
   // Toggle conturi
   const [showAccounting, setShowAccounting] = useState(true);
   const [generalUnit, setGeneralUnit] = useState("buc");
-  const [generalVat, setGeneralVat] = useState("19");
+  const [generalVat, setGeneralVat] = useState("21");
 
   // Compute differences
   const hasDifferences = lines.some(
@@ -229,7 +235,10 @@ export default function NIRCreate() {
       setAccountingType(existingNir.accountingType || "Marfuri");
       setAccountingAccount(existingNir.accountingAccount || "371");
       setGeneralUnit("buc"); // default when loaded, as line units might differ
-      setGeneralVat("19");
+      const existingVat = (existingNir.lines && existingNir.lines[0]?.vatRate)
+        ? String(parseFloat(String(existingNir.lines[0].vatRate)))
+        : "21";
+      setGeneralVat(existingVat);
       setSupplierName(existingNir.supplierName || "");
       setSupplierCUI(existingNir.supplierCUI || "");
       setSupplierAddress(existingNir.supplierAddress || "");
@@ -256,7 +265,7 @@ export default function NIRCreate() {
           cantitateComanda: String(l.cantitateComanda || "0"),
           cantitateReceptionata: String(l.cantitateReceptionata || "0"),
           unitPrice: String(l.unitPrice || "0"),
-          vatRate: (l.vatRate !== undefined && l.vatRate !== null && l.vatRate !== "") ? String(l.vatRate) : "19",
+          vatRate: (l.vatRate !== undefined && l.vatRate !== null && l.vatRate !== "") ? String(parseFloat(String(l.vatRate))) : "21",
           total: String(l.total || ""),
           observations: l.observations || "",
           accountingType: l.accountingType || "Marfuri",
@@ -373,7 +382,7 @@ export default function NIRCreate() {
               unitPrice: String(unitPrice),
               vatRate: matchedArticle && matchedArticle.vatRate !== null 
                 ? String(matchedArticle.vatRate) 
-                : ((l.vatRate !== undefined && l.vatRate !== null && l.vatRate !== "") ? String(l.vatRate) : "19"),
+                : ((l.vatRate !== undefined && l.vatRate !== null && l.vatRate !== "") ? String(parseFloat(String(l.vatRate))) : "21"),
               total: finalTotal,
               observations: "",
               accountingType: defType,
@@ -384,6 +393,10 @@ export default function NIRCreate() {
 
         if (newLines.length > 0) {
           setLines(newLines);
+          const dominantVat = newLines.find(l => l.vatRate && parseFloat(l.vatRate) > 0)?.vatRate || newLines[0]?.vatRate;
+          if (dominantVat) {
+            setGeneralVat(String(parseFloat(String(dominantVat))));
+          }
         } else {
           toast.info("Toate produsele din această factură au fost deja recepționate!");
           setLines([]);
@@ -405,7 +418,7 @@ export default function NIRCreate() {
             cantitateComanda: "1",
             cantitateReceptionata: "1",
             unitPrice: String(sourceInvoice.total || "0"),
-            vatRate: "19",
+            vatRate: "21",
             total: String(sourceInvoice.total || "0"),
             observations: "",
             accountingType: "Marfuri",
@@ -441,7 +454,7 @@ export default function NIRCreate() {
         cantitateComanda: "1",
         cantitateReceptionata: "1",
         unitPrice: "0",
-        vatRate: generalVat || "19",
+        vatRate: generalVat || "21",
         total: "0",
         observations: "",
         accountingType: accountingType || "Marfuri",
@@ -737,33 +750,31 @@ export default function NIRCreate() {
                     style={SELECT_STYLE}
                     className="w-full h-8 px-2.5 pr-7 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none border-none"
                   >
-                    <option value="Marfuri">Mărfuri</option>
-                    <option value="Materii prime">Materii prime</option>
-                    <option value="Consumabile">Consumabile</option>
+                    <option value="Marfuri">Mărfuri (371)</option>
+                    <option value="Materii prime">Materii prime (301)</option>
+                    <option value="Materiale auxiliare">Materiale auxiliare (3021)</option>
+                    <option value="Piese de schimb">Piese de schimb (3024)</option>
+                    <option value="Consumabile">Consumabile (3028)</option>
+                    <option value="Obiecte de inventar">Obiecte de inventar (303)</option>
                     <option value="Nedefinit">Nedefinit</option>
-                    <option value="Servicii">Servicii</option>
-                    <option value="Avans">Avans</option>
+                    <option value="Servicii">Servicii (628)</option>
+                    <option value="Avans">Avans (4091)</option>
                   </select>
                 </div>
               </div>
               <div className="md:col-span-1">
                 <label className={LABEL_CLS}>Cont (General)</label>
-                <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-                  <input
-                    list="plan-conturi-datalist"
-                    value={accountingAccount}
-                    onChange={e => {
-                      const cont = e.target.value.split(" - ")[0].trim();
-                      setAccountingAccount(cont);
-                      const t = getAccountType(cont);
-                      if (t) setAccountingType(t);
-                      setLines(prev => prev.map(l => ({ ...l, accountingAccount: cont, accountingType: t || l.accountingType })));
-                    }}
-                    placeholder="Cont (ex: 371)"
-                    title={planConturiList.find((p: any) => p.cod === accountingAccount)?.denumire || accountingAccount}
-                    className="w-full h-8 px-2.5 bg-white dark:bg-slate-800 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none border-none"
-                  />
-                </div>
+                <PlanConturiCombobox
+                  value={accountingAccount}
+                  accounts={planConturiList}
+                  onChange={(cont) => {
+                    setAccountingAccount(cont);
+                    const t = getAccountType(cont);
+                    if (t) setAccountingType(t);
+                    setLines(prev => prev.map(l => ({ ...l, accountingAccount: cont, accountingType: t || l.accountingType })));
+                  }}
+                  placeholder="Cont (ex: 371)"
+                />
               </div>
             </>
           )}
@@ -807,7 +818,6 @@ export default function NIRCreate() {
                 style={SELECT_STYLE}
                 className="w-full h-8 px-2.5 pr-7 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none border-none"
               >
-                <option value="21">21</option>
                 <option value="21">21</option>
                 <option value="19">19</option>
                 <option value="9">9</option>
@@ -932,7 +942,10 @@ export default function NIRCreate() {
                             >
                               <option value="Marfuri">Mărfuri</option>
                               <option value="Materii prime">Materii prime</option>
+                              <option value="Materiale auxiliare">Materiale auxiliare (3021)</option>
+                              <option value="Piese de schimb">Piese de schimb (3024)</option>
                               <option value="Consumabile">Consumabile</option>
+                              <option value="Obiecte de inventar">Obiecte de inventar (303)</option>
                               <option value="Nedefinit">Nedefinit</option>
                               <option value="Servicii">Servicii</option>
                               <option value="Avans">Avans</option>
@@ -942,16 +955,13 @@ export default function NIRCreate() {
                       )}
                       {showAccounting && (
                         <td className="px-1 py-1.5">
-                          <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 min-w-[70px]">
-                            <input
-                              list="plan-conturi-datalist"
+                          <div className="min-w-[80px]">
+                            <PlanConturiCombobox
+                              size="sm"
                               value={line.accountingAccount || "371"}
-                              onChange={e => {
-                                const val = e.target.value.split(" - ")[0].trim();
-                                updateLine(idx, "accountingAccount", val);
-                              }}
-                              title={planConturiList.find((p: any) => p.cod === line.accountingAccount)?.denumire || line.accountingAccount}
-                              className="w-full h-7 px-1.5 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none border-none text-center"
+                              accounts={planConturiList}
+                              onChange={(val) => updateLine(idx, "accountingAccount", val)}
+                              placeholder="Cont"
                             />
                           </div>
                         </td>
@@ -1096,13 +1106,6 @@ export default function NIRCreate() {
           ))}
         </datalist>
 
-        <datalist id="plan-conturi-datalist">
-          {planConturiList.map((pc: any) => (
-            <option key={pc.cod} value={pc.cod}>
-              {pc.cod} - {pc.denumire}
-            </option>
-          ))}
-        </datalist>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
