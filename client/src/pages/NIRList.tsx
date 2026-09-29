@@ -880,15 +880,23 @@ export default function NIRList() {
                       <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 max-w-[320px] truncate" title={row.supplierName || ""}>
                         {row.supplierName || "—"}
                       </div>
-                      {row.invoiceNumber || (row as any).invoiceDate ? (
+                      {row.invoiceNumber || (row as any).invoiceDate || (row as any).spvIndex ? (
                         <div
-                          className="text-[11px] text-slate-400 dark:text-slate-500 font-medium mt-0.5 max-w-[320px] truncate"
-                          title={`Factură: ${row.invoiceNumber || ""}${(row as any).invoiceDate ? ` din ${formatDate((row as any).invoiceDate)}` : ""}`}
+                          className="text-[11px] text-slate-400 dark:text-slate-500 font-medium mt-0.5 max-w-[320px] flex items-center gap-1.5 flex-wrap"
+                          title={`Factură: ${row.invoiceNumber || ""}${(row as any).invoiceDate ? ` din ${formatDate((row as any).invoiceDate)}` : ""}${(row as any).spvIndex ? ` | SPV: ${(row as any).spvIndex}` : ""}`}
                         >
                           <span className="text-slate-500 dark:text-slate-400 font-medium">{row.invoiceNumber || "Factură"}</span>
                           {(row as any).invoiceDate && (
-                            <span className="text-slate-400 dark:text-slate-500 font-normal ml-1">
+                            <span className="text-slate-400 dark:text-slate-500 font-normal">
                               din {formatDate((row as any).invoiceDate)}
+                            </span>
+                          )}
+                          {(row as any).spvIndex && (
+                            <span
+                              className="inline-flex items-center gap-0.5 text-[10px] font-mono font-semibold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 rounded px-1.5 py-0.2"
+                              title={`ID Încărcare SPV: ${(row as any).spvIndex}`}
+                            >
+                              SPV: {(row as any).spvIndex}
                             </span>
                           )}
                         </div>

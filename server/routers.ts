@@ -3579,12 +3579,13 @@ export const appRouter = router({
       
       const db = await getDb();
       if (!db) throw new Error("No DB");
-      const { nir, nirLines } = await import("../drizzle/schema");
+      const { nir, nirLines, invoiceArchive } = await import("../drizzle/schema");
+      const tenantId = (ctx.user?.tenantId || 1);
       
       const nirs = await db
         .select()
         .from(nir)
-        .where(eq(nir.tenantId, (ctx.user?.tenantId || 1)))
+        .where(eq(nir.tenantId, tenantId))
         .orderBy(desc(nir.createdAt));
         
       if (nirs.length === 0) return [];
@@ -3599,11 +3600,47 @@ export const appRouter = router({
         acc[l.nirId].push(l);
         return acc;
       }, {} as Record<number, any[]>);
+
+      // Preload invoiceArchive for spvIndex & invoiceDate
+      const archiveIds = nirs.map(n => n.invoiceArchiveId).filter(Boolean) as number[];
+      const archives = archiveIds.length > 0
+        ? await db.select().from(invoiceArchive).where(inArray(invoiceArchive.id, archiveIds))
+        : [];
+      const archiveMap = new Map<number, any>();
+      archives.forEach(a => archiveMap.set(a.id, a));
+
+      // Also preload for those without archiveId but with invoiceNumber
+      const missingArchiveNirs = nirs.filter(n => !n.invoiceArchiveId && n.invoiceNumber);
+      const invoiceNums = Array.from(new Set(missingArchiveNirs.map(n => n.invoiceNumber as string)));
+      const archivesByNum = invoiceNums.length > 0
+        ? await db.select().from(invoiceArchive).where(and(eq(invoiceArchive.tenantId, tenantId), inArray(invoiceArchive.invoiceNumber, invoiceNums)))
+        : [];
+      const archiveNumMap = new Map<string, any>();
+      archivesByNum.forEach(a => archiveNumMap.set(a.invoiceNumber, a));
       
-      return nirs.map(n => ({
-        ...n,
-        lines: linesByNirId[n.id] || []
-      }));
+      return nirs.map(n => {
+        const inv = (n.invoiceArchiveId ? archiveMap.get(n.invoiceArchiveId) : null) || (n.invoiceNumber ? archiveNumMap.get(n.invoiceNumber) : null);
+        let spvIndex: string | null = inv?.spvIndex || null;
+        if (!spvIndex && inv?.notes) {
+          const m = inv.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
+          if (m) spvIndex = m[1];
+        }
+        if (!spvIndex && inv?.fileName) {
+          const m = inv.fileName.match(/(?:SPV_|_INDEX_|id_|index_)(\d{8,12})/i);
+          if (m) spvIndex = m[1];
+        }
+        if (!spvIndex && n.notes) {
+          const m = n.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
+          if (m) spvIndex = m[1];
+        }
+
+        return {
+          ...n,
+          invoiceDate: inv?.issueDate || null,
+          spvIndex,
+          lines: linesByNirId[n.id] || []
+        };
+      });
     }),
 
     getById: protectedProcedure
@@ -3612,15 +3649,57 @@ export const appRouter = router({
         
         const db = await getDb();
         if (!db) throw new Error("No DB");
-        const { nir, nirLines } = await import("../drizzle/schema");
+        const { nir, nirLines, invoiceArchive } = await import("../drizzle/schema");
         const { sagaArticles } = await import("../modules/saga/schema");
+        const tenantId = (ctx.user?.tenantId || 1);
         const [nirRow] = await db
           .select()
           .from(nir)
           .where(
-            and(eq(nir.id, input.id), eq(nir.tenantId, (ctx.user?.tenantId || 1)))
+            and(eq(nir.id, input.id), eq(nir.tenantId, tenantId))
           );
         if (!nirRow) throw new Error("NIR not found");
+
+        let spvIndex: string | null = null;
+        let invoiceDate: string | null = null;
+        let inv = null;
+        if (nirRow.invoiceArchiveId) {
+          const [found] = await db.select().from(invoiceArchive).where(eq(invoiceArchive.id, nirRow.invoiceArchiveId));
+          inv = found;
+        } else if (nirRow.invoiceNumber) {
+          const [found] = await db.select().from(invoiceArchive).where(and(eq(invoiceArchive.tenantId, tenantId), eq(invoiceArchive.invoiceNumber, nirRow.invoiceNumber)));
+          inv = found;
+        }
+        if (inv) {
+          invoiceDate = inv.issueDate || null;
+          if (inv.spvIndex) spvIndex = inv.spvIndex;
+          else if (inv.notes) {
+            const m = inv.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
+            if (m) spvIndex = m[1];
+          }
+          if (!spvIndex && inv.fileName) {
+            const m = inv.fileName.match(/(?:SPV_|_INDEX_|id_|index_)(\d{8,12})/i);
+            if (m) spvIndex = m[1];
+          }
+        }
+        if (!spvIndex) {
+          const { sagaIntrari } = await import("../modules/saga/schema");
+          const [si] = await db
+            .select()
+            .from(sagaIntrari)
+            .where(
+              and(
+                eq(sagaIntrari.tenantId, tenantId),
+                nirRow.invoiceNumber ? eq(sagaIntrari.nrDoc, nirRow.invoiceNumber) : eq(sagaIntrari.nirId, nirRow.id)
+              )
+            );
+          if (si?.idSPV) spvIndex = si.idSPV;
+        }
+        if (!spvIndex && nirRow.notes) {
+          const m = nirRow.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
+          if (m) spvIndex = m[1];
+        }
+
         const lines = await db
           .select({
             id: nirLines.id,
@@ -3644,7 +3723,7 @@ export const appRouter = router({
           .leftJoin(sagaArticles, eq(nirLines.sagaArticleId, sagaArticles.id))
           .where(eq(nirLines.nirId, input.id))
           .orderBy(nirLines.lineOrder);
-        return { ...nirRow, lines };
+        return { ...nirRow, invoiceDate, spvIndex, lines };
       }),
 
     getNextNumber: protectedProcedure.query(async ({ ctx }) => {

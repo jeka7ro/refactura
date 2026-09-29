@@ -170,6 +170,7 @@ export default function NIRCreate() {
   const [supplierCUI, setSupplierCUI] = useState("");
   const [supplierAddress, setSupplierAddress] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [spvIndex, setSpvIndex] = useState("");
   // Comisie receptie
   const [member1Name, setMember1Name] = useState("");
   const [member1Function, setMember1Function] = useState("Gestionar");
@@ -303,6 +304,7 @@ export default function NIRCreate() {
       setSupplierCUI(existingNir.supplierCUI || "");
       setSupplierAddress(existingNir.supplierAddress || "");
       setInvoiceNumber(existingNir.invoiceNumber || "");
+      if ((existingNir as any).spvIndex) setSpvIndex((existingNir as any).spvIndex);
       setMember1Name(existingNir.member1Name || "");
       setMember1Function(existingNir.member1Function || "Gestionar");
       setMember2Name(existingNir.member2Name || "");
@@ -383,6 +385,7 @@ export default function NIRCreate() {
       setSupplierName(sourceInvoice.supplierName || "");
       setSupplierCUI(sourceInvoice.supplierCUI || "");
       setInvoiceNumber(sourceInvoice.invoiceNumber || "");
+      if ((sourceInvoice as any).spvIndex) setSpvIndex((sourceInvoice as any).spvIndex);
       const archLns = archiveLines as any[];
       if (archLns.length > 0) {
         // Calculate highest existing numeric code
@@ -662,7 +665,7 @@ export default function NIRCreate() {
     member3Function: member3Function || undefined,
     hasDifferences: hasDifferences ? 1 : 0,
     differenceNotes: differenceNotes || undefined,
-    notes: notes || undefined,
+    notes: notes || (spvIndex ? `Index încărcare SPV: ${spvIndex}` : undefined),
     lines: lines.map((l, idx) => ({
       id: l.id,
       description: l.description || "—",
@@ -713,9 +716,18 @@ export default function NIRCreate() {
             <ArrowLeft className="w-4 h-4 text-slate-600" />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 flex-wrap">
               <ClipboardCheck className="w-5 h-5" style={{ color: "var(--tenant-theme-color, #16a34a)" }} />
               {isEdit ? nirNumber : (nirNumber ? `NIR Nou — ${nirNumber}` : "NIR Nou")}
+              {spvIndex && (
+                <span
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 ml-2"
+                  title={`Index încărcare ANAF SPV: ${spvIndex}`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
+                  Index SPV: {spvIndex}
+                </span>
+              )}
             </h1>
             <p className="text-xs text-slate-500 mt-0.5">
               Notă de Intrare-Recepție — OMFP 2634/2015
@@ -796,7 +808,7 @@ export default function NIRCreate() {
         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3">
           I. Date NIR
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3">
           <div>
             <label className={LABEL_CLS}>Nr. NIR *</label>
             <input
@@ -841,6 +853,17 @@ export default function NIRCreate() {
               onChange={e => setGestiune(e.target.value)}
               className={INPUT_CLS}
               placeholder="Gestiune"
+            />
+          </div>
+          <div>
+            <label className={LABEL_CLS}>ID Încărcare SPV</label>
+            <input
+              type="text"
+              value={spvIndex}
+              onChange={e => setSpvIndex(e.target.value)}
+              className="w-full h-8 px-2.5 rounded-lg border border-teal-200 dark:border-teal-800 bg-teal-50/50 dark:bg-teal-950/30 text-xs font-mono font-bold text-teal-800 dark:text-teal-300 shadow-xs focus:outline-none focus:ring-2 focus:ring-teal-500"
+              placeholder="Index ANAF SPV"
+              title="Identificatorul de încărcare din Spațiul Privat Virtual ANAF"
             />
           </div>
           <div className="md:col-span-1 flex items-center gap-2">

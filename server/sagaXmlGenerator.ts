@@ -64,6 +64,105 @@ export async function getTenantCompanyProfile(tenantId: number): Promise<TenantC
   };
 }
 
+export function formatSpvTags(spvIndex: string): string {
+  if (!spvIndex || !spvIndex.trim()) return "";
+  const s = escapeXml(spvIndex.trim());
+  return [
+    `      <IdIncarcareSPV>${s}</IdIncarcareSPV>`,
+    `      <id_incarcare_spv>${s}</id_incarcare_spv>`,
+    `      <id_incarcare>${s}</id_incarcare>`,
+    `      <id_spv>${s}</id_spv>`,
+    `      <id_incarc>${s}</id_incarc>`,
+    `      <idspv>${s}</idspv>`,
+    `      <id_oncaroare_spv>${s}</id_oncaroare_spv>`,
+    `      <IdIncarcare>${s}</IdIncarcare>`,
+    `      <IdSPV>${s}</IdSPV>`,
+    `      <IndexSPV>${s}</IndexSPV>`,
+    `      <index_spv>${s}</index_spv>`,
+    `      <FacturaIDSPV>${s}</FacturaIDSPV>`,
+    `      <FacturaIdIncarcare>${s}</FacturaIdIncarcare>`,
+    `      <FacturaIdIncarcareSPV>${s}</FacturaIdIncarcareSPV>`,
+    `      <FacturaIndexSPV>${s}</FacturaIndexSPV>`,
+    `      <FacturaInformatiiSuplimentare>${s}</FacturaInformatiiSuplimentare>`,
+    `      <InformatiiSuplimentare>${s}</InformatiiSuplimentare>`,
+    `      <Observatii>ID încărcare SPV: ${s}</Observatii>`,
+    `      <FacturaObservatii>ID încărcare SPV: ${s}</FacturaObservatii>`,
+  ].join("\n") + "\n";
+}
+
+export async function resolveNirSpvData(db: any, n: any) {
+  let spvIndex = "";
+  let docDate = n.receiptDate;
+  let dueDate = "";
+
+  if (n.invoiceArchiveId) {
+    const [inv] = await db
+      .select()
+      .from(schema.invoiceArchive)
+      .where(eq(schema.invoiceArchive.id, n.invoiceArchiveId));
+    if (inv) {
+      if (inv.issueDate) docDate = inv.issueDate;
+      if (inv.dueDate) dueDate = inv.dueDate;
+      if (inv.spvIndex) {
+        spvIndex = inv.spvIndex;
+      } else if (inv.notes) {
+        const m = inv.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
+        if (m) spvIndex = m[1];
+      }
+      if (!spvIndex && inv.fileName) {
+        const m = inv.fileName.match(/(?:SPV_|_INDEX_|id_|index_)(\d{8,12})/i);
+        if (m) spvIndex = m[1];
+      }
+    }
+  }
+
+  if (!spvIndex && n.invoiceNumber) {
+    const invs = await db
+      .select()
+      .from(schema.invoiceArchive)
+      .where(
+        and(
+          eq(schema.invoiceArchive.tenantId, n.tenantId),
+          eq(schema.invoiceArchive.invoiceNumber, n.invoiceNumber)
+        )
+      );
+    for (const inv of invs) {
+      if (inv.issueDate && (!docDate || docDate === n.receiptDate)) docDate = inv.issueDate;
+      if (inv.dueDate && !dueDate) dueDate = inv.dueDate;
+      if (inv.spvIndex) { spvIndex = inv.spvIndex; break; }
+      if (inv.notes) {
+        const m = inv.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
+        if (m) { spvIndex = m[1]; break; }
+      }
+    }
+  }
+
+  if (!spvIndex) {
+    const { sagaIntrari } = await import("../modules/saga/schema");
+    const [si] = await db
+      .select()
+      .from(sagaIntrari)
+      .where(
+        and(
+          eq(sagaIntrari.tenantId, n.tenantId),
+          n.invoiceNumber ? eq(sagaIntrari.nrDoc, n.invoiceNumber) : eq(sagaIntrari.nirId, n.id)
+        )
+      );
+    if (si) {
+      if (si.idSPV) spvIndex = si.idSPV;
+      if (si.data && (!docDate || docDate === n.receiptDate)) docDate = si.data;
+      if (si.scadent && !dueDate) dueDate = si.scadent;
+    }
+  }
+
+  if (!spvIndex && n.notes) {
+    const m = n.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
+    if (m) spvIndex = m[1];
+  }
+
+  return { spvIndex, docDate, dueDate };
+}
+
 /**
  * Generează XML de Facturi (<Facturi>) conform specificațiilor oficiale SAGA C și SAGA Web API.
  * 
@@ -164,6 +263,9 @@ export async function generateSagaExportXML(
     xml += `      <FacturaTVAIncasare>Nu</FacturaTVAIncasare>\n`;
     xml += `      <FacturaTip></FacturaTip>\n`;
     xml += `      <FacturaMoneda>${escapeXml(inv.currency || "RON")}</FacturaMoneda>\n`;
+    if (inv.spvIndex) {
+      xml += formatSpvTags(inv.spvIndex);
+    }
     xml += `    </Antet>\n`;
     xml += `    <Detalii>\n`;
     xml += `      <Continut>\n`;
@@ -257,29 +359,7 @@ export async function generateSagaExportXML(
     if (company.address) xml += `      <ClientAdresa>${escapeXml(company.address)}</ClientAdresa>\n`;
 
     // Preia datele reale ale facturii (data emiterii furnizorului și index SPV)
-    let spvIndex = "";
-    let docDate = n.receiptDate;
-    let dueDate = "";
-    if (n.invoiceArchiveId) {
-      const [inv] = await db
-        .select()
-        .from(schema.invoiceArchive)
-        .where(eq(schema.invoiceArchive.id, n.invoiceArchiveId));
-      if (inv) {
-        if (inv.issueDate) docDate = inv.issueDate;
-        if (inv.dueDate) dueDate = inv.dueDate;
-        if (inv.spvIndex) {
-          spvIndex = inv.spvIndex;
-        } else if (inv.notes) {
-          const m = inv.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
-          if (m) spvIndex = m[1];
-        }
-        if (!spvIndex && inv.fileName) {
-          const m = inv.fileName.match(/(?:SPV_|_INDEX_|id_|index_)(\d{8,12})/i);
-          if (m) spvIndex = m[1];
-        }
-      }
-    }
+    const { spvIndex, docDate, dueDate } = await resolveNirSpvData(db, n);
 
     // Date document intrare (folosim data reala a facturii furnizorului, nu data receptiei/importului)
     xml += `      <FacturaNumar>${escapeXml(n.invoiceNumber || n.nirNumber)}</FacturaNumar>\n`;
@@ -289,10 +369,7 @@ export async function generateSagaExportXML(
     }
     xml += `      <FacturaMoneda>RON</FacturaMoneda>\n`;
     if (spvIndex) {
-      xml += `      <IdIncarcareSPV>${escapeXml(spvIndex)}</IdIncarcareSPV>\n`;
-      xml += `      <IdSPV>${escapeXml(spvIndex)}</IdSPV>\n`;
-      xml += `      <IndexSPV>${escapeXml(spvIndex)}</IndexSPV>\n`;
-      xml += `      <IdIncarcare>${escapeXml(spvIndex)}</IdIncarcare>\n`;
+      xml += formatSpvTags(spvIndex);
     }
     xml += `    </Antet>\n`;
     xml += `    <Detalii>\n`;
@@ -366,10 +443,7 @@ export async function generateSagaExportXML(
     }
     xml += `      <FacturaMoneda>RON</FacturaMoneda>\n`;
     if (n.idSPV) {
-      xml += `      <IdIncarcareSPV>${escapeXml(n.idSPV)}</IdIncarcareSPV>\n`;
-      xml += `      <IdSPV>${escapeXml(n.idSPV)}</IdSPV>\n`;
-      xml += `      <IndexSPV>${escapeXml(n.idSPV)}</IndexSPV>\n`;
-      xml += `      <IdIncarcare>${escapeXml(n.idSPV)}</IdIncarcare>\n`;
+      xml += formatSpvTags(n.idSPV);
     }
     xml += `    </Antet>\n`;
     xml += `    <Detalii>\n`;
@@ -453,29 +527,7 @@ export async function generateSagaNirXML(tenantId: number, nirId?: number | numb
       .where(eq(schema.nirLines.nirId, n.id));
 
     // Preia datele reale ale facturii (data emiterii furnizorului și index SPV)
-    let spvIndex = "";
-    let docDate = n.receiptDate;
-    let dueDate = "";
-    if (n.invoiceArchiveId) {
-      const [inv] = await db
-        .select()
-        .from(schema.invoiceArchive)
-        .where(eq(schema.invoiceArchive.id, n.invoiceArchiveId));
-      if (inv) {
-        if (inv.issueDate) docDate = inv.issueDate;
-        if (inv.dueDate) dueDate = inv.dueDate;
-        if (inv.spvIndex) {
-          spvIndex = inv.spvIndex;
-        } else if (inv.notes) {
-          const m = inv.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
-          if (m) spvIndex = m[1];
-        }
-        if (!spvIndex && inv.fileName) {
-          const m = inv.fileName.match(/(?:SPV_|_INDEX_|id_|index_)(\d{8,12})/i);
-          if (m) spvIndex = m[1];
-        }
-      }
-    }
+    const { spvIndex, docDate, dueDate } = await resolveNirSpvData(db, n);
 
     xml += `  <Factura>\n`;
     xml += `    <Antet>\n`;
@@ -500,10 +552,7 @@ export async function generateSagaNirXML(tenantId: number, nirId?: number | numb
     }
     xml += `      <FacturaMoneda>RON</FacturaMoneda>\n`;
     if (spvIndex) {
-      xml += `      <IdIncarcareSPV>${escapeXml(spvIndex)}</IdIncarcareSPV>\n`;
-      xml += `      <IdSPV>${escapeXml(spvIndex)}</IdSPV>\n`;
-      xml += `      <IndexSPV>${escapeXml(spvIndex)}</IndexSPV>\n`;
-      xml += `      <IdIncarcare>${escapeXml(spvIndex)}</IdIncarcare>\n`;
+      xml += formatSpvTags(spvIndex);
     }
     xml += `    </Antet>\n`;
     xml += `    <Detalii>\n`;

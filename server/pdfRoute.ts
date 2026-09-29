@@ -745,6 +745,63 @@ export function registerPdfRoute(app: any) {
         .select()
         .from(tenants)
         .where(eq(tenants.id, nirRow.tenantId));
+
+      // ── Resolve SPV Index / ID Încărcare SPV ──
+      const { invoiceArchive } = await import("../drizzle/schema");
+      const { and: andOp } = await import("drizzle-orm");
+      let spvIndex: string | null = null;
+      if (nirRow.invoiceArchiveId) {
+        const [inv] = await db
+          .select()
+          .from(invoiceArchive)
+          .where(eqOp(invoiceArchive.id, nirRow.invoiceArchiveId));
+        if (inv) {
+          if (inv.spvIndex) spvIndex = inv.spvIndex;
+          else if (inv.notes) {
+            const m = inv.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
+            if (m) spvIndex = m[1];
+          }
+          if (!spvIndex && inv.fileName) {
+            const m = inv.fileName.match(/(?:SPV_|_INDEX_|id_|index_)(\d{8,12})/i);
+            if (m) spvIndex = m[1];
+          }
+        }
+      }
+      if (!spvIndex && nirRow.invoiceNumber) {
+        const invs = await db
+          .select()
+          .from(invoiceArchive)
+          .where(
+            andOp(
+              eqOp(invoiceArchive.tenantId, nirRow.tenantId),
+              eqOp(invoiceArchive.invoiceNumber, nirRow.invoiceNumber)
+            )
+          );
+        for (const inv of invs) {
+          if (inv.spvIndex) { spvIndex = inv.spvIndex; break; }
+          if (inv.notes) {
+            const m = inv.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
+            if (m) { spvIndex = m[1]; break; }
+          }
+        }
+      }
+      if (!spvIndex) {
+        const { sagaIntrari } = await import("../modules/saga/schema");
+        const [si] = await db
+          .select()
+          .from(sagaIntrari)
+          .where(
+            andOp(
+              eqOp(sagaIntrari.tenantId, nirRow.tenantId),
+              nirRow.invoiceNumber ? eqOp(sagaIntrari.nrDoc, nirRow.invoiceNumber) : eqOp(sagaIntrari.nirId, nirRow.id)
+            )
+          );
+        if (si?.idSPV) spvIndex = si.idSPV;
+      }
+      if (!spvIndex && nirRow.notes) {
+        const m = nirRow.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
+        if (m) spvIndex = m[1];
+      }
       let settings: any = {};
       try {
         settings = JSON.parse(tenant?.settings || "{}");
@@ -885,6 +942,13 @@ export function registerPdfRoute(app: any) {
         .text("(Cod formular 14-3-1/aA — OMFP 2634/2015)", 0, 57, {
           align: "right",
         });
+      if (spvIndex) {
+        doc
+          .fontSize(8)
+          .font("Roboto-Bold")
+          .fillColor(TEAL)
+          .text(`ID Încărcare SPV: ${spvIndex}`, 0, 72, { align: "right" });
+      }
 
       doc.moveDown(0.3);
       doc
@@ -931,13 +995,15 @@ export function registerPdfRoute(app: any) {
         fields2.push(["Tip SAGA (Gen):", nirRow.accountingType || "Marfuri"]);
         fields2.push(["Cont (Gen):", nirRow.accountingAccount || "371"]);
       }
+      fields2.push(["ID Încărcare SPV:", spvIndex || "—"]);
       fields2.forEach(([label, val], i) => {
         const x = 50 + i * col;
         doc.fontSize(7).font("Roboto").fillColor(GRAY).text(label, x, y);
+        const isSpv = label.includes("SPV") && val !== "—";
         doc
           .fontSize(8)
           .font("Roboto-Bold")
-          .fillColor("#1e293b")
+          .fillColor(isSpv ? TEAL : "#1e293b")
           .text(val, x, y + 10);
       });
 
