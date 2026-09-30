@@ -1357,6 +1357,11 @@ function ExportTab() {
                             <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto shrink-0 gap-1.5">
                               <div className="text-left sm:text-right">
                                 <span className="font-bold font-mono text-slate-900 dark:text-white text-sm">{n.total} RON</span>
+                                {(n as any).subtotal && (
+                                  <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                                    Fără TVA: <span className="font-mono">{(n as any).subtotal}</span> • TVA: <span className="font-mono">{(n as any).totalVat || "0.00"}</span>
+                                  </div>
+                                )}
                                 <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Intrare SAGA</div>
                               </div>
                               <button

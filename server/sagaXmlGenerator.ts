@@ -94,6 +94,8 @@ export async function resolveNirSpvData(db: any, n: any) {
   let spvIndex = "";
   let docDate = n.receiptDate;
   let dueDate = "";
+  let archiveTotal: number | null = null;
+  let archiveTotalVat: number | null = null;
 
   if (n.invoiceArchiveId) {
     const [inv] = await db
@@ -103,6 +105,8 @@ export async function resolveNirSpvData(db: any, n: any) {
     if (inv) {
       if (inv.issueDate) docDate = inv.issueDate;
       if (inv.dueDate) dueDate = inv.dueDate;
+      if (inv.total) archiveTotal = parseFloat(String(inv.total));
+      if (inv.totalVAT) archiveTotalVat = parseFloat(String(inv.totalVAT));
       if (inv.spvIndex) {
         spvIndex = inv.spvIndex;
       } else if (inv.notes) {
@@ -129,6 +133,8 @@ export async function resolveNirSpvData(db: any, n: any) {
     for (const inv of invs) {
       if (inv.issueDate && (!docDate || docDate === n.receiptDate)) docDate = inv.issueDate;
       if (inv.dueDate && !dueDate) dueDate = inv.dueDate;
+      if (archiveTotal === null && inv.total) archiveTotal = parseFloat(String(inv.total));
+      if (archiveTotalVat === null && inv.totalVAT) archiveTotalVat = parseFloat(String(inv.totalVAT));
       if (inv.spvIndex) { spvIndex = inv.spvIndex; break; }
       if (inv.notes) {
         const m = inv.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
@@ -152,6 +158,8 @@ export async function resolveNirSpvData(db: any, n: any) {
       if (si.idSPV) spvIndex = si.idSPV;
       if (si.data && (!docDate || docDate === n.receiptDate)) docDate = si.data;
       if (si.scadent && !dueDate) dueDate = si.scadent;
+      if (archiveTotal === null && si.total) archiveTotal = parseFloat(String(si.total));
+      if (archiveTotalVat === null && si.tva) archiveTotalVat = parseFloat(String(si.tva));
     }
   }
 
@@ -160,7 +168,7 @@ export async function resolveNirSpvData(db: any, n: any) {
     if (m) spvIndex = m[1];
   }
 
-  return { spvIndex, docDate, dueDate };
+  return { spvIndex, docDate, dueDate, archiveTotal, archiveTotalVat };
 }
 
 /**
@@ -253,7 +261,35 @@ export async function generateSagaExportXML(
     if (client?.phone) xml += `      <ClientTelefon>${escapeXml(client.phone)}</ClientTelefon>\n`;
     if (client?.email) xml += `      <ClientMail>${escapeXml(client.email)}</ClientMail>\n`;
 
-    // Date factură
+    // Date factură & totaluri
+    let totalValoare = 0;
+    let totalTva = 0;
+    const processedLines = lines.map((line) => {
+      const qty = parseFloat(String(line.quantity)) || 0;
+      const price = parseFloat(String(line.unitPrice)) || 0;
+      const rate = parseFloat(String(line.vatRate)) || 0;
+      const rawTotal = parseFloat(String(line.total));
+      const lineVal = (!isNaN(rawTotal) && rawTotal > 0)
+        ? rawTotal
+        : Math.round(qty * price * 100) / 100;
+      const lineVat = Math.round(lineVal * (rate / 100) * 100) / 100;
+      const lineTotal = Math.round((lineVal + lineVat) * 100) / 100;
+
+      totalValoare += lineVal;
+      totalTva += lineVat;
+
+      return { line, qty, price, rate, lineVal, lineVat, lineTotal };
+    });
+
+    totalValoare = Math.round(totalValoare * 100) / 100;
+    totalTva = Math.round(totalTva * 100) / 100;
+    let totalFactura = Math.round((totalValoare + totalTva) * 100) / 100;
+
+    const rawInvTotal = parseFloat(String(inv.total));
+    if (!isNaN(rawInvTotal) && rawInvTotal > 0) {
+      totalFactura = rawInvTotal;
+    }
+
     xml += `      <FacturaNumar>${escapeXml(inv.number)}</FacturaNumar>\n`;
     xml += `      <FacturaData>${formatDate(inv.issueDate)}</FacturaData>\n`;
     if (inv.dueDate) {
@@ -263,6 +299,12 @@ export async function generateSagaExportXML(
     xml += `      <FacturaTVAIncasare>Nu</FacturaTVAIncasare>\n`;
     xml += `      <FacturaTip></FacturaTip>\n`;
     xml += `      <FacturaMoneda>${escapeXml(inv.currency || "RON")}</FacturaMoneda>\n`;
+    xml += `      <FacturaValoare>${totalValoare.toFixed(2)}</FacturaValoare>\n`;
+    xml += `      <FacturaTVA>${totalTva.toFixed(2)}</FacturaTVA>\n`;
+    xml += `      <FacturaTotal>${totalFactura.toFixed(2)}</FacturaTotal>\n`;
+    xml += `      <Valoare>${totalValoare.toFixed(2)}</Valoare>\n`;
+    xml += `      <TVA>${totalTva.toFixed(2)}</TVA>\n`;
+    xml += `      <Total>${totalFactura.toFixed(2)}</Total>\n`;
     if (inv.spvIndex) {
       xml += formatSpvTags(inv.spvIndex);
     }
@@ -271,25 +313,24 @@ export async function generateSagaExportXML(
     xml += `      <Continut>\n`;
 
     let lineIndex = 1;
-    for (const line of lines) {
-      const qty = parseFloat(String(line.quantity)) || 0;
-      const price = parseFloat(String(line.unitPrice)) || 0;
-      const rate = parseFloat(String(line.vatRate)) || 0;
-      const lineVal = Math.round(qty * price * 100) / 100;
-      const lineVat = Math.round(lineVal * (rate / 100) * 100) / 100;
-
+    for (const item of processedLines) {
       xml += `        <Linie>\n`;
       xml += `          <LinieNrCrt>${lineIndex++}</LinieNrCrt>\n`;
-      xml += `          <Descriere>${escapeXml(line.description)}</Descriere>\n`;
-      if (line.devizCode) {
-        xml += `          <CodArticolClient>${escapeXml(line.devizCode)}</CodArticolClient>\n`;
+      xml += `          <Descriere>${escapeXml(item.line.description)}</Descriere>\n`;
+      if (item.line.devizCode) {
+        xml += `          <CodArticolClient>${escapeXml(item.line.devizCode)}</CodArticolClient>\n`;
       }
-      xml += `          <UM>${escapeXml(line.unit || "buc")}</UM>\n`;
-      xml += `          <Cantitate>${qty}</Cantitate>\n`;
-      xml += `          <Pret>${price.toFixed(4)}</Pret>\n`;
-      xml += `          <Valoare>${lineVal.toFixed(2)}</Valoare>\n`;
-      xml += `          <ProcTVA>${rate}</ProcTVA>\n`;
-      xml += `          <TVA>${lineVat.toFixed(2)}</TVA>\n`;
+      xml += `          <UM>${escapeXml(item.line.unit || "buc")}</UM>\n`;
+      xml += `          <Cantitate>${item.qty}</Cantitate>\n`;
+      xml += `          <Pret>${item.price.toFixed(4)}</Pret>\n`;
+      xml += `          <PretUnitar>${item.price.toFixed(4)}</PretUnitar>\n`;
+      xml += `          <Valoare>${item.lineVal.toFixed(2)}</Valoare>\n`;
+      xml += `          <ProcTVA>${item.rate}</ProcTVA>\n`;
+      xml += `          <CotaTVA>${item.rate}</CotaTVA>\n`;
+      xml += `          <TVA>${item.lineVat.toFixed(2)}</TVA>\n`;
+      xml += `          <ValoareTVA>${item.lineVat.toFixed(2)}</ValoareTVA>\n`;
+      xml += `          <Total>${item.lineTotal.toFixed(2)}</Total>\n`;
+      xml += `          <ValoareTotala>${item.lineTotal.toFixed(2)}</ValoareTotala>\n`;
       xml += `          <Cont>704</Cont>\n`;
       xml += `        </Linie>\n`;
     }
@@ -343,6 +384,58 @@ export async function generateSagaExportXML(
       )
       .where(eq(schema.nirLines.nirId, n.id));
 
+    // Preia datele reale ale facturii (data emiterii furnizorului și index SPV)
+    const { spvIndex, docDate, dueDate, archiveTotal, archiveTotalVat } = await resolveNirSpvData(db, n);
+
+    let totalValoare = 0;
+    let totalTva = 0;
+
+    const processedLines = linesData.map((row) => {
+      const line = row.line;
+      const code = row.articleCode;
+      const qty = parseFloat(String(line.cantitateReceptionata)) || 0;
+      const price = parseFloat(String(line.unitPrice)) || 0;
+      const rate = parseFloat(String(line.vatRate)) || 0;
+
+      const rawTotal = parseFloat(String(line.total));
+      const lineVal = (!isNaN(rawTotal) && rawTotal > 0)
+        ? rawTotal
+        : Math.round(qty * price * 100) / 100;
+      const lineVat = Math.round(lineVal * (rate / 100) * 100) / 100;
+      const lineTotal = Math.round((lineVal + lineVat) * 100) / 100;
+
+      totalValoare += lineVal;
+      totalTva += lineVat;
+
+      const lineAcc = String(line.accountingAccount || n.accountingAccount || "371").trim();
+      const isServiceOrAdvance = lineAcc.startsWith("6") || lineAcc.startsWith("7") || lineAcc.startsWith("409") || (line as any).accountingType === "Servicii" || (line as any).accountingType === "Avans";
+
+      return {
+        line,
+        code,
+        qty,
+        price,
+        rate,
+        lineVal,
+        lineVat,
+        lineTotal,
+        lineAcc,
+        isServiceOrAdvance,
+      };
+    });
+
+    totalValoare = Math.round(totalValoare * 100) / 100;
+    totalTva = Math.round(totalTva * 100) / 100;
+    let totalFactura = Math.round((totalValoare + totalTva) * 100) / 100;
+
+    if (archiveTotal && !isNaN(archiveTotal) && archiveTotal > 0) {
+      totalFactura = archiveTotal;
+      if (archiveTotalVat !== null && !isNaN(archiveTotalVat) && archiveTotalVat >= 0) {
+        totalTva = archiveTotalVat;
+        totalValoare = Math.round((totalFactura - totalTva) * 100) / 100;
+      }
+    }
+
     xml += `  <Factura>\n`;
     xml += `    <Antet>\n`;
     // Furnizorul
@@ -358,16 +451,22 @@ export async function generateSagaExportXML(
     if (company.city) xml += `      <ClientLocalitate>${escapeXml(company.city)}</ClientLocalitate>\n`;
     if (company.address) xml += `      <ClientAdresa>${escapeXml(company.address)}</ClientAdresa>\n`;
 
-    // Preia datele reale ale facturii (data emiterii furnizorului și index SPV)
-    const { spvIndex, docDate, dueDate } = await resolveNirSpvData(db, n);
-
     // Date document intrare (folosim data reala a facturii furnizorului, nu data receptiei/importului)
     xml += `      <FacturaNumar>${escapeXml(n.invoiceNumber || n.nirNumber)}</FacturaNumar>\n`;
     xml += `      <FacturaData>${formatDate(docDate)}</FacturaData>\n`;
     if (dueDate) {
       xml += `      <FacturaScadenta>${formatDate(dueDate)}</FacturaScadenta>\n`;
     }
+    xml += `      <FacturaTaxareInversa>Nu</FacturaTaxareInversa>\n`;
+    xml += `      <FacturaTVAIncasare>Nu</FacturaTVAIncasare>\n`;
+    xml += `      <FacturaTip></FacturaTip>\n`;
     xml += `      <FacturaMoneda>RON</FacturaMoneda>\n`;
+    xml += `      <FacturaValoare>${totalValoare.toFixed(2)}</FacturaValoare>\n`;
+    xml += `      <FacturaTVA>${totalTva.toFixed(2)}</FacturaTVA>\n`;
+    xml += `      <FacturaTotal>${totalFactura.toFixed(2)}</FacturaTotal>\n`;
+    xml += `      <Valoare>${totalValoare.toFixed(2)}</Valoare>\n`;
+    xml += `      <TVA>${totalTva.toFixed(2)}</TVA>\n`;
+    xml += `      <Total>${totalFactura.toFixed(2)}</Total>\n`;
     if (spvIndex) {
       xml += formatSpvTags(spvIndex);
     }
@@ -376,36 +475,30 @@ export async function generateSagaExportXML(
     xml += `      <Continut>\n`;
 
     let lineIndex = 1;
-    for (const row of linesData) {
-      const line = row.line;
-      const code = row.articleCode;
-      const qty = parseFloat(String(line.cantitateReceptionata)) || 0;
-      const price = parseFloat(String(line.unitPrice)) || 0;
-      const rate = parseFloat(String(line.vatRate)) || 0;
-      const lineVal = Math.round(qty * price * 100) / 100;
-      const lineVat = Math.round(lineVal * (rate / 100) * 100) / 100;
-
-      const lineAcc = String(line.accountingAccount || n.accountingAccount || "371").trim();
-      const isServiceOrAdvance = lineAcc.startsWith("6") || lineAcc.startsWith("7") || lineAcc.startsWith("409") || (line as any).accountingType === "Servicii" || (line as any).accountingType === "Avans";
-
+    for (const item of processedLines) {
       xml += `        <Linie>\n`;
       xml += `          <LinieNrCrt>${lineIndex++}</LinieNrCrt>\n`;
-      if (n.gestiune && !isServiceOrAdvance) {
+      if (n.gestiune && !item.isServiceOrAdvance) {
         xml += `          <Gestiune>${escapeXml(n.gestiune)}</Gestiune>\n`;
       }
-      xml += `          <Descriere>${escapeXml(line.description)}</Descriere>\n`;
-      if (code && !isServiceOrAdvance) {
-        xml += `          <Cod>${escapeXml(code)}</Cod>\n`;
-        xml += `          <CodArticol>${escapeXml(code)}</CodArticol>\n`;
-        xml += `          <CodArticolFurnizor>${escapeXml(code)}</CodArticolFurnizor>\n`;
+      xml += `          <Descriere>${escapeXml(item.line.description)}</Descriere>\n`;
+      if (item.code && !item.isServiceOrAdvance) {
+        xml += `          <Cod>${escapeXml(item.code)}</Cod>\n`;
+        xml += `          <CodArticol>${escapeXml(item.code)}</CodArticol>\n`;
+        xml += `          <CodArticolFurnizor>${escapeXml(item.code)}</CodArticolFurnizor>\n`;
       }
-      xml += `          <UM>${escapeXml(line.unit || "buc")}</UM>\n`;
-      xml += `          <Cantitate>${qty}</Cantitate>\n`;
-      xml += `          <Pret>${price.toFixed(4)}</Pret>\n`;
-      xml += `          <Valoare>${lineVal.toFixed(2)}</Valoare>\n`;
-      xml += `          <ProcTVA>${rate}</ProcTVA>\n`;
-      xml += `          <TVA>${lineVat.toFixed(2)}</TVA>\n`;
-      xml += `          <Cont>${escapeXml(lineAcc)}</Cont>\n`;
+      xml += `          <UM>${escapeXml(item.line.unit || "buc")}</UM>\n`;
+      xml += `          <Cantitate>${item.qty}</Cantitate>\n`;
+      xml += `          <Pret>${item.price.toFixed(4)}</Pret>\n`;
+      xml += `          <PretUnitar>${item.price.toFixed(4)}</PretUnitar>\n`;
+      xml += `          <Valoare>${item.lineVal.toFixed(2)}</Valoare>\n`;
+      xml += `          <ProcTVA>${item.rate}</ProcTVA>\n`;
+      xml += `          <CotaTVA>${item.rate}</CotaTVA>\n`;
+      xml += `          <TVA>${item.lineVat.toFixed(2)}</TVA>\n`;
+      xml += `          <ValoareTVA>${item.lineVat.toFixed(2)}</ValoareTVA>\n`;
+      xml += `          <Total>${item.lineTotal.toFixed(2)}</Total>\n`;
+      xml += `          <ValoareTotala>${item.lineTotal.toFixed(2)}</ValoareTotala>\n`;
+      xml += `          <Cont>${escapeXml(item.lineAcc)}</Cont>\n`;
       xml += `        </Linie>\n`;
     }
     xml += `      </Continut>\n`;
@@ -419,6 +512,51 @@ export async function generateSagaExportXML(
       .select()
       .from(sagaIntrariLinii)
       .where(eq(sagaIntrariLinii.intrareId, n.id));
+
+    let totalValoare = 0;
+    let totalTva = 0;
+
+    const processedLines = linesData.map((line) => {
+      const qty = parseFloat(String(line.cantitate)) || 0;
+      const price = parseFloat(String(line.pretUnitar)) || 0;
+      const rate = parseFloat(String(line.tvaPercent)) || 0;
+      const lineVal = parseFloat(String(line.valoare)) || Math.round(qty * price * 100) / 100;
+      const lineVat = parseFloat(String(line.tvaSuma)) || Math.round(lineVal * (rate / 100) * 100) / 100;
+      const lineTotal = parseFloat(String(line.total)) || Math.round((lineVal + lineVat) * 100) / 100;
+
+      totalValoare += lineVal;
+      totalTva += lineVat;
+
+      const lineAcc = String(line.cont || "371").trim();
+      const isServiceOrAdvance = lineAcc.startsWith("6") || lineAcc.startsWith("7") || lineAcc.startsWith("409") || (line as any).tip === "Servicii" || (line as any).tip === "Serviciu";
+
+      return {
+        line,
+        qty,
+        price,
+        rate,
+        lineVal,
+        lineVat,
+        lineTotal,
+        lineAcc,
+        isServiceOrAdvance,
+      };
+    });
+
+    totalValoare = Math.round(totalValoare * 100) / 100;
+    totalTva = Math.round(totalTva * 100) / 100;
+    let totalFactura = Math.round((totalValoare + totalTva) * 100) / 100;
+
+    const headerVal = parseFloat(String(n.valoare));
+    const headerTva = parseFloat(String(n.tva));
+    const headerTot = parseFloat(String(n.total));
+    if (!isNaN(headerTot) && headerTot > 0) {
+      totalFactura = headerTot;
+      if (!isNaN(headerTva) && headerTva >= 0) {
+        totalTva = headerTva;
+        totalValoare = !isNaN(headerVal) && headerVal > 0 ? headerVal : Math.round((totalFactura - totalTva) * 100) / 100;
+      }
+    }
 
     xml += `  <Factura>\n`;
     xml += `    <Antet>\n`;
@@ -441,7 +579,16 @@ export async function generateSagaExportXML(
     if (n.scadent) {
       xml += `      <FacturaScadenta>${formatDate(n.scadent)}</FacturaScadenta>\n`;
     }
+    xml += `      <FacturaTaxareInversa>Nu</FacturaTaxareInversa>\n`;
+    xml += `      <FacturaTVAIncasare>Nu</FacturaTVAIncasare>\n`;
+    xml += `      <FacturaTip></FacturaTip>\n`;
     xml += `      <FacturaMoneda>RON</FacturaMoneda>\n`;
+    xml += `      <FacturaValoare>${totalValoare.toFixed(2)}</FacturaValoare>\n`;
+    xml += `      <FacturaTVA>${totalTva.toFixed(2)}</FacturaTVA>\n`;
+    xml += `      <FacturaTotal>${totalFactura.toFixed(2)}</FacturaTotal>\n`;
+    xml += `      <Valoare>${totalValoare.toFixed(2)}</Valoare>\n`;
+    xml += `      <TVA>${totalTva.toFixed(2)}</TVA>\n`;
+    xml += `      <Total>${totalFactura.toFixed(2)}</Total>\n`;
     if (n.idSPV) {
       xml += formatSpvTags(n.idSPV);
     }
@@ -450,31 +597,27 @@ export async function generateSagaExportXML(
     xml += `      <Continut>\n`;
 
     let lineIndex = 1;
-    for (const line of linesData) {
-      const qty = parseFloat(String(line.cantitate)) || 0;
-      const price = parseFloat(String(line.pretUnitar)) || 0;
-      const rate = parseFloat(String(line.tvaPercent)) || 0;
-      const lineVal = parseFloat(String(line.valoare)) || Math.round(qty * price * 100) / 100;
-      const lineVat = parseFloat(String(line.tvaSuma)) || Math.round(lineVal * (rate / 100) * 100) / 100;
-
-      const lineAcc = String(line.cont || "371").trim();
-      const isServiceOrAdvance = lineAcc.startsWith("6") || lineAcc.startsWith("7") || lineAcc.startsWith("409") || (line as any).tip === "Servicii" || (line as any).tip === "Serviciu";
-
+    for (const item of processedLines) {
       xml += `        <Linie>\n`;
       xml += `          <LinieNrCrt>${lineIndex++}</LinieNrCrt>\n`;
-      xml += `          <Descriere>${escapeXml(line.denumire)}</Descriere>\n`;
-      if (line.cod && !isServiceOrAdvance) {
-        xml += `          <Cod>${escapeXml(line.cod)}</Cod>\n`;
-        xml += `          <CodArticol>${escapeXml(line.cod)}</CodArticol>\n`;
-        xml += `          <CodArticolFurnizor>${escapeXml(line.cod)}</CodArticolFurnizor>\n`;
+      xml += `          <Descriere>${escapeXml(item.line.denumire)}</Descriere>\n`;
+      if (item.line.cod && !item.isServiceOrAdvance) {
+        xml += `          <Cod>${escapeXml(item.line.cod)}</Cod>\n`;
+        xml += `          <CodArticol>${escapeXml(item.line.cod)}</CodArticol>\n`;
+        xml += `          <CodArticolFurnizor>${escapeXml(item.line.cod)}</CodArticolFurnizor>\n`;
       }
-      xml += `          <UM>${escapeXml(line.um || "buc")}</UM>\n`;
-      xml += `          <Cantitate>${qty}</Cantitate>\n`;
-      xml += `          <Pret>${price.toFixed(4)}</Pret>\n`;
-      xml += `          <Valoare>${lineVal.toFixed(2)}</Valoare>\n`;
-      xml += `          <ProcTVA>${rate}</ProcTVA>\n`;
-      xml += `          <TVA>${lineVat.toFixed(2)}</TVA>\n`;
-      xml += `          <Cont>${escapeXml(lineAcc)}</Cont>\n`;
+      xml += `          <UM>${escapeXml(item.line.um || "buc")}</UM>\n`;
+      xml += `          <Cantitate>${item.qty}</Cantitate>\n`;
+      xml += `          <Pret>${item.price.toFixed(4)}</Pret>\n`;
+      xml += `          <PretUnitar>${item.price.toFixed(4)}</PretUnitar>\n`;
+      xml += `          <Valoare>${item.lineVal.toFixed(2)}</Valoare>\n`;
+      xml += `          <ProcTVA>${item.rate}</ProcTVA>\n`;
+      xml += `          <CotaTVA>${item.rate}</CotaTVA>\n`;
+      xml += `          <TVA>${item.lineVat.toFixed(2)}</TVA>\n`;
+      xml += `          <ValoareTVA>${item.lineVat.toFixed(2)}</ValoareTVA>\n`;
+      xml += `          <Total>${item.lineTotal.toFixed(2)}</Total>\n`;
+      xml += `          <ValoareTotala>${item.lineTotal.toFixed(2)}</ValoareTotala>\n`;
+      xml += `          <Cont>${escapeXml(item.lineAcc)}</Cont>\n`;
       xml += `        </Linie>\n`;
     }
     xml += `      </Continut>\n`;
@@ -527,7 +670,56 @@ export async function generateSagaNirXML(tenantId: number, nirId?: number | numb
       .where(eq(schema.nirLines.nirId, n.id));
 
     // Preia datele reale ale facturii (data emiterii furnizorului și index SPV)
-    const { spvIndex, docDate, dueDate } = await resolveNirSpvData(db, n);
+    const { spvIndex, docDate, dueDate, archiveTotal, archiveTotalVat } = await resolveNirSpvData(db, n);
+
+    let totalValoare = 0;
+    let totalTva = 0;
+
+    const processedLines = linesData.map((row) => {
+      const line = row.line;
+      const code = row.articleCode;
+      const qty = parseFloat(String(line.cantitateReceptionata)) || 0;
+      const price = parseFloat(String(line.unitPrice)) || 0;
+      const rate = parseFloat(String(line.vatRate)) || 0;
+
+      const rawTotal = parseFloat(String(line.total));
+      const lineVal = (!isNaN(rawTotal) && rawTotal > 0)
+        ? rawTotal
+        : Math.round(qty * price * 100) / 100;
+      const lineVat = Math.round(lineVal * (rate / 100) * 100) / 100;
+      const lineTotal = Math.round((lineVal + lineVat) * 100) / 100;
+
+      totalValoare += lineVal;
+      totalTva += lineVat;
+
+      const lineAcc = String(line.accountingAccount || n.accountingAccount || "371").trim();
+      const isServiceOrAdvance = lineAcc.startsWith("6") || lineAcc.startsWith("7") || lineAcc.startsWith("409") || (line as any).accountingType === "Servicii" || (line as any).accountingType === "Avans";
+
+      return {
+        line,
+        code,
+        qty,
+        price,
+        rate,
+        lineVal,
+        lineVat,
+        lineTotal,
+        lineAcc,
+        isServiceOrAdvance,
+      };
+    });
+
+    totalValoare = Math.round(totalValoare * 100) / 100;
+    totalTva = Math.round(totalTva * 100) / 100;
+    let totalFactura = Math.round((totalValoare + totalTva) * 100) / 100;
+
+    if (archiveTotal && !isNaN(archiveTotal) && archiveTotal > 0) {
+      totalFactura = archiveTotal;
+      if (archiveTotalVat !== null && !isNaN(archiveTotalVat) && archiveTotalVat >= 0) {
+        totalTva = archiveTotalVat;
+        totalValoare = Math.round((totalFactura - totalTva) * 100) / 100;
+      }
+    }
 
     xml += `  <Factura>\n`;
     xml += `    <Antet>\n`;
@@ -550,7 +742,16 @@ export async function generateSagaNirXML(tenantId: number, nirId?: number | numb
     if (dueDate) {
       xml += `      <FacturaScadenta>${formatDate(dueDate)}</FacturaScadenta>\n`;
     }
+    xml += `      <FacturaTaxareInversa>Nu</FacturaTaxareInversa>\n`;
+    xml += `      <FacturaTVAIncasare>Nu</FacturaTVAIncasare>\n`;
+    xml += `      <FacturaTip></FacturaTip>\n`;
     xml += `      <FacturaMoneda>RON</FacturaMoneda>\n`;
+    xml += `      <FacturaValoare>${totalValoare.toFixed(2)}</FacturaValoare>\n`;
+    xml += `      <FacturaTVA>${totalTva.toFixed(2)}</FacturaTVA>\n`;
+    xml += `      <FacturaTotal>${totalFactura.toFixed(2)}</FacturaTotal>\n`;
+    xml += `      <Valoare>${totalValoare.toFixed(2)}</Valoare>\n`;
+    xml += `      <TVA>${totalTva.toFixed(2)}</TVA>\n`;
+    xml += `      <Total>${totalFactura.toFixed(2)}</Total>\n`;
     if (spvIndex) {
       xml += formatSpvTags(spvIndex);
     }
@@ -559,36 +760,30 @@ export async function generateSagaNirXML(tenantId: number, nirId?: number | numb
     xml += `      <Continut>\n`;
 
     let lineIndex = 1;
-    for (const row of linesData) {
-      const line = row.line;
-      const code = row.articleCode;
-      const qty = parseFloat(String(line.cantitateReceptionata)) || 0;
-      const price = parseFloat(String(line.unitPrice)) || 0;
-      const rate = parseFloat(String(line.vatRate)) || 0;
-      const lineVal = Math.round(qty * price * 100) / 100;
-      const lineVat = Math.round(lineVal * (rate / 100) * 100) / 100;
-
-      const lineAcc = String(line.accountingAccount || n.accountingAccount || "371").trim();
-      const isServiceOrAdvance = lineAcc.startsWith("6") || lineAcc.startsWith("7") || lineAcc.startsWith("409") || (line as any).accountingType === "Servicii" || (line as any).accountingType === "Avans";
-
+    for (const item of processedLines) {
       xml += `        <Linie>\n`;
       xml += `          <LinieNrCrt>${lineIndex++}</LinieNrCrt>\n`;
-      if (n.gestiune && !isServiceOrAdvance) {
+      if (n.gestiune && !item.isServiceOrAdvance) {
         xml += `          <Gestiune>${escapeXml(n.gestiune)}</Gestiune>\n`;
       }
-      xml += `          <Descriere>${escapeXml(line.description)}</Descriere>\n`;
-      if (code && !isServiceOrAdvance) {
-        xml += `          <Cod>${escapeXml(code)}</Cod>\n`;
-        xml += `          <CodArticol>${escapeXml(code)}</CodArticol>\n`;
-        xml += `          <CodArticolFurnizor>${escapeXml(code)}</CodArticolFurnizor>\n`;
+      xml += `          <Descriere>${escapeXml(item.line.description)}</Descriere>\n`;
+      if (item.code && !item.isServiceOrAdvance) {
+        xml += `          <Cod>${escapeXml(item.code)}</Cod>\n`;
+        xml += `          <CodArticol>${escapeXml(item.code)}</CodArticol>\n`;
+        xml += `          <CodArticolFurnizor>${escapeXml(item.code)}</CodArticolFurnizor>\n`;
       }
-      xml += `          <UM>${escapeXml(line.unit || "buc")}</UM>\n`;
-      xml += `          <Cantitate>${qty}</Cantitate>\n`;
-      xml += `          <Pret>${price.toFixed(4)}</Pret>\n`;
-      xml += `          <Valoare>${lineVal.toFixed(2)}</Valoare>\n`;
-      xml += `          <ProcTVA>${rate}</ProcTVA>\n`;
-      xml += `          <TVA>${lineVat.toFixed(2)}</TVA>\n`;
-      xml += `          <Cont>${escapeXml(lineAcc)}</Cont>\n`;
+      xml += `          <UM>${escapeXml(item.line.unit || "buc")}</UM>\n`;
+      xml += `          <Cantitate>${item.qty}</Cantitate>\n`;
+      xml += `          <Pret>${item.price.toFixed(4)}</Pret>\n`;
+      xml += `          <PretUnitar>${item.price.toFixed(4)}</PretUnitar>\n`;
+      xml += `          <Valoare>${item.lineVal.toFixed(2)}</Valoare>\n`;
+      xml += `          <ProcTVA>${item.rate}</ProcTVA>\n`;
+      xml += `          <CotaTVA>${item.rate}</CotaTVA>\n`;
+      xml += `          <TVA>${item.lineVat.toFixed(2)}</TVA>\n`;
+      xml += `          <ValoareTVA>${item.lineVat.toFixed(2)}</ValoareTVA>\n`;
+      xml += `          <Total>${item.lineTotal.toFixed(2)}</Total>\n`;
+      xml += `          <ValoareTotala>${item.lineTotal.toFixed(2)}</ValoareTotala>\n`;
+      xml += `          <Cont>${escapeXml(item.lineAcc)}</Cont>\n`;
       xml += `        </Linie>\n`;
     }
     xml += `      </Continut>\n`;

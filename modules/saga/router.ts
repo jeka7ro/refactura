@@ -660,6 +660,8 @@ export const sagaRouter = router({
           issueDate: schema.invoiceArchive.issueDate,
           notes: schema.invoiceArchive.notes,
           fileName: schema.invoiceArchive.fileName,
+          archiveTotal: schema.invoiceArchive.total,
+          archiveTotalVat: schema.invoiceArchive.totalVAT,
         })
         .from(schema.nir)
         .leftJoin(schema.invoiceArchive, eq(schema.nir.invoiceArchiveId, schema.invoiceArchive.id))
@@ -670,13 +672,30 @@ export const sagaRouter = router({
         .select({
           nirId: schema.nirLines.nirId,
           total: schema.nirLines.total,
+          cantitateReceptionata: schema.nirLines.cantitateReceptionata,
+          unitPrice: schema.nirLines.unitPrice,
+          vatRate: schema.nirLines.vatRate,
         })
         .from(schema.nirLines);
 
-      const nirTotals = new Map<number, number>();
+      const nirTotals = new Map<number, { valoare: number; tva: number; total: number }>();
       for (const l of nirLines) {
-        const val = parseFloat(String(l.total)) || 0;
-        nirTotals.set(l.nirId, (nirTotals.get(l.nirId) || 0) + val);
+        const qty = parseFloat(String(l.cantitateReceptionata)) || 0;
+        const price = parseFloat(String(l.unitPrice)) || 0;
+        const rate = parseFloat(String(l.vatRate)) || 0;
+
+        const rawTotal = parseFloat(String(l.total));
+        const lineVal = (!isNaN(rawTotal) && rawTotal > 0)
+          ? rawTotal
+          : Math.round(qty * price * 100) / 100;
+        const lineVat = Math.round(lineVal * (rate / 100) * 100) / 100;
+        const lineTotal = Math.round((lineVal + lineVat) * 100) / 100;
+
+        const cur = nirTotals.get(l.nirId) || { valoare: 0, tva: 0, total: 0 };
+        cur.valoare += lineVal;
+        cur.tva += lineVat;
+        cur.total += lineTotal;
+        nirTotals.set(l.nirId, cur);
       }
 
       const nirsWithTotals = nirs.map((n) => {
@@ -689,6 +708,22 @@ export const sagaRouter = router({
           const m = n.fileName.match(/(?:SPV_|_INDEX_|id_|index_)(\d{8,12})/i);
           if (m) cleanSpv = m[1];
         }
+
+        const tInfo = nirTotals.get(n.id) || { valoare: 0, tva: 0, total: 0 };
+        let grossTotal = tInfo.total;
+        let vatAmount = tInfo.tva;
+        let netAmount = tInfo.valoare;
+
+        const archTot = parseFloat(String(n.archiveTotal));
+        const archVat = parseFloat(String(n.archiveTotalVat));
+        if (!isNaN(archTot) && archTot > 0) {
+          grossTotal = archTot;
+          if (!isNaN(archVat) && archVat >= 0) {
+            vatAmount = archVat;
+            netAmount = Math.round((grossTotal - vatAmount) * 100) / 100;
+          }
+        }
+
         return {
           id: n.id,
           nirNumber: n.nirNumber,
@@ -700,7 +735,9 @@ export const sagaRouter = router({
           accountingAccount: n.accountingAccount,
           status: n.status,
           spvIndex: cleanSpv,
-          total: (nirTotals.get(n.id) || 0).toFixed(2),
+          total: grossTotal.toFixed(2), // Total cu TVA
+          subtotal: netAmount.toFixed(2), // Valoare fără TVA
+          totalVat: vatAmount.toFixed(2), // Valoare TVA
         };
       });
 
