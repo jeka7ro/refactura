@@ -299,12 +299,6 @@ export async function generateSagaExportXML(
     xml += `      <FacturaTVAIncasare>Nu</FacturaTVAIncasare>\n`;
     xml += `      <FacturaTip></FacturaTip>\n`;
     xml += `      <FacturaMoneda>${escapeXml(inv.currency || "RON")}</FacturaMoneda>\n`;
-    xml += `      <FacturaValoare>${totalValoare.toFixed(2)}</FacturaValoare>\n`;
-    xml += `      <FacturaTVA>${totalTva.toFixed(2)}</FacturaTVA>\n`;
-    xml += `      <FacturaTotal>${totalFactura.toFixed(2)}</FacturaTotal>\n`;
-    xml += `      <Valoare>${totalValoare.toFixed(2)}</Valoare>\n`;
-    xml += `      <TVA>${totalTva.toFixed(2)}</TVA>\n`;
-    xml += `      <Total>${totalFactura.toFixed(2)}</Total>\n`;
     if (inv.spvIndex) {
       xml += formatSpvTags(inv.spvIndex);
     }
@@ -323,14 +317,9 @@ export async function generateSagaExportXML(
       xml += `          <UM>${escapeXml(item.line.unit || "buc")}</UM>\n`;
       xml += `          <Cantitate>${item.qty}</Cantitate>\n`;
       xml += `          <Pret>${item.price.toFixed(4)}</Pret>\n`;
-      xml += `          <PretUnitar>${item.price.toFixed(4)}</PretUnitar>\n`;
       xml += `          <Valoare>${item.lineVal.toFixed(2)}</Valoare>\n`;
       xml += `          <ProcTVA>${item.rate}</ProcTVA>\n`;
-      xml += `          <CotaTVA>${item.rate}</CotaTVA>\n`;
       xml += `          <TVA>${item.lineVat.toFixed(2)}</TVA>\n`;
-      xml += `          <ValoareTVA>${item.lineVat.toFixed(2)}</ValoareTVA>\n`;
-      xml += `          <Total>${item.lineTotal.toFixed(2)}</Total>\n`;
-      xml += `          <ValoareTotala>${item.lineTotal.toFixed(2)}</ValoareTotala>\n`;
       xml += `          <Cont>704</Cont>\n`;
       xml += `        </Linie>\n`;
     }
@@ -461,12 +450,6 @@ export async function generateSagaExportXML(
     xml += `      <FacturaTVAIncasare>Nu</FacturaTVAIncasare>\n`;
     xml += `      <FacturaTip></FacturaTip>\n`;
     xml += `      <FacturaMoneda>RON</FacturaMoneda>\n`;
-    xml += `      <FacturaValoare>${totalValoare.toFixed(2)}</FacturaValoare>\n`;
-    xml += `      <FacturaTVA>${totalTva.toFixed(2)}</FacturaTVA>\n`;
-    xml += `      <FacturaTotal>${totalFactura.toFixed(2)}</FacturaTotal>\n`;
-    xml += `      <Valoare>${totalValoare.toFixed(2)}</Valoare>\n`;
-    xml += `      <TVA>${totalTva.toFixed(2)}</TVA>\n`;
-    xml += `      <Total>${totalFactura.toFixed(2)}</Total>\n`;
     if (spvIndex) {
       xml += formatSpvTags(spvIndex);
     }
@@ -490,14 +473,9 @@ export async function generateSagaExportXML(
       xml += `          <UM>${escapeXml(item.line.unit || "buc")}</UM>\n`;
       xml += `          <Cantitate>${item.qty}</Cantitate>\n`;
       xml += `          <Pret>${item.price.toFixed(4)}</Pret>\n`;
-      xml += `          <PretUnitar>${item.price.toFixed(4)}</PretUnitar>\n`;
       xml += `          <Valoare>${item.lineVal.toFixed(2)}</Valoare>\n`;
       xml += `          <ProcTVA>${item.rate}</ProcTVA>\n`;
-      xml += `          <CotaTVA>${item.rate}</CotaTVA>\n`;
       xml += `          <TVA>${item.lineVat.toFixed(2)}</TVA>\n`;
-      xml += `          <ValoareTVA>${item.lineVat.toFixed(2)}</ValoareTVA>\n`;
-      xml += `          <Total>${item.lineTotal.toFixed(2)}</Total>\n`;
-      xml += `          <ValoareTotala>${item.lineTotal.toFixed(2)}</ValoareTotala>\n`;
       xml += `          <Cont>${escapeXml(item.lineAcc)}</Cont>\n`;
       xml += `        </Linie>\n`;
     }
@@ -583,12 +561,6 @@ export async function generateSagaExportXML(
     xml += `      <FacturaTVAIncasare>Nu</FacturaTVAIncasare>\n`;
     xml += `      <FacturaTip></FacturaTip>\n`;
     xml += `      <FacturaMoneda>RON</FacturaMoneda>\n`;
-    xml += `      <FacturaValoare>${totalValoare.toFixed(2)}</FacturaValoare>\n`;
-    xml += `      <FacturaTVA>${totalTva.toFixed(2)}</FacturaTVA>\n`;
-    xml += `      <FacturaTotal>${totalFactura.toFixed(2)}</FacturaTotal>\n`;
-    xml += `      <Valoare>${totalValoare.toFixed(2)}</Valoare>\n`;
-    xml += `      <TVA>${totalTva.toFixed(2)}</TVA>\n`;
-    xml += `      <Total>${totalFactura.toFixed(2)}</Total>\n`;
     if (n.idSPV) {
       xml += formatSpvTags(n.idSPV);
     }
@@ -609,14 +581,9 @@ export async function generateSagaExportXML(
       xml += `          <UM>${escapeXml(item.line.um || "buc")}</UM>\n`;
       xml += `          <Cantitate>${item.qty}</Cantitate>\n`;
       xml += `          <Pret>${item.price.toFixed(4)}</Pret>\n`;
-      xml += `          <PretUnitar>${item.price.toFixed(4)}</PretUnitar>\n`;
       xml += `          <Valoare>${item.lineVal.toFixed(2)}</Valoare>\n`;
       xml += `          <ProcTVA>${item.rate}</ProcTVA>\n`;
-      xml += `          <CotaTVA>${item.rate}</CotaTVA>\n`;
       xml += `          <TVA>${item.lineVat.toFixed(2)}</TVA>\n`;
-      xml += `          <ValoareTVA>${item.lineVat.toFixed(2)}</ValoareTVA>\n`;
-      xml += `          <Total>${item.lineTotal.toFixed(2)}</Total>\n`;
-      xml += `          <ValoareTotala>${item.lineTotal.toFixed(2)}</ValoareTotala>\n`;
       xml += `          <Cont>${escapeXml(item.lineAcc)}</Cont>\n`;
       xml += `        </Linie>\n`;
     }
@@ -746,12 +713,6 @@ export async function generateSagaNirXML(tenantId: number, nirId?: number | numb
     xml += `      <FacturaTVAIncasare>Nu</FacturaTVAIncasare>\n`;
     xml += `      <FacturaTip></FacturaTip>\n`;
     xml += `      <FacturaMoneda>RON</FacturaMoneda>\n`;
-    xml += `      <FacturaValoare>${totalValoare.toFixed(2)}</FacturaValoare>\n`;
-    xml += `      <FacturaTVA>${totalTva.toFixed(2)}</FacturaTVA>\n`;
-    xml += `      <FacturaTotal>${totalFactura.toFixed(2)}</FacturaTotal>\n`;
-    xml += `      <Valoare>${totalValoare.toFixed(2)}</Valoare>\n`;
-    xml += `      <TVA>${totalTva.toFixed(2)}</TVA>\n`;
-    xml += `      <Total>${totalFactura.toFixed(2)}</Total>\n`;
     if (spvIndex) {
       xml += formatSpvTags(spvIndex);
     }
@@ -775,14 +736,9 @@ export async function generateSagaNirXML(tenantId: number, nirId?: number | numb
       xml += `          <UM>${escapeXml(item.line.unit || "buc")}</UM>\n`;
       xml += `          <Cantitate>${item.qty}</Cantitate>\n`;
       xml += `          <Pret>${item.price.toFixed(4)}</Pret>\n`;
-      xml += `          <PretUnitar>${item.price.toFixed(4)}</PretUnitar>\n`;
       xml += `          <Valoare>${item.lineVal.toFixed(2)}</Valoare>\n`;
       xml += `          <ProcTVA>${item.rate}</ProcTVA>\n`;
-      xml += `          <CotaTVA>${item.rate}</CotaTVA>\n`;
       xml += `          <TVA>${item.lineVat.toFixed(2)}</TVA>\n`;
-      xml += `          <ValoareTVA>${item.lineVat.toFixed(2)}</ValoareTVA>\n`;
-      xml += `          <Total>${item.lineTotal.toFixed(2)}</Total>\n`;
-      xml += `          <ValoareTotala>${item.lineTotal.toFixed(2)}</ValoareTotala>\n`;
       xml += `          <Cont>${escapeXml(item.lineAcc)}</Cont>\n`;
       xml += `        </Linie>\n`;
     }
