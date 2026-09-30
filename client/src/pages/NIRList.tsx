@@ -758,7 +758,7 @@ export default function NIRList() {
                   onClick={() => handleSort("totalWithVat")}
                 >
                   <div className="flex items-center justify-end gap-1">
-                    SUMĂ CU TVA{" "}
+                    TOTAL (CU & FĂRĂ TVA){" "}
                     <span className="text-blue-500">
                       {getSortIcon("totalWithVat")}
                     </span>
@@ -904,20 +904,53 @@ export default function NIRList() {
                         <div className="text-[11px] text-slate-400 mt-0.5">—</div>
                       )}
                     </td>
-                    {/* SUMĂ CU TVA + Articole dedesubt (fără bulină) */}
+                    {/* SUMĂ CU TVA & FĂRĂ TVA + Articole dedesubt */}
                     <td className="px-3 py-3 text-right">
-                      <div className="font-mono text-xs font-bold text-slate-900 dark:text-white whitespace-nowrap">
-                        {(row.totalWithVat || 0).toLocaleString("ro-RO", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}{" "}
-                        <span className="text-[11px] font-normal text-slate-400">
-                          RON
+                      {/* Cu TVA */}
+                      <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                        <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">
+                          {(row.totalWithVat || 0).toLocaleString("ro-RO", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}{" "}
+                          <span className="text-[10px] font-normal text-slate-400">
+                            RON
+                          </span>
+                        </span>
+                        <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1 py-0.5 rounded border border-emerald-200/60 dark:border-emerald-800/60 uppercase tracking-tight">
+                          cu TVA
                         </span>
                       </div>
-                      <div className="text-[11px] text-slate-400 font-medium mt-0.5 whitespace-nowrap">
+
+                      {/* Fără TVA */}
+                      <div className="flex items-center justify-end gap-1.5 mt-0.5 whitespace-nowrap">
+                        <span className="font-mono text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                          {(row.totalNet || 0).toLocaleString("ro-RO", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}{" "}
+                          <span className="text-[10px] font-normal text-slate-400">
+                            RON
+                          </span>
+                        </span>
+                        <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded border border-slate-200/60 dark:border-slate-700/60 uppercase tracking-tight">
+                          fără TVA
+                        </span>
+                      </div>
+
+                      {/* Număr articole și valoare TVA */}
+                      <div className="text-[10px] text-slate-400 font-medium mt-0.5 whitespace-nowrap">
                         {row.linesCount ?? 0}{" "}
                         {row.linesCount === 1 ? "articol" : "articole"}
+                        {row.totalVat ? (
+                          <span className="text-slate-400 ml-1">
+                            · TVA:{" "}
+                            {(row.totalVat || 0).toLocaleString("ro-RO", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </span>
+                        ) : null}
                       </div>
                     </td>
                     {/* STATUS (Pill rotunjit ca în Screenshot 1) */}
