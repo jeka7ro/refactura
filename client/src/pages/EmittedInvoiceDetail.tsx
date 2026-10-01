@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useParams } from "wouter";
 import {
   ArrowLeft,
@@ -11,6 +12,7 @@ import {
   Download,
   Send,
   RefreshCw,
+  Pencil,
 } from "lucide-react";
 import {
   formatCurrency,
@@ -22,6 +24,7 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import SpvDeadlineBadge from "@/components/SpvDeadlineBadge";
 import { isTransmittedInDeadline } from "@/lib/spvDeadline";
+import { EditDevizModal } from "@/components/EditDevizModal";
 
 function formatInvoiceNumber(series?: string | null, num?: string | null) {
   if (!num) return series || "";
@@ -53,7 +56,9 @@ export default function EmittedInvoiceDetail() {
   );
 
   // Deviz legat de aceasta factura (daca exista)
-  const { data: linkedDeviz } = trpc.devize.getByInvoiceId.useQuery(
+  const [isEditDevizOpen, setIsEditDevizOpen] = useState(false);
+  const [devizTimestamp, setDevizTimestamp] = useState(Date.now());
+  const { data: linkedDeviz, refetch: refetchDeviz } = trpc.devize.getByInvoiceId.useQuery(
     { invoiceId },
     { enabled: !!invoiceId && !isNaN(invoiceId) }
   );
@@ -396,6 +401,14 @@ export default function EmittedInvoiceDetail() {
                 </span>
               </div>
               <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditDevizOpen(true)}
+                  className="flex items-center gap-1.5 px-3 h-7 text-xs font-bold rounded-lg border border-sky-300 dark:border-sky-700 bg-white dark:bg-slate-800 text-sky-700 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-slate-700 transition-colors"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  Editează rânduri
+                </button>
                 <a
                   href={`/api/pdf/deviz/${linkedDeviz.deviz.id}?download=1`}
                   target="_blank"
@@ -418,7 +431,7 @@ export default function EmittedInvoiceDetail() {
             </div>
             <div className="bg-slate-50 dark:bg-slate-900/50 p-3 overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
               <iframe
-                src={`/api/pdf/deviz/${linkedDeviz.deviz.id}`}
+                src={`/api/pdf/deviz/${linkedDeviz.deviz.id}?t=${devizTimestamp}`}
                 className="w-full min-w-[800px] sm:min-w-full h-[550px] border border-slate-200 dark:border-slate-700 bg-white"
                 title="Deviz PDF Viewer"
               />
@@ -426,6 +439,18 @@ export default function EmittedInvoiceDetail() {
           </div>
         )}
       </div>
+
+      {linkedDeviz && (
+        <EditDevizModal
+          isOpen={isEditDevizOpen}
+          onClose={() => setIsEditDevizOpen(false)}
+          devizId={linkedDeviz.deviz.id}
+          onSuccess={() => {
+            refetchDeviz();
+            setDevizTimestamp(Date.now());
+          }}
+        />
+      )}
     </div>
   );
 }

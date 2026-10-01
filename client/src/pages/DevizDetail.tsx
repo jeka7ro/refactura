@@ -1,9 +1,10 @@
 // DevizDetail.tsx — Vizualizare Deviz
 import { useState } from "react";
 import { useRoute, useLocation } from "wouter";
-import { Loader2, ArrowLeft, FileDown, Eye, EyeOff } from "lucide-react";
+import { Loader2, ArrowLeft, FileDown, Eye, EyeOff, Pencil } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { formatDate } from "@/lib/store";
+import { EditDevizModal } from "@/components/EditDevizModal";
 
 export default function DevizDetail() {
   const [, params] = useRoute("/devize/:id");
@@ -11,8 +12,9 @@ export default function DevizDetail() {
   const id = params?.id ? parseInt(params.id) : 0;
 
   const [showCodes, setShowCodes] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
-  const { data, isLoading } = trpc.devize.getById.useQuery(
+  const { data, isLoading, refetch } = trpc.devize.getById.useQuery(
     { id },
     { enabled: !!id }
   );
@@ -82,11 +84,18 @@ export default function DevizDetail() {
             )}
             {showCodes ? "Ascunde coduri" : "Arată coduri"}
           </button>
+          <button
+            onClick={() => setIsEditOpen(true)}
+            className="flex items-center gap-2 px-4 h-10 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-sm font-bold transition-colors shadow-sm"
+          >
+            <Pencil className="w-4 h-4" />
+            Editează rânduri
+          </button>
           <a
             href={`/api/pdf/deviz/${deviz.id}?download=1&showCodes=${showCodes ? "1" : "0"}`}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-2 px-4 h-10 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-sm font-bold transition-colors shadow-sm"
+            className="flex items-center gap-2 px-4 h-10 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm"
           >
             <FileDown className="w-4 h-4" />
             Descarcă PDF
@@ -211,6 +220,13 @@ export default function DevizDetail() {
           </p>
         </div>
       )}
+
+      <EditDevizModal
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        devizId={deviz.id}
+        onSuccess={() => refetch()}
+      />
     </div>
   );
 }

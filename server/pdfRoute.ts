@@ -1442,16 +1442,36 @@ export function registerPdfRoute(app: any) {
       const BORDER = "#e2e8f0";
 
       // Logo
-      let logoBase64 = settings.logoBase64 || "DEFAULT_TEXT_LOGO";
-      const activeLogo: string = "DEFAULT_TEXT_LOGO";
+      const logoBase64: string | undefined = settings.logoBase64 || undefined;
+      const logoHasBackground: boolean = Boolean(settings.logoHasBackground);
+      const logoBgColor: string = settings.logoBgColor || "#0f172a";
+      const activeLogo = (logoBase64 && logoBase64 !== "DEFAULT_TEXT_LOGO") ? logoBase64 : "DEFAULT_TEXT_LOGO";
+      const cardX = 40;
+      const cardY = 20;
+      const cardW = 120;
+      const cardH = 36;
+      const cardR = 7;
+
+      if (logoHasBackground) {
+        doc.save();
+        doc.fillColor(logoBgColor);
+        doc.roundedRect(cardX, cardY, cardW, cardH, cardR).fill();
+        doc.restore();
+      }
+
+      const padX = logoHasBackground ? 7 : 0;
+      const padY = logoHasBackground ? 4 : 0;
+      const imgW = cardW - padX * 2;
+      const imgH = cardH - padY * 2;
+
       if (activeLogo === "DEFAULT_TEXT_LOGO") {
         let foundPath = null;
         try {
           const possiblePaths = [
-            pathModule.resolve(process.cwd(), "client/public/logo.png"),
-            pathModule.resolve(process.cwd(), "../client/public/logo.png"),
-            pathModule.resolve(process.cwd(), "dist/public/logo.png"),
-            pathModule.resolve(process.cwd(), "server/assets/logo.png"),
+            pathModule.resolve(process.cwd(), "client/public/logo_spv2.png"),
+            pathModule.resolve(process.cwd(), "../client/public/logo_spv2.png"),
+            pathModule.resolve(process.cwd(), "dist/public/logo_spv2.png"),
+            pathModule.resolve(process.cwd(), "server/assets/logo_spv2.png"),
           ];
           for (const p of possiblePaths) {
             if (fsModule.existsSync(p)) {
@@ -1461,7 +1481,12 @@ export function registerPdfRoute(app: any) {
           }
           if (foundPath) {
             const imgBuffer = fsModule.readFileSync(foundPath);
-            doc.image(imgBuffer, 40, 30, { width: 140 });
+            doc.image(imgBuffer, cardX + padX, cardY + padY, {
+              fit: [imgW, imgH],
+              align: "center",
+              valign: "center",
+            });
+            doc.link(cardX, cardY, cardW, cardH, "https://facturaspv.ro/");
           } else {
             doc
               .fontSize(14)
@@ -1482,7 +1507,11 @@ export function registerPdfRoute(app: any) {
             activeLogo.replace(/^data:image\/\w+;base64,/, ""),
             "base64"
           );
-          doc.image(imgBuf, 40, 30, { height: 50, fit: [160, 50] });
+          doc.image(imgBuf, cardX + padX, cardY + padY, {
+            fit: [imgW, imgH],
+            align: "center",
+            valign: "center",
+          });
         } catch {
           doc
             .fontSize(14)
@@ -1747,16 +1776,36 @@ export function registerPdfRoute(app: any) {
       const BORDER = "#e2e8f0";
 
       // Logo
-      let logoBase64 = settings.logoBase64 || "DEFAULT_TEXT_LOGO";
-      const activeLogo: string = "DEFAULT_TEXT_LOGO";
+      const logoBase64: string | undefined = settings.logoBase64 || undefined;
+      const logoHasBackground: boolean = Boolean(settings.logoHasBackground);
+      const logoBgColor: string = settings.logoBgColor || "#0f172a";
+      const activeLogo = (logoBase64 && logoBase64 !== "DEFAULT_TEXT_LOGO") ? logoBase64 : "DEFAULT_TEXT_LOGO";
+      const cardX = 40;
+      const cardY = 20;
+      const cardW = 120;
+      const cardH = 36;
+      const cardR = 7;
+
+      if (logoHasBackground) {
+        doc.save();
+        doc.fillColor(logoBgColor);
+        doc.roundedRect(cardX, cardY, cardW, cardH, cardR).fill();
+        doc.restore();
+      }
+
+      const padX = logoHasBackground ? 7 : 0;
+      const padY = logoHasBackground ? 4 : 0;
+      const imgW = cardW - padX * 2;
+      const imgH = cardH - padY * 2;
+
       if (activeLogo === "DEFAULT_TEXT_LOGO") {
         let foundPath = null;
         try {
           const possiblePaths = [
-            path.resolve(process.cwd(), "client/public/logo.png"),
-            path.resolve(process.cwd(), "../client/public/logo.png"),
-            path.resolve(process.cwd(), "dist/public/logo.png"),
-            path.resolve(process.cwd(), "server/assets/logo.png"),
+            path.resolve(process.cwd(), "client/public/logo_spv2.png"),
+            path.resolve(process.cwd(), "../client/public/logo_spv2.png"),
+            path.resolve(process.cwd(), "dist/public/logo_spv2.png"),
+            path.resolve(process.cwd(), "server/assets/logo_spv2.png"),
           ];
           for (const p of possiblePaths) {
             if (fs.existsSync(p)) {
@@ -1766,7 +1815,12 @@ export function registerPdfRoute(app: any) {
           }
           if (foundPath) {
             const imgBuffer = fs.readFileSync(foundPath);
-            doc.image(imgBuffer, 40, 30, { width: 140 });
+            doc.image(imgBuffer, cardX + padX, cardY + padY, {
+              fit: [imgW, imgH],
+              align: "center",
+              valign: "center",
+            });
+            doc.link(cardX, cardY, cardW, cardH, "https://facturaspv.ro/");
           } else {
             doc
               .fontSize(14)
@@ -1774,6 +1828,24 @@ export function registerPdfRoute(app: any) {
               .fillColor(BLUE)
               .text(tenant?.name || "Firma", 40, 40);
           }
+        } catch {
+          doc
+            .fontSize(14)
+            .font("Roboto-Bold")
+            .fillColor(BLUE)
+            .text(tenant?.name || "Firma", 40, 40);
+        }
+      } else {
+        try {
+          const imgBuf = Buffer.from(
+            activeLogo.replace(/^data:image\/\w+;base64,/, ""),
+            "base64"
+          );
+          doc.image(imgBuf, cardX + padX, cardY + padY, {
+            fit: [imgW, imgH],
+            align: "center",
+            valign: "center",
+          });
         } catch {
           doc
             .fontSize(14)
