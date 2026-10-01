@@ -1526,7 +1526,7 @@ export function registerPdfRoute(app: any) {
         .fontSize(18)
         .font("Roboto-Bold")
         .fillColor(TEAL)
-        .text("DEVIZ DE LUCRĂRI", 0, 35, { align: "right" });
+        .text("DEVIZ DE LUCRĂRI", 40, 32, { width: W, align: "right" });
 
       doc.moveDown(0.3);
       doc
@@ -1581,48 +1581,80 @@ export function registerPdfRoute(app: any) {
 
       y += 65;
 
-      // Tabel Header
-      doc.rect(40, y, W, 16).fillColor(TEAL).fill();
-      doc.fontSize(7).font("Roboto-Bold").fillColor("white");
-      doc.text("Nr.", 45, y + 4, { width: 20 });
-      doc.text("Denumire / Tip", 70, y + 4, { width: 150 });
-      if (showCodes) doc.text("Cod", 220, y + 4, { width: 50 });
-      const descW = showCodes ? 150 : 200;
-      const qX = showCodes ? 270 : 270;
-      doc.text("Cantitate", qX, y + 4, { width: 60, align: "right" });
-      doc.text("Preț unitar", qX + 60, y + 4, { width: 80, align: "right" });
-      doc.text("Valoare RON", qX + 140, y + 4, { width: 90, align: "right" });
-      y += 16;
+      // Tabel Header & Columns
+      const colNr = 26;
+      const colCode = showCodes ? 60 : 0;
+      const colQty = 60;
+      const colPrice = 80;
+      const colVal = 90;
+      const colDesc = W - colNr - colCode - colQty - colPrice - colVal;
+
+      const xNr = 40;
+      const xDesc = xNr + colNr;
+      const xCode = xDesc + colDesc;
+      const xQty = xCode + colCode;
+      const xPrice = xQty + colQty;
+      const xVal = xPrice + colPrice;
+
+      const headerH = 18;
+      const drawHeader = (curY: number) => {
+        doc.rect(40, curY, W, headerH).fillColor(TEAL).fill();
+        doc.fontSize(7.5).font("Roboto-Bold").fillColor("white");
+        doc.text("Nr.", xNr, curY + 5, { width: colNr, align: "center" });
+        doc.text("Denumire / Tip", xDesc + 6, curY + 5, { width: colDesc - 12 });
+        if (showCodes) {
+          doc.text("Cod", xCode + 4, curY + 5, { width: colCode - 8 });
+        }
+        doc.text("Cantitate", xQty, curY + 5, { width: colQty - 6, align: "right" });
+        doc.text("Preț unitar", xPrice, curY + 5, { width: colPrice - 6, align: "right" });
+        doc.text("Valoare RON", xVal, curY + 5, { width: colVal - 6, align: "right" });
+      };
+
+      drawHeader(y);
+      y += headerH;
 
       // Linii
       lines.forEach((l, i) => {
-        if (y > doc.page.height - 80) {
+        doc.fontSize(8).font("Roboto");
+        const descText = `[${l.type}] ${l.description}`;
+        const descH = doc.heightOfString(descText, { width: colDesc - 12 });
+        const codeH = showCodes && l.code ? doc.heightOfString(l.code, { width: colCode - 8 }) : 0;
+        const textH = Math.max(descH, codeH);
+        const rowH = Math.max(20, Math.ceil(textH + 10));
+
+        if (y + rowH > doc.page.height - 110) {
           doc.addPage();
           y = 40;
+          drawHeader(y);
+          y += headerH;
         }
+
         doc
-          .rect(40, y, W, 16)
+          .rect(40, y, W, rowH)
           .fillColor(i % 2 === 0 ? "white" : "#f8fafc")
           .fill();
-        doc.rect(40, y, W, 16).strokeColor(BORDER).lineWidth(0.5).stroke();
+        doc.rect(40, y, W, rowH).strokeColor(BORDER).lineWidth(0.5).stroke();
 
-        doc.fontSize(7).font("Roboto").fillColor("#1e293b");
-        doc.text(`${i + 1}`, 45, y + 4, { width: 20 });
-        doc.text(`[${l.type}] ${l.description}`, 70, y + 4, { width: descW });
-        if (showCodes) doc.text(l.code || "—", 220, y + 4, { width: 50 });
-        doc.text(Number(l.quantity).toFixed(2), qX, y + 4, {
-          width: 60,
+        doc.fontSize(8).font("Roboto").fillColor("#1e293b");
+        const cellY = y + 5;
+        doc.text(`${i + 1}`, xNr, cellY, { width: colNr, align: "center" });
+        doc.text(descText, xDesc + 6, cellY, { width: colDesc - 12 });
+        if (showCodes) {
+          doc.text(l.code || "—", xCode + 4, cellY, { width: colCode - 8 });
+        }
+        doc.text(Number(l.quantity).toFixed(2), xQty, cellY, {
+          width: colQty - 6,
           align: "right",
         });
-        doc.text(Number(l.unitPrice).toFixed(2), qX + 60, y + 4, {
-          width: 80,
+        doc.text(Number(l.unitPrice).toFixed(2), xPrice, cellY, {
+          width: colPrice - 6,
           align: "right",
         });
-        doc.text(Number(l.total).toFixed(2), qX + 140, y + 4, {
-          width: 90,
+        doc.text(Number(l.total).toFixed(2), xVal, cellY, {
+          width: colVal - 6,
           align: "right",
         });
-        y += 16;
+        y += rowH;
       });
 
       // ── Totaluri cu TVA ──────────────────────────────────────────
@@ -1631,60 +1663,69 @@ export function registerPdfRoute(app: any) {
       const totalTVA = totalFaraTVA * (vatRate / 100);
       const totalCuTVA = totalFaraTVA + totalTVA;
 
-      y += 4;
+      if (y + 110 > doc.page.height - 40) {
+        doc.addPage();
+        y = 40;
+      }
+
+      y += 6;
+      const totalsLabelW = W - 140;
+      const totalsValX = 40 + W - 130;
+      const totalsValW = 124;
+
       // Total Materiale
-      doc.rect(40, y, W, 15).fillColor(LIGHT).fill();
-      doc.rect(40, y, W, 15).strokeColor(BORDER).lineWidth(0.3).stroke();
-      doc.fontSize(7).font("Roboto-Bold").fillColor(GRAY);
-      doc.text("TOTAL MATERIALE:", 45, y + 4, { width: 350, align: "right" });
-      doc.text(Number(deviz.totalMaterials).toFixed(2) + " RON", 400, y + 4, {
-        width: W - 365,
+      doc.rect(40, y, W, 16).fillColor(LIGHT).fill();
+      doc.rect(40, y, W, 16).strokeColor(BORDER).lineWidth(0.3).stroke();
+      doc.fontSize(7.5).font("Roboto-Bold").fillColor(GRAY);
+      doc.text("TOTAL MATERIALE:", 45, y + 4.5, { width: totalsLabelW, align: "right" });
+      doc.text(Number(deviz.totalMaterials).toFixed(2) + " RON", totalsValX, y + 4.5, {
+        width: totalsValW,
         align: "right",
       });
-      y += 15;
+      y += 16;
 
       // Total Manoperă
-      doc.rect(40, y, W, 15).fillColor(LIGHT).fill();
-      doc.rect(40, y, W, 15).strokeColor(BORDER).lineWidth(0.3).stroke();
-      doc.fontSize(7).font("Roboto-Bold").fillColor(GRAY);
-      doc.text("TOTAL MANOPERĂ:", 45, y + 4, { width: 350, align: "right" });
-      doc.text(Number(deviz.totalLabor).toFixed(2) + " RON", 400, y + 4, {
-        width: W - 365,
+      doc.rect(40, y, W, 16).fillColor(LIGHT).fill();
+      doc.rect(40, y, W, 16).strokeColor(BORDER).lineWidth(0.3).stroke();
+      doc.fontSize(7.5).font("Roboto-Bold").fillColor(GRAY);
+      doc.text("TOTAL MANOPERĂ:", 45, y + 4.5, { width: totalsLabelW, align: "right" });
+      doc.text(Number(deviz.totalLabor).toFixed(2) + " RON", totalsValX, y + 4.5, {
+        width: totalsValW,
         align: "right",
       });
-      y += 15;
+      y += 16;
 
       // Total fara TVA
-      doc.rect(40, y, W, 15).fillColor("#e0f2fe").fill();
-      doc.rect(40, y, W, 15).strokeColor(BORDER).lineWidth(0.3).stroke();
+      doc.rect(40, y, W, 16).fillColor("#e0f2fe").fill();
+      doc.rect(40, y, W, 16).strokeColor(BORDER).lineWidth(0.3).stroke();
       doc.fontSize(8).font("Roboto-Bold").fillColor("#0369a1");
-      doc.text("TOTAL FĂRĂ TVA:", 45, y + 4, { width: 350, align: "right" });
-      doc.text(totalFaraTVA.toFixed(2) + " RON", 400, y + 4, {
-        width: W - 365,
+      doc.text("TOTAL FĂRĂ TVA:", 45, y + 4.5, { width: totalsLabelW, align: "right" });
+      doc.text(totalFaraTVA.toFixed(2) + " RON", totalsValX, y + 4.5, {
+        width: totalsValW,
         align: "right",
       });
-      y += 15;
+      y += 16;
 
       // TVA 21%
-      doc.rect(40, y, W, 15).fillColor("#e0f2fe").fill();
-      doc.rect(40, y, W, 15).strokeColor(BORDER).lineWidth(0.3).stroke();
+      doc.rect(40, y, W, 16).fillColor("#e0f2fe").fill();
+      doc.rect(40, y, W, 16).strokeColor(BORDER).lineWidth(0.3).stroke();
       doc.fontSize(8).font("Roboto-Bold").fillColor("#0369a1");
-      doc.text(`TVA ${vatRate}%:`, 45, y + 4, { width: 350, align: "right" });
-      doc.text(totalTVA.toFixed(2) + " RON", 400, y + 4, {
-        width: W - 365,
+      doc.text(`TVA ${vatRate}%:`, 45, y + 4.5, { width: totalsLabelW, align: "right" });
+      doc.text(totalTVA.toFixed(2) + " RON", totalsValX, y + 4.5, {
+        width: totalsValW,
         align: "right",
       });
-      y += 15;
+      y += 16;
 
       // TOTAL CU TVA
       doc.rect(40, y, W, 22).fillColor("#0284c7").fill();
-      doc.fontSize(10).font("Roboto-Bold").fillColor("white");
+      doc.fontSize(9.5).font("Roboto-Bold").fillColor("white");
       doc.text("TOTAL DE PLATĂ (incl. TVA):", 45, y + 6, {
-        width: 350,
+        width: totalsLabelW,
         align: "right",
       });
-      doc.text(totalCuTVA.toFixed(2) + " RON", 400, y + 6, {
-        width: W - 365,
+      doc.text(totalCuTVA.toFixed(2) + " RON", totalsValX, y + 6, {
+        width: totalsValW,
         align: "right",
       });
 
@@ -1860,12 +1901,12 @@ export function registerPdfRoute(app: any) {
         .fontSize(18)
         .font("Roboto-Bold")
         .fillColor(TEAL)
-        .text("BON DE CONSUM", 0, 35, { align: "right" });
+        .text("BON DE CONSUM", 40, 32, { width: W, align: "right" });
       doc
         .fontSize(9)
         .font("Roboto")
         .fillColor(GRAY)
-        .text("(Cod formular 14-3-4A)", 0, 57, { align: "right" });
+        .text("(Cod formular 14-3-4A)", 40, 54, { width: W, align: "right" });
 
       doc.moveDown(0.3);
       doc
@@ -1931,54 +1972,88 @@ export function registerPdfRoute(app: any) {
 
       y += 65;
 
-      // Tabel Header
-      doc.rect(40, y, W, 16).fillColor(TEAL).fill();
-      doc.fontSize(7).font("Roboto-Bold").fillColor("white");
-      doc.text("Nr.", 45, y + 4, { width: 20 });
-      doc.text("Denumire material", 70, y + 4, { width: 200 });
-      doc.text("Cantitate", 270, y + 4, { width: 60, align: "right" });
-      doc.text("Preț unitar", 330, y + 4, { width: 80, align: "right" });
-      doc.text("Valoare RON", 410, y + 4, { width: 90, align: "right" });
-      y += 16;
+      // Tabel Header & Columns
+      const colNr = 26;
+      const colQty = 60;
+      const colPrice = 80;
+      const colVal = 90;
+      const colDesc = W - colNr - colQty - colPrice - colVal;
+
+      const xNr = 40;
+      const xDesc = xNr + colNr;
+      const xQty = xDesc + colDesc;
+      const xPrice = xQty + colQty;
+      const xVal = xPrice + colPrice;
+
+      const headerH = 18;
+      const drawHeader = (curY: number) => {
+        doc.rect(40, curY, W, headerH).fillColor(TEAL).fill();
+        doc.fontSize(7.5).font("Roboto-Bold").fillColor("white");
+        doc.text("Nr.", xNr, curY + 5, { width: colNr, align: "center" });
+        doc.text("Denumire material", xDesc + 6, curY + 5, { width: colDesc - 12, align: "left" });
+        doc.text("Cantitate", xQty, curY + 5, { width: colQty - 6, align: "right" });
+        doc.text("Preț unitar", xPrice, curY + 5, { width: colPrice - 6, align: "right" });
+        doc.text("Valoare RON", xVal, curY + 5, { width: colVal - 6, align: "right" });
+      };
+
+      drawHeader(y);
+      y += headerH;
 
       // Linii
       let totalBon = 0;
       lines.forEach((l, i) => {
-        if (y > doc.page.height - 80) {
+        doc.fontSize(8).font("Roboto");
+        const descH = doc.heightOfString(l.description, { width: colDesc - 12 });
+        const rowH = Math.max(20, Math.ceil(descH + 10));
+
+        if (y + rowH > doc.page.height - 110) {
           doc.addPage();
           y = 40;
+          drawHeader(y);
+          y += headerH;
         }
+
         doc
-          .rect(40, y, W, 16)
+          .rect(40, y, W, rowH)
           .fillColor(i % 2 === 0 ? "white" : "#f8fafc")
           .fill();
-        doc.rect(40, y, W, 16).strokeColor(BORDER).lineWidth(0.5).stroke();
+        doc.rect(40, y, W, rowH).strokeColor(BORDER).lineWidth(0.5).stroke();
 
-        doc.fontSize(7).font("Roboto").fillColor("#1e293b");
-        doc.text(`${i + 1}`, 45, y + 4, { width: 20 });
-        doc.text(l.description, 70, y + 4, { width: 200 });
-        doc.text(Number(l.quantity).toFixed(2), 270, y + 4, {
-          width: 60,
+        doc.fontSize(8).font("Roboto").fillColor("#1e293b");
+        const cellY = y + 5;
+        doc.text(`${i + 1}`, xNr, cellY, { width: colNr, align: "center" });
+        doc.text(l.description, xDesc + 6, cellY, { width: colDesc - 12 });
+        doc.text(Number(l.quantity).toFixed(2), xQty, cellY, {
+          width: colQty - 6,
           align: "right",
         });
-        doc.text(Number(l.unitPrice).toFixed(2), 330, y + 4, {
-          width: 80,
+        doc.text(Number(l.unitPrice).toFixed(2), xPrice, cellY, {
+          width: colPrice - 6,
           align: "right",
         });
-        doc.text(Number(l.total).toFixed(2), 410, y + 4, {
-          width: 90,
+        doc.text(Number(l.total).toFixed(2), xVal, cellY, {
+          width: colVal - 6,
           align: "right",
         });
         totalBon += Number(l.total);
-        y += 16;
+        y += rowH;
       });
 
       // Totals
-      doc.rect(40, y, W, 20).fillColor("#d97706").fill(); // Darker amber
-      doc.fontSize(10).font("Roboto-Bold").fillColor("white");
-      doc.text("TOTAL BON:", 45, y + 5, { width: 350, align: "right" });
-      doc.text(totalBon.toFixed(2) + " RON", 400, y + 5, {
-        width: W - 365,
+      if (y + 50 > doc.page.height - 100) {
+        doc.addPage();
+        y = 40;
+      }
+      y += 6;
+      const totalsLabelW = W - 140;
+      const totalsValX = 40 + W - 130;
+      const totalsValW = 124;
+
+      doc.rect(40, y, W, 22).fillColor("#d97706").fill();
+      doc.fontSize(9.5).font("Roboto-Bold").fillColor("white");
+      doc.text("TOTAL BON:", 45, y + 6, { width: totalsLabelW, align: "right" });
+      doc.text(totalBon.toFixed(2) + " RON", totalsValX, y + 6, {
+        width: totalsValW,
         align: "right",
       });
       y += 30;
