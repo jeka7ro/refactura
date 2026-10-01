@@ -10,8 +10,10 @@ import {
   Eye,
   FileText,
   FileDown,
+  Pencil,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { EditDevizModal } from "@/components/EditDevizModal";
 import { useTableSort } from "@/hooks/useTableSort";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/store";
@@ -32,6 +34,7 @@ export default function DevizeList() {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
+  const [editDevizId, setEditDevizId] = useState<number | null>(null);
 
   const { data: list = [], isLoading, refetch } = trpc.devize.list.useQuery();
 
@@ -292,6 +295,13 @@ export default function DevizeList() {
                     <td className="px-3 py-2 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button
+                          onClick={() => setEditDevizId(row.id)}
+                          title="Editează Deviz"
+                          className="p-1.5 text-slate-400 hover:text-sky-600 rounded bg-slate-50 hover:bg-sky-50 transition-colors"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
                           onClick={() => navigate(`/devize/${row.id}`)}
                           title="Vizualizează"
                           className="p-1.5 text-slate-400 hover:text-sky-600 rounded bg-slate-50 hover:bg-sky-50 transition-colors"
@@ -402,6 +412,15 @@ export default function DevizeList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {editDevizId && (
+        <EditDevizModal
+          isOpen={!!editDevizId}
+          onClose={() => setEditDevizId(null)}
+          devizId={editDevizId}
+          onSuccess={() => refetch()}
+        />
+      )}
     </div>
   );
 }

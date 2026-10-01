@@ -145,10 +145,19 @@ export default function EmittedInvoiceDetail() {
           </span>
           <Link href={`/facturi-emise-nou/${invoice.id}`}>
             <button className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.97]">
-              Editează
+              Editează Factura
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </Link>
+          {linkedDeviz && (
+            <button
+              onClick={() => setIsEditDevizOpen(true)}
+              className="flex items-center gap-1.5 px-3.5 h-8 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.97]"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              Editează Deviz
+            </button>
+          )}
         </div>
       </div>
 
@@ -404,10 +413,10 @@ export default function EmittedInvoiceDetail() {
                 <button
                   type="button"
                   onClick={() => setIsEditDevizOpen(true)}
-                  className="flex items-center gap-1.5 px-3 h-7 text-xs font-bold rounded-lg border border-sky-300 dark:border-sky-700 bg-white dark:bg-slate-800 text-sky-700 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-slate-700 transition-colors"
+                  className="flex items-center gap-1.5 px-3 h-7 text-xs font-bold rounded-lg bg-sky-600 hover:bg-sky-700 text-white shadow-sm transition-colors"
                 >
                   <Pencil className="w-3.5 h-3.5" />
-                  Editează rânduri
+                  Editează Deviz
                 </button>
                 <a
                   href={`/api/pdf/deviz/${linkedDeviz.deviz.id}?download=1`}

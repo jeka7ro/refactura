@@ -94,6 +94,7 @@ const navItems: NavItem[] = [
     subItems: [
       { href: "/facturi", label: "Evidență Facturi", icon: FileText },
       { href: "/facturi-emise-nou", label: "Facturi Emise", icon: FileOutput },
+      { href: "/devize", label: "Devize de Lucrări", icon: FileText },
       { href: "/re-facturi", label: "Re-Facturi", icon: FileOutput },
       { href: "/arhiva-facturi", label: "Arhivă Facturi", icon: Archive },
       { href: "/jurnal-spv", label: "Jurnal SPV", icon: FileText },
