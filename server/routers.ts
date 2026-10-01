@@ -4551,6 +4551,8 @@ export const appRouter = router({
       .input(
         z.object({
           id: z.number(),
+          number: z.string().optional(),
+          date: z.string().optional(),
           notes: z.string().optional(),
           lines: z.array(
             z.object({
@@ -4580,14 +4582,25 @@ export const appRouter = router({
             totalLabor += lTotal;
         }
 
+        const updateData: any = {
+          totalMaterials: totalMaterials.toFixed(2),
+          totalLabor: totalLabor.toFixed(2),
+          total: total.toFixed(2),
+          notes: input.notes,
+        };
+
+        if (input.number && input.number.trim()) {
+          updateData.number = input.number.trim();
+        }
+
+        if (input.date) {
+          const dStr = input.date.includes("T") ? input.date : `${input.date}T12:00:00`;
+          updateData.date = new Date(dStr);
+        }
+
         await db
           .update(devize)
-          .set({
-            totalMaterials: totalMaterials.toFixed(2),
-            totalLabor: totalLabor.toFixed(2),
-            total: total.toFixed(2),
-            notes: input.notes,
-          })
+          .set(updateData)
           .where(
             and(eq(devize.id, input.id), eq(devize.tenantId, (ctx.user?.tenantId || 1)))
           );

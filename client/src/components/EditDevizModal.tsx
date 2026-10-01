@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Loader2, Plus, Trash2, Save, X, FileText, AlertCircle } from "lucide-react";
+import { Loader2, Plus, Trash2, Save, X, FileText, AlertCircle, Calendar } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import {
@@ -36,6 +36,8 @@ export function EditDevizModal({
     { enabled: isOpen && !!devizId }
   );
 
+  const [devizNumber, setDevizNumber] = useState("");
+  const [devizDate, setDevizDate] = useState("");
   const [lines, setLines] = useState<DevizLineItem[]>([]);
   const [notes, setNotes] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -43,6 +45,14 @@ export function EditDevizModal({
   useEffect(() => {
     if (data?.deviz) {
       setNotes(data.deviz.notes || "");
+      setDevizNumber(data.deviz.number || "");
+      if (data.deviz.date) {
+        const d = new Date(data.deviz.date);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        setDevizDate(`${yyyy}-${mm}-${dd}`);
+      }
       if (data.lines && data.lines.length > 0) {
         setLines(
           data.lines.map((l: any) => ({
@@ -131,6 +141,11 @@ export function EditDevizModal({
 
   const handleSave = () => {
     setErrorMsg(null);
+    if (!devizDate) {
+      setErrorMsg("Data devizului este obligatorie.");
+      return;
+    }
+
     if (lines.length === 0) {
       setErrorMsg("Devizul trebuie să conțină cel puțin un rând.");
       return;
@@ -154,6 +169,8 @@ export function EditDevizModal({
 
     updateMutation.mutate({
       id: devizId,
+      number: devizNumber || undefined,
+      date: devizDate,
       notes,
       lines: lines.map((l) => ({
         type: l.type,
@@ -178,7 +195,7 @@ export function EditDevizModal({
                 Editare Deviz {data?.deviz?.number || `#${devizId}`}
               </DialogTitle>
               <p className="text-xs text-slate-400 mt-0.5">
-                Modifică rândurile, tipul (material / manoperă) și prețurile din deviz
+                Modifică data, numărul, rândurile și prețurile din deviz
               </p>
             </div>
           </div>
@@ -197,6 +214,42 @@ export function EditDevizModal({
                 <span>{errorMsg}</span>
               </div>
             )}
+
+            {/* Antet Deviz: Număr, Data, Factură asociată */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">
+                  Nr. Deviz
+                </label>
+                <input
+                  type="text"
+                  value={devizNumber}
+                  onChange={(e) => setDevizNumber(e.target.value)}
+                  placeholder="DEV-..."
+                  className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-sky-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-sky-600" />
+                  Data Devizului
+                </label>
+                <input
+                  type="date"
+                  value={devizDate}
+                  onChange={(e) => setDevizDate(e.target.value)}
+                  className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-sky-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                  Factură asociată
+                </label>
+                <div className="h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-800 text-xs font-medium text-slate-600 dark:text-slate-300 flex items-center">
+                  {data?.deviz?.invoiceId ? `Factura #${data.deviz.invoiceId}` : "Neasociată"}
+                </div>
+              </div>
+            </div>
 
             {/* Tabelul de rânduri */}
             <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
