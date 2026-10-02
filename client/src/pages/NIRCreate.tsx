@@ -2,7 +2,7 @@
 // Format legal OMFP 2634/2015, cod formular 14-3-1/aA
 
 import { useState, useEffect, useMemo } from "react";
-import { useParams } from "wouter";
+import { Link, useParams } from "wouter";
 import {
   ArrowLeft,
   ClipboardCheck,
@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   FileDown,
   FileCode,
+  RefreshCw,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -945,9 +946,19 @@ export default function NIRCreate() {
       {/* ─── SECȚIUNEA 3: Tabel produse ─── */}
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            III. Produse / Servicii recepționate
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              III. Produse / Servicii recepționate
+            </p>
+            <Link
+              href="/saga-sync"
+              target="_blank"
+              className="text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Sincronizează articole noi din SAGA
+            </Link>
+          </div>
           <button
             onClick={addLine}
             style={{

@@ -64,6 +64,7 @@ import HorecaTestPanel from "@/pages/horeca/HorecaTestPanel";
 import KioskApp from "@/pages/kiosk/App.jsx";
 import SpvLogs from "@/pages/SpvLogs";
 import SagaModule from "@/pages/SagaModule";
+import SagaSyncPage from "@/pages/SagaSyncPage";
 
 import CookieBanner from "@/components/CookieBanner";
 import Terms from "@/pages/legal/Terms";
@@ -237,6 +238,16 @@ function Router() {
       <Route path="/saga">
         <DashboardLayout>
           <SagaModule />
+        </DashboardLayout>
+      </Route>
+      <Route path="/saga-sync">
+        <DashboardLayout>
+          <SagaSyncPage />
+        </DashboardLayout>
+      </Route>
+      <Route path="/saga/sincronizare">
+        <DashboardLayout>
+          <SagaSyncPage />
         </DashboardLayout>
       </Route>
       <Route path="/rapoarte">

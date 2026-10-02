@@ -446,11 +446,18 @@ export function registerUploadRoute(app: Express) {
 
           if (values.length > 0) {
             try {
-              // Bulk insert ignore (Drizzle MySQL syntax for IGNORE)
               await db.insert(sagaArticles)
                 .values(values)
                 .onDuplicateKeyUpdate({
-                   set: { name: sql`VALUES(name)` } // dummy update to avoid throw
+                   set: {
+                     name: sql`VALUES(name)`,
+                     unit: sql`VALUES(unit)`,
+                     vatRate: sql`VALUES(vatRate)`,
+                     category: sql`VALUES(category)`,
+                     accountingAccount: sql`VALUES(accountingAccount)`,
+                     barcode: sql`VALUES(barcode)`,
+                     isActive: sql`VALUES(isActive)`,
+                   }
                 });
               imported += values.length;
             } catch (e: any) {

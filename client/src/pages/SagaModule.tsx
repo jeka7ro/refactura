@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect, Fragment } from "react";
+import { Link } from "wouter";
 import {
   Database,
   Plus,
@@ -23,6 +24,7 @@ import {
   ClipboardList,
   BarChart3,
   BookOpen,
+  RefreshCw,
   Factory,
   ShoppingCart,
   Layers,
@@ -201,10 +203,19 @@ export default function SagaModule() {
             />
           ))}
 
+          {/* Quick Direct Sync Button */}
+          <Link
+            href="/saga-sync"
+            className="ml-auto px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg flex items-center gap-1.5 transition-all shadow-sm bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
+          >
+            <RefreshCw className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+            <span>Sincronizare Nomenclator</span>
+          </Link>
+
           {/* Quick Direct Export Button */}
           <button
             onClick={() => setActivePage("export")}
-            className={`ml-auto px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg flex items-center gap-1.5 transition-all shadow-sm ${
+            className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg flex items-center gap-1.5 transition-all shadow-sm ${
               activePage === "export"
                 ? "bg-blue-600 text-white shadow-blue-500/20"
                 : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
@@ -372,9 +383,16 @@ function NomenclatorTab() {
           <Plus className="w-4 h-4" />
           Adaugă Articol
         </button>
+        <Link
+          href="/saga-sync"
+          className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-xl text-sm font-medium transition-colors"
+        >
+          <RefreshCw className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          Sincronizare Asistată (Ghid 1-2-3)
+        </Link>
         <label className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer">
           <Upload className="w-4 h-4" />
-          Import din SAGA
+          Import Rapid
           <input type="file" accept=".xml,.csv,.txt,.dbf,.xlsx,.xls" className="hidden" onChange={handleFileImport} />
         </label>
       </div>
