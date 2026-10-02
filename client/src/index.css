@@ -225,39 +225,41 @@ body {
   border-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Buttons */
-button {
-  @apply transition-all duration-200;
-  font-family: "Segoe UI", "Roboto", sans-serif;
-}
+@layer base {
+  /* Buttons */
+  button {
+    @apply transition-all duration-200;
+    font-family: "Segoe UI", "Roboto", sans-serif;
+  }
 
-button:active {
-  @apply scale-95;
-}
+  button:active {
+    @apply scale-95;
+  }
 
-/* Input Fields */
-input,
-textarea,
-select {
-  @apply px-4 py-2 transition-colors;
-  font-family: "Segoe UI", "Roboto", sans-serif;
-  /* Eliminat border-border pentru a evita conflictele cu Shadcn (InputGroup/Input) */
-}
+  /* Input Fields */
+  input,
+  textarea,
+  select {
+    @apply px-4 py-2 transition-colors;
+    font-family: "Segoe UI", "Roboto", sans-serif;
+    /* Eliminat border-border pentru a evita conflictele cu Shadcn (InputGroup/Input) */
+  }
 
-/* Fix Chrome Autofill breaking transparent inputs inside rounded groups */
-input:-webkit-autofill,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus,
-input:-webkit-autofill:active {
-  transition: background-color 9999s ease-in-out 0s !important;
-  -webkit-text-fill-color: var(--foreground) !important;
-}
+  input:focus,
+  textarea:focus,
+  select:focus {
+    @apply outline-none;
+    /* Eliminat ring-2 ring-primary/50 border-primary pentru a nu suprapune ring-uri la autofill */
+  }
 
-input:focus,
-textarea:focus,
-select:focus {
-  @apply outline-none;
-  /* Eliminat ring-2 ring-primary/50 border-primary pentru a nu suprapune ring-uri la autofill */
+  /* Fix Chrome Autofill breaking transparent inputs inside rounded groups */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    transition: background-color 9999s ease-in-out 0s !important;
+    -webkit-text-fill-color: var(--foreground) !important;
+  }
 }
 
 /* Animations */
