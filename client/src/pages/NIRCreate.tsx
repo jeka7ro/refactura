@@ -353,8 +353,8 @@ export default function NIRCreate() {
               code = matched.code || "";
               artId = matched.id;
             } else {
-              code = String(nextAvailableNum).padStart(8, "0");
-              nextAvailableNum++;
+              code = "";
+              artId = undefined;
             }
           }
 
@@ -388,20 +388,6 @@ export default function NIRCreate() {
       if ((sourceInvoice as any).spvIndex) setSpvIndex((sourceInvoice as any).spvIndex);
       const archLns = archiveLines as any[];
       if (archLns.length > 0) {
-        // Calculate highest existing numeric code
-        let maxCode = 0;
-        articles.forEach((a: any) => {
-          if (a.code && /^\d+$/.test(a.code.trim())) {
-            const n = parseInt(a.code.trim(), 10);
-            if (n > maxCode) maxCode = n;
-          }
-        });
-        if (nextArticleCodeData && /^\d+$/.test(nextArticleCodeData.trim())) {
-          const n = parseInt(nextArticleCodeData.trim(), 10);
-          if (n - 1 > maxCode) maxCode = n - 1;
-        }
-
-        let nextAvailableNum = maxCode + 1;
         const assignedByDesc = new Map<string, { code: string; id?: number }>();
 
         const newLines = archLns
@@ -465,10 +451,9 @@ export default function NIRCreate() {
               assignedCode = prev.code;
               matchedId = prev.id;
             } else {
-              // 2. Dacă nu are, pune imediat următorul disponibil
-              assignedCode = String(nextAvailableNum).padStart(8, "0");
-              nextAvailableNum++;
-              assignedByDesc.set(descNorm, { code: assignedCode });
+              // Articol nou: lăsăm gol, astfel încât SAGA să-i aloce codul ei real la import fără coliziuni
+              assignedCode = "";
+              matchedId = undefined;
             }
 
             const calcTotal = (remaining * unitPrice).toFixed(2);
@@ -507,17 +492,9 @@ export default function NIRCreate() {
           setLines([]);
         }
       } else {
-        let maxCode = 0;
-        articles.forEach((a: any) => {
-          if (a.code && /^\d+$/.test(a.code.trim())) {
-            const n = parseInt(a.code.trim(), 10);
-            if (n > maxCode) maxCode = n;
-          }
-        });
-        const fallbackCode = String(maxCode + 1).padStart(8, "0");
         setLines([
           {
-            articleSearchText: fallbackCode,
+            articleSearchText: "",
             description: `Marfă conform factură ${sourceInvoice.invoiceNumber || ""}`,
             unit: "buc",
             cantitateComanda: "1",
@@ -536,25 +513,11 @@ export default function NIRCreate() {
   }, [sourceInvoice, archiveLines, archiveLinesFetched, isEdit, loaded, articles, articlesFetched, nextArticleCodeData]);
 
   const addLine = () => {
-    let max = 0;
-    articles.forEach((a: any) => {
-      if (a.code && /^\d+$/.test(a.code.trim())) {
-        const n = parseInt(a.code.trim(), 10);
-        if (n > max) max = n;
-      }
-    });
-    lines.forEach(l => {
-      if (l.articleSearchText && /^\d+$/.test(l.articleSearchText.trim())) {
-        const n = parseInt(l.articleSearchText.trim(), 10);
-        if (n > max) max = n;
-      }
-    });
-    const nextCode = String(max + 1).padStart(8, "0");
     setLines(prev => [
       ...prev,
       {
         description: "",
-        articleSearchText: nextCode,
+        articleSearchText: "",
         unit: generalUnit || "buc",
         cantitateComanda: "1",
         cantitateReceptionata: "1",
@@ -1061,7 +1024,7 @@ export default function NIRCreate() {
                                 if (art.accountingAccount) updateLine(idx, "accountingAccount", art.accountingAccount);
                               }
                             }}
-                            placeholder="Caută cod/articol..."
+                            placeholder="Articol SAGA (lasă gol pt nou)"
                           />
                         </div>
                       </td>
