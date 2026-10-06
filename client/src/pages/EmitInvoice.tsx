@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { InvoiceCurrencyCalculator } from "@/components/InvoiceCurrencyCalculator";
 
-const VAT_RATES = [0, 5, 9, 19, 21];
+const VAT_RATES = [21, 19, 9, 5, 0];
 const UNITS = [
   "buc",
   "ore",
@@ -590,8 +590,7 @@ export default function EmitInvoice() {
         setClientCountry(d.country || country);
         setClientCUI(d.cui || rawCui.toUpperCase());
         toast.success(`Operator validat în VIES (${d.country}): ${d.denumire}`);
-        // Pentru tranzacții intracomunitare, de regulă TVA este 0% (taxare inversă / scutit)
-        setLines(prev => prev.map(l => ({ ...l, vatRate: 0 })));
+        // Operator validat în VIES
       } catch {
         toast.error("Eroare la verificarea codului în VIES.");
       } finally {
@@ -628,8 +627,9 @@ export default function EmitInvoice() {
 
   const lookupCuiFromSearch = async (searchTerm: string) => {
     const clean = searchTerm.trim().replace(/\s/g, "");
-    const euMatch = clean.match(/^([A-Za-z]{2})(.*)$/);
-    const isEuForeign = euMatch && euMatch[1].toUpperCase() !== "RO" && euMatch[2].length >= 2;
+    const euCountryCodes = ["AT", "BE", "BG", "CY", "CZ", "DE", "DK", "EE", "EL", "ES", "FI", "FR", "HR", "HU", "IE", "IT", "LT", "LU", "LV", "MT", "NL", "PL", "PT", "SE", "SI", "SK"];
+    const euMatch = clean.match(/^([A-Za-z]{2})([0-9A-Za-z]+)$/);
+    const isEuForeign = euMatch && euCountryCodes.includes(euMatch[1].toUpperCase()) && /\d/.test(euMatch[2]);
 
     setCuiLoading(true);
     try {
@@ -650,7 +650,6 @@ export default function EmitInvoice() {
         setShowAdvancedClientInfo(true);
         setShowClientDropdown(false);
         toast.success(`Operator validat în VIES (${d.country}): ${d.denumire}`);
-        setLines(prev => prev.map(l => ({ ...l, vatRate: 0 })));
       } else {
         const digits = clean.replace(/^RO/i, "").replace(/[^0-9]/g, "");
         if (!digits || digits.length < 2) {
@@ -683,7 +682,7 @@ export default function EmitInvoice() {
 
   const addLine = () =>
     setLines(prev => {
-      const lastVat = prev.length > 0 ? prev[prev.length - 1].vatRate : 21;
+      const lastVat = prev.length > 0 && prev[prev.length - 1].vatRate ? prev[prev.length - 1].vatRate : 21;
       return [...prev, { ...defaultLine(), vatRate: lastVat }];
     });
   const removeLine = (id: string) =>
@@ -712,11 +711,9 @@ export default function EmitInvoice() {
       prev.map(l => {
         if (l.id === lineId) {
           const chosenVat =
-            l.vatRate === 0
-              ? 0
-              : p.defaultVatRate !== undefined && p.defaultVatRate !== null
-                ? Number(p.defaultVatRate)
-                : l.vatRate;
+            p.defaultVatRate !== undefined && p.defaultVatRate !== null && !isNaN(Number(p.defaultVatRate)) && Number(p.defaultVatRate) > 0
+              ? Number(p.defaultVatRate)
+              : (l.vatRate && l.vatRate > 0 ? l.vatRate : 21);
           return {
             ...l,
             description: p.name,
@@ -736,11 +733,9 @@ export default function EmitInvoice() {
       prev.map(l => {
         if (l.id === lineId) {
           const chosenVat =
-            l.vatRate === 0
-              ? 0
-              : item.vatRate !== undefined && item.vatRate !== null
-                ? Number(item.vatRate)
-                : l.vatRate;
+            item.vatRate !== undefined && item.vatRate !== null && !isNaN(Number(item.vatRate)) && Number(item.vatRate) > 0
+              ? Number(item.vatRate)
+              : (l.vatRate && l.vatRate > 0 ? l.vatRate : 21);
           return {
             ...l,
             description: item.denumire || item.description || item.name,
