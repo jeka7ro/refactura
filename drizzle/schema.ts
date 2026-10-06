@@ -800,3 +800,24 @@ export const apiKeys = mysqlTable("apiKeys", {
 
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type InsertApiKey = typeof apiKeys.$inferInsert;
+
+/**
+ * Email Logs — Istoricul transmiterii emailurilor către clienți
+ */
+export const emailLogs = mysqlTable("emailLogs", {
+  id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId").notNull(),
+  invoiceId: int("invoiceId"),
+  invoiceNumber: varchar("invoiceNumber", { length: 100 }),
+  recipientEmail: varchar("recipientEmail", { length: 320 }).notNull(),
+  recipientName: varchar("recipientName", { length: 255 }),
+  subject: varchar("subject", { length: 255 }).notNull(),
+  status: mysqlEnum("status", ["trimis", "eroare", "in_asteptare"]).default("trimis").notNull(),
+  messageId: varchar("messageId", { length: 255 }),
+  error: text("error"),
+  sentAt: timestamp("sentAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type EmailLog = typeof emailLogs.$inferSelect;
+export type InsertEmailLog = typeof emailLogs.$inferInsert;

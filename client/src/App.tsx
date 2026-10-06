@@ -63,6 +63,7 @@ import HorecaKioskSettings from "@/pages/horeca/HorecaKioskSettings";
 import HorecaTestPanel from "@/pages/horeca/HorecaTestPanel";
 import KioskApp from "@/pages/kiosk/App.jsx";
 import SpvLogs from "@/pages/SpvLogs";
+import EmailLogs from "@/pages/EmailLogs";
 import SagaModule from "@/pages/SagaModule";
 import SagaSyncPage from "@/pages/SagaSyncPage";
 
@@ -147,6 +148,16 @@ function Router() {
       <Route path="/jurnal-spv">
         <DashboardLayout>
           <SpvLogs />
+        </DashboardLayout>
+      </Route>
+      <Route path="/evidenta-emailuri">
+        <DashboardLayout>
+          <EmailLogs />
+        </DashboardLayout>
+      </Route>
+      <Route path="/email-logs">
+        <DashboardLayout>
+          <EmailLogs />
         </DashboardLayout>
       </Route>
       <Route path="/facturi-emise-nou/:id">

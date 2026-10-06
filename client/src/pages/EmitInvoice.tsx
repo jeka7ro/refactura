@@ -15,6 +15,7 @@ import {
   Eye,
   FileText,
   Calculator,
+  Mail,
 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -136,6 +137,7 @@ export default function EmitInvoice() {
   const [numarContract, setNumarContract] = useState("");
   const [mentiuni, setMentiuni] = useState("");
   const [createDeviz, setCreateDeviz] = useState(false);
+  const [sendEmailToClient, setSendEmailToClient] = useState(false);
 
   // Lines
   const [lines, setLines] = useState<Line[]>([defaultLine()]);
@@ -211,7 +213,13 @@ export default function EmitInvoice() {
       }
 
       utils.emittedInvoice.list.invalidate();
-      toast.success("Factura a fost creată cu succes!");
+      if ((data as any)?.emailSent) {
+        toast.success(`Factura a fost creată și trimisă cu succes pe email la ${clientEmail.trim()}!`);
+      } else if ((data as any)?.emailError) {
+        toast.warning(`Factura a fost creată, dar trimiterea pe email a eșuat: ${(data as any).emailError}`);
+      } else {
+        toast.success("Factura a fost creată cu succes!");
+      }
       navigate("/facturi-emise-nou");
     },
     onError: err => toast.error("Eroare la creare: " + err.message),
@@ -374,6 +382,9 @@ export default function EmitInvoice() {
           (match.cui?.trim().match(/^([A-Za-z]{2})/)?.[1]?.toUpperCase() || "RO");
         setClientCountry(invCountry);
         setClientEmail(match.email || "");
+        if (match.email && match.email.includes("@")) {
+          setSendEmailToClient(true);
+        }
         setClientPhone(match.phone || "");
         if (match.currency && (match.currency === "RON" || match.currency === "EUR" || match.currency === "USD")) {
           setCurrency(match.currency as Currency);
@@ -556,6 +567,9 @@ export default function EmitInvoice() {
       c.country && c.country !== "RO" ? c.country : (cuiCountry || c.country || "RO");
     setClientCountry(resolvedCountry);
     setClientEmail(c.email || "");
+    if (c.email && c.email.includes("@")) {
+      setSendEmailToClient(true);
+    }
     setClientPhone(c.phone || "");
     if (c.address || c.city || code || (resolvedCountry && resolvedCountry !== "RO")) {
       setShowAdvancedClientInfo(true);
@@ -801,6 +815,11 @@ export default function EmitInvoice() {
       toast.error("Toate liniile trebuie să aibă descriere");
       return;
     }
+    if (sendEmailToClient && (!clientEmail || !clientEmail.trim() || !clientEmail.includes("@"))) {
+      toast.error("Vă rugăm să introduceți o adresă de email validă pentru client pentru a putea trimite factura pe email.");
+      setShowAdvancedClientInfo(true);
+      return;
+    }
     setSaving(true);
     try {
       for (const line of lines) {
@@ -844,6 +863,8 @@ export default function EmitInvoice() {
         status,
         notes: notesForSave,
         createDeviz,
+        sendEmailToClient,
+        representativeName: delegat.trim() || undefined,
         lines: lines.map((l, i) => ({
           description: l.description,
           quantity: parseFloat(String(l.quantity)) || 1,
@@ -1748,7 +1769,38 @@ export default function EmitInvoice() {
       </div>
 
       {/* Save buttons bottom */}
-      <div className="flex items-center justify-end gap-5 pb-4 flex-nowrap">
+      <div className="flex items-center justify-end gap-5 pb-4 flex-wrap sm:flex-nowrap">
+        {/* Toggle Trimite Factura pe Email */}
+        <div className="flex items-center gap-2 shrink-0">
+          <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap">
+            <Mail className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+              Trimite pe Email
+            </span>
+            <Switch
+              checked={sendEmailToClient}
+              onCheckedChange={checked => {
+                setSendEmailToClient(checked);
+                if (checked && !clientEmail) {
+                  setShowAdvancedClientInfo(true);
+                }
+              }}
+            />
+          </label>
+          {sendEmailToClient && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-xs">
+              <span className="text-[11px] text-blue-600 dark:text-blue-400 font-medium">La:</span>
+              <input
+                type="email"
+                value={clientEmail}
+                onChange={e => setClientEmail(e.target.value)}
+                placeholder="adresa@client.ro"
+                className="bg-transparent text-xs text-slate-800 dark:text-slate-200 outline-none w-36 placeholder:text-slate-400"
+              />
+            </div>
+          )}
+        </div>
+
         {/* Toggle Creare Deviz - strict pe un singur rând */}
         <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap shrink-0">
           <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">

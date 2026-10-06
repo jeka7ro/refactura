@@ -38,6 +38,7 @@ import {
   Moon,
   Sun,
   X,
+  Mail,
   UtensilsCrossed,
   Truck,
   BookOpen,
@@ -98,6 +99,7 @@ const navItems: NavItem[] = [
       { href: "/re-facturi", label: "Re-Facturi", icon: FileOutput },
       { href: "/arhiva-facturi", label: "Arhivă Facturi", icon: Archive },
       { href: "/jurnal-spv", label: "Jurnal SPV", icon: FileText },
+      { href: "/evidenta-emailuri", label: "Evidență Emailuri", icon: Mail },
     ],
   },
   {

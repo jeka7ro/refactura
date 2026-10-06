@@ -13,6 +13,7 @@ import {
   Send,
   RefreshCw,
   Pencil,
+  Mail,
 } from "lucide-react";
 import {
   formatCurrency,
@@ -93,6 +94,18 @@ export default function EmittedInvoiceDetail() {
     onError: e => toast.error("Eroare verificare: " + e.message),
   });
 
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailRecipient, setEmailRecipient] = useState("");
+  const [representativeName, setRepresentativeName] = useState("");
+
+  const sendEmailMutation = trpc.emittedInvoice.sendEmail.useMutation({
+    onSuccess: res => {
+      toast.success(`Factura a fost trimisă cu succes pe email la ${res.recipient}!`);
+      setShowEmailModal(false);
+    },
+    onError: e => toast.error("Eroare trimitere email: " + e.message),
+  });
+
   if (isLoading) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
@@ -137,12 +150,24 @@ export default function EmittedInvoiceDetail() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span
             className={`px-2.5 h-8 flex items-center rounded-lg text-xs font-bold border ${(invoiceStatusColors as any)[status] || "bg-slate-50 text-slate-600 border-slate-200"}`}
           >
             {(invoiceStatusLabels as any)[status] || status}
           </span>
+          <button
+            onClick={() => {
+              setEmailRecipient(invoice.clientEmail || "");
+              const match = (invoice.notes || "").match(/(?:delegat|reprezentant|persoan[aă] de contact)\s*:\s*([^\n\r(]+)/i);
+              setRepresentativeName(match && match[1] ? match[1].trim() : "");
+              setShowEmailModal(true);
+            }}
+            className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.97]"
+          >
+            <Mail className="w-3.5 h-3.5" />
+            Trimite pe Email
+          </button>
           <Link href={`/facturi-emise-nou/${invoice.id}`}>
             <button className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.97]">
               Editează Factura
@@ -459,6 +484,95 @@ export default function EmittedInvoiceDetail() {
             setDevizTimestamp(Date.now());
           }}
         />
+      )}
+
+      {/* Modal Trimite pe Email */}
+      {showEmailModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl w-full max-w-md p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <Mail className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Trimite Factura pe Email
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {formatInvoiceNumber(invoice.series, invoice.number)} • {invoice.clientName}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Adresă Email Destinatar
+              </label>
+              <input
+                type="email"
+                value={emailRecipient}
+                onChange={e => setEmailRecipient(e.target.value)}
+                placeholder="client@exemplu.ro"
+                className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Nume Reprezentant (opțional)
+              </label>
+              <input
+                type="text"
+                value={representativeName}
+                onChange={e => setRepresentativeName(e.target.value)}
+                placeholder="ex: Ion Popescu (lăsați gol pentru 'Bună ziua,')"
+                className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              <p className="text-[11px] text-slate-500">
+                Dacă este specificat, emailul va începe cu „Bună ziua [Nume],”. Dacă este lăsat gol, va fi doar „Bună ziua,” fără numele firmei.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setShowEmailModal(false)}
+                disabled={sendEmailMutation.isPending}
+                className="px-4 h-9 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                Anulează
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!emailRecipient || !emailRecipient.includes("@")) {
+                    toast.error("Vă rugăm să introduceți o adresă de email validă");
+                    return;
+                  }
+                  sendEmailMutation.mutate({
+                    invoiceId: invoice.id,
+                    recipientEmail: emailRecipient.trim(),
+                    representativeName: representativeName.trim() || undefined,
+                  });
+                }}
+                disabled={sendEmailMutation.isPending}
+                className="flex items-center gap-1.5 px-4 h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all disabled:opacity-60"
+              >
+                {sendEmailMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Se trimite...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-3.5 h-3.5" />
+                    Trimite Factura
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -147,9 +147,33 @@ export async function getDb() {
             INDEX idx_apiKeys_keyHash (keyHash)
           )
         `);
-        console.log("[DB] apiKeys table ready");
       } catch (e) {
         // Table might already exist — ignore
+      }
+      // Email Logs table
+      try {
+        await _db.execute(sql`
+          CREATE TABLE IF NOT EXISTS emailLogs (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            tenantId INT NOT NULL,
+            invoiceId INT NULL,
+            invoiceNumber VARCHAR(100) NULL,
+            recipientEmail VARCHAR(320) NOT NULL,
+            recipientName VARCHAR(255) NULL,
+            subject VARCHAR(255) NOT NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'trimis',
+            messageId VARCHAR(255) NULL,
+            error TEXT NULL,
+            sentAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_emailLogs_tenantId (tenantId),
+            INDEX idx_emailLogs_invoiceId (invoiceId),
+            INDEX idx_emailLogs_sentAt (sentAt)
+          )
+        `);
+        console.log("[DB] emailLogs table ready");
+      } catch (e) {
+        // Table might already exist
       }
       // Cost Center Categories nomenclator
       try {

@@ -2379,6 +2379,8 @@ export const appRouter = router({
             })
           ),
           createDeviz: z.boolean().default(false).optional(),
+          sendEmailToClient: z.boolean().default(false).optional(),
+          representativeName: z.string().optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -2387,7 +2389,7 @@ export const appRouter = router({
         if (!db) throw new Error("No DB");
         const { emittedInvoices, emittedInvoiceLines } =
           await import("../drizzle/schema");
-        const { lines, createDeviz, ...invoiceData } = input;
+        const { lines, createDeviz, sendEmailToClient, representativeName, ...invoiceData } = input;
 
         let safeCountry = "RO";
         if (invoiceData.clientCountry) {
@@ -2661,7 +2663,59 @@ export const appRouter = router({
           console.error("Failed to auto-save products on invoice creation:", prodErr);
         }
 
-        return { id: invoiceId };
+        let emailSent = false;
+        let emailError: string | undefined;
+
+        if (sendEmailToClient && invoiceData.clientEmail) {
+          try {
+            const { generateEmittedInvoicePdfBuffer, sendInvoiceEmail, extractRepresentativeName } = await import("./emailService");
+            const { buffer, filename, tenant, tenantLogoBase64 } = await generateEmittedInvoicePdfBuffer(invoiceId);
+            const repName = representativeName?.trim() || extractRepresentativeName(invoiceData.notes);
+            const emailRes = await sendInvoiceEmail({
+              toEmail: invoiceData.clientEmail,
+              toName: invoiceData.clientName,
+              representativeName: repName,
+              invoiceNumber: invoiceData.number,
+              invoiceDate: invoiceData.issueDate,
+              dueDate: invoiceData.dueDate,
+              total: invoiceData.total,
+              currency: invoiceData.currency,
+              pdfBuffer: buffer,
+              filename,
+              companyName: tenant?.name,
+              companyEmail: tenant?.email,
+              companyIBAN: invoiceData.companyIBAN,
+              companyBank: invoiceData.companyBank,
+              tenantLogoBase64,
+            });
+            emailSent = emailRes.success;
+            emailError = emailRes.error;
+
+            // Log email send in emailLogs
+            try {
+              const { emailLogs } = await import("../drizzle/schema");
+              await db.insert(emailLogs).values({
+                tenantId: (ctx.user?.tenantId || 1),
+                invoiceId,
+                invoiceNumber: invoiceData.number,
+                recipientEmail: invoiceData.clientEmail,
+                recipientName: invoiceData.clientName,
+                subject: `Factura fiscală ${invoiceData.number} - ${tenant?.name || "TRADE INVEST NETWORK"}`,
+                status: emailRes.success ? "trimis" : "eroare",
+                messageId: emailRes.messageId || null,
+                error: emailRes.error || null,
+                sentAt: new Date(),
+              });
+            } catch (logErr) {
+              console.error("Failed to insert emailLog on invoice create:", logErr);
+            }
+          } catch (e: any) {
+            console.error("Failed to send email on invoice create:", e);
+            emailError = e.message;
+          }
+        }
+
+        return { id: invoiceId, emailSent, emailError };
       }),
 
     update: protectedProcedure
@@ -3274,6 +3328,183 @@ export const appRouter = router({
           errors,
           raw: text.slice(0, 500),
         };
+      }),
+
+    sendEmail: protectedProcedure
+      .input(
+        z.object({
+          invoiceId: z.number(),
+          recipientEmail: z.string().optional(),
+          representativeName: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant");
+        const { generateEmittedInvoicePdfBuffer, sendInvoiceEmail, extractRepresentativeName } = await import("./emailService");
+        const { buffer, filename, invoice, tenant, tenantLogoBase64, representativeName: repFromInv } = await generateEmittedInvoicePdfBuffer(input.invoiceId);
+
+        if (invoice.tenantId !== (ctx.user?.tenantId || 1)) {
+          throw new Error("Nu aveți acces la această factură");
+        }
+
+        const targetEmail = (input.recipientEmail || invoice.clientEmail || "").trim();
+        if (!targetEmail || !targetEmail.includes("@")) {
+          throw new Error("Clientul nu are o adresă de email validă configurată. Specificați adresa de email a destinatarului.");
+        }
+
+        const rawNum = (invoice.number || `FACT-${invoice.id}`).trim();
+        const rawSer = (invoice.series || "").trim();
+        const cleanDisplayNum = rawNum.toUpperCase().startsWith(rawSer.toUpperCase())
+          ? rawNum
+          : `${rawSer} ${rawNum}`.trim();
+
+        const repName = input.representativeName?.trim() || repFromInv || extractRepresentativeName(invoice.notes);
+
+        const result = await sendInvoiceEmail({
+          toEmail: targetEmail,
+          toName: invoice.clientName,
+          representativeName: repName,
+          invoiceNumber: cleanDisplayNum,
+          invoiceDate: invoice.issueDate,
+          dueDate: invoice.dueDate,
+          total: parseFloat(invoice.total || "0"),
+          currency: invoice.currency || "RON",
+          pdfBuffer: buffer,
+          filename,
+          companyName: tenant?.name,
+          companyEmail: tenant?.email,
+          companyIBAN: invoice.companyIBAN,
+          companyBank: invoice.companyBank,
+          tenantLogoBase64,
+        });
+
+        // Insert log in emailLogs table
+        try {
+          const db = await getDb();
+          if (db) {
+            const { emailLogs } = await import("../drizzle/schema");
+            await db.insert(emailLogs).values({
+              tenantId: (ctx.user?.tenantId || 1),
+              invoiceId: invoice.id,
+              invoiceNumber: cleanDisplayNum,
+              recipientEmail: targetEmail,
+              recipientName: invoice.clientName,
+              subject: `Factura fiscală ${cleanDisplayNum} - ${tenant?.name || "TRADE INVEST NETWORK"}`,
+              status: result.success ? "trimis" : "eroare",
+              messageId: result.messageId || null,
+              error: result.error || null,
+              sentAt: new Date(),
+            });
+          }
+        } catch (logErr) {
+          console.error("Failed to insert emailLog on sendEmail:", logErr);
+        }
+
+        if (!result.success) {
+          throw new Error(result.error || "Eroare la trimiterea emailului prin Brevo");
+        }
+
+        return { success: true, messageId: result.messageId, recipient: targetEmail };
+      }),
+  }),
+
+  // ─── Email Logs Router (Evidență Emailuri) ──────────────────────────────────
+  emailLogs: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      if (!ctx.user?.tenantId) throw new Error("No tenant");
+      const db = await getDb();
+      if (!db) throw new Error("No DB");
+      const { emailLogs } = await import("../drizzle/schema");
+      const { eq, desc } = await import("drizzle-orm");
+
+      return db
+        .select()
+        .from(emailLogs)
+        .where(eq(emailLogs.tenantId, (ctx.user?.tenantId || 1)))
+        .orderBy(desc(emailLogs.sentAt), desc(emailLogs.id));
+    }),
+
+    resend: protectedProcedure
+      .input(
+        z.object({
+          logId: z.number(),
+          recipientEmail: z.string().optional(),
+          representativeName: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { emailLogs } = await import("../drizzle/schema");
+        const { eq, and } = await import("drizzle-orm");
+
+        const [log] = await db
+          .select()
+          .from(emailLogs)
+          .where(
+            and(
+              eq(emailLogs.id, input.logId),
+              eq(emailLogs.tenantId, (ctx.user?.tenantId || 1))
+            )
+          );
+
+        if (!log) throw new Error("Înregistrarea emailului nu a fost găsită");
+        if (!log.invoiceId) throw new Error("Acest email nu este asociat cu o factură");
+
+        const targetEmail = (input.recipientEmail || log.recipientEmail).trim();
+        if (!targetEmail || !targetEmail.includes("@")) {
+          throw new Error("Adresă de email invalidă");
+        }
+
+        const { generateEmittedInvoicePdfBuffer, sendInvoiceEmail, extractRepresentativeName } = await import("./emailService");
+        const { buffer, filename, invoice, tenant, tenantLogoBase64, representativeName: repFromInv } = await generateEmittedInvoicePdfBuffer(log.invoiceId);
+
+        const rawNum = (invoice.number || `FACT-${invoice.id}`).trim();
+        const rawSer = (invoice.series || "").trim();
+        const cleanDisplayNum = rawNum.toUpperCase().startsWith(rawSer.toUpperCase())
+          ? rawNum
+          : `${rawSer} ${rawNum}`.trim();
+
+        const repName = input.representativeName?.trim() || repFromInv || extractRepresentativeName(invoice.notes);
+
+        const result = await sendInvoiceEmail({
+          toEmail: targetEmail,
+          toName: invoice.clientName,
+          representativeName: repName,
+          invoiceNumber: cleanDisplayNum,
+          invoiceDate: invoice.issueDate,
+          dueDate: invoice.dueDate,
+          total: parseFloat(invoice.total || "0"),
+          currency: invoice.currency || "RON",
+          pdfBuffer: buffer,
+          filename,
+          companyName: tenant?.name,
+          companyEmail: tenant?.email,
+          companyIBAN: invoice.companyIBAN,
+          companyBank: invoice.companyBank,
+          tenantLogoBase64,
+        });
+
+        // Insert new log entry for the resend
+        await db.insert(emailLogs).values({
+          tenantId: (ctx.user?.tenantId || 1),
+          invoiceId: invoice.id,
+          invoiceNumber: cleanDisplayNum,
+          recipientEmail: targetEmail,
+          recipientName: invoice.clientName,
+          subject: `Factura fiscală ${cleanDisplayNum} - ${tenant?.name || "TRADE INVEST NETWORK"}`,
+          status: result.success ? "trimis" : "eroare",
+          messageId: result.messageId || null,
+          error: result.error || null,
+          sentAt: new Date(),
+        });
+
+        if (!result.success) {
+          throw new Error(result.error || "Eroare la retrimiterea emailului");
+        }
+
+        return { success: true, messageId: result.messageId, recipient: targetEmail };
       }),
   }),
 
