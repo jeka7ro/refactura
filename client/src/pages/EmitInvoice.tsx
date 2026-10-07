@@ -1,5 +1,5 @@
 // EmitInvoice.tsx — Creare Factură Nouă — Layout inspirat din Oblio
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useLocation, useParams } from "wouter";
 import {
   ArrowLeft,
@@ -16,6 +16,7 @@ import {
   FileText,
   Calculator,
   Mail,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -24,6 +25,32 @@ import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { InvoiceCurrencyCalculator } from "@/components/InvoiceCurrencyCalculator";
 import { BnrInvoiceRateToggle } from "@/components/BnrInvoiceRateToggle";
+
+const EU_COUNTRIES = new Set([
+  "AT", "BE", "BG", "CY", "CZ", "DE", "DK", "EE", "ES", "FI",
+  "FR", "GR", "HR", "HU", "IE", "IT", "LT", "LU", "LV", "MT",
+  "NL", "PL", "PT", "SE", "SI", "SK",
+]);
+
+export const REVERSE_CHARGE_LEGAL_TEXT =
+  "VAT reverse charge – VAT to be accounted for by the recipient in accordance with Article 196 of Council Directive 2006/112/EC";
+
+export const isReverseChargeNotePresent = (notes: string): boolean => {
+  return /VAT\s+reverse\s+charge/i.test(notes || "") || /taxare\s+invers[aă].*196/i.test(notes || "");
+};
+
+export const removeReverseChargeNote = (text: string): string => {
+  return (text || "")
+    .split("\n")
+    .filter(line => !/VAT\s+reverse\s+charge/i.test(line) && !/taxare\s+invers[aă].*196/i.test(line))
+    .join("\n")
+    .trim();
+};
+
+export const addReverseChargeNote = (text: string): string => {
+  const cleaned = removeReverseChargeNote(text);
+  return cleaned ? `${cleaned}\n${REVERSE_CHARGE_LEGAL_TEXT}` : REVERSE_CHARGE_LEGAL_TEXT;
+};
 
 const VAT_RATES = [21, 19, 9, 5, 0];
 const UNITS = [
@@ -139,6 +166,8 @@ export default function EmitInvoice() {
   const [mentiuni, setMentiuni] = useState("");
   const [createDeviz, setCreateDeviz] = useState(false);
   const [sendEmailToClient, setSendEmailToClient] = useState(false);
+  const [isReverseCharge, setIsReverseCharge] = useState(false);
+  const userManualReverseChargeRef = useRef(false);
 
   // Lines
   const [lines, setLines] = useState<Line[]>([defaultLine()]);
@@ -551,6 +580,31 @@ export default function EmitInvoice() {
     }
   }, [originalInvoice, sourceId, stornoId, editId, linkedDevizForEdit]);
 
+  // Sync reverse charge toggle if loaded notes already have the legal mention
+  useEffect(() => {
+    if (isReverseChargeNotePresent(mentiuni) && !isReverseCharge) {
+      setIsReverseCharge(true);
+    }
+  }, [mentiuni, isReverseCharge]);
+
+  // Auto-enable Reverse Charge for EUR currency or EU foreign clients (unless manually toggled)
+  useEffect(() => {
+    if (userManualReverseChargeRef.current) return;
+
+    const isEuForeign = !!(clientCountry && clientCountry !== "RO" && EU_COUNTRIES.has(clientCountry));
+    const shouldEnable = currency === "EUR" || isEuForeign;
+
+    if (shouldEnable && !isReverseCharge) {
+      setIsReverseCharge(true);
+      setMentiuni(prev => addReverseChargeNote(prev));
+      setLines(prev =>
+        prev.map(l => (l.vatRate === 21 || l.vatRate === 19 ? { ...l, vatRate: 0 } : l))
+      );
+    } else if (!shouldEnable && isReverseCharge && !isReverseChargeNotePresent(mentiuni)) {
+      setIsReverseCharge(false);
+    }
+  }, [currency, clientCountry, isReverseCharge, mentiuni]);
+
   const [cuiLoading, setCuiLoading] = useState(false);
 
   const selectClient = (c: any) => {
@@ -695,9 +749,31 @@ export default function EmitInvoice() {
     }
   };
 
+  const handleToggleReverseCharge = (checked: boolean) => {
+    userManualReverseChargeRef.current = true;
+    setIsReverseCharge(checked);
+    if (checked) {
+      setMentiuni(prev => addReverseChargeNote(prev));
+      setLines(prev =>
+        prev.map(l => (l.vatRate === 21 || l.vatRate === 19 ? { ...l, vatRate: 0 } : l))
+      );
+      toast.success("Taxare Inversă activată: Cota TVA setată la 0% și mențiunea Art. 196 adăugată pe factură.");
+    } else {
+      setMentiuni(prev => removeReverseChargeNote(prev));
+      setLines(prev =>
+        prev.map(l => (l.vatRate === 0 ? { ...l, vatRate: 21 } : l))
+      );
+      toast.info("Taxare Inversă dezactivată.");
+    }
+  };
+
   const addLine = () =>
     setLines(prev => {
-      const lastVat = prev.length > 0 && prev[prev.length - 1].vatRate ? prev[prev.length - 1].vatRate : 21;
+      const defaultVat = isReverseCharge ? 0 : 21;
+      const lastVat =
+        prev.length > 0 && prev[prev.length - 1].vatRate !== undefined
+          ? prev[prev.length - 1].vatRate
+          : defaultVat;
       return [...prev, { ...defaultLine(), vatRate: lastVat }];
     });
   const removeLine = (id: string) =>
@@ -725,10 +801,16 @@ export default function EmitInvoice() {
     setLines(prev =>
       prev.map(l => {
         if (l.id === lineId) {
-          const chosenVat =
-            p.defaultVatRate !== undefined && p.defaultVatRate !== null && !isNaN(Number(p.defaultVatRate)) && Number(p.defaultVatRate) > 0
-              ? Number(p.defaultVatRate)
-              : (l.vatRate && l.vatRate > 0 ? l.vatRate : 21);
+          const chosenVat = isReverseCharge
+            ? 0
+            : p.defaultVatRate !== undefined &&
+              p.defaultVatRate !== null &&
+              !isNaN(Number(p.defaultVatRate)) &&
+              Number(p.defaultVatRate) > 0
+            ? Number(p.defaultVatRate)
+            : l.vatRate && l.vatRate > 0
+            ? l.vatRate
+            : 21;
           return {
             ...l,
             description: p.name,
@@ -747,10 +829,16 @@ export default function EmitInvoice() {
     setLines(prev =>
       prev.map(l => {
         if (l.id === lineId) {
-          const chosenVat =
-            item.vatRate !== undefined && item.vatRate !== null && !isNaN(Number(item.vatRate)) && Number(item.vatRate) > 0
-              ? Number(item.vatRate)
-              : (l.vatRate && l.vatRate > 0 ? l.vatRate : 21);
+          const chosenVat = isReverseCharge
+            ? 0
+            : item.vatRate !== undefined &&
+              item.vatRate !== null &&
+              !isNaN(Number(item.vatRate)) &&
+              Number(item.vatRate) > 0
+            ? Number(item.vatRate)
+            : l.vatRate && l.vatRate > 0
+            ? l.vatRate
+            : 21;
           return {
             ...l,
             description: item.denumire || item.description || item.name,
@@ -799,7 +887,9 @@ export default function EmitInvoice() {
   }, [lines]);
 
   const notesForSave = [
-    mentiuni,
+    isReverseCharge && !isReverseChargeNotePresent(mentiuni)
+      ? addReverseChargeNote(mentiuni)
+      : mentiuni,
     numarComanda ? `Comanda: ${numarComanda}` : "",
     numarContract ? `Contract: ${numarContract}` : "",
     intocmitDe ? `Întocmit de: ${intocmitDe}` : "",
@@ -1586,7 +1676,7 @@ export default function EmitInvoice() {
                 >
                   {VAT_RATES.map(r => (
                     <option key={r} value={r}>
-                      {r}%
+                      {r}%{isReverseCharge && r === 0 ? " (Taxare Inversă)" : ""}
                     </option>
                   ))}
                 </select>
@@ -1642,21 +1732,45 @@ export default function EmitInvoice() {
                 </p>
               </div>
             )}
+
+            {isReverseCharge && (
+              <div className="mt-2.5 p-2.5 rounded-lg bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-xs">
+                <div className="flex items-center gap-1.5 font-semibold text-blue-900 dark:text-blue-200 mb-0.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                  <span>Taxare Inversă / VAT Reverse Charge (Art. 196):</span>
+                </div>
+                <p className="font-mono text-slate-800 dark:text-slate-200 leading-relaxed text-[11px]">
+                  {REVERSE_CHARGE_LEGAL_TEXT}
+                </p>
+              </div>
+            )}
           </div>
           <div className="lg:col-span-5 px-4 py-3 lg:border-l border-slate-200 dark:border-slate-700 space-y-1 bg-slate-50/50 dark:bg-slate-800/20 lg:bg-transparent">
             {vatBreakdown.map(({ rate, base, vat }) => (
               <div
                 key={rate}
-                className="flex justify-between text-xs text-slate-500"
+                className="flex justify-between items-center text-xs text-slate-500"
               >
-                <span>
-                  TVA {rate}% × {formatCurrency(base, currency)}
-                </span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span>
+                    TVA {rate}% × {formatCurrency(base, currency)}
+                  </span>
+                  {rate === 0 && isReverseCharge && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300">
+                      Reverse Charge (Art. 196)
+                    </span>
+                  )}
+                </div>
                 <span className="font-medium">
                   {formatCurrency(vat, currency)}
                 </span>
               </div>
             ))}
+            {isReverseCharge && (
+              <div className="text-[11px] font-medium text-blue-600 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-950/30 px-2 py-1 rounded border border-blue-100 dark:border-blue-900/50 leading-tight">
+                VAT reverse charge – Directiva 2006/112/CE Art. 196
+              </div>
+            )}
             <div className="flex justify-between text-sm text-slate-600 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
               <span>Total fără TVA:</span>
               <span className="font-semibold">
@@ -1797,6 +1911,22 @@ export default function EmitInvoice() {
           notes={mentiuni}
           onNotesChange={setMentiuni}
         />
+
+        {/* Toggle Taxare Inversă / VAT Reverse Charge */}
+        <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap shrink-0">
+          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap flex items-center gap-1.5">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                isReverseCharge ? "bg-blue-600 animate-pulse" : "bg-slate-300 dark:bg-slate-600"
+              }`}
+            />
+            Taxare Inversă
+          </span>
+          <Switch
+            checked={isReverseCharge}
+            onCheckedChange={handleToggleReverseCharge}
+          />
+        </label>
 
         {/* Toggle Trimite Factura pe Email */}
         <div className="flex items-center gap-2 shrink-0">
