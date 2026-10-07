@@ -322,7 +322,7 @@ export default function EmittedInvoices() {
           {
             label: "Valoare Totală",
             value: formatCurrency(totalValue, "RON"),
-            cls: "text-sky-600 dark:text-sky-400",
+            cls: "text-primary",
           },
         ].map(k => (
           <div
