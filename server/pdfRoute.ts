@@ -327,6 +327,10 @@ export function registerPdfRoute(app: any) {
         address: getXmlText(party?.["cac:PostalAddress"]?.["cbc:StreetName"]),
         city: getXmlText(party?.["cac:PostalAddress"]?.["cbc:CityName"]),
         county: getXmlText(party?.["cac:PostalAddress"]?.["cbc:CountrySubentity"]),
+        country:
+          getXmlText(party?.["cac:PostalAddress"]?.["cac:Country"]?.["cbc:IdentificationCode"]) ||
+          getXmlText(party?.["cac:PostalAddress"]?.["cac:Country"]?.["cbc:Name"]) ||
+          "",
         email: getXmlText(party?.["cac:Contact"]?.["cbc:ElectronicMail"]),
         phone: getXmlText(party?.["cac:Contact"]?.["cbc:Telephone"]),
         iban: "",
@@ -463,6 +467,7 @@ export function registerPdfRoute(app: any) {
         companyAddress: supplierDetails.address,
         companyCity: supplierDetails.city,
         companyCounty: supplierDetails.county,
+        companyCountry: supplierDetails.country || "RO",
         companyEmail: supplierDetails.email,
         companyPhone: supplierDetails.phone,
         companyIBAN: supplierIban,
@@ -474,6 +479,7 @@ export function registerPdfRoute(app: any) {
         clientAddress: customerDetails.address,
         clientCity: customerDetails.city,
         clientCounty: customerDetails.county,
+        clientCountry: customerDetails.country || "RO",
         clientEmail: customerDetails.email,
         clientPhone: customerDetails.phone,
 

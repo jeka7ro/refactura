@@ -77,8 +77,24 @@ export function isBilingualInvoice(data: ReInvoiceData): boolean {
   if (country && country !== "RO") return true;
   const cui = (data.clientCUI || "").trim().toUpperCase();
   if (cui && !cui.startsWith("RO") && /^[A-Z]{2}/.test(cui)) return true;
+
+  const compCountry = (data.companyCountry || "").trim().toUpperCase();
+  if (compCountry && compCountry !== "RO") return true;
+  const compCui = (data.companyCUI || "").trim().toUpperCase();
+  if (compCui && !compCui.startsWith("RO") && /^[A-Z]{2}/.test(compCui)) return true;
+
+  // Dacă moneda este străină (EUR, USD etc.):
+  // Dacă AMBELE părți sunt din România (țara RO sau CUI RO/cifre), este o factură internă în valută (nu factură externă).
+  // Se marchează ca bilingvă doar dacă cel puțin o parte este din afara României.
   const curr = (data.currency || "").trim().toUpperCase();
-  if (curr && curr !== "RON" && curr !== "LEI") return true;
+  if (curr && curr !== "RON" && curr !== "LEI") {
+    const isClientRo = !country || country === "RO" || cui.startsWith("RO") || /^\d+$/.test(cui);
+    const isSupplierRo = !compCountry || compCountry === "RO" || compCui.startsWith("RO") || /^\d+$/.test(compCui);
+    if (!isClientRo || !isSupplierRo) {
+      return true;
+    }
+    return false;
+  }
   return false;
 }
 
@@ -451,23 +467,29 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
 
   // Furnizor Column
   doc.fontSize(9).font("Roboto-Bold").text(L.supplier, leftX, y);
-  doc.fontSize(11).text(data.companyName, leftX, y + 12, { width: colW });
+  const supplierName = (data.companyName || "").trim();
+  const supplierNameH = Math.max(
+    14,
+    doc.fontSize(11).font("Roboto-Bold").heightOfString(supplierName, { width: colW })
+  );
+  doc.fontSize(11).font("Roboto-Bold").text(supplierName, leftX, y + 14, { width: colW });
 
-  let leftInfoY = y + 30;
+  let leftInfoY = y + 14 + supplierNameH + 6;
   const addInfo = (label: string, val: string, x: number, currY: number, alignRight = false) => {
     if (!val) return currY;
     if (alignRight) {
       const fullText = `${label} ${val}`;
       doc.fontSize(8).font("Roboto").text(fullText, x, currY, { width: colW, align: "right" });
-      const textHeight = doc.heightOfString(fullText, { width: colW });
+      const textHeight = doc.fontSize(8).font("Roboto").heightOfString(fullText, { width: colW });
       return currY + Math.max(12, textHeight + 2);
     } else {
       const measuredW = Math.ceil(doc.fontSize(8).font("Roboto-Bold").widthOfString(label)) + 6;
       const labelW = Math.max(isBilingual ? 85 : 60, measuredW);
       doc.fontSize(8).font("Roboto-Bold").text(label, x, currY, { width: labelW });
-      const textHeight = doc.font("Roboto").heightOfString(val, { width: colW - labelW });
-      doc.text(val, x + labelW, currY, { width: colW - labelW });
-      return currY + Math.max(12, textHeight + 2);
+      const labelHeight = doc.fontSize(8).font("Roboto-Bold").heightOfString(label, { width: labelW });
+      const valHeight = doc.fontSize(8).font("Roboto").heightOfString(val, { width: colW - labelW });
+      doc.fontSize(8).font("Roboto").text(val, x + labelW, currY, { width: colW - labelW });
+      return currY + Math.max(12, Math.max(labelHeight, valHeight) + 2);
     }
   };
 
@@ -496,11 +518,18 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     .fontSize(9)
     .font("Roboto-Bold")
     .text(L.customer, leftX + colW + 20, y, { width: colW, align: "right" });
+
+  const clientName = (data.clientName || "").trim();
+  const clientNameH = Math.max(
+    14,
+    doc.fontSize(11).font("Roboto-Bold").heightOfString(clientName, { width: colW })
+  );
   doc
     .fontSize(11)
-    .text(data.clientName, leftX + colW + 20, y + 12, { width: colW, align: "right" });
+    .font("Roboto-Bold")
+    .text(clientName, leftX + colW + 20, y + 14, { width: colW, align: "right" });
 
-  let rightInfoY = y + 30;
+  let rightInfoY = y + 14 + clientNameH + 6;
   rightInfoY = addInfo(L.cif, data.clientCUI, leftX + colW + 20, rightInfoY, true);
   rightInfoY = addInfo(
     L.address,
@@ -1074,13 +1103,19 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     .text(L.from, leftX, y)
     .text(L.to, leftX + pageWidth / 2, y);
   y += 12;
+  const minCompW = pageWidth / 2 - 20;
+  const minCliW = pageWidth / 2;
+  const compNameH = Math.max(12, doc.fontSize(10).font("Roboto-Bold").heightOfString(data.companyName || "", { width: minCompW }));
+  const cliNameH = Math.max(12, doc.fontSize(10).font("Roboto-Bold").heightOfString(data.clientName || "", { width: minCliW }));
+  const maxNameH = Math.max(compNameH, cliNameH);
+
   doc
     .fontSize(10)
     .font("Roboto-Bold")
     .fillColor("#0f172a")
-    .text(data.companyName, leftX, y, { width: pageWidth / 2 - 20 });
-  doc.text(data.clientName, leftX + pageWidth / 2, y, { width: pageWidth / 2 });
-  y += 15;
+    .text(data.companyName, leftX, y, { width: minCompW });
+  doc.text(data.clientName, leftX + pageWidth / 2, y, { width: minCliW });
+  y += maxNameH + 5;
   doc.fontSize(8.5).font("Roboto").fillColor("#475569");
   doc
     .text(`${L.cif} ${data.companyCUI}`, leftX, y)
