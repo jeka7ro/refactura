@@ -287,23 +287,9 @@ export default function EmittedInvoices() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              setSagaFile(null);
-              setSagaImportResult(null);
-              setShowSagaModal(true);
-            }}
-            className="flex items-center justify-center sm:gap-1.5 h-9 px-3 sm:px-4 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-xs sm:text-sm font-bold transition-colors shadow-sm"
-            title="Importă facturi externe din SAGA (XML sau Excel)"
-          >
-            <Upload className="w-4 h-4" />
-            <span className="hidden sm:inline">Import SAGA (Externe)</span>
-            <span className="inline sm:hidden">SAGA Externe</span>
-          </button>
           <Link href="/facturi-emise-nou/new">
-            <button className="flex items-center justify-center sm:gap-1.5 w-10 h-10 sm:w-auto sm:h-9 sm:px-4 rounded-full sm:rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition-colors shadow-sm flex-shrink-0">
-              <Plus className="w-5 h-5 sm:w-4 sm:h-4" />
-              <span className="hidden sm:inline">Emite Factură Nouă</span>
+            <button className="flex items-center justify-center h-9 px-5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition-colors shadow-sm flex-shrink-0">
+              <span>Factură Nouă</span>
             </button>
           </Link>
         </div>
@@ -322,7 +308,7 @@ export default function EmittedInvoices() {
           {
             label: "Valoare Totală",
             value: formatCurrency(totalValue, "RON"),
-            cls: "text-primary",
+            cls: "text-slate-900 dark:text-white",
           },
         ].map(k => (
           <div
@@ -461,7 +447,7 @@ export default function EmittedInvoices() {
                 setCustomFrom(e.target.value);
                 setPage(1);
               }}
-              className="h-7 px-2 text-xs bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-blue-500"
+              className="h-7 px-3 text-xs bg-white dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-blue-500"
             />
             <span className="text-slate-500 font-medium">Până la:</span>
             <input
@@ -471,7 +457,7 @@ export default function EmittedInvoices() {
                 setCustomTo(e.target.value);
                 setPage(1);
               }}
-              className="h-7 px-2 text-xs bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-blue-500"
+              className="h-7 px-3 text-xs bg-white dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
         )}
@@ -702,7 +688,7 @@ export default function EmittedInvoices() {
                                   `${row.series || ""} ${row.number}`.trim(),
                               })
                             }
-                            className="w-7 h-7 rounded-lg border border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100 flex items-center justify-center transition-colors"
+                            className="w-7 h-7 rounded-full border border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100 flex items-center justify-center transition-colors"
                             title="Storno Factură"
                           >
                             <Undo2 className="w-3.5 h-3.5" />
@@ -722,7 +708,7 @@ export default function EmittedInvoices() {
                             a.click();
                             document.body.removeChild(a);
                           }}
-                          className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-center transition-colors"
+                          className="w-7 h-7 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-center transition-colors"
                           title="Descarcă PDF"
                         >
                           <Download className="w-3.5 h-3.5" />
@@ -734,7 +720,7 @@ export default function EmittedInvoices() {
                           <button
                             onClick={() => sendToSpv.mutate({ id: row.id })}
                             disabled={sendToSpv.isPending}
-                            className="w-7 h-7 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 flex items-center justify-center transition-colors"
+                            className="w-7 h-7 rounded-full border border-indigo-200 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 flex items-center justify-center transition-colors"
                             title="Trimite în SPV"
                           >
                             {sendToSpv.isPending ? (
@@ -747,7 +733,7 @@ export default function EmittedInvoices() {
                         {row._source !== "archive" && (
                           <button
                             onClick={() => setDeleteId(row.id)}
-                            className="w-7 h-7 rounded-lg border border-rose-200 bg-rose-50 text-rose-500 hover:bg-rose-100 flex items-center justify-center transition-colors"
+                            className="w-7 h-7 rounded-full border border-rose-200 bg-rose-50 text-rose-500 hover:bg-rose-100 flex items-center justify-center transition-colors"
                             title="Șterge"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -774,7 +760,7 @@ export default function EmittedInvoices() {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="h-6 px-2 text-xs border-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700 w-[60px] rounded-lg focus:ring-1 focus:ring-blue-500 mx-1">
+                <SelectTrigger className="h-6 px-2 text-xs border-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700 w-[60px] rounded-full focus:ring-1 focus:ring-blue-500 mx-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -797,14 +783,14 @@ export default function EmittedInvoices() {
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="w-7 h-7 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="w-7 h-7 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
