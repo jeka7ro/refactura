@@ -24,7 +24,7 @@ import {
 } from "@/lib/store";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import SpvDeadlineBadge from "@/components/SpvDeadlineBadge";
+import SpvDeadlineBadge, { isSpvTransmitted } from "@/components/SpvDeadlineBadge";
 import { isTransmittedInDeadline } from "@/lib/spvDeadline";
 import { EditDevizModal } from "@/components/EditDevizModal";
 
@@ -290,7 +290,7 @@ export default function EmittedInvoiceDetail() {
                 </span>
               </div>
             )}
-            {!isExternalInvoice(invoice) && invoice.spvStatus !== "validat" && (
+            {!isExternalInvoice(invoice) && !isSpvTransmitted(invoice.spvStatus, invoice.spvIndex, invoice.spvSentAt) && (
               <div className="mt-2.5">
                 <SpvDeadlineBadge
                   detailed={true}
@@ -298,6 +298,8 @@ export default function EmittedInvoiceDetail() {
                   clientCountry={invoice.clientCountry}
                   clientCUI={invoice.clientCUI}
                   spvStatus={invoice.spvStatus}
+                  spvIndex={invoice.spvIndex}
+                  spvSentAt={invoice.spvSentAt}
                 />
               </div>
             )}

@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { getSpvDeadlineInfo } from "@/lib/spvDeadline";
-import { isExternal } from "./SpvDeadlineBadge";
+import { isExternal, isSpvTransmitted } from "./SpvDeadlineBadge";
 import { AlertTriangle, ShieldAlert, ArrowRight, Clock } from "lucide-react";
 
 interface SpvDeadlineBannerProps {
@@ -14,8 +14,15 @@ export default function SpvDeadlineBanner({ invoices, onFilterUrgent }: SpvDeadl
     let urgentCount = 0;
 
     for (const inv of invoices || []) {
-      // Excludem cele validate, arhivate, anulate sau externe
-      if (inv.spvStatus === "validat" || inv.status === "cancelled" || inv._source === "archive") continue;
+      // Excludem cele deja transmise în SPV (in_procesare, trimisă, validată, cu index sau cu sentAt),
+      // cele anulate, arhivate sau externe
+      if (
+        inv.status === "cancelled" ||
+        inv._source === "archive" ||
+        isSpvTransmitted(inv.spvStatus, inv.spvIndex, inv.spvSentAt)
+      ) {
+        continue;
+      }
       if (isExternal(inv.clientCountry, inv.clientCUI, inv.spvStatus)) continue;
 
       const dateToUse = inv.issueDate || inv.createdAt;

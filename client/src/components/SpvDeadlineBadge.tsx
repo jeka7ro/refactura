@@ -11,6 +11,8 @@ interface SpvDeadlineBadgeProps {
   className?: string;
   showIcon?: boolean;
   detailed?: boolean;
+  spvIndex?: string | null;
+  spvSentAt?: string | Date | null;
 }
 
 export function isExternal(country?: string | null, cui?: string | null, status?: string | null): boolean {
@@ -22,6 +24,30 @@ export function isExternal(country?: string | null, cui?: string | null, status?
   return false;
 }
 
+/**
+ * Verifică dacă factura a fost deja transmisă în SPV
+ * (are status in_procesare, trimisă, validată sau are deja index ANAF / dată de transmitere).
+ * În aceste cazuri, termenul legal de transmitere de 5 zile a fost deja îndeplinit.
+ */
+export function isSpvTransmitted(
+  spvStatus?: string | null,
+  spvIndex?: string | null,
+  spvSentAt?: string | Date | null
+): boolean {
+  if (spvIndex && String(spvIndex).trim() !== "") return true;
+  if (spvSentAt) return true;
+  const s = (spvStatus || "").trim().toLowerCase();
+  return (
+    s === "validat" ||
+    s === "validata" ||
+    s === "in_procesare" ||
+    s === "trimis" ||
+    s === "trimisa" ||
+    s === "descarcat" ||
+    s === "ok"
+  );
+}
+
 export default function SpvDeadlineBadge({
   issueDate,
   spvStatus,
@@ -30,9 +56,12 @@ export default function SpvDeadlineBadge({
   className = "",
   showIcon = true,
   detailed = false,
+  spvIndex,
+  spvSentAt,
 }: SpvDeadlineBadgeProps) {
-  // Facturile validate sau externe nu au termen SPV de afișat
-  if (spvStatus === "validat") return null;
+  // Facturile deja transmise în SPV (in_procesare/Trimisă, validată, sau cu index/dată)
+  // nu mai au un termen de transmitere rămas — obligația legală a fost îndeplinită!
+  if (isSpvTransmitted(spvStatus, spvIndex, spvSentAt)) return null;
   if (isExternal(clientCountry, clientCUI, spvStatus)) return null;
 
   const info = getSpvDeadlineInfo(issueDate);

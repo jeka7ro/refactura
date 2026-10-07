@@ -624,6 +624,8 @@ export default function EmittedInvoices() {
                                 spvStatus={row.spvStatus}
                                 clientCountry={row.clientCountry}
                                 clientCUI={row.clientCUI}
+                                spvIndex={row.spvIndex}
+                                spvSentAt={row.spvSentAt}
                               />
                             </div>
                           )}

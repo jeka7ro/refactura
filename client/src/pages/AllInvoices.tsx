@@ -1508,6 +1508,8 @@ export default function AllInvoices() {
                                 spvStatus={row.spvStatus}
                                 clientCountry={row.clientCountry}
                                 clientCUI={row.partnerCui}
+                                spvIndex={row.spvIndex}
+                                spvSentAt={row.spvSentAt}
                               />
                             ) : (
                               <span className="text-slate-400">—</span>
