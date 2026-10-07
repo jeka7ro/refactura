@@ -3426,6 +3426,110 @@ export const appRouter = router({
         .orderBy(desc(emailLogs.sentAt), desc(emailLogs.id));
     }),
 
+    getPreview: protectedProcedure
+      .input(
+        z.object({
+          logId: z.number().optional(),
+          invoiceId: z.number().optional(),
+          representativeName: z.string().optional(),
+        })
+      )
+      .query(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+
+        const tenantId = (ctx.user?.tenantId || 1);
+        let targetInvoiceId = input.invoiceId;
+        let recipientEmail = "";
+        let recipientName = "";
+        let sentAt: Date | string | null = null;
+        let status = "trimis";
+        let messageId: string | null = null;
+        let error: string | null = null;
+
+        if (input.logId) {
+          const { emailLogs } = await import("../drizzle/schema");
+          const { eq, and } = await import("drizzle-orm");
+          const [log] = await db
+            .select()
+            .from(emailLogs)
+            .where(
+              and(
+                eq(emailLogs.id, input.logId),
+                eq(emailLogs.tenantId, tenantId)
+              )
+            );
+          if (!log) throw new Error("Înregistrarea emailului nu a fost găsită");
+          targetInvoiceId = log.invoiceId || targetInvoiceId;
+          recipientEmail = log.recipientEmail;
+          recipientName = log.recipientName || "";
+          sentAt = log.sentAt;
+          status = log.status;
+          messageId = log.messageId;
+          error = log.error;
+        }
+
+        if (!targetInvoiceId) {
+          throw new Error("ID-ul facturii lipsește");
+        }
+
+        const { generateEmittedInvoicePdfBuffer, buildInvoiceEmailPreviewHtml, extractRepresentativeName } = await import("./emailService");
+        const { invoice, tenant, tenantLogoBase64, representativeName: repFromInv, filename } = await generateEmittedInvoicePdfBuffer(targetInvoiceId);
+
+        if (invoice.tenantId !== tenantId) {
+          throw new Error("Nu aveți acces la această factură");
+        }
+
+        if (!recipientEmail) {
+          recipientEmail = invoice.clientEmail || "";
+        }
+        if (!recipientName) {
+          recipientName = invoice.clientName || "";
+        }
+
+        const rawNum = (invoice.number || `FACT-${invoice.id}`).trim();
+        const rawSer = (invoice.series || "").trim();
+        const cleanDisplayNum = rawNum.toUpperCase().startsWith(rawSer.toUpperCase())
+          ? rawNum
+          : `${rawSer} ${rawNum}`.trim();
+
+        const repName = input.representativeName?.trim() || repFromInv || extractRepresentativeName(invoice.notes);
+
+        const html = buildInvoiceEmailPreviewHtml({
+          invoiceNumber: cleanDisplayNum,
+          invoiceDate: invoice.issueDate,
+          dueDate: invoice.dueDate,
+          total: parseFloat(invoice.total || "0"),
+          currency: invoice.currency || "RON",
+          companyName: tenant?.name || "TRADE INVEST NETWORK",
+          companyIBAN: invoice.companyIBAN,
+          companyBank: invoice.companyBank,
+          filename,
+          representativeName: repName,
+          tenantLogoBase64,
+        });
+
+        const subject = `Factura fiscală ${cleanDisplayNum} - ${tenant?.name || "TRADE INVEST NETWORK"}`;
+
+        return {
+          html,
+          subject,
+          recipientEmail,
+          recipientName,
+          representativeName: repName,
+          invoiceNumber: cleanDisplayNum,
+          invoiceId: invoice.id,
+          filename,
+          sentAt,
+          status,
+          messageId,
+          error,
+          total: invoice.total,
+          currency: invoice.currency || "RON",
+        };
+      }),
+
     resend: protectedProcedure
       .input(
         z.object({

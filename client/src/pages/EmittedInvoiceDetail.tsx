@@ -14,6 +14,7 @@ import {
   RefreshCw,
   Pencil,
   Mail,
+  Eye,
 } from "lucide-react";
 import {
   formatCurrency,
@@ -97,11 +98,21 @@ export default function EmittedInvoiceDetail() {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailRecipient, setEmailRecipient] = useState("");
   const [representativeName, setRepresentativeName] = useState("");
+  const [showEmailPreview, setShowEmailPreview] = useState(false);
+
+  const { data: emailPreviewData, isLoading: isEmailPreviewLoading } = trpc.emailLogs.getPreview.useQuery(
+    {
+      invoiceId: invoice?.id,
+      representativeName: representativeName.trim() || undefined,
+    },
+    { enabled: Boolean(showEmailModal && showEmailPreview && invoice?.id) }
+  );
 
   const sendEmailMutation = trpc.emittedInvoice.sendEmail.useMutation({
     onSuccess: res => {
       toast.success(`Factura a fost trimisă cu succes pe email la ${res.recipient}!`);
       setShowEmailModal(false);
+      setShowEmailPreview(false);
     },
     onError: e => toast.error("Eroare trimitere email: " + e.message),
   });
@@ -532,6 +543,39 @@ export default function EmittedInvoiceDetail() {
                 Dacă este specificat, emailul va începe cu „Bună ziua [Nume],”. Dacă este lăsat gol, va fi doar „Bună ziua,” fără numele firmei.
               </p>
             </div>
+
+            <div className="pt-0.5">
+              <button
+                type="button"
+                onClick={() => setShowEmailPreview(!showEmailPreview)}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                {showEmailPreview ? "Ascunde previzualizarea emailului" : "Previzualizează cum va arăta emailul clientului (cu logo și detalii)"}
+              </button>
+            </div>
+
+            {showEmailPreview && (
+              <div className="p-2 sm:p-3 bg-slate-100/80 dark:bg-slate-950/80 rounded-xl border border-slate-200 dark:border-slate-800 max-h-[360px] overflow-y-auto flex justify-center">
+                {isEmailPreviewLoading ? (
+                  <div className="py-12 flex items-center justify-center gap-2 text-xs text-slate-500">
+                    <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                    Se generează previzualizarea emailului...
+                  </div>
+                ) : emailPreviewData?.html ? (
+                  <iframe
+                    srcDoc={emailPreviewData.html}
+                    title="Previzualizare Email"
+                    className="w-full max-w-[540px] h-[340px] bg-white rounded-lg shadow-sm border border-slate-200 dark:border-slate-800"
+                    sandbox="allow-same-origin"
+                  />
+                ) : (
+                  <div className="py-8 text-center text-xs text-slate-500">
+                    Previzualizarea nu a putut fi încărcată.
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
               <button

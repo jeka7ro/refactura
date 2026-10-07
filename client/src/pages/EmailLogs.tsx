@@ -30,6 +30,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
+  Eye,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -46,6 +48,13 @@ export default function EmailLogs() {
   // Pagination (SmartDevize Table Rules)
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
+
+  // Preview modal state
+  const [previewLogId, setPreviewLogId] = useState<number | null>(null);
+  const { data: previewData, isLoading: isPreviewLoading } = trpc.emailLogs.getPreview.useQuery(
+    { logId: previewLogId || 0 },
+    { enabled: Boolean(previewLogId) }
+  );
 
   // Resend modal state
   const [resendLog, setResendLog] = useState<any | null>(null);
@@ -442,15 +451,27 @@ export default function EmailLogs() {
                         </TableCell>
 
                         <TableCell className="text-right whitespace-nowrap pr-6">
-                          {log.invoiceId && (
-                            <button
-                              onClick={() => handleOpenResend(log)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors active:scale-95"
-                            >
-                              <Send className="w-3 h-3 text-blue-600" />
-                              Retrimite
-                            </button>
-                          )}
+                          <div className="flex items-center justify-end gap-1.5">
+                            {log.invoiceId && (
+                              <button
+                                onClick={() => setPreviewLogId(log.id)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors active:scale-95"
+                                title="Previzualizează conținutul exact al emailului"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                                Vezi Email
+                              </button>
+                            )}
+                            {log.invoiceId && (
+                              <button
+                                onClick={() => handleOpenResend(log)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors active:scale-95"
+                              >
+                                <Send className="w-3 h-3 text-blue-600" />
+                                Retrimite
+                              </button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -595,6 +616,127 @@ export default function EmailLogs() {
                   </>
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Previzualizare Email */}
+      {previewLogId && (
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[94vh] flex flex-col overflow-hidden">
+            {/* Header Modal */}
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-slate-900/80">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                      Previzualizare Conținut Email
+                    </h3>
+                    {previewData && (
+                      <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300">
+                        {previewData.invoiceNumber}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    Aspectul exact recepționat de client, incluzând logo-urile, detaliile și documentul atașat
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setPreviewLogId(null)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Email Meta Bar */}
+            {previewData && (
+              <div className="px-6 py-2.5 bg-slate-100/70 dark:bg-slate-950/70 border-b border-slate-200/80 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300 space-y-1">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <span className="text-slate-400 font-medium">Către:</span>{" "}
+                    <strong className="text-slate-900 dark:text-white">{previewData.recipientName || previewData.recipientEmail}</strong>{" "}
+                    <span className="text-slate-500 font-mono text-[11px]">&lt;{previewData.recipientEmail}&gt;</span>
+                  </div>
+                  {previewData.sentAt && (
+                    <div className="text-[11px] text-slate-500 font-medium">
+                      Data: {format(new Date(previewData.sentAt), "dd MMMM yyyy, HH:mm", { locale: ro })}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400 font-medium">Subiect:</span>{" "}
+                  <span className="font-semibold text-slate-800 dark:text-slate-100">{previewData.subject}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Content / Preview Body */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-100/70 dark:bg-slate-950/80 flex justify-center">
+              {isPreviewLoading ? (
+                <div className="py-24 flex flex-col items-center justify-center gap-3 text-slate-400">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                  <span className="text-sm font-medium">Se generează previzualizarea emailului...</span>
+                </div>
+              ) : previewData?.html ? (
+                <iframe
+                  srcDoc={previewData.html}
+                  title="Previzualizare Email"
+                  className="w-full max-w-[620px] h-[520px] sm:h-[600px] bg-white rounded-xl shadow-lg border border-slate-200 dark:border-slate-800"
+                  sandbox="allow-same-origin"
+                />
+              ) : (
+                <div className="py-20 text-center text-slate-500">
+                  Nu s-a putut genera previzualizarea emailului.
+                </div>
+              )}
+            </div>
+
+            {/* Footer Modal Actions */}
+            <div className="px-6 py-3.5 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                {previewData?.invoiceId && (
+                  <Link href={`/facturi-emise-nou/view/${previewData.invoiceId}`}>
+                    <button className="flex items-center gap-1.5 px-3 h-9 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                      <FileText className="w-3.5 h-3.5 text-blue-600" />
+                      Deschide Factura #{previewData.invoiceNumber}
+                      <ExternalLink className="w-3 h-3 opacity-60" />
+                    </button>
+                  </Link>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPreviewLogId(null)}
+                  className="px-4 h-9 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                >
+                  Închide
+                </button>
+                {previewData && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentLog = logs.find((l) => l.id === previewLogId);
+                      setPreviewLogId(null);
+                      if (currentLog) {
+                        handleOpenResend(currentLog);
+                      }
+                    }}
+                    className="flex items-center gap-1.5 px-4 h-9 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-95"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    Retrimite Factura
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

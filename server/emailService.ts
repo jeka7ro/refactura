@@ -216,49 +216,27 @@ export interface SendInvoiceEmailParams {
   tenantLogoBase64?: string;
 }
 
-/**
- * Sends an invoice PDF via Brevo (Sendinblue) transactional email API
- */
-export async function sendInvoiceEmail(params: SendInvoiceEmailParams): Promise<{
-  success: boolean;
-  messageId?: string;
-  error?: string;
-}> {
-  // Brevo API Key: fie din tenant settings, fie din process.env, fie din cheia implicită a platformei
-  const DEFAULT_BREVO_KEY = [
-    34, 49, 63, 35, 41, 51, 56, 119, 99, 98, 111, 57, 107, 109, 57, 62, 60, 57, 59, 107, 56, 57, 107, 106, 59, 63,
-    99, 107, 57, 105, 105, 99, 109, 99, 57, 99, 111, 59, 98, 105, 111, 99, 109, 110, 105, 104, 111, 63, 63, 111,
-    59, 98, 56, 110, 104, 56, 56, 104, 105, 57, 106, 107, 110, 105, 57, 59, 109, 63, 98, 109, 62, 99, 119, 56, 20,
-    0, 57, 107, 15, 11, 34, 11, 46, 29, 63, 47, 48, 61, 22
-  ].map(b => String.fromCharCode(b ^ 0x5a)).join("");
+export interface BuildInvoiceEmailHtmlParams {
+  invoiceNumber: string;
+  invoiceDate?: string;
+  dueDate?: string;
+  total: number | string;
+  currency?: string;
+  companyName?: string;
+  companyIBAN?: string;
+  companyBank?: string;
+  filename: string;
+  representativeName?: string;
+  tenantLogoSrc?: string;
+}
 
-  const apiKey = (params.apiKey && params.apiKey.trim()) ||
-    (process.env.BREVO_API_KEY && process.env.BREVO_API_KEY.trim()) ||
-    DEFAULT_BREVO_KEY;
-
-  const senderEmail = (process.env.BREVO_SENDER_EMAIL && process.env.BREVO_SENDER_EMAIL.trim()) || "jeka7ro@gmail.com";
-  const senderName = params.companyName || (process.env.BREVO_SENDER_NAME && process.env.BREVO_SENDER_NAME.trim()) || "TRADE INVEST NETWORK";
-
-  if (!apiKey) {
-    return { success: false, error: "Cheia API Brevo lipsește (BREVO_API_KEY)" };
-  }
-
-  if (!params.toEmail || !params.toEmail.includes("@")) {
-    return { success: false, error: "Adresa de email a destinatarului este invalidă" };
-  }
-
-  const subject = `Factura fiscală ${params.invoiceNumber} - ${senderName}`;
+export function buildInvoiceEmailHtml(params: BuildInvoiceEmailHtmlParams): string {
+  const senderName = params.companyName || "TRADE INVEST NETWORK";
 
   const formattedTotal = typeof params.total === "number"
     ? params.total.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : params.total;
 
-  const cleanTenantLogo = params.tenantLogoBase64
-    ? params.tenantLogoBase64.replace(/^data:image\/[a-z]+;base64,/, "").trim()
-    : undefined;
-
-  // Regula strictă: Dacă are numele reprezentantului, punem numele acestuia.
-  // Dacă NU are numele reprezentantului, nu punem numele nimănui (nici firmă, nici client). Doar "Bună ziua," și textul.
   const repName = params.representativeName?.trim();
   const validRep = repName && !/\b(s\.?r\.?l\.?|s\.?a\.?|p\.?f\.?a\.?|i\.?i\.?|i\.?f\.?|gmbh|ltd|llc|inc|corp)\b/i.test(repName);
 
@@ -266,8 +244,7 @@ export async function sendInvoiceEmail(params: SendInvoiceEmailParams): Promise<
     ? `Bună ziua <strong>${repName}</strong>,`
     : `Bună ziua,`;
 
-  const htmlContent = `
-<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="ro">
 <head>
   <meta charset="UTF-8">
@@ -299,9 +276,9 @@ export async function sendInvoiceEmail(params: SendInvoiceEmailParams): Promise<
 
     <!-- Dark Banner with Tenant Logo and Tenant Name -->
     <div class="header">
-      ${cleanTenantLogo ? `
+      ${params.tenantLogoSrc ? `
       <div style="margin-bottom: 14px; text-align: center;">
-        <img src="cid:tenant-logo.png" alt="${senderName}" style="max-height: 55px; max-width: 200px; display: inline-block; object-fit: contain;" />
+        <img src="${params.tenantLogoSrc}" alt="${senderName}" style="max-height: 55px; max-width: 200px; display: inline-block; object-fit: contain;" />
       </div>
       ` : ""}
       <h1>${senderName}</h1>
@@ -361,8 +338,88 @@ export async function sendInvoiceEmail(params: SendInvoiceEmailParams): Promise<
     </div>
   </div>
 </body>
-</html>
-  `.trim();
+</html>`.trim();
+}
+
+/**
+ * Builds email HTML preview where tenant logo is rendered directly via data URI
+ */
+export function buildInvoiceEmailPreviewHtml(params: {
+  invoiceNumber: string;
+  invoiceDate?: string;
+  dueDate?: string;
+  total: number | string;
+  currency?: string;
+  companyName?: string;
+  companyIBAN?: string;
+  companyBank?: string;
+  filename: string;
+  representativeName?: string;
+  tenantLogoBase64?: string;
+}): string {
+  let logoSrc: string | undefined = undefined;
+  if (params.tenantLogoBase64) {
+    logoSrc = params.tenantLogoBase64.startsWith("data:")
+      ? params.tenantLogoBase64
+      : `data:image/png;base64,${params.tenantLogoBase64}`;
+  }
+
+  return buildInvoiceEmailHtml({
+    ...params,
+    tenantLogoSrc: logoSrc,
+  });
+}
+
+/**
+ * Sends an invoice PDF via Brevo (Sendinblue) transactional email API
+ */
+export async function sendInvoiceEmail(params: SendInvoiceEmailParams): Promise<{
+  success: boolean;
+  messageId?: string;
+  error?: string;
+}> {
+  // Brevo API Key: fie din tenant settings, fie din process.env, fie din cheia implicită a platformei
+  const DEFAULT_BREVO_KEY = [
+    34, 49, 63, 35, 41, 51, 56, 119, 99, 98, 111, 57, 107, 109, 57, 62, 60, 57, 59, 107, 56, 57, 107, 106, 59, 63,
+    99, 107, 57, 105, 105, 99, 109, 99, 57, 99, 111, 59, 98, 105, 111, 99, 109, 110, 105, 104, 111, 63, 63, 111,
+    59, 98, 56, 110, 104, 56, 56, 104, 105, 57, 106, 107, 110, 105, 57, 59, 109, 63, 98, 109, 62, 99, 119, 56, 20,
+    0, 57, 107, 15, 11, 34, 11, 46, 29, 63, 47, 48, 61, 22
+  ].map(b => String.fromCharCode(b ^ 0x5a)).join("");
+
+  const apiKey = (params.apiKey && params.apiKey.trim()) ||
+    (process.env.BREVO_API_KEY && process.env.BREVO_API_KEY.trim()) ||
+    DEFAULT_BREVO_KEY;
+
+  const senderEmail = (process.env.BREVO_SENDER_EMAIL && process.env.BREVO_SENDER_EMAIL.trim()) || "jeka7ro@gmail.com";
+  const senderName = params.companyName || (process.env.BREVO_SENDER_NAME && process.env.BREVO_SENDER_NAME.trim()) || "TRADE INVEST NETWORK";
+
+  if (!apiKey) {
+    return { success: false, error: "Cheia API Brevo lipsește (BREVO_API_KEY)" };
+  }
+
+  if (!params.toEmail || !params.toEmail.includes("@")) {
+    return { success: false, error: "Adresa de email a destinatarului este invalidă" };
+  }
+
+  const subject = `Factura fiscală ${params.invoiceNumber} - ${senderName}`;
+
+  const cleanTenantLogo = params.tenantLogoBase64
+    ? params.tenantLogoBase64.replace(/^data:image\/[a-z]+;base64,/, "").trim()
+    : undefined;
+
+  const htmlContent = buildInvoiceEmailHtml({
+    invoiceNumber: params.invoiceNumber,
+    invoiceDate: params.invoiceDate,
+    dueDate: params.dueDate,
+    total: params.total,
+    currency: params.currency,
+    companyName: senderName,
+    companyIBAN: params.companyIBAN,
+    companyBank: params.companyBank,
+    filename: params.filename,
+    representativeName: params.representativeName,
+    tenantLogoSrc: cleanTenantLogo ? "cid:tenant-logo.png" : undefined,
+  });
 
   try {
     const attachments: Array<{ name: string; content: string }> = [
