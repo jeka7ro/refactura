@@ -56,18 +56,26 @@ export function BnrInvoiceRateToggle({
     }
   }, [currency]);
 
-  // Căutăm cursul BNR din data emiterii (sau din ultima zi bancară anterioară dacă e weekend/sărbătoare)
+  // Data facturii formatată în stil românesc DD.MM.YYYY (ex: 07.10.2026)
+  const formattedInvoiceDate = useMemo(() => {
+    if (!issueDate) return "";
+    const parts = issueDate.split("-");
+    if (parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
+    return issueDate;
+  }, [issueDate]);
+
+  // Căutăm cursul BNR valabil pentru data emiterii facturii
   const bnrRateInfo = useMemo(() => {
     if (!bnrData) return null;
 
     let targetRate = bnrData.rates?.[refCurrency] || (refCurrency === "EUR" ? 5.3527 : 4.7616);
-    let rateDate = bnrData.formattedDate || "";
 
     if (issueDate && Array.isArray(bnrData.history) && bnrData.history.length > 0) {
       // 1. Căutare exactă după data emiterii
       let matched = bnrData.history.find((h: any) => h.date === issueDate);
 
-      // 2. Dacă nu e zi bancară (weekend/sărbătoare), căutăm cea mai recentă zi lucrătoare anterioară
+      // 2. Dacă BNR nu a publicat încă cursul de la ora 13:00 sau e weekend/sărbătoare,
+      // cursul legal în vigoare este cel din ultima zi lucrătoare bancară anterioară
       if (!matched) {
         const sortedPrior = [...bnrData.history]
           .filter((h: any) => h.date <= issueDate)
@@ -79,21 +87,15 @@ export function BnrInvoiceRateToggle({
 
       if (matched && (matched as any)[refCurrency]) {
         targetRate = (matched as any)[refCurrency];
-        rateDate = matched.formattedDate || matched.date;
       }
-    }
-
-    if (!rateDate && issueDate) {
-      const parts = issueDate.split("-");
-      if (parts.length === 3) rateDate = `${parts[2]}.${parts[1]}.${parts[0]}`;
     }
 
     return {
       rate: targetRate,
       rateStr: targetRate.toFixed(4),
-      dateStr: rateDate || bnrData.formattedDate || "din data emiterii",
+      dateStr: formattedInvoiceDate || bnrData.formattedDate || "din data emiterii",
     };
-  }, [bnrData, refCurrency, issueDate]);
+  }, [bnrData, refCurrency, issueDate, formattedInvoiceDate]);
 
   // Rata activă: customRate dacă a fost modificată manual, altfel rata oficială din acea zi
   const activeRate = useMemo(() => {
@@ -107,7 +109,8 @@ export function BnrInvoiceRateToggle({
 
   // Generare text oficial pentru factură
   const generatedText = useMemo(() => {
-    const dateText = bnrRateInfo?.dateStr ? ` la data de ${bnrRateInfo.dateStr}` : "";
+    const targetDate = formattedInvoiceDate || bnrRateInfo?.dateStr;
+    const dateText = targetDate ? ` la data de ${targetDate}` : "";
     const rateText = `1 ${refCurrency} = ${activeRateStr} RON`;
 
     if (currency === "RON") {
@@ -142,7 +145,7 @@ export function BnrInvoiceRateToggle({
       : "";
 
     return `Curs BNR${dateText}: ${rateText}${totalDetails}.`;
-  }, [refCurrency, activeRateStr, bnrRateInfo, currency, total, totalVAT, activeRate]);
+  }, [refCurrency, activeRateStr, bnrRateInfo, formattedInvoiceDate, currency, total, totalVAT, activeRate]);
 
   // Actualizare automată a textului din mențiuni când toggle-ul este activ
   useEffect(() => {
@@ -152,13 +155,11 @@ export function BnrInvoiceRateToggle({
     const hasBnr = BNR_LINE_REGEX.test(currentNotes);
 
     if (hasBnr) {
-      // Înlocuim doar linia de curs cu cea nouă actualizată
       const updated = currentNotes.replace(BNR_LINE_REGEX, `${generatedText}\n`);
       if (updated.trim() !== currentNotes.trim()) {
         onNotesChange(updated.trimEnd());
       }
     } else {
-      // Adăugăm la începutul mențiunilor
       const updated = currentNotes ? `${generatedText}\n${currentNotes}` : generatedText;
       onNotesChange(updated);
     }
@@ -194,47 +195,52 @@ export function BnrInvoiceRateToggle({
 
   return (
     <div
-      className={`flex flex-wrap items-center justify-between gap-3 px-3 py-2 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs transition-colors ${className}`}
+      className={`flex flex-wrap items-center justify-between gap-3 px-3.5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs transition-colors ${className}`}
     >
-      {/* Partea stângă: Toggle compact + parametri inline */}
-      <div className="flex items-center gap-2.5 flex-wrap">
+      {/* Partea stângă: Toggle compact + parametri inline vizibili clar */}
+      <div className="flex items-center gap-3 flex-wrap">
         <label className="inline-flex items-center gap-2 cursor-pointer select-none">
           <Switch
             checked={isEnabled}
             onCheckedChange={handleToggle}
-            className="scale-90"
           />
-          <span className="font-semibold text-slate-700 dark:text-slate-300 text-xs whitespace-nowrap">
+          <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs whitespace-nowrap">
             Curs BNR pe factură
           </span>
         </label>
 
         {isEnabled ? (
-          <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 pl-2.5 border-l border-slate-200 dark:border-slate-700">
-            <span>1</span>
+          <div className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300 pl-3 border-l border-slate-200 dark:border-slate-700">
+            <span className="font-medium text-slate-600 dark:text-slate-400">1</span>
+            
+            {/* Dropdown monedă - înălțime h-8 pentru lizibilitate completă */}
             <select
               value={refCurrency}
               onChange={(e) => {
                 setRefCurrency(e.target.value);
                 setCustomRate("");
               }}
-              className="h-6 px-1.5 text-xs font-semibold rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-blue-500"
+              className="h-8 min-w-[70px] px-2.5 text-xs font-semibold rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-2xs"
             >
               <option value="EUR">EUR</option>
               <option value="USD">USD</option>
               <option value="GBP">GBP</option>
               <option value="CHF">CHF</option>
             </select>
-            <span>=</span>
+
+            <span className="font-medium text-slate-600 dark:text-slate-400">=</span>
+
+            {/* Input curs valutar */}
             <input
               type="number"
               step="0.0001"
               placeholder={bnrRateInfo?.rateStr || "5.3527"}
               value={customRate || bnrRateInfo?.rateStr || ""}
               onChange={(e) => setCustomRate(e.target.value)}
-              className="w-20 h-6 px-1.5 text-xs font-mono font-semibold rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-24 h-8 px-2.5 text-xs font-mono font-bold rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs"
             />
-            <span>RON</span>
+            
+            <span className="font-semibold text-slate-700 dark:text-slate-300">RON</span>
 
             {customRate && (
               <button
@@ -243,28 +249,26 @@ export function BnrInvoiceRateToggle({
                 className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5 ml-1"
                 title="Revino la cursul oficial BNR"
               >
-                <RotateCcw className="w-2.5 h-2.5" />
+                <RotateCcw className="w-3 h-3" />
                 Reset
               </button>
             )}
 
-            <span className="text-[11px] text-slate-400 dark:text-slate-500 ml-1">
-              ({bnrRateInfo?.dateStr || issueDate})
+            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 ml-1">
+              ({formattedInvoiceDate || bnrRateInfo?.dateStr})
             </span>
           </div>
         ) : (
-          bnrRateInfo && (
-            <span className="text-[11px] text-slate-400 dark:text-slate-500 pl-2 border-l border-slate-200 dark:border-slate-700">
-              (1 {refCurrency} = {activeRateStr} RON)
-            </span>
-          )
+          <span className="text-[11px] text-slate-400 dark:text-slate-500 pl-2.5 border-l border-slate-200 dark:border-slate-700">
+            (1 {refCurrency} = {activeRateStr} RON &bull; {formattedInvoiceDate})
+          </span>
         )}
       </div>
 
       {/* Partea dreaptă: Previzualizare text curat pe o singură linie */}
       {isEnabled && (
         <div className="flex items-center gap-2 max-w-full sm:max-w-md ml-auto">
-          <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate font-mono">
+          <span className="text-[11px] text-slate-600 dark:text-slate-300 truncate font-mono bg-slate-50 dark:bg-slate-800/60 px-2 py-1 rounded border border-slate-200/60 dark:border-slate-700/60">
             {generatedText}
           </span>
           <button
