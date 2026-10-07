@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Switch } from "@/components/ui/switch";
 import { trpc } from "@/lib/trpc";
-import { Coins, Calendar, RotateCcw, Check, Copy, TrendingUp, Info } from "lucide-react";
+import { RotateCcw, Check, Copy } from "lucide-react";
 import { toast } from "sonner";
-import { formatCurrency, type Currency } from "@/lib/store";
 
 interface BnrInvoiceRateToggleProps {
   currency: string;
@@ -46,7 +45,7 @@ export function BnrInvoiceRateToggle({
   }, [hasExistingBnrInNotes]);
 
   // Preluăm cursurile BNR oficiale din sistem
-  const { data: bnrData, isLoading } = trpc.system.getBnrRates.useQuery(undefined, {
+  const { data: bnrData } = trpc.system.getBnrRates.useQuery(undefined, {
     staleTime: 5 * 60 * 1000,
   });
 
@@ -57,7 +56,7 @@ export function BnrInvoiceRateToggle({
     }
   }, [currency]);
 
-  // Căutăm cursul BNR din data emiterii (sau din ultima zi bancară anterioară dacă e weekend/sărbătoare conform Codului Fiscal)
+  // Căutăm cursul BNR din data emiterii (sau din ultima zi bancară anterioară dacă e weekend/sărbătoare)
   const bnrRateInfo = useMemo(() => {
     if (!bnrData) return null;
 
@@ -92,7 +91,7 @@ export function BnrInvoiceRateToggle({
     return {
       rate: targetRate,
       rateStr: targetRate.toFixed(4),
-      dateStr: rateDate || bnrData.formattedDate || "din acea zi",
+      dateStr: rateDate || bnrData.formattedDate || "din data emiterii",
     };
   }, [bnrData, refCurrency, issueDate]);
 
@@ -171,16 +170,14 @@ export function BnrInvoiceRateToggle({
     const currentNotes = notes || "";
 
     if (checked) {
-      // Adăugare
       const updated = currentNotes.replace(BNR_LINE_REGEX, "");
       const finalNotes = updated.trim() ? `${generatedText}\n${updated.trim()}` : generatedText;
       onNotesChange(finalNotes);
-      toast.success("Cursul valutar BNR a fost inclus pe factură");
+      toast.success("Cursul BNR a fost adăugat pe factură");
     } else {
-      // Eliminare
       const updated = currentNotes.replace(BNR_LINE_REGEX, "").trim();
       onNotesChange(updated);
-      toast.info("Cursul valutar a fost eliminat din mențiuni");
+      toast.info("Cursul BNR a fost eliminat din mențiuni");
     }
   };
 
@@ -197,135 +194,91 @@ export function BnrInvoiceRateToggle({
 
   return (
     <div
-      className={`rounded-xl border transition-all duration-200 ${
-        isEnabled
-          ? "bg-amber-50/60 dark:bg-amber-950/20 border-amber-300 dark:border-amber-800/80 shadow-xs"
-          : "bg-slate-50/70 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/80 hover:border-slate-300"
-      } ${className}`}
+      className={`flex flex-wrap items-center justify-between gap-3 px-3 py-2 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs transition-colors ${className}`}
     >
-      {/* Header bar with toggle */}
-      <div className="flex items-center justify-between p-3 sm:px-4">
-        <div className="flex items-center gap-2.5">
-          <div
-            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
-              isEnabled
-                ? "bg-amber-500 text-white shadow-xs"
-                : "bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
-            }`}
-          >
-            <Coins className="w-4 h-4" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-100">
-                Curs Valutar BNR din data emiterii
-              </span>
-              {bnrRateInfo && (
-                <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 font-semibold shadow-2xs">
-                  1 {refCurrency} = {activeRateStr} RON
-                </span>
-              )}
-            </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Include automat cursul de schimb oficial pe factură (Art. 319 Cod Fiscal)
-            </p>
-          </div>
-        </div>
+      {/* Partea stângă: Toggle compact + parametri inline */}
+      <div className="flex items-center gap-2.5 flex-wrap">
+        <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+          <Switch
+            checked={isEnabled}
+            onCheckedChange={handleToggle}
+            className="scale-90"
+          />
+          <span className="font-semibold text-slate-700 dark:text-slate-300 text-xs whitespace-nowrap">
+            Curs BNR pe factură
+          </span>
+        </label>
 
-        <div className="flex items-center gap-2">
-          <Switch checked={isEnabled} onCheckedChange={handleToggle} />
-        </div>
+        {isEnabled ? (
+          <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 pl-2.5 border-l border-slate-200 dark:border-slate-700">
+            <span>1</span>
+            <select
+              value={refCurrency}
+              onChange={(e) => {
+                setRefCurrency(e.target.value);
+                setCustomRate("");
+              }}
+              className="h-6 px-1.5 text-xs font-semibold rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="EUR">EUR</option>
+              <option value="USD">USD</option>
+              <option value="GBP">GBP</option>
+              <option value="CHF">CHF</option>
+            </select>
+            <span>=</span>
+            <input
+              type="number"
+              step="0.0001"
+              placeholder={bnrRateInfo?.rateStr || "5.3527"}
+              value={customRate || bnrRateInfo?.rateStr || ""}
+              onChange={(e) => setCustomRate(e.target.value)}
+              className="w-20 h-6 px-1.5 text-xs font-mono font-semibold rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500"
+            />
+            <span>RON</span>
+
+            {customRate && (
+              <button
+                type="button"
+                onClick={() => setCustomRate("")}
+                className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5 ml-1"
+                title="Revino la cursul oficial BNR"
+              >
+                <RotateCcw className="w-2.5 h-2.5" />
+                Reset
+              </button>
+            )}
+
+            <span className="text-[11px] text-slate-400 dark:text-slate-500 ml-1">
+              ({bnrRateInfo?.dateStr || issueDate})
+            </span>
+          </div>
+        ) : (
+          bnrRateInfo && (
+            <span className="text-[11px] text-slate-400 dark:text-slate-500 pl-2 border-l border-slate-200 dark:border-slate-700">
+              (1 {refCurrency} = {activeRateStr} RON)
+            </span>
+          )
+        )}
       </div>
 
-      {/* Expanded panel when enabled */}
+      {/* Partea dreaptă: Previzualizare text curat pe o singură linie */}
       {isEnabled && (
-        <div className="px-3 pb-3 sm:px-4 sm:pb-4 pt-1 border-t border-amber-200/80 dark:border-amber-900/60 space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1.5">
-            {/* Currency selector */}
-            <div>
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-                Monedă Referință
-              </label>
-              <select
-                value={refCurrency}
-                onChange={(e) => {
-                  setRefCurrency(e.target.value);
-                  setCustomRate("");
-                }}
-                className="w-full h-8 px-2.5 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 outline-none focus:ring-1 focus:ring-amber-500"
-              >
-                <option value="EUR">EUR (Euro)</option>
-                <option value="USD">USD (Dolar SUA)</option>
-                <option value="GBP">GBP (Liră Sterlină)</option>
-                <option value="CHF">CHF (Franc Elvețian)</option>
-              </select>
-            </div>
-
-            {/* Rate Input */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                  Curs (1 {refCurrency} = RON)
-                </label>
-                {customRate && (
-                  <button
-                    type="button"
-                    onClick={() => setCustomRate("")}
-                    className="text-[10px] text-amber-700 dark:text-amber-400 hover:underline flex items-center gap-0.5"
-                    title="Revino la cursul BNR oficial"
-                  >
-                    <RotateCcw className="w-2.5 h-2.5" />
-                    Reset
-                  </button>
-                )}
-              </div>
-              <div className="relative">
-                <input
-                  type="number"
-                  step="0.0001"
-                  placeholder={bnrRateInfo?.rateStr || "5.3527"}
-                  value={customRate || bnrRateInfo?.rateStr || ""}
-                  onChange={(e) => setCustomRate(e.target.value)}
-                  className="w-full h-8 px-2.5 text-xs font-mono font-bold rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-amber-500"
-                />
-              </div>
-            </div>
-
-            {/* Date info */}
-            <div>
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-                Data Cursului BNR
-              </label>
-              <div className="h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100/70 dark:bg-slate-800/80 flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300">
-                <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                <span className="font-medium">{bnrRateInfo?.dateStr || issueDate || "Data emiterii"}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Generated Text Box */}
-          <div className="p-2.5 rounded-lg bg-white/90 dark:bg-slate-900/90 border border-amber-200/80 dark:border-amber-800/50 flex items-start justify-between gap-2 shadow-2xs">
-            <div className="flex items-start gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/80 px-1.5 py-0.5 rounded shrink-0 mt-0.5">
-                Pe factură
-              </span>
-              <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-mono">
-                {generatedText}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={handleCopyText}
-              className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
-              title="Copiază textul"
-            >
-              {isCopied ? (
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
-              ) : (
-                <Copy className="w-3.5 h-3.5" />
-              )}
-            </button>
-          </div>
+        <div className="flex items-center gap-2 max-w-full sm:max-w-md ml-auto">
+          <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate font-mono">
+            {generatedText}
+          </span>
+          <button
+            type="button"
+            onClick={handleCopyText}
+            className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors shrink-0"
+            title="Copiază textul"
+          >
+            {isCopied ? (
+              <Check className="w-3.5 h-3.5 text-emerald-600" />
+            ) : (
+              <Copy className="w-3.5 h-3.5" />
+            )}
+          </button>
         </div>
       )}
     </div>
