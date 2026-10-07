@@ -3370,6 +3370,8 @@ export const appRouter = router({
           invoiceId: z.number(),
           recipientEmail: z.string().optional(),
           representativeName: z.string().optional(),
+          customMessage: z.string().optional(),
+          badgeText: z.string().optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -3411,6 +3413,9 @@ export const appRouter = router({
           companyIBAN: invoice.companyIBAN,
           companyBank: invoice.companyBank,
           tenantLogoBase64,
+          customMessage: input.customMessage,
+          spvIndex: invoice.spvIndex || undefined,
+          badgeText: input.badgeText,
         });
 
         // Insert log in emailLogs table

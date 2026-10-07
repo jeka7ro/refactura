@@ -214,6 +214,9 @@ export interface SendInvoiceEmailParams {
   companyIBAN?: string;
   companyBank?: string;
   tenantLogoBase64?: string;
+  customMessage?: string;
+  spvIndex?: string;
+  badgeText?: string;
 }
 
 export interface BuildInvoiceEmailHtmlParams {
@@ -228,6 +231,9 @@ export interface BuildInvoiceEmailHtmlParams {
   filename: string;
   representativeName?: string;
   tenantLogoSrc?: string;
+  customMessage?: string;
+  spvIndex?: string;
+  badgeText?: string;
 }
 
 export function buildInvoiceEmailHtml(params: BuildInvoiceEmailHtmlParams): string {
@@ -286,9 +292,15 @@ export function buildInvoiceEmailHtml(params: BuildInvoiceEmailHtmlParams): stri
     </div>
 
     <div class="content">
-      <div class="badge">Factură nouă emisă</div>
+      <div class="badge">${params.badgeText || "Factură fiscală"}</div>
       <p>${greeting}</p>
-      <p>Vă transmitem atașat în format PDF factura fiscală seria și numărul <strong>${params.invoiceNumber}</strong>.</p>
+      ${params.customMessage ? `
+        <div style="background-color: #f0fdf4; border-left: 4px solid #16a34a; padding: 14px 18px; margin: 16px 0; border-radius: 6px; font-size: 13.5px; color: #166534; line-height: 1.6;">
+          ${params.customMessage}
+        </div>
+      ` : `
+        <p>Vă transmitem atașat în format PDF factura fiscală seria și numărul <strong>${params.invoiceNumber}</strong>.</p>
+      `}
       
       <div class="card">
         <table style="width: 100%; border-collapse: collapse;">
@@ -303,6 +315,10 @@ export function buildInvoiceEmailHtml(params: BuildInvoiceEmailHtmlParams): stri
           ${params.dueDate ? `<tr>
             <td style="padding: 6px 0; color: #64748b; font-size: 13px;">Data scadenței:</td>
             <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #0f172a; font-size: 13px;">${params.dueDate}</td>
+          </tr>` : ""}
+          ${params.spvIndex ? `<tr>
+            <td style="padding: 6px 0; color: #64748b; font-size: 13px;">Index încărcare SPV:</td>
+            <td style="padding: 6px 0; font-weight: 700; text-align: right; color: #16a34a; font-size: 13px;">${params.spvIndex}</td>
           </tr>` : ""}
           ${params.companyIBAN ? `<tr>
             <td style="padding: 6px 0; color: #64748b; font-size: 13px;">Cont IBAN:</td>
@@ -419,6 +435,9 @@ export async function sendInvoiceEmail(params: SendInvoiceEmailParams): Promise<
     filename: params.filename,
     representativeName: params.representativeName,
     tenantLogoSrc: cleanTenantLogo ? "cid:tenant-logo.png" : undefined,
+    customMessage: params.customMessage,
+    spvIndex: params.spvIndex,
+    badgeText: params.badgeText,
   });
 
   try {
