@@ -457,7 +457,7 @@ export default function ReInvoicesSent() {
             {
               label: "Valoare Totală",
               value: `${totalValue.toLocaleString("ro-RO", { minimumFractionDigits: 2 })} RON`,
-              cls: "text-blue-600",
+              cls: "text-sky-600 dark:text-sky-400",
             },
           ].map(k => (
             <div
