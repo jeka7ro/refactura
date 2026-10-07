@@ -777,6 +777,13 @@ export default function EmitInvoice() {
   );
   const total = subtotal + totalVAT;
 
+  const bnrNoteMatch = useMemo(() => {
+    const m = mentiuni.match(
+      /^(?:Curs BNR|Factură (?:emisă|calculată) la cursul BNR)[^\n]*/m
+    );
+    return m ? m[0] : null;
+  }, [mentiuni]);
+
   const vatBreakdown = useMemo(() => {
     const map: Record<number, { base: number; vat: number }> = {};
     lines.forEach(l => {
@@ -1618,13 +1625,23 @@ export default function EmitInvoice() {
         </div>
 
         <div className="border-t border-slate-200 dark:border-slate-700 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-0">
-          <div className="lg:col-span-7 px-4 py-3 flex gap-2 flex-wrap">
-            <button
-              onClick={addLine}
-              className="flex items-center gap-1.5 px-3 h-8 text-xs font-semibold text-blue-600 border border-blue-200 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" /> Adaugă rând
-            </button>
+          <div className="lg:col-span-7 px-4 py-3 flex flex-col justify-between">
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={addLine}
+                className="flex items-center gap-1.5 px-3 h-8 text-xs font-semibold text-blue-600 border border-blue-200 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" /> Adaugă rând
+              </button>
+            </div>
+
+            {bnrNoteMatch && (
+              <div className="mt-3 p-2.5 rounded-lg bg-slate-50/80 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 text-xs">
+                <p className="font-mono text-slate-800 dark:text-slate-200 leading-relaxed font-semibold text-xs">
+                  {bnrNoteMatch}
+                </p>
+              </div>
+            )}
           </div>
           <div className="lg:col-span-5 px-4 py-3 lg:border-l border-slate-200 dark:border-slate-700 space-y-1 bg-slate-50/50 dark:bg-slate-800/20 lg:bg-transparent">
             {vatBreakdown.map(({ rate, base, vat }) => (

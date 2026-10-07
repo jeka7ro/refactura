@@ -197,6 +197,12 @@ export default function ReInvoice() {
   const [dueDate, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
   const today = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const bnrNoteMatch = useMemo(() => {
+    const m = notes.match(
+      /^(?:Curs BNR|Factură (?:emisă|calculată) la cursul BNR)[^\n]*/m
+    );
+    return m ? m[0] : null;
+  }, [notes]);
   const [globalMarkup, setGlobalMarkup] = useState<number | string>(15);
 
   // Local interface to allow empty strings while typing
@@ -1126,6 +1132,14 @@ export default function ReInvoice() {
                 <Plus className="w-3.5 h-3.5" /> Adaugă din Stoc
               </button>
             </div>
+
+            {bnrNoteMatch && (
+              <div className="mt-3 p-2.5 rounded-lg bg-slate-50/80 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 text-xs max-w-xl">
+                <p className="font-mono text-slate-800 dark:text-slate-200 leading-relaxed font-semibold text-xs">
+                  {bnrNoteMatch}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
