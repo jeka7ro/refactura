@@ -2142,10 +2142,18 @@ export const appRouter = router({
         linesMap.get(l.emittedInvoiceId)!.push(l.description);
       }
 
-      return rows.map(row => ({
-        ...row,
-        itemsText: (linesMap.get(row.id) || []).join(" "),
-      }));
+      return rows.map(row => {
+        const isActuallySent =
+          row.status === "draft" &&
+          (Boolean(row.spvIndex) ||
+            row.spvStatus === "validat" ||
+            row.spvStatus === "in_procesare");
+        return {
+          ...row,
+          status: isActuallySent ? "sent" : (row.status || "sent"),
+          itemsText: (linesMap.get(row.id) || []).join(" "),
+        };
+      });
     }),
 
     getById: protectedProcedure
@@ -2197,8 +2205,15 @@ export const appRouter = router({
           clientRecord = c;
         }
 
+        const isActuallySent =
+          inv.status === "draft" &&
+          (Boolean(inv.spvIndex) ||
+            inv.spvStatus === "validat" ||
+            inv.spvStatus === "in_procesare");
+
         return {
           ...inv,
+          status: isActuallySent ? "sent" : (inv.status || "sent"),
           clientName: inv.clientName || clientRecord?.name || "",
           clientCUI: inv.clientCUI || clientRecord?.cui || null,
           clientRegCom: inv.clientRegCom || clientRecord?.regCom || null,
@@ -3179,6 +3194,7 @@ export const appRouter = router({
               spvStatus: "in_procesare",
               spvSentAt: new Date(),
               rawXml: xmlContent,
+              status: inv.status === "draft" ? "sent" : inv.status,
             })
             .where(eq(emittedInvoices.id, input.id));
           return { success: true, index_incarcare: spvIndex };
@@ -3315,12 +3331,16 @@ export const appRouter = router({
         else if (normalized === "nok") newStatus = "eroare";
 
         // Update DB
+        const updateFields: any = {
+          spvStatus: newStatus as any,
+          spvError: errors.length > 0 ? errors.join("; ") : (newStatus === "eroare" ? stare : null),
+        };
+        if (newStatus === "validat" && inv.status === "draft") {
+          updateFields.status = "sent";
+        }
         await db
           .update(emittedInvoices)
-          .set({
-            spvStatus: newStatus as any,
-            spvError: errors.length > 0 ? errors.join("; ") : (newStatus === "eroare" ? stare : null),
-          })
+          .set(updateFields)
           .where(eq(emittedInvoices.id, input.id));
 
         return {

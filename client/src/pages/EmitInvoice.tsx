@@ -1862,7 +1862,7 @@ export default function EmitInvoice() {
           ) : (
             <Send className="w-4 h-4" />
           )}
-          Previzualizare / Emite Factura
+          Emite Factura
         </button>
       </div>
     </div>

@@ -535,11 +535,22 @@ export default function EmittedInvoices() {
                           )}
                         </div>
                         <div className="h-5 flex items-center">
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[11px] font-normal border leading-none ${STATUS_COLORS[row.status || "draft"]}`}
-                          >
-                            {STATUS_LABELS[row.status || "draft"]}
-                          </span>
+                          {(() => {
+                            const effectiveStatus =
+                              row.status === "draft" &&
+                              (Boolean(row.spvIndex) ||
+                                row.spvStatus === "validat" ||
+                                row.spvStatus === "in_procesare")
+                                ? "sent"
+                                : row.status || "draft";
+                            return (
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[11px] font-normal border leading-none ${STATUS_COLORS[effectiveStatus]}`}
+                              >
+                                {STATUS_LABELS[effectiveStatus]}
+                              </span>
+                            );
+                          })()}
                         </div>
                       </div>
                     </td>
