@@ -471,14 +471,16 @@ function ClientForm({
         return;
       }
       const d = await res.json();
+      const resolvedCui = d.cif || d.cui || (d.tva ? `RO${cui}` : cui);
       setData(prev => ({
         ...prev,
+        cui: resolvedCui,
         name: d.denumire || prev.name,
         address: d.adresa || prev.address,
         city: d.judet || prev.city,
         country: prev.country || "RO",
         regCom: d.nrRegCom || prev.regCom,
-        tva: d.tva ?? prev.tva,
+        tva: d.tva ? 1 : 0,
       }));
       setCuiFilled(true);
     } catch {

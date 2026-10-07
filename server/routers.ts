@@ -2489,16 +2489,23 @@ export const appRouter = router({
           }
         }
 
+        let safeClientCui = (invoiceData.clientCUI || "").trim();
+        const isRoCountry = !safeCountry || safeCountry.toUpperCase() === "RO";
+        if (isRoCountry && /^\d+$/.test(safeClientCui) && parseFloat(String(invoiceData.totalVAT || 0)) > 0) {
+          safeClientCui = `RO${safeClientCui}`;
+        }
+
         const isExternal =
           (safeCountry && safeCountry.toUpperCase() !== "RO") ||
           (invoiceData.currency && invoiceData.currency !== "RON" && safeCountry !== "RO") ||
-          (/^[A-Za-z]{2}/.test(invoiceData.clientCUI || "") && !invoiceData.clientCUI?.toUpperCase().startsWith("RO"));
+          (/^[A-Za-z]{2}/.test(safeClientCui) && !safeClientCui.toUpperCase().startsWith("RO"));
 
         const [result] = await db
           .insert(emittedInvoices)
           .values({
             tenantId: (ctx.user?.tenantId || 1),
             ...invoiceData,
+            clientCUI: safeClientCui || null,
             clientId: assignedClientId || null,
             clientCountry: safeCountry,
             subtotal: String(invoiceData.subtotal),
@@ -2820,6 +2827,12 @@ export const appRouter = router({
         if (data.notes !== undefined) updateData.notes = data.notes;
         if (data.number) updateData.number = data.number;
         if (data.series) updateData.series = data.series;
+        if (updateData.clientCUI) {
+          const isRoCountry = !updateData.clientCountry || updateData.clientCountry === "RO";
+          if (isRoCountry && /^\d+$/.test(updateData.clientCUI.trim()) && parseFloat(String(data.totalVAT || 0)) > 0) {
+            updateData.clientCUI = `RO${updateData.clientCUI.trim()}`;
+          }
+        }
         if (updateData.clientCountry && updateData.clientCountry !== "RO") {
           updateData.spvStatus = "extern";
           updateData.spvError = null;

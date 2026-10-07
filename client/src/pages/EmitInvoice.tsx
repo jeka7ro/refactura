@@ -613,7 +613,13 @@ export default function EmitInvoice() {
     setClientSearch(c.name);
     const code = c.sagaCode || c.code || "";
     setClientCode(code);
-    setClientCUI(c.cui || "");
+    const rawCui = (c.cui || "").trim().toUpperCase();
+    const isVat = c.tva === 1 || c.tva === true || rawCui.startsWith("RO");
+    const formattedCui =
+      isVat && !rawCui.startsWith("RO") && /^\d+$/.test(rawCui)
+        ? `RO${rawCui}`
+        : rawCui;
+    setClientCUI(formattedCui);
     setClientRegCom(c.regCom || "");
     setClientAddress(c.address || "");
     setClientCity(c.city || "");
@@ -686,6 +692,9 @@ export default function EmitInvoice() {
       setClientCity(d.judet || clientCity);
       setClientRegCom(d.nrRegCom || clientRegCom);
       setClientCountry("RO");
+      if (d.cui || d.cif) {
+        setClientCUI(d.cif || d.cui);
+      }
       toast.success("Date extrase de la ANAF cu succes.");
     } catch {
       toast.error("Eroare conexiune la ANAF.");
@@ -737,7 +746,8 @@ export default function EmitInvoice() {
         setClientAddress(d.adresa || "");
         setClientCity(d.judet || "");
         setClientRegCom(d.nrRegCom || "");
-        setClientCUI(d.cui ? `RO${d.cui}` : digits);
+        const resolvedCui = d.cif || d.cui || (d.tva ? `RO${digits}` : digits);
+        setClientCUI(resolvedCui);
         setClientCountry("RO");
         setShowClientDropdown(false);
         toast.success("Date extrase din ANAF!");
@@ -937,6 +947,16 @@ export default function EmitInvoice() {
         clientCountry ||
         (clientCUI.trim().match(/^([A-Za-z]{2})/)?.[1]?.toUpperCase() || "RO");
 
+      let finalClientCui = clientCUI.trim().toUpperCase();
+      const clientObj = clientsData?.find((c: any) => String(c.id) === selectedClientId);
+      const isClientVatPayer = clientObj?.tva === 1 || clientObj?.tva === true;
+      if (detectedCountry === "RO" && (isClientVatPayer || totalVAT > 0)) {
+        const cleanDigits = finalClientCui.replace(/^RO/i, "");
+        if (/^\d+$/.test(cleanDigits)) {
+          finalClientCui = `RO${cleanDigits}`;
+        }
+      }
+
       const payload = {
         number: fullInvoiceNumber,
         series: series.trim() || undefined,
@@ -945,7 +965,7 @@ export default function EmitInvoice() {
         clientId: selectedClientId ? parseInt(selectedClientId) : undefined,
         clientName: clientName.trim(),
         clientCode: clientCode.trim() || undefined,
-        clientCUI: clientCUI.trim() || undefined,
+        clientCUI: finalClientCui || undefined,
         clientRegCom: clientRegCom.trim() || undefined,
         clientAddress: clientAddress.trim() || undefined,
         clientCity: clientCity.trim() || undefined,

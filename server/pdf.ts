@@ -1337,6 +1337,17 @@ export function generateReInvoicePDF(rawData: ReInvoiceData): Readable {
 
   const data = sanitizeData(rawData);
 
+  // Normalizare CIF cu RO pentru clienți din România plătitori de TVA (totalVAT > 0)
+  const isRoClient = !data.clientCountry || data.clientCountry.toUpperCase() === "RO";
+  if (
+    isRoClient &&
+    data.clientCUI &&
+    /^\d+$/.test(data.clientCUI.trim()) &&
+    parseFloat(String(data.totalVAT || 0)) > 0
+  ) {
+    data.clientCUI = `RO${data.clientCUI.trim()}`;
+  }
+
   const isBilingual = isBilingualInvoice(data);
   if (isBilingual && data.lines && Array.isArray(data.lines)) {
     for (const line of data.lines) {

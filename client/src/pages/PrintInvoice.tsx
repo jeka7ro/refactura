@@ -154,7 +154,15 @@ export default function PrintInvoice() {
         <h4 className="text-lg font-bold">{invoice.clientName}</h4>
         <div className="text-sm text-gray-600">
           <p>
-            <strong>{isForeign ? "CIF / VAT ID:" : "CUI:"}</strong> {invoice.clientCUI}
+            <strong>{isForeign ? "CIF / VAT ID:" : "CUI:"}</strong>{" "}
+            {(() => {
+              const c = (invoice.clientCUI || "").trim();
+              const isRo = !invoice.clientCountry || invoice.clientCountry.toUpperCase() === "RO";
+              if (isRo && /^\d+$/.test(c) && parseFloat(String(invoice.totalVAT || 0)) > 0) {
+                return `RO${c}`;
+              }
+              return c;
+            })()}
           </p>
           {invoice.clientRegCom && (
             <p>

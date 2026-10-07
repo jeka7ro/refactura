@@ -69,14 +69,19 @@ export function registerAnafProxy(app: Express) {
         dg.judet ||
         "";
 
+      const isPlatitorTva = found.inregistrare_scop_Tva?.scpTVA === true;
+      const formattedCui = isPlatitorTva ? `RO${dg.cui}` : String(dg.cui);
+
       return res.json({
-        cui: dg.cui,
+        cui: formattedCui,
+        cuiNumeric: dg.cui,
+        cif: formattedCui,
         denumire: dg.denumire || "",
         adresa,
         judet,
         oras: adresaSediu?.sdenumire_Localitate || "",
         nrRegCom: dg.nrRegCom || "",
-        tva: found.inregistrare_scop_Tva?.scpTVA === true,
+        tva: isPlatitorTva,
         telefon: dg.telefon || "",
         codPostal: dg.codPostal || adresaSediu?.scod_Postal || "",
         activ: found.stare_inactiv?.statusInactivi !== true,
