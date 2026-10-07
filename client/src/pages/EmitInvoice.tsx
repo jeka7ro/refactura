@@ -23,6 +23,7 @@ import { formatCurrency, currencies, type Currency } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { InvoiceCurrencyCalculator } from "@/components/InvoiceCurrencyCalculator";
+import { BnrInvoiceRateToggle } from "@/components/BnrInvoiceRateToggle";
 
 const VAT_RATES = [21, 19, 9, 5, 0];
 const UNITS = [
@@ -1660,6 +1661,16 @@ export default function EmitInvoice() {
           </div>
         </div>
       </div>
+
+      {/* Opțiune Curs Valutar BNR din data emiterii */}
+      <BnrInvoiceRateToggle
+        currency={currency}
+        issueDate={issueDate}
+        total={total}
+        totalVAT={totalVAT}
+        notes={mentiuni}
+        onNotesChange={setMentiuni}
+      />
 
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded overflow-hidden">
         <button

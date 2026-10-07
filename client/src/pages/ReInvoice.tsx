@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import NirSelectorModal from "@/components/NirSelectorModal";
 import { InvoiceCurrencyCalculator } from "@/components/InvoiceCurrencyCalculator";
+import { BnrInvoiceRateToggle } from "@/components/BnrInvoiceRateToggle";
 import {
   formatCurrency,
   currencies,
@@ -195,6 +196,7 @@ export default function ReInvoice() {
   const [currency, setCurrency] = useState<Currency>("RON");
   const [dueDate, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
+  const today = useMemo(() => new Date().toISOString().split("T")[0], []);
   const [globalMarkup, setGlobalMarkup] = useState<number | string>(15);
 
   // Local interface to allow empty strings while typing
@@ -1343,6 +1345,16 @@ export default function ReInvoice() {
                 className="w-full h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
+
+            {/* Opțiune Curs Valutar BNR din data emiterii */}
+            <BnrInvoiceRateToggle
+              currency={currency}
+              issueDate={today}
+              total={total}
+              totalVAT={totalVAT}
+              notes={notes}
+              onNotesChange={setNotes}
+            />
 
             <div>
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
