@@ -2669,9 +2669,10 @@ export const appRouter = router({
         if (sendEmailToClient && invoiceData.clientEmail) {
           try {
             const { generateEmittedInvoicePdfBuffer, sendInvoiceEmail, extractRepresentativeName } = await import("./emailService");
-            const { buffer, filename, tenant, tenantLogoBase64 } = await generateEmittedInvoicePdfBuffer(invoiceId);
+            const { buffer, filename, tenant, tenantLogoBase64, tenantBrevoApiKey } = await generateEmittedInvoicePdfBuffer(invoiceId);
             const repName = representativeName?.trim() || extractRepresentativeName(invoiceData.notes);
             const emailRes = await sendInvoiceEmail({
+              apiKey: tenantBrevoApiKey,
               toEmail: invoiceData.clientEmail,
               toName: invoiceData.clientName,
               representativeName: repName,
@@ -3341,7 +3342,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         if (!ctx.user?.tenantId) throw new Error("No tenant");
         const { generateEmittedInvoicePdfBuffer, sendInvoiceEmail, extractRepresentativeName } = await import("./emailService");
-        const { buffer, filename, invoice, tenant, tenantLogoBase64, representativeName: repFromInv } = await generateEmittedInvoicePdfBuffer(input.invoiceId);
+        const { buffer, filename, invoice, tenant, tenantLogoBase64, representativeName: repFromInv, tenantBrevoApiKey } = await generateEmittedInvoicePdfBuffer(input.invoiceId);
 
         if (invoice.tenantId !== (ctx.user?.tenantId || 1)) {
           throw new Error("Nu aveți acces la această factură");
@@ -3361,6 +3362,7 @@ export const appRouter = router({
         const repName = input.representativeName?.trim() || repFromInv || extractRepresentativeName(invoice.notes);
 
         const result = await sendInvoiceEmail({
+          apiKey: tenantBrevoApiKey,
           toEmail: targetEmail,
           toName: invoice.clientName,
           representativeName: repName,
@@ -3458,7 +3460,7 @@ export const appRouter = router({
         }
 
         const { generateEmittedInvoicePdfBuffer, sendInvoiceEmail, extractRepresentativeName } = await import("./emailService");
-        const { buffer, filename, invoice, tenant, tenantLogoBase64, representativeName: repFromInv } = await generateEmittedInvoicePdfBuffer(log.invoiceId);
+        const { buffer, filename, invoice, tenant, tenantLogoBase64, representativeName: repFromInv, tenantBrevoApiKey } = await generateEmittedInvoicePdfBuffer(log.invoiceId);
 
         const rawNum = (invoice.number || `FACT-${invoice.id}`).trim();
         const rawSer = (invoice.series || "").trim();
@@ -3469,6 +3471,7 @@ export const appRouter = router({
         const repName = input.representativeName?.trim() || repFromInv || extractRepresentativeName(invoice.notes);
 
         const result = await sendInvoiceEmail({
+          apiKey: tenantBrevoApiKey,
           toEmail: targetEmail,
           toName: invoice.clientName,
           representativeName: repName,
