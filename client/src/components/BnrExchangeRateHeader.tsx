@@ -6,7 +6,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { RefreshCcw, ExternalLink, ArrowRight } from "lucide-react";
+import { RefreshCcw, ExternalLink, ArrowRight, Copy, Check } from "lucide-react";
+import { toast } from "sonner";
 import {
   EuFlag,
   UsFlag,
@@ -17,6 +18,38 @@ import {
 
 export function BnrExchangeRateHeader() {
   const [isOpen, setIsOpen] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const handleCopyRate = async (
+    e: React.MouseEvent,
+    key: string,
+    code: string,
+    rate: string
+  ) => {
+    e.stopPropagation();
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(rate);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = rate;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setCopiedKey(key);
+      toast.success(`Curs ${code} copiat: ${rate} RON`, { duration: 1800 });
+      setTimeout(() => {
+        setCopiedKey((curr) => (curr === key ? null : curr));
+      }, 1800);
+    } catch {
+      toast.error("Nu s-a putut copia cursul");
+    }
+  };
 
   // Poll every 15 minutes, stale after 5 minutes
   const { data, isFetching, refetch } = trpc.system.getBnrRates.useQuery(
@@ -95,15 +128,23 @@ export function BnrExchangeRateHeader() {
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setIsOpen((prev) => !prev)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setIsOpen((prev) => !prev);
+            }
+          }}
           className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-full bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer select-none text-left"
           title={`Curs BNR ${dateStr} (${dayLetter}) · Click pentru detalii`}
         >
           {/* Header Pill */}
           <div className="flex items-center gap-2 text-xs leading-none">
             {/* EUR */}
-            <span className="inline-flex items-center gap-1.5 font-semibold text-slate-700 dark:text-slate-200 leading-none">
+            <span className="inline-flex items-center gap-1 font-semibold text-slate-700 dark:text-slate-200 leading-none">
               <span className="inline-flex items-center justify-center rounded-[2px] overflow-hidden shadow-2xs border border-black/10 flex-shrink-0">
                 <EuFlag className="w-3.5 h-2.5 block" />
               </span>
@@ -124,6 +165,18 @@ export function BnrExchangeRateHeader() {
               >
                 {eurVar?.trend === "down" ? "▼" : eurVar?.trend === "up" ? "▲" : "="}
               </span>
+              <button
+                type="button"
+                onClick={(e) => handleCopyRate(e, "EUR_HDR", "EUR", eurRate)}
+                className="p-1 -mr-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-90"
+                title={`Copiază curs EUR (${eurRate})`}
+              >
+                {copiedKey === "EUR_HDR" ? (
+                  <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                ) : (
+                  <Copy className="w-3 h-3" />
+                )}
+              </button>
             </span>
 
             {/* Separator */}
@@ -132,7 +185,7 @@ export function BnrExchangeRateHeader() {
             </span>
 
             {/* USD */}
-            <span className="hidden md:inline-flex items-center gap-1.5 font-semibold text-slate-700 dark:text-slate-200 leading-none">
+            <span className="hidden md:inline-flex items-center gap-1 font-semibold text-slate-700 dark:text-slate-200 leading-none">
               <span className="inline-flex items-center justify-center rounded-[2px] overflow-hidden shadow-2xs border border-black/10 flex-shrink-0">
                 <UsFlag className="w-3.5 h-2.5 block" />
               </span>
@@ -153,6 +206,18 @@ export function BnrExchangeRateHeader() {
               >
                 {usdVar?.trend === "down" ? "▼" : usdVar?.trend === "up" ? "▲" : "="}
               </span>
+              <button
+                type="button"
+                onClick={(e) => handleCopyRate(e, "USD_HDR", "USD", usdRate)}
+                className="p-1 -mr-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-90"
+                title={`Copiază curs USD (${usdRate})`}
+              >
+                {copiedKey === "USD_HDR" ? (
+                  <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                ) : (
+                  <Copy className="w-3 h-3" />
+                )}
+              </button>
             </span>
 
             {/* Separator */}
@@ -165,14 +230,14 @@ export function BnrExchangeRateHeader() {
               BNR {dateStr} ({dayLetter})
             </span>
           </div>
-        </button>
+        </div>
       </PopoverTrigger>
 
-      {/* Ultra-compact Popover — NO useless cards, NO wasted space, REAL LOGOS */}
+      {/* Popover */}
       <PopoverContent
         align="end"
         sideOffset={6}
-        className="w-72 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl z-50 animate-in fade-in-50 zoom-in-95"
+        className="w-80 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl z-50 animate-in fade-in-50 zoom-in-95"
       >
         {/* Header: Date included directly in Curs Valutar Oficial BNR */}
         <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100 dark:border-slate-800">
@@ -213,14 +278,14 @@ export function BnrExchangeRateHeader() {
                   </span>
                 </div>
 
-                {/* Rate + Variation */}
-                <div className="flex items-center gap-2">
+                {/* Rate + Variation + Copy */}
+                <div className="flex items-center gap-1.5">
                   <span className="font-semibold font-mono text-slate-900 dark:text-white text-xs">
                     {rate}
                   </span>
                   {info && info.diff !== undefined ? (
                     <span
-                      className={`font-mono text-[10px] font-medium min-w-[50px] text-right ${
+                      className={`font-mono text-[10px] font-medium min-w-[46px] text-right ${
                         isDown
                           ? "text-emerald-600 dark:text-emerald-400"
                           : isUp
@@ -231,6 +296,18 @@ export function BnrExchangeRateHeader() {
                       {isDown ? "▼" : isUp ? "▲" : "="} {info.diffFormatted}
                     </span>
                   ) : null}
+                  <button
+                    type="button"
+                    onClick={(e) => handleCopyRate(e, `POP_${code}`, code, rate)}
+                    className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-90 ml-0.5"
+                    title={`Copiază curs ${code} (${rate})`}
+                  >
+                    {copiedKey === `POP_${code}` ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
+                  </button>
                 </div>
               </div>
             );
