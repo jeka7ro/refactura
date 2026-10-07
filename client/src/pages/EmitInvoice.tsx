@@ -1623,7 +1623,7 @@ export default function EmitInvoice() {
               onClick={addLine}
               className="flex items-center gap-1.5 px-3 h-8 text-xs font-semibold text-blue-600 border border-blue-200 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
             >
-              <Plus className="w-3.5 h-3.5" /> Adaugă rând liber
+              <Plus className="w-3.5 h-3.5" /> Adaugă rând
             </button>
           </div>
           <div className="lg:col-span-5 px-4 py-3 lg:border-l border-slate-200 dark:border-slate-700 space-y-1 bg-slate-50/50 dark:bg-slate-800/20 lg:bg-transparent">
@@ -1661,16 +1661,6 @@ export default function EmitInvoice() {
           </div>
         </div>
       </div>
-
-      {/* Opțiune Curs Valutar BNR din data emiterii */}
-      <BnrInvoiceRateToggle
-        currency={currency}
-        issueDate={issueDate}
-        total={total}
-        totalVAT={totalVAT}
-        notes={mentiuni}
-        onNotesChange={setMentiuni}
-      />
 
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded overflow-hidden">
         <button
@@ -1780,7 +1770,17 @@ export default function EmitInvoice() {
       </div>
 
       {/* Save buttons bottom */}
-      <div className="flex items-center justify-end gap-5 pb-4 flex-wrap sm:flex-nowrap">
+      <div className="flex items-center justify-end gap-3.5 sm:gap-4 pb-4 flex-nowrap overflow-x-auto">
+        {/* Toggle Curs BNR */}
+        <BnrInvoiceRateToggle
+          currency={currency}
+          issueDate={issueDate}
+          total={total}
+          totalVAT={totalVAT}
+          notes={mentiuni}
+          onNotesChange={setMentiuni}
+        />
+
         {/* Toggle Trimite Factura pe Email */}
         <div className="flex items-center gap-2 shrink-0">
           <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap">

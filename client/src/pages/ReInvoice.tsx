@@ -1117,7 +1117,7 @@ export default function ReInvoice() {
                 }}
                 className="flex items-center gap-1.5 px-3 h-8 text-xs font-semibold text-blue-600 border border-blue-200 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
               >
-                <Plus className="w-3.5 h-3.5" /> Adaugă rând liber
+                <Plus className="w-3.5 h-3.5" /> Adaugă rând
               </button>
               <button
                 onClick={() => setShowNirModal(true)}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Switch } from "@/components/ui/switch";
 import { trpc } from "@/lib/trpc";
-import { RotateCcw, Check, Copy } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
 interface BnrInvoiceRateToggleProps {
@@ -35,7 +35,6 @@ export function BnrInvoiceRateToggle({
     currency && currency !== "RON" ? currency : "EUR"
   );
   const [customRate, setCustomRate] = useState<string>("");
-  const [isCopied, setIsCopied] = useState(false);
 
   // Sincronizare stare toggle dacă factura încărcată are deja mențiune BNR
   useEffect(() => {
@@ -182,107 +181,62 @@ export function BnrInvoiceRateToggle({
     }
   };
 
-  const handleCopyText = async () => {
-    try {
-      await navigator.clipboard.writeText(generatedText);
-      setIsCopied(true);
-      toast.success("Textul cursului valutar a fost copiat");
-      setTimeout(() => setIsCopied(false), 2000);
-    } catch {
-      toast.error("Eroare la copiere");
-    }
-  };
-
   return (
     <div
-      className={`flex flex-wrap items-center justify-between gap-3 px-3.5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs transition-colors ${className}`}
+      className={`inline-flex items-center gap-2.5 shrink-0 ${className}`}
+      title={isEnabled ? generatedText : "Activează includerea cursului BNR pe factură"}
     >
-      {/* Partea stângă: Toggle compact + parametri inline vizibili clar */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-          <Switch
-            checked={isEnabled}
-            onCheckedChange={handleToggle}
-          />
-          <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs whitespace-nowrap">
-            Curs BNR pe factură
-          </span>
-        </label>
+      <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap shrink-0">
+        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+          Curs BNR
+        </span>
+        <Switch
+          checked={isEnabled}
+          onCheckedChange={handleToggle}
+        />
+      </label>
 
-        {isEnabled ? (
-          <div className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300 pl-3 border-l border-slate-200 dark:border-slate-700">
-            <span className="font-medium text-slate-600 dark:text-slate-400">1</span>
-            
-            {/* Dropdown monedă - înălțime h-8 pentru lizibilitate completă */}
-            <select
-              value={refCurrency}
-              onChange={(e) => {
-                setRefCurrency(e.target.value);
-                setCustomRate("");
-              }}
-              className="h-8 min-w-[70px] px-2.5 text-xs font-semibold rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-2xs"
-            >
-              <option value="EUR">EUR</option>
-              <option value="USD">USD</option>
-              <option value="GBP">GBP</option>
-              <option value="CHF">CHF</option>
-            </select>
-
-            <span className="font-medium text-slate-600 dark:text-slate-400">=</span>
-
-            {/* Input curs valutar */}
-            <input
-              type="number"
-              step="0.0001"
-              placeholder={bnrRateInfo?.rateStr || "5.3527"}
-              value={customRate || bnrRateInfo?.rateStr || ""}
-              onChange={(e) => setCustomRate(e.target.value)}
-              className="w-24 h-8 px-2.5 text-xs font-mono font-bold rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs"
-            />
-            
-            <span className="font-semibold text-slate-700 dark:text-slate-300">RON</span>
-
-            {customRate && (
-              <button
-                type="button"
-                onClick={() => setCustomRate("")}
-                className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5 ml-1"
-                title="Revino la cursul oficial BNR"
-              >
-                <RotateCcw className="w-3 h-3" />
-                Reset
-              </button>
-            )}
-
-            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 ml-1">
-              ({formattedInvoiceDate || bnrRateInfo?.dateStr})
-            </span>
-          </div>
-        ) : (
-          <span className="text-[11px] text-slate-400 dark:text-slate-500 pl-2.5 border-l border-slate-200 dark:border-slate-700">
-            (1 {refCurrency} = {activeRateStr} RON &bull; {formattedInvoiceDate})
-          </span>
-        )}
-      </div>
-
-      {/* Partea dreaptă: Previzualizare text curat pe o singură linie */}
       {isEnabled && (
-        <div className="flex items-center gap-2 max-w-full sm:max-w-md ml-auto">
-          <span className="text-[11px] text-slate-600 dark:text-slate-300 truncate font-mono bg-slate-50 dark:bg-slate-800/60 px-2 py-1 rounded border border-slate-200/60 dark:border-slate-700/60">
-            {generatedText}
-          </span>
-          <button
-            type="button"
-            onClick={handleCopyText}
-            className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors shrink-0"
-            title="Copiază textul"
+        <div className="inline-flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300 pl-2.5 border-l border-slate-200 dark:border-slate-700 shrink-0">
+          <span className="text-slate-500 font-medium">1</span>
+          
+          <select
+            value={refCurrency}
+            onChange={(e) => {
+              setRefCurrency(e.target.value);
+              setCustomRate("");
+            }}
+            className="h-8 min-w-[65px] px-2 text-xs font-semibold rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-2xs"
           >
-            {isCopied ? (
-              <Check className="w-3.5 h-3.5 text-emerald-600" />
-            ) : (
-              <Copy className="w-3.5 h-3.5" />
-            )}
-          </button>
+            <option value="EUR">EUR</option>
+            <option value="USD">USD</option>
+            <option value="GBP">GBP</option>
+            <option value="CHF">CHF</option>
+          </select>
+
+          <span className="text-slate-500 font-medium">=</span>
+
+          <input
+            type="number"
+            step="0.0001"
+            placeholder={bnrRateInfo?.rateStr || "5.3527"}
+            value={customRate || bnrRateInfo?.rateStr || ""}
+            onChange={(e) => setCustomRate(e.target.value)}
+            className="w-20 h-8 px-2 text-xs font-mono font-bold rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs"
+          />
+
+          <span className="font-semibold text-slate-700 dark:text-slate-300">RON</span>
+
+          {customRate && (
+            <button
+              type="button"
+              onClick={() => setCustomRate("")}
+              className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline"
+              title="Revino la cursul oficial BNR"
+            >
+              <RotateCcw className="w-3 h-3" />
+            </button>
+          )}
         </div>
       )}
     </div>
