@@ -514,7 +514,6 @@ export default function EmailLogs() {
             </div>
           </div>
         </div>
-      </div>
 
       {/* Modal Retrimitere Email (Fără alerte native de browser) */}
       {resendLog && (
