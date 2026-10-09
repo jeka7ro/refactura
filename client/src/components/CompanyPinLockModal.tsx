@@ -22,6 +22,10 @@ interface CompanyPinLockModalProps {
   logoBgColor?: string;
   logoHasBackground?: boolean;
   themeColor?: string;
+  userFullName?: string;
+  userPhone?: string;
+  userRole?: string;
+  defaultExplanation?: string;
   tenantId?: number;
   onUnlocked: () => void;
 }
@@ -46,6 +50,10 @@ export function CompanyPinLockModal({
   logoBgColor,
   logoHasBackground,
   themeColor = "#2563eb",
+  userFullName = "",
+  userPhone = "",
+  userRole = "",
+  defaultExplanation = "",
   tenantId,
   onUnlocked,
 }: CompanyPinLockModalProps) {
@@ -54,14 +62,24 @@ export function CompanyPinLockModal({
   const [logoFailed, setLogoFailed] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Stare formular reset / contact administrator
+  // Stare formular reset / contact administrator cu completare automată
   const [showResetForm, setShowResetForm] = useState(false);
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [role, setRole] = useState("");
-  const [explanation, setExplanation] = useState("");
+  const [fullName, setFullName] = useState(userFullName);
+  const [phone, setPhone] = useState(userPhone);
+  const [role, setRole] = useState(userRole || "Administrator");
+  const [explanation, setExplanation] = useState(
+    defaultExplanation || `Solicit resetarea codului PIN de acces pentru firma ${companyName}.`
+  );
   const [resetError, setResetError] = useState("");
   const [resetSuccess, setResetSuccess] = useState(false);
+
+  // Când sosesc datele din tenant/user, completăm automat dacă formularul nu a fost modificat
+  useEffect(() => {
+    if (userFullName) setFullName(prev => (prev ? prev : userFullName));
+    if (userPhone) setPhone(prev => (prev ? prev : userPhone));
+    if (userRole) setRole(prev => (prev ? prev : userRole));
+    if (defaultExplanation) setExplanation(prev => (prev ? prev : defaultExplanation));
+  }, [userFullName, userPhone, userRole, defaultExplanation]);
 
   const verifyPinMutation = trpc.tenants.verifyPin.useMutation();
   const requestResetMutation = trpc.tenants.requestPinReset.useMutation();

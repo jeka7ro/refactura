@@ -274,6 +274,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         logoBgColor={pinStatus.logoBgColor || parsedTenantSettings?.logoBgColor}
         logoHasBackground={pinStatus.logoHasBackground ?? parsedTenantSettings?.logoHasBackground}
         themeColor={pinStatus?.themeColor || themeColor}
+        userFullName={pinStatus?.userFullName || user?.name || ""}
+        userPhone={pinStatus?.userPhone || user?.phone || parsedTenantSettings?.phone || ""}
+        userRole={pinStatus?.userRole || (user?.role === "admin" ? "Administrator" : "Manager / Utilizator")}
+        defaultExplanation={pinStatus?.defaultExplanation}
         tenantId={tenantId}
         onUnlocked={() => setIsPinUnlocked(true)}
       />

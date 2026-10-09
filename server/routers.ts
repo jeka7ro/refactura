@@ -259,6 +259,13 @@ export const appRouter = router({
         logoBgColor: s.logoBgColor || "",
         logoHasBackground: Boolean(s.logoHasBackground),
         themeColor: s.themeColor || "#16a34a",
+        userFullName: ctx.user?.name || s.representativeName || "",
+        userPhone: ctx.user?.phone || s.phone || s.representativePhone || t.phone || "",
+        userRole:
+          ctx.user?.role === "admin" || ctx.user?.role === "superadmin"
+            ? "Administrator"
+            : s.representativeRole || "Manager / Utilizator",
+        defaultExplanation: "Solicit resetarea codului PIN de acces pentru firma " + (t.name || ""),
       };
     }),
     requestPinReset: protectedProcedure
