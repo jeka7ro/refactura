@@ -12,6 +12,13 @@ import {
   User,
   Briefcase,
   FileText,
+  Sun,
+  CloudSun,
+  CloudRain,
+  Cloud,
+  Snowflake,
+  CloudLightning,
+  MapPin,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -30,42 +37,106 @@ interface CompanyPinLockModalProps {
   onUnlocked: () => void;
 }
 
-function formatRoTime(d: Date): string {
+interface WeatherData {
+  temp: number;
+  city: string;
+  condition: string;
+  weatherCode: number;
+}
+
+const CHROMECAST_WALLPAPERS = [
+  {
+    url: "/images/lockscreen_relax_bg.jpg",
+    title: "Lacul Moraine, Munții Stâncoși",
+    country: "Parcul Național Banff, Canada",
+  },
+  {
+    url: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1920&q=80",
+    title: "Valea Yosemite la asfințit",
+    country: "California, SUA",
+  },
+  {
+    url: "https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1920&q=80",
+    title: "Vârfurile Alpilor Elvețieni",
+    country: "Elveția",
+  },
+  {
+    url: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1920&q=80",
+    title: "Grădinile Zen și templele tradiționale",
+    country: "Kyoto, Japonia",
+  },
+  {
+    url: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=80",
+    title: "Apus pe o plajă tropicală liniștită",
+    country: "Oceanul Pacific",
+  },
+  {
+    url: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1920&q=80",
+    title: "Pajiștile și masivul Dolomiților",
+    country: "Italia",
+  },
+  {
+    url: "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=1920&q=80",
+    title: "Arhitectură albă pe malul mării",
+    country: "Santorini, Grecia",
+  },
+  {
+    url: "https://images.unsplash.com/photo-1516483638261-f4dbaf036963?auto=format&fit=crop&w=1920&q=80",
+    title: "Poveștile Coastei Amalfi",
+    country: "Italia",
+  },
+  {
+    url: "https://images.unsplash.com/photo-1477959858617-67f30bc75b82?auto=format&fit=crop&w=1920&q=80",
+    title: "Orizont urban modern la apus",
+    country: "Chicago, SUA",
+  },
+  {
+    url: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1920&q=80",
+    title: "Cheiurile Senei și Turnul Eiffel",
+    country: "Paris, Franța",
+  },
+  {
+    url: "https://images.unsplash.com/photo-1513584684374-8bab748fbf90?auto=format&fit=crop&w=1920&q=80",
+    title: "Pădure de conifere sub zăpadă",
+    country: "Norvegia",
+  },
+];
+
+function formatAppleTime(d: Date): string {
   const h = String(d.getHours()).padStart(2, "0");
   const m = String(d.getMinutes()).padStart(2, "0");
   const s = String(d.getSeconds()).padStart(2, "0");
   return `${h}:${m}:${s}`;
 }
 
-function formatRoDate(d: Date): string {
+function formatAppleDate(d: Date): string {
   const days = [
-    "DUMINICĂ",
-    "LUNI",
-    "MARȚI",
-    "MIERCURI",
-    "JOI",
-    "VINERI",
-    "SÂMBĂTĂ",
+    "Duminică",
+    "Luni",
+    "Marți",
+    "Miercuri",
+    "Joi",
+    "Vineri",
+    "Sâmbătă",
   ];
   const months = [
-    "IANUARIE",
-    "FEBRUARIE",
-    "MARTIE",
-    "APRILIE",
-    "MAI",
-    "IUNIE",
-    "IULIE",
-    "AUGUST",
-    "SEPTEMBRIE",
-    "OCTOMBRIE",
-    "NOIEMBRIE",
-    "DECEMBRIE",
+    "ianuarie",
+    "februarie",
+    "martie",
+    "aprilie",
+    "mai",
+    "iunie",
+    "iulie",
+    "august",
+    "septembrie",
+    "octombrie",
+    "noiembrie",
+    "decembrie",
   ];
   const dayName = days[d.getDay()];
   const dayNum = d.getDate();
   const monthName = months[d.getMonth()];
-  const year = d.getFullYear();
-  return `${dayName}, ${dayNum} ${monthName} ${year}`;
+  return `${dayName}, ${dayNum} ${monthName}`;
 }
 
 function cleanErrorMessage(err: any, fallback: string = "A apărut o eroare."): string {
@@ -82,6 +153,30 @@ function cleanErrorMessage(err: any, fallback: string = "A apărut o eroare."): 
   return raw;
 }
 
+function getWeatherLabel(code: number): string {
+  if (code === 0) return "Senin";
+  if (code === 1) return "Predominant senin";
+  if (code === 2) return "Parțial noros";
+  if (code === 3) return "Înnorat";
+  if (code === 45 || code === 48) return "Ceață";
+  if (code >= 51 && code <= 55) return "Burniță";
+  if (code >= 61 && code <= 65) return "Ploaie";
+  if (code >= 71 && code <= 77) return "Ninsoare";
+  if (code >= 80 && code <= 82) return "Averse de ploaie";
+  if (code >= 95) return "Furtună";
+  return "Senin";
+}
+
+function getWeatherIcon(code: number) {
+  if (code === 0 || code === 1) return Sun;
+  if (code === 2 || code === 3) return CloudSun;
+  if (code === 45 || code === 48) return Cloud;
+  if ((code >= 51 && code <= 65) || (code >= 80 && code <= 82)) return CloudRain;
+  if (code >= 71 && code <= 77) return Snowflake;
+  if (code >= 95) return CloudLightning;
+  return Sun;
+}
+
 export function CompanyPinLockModal({
   companyName = "Companie",
   companyLogo,
@@ -96,12 +191,84 @@ export function CompanyPinLockModal({
   onUnlocked,
 }: CompanyPinLockModalProps) {
   const [currentTime, setCurrentTime] = useState<Date>(() => new Date());
+  const [bgIndex, setBgIndex] = useState(0);
+  const [weather, setWeather] = useState<WeatherData | null>(null);
 
+  // Ceas live la fiecare secundă
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
     return () => clearInterval(timer);
+  }, []);
+
+  // Schimbare imagini stil Google Chromecast exact la fiecare 15 secunde
+  useEffect(() => {
+    const bgTimer = setInterval(() => {
+      setBgIndex(prev => (prev + 1) % CHROMECAST_WALLPAPERS.length);
+    }, 15000);
+    return () => clearInterval(bgTimer);
+  }, []);
+
+  // Preluare vreme live din locație
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchWeather(lat: number, lon: number, cityName?: string) {
+      try {
+        const res = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`
+        );
+        const data = await res.json();
+        if (isMounted && data.current) {
+          setWeather({
+            temp: Math.round(data.current.temperature_2m),
+            city: cityName || "București",
+            condition: getWeatherLabel(data.current.weather_code),
+            weatherCode: data.current.weather_code,
+          });
+        }
+      } catch {}
+    }
+
+    if (typeof navigator !== "undefined" && "geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&localityLanguage=ro`
+          )
+            .then(r => r.json())
+            .then(geo => {
+              const city = geo?.city || geo?.locality || geo?.principalSubdivision || "Locație curentă";
+              fetchWeather(pos.coords.latitude, pos.coords.longitude, city);
+            })
+            .catch(() => {
+              fetchWeather(pos.coords.latitude, pos.coords.longitude, "Locație curentă");
+            });
+        },
+        () => {
+          fetch("https://ipapi.co/json/")
+            .then(r => r.json())
+            .then(ipData => {
+              if (ipData?.latitude && ipData?.longitude) {
+                fetchWeather(ipData.latitude, ipData.longitude, ipData.city || "București");
+              } else {
+                fetchWeather(44.4323, 26.1063, "București");
+              }
+            })
+            .catch(() => {
+              fetchWeather(44.4323, 26.1063, "București");
+            });
+        },
+        { timeout: 6000 }
+      );
+    } else {
+      fetchWeather(44.4323, 26.1063, "București");
+    }
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const [pin, setPin] = useState("");
@@ -188,37 +355,79 @@ export function CompanyPinLockModal({
   };
 
   const effectiveThemeColor = themeColor || "#2563eb";
+  const currentWallpaper = CHROMECAST_WALLPAPERS[bgIndex] || CHROMECAST_WALLPAPERS[0];
 
   return (
-    <div
-      className="fixed inset-0 z-[9999] backdrop-blur-md flex flex-col items-center justify-center p-4 transition-colors duration-300 overflow-y-auto"
-      style={{
-        backgroundColor: "rgba(15, 23, 42, 0.88)",
-        backgroundImage: `radial-gradient(circle at 50% 35%, ${effectiveThemeColor}40 0%, ${effectiveThemeColor}15 50%, rgba(15, 23, 42, 0.95) 100%)`,
-      }}
-    >
-      {/* Ceas digital live mare cu font alb */}
-      <div className="mb-6 sm:mb-8 w-full max-w-md text-center select-none animate-in fade-in slide-in-from-top-4 duration-300">
-        <div
-          className="w-full py-6 px-4 sm:py-8 sm:px-6 rounded-3xl bg-slate-950/80 dark:bg-black/90 backdrop-blur-2xl border shadow-2xl flex flex-col items-center justify-center"
-          style={{
-            borderColor: `${effectiveThemeColor}50`,
-            boxShadow: `0 20px 50px -10px ${effectiveThemeColor}45`,
-          }}
-        >
-          <div className="text-6xl sm:text-7xl font-black tracking-tight font-mono leading-none text-white drop-shadow-lg">
-            {formatRoTime(currentTime)}
+    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center p-4 transition-all duration-300 overflow-y-auto">
+      {/* Imagini de fundal stil Google Chromecast cu crossfade lin */}
+      <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
+        {CHROMECAST_WALLPAPERS.map((wp, idx) => {
+          const isActive = idx === bgIndex;
+          return (
+            <div
+              key={wp.url}
+              className={`absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-1000 ease-in-out scale-[1.02] filter brightness-95 ${
+                isActive ? "opacity-100" : "opacity-0"
+              }`}
+              style={{
+                backgroundImage: `url('${wp.url}')`,
+              }}
+            />
+          );
+        })}
+      </div>
+
+      {/* Overlay cinematic cu tenta eleganta si accente subtile din culoarea tenant-ului */}
+      <div
+        className="absolute inset-0 -z-10 pointer-events-none"
+        style={{
+          background: `radial-gradient(circle at 50% 30%, ${effectiveThemeColor}30 0%, rgba(15, 23, 42, 0.55) 45%, rgba(15, 23, 42, 0.85) 100%)`,
+        }}
+      />
+
+      {/* Eticheta foto stil Google Chromecast in coltul stanga-jos */}
+      <div className="fixed bottom-4 left-4 z-20 pointer-events-none hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 text-white/85 text-xs shadow-lg animate-in fade-in duration-500">
+        <MapPin className="w-3.5 h-3.5 text-white/60 shrink-0" />
+        <span className="font-medium">
+          {currentWallpaper.title}
+          <span className="text-white/40 mx-1.5">•</span>
+          <span className="text-white/70">{currentWallpaper.country}</span>
+        </span>
+      </div>
+
+      {/* Ceas digital Apple Style (iOS / macOS Lock Screen) */}
+      <div className="mb-6 sm:mb-8 w-full max-w-md text-center select-none animate-in fade-in slide-in-from-top-4 duration-500">
+        <div className="w-full py-5 px-6 rounded-[32px] bg-black/30 dark:bg-black/45 backdrop-blur-3xl border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.35)] flex flex-col items-center justify-center">
+          {/* Rândul Apple: Data & Vremea */}
+          <div className="flex items-center justify-center flex-wrap gap-2 text-white/90 text-sm font-medium tracking-wide mb-1">
+            <span>{formatAppleDate(currentTime)}</span>
+            {weather && (
+              <>
+                <span className="text-white/40">•</span>
+                <div className="inline-flex items-center gap-1.5 text-white/95">
+                  {(() => {
+                    const IconComp = getWeatherIcon(weather.weatherCode);
+                    return <IconComp className="w-4 h-4 text-amber-300 shrink-0" />;
+                  })()}
+                  <span>{weather.temp > 0 ? `+${weather.temp}` : weather.temp}°C</span>
+                  <span className="text-white/70 text-xs hidden sm:inline">({weather.condition})</span>
+                </div>
+              </>
+            )}
           </div>
-          <div className="text-xs sm:text-sm font-bold tracking-[0.25em] uppercase text-white/90 mt-3 drop-shadow-xs">
-            {formatRoDate(currentTime)}
+
+          {/* Ora mare Apple (subțire, elegantă, curată) */}
+          <div className="text-7xl sm:text-8xl font-light tracking-tight text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.5)] leading-none my-1 select-none font-sans">
+            {formatAppleTime(currentTime)}
           </div>
         </div>
       </div>
 
+      {/* Fereastra de PIN / Securitate */}
       <div
-        className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 sm:p-8 space-y-6 animate-in fade-in zoom-in-95 duration-200"
+        className="w-full max-w-md bg-white/95 dark:bg-slate-900/90 backdrop-blur-3xl border border-white/20 dark:border-slate-800 rounded-[32px] shadow-[0_30px_70px_-15px_rgba(0,0,0,0.5)] p-6 sm:p-8 space-y-6 animate-in fade-in zoom-in-95 duration-200"
         style={{
-          boxShadow: `0 20px 45px -15px ${effectiveThemeColor}33`,
+          boxShadow: `0 25px 60px -15px ${effectiveThemeColor}35`,
         }}
       >
         {!showResetForm ? (
@@ -280,23 +489,37 @@ export function CompanyPinLockModal({
               </div>
             )}
 
-            <form onSubmit={handleUnlock} className="space-y-4">
+            <form onSubmit={handleUnlock} className="space-y-4" autoComplete="off">
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 text-center">
                   Cod PIN de acces
                 </label>
                 <input
                   ref={inputRef}
-                  type="password"
+                  type="text"
+                  name="pin_access_token"
                   inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="one-time-code"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  data-lpignore="true"
+                  data-1p-ignore="true"
+                  data-bwignore="true"
+                  data-form-type="other"
                   maxLength={10}
                   value={pin}
                   onChange={e => {
-                    setPin(e.target.value);
+                    const val = e.target.value.replace(/[^0-9]/g, "");
+                    setPin(val);
                     if (errorMsg) setErrorMsg("");
                   }}
                   placeholder="••••"
-                  className="w-full h-12 text-center text-2xl tracking-[0.4em] font-mono font-bold bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  style={{
+                    WebkitTextSecurity: "disc",
+                  } as React.CSSProperties}
+                  className="w-full h-12 text-center text-3xl tracking-[0.45em] font-mono font-bold bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
@@ -304,7 +527,7 @@ export function CompanyPinLockModal({
                 type="submit"
                 disabled={verifyPinMutation.isPending || !pin.trim()}
                 style={{ backgroundColor: effectiveThemeColor }}
-                className="w-full h-11 rounded-xl hover:opacity-90 disabled:opacity-50 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2"
+                className="w-full h-11 rounded-2xl hover:opacity-90 disabled:opacity-50 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2"
               >
                 {verifyPinMutation.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -376,7 +599,11 @@ export function CompanyPinLockModal({
                   <span className="font-semibold text-slate-800 dark:text-slate-200">
                     {companyName}
                   </span>
-                  . Mesajul va ajunge direct la <span className="font-semibold text-blue-600 dark:text-blue-400">contact@getapp.ro</span>.
+                  . Mesajul va ajunge direct la{" "}
+                  <span className="font-semibold text-blue-600 dark:text-blue-400">
+                    contact@getapp.ro
+                  </span>
+                  .
                 </p>
               </div>
 
@@ -406,7 +633,7 @@ export function CompanyPinLockModal({
                   </button>
                 </div>
               ) : (
-                <form onSubmit={handleSendResetRequest} className="space-y-3">
+                <form onSubmit={handleSendResetRequest} className="space-y-3" autoComplete="off">
                   {resetError && (
                     <div className="p-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 flex items-center gap-2 text-rose-700 dark:text-rose-300 text-xs font-semibold">
                       <AlertCircle className="w-4 h-4 shrink-0" />
@@ -513,6 +740,29 @@ export function CompanyPinLockModal({
             </div>
           </>
         )}
+      </div>
+
+      {/* Branding GetApp direct sub fereastra de securitate / login */}
+      <div className="mt-5 sm:mt-6 text-center select-none animate-in fade-in duration-300">
+        <a
+          href="https://www.getapp.ro"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-3 px-4 py-2 rounded-2xl bg-black/45 hover:bg-black/65 backdrop-blur-2xl border border-white/15 text-white shadow-xl transition-all hover:scale-105 group"
+        >
+          <img
+            src="/images/logo_getapp_original.png"
+            alt="GetApp"
+            className="h-5 w-auto object-contain filter drop-shadow-xs"
+            onError={e => {
+              // fallback direct la url-ul specificat de utilizator daca e nevoie
+              (e.target as HTMLImageElement).src = "https://getapp.ro/logo_getapp_original.png";
+            }}
+          />
+          <div className="flex items-center gap-1.5 border-l border-white/20 pl-3 text-xs font-semibold text-white/90 group-hover:text-white">
+            <span>www.getapp.ro</span>
+          </div>
+        </a>
       </div>
     </div>
   );
