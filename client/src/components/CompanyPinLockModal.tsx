@@ -466,9 +466,9 @@ export function CompanyPinLockModal({
       </div>
 
       {/* Fereastră Unică stil Apple (Ceas + Securitate Firmă) */}
-      <div className="w-full max-w-md bg-black/30 dark:bg-black/45 backdrop-blur-3xl border border-white/15 rounded-[36px] shadow-[0_25px_60px_rgba(0,0,0,0.4)] p-6 sm:p-8 space-y-6 text-white animate-in fade-in zoom-in-95 duration-300">
+      <div className="w-full max-w-md bg-black/30 dark:bg-black/45 backdrop-blur-3xl border border-white/[0.08] rounded-[36px] shadow-[0_25px_60px_rgba(0,0,0,0.4)] p-6 sm:p-8 space-y-6 text-white animate-in fade-in zoom-in-95 duration-300">
         {/* Header Ceas & Vreme */}
-        <div className="flex flex-col items-center justify-center text-center pb-5 border-b border-white/15 select-none">
+        <div className="flex flex-col items-center justify-center text-center pb-5 border-b border-white/[0.08] select-none">
           {/* Rândul Apple: Data & Vremea */}
           <div className="flex items-center justify-center flex-wrap gap-2 text-white/90 text-sm sm:text-base font-medium tracking-wide mb-1.5">
             <span>{formatAppleDate(currentTime)}</span>
@@ -499,7 +499,7 @@ export function CompanyPinLockModal({
             <div className="flex flex-col items-center text-center space-y-3 pt-1">
               {companyLogo && !logoFailed ? (
                 <div className="relative">
-                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-white shadow-2xl border-2 border-white/60 p-3 flex items-center justify-center overflow-hidden">
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-white shadow-2xl border border-white/40 p-3 flex items-center justify-center overflow-hidden">
                     <img
                       src={companyLogo}
                       alt={companyName}
@@ -577,7 +577,7 @@ export function CompanyPinLockModal({
                   style={{
                     WebkitTextSecurity: "disc",
                   } as React.CSSProperties}
-                  className="w-full h-12 text-center text-3xl tracking-[0.45em] font-mono font-bold bg-white/10 dark:bg-black/40 border border-white/20 rounded-2xl text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-white/50"
+                  className="w-full h-12 text-center text-3xl tracking-[0.45em] font-mono font-bold bg-white/10 dark:bg-black/40 border border-white/[0.08] rounded-2xl text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
                 />
               </div>
 
@@ -596,7 +596,7 @@ export function CompanyPinLockModal({
               </button>
             </form>
 
-            <div className="pt-3 border-t border-white/15 flex items-center justify-between text-xs">
+            <div className="pt-3 border-t border-white/[0.08] flex items-center justify-between text-xs">
               <button
                 type="button"
                 onClick={() => {
@@ -700,7 +700,7 @@ export function CompanyPinLockModal({
                   )}
 
                   <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1 flex items-center gap-1.5">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1 flex items-center gap-1.5">
                       <User className="w-3.5 h-3.5 text-slate-400" />
                       Nume și prenume *
                     </label>
@@ -713,12 +713,12 @@ export function CompanyPinLockModal({
                         if (resetError) setResetError("");
                       }}
                       placeholder="ex. Ion Popescu"
-                      className="w-full h-9 px-3 text-xs bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full h-9 px-3 text-xs bg-white/10 border border-white/[0.08] rounded-xl text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-white/40"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1 flex items-center gap-1.5">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1 flex items-center gap-1.5">
                       <Phone className="w-3.5 h-3.5 text-slate-400" />
                       Număr de telefon *
                     </label>
@@ -731,12 +731,12 @@ export function CompanyPinLockModal({
                         if (resetError) setResetError("");
                       }}
                       placeholder="ex. 0740 123 456"
-                      className="w-full h-9 px-3 text-xs bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full h-9 px-3 text-xs bg-white/10 border border-white/[0.08] rounded-xl text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-white/40"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1 flex items-center gap-1.5">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1 flex items-center gap-1.5">
                       <Briefcase className="w-3.5 h-3.5 text-slate-400" />
                       Funcție în cadrul firmei *
                     </label>
@@ -749,12 +749,12 @@ export function CompanyPinLockModal({
                         if (resetError) setResetError("");
                       }}
                       placeholder="ex. Director, Contabil, Administrator"
-                      className="w-full h-9 px-3 text-xs bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full h-9 px-3 text-xs bg-white/10 border border-white/[0.08] rounded-xl text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-white/40"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1 flex items-center gap-1.5">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1 flex items-center gap-1.5">
                       <FileText className="w-3.5 h-3.5 text-slate-400" />
                       Explicație / Motiv solicitare *
                     </label>
@@ -767,7 +767,7 @@ export function CompanyPinLockModal({
                         if (resetError) setResetError("");
                       }}
                       placeholder="Descrieți pe scurt motivul pentru care solicitați resetarea PIN-ului..."
-                      className="w-full p-2.5 text-xs bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+                      className="w-full p-2.5 text-xs bg-white/10 border border-white/[0.08] rounded-xl text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-white/40 resize-none"
                     />
                   </div>
 
