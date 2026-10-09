@@ -264,10 +264,10 @@ export const appRouter = router({
     requestPinReset: protectedProcedure
       .input(
         z.object({
-          fullName: z.string().min(2, "Numele și prenumele sunt obligatorii"),
-          phone: z.string().min(6, "Numărul de telefon este obligatoriu"),
-          role: z.string().min(2, "Funcția este obligatorie"),
-          explanation: z.string().min(5, "Explicația este obligatorie"),
+          fullName: z.string().trim().min(1, "Numele și prenumele sunt obligatorii"),
+          phone: z.string().trim().min(1, "Numărul de telefon este obligatoriu"),
+          role: z.string().trim().min(1, "Funcția este obligatorie"),
+          explanation: z.string().trim().min(1, "Explicația este obligatorie"),
         })
       )
       .mutation(async ({ input, ctx }) => {

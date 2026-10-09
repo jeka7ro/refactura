@@ -26,6 +26,20 @@ interface CompanyPinLockModalProps {
   onUnlocked: () => void;
 }
 
+function cleanErrorMessage(err: any, fallback: string = "A apărut o eroare."): string {
+  if (!err) return fallback;
+  const raw = err.message || (typeof err === "string" ? err : "");
+  if (!raw) return fallback;
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      const messages = parsed.map((p: any) => p.message).filter(Boolean);
+      if (messages.length > 0) return messages.join(". ");
+    }
+  } catch {}
+  return raw;
+}
+
 export function CompanyPinLockModal({
   companyName = "Companie",
   companyLogo,
@@ -73,7 +87,7 @@ export function CompanyPinLockModal({
       toast.success("Acces deblocat cu succes.");
       onUnlocked();
     } catch (err: any) {
-      setErrorMsg(err.message || "Cod PIN incorect.");
+      setErrorMsg(cleanErrorMessage(err, "Cod PIN incorect."));
       setPin("");
       inputRef.current?.focus();
     }
@@ -98,7 +112,7 @@ export function CompanyPinLockModal({
       setResetSuccess(true);
       toast.success("Solicitarea a fost trimisă către administrator.");
     } catch (err: any) {
-      setResetError(err.message || "Eroare la trimiterea solicitării.");
+      setResetError(cleanErrorMessage(err, "Eroare la trimiterea solicitării."));
     }
   };
 
