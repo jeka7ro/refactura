@@ -1,6 +1,6 @@
 // EmitInvoice.tsx — Creare Factură Nouă — Layout inspirat din Oblio
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { useLocation, useParams } from "wouter";
+import { useLocation, useParams, Link } from "wouter";
 import {
   ArrowLeft,
   Plus,
@@ -17,6 +17,9 @@ import {
   Calculator,
   Mail,
   ShieldCheck,
+  Lock,
+  RotateCcw,
+  QrCode,
 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -168,6 +171,63 @@ export default function EmitInvoice() {
   const [sendEmailToClient, setSendEmailToClient] = useState(false);
   const [isReverseCharge, setIsReverseCharge] = useState(false);
   const userManualReverseChargeRef = useRef(false);
+  const [isQrPontajActive, setIsQrPontajActive] = useState(false);
+  const [loadingQrPontaj, setLoadingQrPontaj] = useState(false);
+  const [qrDevizNominal, setQrDevizNominal] = useState<any[]>([]);
+  const [qrTenantId, setQrTenantId] = useState<number>(2);
+  const [qrMonth, setQrMonth] = useState<number>(() => {
+    const d = new Date();
+    return d.getMonth() + 1;
+  });
+  const [qrYear, setQrYear] = useState<number>(() => {
+    const d = new Date();
+    return d.getFullYear();
+  });
+
+  const { data: qrTenantsData } = trpc.qrPontaj.getTenants.useQuery(undefined, {
+    enabled: isQrPontajActive,
+    staleTime: 60000,
+  });
+
+  const { data: bnrData } = trpc.system.getBnrRates.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const currentBnrRateForInvoice = useMemo(() => {
+    if (!bnrData) return null;
+    let targetRate = bnrData.rates?.EUR || 4.975;
+    if (issueDate && Array.isArray(bnrData.history) && bnrData.history.length > 0) {
+      let matched = bnrData.history.find((h: any) => h.date === issueDate);
+      if (!matched) {
+        const sortedPrior = [...bnrData.history]
+          .filter((h: any) => h.date <= issueDate)
+          .sort((a: any, b: any) => b.date.localeCompare(a.date));
+        if (sortedPrior.length > 0) {
+          matched = sortedPrior[0];
+        }
+      }
+      if (matched && (matched as any).EUR) {
+        targetRate = (matched as any).EUR;
+      }
+    }
+    return targetRate;
+  }, [bnrData, issueDate]);
+
+  const [appliedQrExchangeRate, setAppliedQrExchangeRate] = useState<number | null>(null);
+  const [qrPricePerUser, setQrPricePerUser] = useState<string>("3.50");
+  const [rawQrData, setRawQrData] = useState<any>(null);
+
+  const qrTenantsList = useMemo(() => {
+    if (qrTenantsData && Array.isArray(qrTenantsData) && qrTenantsData.length > 0) {
+      return qrTenantsData;
+    }
+    return [
+      { id: 2, nume: "Unda", subdomain: "unda", active_employees_count: 49 },
+      { id: 1, nume: "Roll Master", subdomain: "rollmaster", active_employees_count: 2 },
+      { id: 3, nume: "Sushi Han", subdomain: "sushihan", active_employees_count: 0 },
+      { id: 4, nume: "GetApp Smart QR", subdomain: "smartqr", active_employees_count: 20 },
+    ];
+  }, [qrTenantsData]);
 
   // Lines
   const [lines, setLines] = useState<Line[]>([defaultLine()]);
@@ -209,6 +269,12 @@ export default function EmitInvoice() {
   const { data: originalInvoice } = trpc.emittedInvoice.getById.useQuery(
     { id: parseInt(sourceId!) },
     { enabled: !!sourceId }
+  );
+
+  const isSpvValidated = Boolean(
+    editId &&
+    originalInvoice &&
+    ((originalInvoice as any).spvStatus === "validat" || Boolean((originalInvoice as any).spvIndex))
   );
 
   // Dacă edităm o factură, verificăm dacă are deviz linked — îl expandăm în linii individuale
@@ -777,6 +843,155 @@ export default function EmitInvoice() {
     }
   };
 
+  const applyCalculatedLinesAndDeviz = (data: any, priceEur: number, rate: number) => {
+    if (!data) return;
+    const basePriceEur = priceEur > 0 ? priceEur : 3.5;
+
+    if (data.invoice_lines && data.invoice_lines.length > 0) {
+      const mappedLines: Line[] = data.invoice_lines.map((il: any, idx: number) => {
+        const isReduced = il.unit_price_eur && il.unit_price_eur < (data.invoice_lines[0]?.unit_price_eur || 3.5);
+        const lineUnitEur = isReduced ? (basePriceEur * 0.5) : basePriceEur;
+        const unitPriceRon = Math.round(lineUnitEur * rate * 100) / 100;
+        const lineBaseRon = Math.round(il.quantity * unitPriceRon * 100) / 100;
+
+        return {
+          id: `qr-line-${idx}-${Date.now()}`,
+          description: il.description,
+          quantity: il.quantity,
+          unit: il.unit || il.unit_measure || "pers",
+          unitPrice: unitPriceRon,
+          vatRate: il.vat_percent ?? il.tva_percent ?? 21,
+          total: lineBaseRon,
+          lineOrder: idx,
+          devizCode: `QR-${idx + 1}`,
+        };
+      });
+      setLines(mappedLines);
+    }
+
+    const countEmployees = data.deviz_nominal?.length || 0;
+    const contractRef = data.client?.contract_reference || "Contract SaaS Nr. 9 din 09.09.2026";
+    const rateText = ` (${basePriceEur.toFixed(2)} EUR/persoană, Curs BNR: 1 EUR = ${rate.toFixed(4)} RON din data emiterii)`;
+    const noteMention = `Conform ${contractRef}${rateText}. Anexă deviz nominal Smart QR Pontaj (${countEmployees} angajați) atașată.`;
+    setMentiuni(prev => {
+      if (!prev || !prev.trim()) return noteMention;
+      const cleanPrev = prev
+        .split("\n")
+        .filter(l => !l.includes("Smart QR Pontaj") && !l.includes("Contract SaaS"))
+        .join("\n")
+        .trim();
+      return cleanPrev ? `${cleanPrev}\n${noteMention}` : noteMention;
+    });
+    setNumarContract(contractRef);
+
+    setCreateDeviz(true);
+
+    if (data.deviz_nominal && data.deviz_nominal.length > 0) {
+      const nominalLines = data.deviz_nominal.map((emp: any, i: number) => {
+        const ratePercent = emp.rate_percent || 100;
+        const empAmountEur = (ratePercent / 100) * basePriceEur;
+        const empAmountRon = Math.round(empAmountEur * rate * 100) / 100;
+
+        return {
+          type: "MANOPERA" as const,
+          code: `EMP-${emp.employee_id || i + 1}`,
+          description: `${emp.name} (${emp.job_title}) - Activ ${emp.days_active}/${emp.days_in_month} zile (${emp.interval_activ})`,
+          quantity: 1,
+          unitPrice: empAmountRon,
+          total: empAmountRon,
+        };
+      });
+      setQrDevizNominal(nominalLines);
+    } else {
+      setQrDevizNominal([]);
+    }
+  };
+
+  const fetchAndApplyQrData = async (tenantId: number, month: number, year: number, forceRate?: number) => {
+    setLoadingQrPontaj(true);
+    try {
+      const rateToUse = forceRate ?? currentBnrRateForInvoice ?? undefined;
+      let data: any = null;
+      try {
+        const trpcRes = await utils.client.qrPontaj.getDeviz.query({
+          tenantId,
+          month,
+          year,
+          exchangeRate: rateToUse,
+        });
+        data = trpcRes;
+      } catch {
+        let directUrl = `http://localhost:5001/api/billing/deviz?tenant_id=${tenantId}&month=${month}&year=${year}`;
+        if (rateToUse) {
+          directUrl += `&exchange_rate=${rateToUse}`;
+        }
+        const directRes = await fetch(directUrl);
+        if (!directRes.ok) {
+          throw new Error(`Eroare comunicare QR Pontaj (Status ${directRes.status})`);
+        }
+        data = await directRes.json();
+      }
+
+      if (!data) {
+        throw new Error("Nu s-au putut prelua datele din QR Pontaj");
+      }
+
+      if (data.error) {
+        toast.warning(data.error);
+        return;
+      }
+
+      setRawQrData(data);
+
+      const effectiveRate = data.exchange_rate ? Number(data.exchange_rate) : (rateToUse || 4.975);
+      setAppliedQrExchangeRate(effectiveRate);
+
+      const basePriceEur = Number(data.invoice_lines?.[0]?.unit_price_eur || data.deviz_nominal?.[0]?.unit_price_eur || 3.5);
+      setQrPricePerUser(basePriceEur.toFixed(2));
+
+      const partnerName = data.client?.name || "Client";
+      setClientName(partnerName);
+      setClientSearch(partnerName);
+      if (clientsData && clientsData.length > 0) {
+        const found = clientsData.find((c: any) =>
+          c.name.toLowerCase().includes(partnerName.toLowerCase()) ||
+          (c.cui && data.client?.cui && c.cui.includes(data.client.cui))
+        );
+        if (found) {
+          selectClient(found);
+        }
+      }
+
+      setCurrency("RON");
+
+      applyCalculatedLinesAndDeviz(data, basePriceEur, effectiveRate);
+
+      const countEmployees = data.deviz_nominal?.length || 0;
+      toast.success(`Datele din Smart QR Pontaj au fost preluate (${countEmployees} angajați).`);
+    } catch (err: any) {
+      console.error("Eroare preluare QR Pontaj:", err);
+      toast.error(`Nu s-au putut prelua datele: ${err.message}`);
+    } finally {
+      setLoadingQrPontaj(false);
+    }
+  };
+
+  const handleToggleQrPontaj = async (checked: boolean) => {
+    setIsQrPontajActive(checked);
+    if (!checked) {
+      toast.info("Preluarea automată Smart QR a fost dezactivată.");
+      return;
+    }
+    await fetchAndApplyQrData(qrTenantId, qrMonth, qrYear);
+  };
+
+  const handleQrParamChange = async (tenantId: number, month: number, year: number) => {
+    setQrTenantId(tenantId);
+    setQrMonth(month);
+    setQrYear(year);
+    await fetchAndApplyQrData(tenantId, month, year);
+  };
+
   const addLine = () =>
     setLines(prev => {
       const defaultVat = isReverseCharge ? 0 : 21;
@@ -866,14 +1081,14 @@ export default function EmitInvoice() {
   };
 
   const subtotal = useMemo(
-    () => lines.reduce((s, l) => s + computeLineTotal(l), 0),
+    () => Math.round(lines.reduce((s, l) => s + computeLineTotal(l), 0) * 100) / 100,
     [lines]
   );
   const totalVAT = useMemo(
-    () => lines.reduce((s, l) => s + computeLineVAT(l), 0),
+    () => Math.round(lines.reduce((s, l) => s + computeLineVAT(l), 0) * 100) / 100,
     [lines]
   );
-  const total = subtotal + totalVAT;
+  const total = Math.round((subtotal + totalVAT) * 100) / 100;
 
   const bnrNoteMatch = useMemo(() => {
     const m = mentiuni.match(
@@ -915,6 +1130,10 @@ export default function EmitInvoice() {
     .join("\n");
 
   const handleSave = async (status: "draft" | "sent" = "draft") => {
+    if (isSpvValidated) {
+      toast.error("Această factură este deja validată în SPV și nu mai poate fi modificată. Conform legii fiscale, este necesară o factură de stornare.");
+      return;
+    }
     if (!clientName.trim()) {
       toast.error("Selectați sau introduceți un client");
       return;
@@ -981,6 +1200,8 @@ export default function EmitInvoice() {
         status,
         notes: notesForSave,
         createDeviz,
+        customDevizLines: qrDevizNominal.length > 0 ? qrDevizNominal : undefined,
+        devizNotes: qrDevizNominal.length > 0 ? "Anexă deviz nominal Smart QR Pontaj" : undefined,
         sendEmailToClient,
         representativeName: delegat.trim() || undefined,
         lines: lines.map((l, i) => ({
@@ -1049,6 +1270,41 @@ export default function EmitInvoice() {
           </div>
         </div>
       </div>
+
+      {isSpvValidated && (
+        <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 flex items-center justify-between gap-4 flex-wrap shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/60 flex items-center justify-center shrink-0">
+              <Lock className="w-5 h-5 text-amber-700 dark:text-amber-300" />
+            </div>
+            <div>
+              <p className="font-bold text-sm">Factură blocată la editare (Document oficial înregistrat în SPV)</p>
+              <p className="text-xs text-amber-800 dark:text-amber-300 mt-0.5">
+                Această factură a fost deja transmisă și validată în RO e-Factura / SPV{(originalInvoice as any)?.spvIndex ? ` (Index: ${(originalInvoice as any)?.spvIndex})` : ""}. Conform legislației fiscale (OUG 120/2021 și Codul Fiscal art. 330), documentul original oficial nu mai poate fi modificat direct. Pentru corecții, emiteți o factură de stornare.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link href={`/facturi-emise-nou/view/${editId}`}>
+              <button
+                type="button"
+                className="px-3.5 h-8 rounded-lg border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-900 text-amber-900 dark:text-amber-200 text-xs font-semibold hover:bg-amber-50 dark:hover:bg-slate-800 transition-colors shadow-xs"
+              >
+                Vezi Factura
+              </button>
+            </Link>
+            <Link href={`/facturi-emise-nou/storno/${editId}`}>
+              <button
+                type="button"
+                className="flex items-center gap-1.5 px-3.5 h-8 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.97]"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Stornează Factura
+              </button>
+            </Link>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4 space-y-4 shadow-xs">
         {/* Date Factură: Serie, Număr, Data Emiterii, Data Scadenței, Monedă, Cont Bancar */}
@@ -1557,7 +1813,7 @@ export default function EmitInvoice() {
                     {matchingProducts.length > 0 && (
                       <div>
                         <div className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center justify-between border-b border-slate-200 dark:border-slate-700">
-                          <span>📦 Produsele Tale Salvate ({matchingProducts.length})</span>
+                          <span>Produsele Tale Salvate ({matchingProducts.length})</span>
                           <span className="text-[9px] text-blue-600 dark:text-blue-400 font-normal lowercase">completează automat U.M. și prețul</span>
                         </div>
                         {matchingProducts.map((p: any) => (
@@ -1664,7 +1920,7 @@ export default function EmitInvoice() {
                       line.maxQuantity !== undefined &&
                       val > line.maxQuantity
                     ) {
-                      toast(`⚠️ Stoc insuficient în NIR`, {
+                      toast.warning(`Stoc insuficient în NIR`, {
                         description: `„${line.description.slice(0, 45)}" — disponibil: ${line.maxQuantity} ${line.unit}`,
                         duration: 4000,
                         style: {
@@ -1979,6 +2235,100 @@ export default function EmitInvoice() {
           )}
         </div>
 
+        {/* Toggle Preluare Deviz Smart QR */}
+        <div className="flex items-center gap-2 shrink-0">
+          <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap">
+            <QrCode className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap flex items-center gap-1.5">
+              Preluare Deviz Smart QR
+              {loadingQrPontaj && <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />}
+            </span>
+            <Switch
+              checked={isQrPontajActive}
+              onCheckedChange={handleToggleQrPontaj}
+              disabled={loadingQrPontaj}
+            />
+          </label>
+
+          {isQrPontajActive && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-xs">
+              <span className="text-[11px] text-blue-700 dark:text-blue-300 font-medium">Client:</span>
+              <select
+                value={qrTenantId}
+                onChange={e => handleQrParamChange(Number(e.target.value), qrMonth, qrYear)}
+                disabled={loadingQrPontaj}
+                className="bg-transparent text-xs text-slate-800 dark:text-slate-200 font-semibold outline-none cursor-pointer pr-1"
+              >
+                {qrTenantsList.map((t: any) => (
+                  <option key={t.id} value={t.id} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">
+                    {t.nume} {t.active_employees_count !== undefined ? `(${t.active_employees_count} pers)` : ""}
+                  </option>
+                ))}
+              </select>
+
+              <span className="text-blue-300 dark:text-blue-700">|</span>
+
+              <span className="text-[11px] text-blue-700 dark:text-blue-300 font-medium">Luna:</span>
+              <select
+                value={qrMonth}
+                onChange={e => handleQrParamChange(qrTenantId, Number(e.target.value), qrYear)}
+                disabled={loadingQrPontaj}
+                className="bg-transparent text-xs text-slate-800 dark:text-slate-200 font-semibold outline-none cursor-pointer pr-1"
+              >
+                <option value={1} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Ianuarie</option>
+                <option value={2} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Februarie</option>
+                <option value={3} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Martie</option>
+                <option value={4} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Aprilie</option>
+                <option value={5} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Mai</option>
+                <option value={6} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Iunie</option>
+                <option value={7} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Iulie</option>
+                <option value={8} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">August</option>
+                <option value={9} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Septembrie</option>
+                <option value={10} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Octombrie</option>
+                <option value={11} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Noiembrie</option>
+                <option value={12} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Decembrie</option>
+              </select>
+
+              <select
+                value={qrYear}
+                onChange={e => handleQrParamChange(qrTenantId, qrMonth, Number(e.target.value))}
+                disabled={loadingQrPontaj}
+                className="bg-transparent text-xs text-slate-800 dark:text-slate-200 font-semibold outline-none cursor-pointer"
+              >
+                <option value={2025} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">2025</option>
+                <option value={2026} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">2026</option>
+                <option value={2027} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">2027</option>
+              </select>
+
+              <span className="text-blue-300 dark:text-blue-700">|</span>
+
+              <div className="flex items-center gap-1">
+                <span className="text-[11px] text-blue-700 dark:text-blue-300 font-medium">Preț:</span>
+                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                  {qrPricePerUser} EUR
+                </span>
+              </div>
+
+              <span className="text-blue-300 dark:text-blue-700">|</span>
+
+              <span className="text-[11px] text-blue-700 dark:text-blue-300 font-medium">Curs BNR:</span>
+              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                {appliedQrExchangeRate ? appliedQrExchangeRate.toFixed(4) : (currentBnrRateForInvoice ? currentBnrRateForInvoice.toFixed(4) : "4.9750")}
+              </span>
+
+              <button
+                type="button"
+                onClick={() => fetchAndApplyQrData(qrTenantId, qrMonth, qrYear)}
+                disabled={loadingQrPontaj}
+                title="Reîncarcă datele din Smart QR"
+                className="ml-1 p-0.5 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 rounded transition-colors"
+              >
+                <RotateCcw className={`w-3 h-3 ${loadingQrPontaj ? "animate-spin" : ""}`} />
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Toggle Creare Deviz - strict pe un singur rând */}
         <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap shrink-0">
           <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
@@ -1990,30 +2340,50 @@ export default function EmitInvoice() {
           />
         </label>
 
-        <button
-          onClick={() => handleSave("draft")}
-          disabled={saving}
-          className="flex items-center gap-1.5 px-6 h-10 rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-60 whitespace-nowrap shrink-0"
-        >
-          {saving ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
-          Salvează Ciornă
-        </button>
-        <button
-          onClick={() => handleSave("sent")}
-          disabled={saving}
-          className="flex items-center gap-1.5 px-8 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition-colors disabled:opacity-60 whitespace-nowrap shrink-0"
-        >
-          {saving ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Send className="w-4 h-4" />
-          )}
-          Emite Factura
-        </button>
+        {isSpvValidated ? (
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 px-4 h-10 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs font-bold">
+              <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              <span>Factură blocată la editare (Validată în SPV)</span>
+            </div>
+            <Link href={`/facturi-emise-nou/storno/${editId}`}>
+              <button
+                type="button"
+                className="flex items-center gap-1.5 px-6 h-10 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold shadow-md transition-all active:scale-[0.98]"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Emite Factură Storno
+              </button>
+            </Link>
+          </div>
+        ) : (
+          <>
+            <button
+              onClick={() => handleSave("draft")}
+              disabled={saving}
+              className="flex items-center gap-1.5 px-6 h-10 rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-60 whitespace-nowrap shrink-0"
+            >
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              Salvează Ciornă
+            </button>
+            <button
+              onClick={() => handleSave("sent")}
+              disabled={saving}
+              className="flex items-center gap-1.5 px-8 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition-colors disabled:opacity-60 whitespace-nowrap shrink-0"
+            >
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+              Emite Factura
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

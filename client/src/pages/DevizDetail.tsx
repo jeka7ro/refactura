@@ -148,10 +148,12 @@ export default function DevizDetail() {
                   >
                     <td className="px-4 py-3 text-slate-400">{i + 1}</td>
                     <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">
-                      <span className="text-xs font-bold text-slate-400 mr-2 uppercase tracking-wider">
-                        [{l.type}]
-                      </span>
-                      {l.description}
+                      {l.type !== "MANOPERA" && Number(deviz.totalMaterials) > 0 && (
+                        <span className="text-xs font-bold text-slate-400 mr-2 uppercase tracking-wider">
+                          [{l.type}]
+                        </span>
+                      )}
+                      {(l.description || "").replace(/^\[MANOPERA\]\s*/i, "")}
                     </td>
                     {showCodes && (
                       <td className="px-4 py-3 text-slate-500">
@@ -172,28 +174,32 @@ export default function DevizDetail() {
               )}
             </tbody>
             <tfoot className="bg-slate-50 dark:bg-slate-800/50 border-t-2 border-slate-200 dark:border-slate-700">
-              <tr>
-                <td
-                  colSpan={showCodes ? 5 : 4}
-                  className="px-4 py-3 text-right font-bold text-slate-600 dark:text-slate-400"
-                >
-                  TOTAL MATERIALE:
-                </td>
-                <td className="px-4 py-3 text-right font-bold text-slate-900 dark:text-white">
-                  {Number(deviz.totalMaterials).toFixed(2)} RON
-                </td>
-              </tr>
-              <tr>
-                <td
-                  colSpan={showCodes ? 5 : 4}
-                  className="px-4 py-3 text-right font-bold text-slate-600 dark:text-slate-400"
-                >
-                  TOTAL MANOPERĂ:
-                </td>
-                <td className="px-4 py-3 text-right font-bold text-slate-900 dark:text-white">
-                  {Number(deviz.totalLabor).toFixed(2)} RON
-                </td>
-              </tr>
+              {Number(deviz.totalMaterials) > 0 && (
+                <>
+                  <tr>
+                    <td
+                      colSpan={showCodes ? 5 : 4}
+                      className="px-4 py-3 text-right font-bold text-slate-600 dark:text-slate-400"
+                    >
+                      TOTAL MATERIALE:
+                    </td>
+                    <td className="px-4 py-3 text-right font-bold text-slate-900 dark:text-white">
+                      {Number(deviz.totalMaterials).toFixed(2)} RON
+                    </td>
+                  </tr>
+                  <tr>
+                    <td
+                      colSpan={showCodes ? 5 : 4}
+                      className="px-4 py-3 text-right font-bold text-slate-600 dark:text-slate-400"
+                    >
+                      TOTAL SERVICII:
+                    </td>
+                    <td className="px-4 py-3 text-right font-bold text-slate-900 dark:text-white">
+                      {Number(deviz.totalLabor).toFixed(2)} RON
+                    </td>
+                  </tr>
+                </>
+              )}
               <tr className="bg-sky-50 dark:bg-sky-900/20">
                 <td
                   colSpan={showCodes ? 5 : 4}

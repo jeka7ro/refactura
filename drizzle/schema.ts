@@ -815,6 +815,7 @@ export const emailLogs = mysqlTable("emailLogs", {
   status: mysqlEnum("status", ["trimis", "eroare", "in_asteptare"]).default("trimis").notNull(),
   messageId: varchar("messageId", { length: 255 }),
   error: text("error"),
+  htmlContent: longtext("htmlContent"),
   sentAt: timestamp("sentAt").defaultNow().notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

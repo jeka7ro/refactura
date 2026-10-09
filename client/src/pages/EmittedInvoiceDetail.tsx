@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useParams } from "wouter";
 import {
   ArrowLeft,
@@ -15,6 +15,10 @@ import {
   Pencil,
   Mail,
   Eye,
+  Lock,
+  RotateCcw,
+  CheckCircle2,
+  X,
 } from "lucide-react";
 import {
   formatCurrency,
@@ -45,8 +49,25 @@ function isExternalInvoice(inv: any) {
   if (country && country !== "RO") return true;
   const cui = (inv?.clientCUI || "").trim().toUpperCase();
   if (cui && /^[A-Z]{2}/.test(cui) && !cui.startsWith("RO")) return true;
+  const curr = (inv?.currency || "").trim().toUpperCase();
+  if (curr && curr !== "RON" && curr !== "LEI") return true;
   return false;
 }
+
+export type SupportedLanguage = "ro" | "en" | "fr" | "nl" | "de" | "hu";
+
+export const AVAILABLE_LANGUAGES: Array<{
+  code: SupportedLanguage;
+  name: string;
+  flag: string;
+}> = [
+  { code: "ro", name: "Română", flag: "🇷🇴" },
+  { code: "en", name: "English", flag: "🇬🇧" },
+  { code: "fr", name: "Français", flag: "🇫🇷" },
+  { code: "nl", name: "Nederlands", flag: "🇳🇱" },
+  { code: "de", name: "Deutsch", flag: "🇩🇪" },
+  { code: "hu", name: "Magyar", flag: "🇭🇺" },
+];
 
 export default function EmittedInvoiceDetail() {
   const { id } = useParams<{ id: string }>();
@@ -99,11 +120,65 @@ export default function EmittedInvoiceDetail() {
   const [emailRecipient, setEmailRecipient] = useState("");
   const [representativeName, setRepresentativeName] = useState("");
   const [showEmailPreview, setShowEmailPreview] = useState(false);
+  const [selectedLanguages, setSelectedLanguages] = useState<SupportedLanguage[]>(["ro"]);
+
+  // Set default languages when invoice loads
+  useEffect(() => {
+    if (invoice) {
+      if (isExternalInvoice(invoice)) {
+        const country = (invoice.clientCountry || "").toUpperCase().trim();
+        if (country === "FR") setSelectedLanguages(["ro", "fr"]);
+        else if (country === "BE") setSelectedLanguages(["ro", "nl"]);
+        else if (country === "DE" || country === "AT" || country === "CH") setSelectedLanguages(["ro", "de"]);
+        else if (country === "HU") setSelectedLanguages(["ro", "hu"]);
+        else if (country === "NL") setSelectedLanguages(["ro", "nl"]);
+        else setSelectedLanguages(["ro", "en"]);
+      } else {
+        setSelectedLanguages(["ro"]);
+      }
+    }
+  }, [invoice?.id, invoice?.clientCountry, invoice?.spvStatus]);
+
+  const toggleLanguage = (code: SupportedLanguage) => {
+    setSelectedLanguages(prev => {
+      if (prev.includes(code)) {
+        // Dacă este deja selectată și sunt 2, o deselectăm lăsând 1 singură
+        if (prev.length > 1) {
+          return prev.filter(c => c !== code);
+        }
+        // Dacă e singura selectată, nu permitem deselectarea la 0 limbi
+        return prev;
+      }
+      // Dacă sunt mai puțin de 2 selectate, o adăugăm
+      if (prev.length < 2) {
+        return [...prev, code];
+      }
+      // Dacă sunt deja 2 selectate, o înlocuim pe a doua
+      return [prev[0], code];
+    });
+  };
+
+  // Email logs & previzualizare email expediat
+  const [viewSentEmailModal, setViewSentEmailModal] = useState(false);
+  const { data: invoiceEmailLogs, refetch: refetchEmailLogs } = trpc.emailLogs.getByInvoiceId.useQuery(
+    { invoiceId },
+    { enabled: !!invoiceId && !isNaN(invoiceId) }
+  );
+  const latestEmailLog = invoiceEmailLogs?.[0];
+
+  const { data: sentEmailPreviewData, isLoading: isSentEmailLoading } = trpc.emailLogs.getPreview.useQuery(
+    {
+      logId: latestEmailLog?.id,
+      invoiceId,
+    },
+    { enabled: Boolean(viewSentEmailModal && (latestEmailLog?.id || invoiceId)) }
+  );
 
   const { data: emailPreviewData, isLoading: isEmailPreviewLoading } = trpc.emailLogs.getPreview.useQuery(
     {
       invoiceId: invoice?.id,
       representativeName: representativeName.trim() || undefined,
+      languages: selectedLanguages,
     },
     { enabled: Boolean(showEmailModal && showEmailPreview && invoice?.id) }
   );
@@ -113,6 +188,7 @@ export default function EmittedInvoiceDetail() {
       toast.success(`Factura a fost trimisă cu succes pe email la ${res.recipient}!`);
       setShowEmailModal(false);
       setShowEmailPreview(false);
+      refetchEmailLogs();
     },
     onError: e => toast.error("Eroare trimitere email: " + e.message),
   });
@@ -139,6 +215,7 @@ export default function EmittedInvoiceDetail() {
   }
 
   const status = (invoice.status || "draft") as any;
+  const isSpvValidated = invoice.spvStatus === "validat" || Boolean(invoice.spvIndex);
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -179,13 +256,34 @@ export default function EmittedInvoiceDetail() {
             <Mail className="w-3.5 h-3.5" />
             Trimite pe Email
           </button>
-          <Link href={`/facturi-emise-nou/${invoice.id}`}>
-            <button className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.97]">
-              Editează Factura
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </Link>
-          {linkedDeviz && (
+          {isSpvValidated ? (
+            <>
+              <div
+                className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs font-semibold select-none shadow-sm cursor-default"
+                title="Conform legislației fiscale (OUG 120/2021 și Codul Fiscal art. 330), documentul a fost validat în SPV și nu mai poate fi modificat. Pentru corecții, emiteți o factură de stornare."
+              >
+                <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span>🔒 Blocată la editare (Document oficial înregistrat în SPV)</span>
+              </div>
+              <Link href={`/facturi-emise-nou/storno/${invoice.id}`}>
+                <button
+                  className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.97]"
+                  title="Emite o factură de stornare (cu valori negative) conform legii fiscale"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Stornează Factura
+                </button>
+              </Link>
+            </>
+          ) : (
+            <Link href={`/facturi-emise-nou/${invoice.id}`}>
+              <button className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.97]">
+                Editează Factura
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </Link>
+          )}
+          {linkedDeviz && !isSpvValidated && (
             <button
               onClick={() => setIsEditDevizOpen(true)}
               className="flex items-center gap-1.5 px-3.5 h-8 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.97]"
@@ -197,7 +295,7 @@ export default function EmittedInvoiceDetail() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* Client Info */}
         <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-5">
           <div className="flex items-center gap-2 mb-4">
@@ -351,6 +449,115 @@ export default function EmittedInvoiceDetail() {
             </div>
           </div>
         </div>
+
+        {/* Transmitere Email & Previzualizare */}
+        <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-5 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between gap-2 mb-4">
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-slate-400" />
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Transmitere Email
+                </span>
+              </div>
+              {latestEmailLog ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                  Trimis
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700">
+                  Netrimis
+                </span>
+              )}
+            </div>
+
+            {latestEmailLog ? (
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between items-start gap-2">
+                  <span className="text-slate-500 shrink-0">Destinatar:</span>
+                  <span className="text-slate-900 dark:text-white font-medium text-right truncate max-w-[170px]" title={latestEmailLog.recipientEmail}>
+                    {latestEmailLog.recipientEmail}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Data expedierii:</span>
+                  <span className="text-slate-900 dark:text-white font-medium">
+                    {formatDate(latestEmailLog.sentAt || "")} {new Date(latestEmailLog.sentAt as any).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </div>
+                {invoiceEmailLogs && invoiceEmailLogs.length > 1 && (
+                  <div className="flex justify-between text-[11px] text-slate-500">
+                    <span>Istoric expedieri:</span>
+                    <span className="font-semibold text-blue-600 dark:text-blue-400">
+                      {invoiceEmailLogs.length} trimiteri
+                    </span>
+                  </div>
+                )}
+                {latestEmailLog.messageId && (
+                  <div className="flex justify-between items-center text-[11px] text-slate-400">
+                    <span>Message ID:</span>
+                    <span className="font-mono text-[10px] truncate max-w-[120px]" title={latestEmailLog.messageId}>
+                      {latestEmailLog.messageId}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-xs text-slate-500 space-y-1.5 py-1">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Email client:</span>
+                  <span className="text-slate-700 dark:text-slate-300 font-medium truncate max-w-[160px]">
+                    {invoice.clientEmail || "—"}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400">Factura nu a fost încă expediată pe email către client.</p>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
+            {latestEmailLog ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setViewSentEmailModal(true)}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 text-xs font-bold transition-colors border border-blue-200 dark:border-blue-800 shadow-2xs cursor-pointer"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  Previzualizează Email
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmailRecipient(latestEmailLog.recipientEmail || invoice.clientEmail || "");
+                    const match = (invoice.notes || "").match(/(?:delegat|reprezentant|persoan[aă] de contact)\s*:\s*([^\n\r(]+)/i);
+                    setRepresentativeName(match && match[1] ? match[1].trim() : "");
+                    setShowEmailModal(true);
+                  }}
+                  title="Retrimite factura pe email"
+                  className="px-2.5 h-8 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold transition-colors shrink-0 cursor-pointer"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setEmailRecipient(invoice.clientEmail || "");
+                  const match = (invoice.notes || "").match(/(?:delegat|reprezentant|persoan[aă] de contact)\s*:\s*([^\n\r(]+)/i);
+                  setRepresentativeName(match && match[1] ? match[1].trim() : "");
+                  setShowEmailModal(true);
+                }}
+                className="w-full flex items-center justify-center gap-1.5 px-3 h-8 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-2xs cursor-pointer"
+              >
+                <Mail className="w-3.5 h-3.5" />
+                Trimite pe Email
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* PDF-uri: Factură + Deviz unul lângă celălalt */}
@@ -448,14 +655,16 @@ export default function EmittedInvoiceDetail() {
                 </span>
               </div>
               <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsEditDevizOpen(true)}
-                  className="flex items-center gap-1.5 px-3 h-7 text-xs font-bold rounded-lg bg-sky-600 hover:bg-sky-700 text-white shadow-sm transition-colors"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                  Editează Deviz
-                </button>
+                {!isSpvValidated && (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditDevizOpen(true)}
+                    className="flex items-center gap-1.5 px-3 h-7 text-xs font-bold rounded-lg bg-sky-600 hover:bg-sky-700 text-white shadow-sm transition-colors"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    Editează Deviz
+                  </button>
+                )}
                 <a
                   href={`/api/pdf/deviz/${linkedDeviz.deviz.id}?download=1`}
                   target="_blank"
@@ -508,9 +717,20 @@ export default function EmittedInvoiceDetail() {
                 <Mail className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  Trimite Factura pe Email
-                </h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    Trimite Factura pe Email
+                  </h3>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                    selectedLanguages.length > 1
+                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                      : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                  }`}>
+                    {selectedLanguages.length > 1
+                      ? `🌍 Bilingv (${selectedLanguages.map(c => c.toUpperCase()).join(" + ")})`
+                      : `📄 ${selectedLanguages[0].toUpperCase()}`}
+                  </span>
+                </div>
                 <p className="text-xs text-slate-500">
                   {formatInvoiceNumber(invoice.series, invoice.number)} • {invoice.clientName}
                 </p>
@@ -538,11 +758,79 @@ export default function EmittedInvoiceDetail() {
                 type="text"
                 value={representativeName}
                 onChange={e => setRepresentativeName(e.target.value)}
-                placeholder="ex: Ion Popescu (lăsați gol pentru 'Bună ziua,')"
+                placeholder={
+                  selectedLanguages.includes("en")
+                    ? "ex: John Doe (lăsați gol pentru 'Bună ziua / Dear Sir or Madam,')"
+                    : selectedLanguages.includes("fr")
+                    ? "ex: Jean Dupont (lăsați gol pentru 'Bună ziua / Madame, Monsieur,')"
+                    : selectedLanguages.includes("de")
+                    ? "ex: Hans Schmidt (lăsați gol pentru 'Bună ziua / Sehr geehrte Damen und Herren,')"
+                    : selectedLanguages.includes("nl")
+                    ? "ex: Jan Jansen (lăsați gol pentru 'Bună ziua / Geachte heer,')"
+                    : selectedLanguages.includes("hu")
+                    ? "ex: Kovács János (lăsați gol pentru 'Bună ziua / Tisztelt Hölgyem / Uram,')"
+                    : "ex: Ion Popescu (lăsați gol pentru 'Bună ziua,')"
+                }
                 className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
               <p className="text-[11px] text-slate-500">
-                Dacă este specificat, emailul va începe cu „Bună ziua [Nume],”. Dacă este lăsat gol, va fi doar „Bună ziua,” fără numele firmei.
+                {selectedLanguages.length > 1
+                  ? `Email bilingv (${selectedLanguages.map(c => c.toUpperCase()).join(" + ")}). Dacă specificați numele, va fi adresat nominal în ambele limbi.`
+                  : "Dacă este specificat, emailul va începe cu formula de adresare nominală a persoanei."}
+              </p>
+            </div>
+
+            {/* Selector Limbi Email (maxim 2 limbi) */}
+            <div className="space-y-1.5 p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <span>Limbi email</span>
+                  <span className="text-[10px] font-normal text-slate-500">
+                    (alege 1 sau maxim 2)
+                  </span>
+                </label>
+                <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/40 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
+                  {selectedLanguages.length === 1
+                    ? `1 limbă: ${AVAILABLE_LANGUAGES.find(l => l.code === selectedLanguages[0])?.name}`
+                    : `Bilingv: ${selectedLanguages.map(c => AVAILABLE_LANGUAGES.find(l => l.code === c)?.name).join(" + ")}`}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-6 gap-1 pt-0.5">
+                {AVAILABLE_LANGUAGES.map(lang => {
+                  const isSelected = selectedLanguages.includes(lang.code);
+                  const order = isSelected ? selectedLanguages.indexOf(lang.code) + 1 : null;
+                  return (
+                    <button
+                      key={lang.code}
+                      type="button"
+                      onClick={() => toggleLanguage(lang.code)}
+                      title={`${lang.name} (${lang.code.toUpperCase()})`}
+                      className={`relative flex flex-col items-center justify-center py-1.5 px-1 rounded-lg border text-xs transition-all cursor-pointer ${
+                        isSelected
+                          ? "bg-blue-600 text-white border-blue-600 shadow-sm ring-2 ring-blue-500/30 font-bold scale-[1.02]"
+                          : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/80 font-medium"
+                      }`}
+                    >
+                      {isSelected && (
+                        <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-slate-900 text-white text-[8px] flex items-center justify-center font-extrabold border border-white">
+                          {order}
+                        </span>
+                      )}
+                      <span className="text-sm leading-none mb-0.5">{lang.flag}</span>
+                      <span className="text-[10.5px] uppercase tracking-wider font-bold">{lang.code}</span>
+                      <span className={`text-[8px] truncate max-w-full ${isSelected ? "text-blue-100" : "text-slate-400"}`}>
+                        {lang.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <p className="text-[10px] text-slate-500 pt-0.5">
+                {selectedLanguages.length === 1
+                  ? "Emailul va fi expediat exclusiv în limba selectată."
+                  : "Emailul va fi expediat bilingv (în ambele limbi selectate, cu toate detaliile traduse)."}
               </p>
             </div>
 
@@ -599,6 +887,7 @@ export default function EmittedInvoiceDetail() {
                     invoiceId: invoice.id,
                     recipientEmail: emailRecipient.trim(),
                     representativeName: representativeName.trim() || undefined,
+                    languages: selectedLanguages,
                   });
                 }}
                 disabled={sendEmailMutation.isPending}
@@ -616,6 +905,119 @@ export default function EmittedInvoiceDetail() {
                   </>
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Previzualizare Email Transmis */}
+      {viewSentEmailModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[94vh] flex flex-col overflow-hidden">
+            {/* Header Modal */}
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-slate-900/80">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                      Previzualizare Email Transmis
+                    </h3>
+                    <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300">
+                      {formatInvoiceNumber(invoice.series, invoice.number)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    Aspectul exact recepționat de client, incluzând logo-ul, detaliile și textul expediat
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewSentEmailModal(false)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Email Meta Bar */}
+            <div className="px-6 py-2.5 bg-slate-100/70 dark:bg-slate-950/70 border-b border-slate-200/80 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300 space-y-1">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <span className="text-slate-400 font-medium">Către:</span>{" "}
+                  <strong className="text-slate-900 dark:text-white">
+                    {latestEmailLog?.recipientName || latestEmailLog?.recipientEmail || invoice.clientName}
+                  </strong>{" "}
+                  <span className="text-slate-500 font-mono text-[11px]">
+                    &lt;{latestEmailLog?.recipientEmail || invoice.clientEmail}&gt;
+                  </span>
+                </div>
+                {latestEmailLog?.sentAt && (
+                  <div className="text-[11px] text-slate-500 font-medium">
+                    Data trimiterii: {formatDate(latestEmailLog.sentAt)} {new Date(latestEmailLog.sentAt as any).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })}
+                  </div>
+                )}
+              </div>
+              {latestEmailLog?.subject && (
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400 font-medium">Subiect:</span>{" "}
+                  <span className="font-semibold text-slate-800 dark:text-slate-100">{latestEmailLog.subject}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Preview Iframe */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-100/70 dark:bg-slate-950/80 flex justify-center min-h-[380px]">
+              {isSentEmailLoading ? (
+                <div className="py-24 flex flex-col items-center justify-center gap-3 text-slate-400">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                  <span className="text-sm font-medium">Se încarcă emailul expediat...</span>
+                </div>
+              ) : sentEmailPreviewData?.html ? (
+                <iframe
+                  srcDoc={sentEmailPreviewData.html}
+                  title="Conținut Email Transmis"
+                  className="w-full max-w-[580px] h-[520px] bg-white rounded-xl shadow-md border border-slate-200 dark:border-slate-800"
+                  sandbox="allow-same-origin"
+                />
+              ) : (
+                <div className="py-24 text-center text-xs text-slate-500">
+                  Nu s-a putut încărca conținutul emailului.
+                </div>
+              )}
+            </div>
+
+            {/* Footer Modal */}
+            <div className="px-6 py-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-slate-900/80">
+              <span className="text-xs text-slate-400">
+                Document fiscal expediat prin platformă
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setViewSentEmailModal(false)}
+                  className="px-4 h-9 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                >
+                  Închide
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewSentEmailModal(false);
+                    setEmailRecipient(latestEmailLog?.recipientEmail || invoice.clientEmail || "");
+                    const match = (invoice.notes || "").match(/(?:delegat|reprezentant|persoan[aă] de contact)\s*:\s*([^\n\r(]+)/i);
+                    setRepresentativeName(match && match[1] ? match[1].trim() : "");
+                    setShowEmailModal(true);
+                  }}
+                  className="flex items-center gap-1.5 px-4 h-9 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  Retrimite Factura
+                </button>
+              </div>
             </div>
           </div>
         </div>

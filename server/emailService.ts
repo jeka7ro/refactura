@@ -32,6 +32,9 @@ export async function generateEmittedInvoicePdfBuffer(invoiceId: number): Promis
   filename: string;
   invoice: any;
   tenant: any;
+  tenantLogoBase64?: string;
+  representativeName?: string;
+  tenantBrevoApiKey?: string;
 }> {
   const db = await getDb();
   if (!db) {
@@ -179,6 +182,8 @@ export async function generateEmittedInvoicePdfBuffer(invoiceId: number): Promis
     tenantLogoBase64: settings.logoBase64 || undefined,
     representativeName: extractRepresentativeName(inv.notes),
     tenantBrevoApiKey: settings.brevoApiKey || undefined,
+    isForeign,
+    clientCountry: inv.clientCountry || clientRecord?.country || undefined,
   };
 }
 
@@ -195,6 +200,202 @@ export function extractRepresentativeName(notes?: string | null): string | undef
     }
   }
   return undefined;
+}
+
+export type SupportedLanguage = "ro" | "en" | "fr" | "nl" | "de" | "hu";
+
+export interface LanguageStrings {
+  code: SupportedLanguage;
+  name: string;
+  flag: string;
+  invoiceTitle: string;
+  invoiceNotification: string;
+  greetingRep: (name: string) => string;
+  greetingDefault: string;
+  bodyIntro: (invoiceNum: string) => string;
+  invoiceNumberLabel: string;
+  invoiceDateLabel: string;
+  dueDateLabel: string;
+  spvIndexLabel: string;
+  ibanLabel: string;
+  totalLabel: string;
+  attachmentNotice: (filename: string) => string;
+  attachmentSub: string;
+  signoff: string;
+  team: string;
+  footerText: string;
+}
+
+export const EMAIL_TRANSLATIONS: Record<SupportedLanguage, LanguageStrings> = {
+  ro: {
+    code: "ro",
+    name: "Română",
+    flag: "🇷🇴",
+    invoiceTitle: "Factură fiscală",
+    invoiceNotification: "Notificare emitere factură fiscală",
+    greetingRep: (name: string) => `Bună ziua <strong>${name}</strong>,`,
+    greetingDefault: "Bună ziua,",
+    bodyIntro: (num: string) => `Vă transmitem atașat în format PDF factura fiscală seria și numărul <strong>${num}</strong>.`,
+    invoiceNumberLabel: "Număr factură:",
+    invoiceDateLabel: "Data emiterii:",
+    dueDateLabel: "Data scadenței:",
+    spvIndexLabel: "Index încărcare SPV:",
+    ibanLabel: "Cont IBAN:",
+    totalLabel: "Total de plată:",
+    attachmentNotice: (filename: string) => `📎 <strong>Fișier atașat:</strong> Documentul fiscal complet se regăsește în atașamentul acestui email (<em>${filename}</em>).`,
+    attachmentSub: "Documentul fiscal complet se regăsește în atașamentul acestui email.",
+    signoff: "Vă mulțumim pentru colaborare!",
+    team: "Echipa",
+    footerText: "Acest mesaj a fost generat automat prin sistemul de facturare electronică <strong>FacturaSPV</strong>.",
+  },
+  en: {
+    code: "en",
+    name: "English",
+    flag: "🇬🇧",
+    invoiceTitle: "Tax Invoice",
+    invoiceNotification: "Tax Invoice Notification",
+    greetingRep: (name: string) => `Dear <strong>${name}</strong>,`,
+    greetingDefault: "Dear Sir or Madam,",
+    bodyIntro: (num: string) => `Please find attached the tax invoice <strong>${num}</strong> in PDF format.`,
+    invoiceNumberLabel: "Invoice no.:",
+    invoiceDateLabel: "Issue date:",
+    dueDateLabel: "Due date:",
+    spvIndexLabel: "e-Factura Index:",
+    ibanLabel: "IBAN Account:",
+    totalLabel: "Total Due:",
+    attachmentNotice: (filename: string) => `📎 <strong>Attachment:</strong> The complete tax invoice is attached to this email (<em>${filename}</em>).`,
+    attachmentSub: "The complete tax invoice is attached to this email.",
+    signoff: "Thank you for your business!",
+    team: "Team",
+    footerText: "This is an automated notification sent via FacturaSPV electronic invoicing system.",
+  },
+  fr: {
+    code: "fr",
+    name: "Français",
+    flag: "🇫🇷",
+    invoiceTitle: "Facture",
+    invoiceNotification: "Notification d'émission de facture",
+    greetingRep: (name: string) => `Bonjour <strong>${name}</strong>,`,
+    greetingDefault: "Madame, Monsieur,",
+    bodyIntro: (num: string) => `Veuillez trouver ci-joint la facture <strong>${num}</strong> au format PDF.`,
+    invoiceNumberLabel: "Numéro de facture :",
+    invoiceDateLabel: "Date d'émission :",
+    dueDateLabel: "Date d'échéance :",
+    spvIndexLabel: "Index e-Factura :",
+    ibanLabel: "Compte IBAN :",
+    totalLabel: "Total à payer :",
+    attachmentNotice: (filename: string) => `📎 <strong>Pièce jointe :</strong> Le document fiscal complet se trouve en pièce jointe de cet e-mail (<em>${filename}</em>).`,
+    attachmentSub: "Le document fiscal complet se trouve en pièce jointe de cet e-mail.",
+    signoff: "Merci pour votre confiance !",
+    team: "L'équipe",
+    footerText: "Ce message a été généré automatiquement par le système de facturation FacturaSPV.",
+  },
+  nl: {
+    code: "nl",
+    name: "Nederlands",
+    flag: "🇳🇱",
+    invoiceTitle: "Factuur",
+    invoiceNotification: "Factuurnotificatie",
+    greetingRep: (name: string) => `Geachte <strong>${name}</strong>,`,
+    greetingDefault: "Geachte heer / mevrouw,",
+    bodyIntro: (num: string) => `In de bijlage vindt u de factuur <strong>${num}</strong> in PDF-formaat.`,
+    invoiceNumberLabel: "Factuurnummer:",
+    invoiceDateLabel: "Factuurdatum:",
+    dueDateLabel: "Vervaldatum:",
+    spvIndexLabel: "e-Factura Index:",
+    ibanLabel: "IBAN-rekening:",
+    totalLabel: "Te betalen:",
+    attachmentNotice: (filename: string) => `📎 <strong>Bijlage:</strong> De volledige factuur is als bijlage bij deze e-mail gevoegd (<em>${filename}</em>).`,
+    attachmentSub: "De volledige factuur is als bijlage bij deze e-mail gevoegd.",
+    signoff: "Hartelijk dank voor de samenwerking!",
+    team: "Team",
+    footerText: "Dit is een automatisch gegenereerd bericht via het facturatiesysteem FacturaSPV.",
+  },
+  de: {
+    code: "de",
+    name: "Deutsch",
+    flag: "🇩🇪",
+    invoiceTitle: "Rechnung",
+    invoiceNotification: "Rechnungsbenachrichtigung",
+    greetingRep: (name: string) => `Sehr geehrte(r) <strong>${name}</strong>,`,
+    greetingDefault: "Sehr geehrte Damen und Herren,",
+    bodyIntro: (num: string) => `Anbei erhalten Sie die Rechnung <strong>${num}</strong> im PDF-Format.`,
+    invoiceNumberLabel: "Rechnungsnummer:",
+    invoiceDateLabel: "Rechnungsdatum:",
+    dueDateLabel: "Fälligkeitsdatum:",
+    spvIndexLabel: "e-Factura Index:",
+    ibanLabel: "IBAN-Konto:",
+    totalLabel: "Gesamtbetrag:",
+    attachmentNotice: (filename: string) => `📎 <strong>Anhang:</strong> Die vollständige Rechnung befindet sich im Anhang dieser E-Mail (<em>${filename}</em>).`,
+    attachmentSub: "Die vollständige Rechnung befindet sich im Anhang dieser E-Mail.",
+    signoff: "Vielen Dank für die Zusammenarbeit!",
+    team: "Ihr Team von",
+    footerText: "Diese Nachricht wurde automatisch über das Abrechnungssystem FacturaSPV generiert.",
+  },
+  hu: {
+    code: "hu",
+    name: "Magyar",
+    flag: "🇭🇺",
+    invoiceTitle: "Számla",
+    invoiceNotification: "Számlaértesítő",
+    greetingRep: (name: string) => `Tisztelt <strong>${name}</strong>!`,
+    greetingDefault: "Tisztelt Hölgyem / Uram!",
+    bodyIntro: (num: string) => `Mellékelten küldjük a(z) <strong>${num}</strong> sorszámú számlát PDF formátumban.`,
+    invoiceNumberLabel: "Számlaszám:",
+    invoiceDateLabel: "Kiállítás dátuma:",
+    dueDateLabel: "Fizetési határidő:",
+    spvIndexLabel: "e-Factura sorszám:",
+    ibanLabel: "IBAN számlaszám:",
+    totalLabel: "Fizetendő összeg:",
+    attachmentNotice: (filename: string) => `📎 <strong>Csatolmány:</strong> A teljes számla a jelen levél mellékletében található (<em>${filename}</em>).`,
+    attachmentSub: "A teljes számla a jelen levél mellékletében található.",
+    signoff: "Köszönjük az együttműködést!",
+    team: "A(z) csapat",
+    footerText: "Ez egy automatikusan generált értesítés a FacturaSPV számlázó rendszerből.",
+  },
+};
+
+export function resolveLanguages(
+  languages?: SupportedLanguage[] | null,
+  isForeign?: boolean,
+  clientCountry?: string | null
+): SupportedLanguage[] {
+  if (languages && languages.length > 0) {
+    const valid = languages.filter(l => EMAIL_TRANSLATIONS[l]);
+    if (valid.length > 0) {
+      return valid.slice(0, 2);
+    }
+  }
+
+  if (isForeign) {
+    const country = (clientCountry || "").toUpperCase().trim();
+    if (country === "FR") return ["ro", "fr"];
+    if (country === "BE") return ["ro", "nl"];
+    if (country === "DE" || country === "AT" || country === "CH") return ["ro", "de"];
+    if (country === "HU") return ["ro", "hu"];
+    if (country === "NL") return ["ro", "nl"];
+    return ["ro", "en"];
+  }
+
+  return ["ro"];
+}
+
+export function buildInvoiceEmailSubject(params: {
+  invoiceNumber: string;
+  companyName?: string;
+  languages?: SupportedLanguage[];
+  isForeign?: boolean;
+  clientCountry?: string | null;
+}): string {
+  const senderName = params.companyName || "TRADE INVEST NETWORK";
+  const langs = resolveLanguages(params.languages, params.isForeign, params.clientCountry);
+  if (langs.length === 1) {
+    const t = EMAIL_TRANSLATIONS[langs[0]];
+    return `${t.invoiceTitle} ${params.invoiceNumber} - ${senderName}`;
+  }
+  const t1 = EMAIL_TRANSLATIONS[langs[0]];
+  const t2 = EMAIL_TRANSLATIONS[langs[1]];
+  return `${t1.invoiceTitle} ${params.invoiceNumber} / ${t2.invoiceTitle} - ${senderName}`;
 }
 
 export interface SendInvoiceEmailParams {
@@ -217,6 +418,9 @@ export interface SendInvoiceEmailParams {
   customMessage?: string;
   spvIndex?: string;
   badgeText?: string;
+  isForeign?: boolean;
+  languages?: SupportedLanguage[];
+  clientCountry?: string | null;
 }
 
 export interface BuildInvoiceEmailHtmlParams {
@@ -234,24 +438,176 @@ export interface BuildInvoiceEmailHtmlParams {
   customMessage?: string;
   spvIndex?: string;
   badgeText?: string;
+  isForeign?: boolean;
+  languages?: SupportedLanguage[];
+  clientCountry?: string | null;
 }
 
 export function buildInvoiceEmailHtml(params: BuildInvoiceEmailHtmlParams): string {
   const senderName = params.companyName || "TRADE INVEST NETWORK";
+  const langs = resolveLanguages(params.languages, params.isForeign, params.clientCountry);
 
   const formattedTotal = typeof params.total === "number"
-    ? params.total.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    ? params.total.toLocaleString(langs.includes("en") && !langs.includes("ro") ? "en-US" : "ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : params.total;
 
   const repName = params.representativeName?.trim();
   const validRep = repName && !/\b(s\.?r\.?l\.?|s\.?a\.?|p\.?f\.?a\.?|i\.?i\.?|i\.?f\.?|gmbh|ltd|llc|inc|corp)\b/i.test(repName);
 
+  if (langs.length === 1) {
+    const t = EMAIL_TRANSLATIONS[langs[0]];
+    const greeting = validRep ? t.greetingRep(repName) : t.greetingDefault;
+    const subtitle = t.invoiceNotification;
+    const badgeText = params.badgeText || t.invoiceTitle;
+    const bodyContent = params.customMessage ? `
+        <div style="background-color: #f0fdf4; border-left: 4px solid #16a34a; padding: 14px 18px; margin: 16px 0; border-radius: 6px; font-size: 13.5px; color: #166534; line-height: 1.6;">
+          ${params.customMessage}
+        </div>
+      ` : `
+        <p>${t.bodyIntro(params.invoiceNumber)}</p>
+      `;
+
+    const attachmentNotice = t.attachmentNotice(params.filename);
+    const signoff = `${t.signoff}<br>${t.team} <strong>${senderName}</strong>`;
+    const footerNotice = t.footerText;
+
+    return `<!DOCTYPE html>
+<html lang="${langs[0]}">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; color: #1e293b; margin: 0; padding: 24px; }
+    .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+    .header { background: #0f172a; padding: 26px 32px; color: #ffffff; text-align: center; }
+    .header h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; color: #ffffff; }
+    .header p { margin: 6px 0 0 0; font-size: 13px; color: #94a3b8; }
+    .content { padding: 32px; font-size: 14px; line-height: 1.6; color: #334155; }
+    .badge { display: inline-block; padding: 4px 10px; background: #eff6ff; color: #1d4ed8; font-weight: 600; font-size: 12px; border-radius: 6px; margin-bottom: 16px; }
+    .card { background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; padding: 18px 20px; margin: 20px 0; }
+    .footer { padding: 20px 32px; background: #f1f5f9; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; }
+    .attachment-notice { margin-top: 20px; padding: 12px 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; color: #166534; font-size: 13px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div style="background-color: #ffffff; padding: 18px 28px; border-bottom: 1px solid #e2e8f0; text-align: center;">
+      <a href="https://facturaspv.ro" target="_blank" style="text-decoration: none; display: inline-block;">
+        <img src="https://facturaspv.ro/logo_spv.png" alt="Factura SPV" style="height: 38px; width: auto; max-width: 220px; display: block; border: 0; margin: 0 auto;" />
+      </a>
+    </div>
+
+    <div class="header">
+      ${params.tenantLogoSrc ? `
+      <div style="margin-bottom: 14px; text-align: center;">
+        <img src="${params.tenantLogoSrc}" alt="${senderName}" style="max-height: 55px; max-width: 200px; display: inline-block; object-fit: contain;" />
+      </div>
+      ` : ""}
+      <h1>${senderName}</h1>
+      <p>${subtitle}</p>
+    </div>
+
+    <div class="content">
+      <div class="badge">${badgeText}</div>
+      <p>${greeting}</p>
+      ${bodyContent}
+      
+      <div class="card">
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 6px 0; color: #64748b; font-size: 13px;">${t.invoiceNumberLabel}</td>
+            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #0f172a; font-size: 13px;">${params.invoiceNumber}</td>
+          </tr>
+          ${params.invoiceDate ? `<tr>
+            <td style="padding: 6px 0; color: #64748b; font-size: 13px;">${t.invoiceDateLabel}</td>
+            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #0f172a; font-size: 13px;">${params.invoiceDate}</td>
+          </tr>` : ""}
+          ${params.dueDate ? `<tr>
+            <td style="padding: 6px 0; color: #64748b; font-size: 13px;">${t.dueDateLabel}</td>
+            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #0f172a; font-size: 13px;">${params.dueDate}</td>
+          </tr>` : ""}
+          ${params.spvIndex ? `<tr>
+            <td style="padding: 6px 0; color: #64748b; font-size: 13px;">${t.spvIndexLabel}</td>
+            <td style="padding: 6px 0; font-weight: 700; text-align: right; color: #16a34a; font-size: 13px;">${params.spvIndex}</td>
+          </tr>` : ""}
+          ${params.companyIBAN ? `<tr>
+            <td style="padding: 6px 0; color: #64748b; font-size: 13px;">${t.ibanLabel}</td>
+            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #0f172a; font-size: 13px;">${params.companyIBAN} ${params.companyBank ? `(${params.companyBank})` : ""}</td>
+          </tr>` : ""}
+          <tr style="border-top: 1px solid #cbd5e1;">
+            <td style="padding: 10px 0 4px 0; font-weight: 700; font-size: 15px; color: #0f172a;">${t.totalLabel}</td>
+            <td style="padding: 10px 0 4px 0; font-weight: 800; font-size: 16px; text-align: right; color: #2563eb;">${formattedTotal} ${params.currency || "RON"}</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="attachment-notice">
+        ${attachmentNotice}
+      </div>
+
+      <p style="margin-top: 24px; font-size: 13px; color: #64748b;">
+        ${signoff}
+      </p>
+    </div>
+
+    <div class="footer">
+      <p style="margin: 0 0 6px 0;">
+        <a href="https://facturaspv.ro" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: 600;">
+          facturaspv.ro
+        </a>
+      </p>
+      <div style="font-size: 12px; color: #64748b; line-height: 1.5;">
+        ${footerNotice}
+      </div>
+    </div>
+  </div>
+</body>
+</html>`.trim();
+  }
+
+  // BILINGUAL (langs.length === 2)
+  const t1 = EMAIL_TRANSLATIONS[langs[0]];
+  const t2 = EMAIL_TRANSLATIONS[langs[1]];
+
   const greeting = validRep
-    ? `Bună ziua <strong>${repName}</strong>,`
-    : `Bună ziua,`;
+    ? `${t1.greetingRep(repName)} / ${t2.greetingRep(repName)}`
+    : `${t1.greetingDefault.replace(/[,!]$/, "")} / ${t2.greetingDefault}`;
+
+  const subtitle = `${t1.invoiceNotification} / ${t2.invoiceNotification}`;
+  const badgeText = params.badgeText || `${t1.invoiceTitle} / ${t2.invoiceTitle}`;
+
+  const invoiceNumberLabel = `${t1.invoiceNumberLabel.replace(/:$/, "")} / ${t2.invoiceNumberLabel}`;
+  const invoiceDateLabel = `${t1.invoiceDateLabel.replace(/:$/, "")} / ${t2.invoiceDateLabel}`;
+  const dueDateLabel = `${t1.dueDateLabel.replace(/:$/, "")} / ${t2.dueDateLabel}`;
+  const spvIndexLabel = `${t1.spvIndexLabel.replace(/:$/, "")} / ${t2.spvIndexLabel}`;
+  const ibanLabel = `${t1.ibanLabel.replace(/:$/, "")} / ${t2.ibanLabel}`;
+  const totalLabel = `${t1.totalLabel.replace(/:$/, "")} / ${t2.totalLabel}`;
+
+  const bodyContent = params.customMessage ? `
+      <div style="background-color: #f0fdf4; border-left: 4px solid #16a34a; padding: 14px 18px; margin: 16px 0; border-radius: 6px; font-size: 13.5px; color: #166534; line-height: 1.6;">
+        ${params.customMessage}
+      </div>
+    ` : `
+      <p style="margin: 0 0 6px 0;">${t1.bodyIntro(params.invoiceNumber)}</p>
+      <p style="margin: 0 0 16px 0; color: #475569; font-size: 13.5px;">${t2.bodyIntro(params.invoiceNumber)}</p>
+    `;
+
+  const attachmentNotice = `
+    ${t1.attachmentNotice(params.filename)}
+    <div style="margin-top: 4px; font-size: 12px; color: #166534; opacity: 0.9;">${t2.attachmentSub}</div>
+  `;
+
+  const signoff = `
+    ${t1.signoff} / ${t2.signoff}<br>
+    ${t1.team} / ${t2.team} <strong>${senderName}</strong>
+  `;
+
+  const footerNotice = `
+    ${t1.footerText}
+    <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">${t2.footerText}</div>
+  `;
 
   return `<!DOCTYPE html>
-<html lang="ro">
+<html lang="${langs.join(", ")}">
 <head>
   <meta charset="UTF-8">
   <style>
@@ -268,19 +624,17 @@ export function buildInvoiceEmailHtml(params: BuildInvoiceEmailHtmlParams): stri
     .label { color: #64748b; }
     .value { font-weight: 600; color: #0f172a; text-align: right; }
     .footer { padding: 20px 32px; background: #f1f5f9; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; }
-    .attachment-notice { margin-top: 20px; padding: 12px 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; color: #166534; font-size: 13px; }
+    .attachment-notice { margin-top: 20px; padding: 12px 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; color: #166534; font-size: 13px; line-height: 1.5; }
   </style>
 </head>
 <body>
   <div class="container">
-    <!-- Top Branding Bar with FacturaSPV logo & link to facturaspv.ro -->
     <div style="background-color: #ffffff; padding: 18px 28px; border-bottom: 1px solid #e2e8f0; text-align: center;">
       <a href="https://facturaspv.ro" target="_blank" style="text-decoration: none; display: inline-block;">
         <img src="https://facturaspv.ro/logo_spv.png" alt="Factura SPV" style="height: 38px; width: auto; max-width: 220px; display: block; border: 0; margin: 0 auto;" />
       </a>
     </div>
 
-    <!-- Dark Banner with Tenant Logo and Tenant Name -->
     <div class="header">
       ${params.tenantLogoSrc ? `
       <div style="margin-bottom: 14px; text-align: center;">
@@ -288,60 +642,52 @@ export function buildInvoiceEmailHtml(params: BuildInvoiceEmailHtmlParams): stri
       </div>
       ` : ""}
       <h1>${senderName}</h1>
-      <p>Notificare emitere factură fiscală</p>
+      <p>${subtitle}</p>
     </div>
 
     <div class="content">
-      <div class="badge">${params.badgeText || "Factură fiscală"}</div>
+      <div class="badge">${badgeText}</div>
       <p>${greeting}</p>
-      ${params.customMessage ? `
-        <div style="background-color: #f0fdf4; border-left: 4px solid #16a34a; padding: 14px 18px; margin: 16px 0; border-radius: 6px; font-size: 13.5px; color: #166534; line-height: 1.6;">
-          ${params.customMessage}
-        </div>
-      ` : `
-        <p>Vă transmitem atașat în format PDF factura fiscală seria și numărul <strong>${params.invoiceNumber}</strong>.</p>
-      `}
+      ${bodyContent}
       
       <div class="card">
         <table style="width: 100%; border-collapse: collapse;">
           <tr>
-            <td style="padding: 6px 0; color: #64748b; font-size: 13px;">Număr factură:</td>
+            <td style="padding: 6px 0; color: #64748b; font-size: 13px;">${invoiceNumberLabel}</td>
             <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #0f172a; font-size: 13px;">${params.invoiceNumber}</td>
           </tr>
           ${params.invoiceDate ? `<tr>
-            <td style="padding: 6px 0; color: #64748b; font-size: 13px;">Data emiterii:</td>
+            <td style="padding: 6px 0; color: #64748b; font-size: 13px;">${invoiceDateLabel}</td>
             <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #0f172a; font-size: 13px;">${params.invoiceDate}</td>
           </tr>` : ""}
           ${params.dueDate ? `<tr>
-            <td style="padding: 6px 0; color: #64748b; font-size: 13px;">Data scadenței:</td>
+            <td style="padding: 6px 0; color: #64748b; font-size: 13px;">${dueDateLabel}</td>
             <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #0f172a; font-size: 13px;">${params.dueDate}</td>
           </tr>` : ""}
           ${params.spvIndex ? `<tr>
-            <td style="padding: 6px 0; color: #64748b; font-size: 13px;">Index încărcare SPV:</td>
+            <td style="padding: 6px 0; color: #64748b; font-size: 13px;">${spvIndexLabel}</td>
             <td style="padding: 6px 0; font-weight: 700; text-align: right; color: #16a34a; font-size: 13px;">${params.spvIndex}</td>
           </tr>` : ""}
           ${params.companyIBAN ? `<tr>
-            <td style="padding: 6px 0; color: #64748b; font-size: 13px;">Cont IBAN:</td>
+            <td style="padding: 6px 0; color: #64748b; font-size: 13px;">${ibanLabel}</td>
             <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #0f172a; font-size: 13px;">${params.companyIBAN} ${params.companyBank ? `(${params.companyBank})` : ""}</td>
           </tr>` : ""}
           <tr style="border-top: 1px solid #cbd5e1;">
-            <td style="padding: 10px 0 4px 0; font-weight: 700; font-size: 15px; color: #0f172a;">Total de plată:</td>
+            <td style="padding: 10px 0 4px 0; font-weight: 700; font-size: 15px; color: #0f172a;">${totalLabel}</td>
             <td style="padding: 10px 0 4px 0; font-weight: 800; font-size: 16px; text-align: right; color: #2563eb;">${formattedTotal} ${params.currency || "RON"}</td>
           </tr>
         </table>
       </div>
 
       <div class="attachment-notice">
-        📎 <strong>Fișier atașat:</strong> Documentul fiscal complet se regăsește în atașamentul acestui email (<em>${params.filename}</em>).
+        ${attachmentNotice}
       </div>
 
       <p style="margin-top: 24px; font-size: 13px; color: #64748b;">
-        Vă mulțumim pentru colaborare!<br>
-        Echipa <strong>${senderName}</strong>
+        ${signoff}
       </p>
     </div>
 
-    <!-- Footer with facturaspv.ro link -->
     <div class="footer">
       <p style="margin: 0 0 6px 0;">
         <a href="https://facturaspv.ro" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: 600;">
@@ -349,7 +695,7 @@ export function buildInvoiceEmailHtml(params: BuildInvoiceEmailHtmlParams): stri
         </a>
       </p>
       <div style="font-size: 12px; color: #64748b; line-height: 1.5;">
-        Acest mesaj a fost generat automat prin sistemul de facturare electronică <strong>FacturaSPV</strong>.
+        ${footerNotice}
       </div>
     </div>
   </div>
@@ -372,6 +718,12 @@ export function buildInvoiceEmailPreviewHtml(params: {
   filename: string;
   representativeName?: string;
   tenantLogoBase64?: string;
+  customMessage?: string;
+  spvIndex?: string;
+  badgeText?: string;
+  isForeign?: boolean;
+  languages?: SupportedLanguage[];
+  clientCountry?: string | null;
 }): string {
   let logoSrc: string | undefined = undefined;
   if (params.tenantLogoBase64) {
@@ -386,14 +738,17 @@ export function buildInvoiceEmailPreviewHtml(params: {
   });
 }
 
-/**
- * Sends an invoice PDF via Brevo (Sendinblue) transactional email API
- */
-export async function sendInvoiceEmail(params: SendInvoiceEmailParams): Promise<{
+export interface SendInvoiceEmailResult {
   success: boolean;
   messageId?: string;
   error?: string;
-}> {
+  htmlContent?: string;
+}
+
+/**
+ * Sends an invoice PDF via Brevo (Sendinblue) transactional email API
+ */
+export async function sendInvoiceEmail(params: SendInvoiceEmailParams): Promise<SendInvoiceEmailResult> {
   // Brevo API Key: fie din tenant settings, fie din process.env, fie din cheia implicită a platformei
   const DEFAULT_BREVO_KEY = [
     34, 49, 63, 35, 41, 51, 56, 119, 99, 98, 111, 57, 107, 109, 57, 62, 60, 57, 59, 107, 56, 57, 107, 106, 59, 63,
@@ -417,7 +772,13 @@ export async function sendInvoiceEmail(params: SendInvoiceEmailParams): Promise<
     return { success: false, error: "Adresa de email a destinatarului este invalidă" };
   }
 
-  const subject = `Factura fiscală ${params.invoiceNumber} - ${senderName}`;
+  const subject = buildInvoiceEmailSubject({
+    invoiceNumber: params.invoiceNumber,
+    companyName: senderName,
+    languages: params.languages,
+    isForeign: params.isForeign,
+    clientCountry: params.clientCountry,
+  });
 
   const cleanTenantLogo = params.tenantLogoBase64
     ? params.tenantLogoBase64.replace(/^data:image\/[a-z]+;base64,/, "").trim()
@@ -438,6 +799,9 @@ export async function sendInvoiceEmail(params: SendInvoiceEmailParams): Promise<
     customMessage: params.customMessage,
     spvIndex: params.spvIndex,
     badgeText: params.badgeText,
+    isForeign: params.isForeign,
+    languages: params.languages,
+    clientCountry: params.clientCountry,
   });
 
   try {
@@ -487,13 +851,121 @@ export async function sendInvoiceEmail(params: SendInvoiceEmailParams): Promise<
     if (!res.ok) {
       const errMsg = data?.message || `Brevo API HTTP ${res.status}: ${res.statusText}`;
       console.error("[EmailService] Brevo send error:", errMsg, data);
-      return { success: false, error: errMsg };
+      return { success: false, error: errMsg, htmlContent };
     }
 
     console.log("[EmailService] Email sent successfully via Brevo to:", params.toEmail, "messageId:", data?.messageId);
-    return { success: true, messageId: data?.messageId };
+    return { success: true, messageId: data?.messageId, htmlContent };
   } catch (err: any) {
     console.error("[EmailService] Exception sending email:", err);
-    return { success: false, error: err.message || "Eroare necunoscută la trimiterea emailului" };
+    return { success: false, error: err.message || "Eroare necunoscută la trimiterea emailului", htmlContent };
+  }
+}
+
+/**
+ * Sends a PIN reset assistance request email to contact@getapp.ro
+ */
+export async function sendPinResetRequestEmail(params: {
+  fullName: string;
+  phone: string;
+  role: string;
+  explanation: string;
+  companyName: string;
+  userEmail?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  const DEFAULT_BREVO_KEY = [
+    34, 49, 63, 35, 41, 51, 56, 119, 99, 98, 111, 57, 107, 109, 57, 62, 60, 57, 59, 107, 56, 57, 107, 106, 59, 63,
+    99, 107, 57, 105, 105, 99, 109, 99, 57, 99, 111, 59, 98, 105, 111, 99, 109, 110, 105, 104, 111, 63, 63, 111,
+    59, 98, 56, 110, 104, 56, 56, 104, 105, 57, 106, 107, 110, 105, 57, 59, 109, 63, 98, 109, 62, 99, 119, 56, 20,
+    0, 57, 107, 15, 11, 34, 11, 46, 29, 63, 47, 48, 61, 22
+  ].map(b => String.fromCharCode(b ^ 0x5a)).join("");
+
+  const apiKey = (process.env.BREVO_API_KEY && process.env.BREVO_API_KEY.trim()) || DEFAULT_BREVO_KEY;
+  const senderEmail = (process.env.BREVO_SENDER_EMAIL && process.env.BREVO_SENDER_EMAIL.trim()) || "jeka7ro@gmail.com";
+  const senderName = "Refactura Securitate";
+
+  const targetEmail = "contact@getapp.ro";
+  const subject = `[Solicitare Resetare PIN] ${params.companyName} - ${params.fullName}`;
+
+  const htmlContent = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
+      <div style="border-bottom: 2px solid #2563eb; padding-bottom: 12px; margin-bottom: 20px;">
+        <h2 style="color: #0f172a; margin: 0; font-size: 20px;">Solicitare Resetare Cod PIN Firmă</h2>
+        <p style="color: #64748b; font-size: 13px; margin: 4px 0 0 0;">Platforma Smart Invoice / Refactura.ro</p>
+      </div>
+
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px;">
+        <tr>
+          <td style="padding: 8px 12px; background: #f8fafc; font-weight: bold; width: 35%; border-bottom: 1px solid #e2e8f0;">Companie:</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-weight: 600; color: #1e293b;">${params.companyName}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 12px; background: #f8fafc; font-weight: bold; border-bottom: 1px solid #e2e8f0;">Nume și Prenume:</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${params.fullName}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 12px; background: #f8fafc; font-weight: bold; border-bottom: 1px solid #e2e8f0;">Număr Telefon:</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;"><a href="tel:${params.phone}" style="color: #2563eb; text-decoration: none; font-weight: bold;">${params.phone}</a></td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 12px; background: #f8fafc; font-weight: bold; border-bottom: 1px solid #e2e8f0;">Funcție:</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${params.role}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 12px; background: #f8fafc; font-weight: bold; border-bottom: 1px solid #e2e8f0;">Email Cont:</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${params.userEmail || "Nespecificat"}</td>
+        </tr>
+      </table>
+
+      <div style="background: #f1f5f9; border-left: 4px solid #2563eb; padding: 12px 16px; border-radius: 4px; margin-bottom: 20px;">
+        <div style="font-weight: bold; font-size: 13px; color: #334155; margin-bottom: 4px;">Explicație / Motiv solicitare:</div>
+        <div style="font-size: 14px; color: #0f172a; white-space: pre-wrap;">${params.explanation}</div>
+      </div>
+
+      <div style="font-size: 12px; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+        Mesaj generat automat în urma solicitării de asistență PIN de pe Refactura.ro
+      </div>
+    </div>
+  `;
+
+  try {
+    const payload = {
+      sender: {
+        name: senderName,
+        email: senderEmail,
+      },
+      to: [
+        {
+          email: targetEmail,
+          name: "Administrator GetApp",
+        },
+      ],
+      replyTo: params.userEmail ? { email: params.userEmail, name: params.fullName } : undefined,
+      subject,
+      htmlContent,
+    };
+
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "api-key": apiKey,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      const errMsg = data?.message || `Brevo API HTTP ${res.status}: ${res.statusText}`;
+      console.error("[EmailService] Error sending PIN reset email:", errMsg);
+      return { success: false, error: errMsg };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("[EmailService] Exception in sendPinResetRequestEmail:", err);
+    return { success: false, error: err.message || "Eroare la expedierea emailului" };
   }
 }

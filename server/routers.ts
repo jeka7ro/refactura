@@ -204,8 +204,229 @@ export const appRouter = router({
         .from(tenants)
         .where(eq(tenants.id, tenantId))
         .limit(1);
-      return t || null;
+      if (!t) return null;
+      if (t.settings) {
+        try {
+          const parsed = JSON.parse(t.settings);
+          delete parsed.accessPinHash;
+          t.settings = JSON.stringify(parsed);
+        } catch {}
+      }
+      return t;
     }),
+    getPinStatus: protectedProcedure.query(async ({ ctx }) => {
+      const tenantId = ctx.user?.tenantId;
+      if (!tenantId)
+        return {
+          pinEnabled: false,
+          companyName: "",
+          logoUrl: "",
+          logoBgColor: "",
+          logoHasBackground: false,
+        };
+      const db = await getDb();
+      if (!db)
+        return {
+          pinEnabled: false,
+          companyName: "",
+          logoUrl: "",
+          logoBgColor: "",
+          logoHasBackground: false,
+        };
+      const { tenants } = await import("../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      const [t] = await db
+        .select()
+        .from(tenants)
+        .where(eq(tenants.id, tenantId))
+        .limit(1);
+      if (!t)
+        return {
+          pinEnabled: false,
+          companyName: "",
+          logoUrl: "",
+          logoBgColor: "",
+          logoHasBackground: false,
+        };
+      let s: any = {};
+      try {
+        s = JSON.parse(t.settings || "{}");
+      } catch {}
+      return {
+        pinEnabled: Boolean(s.accessPinEnabled && s.accessPinHash),
+        companyName: t.name || "",
+        logoUrl: s.logoBase64 || "",
+        logoBgColor: s.logoBgColor || "",
+        logoHasBackground: Boolean(s.logoHasBackground),
+        themeColor: s.themeColor || "#16a34a",
+      };
+    }),
+    requestPinReset: protectedProcedure
+      .input(
+        z.object({
+          fullName: z.string().min(2, "Numele și prenumele sunt obligatorii"),
+          phone: z.string().min(6, "Numărul de telefon este obligatoriu"),
+          role: z.string().min(2, "Funcția este obligatorie"),
+          explanation: z.string().min(5, "Explicația este obligatorie"),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const tenantId = ctx.user?.tenantId;
+        const db = await getDb();
+        let companyName = "Companie";
+        if (db && tenantId) {
+          const { tenants } = await import("../drizzle/schema");
+          const { eq } = await import("drizzle-orm");
+          const [t] = await db
+            .select()
+            .from(tenants)
+            .where(eq(tenants.id, tenantId))
+            .limit(1);
+          if (t?.name) companyName = t.name;
+        }
+
+        const { sendPinResetRequestEmail } = await import("./emailService");
+        const res = await sendPinResetRequestEmail({
+          fullName: input.fullName.trim(),
+          phone: input.phone.trim(),
+          role: input.role.trim(),
+          explanation: input.explanation.trim(),
+          companyName,
+          userEmail: ctx.user?.email || undefined,
+        });
+
+        if (!res.success) {
+          throw new Error(res.error || "Eroare la trimiterea solicitării.");
+        }
+
+        return { success: true };
+      }),
+    verifyPin: protectedProcedure
+      .input(z.object({ pin: z.string().min(1) }))
+      .mutation(async ({ input, ctx }) => {
+        const tenantId = ctx.user?.tenantId;
+        if (!tenantId) throw new Error("Neautentificat");
+        const db = await getDb();
+        if (!db) throw new Error("Baza de date indisponibilă");
+        const { tenants } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const [t] = await db
+          .select()
+          .from(tenants)
+          .where(eq(tenants.id, tenantId))
+          .limit(1);
+        if (!t) throw new Error("Compania nu a fost găsită");
+        let s: any = {};
+        try {
+          s = JSON.parse(t.settings || "{}");
+        } catch {}
+        if (!s.accessPinEnabled || !s.accessPinHash) {
+          return { success: true };
+        }
+        const crypto = await import("crypto");
+        const computedHash = crypto
+          .createHash("sha256")
+          .update(input.pin.trim() + "_pin_salt_smart_invoice")
+          .digest("hex");
+        if (computedHash !== s.accessPinHash) {
+          throw new Error("Cod PIN incorect.");
+        }
+        return { success: true };
+      }),
+    setPin: protectedProcedure
+      .input(
+        z.object({
+          pin: z.string().min(4, "Codul PIN trebuie să aibă minim 4 caractere").max(10),
+          currentPin: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const tenantId = ctx.user?.tenantId;
+        if (!tenantId) throw new Error("Neautentificat");
+        const db = await getDb();
+        if (!db) throw new Error("Baza de date indisponibilă");
+        const { tenants } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const [t] = await db
+          .select()
+          .from(tenants)
+          .where(eq(tenants.id, tenantId))
+          .limit(1);
+        if (!t) throw new Error("Compania nu a fost găsită");
+        let s: any = {};
+        try {
+          s = JSON.parse(t.settings || "{}");
+        } catch {}
+
+        const crypto = await import("crypto");
+        if (s.accessPinEnabled && s.accessPinHash) {
+          if (!input.currentPin) {
+            throw new Error("Introduceți codul PIN actual pentru a-l putea modifica.");
+          }
+          const currentComputed = crypto
+            .createHash("sha256")
+            .update(input.currentPin.trim() + "_pin_salt_smart_invoice")
+            .digest("hex");
+          if (currentComputed !== s.accessPinHash) {
+            throw new Error("Codul PIN actual este incorect.");
+          }
+        }
+
+        const newHash = crypto
+          .createHash("sha256")
+          .update(input.pin.trim() + "_pin_salt_smart_invoice")
+          .digest("hex");
+        s.accessPinEnabled = true;
+        s.accessPinHash = newHash;
+
+        await db
+          .update(tenants)
+          .set({ settings: JSON.stringify(s) })
+          .where(eq(tenants.id, tenantId));
+
+        return { success: true };
+      }),
+    disablePin: protectedProcedure
+      .input(z.object({ pin: z.string().min(1) }))
+      .mutation(async ({ input, ctx }) => {
+        const tenantId = ctx.user?.tenantId;
+        if (!tenantId) throw new Error("Neautentificat");
+        const db = await getDb();
+        if (!db) throw new Error("Baza de date indisponibilă");
+        const { tenants } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const [t] = await db
+          .select()
+          .from(tenants)
+          .where(eq(tenants.id, tenantId))
+          .limit(1);
+        if (!t) throw new Error("Compania nu a fost găsită");
+        let s: any = {};
+        try {
+          s = JSON.parse(t.settings || "{}");
+        } catch {}
+
+        const crypto = await import("crypto");
+        if (s.accessPinEnabled && s.accessPinHash) {
+          const currentComputed = crypto
+            .createHash("sha256")
+            .update(input.pin.trim() + "_pin_salt_smart_invoice")
+            .digest("hex");
+          if (currentComputed !== s.accessPinHash) {
+            throw new Error("Codul PIN actual este incorect.");
+          }
+        }
+
+        s.accessPinEnabled = false;
+        delete s.accessPinHash;
+
+        await db
+          .update(tenants)
+          .set({ settings: JSON.stringify(s) })
+          .where(eq(tenants.id, tenantId));
+
+        return { success: true };
+      }),
     updateSettings: protectedProcedure
       .input(
         z.object({
@@ -224,9 +445,34 @@ export const appRouter = router({
         if (!db) throw new Error("No DB");
         const { tenants } = await import("../drizzle/schema");
         const { eq } = await import("drizzle-orm");
+        const updateData: any = { ...input };
+        if (input.settings) {
+          const [currentT] = await db
+            .select()
+            .from(tenants)
+            .where(eq(tenants.id, tenantId))
+            .limit(1);
+          let existingSettings: any = {};
+          try {
+            existingSettings = JSON.parse(currentT?.settings || "{}");
+          } catch {}
+          let newSettings: any = {};
+          try {
+            newSettings = JSON.parse(input.settings);
+          } catch {
+            newSettings = {};
+          }
+          if (existingSettings.accessPinHash) {
+            newSettings.accessPinHash = existingSettings.accessPinHash;
+          }
+          if (existingSettings.accessPinEnabled !== undefined) {
+            newSettings.accessPinEnabled = existingSettings.accessPinEnabled;
+          }
+          updateData.settings = JSON.stringify(newSettings);
+        }
         await db
           .update(tenants)
-          .set(input)
+          .set(updateData)
           .where(eq(tenants.id, tenantId));
         return { success: true };
       }),
@@ -2394,6 +2640,19 @@ export const appRouter = router({
             })
           ),
           createDeviz: z.boolean().default(false).optional(),
+          customDevizLines: z
+            .array(
+              z.object({
+                type: z.enum(["MATERIAL", "MANOPERA", "UTILAJ", "NORMA"]).default("MANOPERA"),
+                code: z.string().optional(),
+                description: z.string(),
+                quantity: z.number(),
+                unitPrice: z.number(),
+                total: z.number(),
+              })
+            )
+            .optional(),
+          devizNotes: z.string().optional(),
           sendEmailToClient: z.boolean().default(false).optional(),
           representativeName: z.string().optional(),
         })
@@ -2521,38 +2780,72 @@ export const appRouter = router({
           l => l.devizType && l.devizType !== "GROUPED_LABOR"
         );
 
-        if (input.createDeviz && catalogLines.length > 0) {
+        if (input.createDeviz) {
           const { devize, devizeLines, bonuriConsum, bonuriConsumLines } =
             await import("../drizzle/schema");
           const devizNum = `DEV-${invoiceId}`;
-          let tMat = 0;
-          let tLab = 0;
-          let tTot = 0;
-          for (const cl of catalogLines) {
-            const lTot = cl.total;
-            tTot += lTot;
-            if (cl.devizType === "MATERIAL") tMat += lTot;
-            else if (
-              cl.devizType === "MANOPERA" ||
-              cl.devizType === "NORMA" ||
-              cl.devizType === "UTILAJ"
-            )
-              tLab += lTot;
-          }
 
-          const [dRes] = await db
-            .insert(devize)
-            .values({
-              tenantId: (ctx.user?.tenantId || 1),
-              number: devizNum,
-              date: new Date(),
-              invoiceId,
-              totalMaterials: String(tMat),
-              totalLabor: String(tLab),
-              total: String(tTot),
-              status: "final",
-            } as any)
-            .$returningId();
+          if (input.customDevizLines && input.customDevizLines.length > 0) {
+            let tTot = 0;
+            for (const cdl of input.customDevizLines) {
+              tTot += cdl.total;
+            }
+            const [dRes] = await db
+              .insert(devize)
+              .values({
+                tenantId: (ctx.user?.tenantId || 1),
+                number: devizNum,
+                date: new Date(),
+                invoiceId,
+                totalMaterials: "0",
+                totalLabor: String(tTot.toFixed(2)),
+                total: String(tTot.toFixed(2)),
+                status: "final",
+                notes: input.devizNotes || "Anexă deviz nominal Smart QR Pontaj",
+              } as any)
+              .$returningId();
+
+            await db.insert(devizeLines).values(
+              input.customDevizLines.map((cdl, i) => ({
+                devizId: dRes.id,
+                type: cdl.type || "MANOPERA",
+                code: cdl.code || `EMP-${i + 1}`,
+                description: cdl.description,
+                quantity: String(cdl.quantity),
+                unitPrice: String(cdl.unitPrice),
+                total: String(cdl.total),
+                lineOrder: i,
+              }) as any)
+            );
+          } else if (catalogLines.length > 0) {
+            let tMat = 0;
+            let tLab = 0;
+            let tTot = 0;
+            for (const cl of catalogLines) {
+              const lTot = cl.total;
+              tTot += lTot;
+              if (cl.devizType === "MATERIAL") tMat += lTot;
+              else if (
+                cl.devizType === "MANOPERA" ||
+                cl.devizType === "NORMA" ||
+                cl.devizType === "UTILAJ"
+              )
+                tLab += lTot;
+            }
+
+            const [dRes] = await db
+              .insert(devize)
+              .values({
+                tenantId: (ctx.user?.tenantId || 1),
+                number: devizNum,
+                date: new Date(),
+                invoiceId,
+                totalMaterials: String(tMat),
+                totalLabor: String(tLab),
+                total: String(tTot),
+                status: "final",
+              } as any)
+              .$returningId();
 
           await db.insert(devizeLines).values(
             catalogLines.map(
@@ -2598,12 +2891,14 @@ export const appRouter = router({
             );
           }
 
-          const labLines = catalogLines.filter(
-            l =>
-              l.devizType === "MANOPERA" ||
-              l.devizType === "NORMA" ||
-              l.devizType === "UTILAJ"
-          );
+          const labLines = (!input.customDevizLines || input.customDevizLines.length === 0)
+            ? catalogLines.filter(
+                l =>
+                  l.devizType === "MANOPERA" ||
+                  l.devizType === "NORMA" ||
+                  l.devizType === "UTILAJ"
+              )
+            : [];
           if (labLines.length > 0) {
             const sumLab = labLines.reduce((acc, curr) => acc + curr.total, 0);
             finalInvoiceLines = finalInvoiceLines.filter(
@@ -2624,8 +2919,9 @@ export const appRouter = router({
             });
           }
         }
+      }
 
-        if (finalInvoiceLines.length > 0) {
+      if (finalInvoiceLines.length > 0) {
           await db.insert(emittedInvoiceLines).values(
             finalInvoiceLines.map(
               (l, i) =>
@@ -2691,7 +2987,7 @@ export const appRouter = router({
         if (sendEmailToClient && invoiceData.clientEmail) {
           try {
             const { generateEmittedInvoicePdfBuffer, sendInvoiceEmail, extractRepresentativeName } = await import("./emailService");
-            const { buffer, filename, tenant, tenantLogoBase64, tenantBrevoApiKey } = await generateEmittedInvoicePdfBuffer(invoiceId);
+            const { buffer, filename, tenant, tenantLogoBase64, tenantBrevoApiKey, isForeign } = await generateEmittedInvoicePdfBuffer(invoiceId);
             const repName = representativeName?.trim() || extractRepresentativeName(invoiceData.notes);
             const emailRes = await sendInvoiceEmail({
               apiKey: tenantBrevoApiKey,
@@ -2710,6 +3006,7 @@ export const appRouter = router({
               companyIBAN: invoiceData.companyIBAN,
               companyBank: invoiceData.companyBank,
               tenantLogoBase64,
+              isForeign,
             });
             emailSent = emailRes.success;
             emailError = emailRes.error;
@@ -2727,6 +3024,7 @@ export const appRouter = router({
                 status: emailRes.success ? "trimis" : "eroare",
                 messageId: emailRes.messageId || null,
                 error: emailRes.error || null,
+                htmlContent: emailRes.htmlContent || null,
                 sentAt: new Date(),
               });
             } catch (logErr) {
@@ -2785,6 +3083,19 @@ export const appRouter = router({
             )
             .optional(),
           createDeviz: z.boolean().optional(),
+          customDevizLines: z
+            .array(
+              z.object({
+                type: z.enum(["MATERIAL", "MANOPERA", "UTILAJ", "NORMA"]).default("MANOPERA"),
+                code: z.string().optional(),
+                description: z.string(),
+                quantity: z.number(),
+                unitPrice: z.number(),
+                total: z.number(),
+              })
+            )
+            .optional(),
+          devizNotes: z.string().optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -2793,6 +3104,28 @@ export const appRouter = router({
         if (!db) throw new Error("No DB");
         const { emittedInvoices, emittedInvoiceLines } =
           await import("../drizzle/schema");
+        const { eq, and } = await import("drizzle-orm");
+
+        const [existing] = await db
+          .select()
+          .from(emittedInvoices)
+          .where(
+            and(
+              eq(emittedInvoices.id, input.id),
+              eq(emittedInvoices.tenantId, (ctx.user?.tenantId || 1))
+            )
+          );
+
+        if (!existing) {
+          throw new Error("Factura nu a fost găsită");
+        }
+
+        if (existing.spvStatus === "validat" || Boolean(existing.spvIndex)) {
+          throw new Error(
+            `Această factură a fost deja transmisă și validată în RO e-Factura / SPV (Index: ${existing.spvIndex || "validat"}). Conform legislației fiscale (OUG 120/2021 și Codul Fiscal art. 330), documentul original oficial nu mai poate fi modificat. Pentru corecții, emiteți o factură de stornare.`
+          );
+        }
+
         const { id, lines, createDeviz, ...data } = input;
         const updateData: any = {};
         if (data.subtotal !== undefined)
@@ -2913,36 +3246,69 @@ export const appRouter = router({
               l => l.devizType && l.devizType !== "GROUPED_LABOR"
             );
 
-            if (createDeviz && devizAllLines.length > 0) {
+            if (createDeviz) {
               const devizNum = `DEV-${id}`;
-              let tMat = 0;
-              let tLab = 0;
-              let tTot = 0;
-              for (const cl of devizAllLines) {
-                const lTot = cl.total;
-                tTot += lTot;
-                if (cl.devizType === "MATERIAL") tMat += lTot;
-                else if (
-                  cl.devizType === "MANOPERA" ||
-                  cl.devizType === "NORMA" ||
-                  cl.devizType === "UTILAJ"
-                )
-                  tLab += lTot;
-              }
+              if (input.customDevizLines && input.customDevizLines.length > 0) {
+                let tTot = 0;
+                for (const cdl of input.customDevizLines) {
+                  tTot += cdl.total;
+                }
+                const [dRes] = await db
+                  .insert(devize)
+                  .values({
+                    tenantId: (ctx.user?.tenantId || 1),
+                    number: devizNum,
+                    date: new Date(),
+                    invoiceId: id,
+                    totalMaterials: "0",
+                    totalLabor: String(tTot.toFixed(2)),
+                    total: String(tTot.toFixed(2)),
+                    status: "final",
+                    notes: input.devizNotes || "Anexă deviz nominal Smart QR Pontaj",
+                  } as any)
+                  .$returningId();
 
-              const [dRes] = await db
-                .insert(devize)
-                .values({
-                  tenantId: (ctx.user?.tenantId || 1),
-                  number: devizNum,
-                  date: new Date(),
-                  invoiceId: id,
-                  totalMaterials: String(tMat),
-                  totalLabor: String(tLab),
-                  total: String(tTot),
-                  status: "final",
-                } as any)
-                .$returningId();
+                await db.insert(devizeLines).values(
+                  input.customDevizLines.map((cdl, i) => ({
+                    devizId: dRes.id,
+                    type: cdl.type || "MANOPERA",
+                    code: cdl.code || `EMP-${i + 1}`,
+                    description: cdl.description,
+                    quantity: String(cdl.quantity),
+                    unitPrice: String(cdl.unitPrice),
+                    total: String(cdl.total),
+                    lineOrder: i,
+                  }) as any)
+                );
+              } else if (devizAllLines.length > 0) {
+                let tMat = 0;
+                let tLab = 0;
+                let tTot = 0;
+                for (const cl of devizAllLines) {
+                  const lTot = cl.total;
+                  tTot += lTot;
+                  if (cl.devizType === "MATERIAL") tMat += lTot;
+                  else if (
+                    cl.devizType === "MANOPERA" ||
+                    cl.devizType === "NORMA" ||
+                    cl.devizType === "UTILAJ"
+                  )
+                    tLab += lTot;
+                }
+
+                const [dRes] = await db
+                  .insert(devize)
+                  .values({
+                    tenantId: (ctx.user?.tenantId || 1),
+                    number: devizNum,
+                    date: new Date(),
+                    invoiceId: id,
+                    totalMaterials: String(tMat),
+                    totalLabor: String(tLab),
+                    total: String(tTot),
+                    status: "final",
+                  } as any)
+                  .$returningId();
 
               await db.insert(devizeLines).values(
                 devizAllLines.map(
@@ -2991,12 +3357,14 @@ export const appRouter = router({
                 );
               }
 
-              const labLines = catalogLines.filter(
-                l =>
-                  l.devizType === "MANOPERA" ||
-                  l.devizType === "NORMA" ||
-                  l.devizType === "UTILAJ"
-              );
+              const labLines = (!input.customDevizLines || input.customDevizLines.length === 0)
+                ? catalogLines.filter(
+                    l =>
+                      l.devizType === "MANOPERA" ||
+                      l.devizType === "NORMA" ||
+                      l.devizType === "UTILAJ"
+                  )
+                : [];
               if (labLines.length > 0) {
                 const sumLab = labLines.reduce(
                   (acc, curr) => acc + curr.total,
@@ -3020,6 +3388,7 @@ export const appRouter = router({
                 });
               }
             }
+          }
 
             if (finalInvoiceLines.length > 0) {
               await db.insert(emittedInvoiceLines).values(
@@ -3053,6 +3422,26 @@ export const appRouter = router({
         if (!db) throw new Error("No DB");
         const { emittedInvoices, emittedInvoiceLines } =
           await import("../drizzle/schema");
+        const { eq, and } = await import("drizzle-orm");
+
+        const [existing] = await db
+          .select()
+          .from(emittedInvoices)
+          .where(
+            and(
+              eq(emittedInvoices.id, input.id),
+              eq(emittedInvoices.tenantId, (ctx.user?.tenantId || 1))
+            )
+          );
+
+        if (!existing) throw new Error("Factura nu a fost găsită");
+
+        if (existing.spvStatus === "validat" || Boolean(existing.spvIndex)) {
+          throw new Error(
+            "Facturile validate în RO e-Factura / SPV nu pot fi șterse. Este necesară emiterea unei facturi de stornare conform legii fiscale."
+          );
+        }
+
         await db
           .delete(emittedInvoiceLines)
           .where(eq(emittedInvoiceLines.emittedInvoiceId, input.id));
@@ -3372,12 +3761,13 @@ export const appRouter = router({
           representativeName: z.string().optional(),
           customMessage: z.string().optional(),
           badgeText: z.string().optional(),
+          languages: z.array(z.enum(["ro", "en", "fr", "nl", "de", "hu"])).max(2).optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
         if (!ctx.user?.tenantId) throw new Error("No tenant");
         const { generateEmittedInvoicePdfBuffer, sendInvoiceEmail, extractRepresentativeName } = await import("./emailService");
-        const { buffer, filename, invoice, tenant, tenantLogoBase64, representativeName: repFromInv, tenantBrevoApiKey } = await generateEmittedInvoicePdfBuffer(input.invoiceId);
+        const { buffer, filename, invoice, tenant, tenantLogoBase64, representativeName: repFromInv, tenantBrevoApiKey, isForeign } = await generateEmittedInvoicePdfBuffer(input.invoiceId);
 
         if (invoice.tenantId !== (ctx.user?.tenantId || 1)) {
           throw new Error("Nu aveți acces la această factură");
@@ -3416,6 +3806,9 @@ export const appRouter = router({
           customMessage: input.customMessage,
           spvIndex: invoice.spvIndex || undefined,
           badgeText: input.badgeText,
+          isForeign,
+          languages: input.languages as any,
+          clientCountry: invoice.clientCountry,
         });
 
         // Insert log in emailLogs table
@@ -3433,6 +3826,7 @@ export const appRouter = router({
               status: result.success ? "trimis" : "eroare",
               messageId: result.messageId || null,
               error: result.error || null,
+              htmlContent: result.htmlContent || null,
               sentAt: new Date(),
             });
           }
@@ -3454,15 +3848,57 @@ export const appRouter = router({
       if (!ctx.user?.tenantId) throw new Error("No tenant");
       const db = await getDb();
       if (!db) throw new Error("No DB");
-      const { emailLogs } = await import("../drizzle/schema");
+      const { emailLogs, emittedInvoices } = await import("../drizzle/schema");
       const { eq, desc } = await import("drizzle-orm");
 
-      return db
-        .select()
+      const rows = await db
+        .select({
+          log: emailLogs,
+          invNumber: emittedInvoices.number,
+          invSeries: emittedInvoices.series,
+        })
         .from(emailLogs)
+        .leftJoin(emittedInvoices, eq(emailLogs.invoiceId, emittedInvoices.id))
         .where(eq(emailLogs.tenantId, (ctx.user?.tenantId || 1)))
         .orderBy(desc(emailLogs.sentAt), desc(emailLogs.id));
+
+      return rows.map(({ log, invNumber }) => {
+        let num = log.invoiceNumber;
+        if (!num || /^FACT-\d{3,4}$/.test(num) || num.includes("FACT FACT-")) {
+          if (invNumber) {
+            num = invNumber;
+          }
+        }
+        if (num && num.includes("FACT FACT-")) {
+          num = num.replace(/FACT\s+FACT-/gi, "FACT-");
+        }
+        return {
+          ...log,
+          invoiceNumber: num || (invNumber ? invNumber : `FACT-${log.invoiceId}`),
+        };
+      });
     }),
+
+    getByInvoiceId: protectedProcedure
+      .input(z.object({ invoiceId: z.number() }))
+      .query(async ({ input, ctx }) => {
+        if (!ctx.user?.tenantId) throw new Error("No tenant");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { emailLogs } = await import("../drizzle/schema");
+        const { eq, and, desc } = await import("drizzle-orm");
+
+        return db
+          .select()
+          .from(emailLogs)
+          .where(
+            and(
+              eq(emailLogs.invoiceId, input.invoiceId),
+              eq(emailLogs.tenantId, (ctx.user?.tenantId || 1))
+            )
+          )
+          .orderBy(desc(emailLogs.sentAt), desc(emailLogs.id));
+      }),
 
     getPreview: protectedProcedure
       .input(
@@ -3470,6 +3906,7 @@ export const appRouter = router({
           logId: z.number().optional(),
           invoiceId: z.number().optional(),
           representativeName: z.string().optional(),
+          languages: z.array(z.enum(["ro", "en", "fr", "nl", "de", "hu"])).max(2).optional(),
         })
       )
       .query(async ({ input, ctx }) => {
@@ -3485,6 +3922,9 @@ export const appRouter = router({
         let status = "trimis";
         let messageId: string | null = null;
         let error: string | null = null;
+
+        let savedHtmlContent: string | null = null;
+        let savedSubject: string | null = null;
 
         if (input.logId) {
           const { emailLogs } = await import("../drizzle/schema");
@@ -3506,14 +3946,41 @@ export const appRouter = router({
           status = log.status;
           messageId = log.messageId;
           error = log.error;
+          savedHtmlContent = (log as any).htmlContent || null;
+          savedSubject = log.subject || null;
+        } else if (input.invoiceId) {
+          const { emailLogs } = await import("../drizzle/schema");
+          const { eq, and, desc } = await import("drizzle-orm");
+          const [latestLog] = await db
+            .select()
+            .from(emailLogs)
+            .where(
+              and(
+                eq(emailLogs.invoiceId, input.invoiceId),
+                eq(emailLogs.tenantId, tenantId)
+              )
+            )
+            .orderBy(desc(emailLogs.sentAt), desc(emailLogs.id))
+            .limit(1);
+
+          if (latestLog) {
+            recipientEmail = latestLog.recipientEmail;
+            recipientName = latestLog.recipientName || "";
+            sentAt = latestLog.sentAt;
+            status = latestLog.status;
+            messageId = latestLog.messageId;
+            error = latestLog.error;
+            savedHtmlContent = (latestLog as any).htmlContent || null;
+            savedSubject = latestLog.subject || null;
+          }
         }
 
         if (!targetInvoiceId) {
           throw new Error("ID-ul facturii lipsește");
         }
 
-        const { generateEmittedInvoicePdfBuffer, buildInvoiceEmailPreviewHtml, extractRepresentativeName } = await import("./emailService");
-        const { invoice, tenant, tenantLogoBase64, representativeName: repFromInv, filename } = await generateEmittedInvoicePdfBuffer(targetInvoiceId);
+        const { generateEmittedInvoicePdfBuffer, buildInvoiceEmailPreviewHtml, buildInvoiceEmailSubject, extractRepresentativeName } = await import("./emailService");
+        const { invoice, tenant, tenantLogoBase64, representativeName: repFromInv, filename, isForeign, clientCountry } = await generateEmittedInvoicePdfBuffer(targetInvoiceId);
 
         if (invoice.tenantId !== tenantId) {
           throw new Error("Nu aveți acces la această factură");
@@ -3534,21 +4001,44 @@ export const appRouter = router({
 
         const repName = input.representativeName?.trim() || repFromInv || extractRepresentativeName(invoice.notes);
 
-        const html = buildInvoiceEmailPreviewHtml({
-          invoiceNumber: cleanDisplayNum,
-          invoiceDate: invoice.issueDate,
-          dueDate: invoice.dueDate,
-          total: parseFloat(invoice.total || "0"),
-          currency: invoice.currency || "RON",
-          companyName: tenant?.name || "TRADE INVEST NETWORK",
-          companyIBAN: invoice.companyIBAN,
-          companyBank: invoice.companyBank,
-          filename,
-          representativeName: repName,
-          tenantLogoBase64,
-        });
+        let html: string;
+        // Dacă utilizatorul a specificat manual limbi în modal, regenerăm previzualizarea în acele limbi
+        if (savedHtmlContent && !input.languages) {
+          // Afișează emailul REAL care a fost trimis efectiv către client
+          html = savedHtmlContent;
+          if (tenantLogoBase64 && html.includes("cid:tenant-logo.png")) {
+            const logoSrc = tenantLogoBase64.startsWith("data:")
+              ? tenantLogoBase64
+              : `data:image/png;base64,${tenantLogoBase64}`;
+            html = html.replace(/cid:tenant-logo\.png/g, logoSrc);
+          }
+        } else {
+          html = buildInvoiceEmailPreviewHtml({
+            invoiceNumber: cleanDisplayNum,
+            invoiceDate: invoice.issueDate,
+            dueDate: invoice.dueDate,
+            total: parseFloat(invoice.total || "0"),
+            currency: invoice.currency || "RON",
+            companyName: tenant?.name || "TRADE INVEST NETWORK",
+            companyIBAN: invoice.companyIBAN,
+            companyBank: invoice.companyBank,
+            filename,
+            representativeName: repName,
+            tenantLogoBase64,
+            isForeign,
+            languages: input.languages as any,
+            clientCountry,
+          });
+        }
 
-        const subject = `Factura fiscală ${cleanDisplayNum} - ${tenant?.name || "TRADE INVEST NETWORK"}`;
+        const defaultSubject = buildInvoiceEmailSubject({
+          invoiceNumber: cleanDisplayNum,
+          companyName: tenant?.name || "TRADE INVEST NETWORK",
+          languages: input.languages as any,
+          isForeign,
+          clientCountry,
+        });
+        const subject = (!input.languages && savedSubject) ? savedSubject : defaultSubject;
 
         return {
           html,
@@ -3574,6 +4064,7 @@ export const appRouter = router({
           logId: z.number(),
           recipientEmail: z.string().optional(),
           representativeName: z.string().optional(),
+          languages: z.array(z.enum(["ro", "en", "fr", "nl", "de", "hu"])).max(2).optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -3602,7 +4093,7 @@ export const appRouter = router({
         }
 
         const { generateEmittedInvoicePdfBuffer, sendInvoiceEmail, extractRepresentativeName } = await import("./emailService");
-        const { buffer, filename, invoice, tenant, tenantLogoBase64, representativeName: repFromInv, tenantBrevoApiKey } = await generateEmittedInvoicePdfBuffer(log.invoiceId);
+        const { buffer, filename, invoice, tenant, tenantLogoBase64, representativeName: repFromInv, tenantBrevoApiKey, isForeign, clientCountry } = await generateEmittedInvoicePdfBuffer(log.invoiceId);
 
         const rawNum = (invoice.number || `FACT-${invoice.id}`).trim();
         const rawSer = (invoice.series || "").trim();
@@ -3629,6 +4120,9 @@ export const appRouter = router({
           companyIBAN: invoice.companyIBAN,
           companyBank: invoice.companyBank,
           tenantLogoBase64,
+          isForeign,
+          languages: input.languages as any,
+          clientCountry,
         });
 
         // Insert new log entry for the resend
@@ -3642,6 +4136,7 @@ export const appRouter = router({
           status: result.success ? "trimis" : "eroare",
           messageId: result.messageId || null,
           error: result.error || null,
+          htmlContent: result.htmlContent || null,
           sentAt: new Date(),
         });
 
@@ -4679,6 +5174,61 @@ export const appRouter = router({
         }
         return { count: input.ids.length };
       }),
+  }),
+
+  // =========================================================================
+  // INTEGRATION SMART QR PONTAJ (BILLING / DEVIZE)
+  // =========================================================================
+  qrPontaj: router({
+    getDeviz: protectedProcedure
+      .input(
+        z
+          .object({
+            tenantId: z.number().optional().default(2),
+            month: z.number().optional().default(10),
+            year: z.number().optional().default(2026),
+            exchangeRate: z.number().optional(),
+          })
+          .optional()
+      )
+      .query(async ({ input }) => {
+        const tenantId = input?.tenantId ?? 2;
+        const month = input?.month ?? 10;
+        const year = input?.year ?? 2026;
+        let url = `http://localhost:5001/api/billing/deviz?tenant_id=${tenantId}&month=${month}&year=${year}`;
+        if (input?.exchangeRate) {
+          url += `&exchange_rate=${input.exchangeRate}`;
+        }
+        try {
+          const res = await fetch(url);
+          if (!res.ok) {
+            throw new Error(`Serverul QR Pontaj a răspuns cu eroarea HTTP ${res.status}`);
+          }
+          const data = await res.json();
+          return data;
+        } catch (err: any) {
+          throw new Error(`Nu s-a putut conecta la serviciul QR Pontaj: ${err.message}`);
+        }
+      }),
+
+    getTenants: protectedProcedure.query(async () => {
+      try {
+        const res = await fetch("http://localhost:5001/api/tenants");
+        if (!res.ok) {
+          throw new Error(`Serverul QR Pontaj a răspuns cu eroarea HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+      } catch (err: any) {
+        console.error("Eroare preluare tenanți QR Pontaj:", err.message);
+        return [
+          { id: 2, nume: "Unda", subdomain: "unda", active_employees_count: 49 },
+          { id: 1, nume: "Roll Master", subdomain: "rollmaster", active_employees_count: 2 },
+          { id: 3, nume: "Sushi Han", subdomain: "sushihan", active_employees_count: 0 },
+          { id: 4, nume: "GetApp Smart QR", subdomain: "smartqr", active_employees_count: 20 },
+        ];
+      }
+    }),
   }),
 
   // =========================================================================

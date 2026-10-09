@@ -346,15 +346,32 @@ function drawTotals(
   const valW = totW - labelW;
   let y = afterY + 12;
 
+  const computedLinesSubtotal = data.lines && data.lines.length > 0
+    ? data.lines.reduce((s, l) => s + (Math.round(l.quantity * l.unitPrice * 100) / 100), 0)
+    : data.subtotal;
+  const computedLinesVat = data.lines && data.lines.length > 0
+    ? data.lines.reduce((s, l) => s + (Math.round((Math.round(l.quantity * l.unitPrice * 100) / 100) * ((l.vatRate || 0) / 100) * 100) / 100), 0)
+    : data.totalVAT;
+
+  const displaySubtotal = (data.lines && data.lines.length > 0 && Math.abs(computedLinesSubtotal - data.subtotal) > 0.01)
+    ? computedLinesSubtotal
+    : data.subtotal;
+  const displayVat = (data.lines && data.lines.length > 0 && Math.abs(computedLinesVat - data.totalVAT) > 0.01)
+    ? computedLinesVat
+    : data.totalVAT;
+  const displayTotal = (data.lines && data.lines.length > 0 && Math.abs((displaySubtotal + displayVat) - data.total) > 0.01)
+    ? (displaySubtotal + displayVat)
+    : data.total;
+
   doc.fontSize(9).font("Roboto").fillColor("#64748b");
   doc.text(L.subtotalAlt, totX, y, { width: labelW });
-  doc.text(`${data.subtotal.toFixed(2)} ${data.currency}`, totX + labelW, y, {
+  doc.text(`${displaySubtotal.toFixed(2)} ${data.currency}`, totX + labelW, y, {
     width: valW,
     align: "right",
   });
   y += 16;
   doc.text(L.totalVat, totX, y, { width: labelW });
-  doc.text(`${data.totalVAT.toFixed(2)} ${data.currency}`, totX + labelW, y, {
+  doc.text(`${displayVat.toFixed(2)} ${data.currency}`, totX + labelW, y, {
     width: valW,
     align: "right",
   });
@@ -368,7 +385,7 @@ function drawTotals(
 
   doc.fontSize(isBilingual ? 9.5 : 11).font("Roboto-Bold").fillColor("#ffffff");
   doc.text(L.totalDue, totX + 4, y + 6, { width: labelW });
-  doc.text(`${data.total.toFixed(2)} ${data.currency}`, totX + labelW, y + 6, {
+  doc.text(`${displayTotal.toFixed(2)} ${data.currency}`, totX + labelW, y + 6, {
     width: valW - 8,
     align: "right",
   });
@@ -736,11 +753,28 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   const labelW = isBilingual ? 160 : 100;
   const valW = totW - labelW;
 
+  const computedLinesSubtotal = data.lines && data.lines.length > 0
+    ? data.lines.reduce((s, l) => s + (Math.round(l.quantity * l.unitPrice * 100) / 100), 0)
+    : data.subtotal;
+  const computedLinesVat = data.lines && data.lines.length > 0
+    ? data.lines.reduce((s, l) => s + (Math.round((Math.round(l.quantity * l.unitPrice * 100) / 100) * ((l.vatRate || 0) / 100) * 100) / 100), 0)
+    : data.totalVAT;
+
+  const displaySubtotal = (data.lines && data.lines.length > 0 && Math.abs(computedLinesSubtotal - data.subtotal) > 0.01)
+    ? computedLinesSubtotal
+    : data.subtotal;
+  const displayVat = (data.lines && data.lines.length > 0 && Math.abs(computedLinesVat - data.totalVAT) > 0.01)
+    ? computedLinesVat
+    : data.totalVAT;
+  const displayTotal = (data.lines && data.lines.length > 0 && Math.abs((displaySubtotal + displayVat) - data.total) > 0.01)
+    ? (displaySubtotal + displayVat)
+    : data.total;
+
   doc.font("Roboto-Bold").fontSize(9);
   doc.text(L.subtotal, totX, y, { width: labelW });
   doc
     .font("Roboto")
-    .text(`${data.subtotal.toFixed(2)} ${data.currency}`, totX + labelW, y, {
+    .text(`${displaySubtotal.toFixed(2)} ${data.currency}`, totX + labelW, y, {
       width: valW,
       align: "right",
     });
@@ -749,7 +783,7 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   doc.font("Roboto-Bold").text(L.totalVat, totX, y, { width: labelW });
   doc
     .font("Roboto")
-    .text(`${data.totalVAT.toFixed(2)} ${data.currency}`, totX + labelW, y, {
+    .text(`${displayVat.toFixed(2)} ${data.currency}`, totX + labelW, y, {
       width: valW,
       align: "right",
     });
@@ -763,7 +797,7 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
 
   doc.fillColor("#ffffff").font("Roboto-Bold").fontSize(isBilingual ? 9.5 : 11);
   doc.text(L.totalDue, totX + 8, y + 7, { width: labelW });
-  doc.text(`${data.total.toFixed(2)} ${data.currency}`, totX + labelW, y + 7, {
+  doc.text(`${displayTotal.toFixed(2)} ${data.currency}`, totX + labelW, y + 7, {
     width: valW - 8,
     align: "right",
   });
@@ -1256,17 +1290,34 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   const labelW = isBilingual ? 160 : 130;
   const valW = totW - labelW;
 
+  const computedLinesSubtotal = data.lines && data.lines.length > 0
+    ? data.lines.reduce((s, l) => s + (Math.round(l.quantity * l.unitPrice * 100) / 100), 0)
+    : data.subtotal;
+  const computedLinesVat = data.lines && data.lines.length > 0
+    ? data.lines.reduce((s, l) => s + (Math.round((Math.round(l.quantity * l.unitPrice * 100) / 100) * ((l.vatRate || 0) / 100) * 100) / 100), 0)
+    : data.totalVAT;
+
+  const displaySubtotal = (data.lines && data.lines.length > 0 && Math.abs(computedLinesSubtotal - data.subtotal) > 0.01)
+    ? computedLinesSubtotal
+    : data.subtotal;
+  const displayVat = (data.lines && data.lines.length > 0 && Math.abs(computedLinesVat - data.totalVAT) > 0.01)
+    ? computedLinesVat
+    : data.totalVAT;
+  const displayTotal = (data.lines && data.lines.length > 0 && Math.abs((displaySubtotal + displayVat) - data.total) > 0.01)
+    ? (displaySubtotal + displayVat)
+    : data.total;
+
   doc.fontSize(9).font("Roboto").fillColor("#64748b");
   doc
     .text(L.subtotalAlt, totX, y, { width: labelW })
-    .text(`${data.subtotal.toFixed(2)} ${data.currency}`, totX + labelW, y, {
+    .text(`${displaySubtotal.toFixed(2)} ${data.currency}`, totX + labelW, y, {
       width: valW,
       align: "right",
     });
   y += 16;
   doc
     .text(L.totalVat, totX, y, { width: labelW })
-    .text(`${data.totalVAT.toFixed(2)} ${data.currency}`, totX + labelW, y, {
+    .text(`${displayVat.toFixed(2)} ${data.currency}`, totX + labelW, y, {
       width: valW,
       align: "right",
     });
@@ -1281,7 +1332,7 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   doc.fontSize(isBilingual ? 11 : 13).font("Roboto-Bold").fillColor("#0f172a");
   doc
     .text(L.totalDue, totX, y, { width: labelW })
-    .text(`${data.total.toFixed(2)} ${data.currency}`, totX + labelW, y, {
+    .text(`${displayTotal.toFixed(2)} ${data.currency}`, totX + labelW, y, {
       width: valW,
       align: "right",
     });

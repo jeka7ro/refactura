@@ -51,6 +51,7 @@ import {
   Key,
   Database,
   Coins,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -61,6 +62,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { BnrExchangeRateHeader } from "./BnrExchangeRateHeader";
+import { CompanyPinLockModal } from "./CompanyPinLockModal";
 
 
 const LOGO_URL = "/gettsapp_logo_ver2.png";
@@ -180,6 +182,27 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     enabled: !!user,
   });
 
+  const { data: pinStatus, isLoading: isPinStatusLoading } = trpc.tenants.getPinStatus.useQuery(
+    undefined,
+    { enabled: !!user }
+  );
+
+  const tenantId = (user as any)?.tenantId || currentTenant?.id;
+
+  const [isPinUnlocked, setIsPinUnlocked] = useState<boolean>(() => {
+    const tid = (user as any)?.tenantId;
+    if (!tid) return false;
+    return sessionStorage.getItem(`smart_invoice_unlocked_pin_${tid}`) === "true";
+  });
+
+  useEffect(() => {
+    if (tenantId) {
+      setIsPinUnlocked(
+        sessionStorage.getItem(`smart_invoice_unlocked_pin_${tenantId}`) === "true"
+      );
+    }
+  }, [tenantId]);
+
   const parsedTenantSettings = useMemo(() => {
     if (!currentTenant?.settings) return null;
     try {
@@ -231,7 +254,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }, [loading, user, setLocation]);
 
   // Loading auth state
-  if (loading) {
+  if (loading || (!!user && isPinStatusLoading)) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950">
         <div className="animate-spin w-8 h-8 border-4 border-slate-200 dark:border-slate-700 border-t-blue-600 rounded-full" />
@@ -241,6 +264,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   if (!user) {
     return null;
+  }
+
+  if (pinStatus?.pinEnabled && !isPinUnlocked) {
+    return (
+      <CompanyPinLockModal
+        companyName={pinStatus.companyName || companyName}
+        companyLogo={pinStatus.logoUrl || companyLogo}
+        logoBgColor={pinStatus.logoBgColor || parsedTenantSettings?.logoBgColor}
+        logoHasBackground={pinStatus.logoHasBackground ?? parsedTenantSettings?.logoHasBackground}
+        themeColor={pinStatus?.themeColor || themeColor}
+        tenantId={tenantId}
+        onUnlocked={() => setIsPinUnlocked(true)}
+      />
+    );
   }
 
   const isActive = (href: string) => {
@@ -576,6 +613,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               </div>
             </div>
             <div className="border-t border-slate-200 dark:border-slate-700 my-1" />
+            {pinStatus?.pinEnabled && (
+              <DropdownMenuItem
+                onClick={() => {
+                  if (tenantId) {
+                    sessionStorage.removeItem(`smart_invoice_unlocked_pin_${tenantId}`);
+                  }
+                  setIsPinUnlocked(false);
+                }}
+                className="cursor-pointer text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
+              >
+                <Lock className="w-4 h-4 mr-2" />
+                Blochează ecranul (PIN)
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               onClick={logout}
               className="cursor-pointer text-slate-600 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400"

@@ -683,9 +683,35 @@ export function registerPdfRoute(app: any) {
         themeColor,
         template: settings.invoiceTemplate === "modern" ? "classic" : (settings.invoiceTemplate || "classic"),
         lines: translatedLines,
-        subtotal: parseFloat(inv.subtotal || "0"),
-        totalVAT: parseFloat(inv.totalVAT || "0"),
-        total: parseFloat(inv.total || "0"),
+        subtotal: (() => {
+          const linesSum = translatedLines.reduce(
+            (s, l) => s + (Math.round(l.quantity * l.unitPrice * 100) / 100),
+            0
+          );
+          const rawSub = parseFloat(inv.subtotal || "0");
+          return (translatedLines.length > 0 && Math.abs(linesSum - rawSub) > 0.01) ? linesSum : (rawSub || linesSum);
+        })(),
+        totalVAT: (() => {
+          const linesVat = translatedLines.reduce(
+            (s, l) => s + (Math.round((Math.round(l.quantity * l.unitPrice * 100) / 100) * (l.vatRate / 100) * 100) / 100),
+            0
+          );
+          const rawVat = parseFloat(inv.totalVAT || "0");
+          return (translatedLines.length > 0 && Math.abs(linesVat - rawVat) > 0.01) ? linesVat : (rawVat || linesVat);
+        })(),
+        total: (() => {
+          const linesSum = translatedLines.reduce(
+            (s, l) => s + (Math.round(l.quantity * l.unitPrice * 100) / 100),
+            0
+          );
+          const linesVat = translatedLines.reduce(
+            (s, l) => s + (Math.round((Math.round(l.quantity * l.unitPrice * 100) / 100) * (l.vatRate / 100) * 100) / 100),
+            0
+          );
+          const rawTot = parseFloat(inv.total || "0");
+          const calcTot = Math.round((linesSum + linesVat) * 100) / 100;
+          return (translatedLines.length > 0 && Math.abs(calcTot - rawTot) > 0.01) ? calcTot : (rawTot || calcTot);
+        })(),
         currency: inv.currency || "RON",
         notes: inv.notes || undefined,
         spvIndex: inv.spvIndex || undefined,
@@ -1602,12 +1628,16 @@ export function registerPdfRoute(app: any) {
       const xPrice = xQty + colQty;
       const xVal = xPrice + colPrice;
 
+      const isServicesDeviz =
+        Number(deviz.totalMaterials || 0) === 0 ||
+        Boolean(deviz.notes && (deviz.notes.includes("Smart QR") || deviz.notes.includes("SaaS")));
+
       const headerH = 18;
       const drawHeader = (curY: number) => {
         doc.rect(40, curY, W, headerH).fillColor(TEAL).fill();
         doc.fontSize(7.5).font("Roboto-Bold").fillColor("white");
         doc.text("Nr.", xNr, curY + 5, { width: colNr, align: "center" });
-        doc.text("Denumire / Tip", xDesc + 6, curY + 5, { width: colDesc - 12 });
+        doc.text(isServicesDeviz ? "Denumire" : "Denumire / Tip", xDesc + 6, curY + 5, { width: colDesc - 12 });
         if (showCodes) {
           doc.text("Cod", xCode + 4, curY + 5, { width: colCode - 8 });
         }
@@ -1622,7 +1652,8 @@ export function registerPdfRoute(app: any) {
       // Linii
       lines.forEach((l, i) => {
         doc.fontSize(8).font("Roboto");
-        const descText = `[${l.type}] ${l.description}`;
+        const cleanDesc = (l.description || "").replace(/^\[MANOPERA\]\s*/i, "").trim();
+        const descText = (!isServicesDeviz && l.type !== "MANOPERA") ? `[${l.type}] ${cleanDesc}` : cleanDesc;
         const descH = doc.heightOfString(descText, { width: colDesc - 12 });
         const codeH = showCodes && l.code ? doc.heightOfString(l.code, { width: colCode - 8 }) : 0;
         const textH = Math.max(descH, codeH);
@@ -1679,27 +1710,29 @@ export function registerPdfRoute(app: any) {
       const totalsValX = 40 + W - 130;
       const totalsValW = 124;
 
-      // Total Materiale
-      doc.rect(40, y, W, 16).fillColor(LIGHT).fill();
-      doc.rect(40, y, W, 16).strokeColor(BORDER).lineWidth(0.3).stroke();
-      doc.fontSize(7.5).font("Roboto-Bold").fillColor(GRAY);
-      doc.text("TOTAL MATERIALE:", 45, y + 4.5, { width: totalsLabelW, align: "right" });
-      doc.text(Number(deviz.totalMaterials).toFixed(2) + " RON", totalsValX, y + 4.5, {
-        width: totalsValW,
-        align: "right",
-      });
-      y += 16;
+      if (!isServicesDeviz) {
+        // Total Materiale
+        doc.rect(40, y, W, 16).fillColor(LIGHT).fill();
+        doc.rect(40, y, W, 16).strokeColor(BORDER).lineWidth(0.3).stroke();
+        doc.fontSize(7.5).font("Roboto-Bold").fillColor(GRAY);
+        doc.text("TOTAL MATERIALE:", 45, y + 4.5, { width: totalsLabelW, align: "right" });
+        doc.text(Number(deviz.totalMaterials).toFixed(2) + " RON", totalsValX, y + 4.5, {
+          width: totalsValW,
+          align: "right",
+        });
+        y += 16;
 
-      // Total Manoperă
-      doc.rect(40, y, W, 16).fillColor(LIGHT).fill();
-      doc.rect(40, y, W, 16).strokeColor(BORDER).lineWidth(0.3).stroke();
-      doc.fontSize(7.5).font("Roboto-Bold").fillColor(GRAY);
-      doc.text("TOTAL MANOPERĂ:", 45, y + 4.5, { width: totalsLabelW, align: "right" });
-      doc.text(Number(deviz.totalLabor).toFixed(2) + " RON", totalsValX, y + 4.5, {
-        width: totalsValW,
-        align: "right",
-      });
-      y += 16;
+        // Total Servicii
+        doc.rect(40, y, W, 16).fillColor(LIGHT).fill();
+        doc.rect(40, y, W, 16).strokeColor(BORDER).lineWidth(0.3).stroke();
+        doc.fontSize(7.5).font("Roboto-Bold").fillColor(GRAY);
+        doc.text("TOTAL SERVICII:", 45, y + 4.5, { width: totalsLabelW, align: "right" });
+        doc.text(Number(deviz.totalLabor).toFixed(2) + " RON", totalsValX, y + 4.5, {
+          width: totalsValW,
+          align: "right",
+        });
+        y += 16;
+      }
 
       // Total fara TVA
       doc.rect(40, y, W, 16).fillColor("#e0f2fe").fill();

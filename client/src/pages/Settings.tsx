@@ -19,6 +19,9 @@ import {
   Plus,
   Trash2,
   Image as ImageIcon,
+  Lock,
+  ShieldCheck,
+  KeyRound,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -448,6 +451,95 @@ export default function Settings() {
       setConfirmNewPassword("");
     } catch (err) {
       toast.error((err as Error).message || "A apărut o eroare la schimbarea parolei.");
+    }
+  };
+
+  // Cod PIN de acces companie
+  const { data: pinStatus, refetch: refetchPinStatus } = trpc.tenants.getPinStatus.useQuery();
+  const setPinMutation = trpc.tenants.setPin.useMutation();
+  const disablePinMutation = trpc.tenants.disablePin.useMutation();
+
+  const [pinFormMode, setPinFormMode] = useState<"idle" | "set" | "change" | "disable">("idle");
+  const [pinCurrent, setPinCurrent] = useState("");
+  const [pinNew, setPinNew] = useState("");
+  const [pinConfirm, setPinConfirm] = useState("");
+  const [pinError, setPinError] = useState("");
+
+  const resetPinForm = () => {
+    setPinFormMode("idle");
+    setPinCurrent("");
+    setPinNew("");
+    setPinConfirm("");
+    setPinError("");
+  };
+
+  const handleSavePin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPinError("");
+
+    if (pinFormMode === "change" && !pinCurrent.trim()) {
+      setPinError("Introduceți codul PIN actual.");
+      return;
+    }
+
+    if (!pinNew.trim() || pinNew.trim().length < 4) {
+      setPinError("Codul PIN trebuie să aibă minim 4 caractere.");
+      return;
+    }
+
+    if (pinNew.trim().length > 10) {
+      setPinError("Codul PIN nu poate depăși 10 caractere.");
+      return;
+    }
+
+    if (pinNew !== pinConfirm) {
+      setPinError("Confirmarea codului PIN nu coincide.");
+      return;
+    }
+
+    try {
+      await setPinMutation.mutateAsync({
+        pin: pinNew.trim(),
+        currentPin: pinFormMode === "change" ? pinCurrent.trim() : undefined,
+      });
+
+      const tid = currentTenant?.tenants?.id;
+      if (tid) {
+        sessionStorage.setItem(`smart_invoice_unlocked_pin_${tid}`, "true");
+      }
+
+      await refetchPinStatus();
+      resetPinForm();
+      toast.success(
+        pinFormMode === "change"
+          ? "Codul PIN a fost modificat cu succes."
+          : "Codul PIN a fost activat cu succes."
+      );
+    } catch (err: any) {
+      setPinError(err.message || "A apărut o eroare la salvarea codului PIN.");
+    }
+  };
+
+  const handleDisablePin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPinError("");
+
+    if (!pinCurrent.trim()) {
+      setPinError("Introduceți codul PIN actual pentru confirmare.");
+      return;
+    }
+
+    try {
+      await disablePinMutation.mutateAsync({ pin: pinCurrent.trim() });
+      const tid = currentTenant?.tenants?.id;
+      if (tid) {
+        sessionStorage.removeItem(`smart_invoice_unlocked_pin_${tid}`);
+      }
+      await refetchPinStatus();
+      resetPinForm();
+      toast.success("Protecția cu cod PIN a fost dezactivată.");
+    } catch (err: any) {
+      setPinError(err.message || "Cod PIN incorect. Dezactivarea a eșuat.");
     }
   };
 
@@ -1269,6 +1361,233 @@ export default function Settings() {
               <h2 className="text-sm font-bold text-slate-900 dark:text-white">
                 Securitate
               </h2>
+
+              {/* Card PIN de acces companie */}
+              <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-5 bg-slate-50/50 dark:bg-slate-800/30 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                          Cod PIN de Acces Firmă
+                        </h3>
+                        {pinStatus?.pinEnabled ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                            <ShieldCheck className="w-3 h-3" />
+                            PIN Activ
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300">
+                            Inactiv
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xl">
+                        Protejează datele firmei în birourile unde computerul sau adresa de email sunt partajate.
+                        Când este activ, se va cere codul PIN la fiecare conectare înainte de a permite accesul la facturi, clienți și gestiune.
+                      </p>
+                    </div>
+                  </div>
+
+                  {pinFormMode === "idle" && (
+                    <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
+                      {pinStatus?.pinEnabled ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              resetPinForm();
+                              setPinFormMode("change");
+                            }}
+                            className="px-3.5 h-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-colors"
+                          >
+                            Modifică PIN
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              resetPinForm();
+                              setPinFormMode("disable");
+                            }}
+                            className="px-3.5 h-8 rounded-lg border border-rose-200 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-700 dark:text-rose-300 text-xs font-bold transition-colors"
+                          >
+                            Dezactivează
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            resetPinForm();
+                            setPinFormMode("set");
+                          }}
+                          className="px-4 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition-colors"
+                        >
+                          Setează cod acces
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Formulare Setare / Modificare / Dezactivare PIN */}
+                {pinFormMode !== "idle" && (
+                  <div className="pt-3 border-t border-slate-200 dark:border-slate-700/80">
+                    {pinError && (
+                      <div className="mb-3 p-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 flex items-center gap-2 text-rose-700 dark:text-rose-300 text-xs font-medium">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        <span>{pinError}</span>
+                      </div>
+                    )}
+
+                    {(pinFormMode === "set" || pinFormMode === "change") && (
+                      <form onSubmit={handleSavePin} className="space-y-3 max-w-md">
+                        <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                          {pinFormMode === "set"
+                            ? "Configurare cod PIN nou"
+                            : "Modificare cod PIN existent"}
+                        </div>
+
+                        {pinFormMode === "change" && (
+                          <div>
+                            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                              Cod PIN actual
+                            </label>
+                            <input
+                              type="password"
+                              inputMode="numeric"
+                              maxLength={10}
+                              value={pinCurrent}
+                              onChange={e => {
+                                setPinCurrent(e.target.value);
+                                if (pinError) setPinError("");
+                              }}
+                              required
+                              placeholder="••••"
+                              className="w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-900 outline-none font-mono"
+                            />
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                              Cod PIN nou (4-10 cifre)
+                            </label>
+                            <input
+                              type="password"
+                              inputMode="numeric"
+                              maxLength={10}
+                              value={pinNew}
+                              onChange={e => {
+                                setPinNew(e.target.value);
+                                if (pinError) setPinError("");
+                              }}
+                              required
+                              placeholder="••••"
+                              className="w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-900 outline-none font-mono"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                              Confirmă codul PIN
+                            </label>
+                            <input
+                              type="password"
+                              inputMode="numeric"
+                              maxLength={10}
+                              value={pinConfirm}
+                              onChange={e => {
+                                setPinConfirm(e.target.value);
+                                if (pinError) setPinError("");
+                              }}
+                              required
+                              placeholder="••••"
+                              className="w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-900 outline-none font-mono"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 justify-end pt-1">
+                          <button
+                            type="button"
+                            onClick={resetPinForm}
+                            className="px-3 h-8 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                          >
+                            Anulează
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={setPinMutation.isPending}
+                            className="px-4 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs"
+                          >
+                            {setPinMutation.isPending ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <ShieldCheck className="w-3.5 h-3.5" />
+                            )}
+                            {pinFormMode === "set" ? "Activează PIN" : "Salvează noul PIN"}
+                          </button>
+                        </div>
+                      </form>
+                    )}
+
+                    {pinFormMode === "disable" && (
+                      <form onSubmit={handleDisablePin} className="space-y-3 max-w-md">
+                        <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                          Dezactivare cod PIN de acces
+                        </div>
+                        <p className="text-xs text-slate-500">
+                          Introduceți codul PIN actual pentru a confirma oprirea protecției cu PIN.
+                        </p>
+                        <div>
+                          <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                            Cod PIN actual
+                          </label>
+                          <input
+                            type="password"
+                            inputMode="numeric"
+                            maxLength={10}
+                            value={pinCurrent}
+                            onChange={e => {
+                              setPinCurrent(e.target.value);
+                              if (pinError) setPinError("");
+                            }}
+                            required
+                            placeholder="••••"
+                            className="w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-rose-500 bg-white dark:bg-slate-900 outline-none font-mono"
+                          />
+                        </div>
+
+                        <div className="flex gap-2 justify-end pt-1">
+                          <button
+                            type="button"
+                            onClick={resetPinForm}
+                            className="px-3 h-8 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                          >
+                            Anulează
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={disablePinMutation.isPending}
+                            className="px-4 h-8 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs"
+                          >
+                            {disablePinMutation.isPending ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Lock className="w-3.5 h-3.5" />
+                            )}
+                            Confirmă dezactivarea
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                  </div>
+                )}
+              </div>
               
               {showPasswordForm ? (
                 <form onSubmit={handleChangePassword} className="space-y-4 border border-slate-200 dark:border-slate-800 p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50">

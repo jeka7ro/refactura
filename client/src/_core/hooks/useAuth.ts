@@ -15,6 +15,7 @@ export function useAuth() {
   useEffect(() => {
     if (meQuery.isError || (meQuery.isSuccess && !meQuery.data)) {
       localStorage.removeItem("authToken");
+      sessionStorage.clear();
       setLocation("/login");
     }
   }, [meQuery.isError, meQuery.isSuccess, meQuery.data, setLocation]);
@@ -23,6 +24,7 @@ export function useAuth() {
     onSuccess: () => {
       localStorage.removeItem("authToken");
       localStorage.removeItem("savedCredentials");
+      sessionStorage.clear();
       setLocation("/login");
     },
   });
@@ -30,6 +32,7 @@ export function useAuth() {
   const logout = () => {
     localStorage.removeItem("authToken");
     localStorage.removeItem("savedCredentials");
+    sessionStorage.clear();
     setLocation("/login");
   };
 

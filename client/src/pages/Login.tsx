@@ -66,6 +66,7 @@ export default function Login() {
       const result = await loginMutation.mutateAsync({ email, password });
       if (result.success) {
         localStorage.setItem("authToken", result.token);
+        sessionStorage.clear();
         if (rememberMe) {
           localStorage.setItem(
             "savedCredentials",
@@ -96,6 +97,7 @@ export default function Login() {
       });
       if (result.success) {
         localStorage.setItem("authToken", result.token);
+        sessionStorage.clear();
         window.location.href = "/dashboard";
       }
     } catch (err) {
