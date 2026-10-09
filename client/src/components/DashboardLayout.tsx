@@ -203,6 +203,31 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     }
   }, [tenantId]);
 
+  // Scurtătură tastatură pentru blocare ecran (Ctrl+L sau Cmd+Alt+L / Cmd+Shift+L)
+  useEffect(() => {
+    if (!pinStatus?.pinEnabled || !isPinUnlocked) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isLockCombo =
+        (e.ctrlKey && e.key.toLowerCase() === "l") ||
+        (e.metaKey && (e.altKey || e.shiftKey) && e.key.toLowerCase() === "l") ||
+        (e.ctrlKey && e.altKey && e.key.toLowerCase() === "l");
+
+      if (isLockCombo) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (tenantId) {
+          sessionStorage.removeItem(`smart_invoice_unlocked_pin_${tenantId}`);
+        }
+        setIsPinUnlocked(false);
+        toast.info("Ecranul a fost blocat cu PIN.");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [pinStatus?.pinEnabled, isPinUnlocked, tenantId]);
+
   const parsedTenantSettings = useMemo(() => {
     if (!currentTenant?.settings) return null;
     try {
@@ -624,11 +649,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     sessionStorage.removeItem(`smart_invoice_unlocked_pin_${tenantId}`);
                   }
                   setIsPinUnlocked(false);
+                  toast.info("Ecranul a fost blocat cu PIN.");
                 }}
-                className="cursor-pointer text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
+                className="cursor-pointer text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-between"
               >
-                <Lock className="w-4 h-4 mr-2" />
-                Blochează ecranul (PIN)
+                <div className="flex items-center">
+                  <Lock className="w-4 h-4 mr-2" />
+                  <span>Blochează ecranul</span>
+                </div>
+                <kbd className="ml-auto text-[10px] tracking-wider text-slate-400 font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+                  Ctrl+L
+                </kbd>
               </DropdownMenuItem>
             )}
             <DropdownMenuItem

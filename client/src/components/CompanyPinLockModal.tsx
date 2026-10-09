@@ -30,6 +30,44 @@ interface CompanyPinLockModalProps {
   onUnlocked: () => void;
 }
 
+function formatRoTime(d: Date): string {
+  const h = String(d.getHours()).padStart(2, "0");
+  const m = String(d.getMinutes()).padStart(2, "0");
+  const s = String(d.getSeconds()).padStart(2, "0");
+  return `${h}:${m}:${s}`;
+}
+
+function formatRoDate(d: Date): string {
+  const days = [
+    "DUMINICĂ",
+    "LUNI",
+    "MARȚI",
+    "MIERCURI",
+    "JOI",
+    "VINERI",
+    "SÂMBĂTĂ",
+  ];
+  const months = [
+    "IANUARIE",
+    "FEBRUARIE",
+    "MARTIE",
+    "APRILIE",
+    "MAI",
+    "IUNIE",
+    "IULIE",
+    "AUGUST",
+    "SEPTEMBRIE",
+    "OCTOMBRIE",
+    "NOIEMBRIE",
+    "DECEMBRIE",
+  ];
+  const dayName = days[d.getDay()];
+  const dayNum = d.getDate();
+  const monthName = months[d.getMonth()];
+  const year = d.getFullYear();
+  return `${dayName}, ${dayNum} ${monthName} ${year}`;
+}
+
 function cleanErrorMessage(err: any, fallback: string = "A apărut o eroare."): string {
   if (!err) return fallback;
   const raw = err.message || (typeof err === "string" ? err : "");
@@ -57,6 +95,15 @@ export function CompanyPinLockModal({
   tenantId,
   onUnlocked,
 }: CompanyPinLockModalProps) {
+  const [currentTime, setCurrentTime] = useState<Date>(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const [pin, setPin] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [logoFailed, setLogoFailed] = useState(false);
@@ -144,12 +191,33 @@ export function CompanyPinLockModal({
 
   return (
     <div
-      className="fixed inset-0 z-[9999] backdrop-blur-md flex items-center justify-center p-4 transition-colors duration-300"
+      className="fixed inset-0 z-[9999] backdrop-blur-md flex flex-col items-center justify-center p-4 transition-colors duration-300 overflow-y-auto"
       style={{
         backgroundColor: "rgba(15, 23, 42, 0.88)",
         backgroundImage: `radial-gradient(circle at 50% 35%, ${effectiveThemeColor}40 0%, ${effectiveThemeColor}15 50%, rgba(15, 23, 42, 0.95) 100%)`,
       }}
     >
+      {/* Ceas digital live */}
+      <div className="mb-4 sm:mb-6 text-center select-none animate-in fade-in slide-in-from-top-4 duration-300">
+        <div
+          className="inline-flex flex-col items-center px-8 py-3.5 rounded-2xl bg-slate-950/75 dark:bg-black/85 backdrop-blur-xl border shadow-2xl"
+          style={{
+            borderColor: `${effectiveThemeColor}40`,
+            boxShadow: `0 14px 40px -10px ${effectiveThemeColor}35`,
+          }}
+        >
+          <div
+            className="text-4xl sm:text-5xl font-black tracking-tight font-mono leading-none"
+            style={{ color: effectiveThemeColor }}
+          >
+            {formatRoTime(currentTime)}
+          </div>
+          <div className="text-[11px] sm:text-xs font-bold tracking-widest uppercase text-slate-300 mt-2">
+            {formatRoDate(currentTime)}
+          </div>
+        </div>
+      </div>
+
       <div
         className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 sm:p-8 space-y-6 animate-in fade-in zoom-in-95 duration-200"
         style={{
