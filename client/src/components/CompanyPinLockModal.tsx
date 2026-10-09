@@ -344,26 +344,19 @@ export function CompanyPinLockModal({
   const [pin, setPin] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [logoFailed, setLogoFailed] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Stare formular reset / contact administrator cu completare automată
+  // Stare formular reset / contact administrator - campuri curate, completat doar la explicatii
   const [showResetForm, setShowResetForm] = useState(false);
-  const [fullName, setFullName] = useState(userFullName);
-  const [phone, setPhone] = useState(userPhone);
-  const [role, setRole] = useState(userRole || "Administrator");
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [role, setRole] = useState("");
   const [explanation, setExplanation] = useState(
-    defaultExplanation || `Solicit resetarea codului PIN de acces pentru firma ${companyName}.`
+    `Solicit resetarea codului PIN de acces pentru firma ${companyName}.`
   );
   const [resetError, setResetError] = useState("");
   const [resetSuccess, setResetSuccess] = useState(false);
-
-  // Când sosesc datele din tenant/user, completăm automat dacă formularul nu a fost modificat
-  useEffect(() => {
-    if (userFullName) setFullName(prev => (prev ? prev : userFullName));
-    if (userPhone) setPhone(prev => (prev ? prev : userPhone));
-    if (userRole) setRole(prev => (prev ? prev : userRole));
-    if (defaultExplanation) setExplanation(prev => (prev ? prev : defaultExplanation));
-  }, [userFullName, userPhone, userRole, defaultExplanation]);
 
   const verifyPinMutation = trpc.tenants.verifyPin.useMutation();
   const requestResetMutation = trpc.tenants.requestPinReset.useMutation();
@@ -552,33 +545,59 @@ export function CompanyPinLockModal({
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1.5 text-center">
                   Cod PIN de acces
                 </label>
-                <input
-                  ref={inputRef}
-                  type="text"
-                  name="pin_access_token"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  autoComplete="one-time-code"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck={false}
-                  data-lpignore="true"
-                  data-1p-ignore="true"
-                  data-bwignore="true"
-                  data-form-type="other"
-                  maxLength={10}
-                  value={pin}
-                  onChange={e => {
-                    const val = e.target.value.replace(/[^0-9]/g, "");
-                    setPin(val);
-                    if (errorMsg) setErrorMsg("");
-                  }}
-                  placeholder="••••"
-                  style={{
-                    WebkitTextSecurity: "disc",
-                  } as React.CSSProperties}
-                  className="w-full h-12 text-center text-3xl tracking-[0.45em] font-mono font-bold bg-white/10 dark:bg-black/40 border border-white/[0.08] rounded-2xl text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40"
-                />
+                <div
+                  onClick={() => inputRef.current?.focus()}
+                  className={`relative w-full h-12 flex items-center justify-center bg-white/10 dark:bg-black/40 border rounded-2xl cursor-text transition-all ${
+                    isInputFocused
+                      ? "border-white/40 ring-2 ring-white/20"
+                      : "border-white/[0.08]"
+                  }`}
+                >
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    name="pin_access_token"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoComplete="one-time-code"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-bwignore="true"
+                    data-form-type="other"
+                    maxLength={10}
+                    value={pin}
+                    onFocus={() => setIsInputFocused(true)}
+                    onBlur={() => setIsInputFocused(false)}
+                    onChange={e => {
+                      const val = e.target.value.replace(/[^0-9]/g, "");
+                      setPin(val);
+                      if (errorMsg) setErrorMsg("");
+                    }}
+                    className="absolute inset-0 opacity-0 w-full h-full cursor-text"
+                    autoFocus
+                  />
+                  {/* Afișare steluțe text ASCII (fără emoji) */}
+                  <div className="flex items-center justify-center text-center text-2xl tracking-[0.45em] font-mono font-bold select-none pointer-events-none text-white">
+                    {pin.length > 0 ? (
+                      <>
+                        <span>{"*".repeat(pin.length)}</span>
+                        {isInputFocused && (
+                          <span className="inline-block w-0.5 h-5 bg-white animate-pulse ml-0.5" />
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-white/30">* * * *</span>
+                        {isInputFocused && (
+                          <span className="inline-block w-0.5 h-5 bg-white/60 animate-pulse ml-0.5" />
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <button
@@ -624,16 +643,16 @@ export function CompanyPinLockModal({
           <>
             {/* View Solicitare Reset / Contact Administrator */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
                 <button
                   type="button"
                   onClick={() => setShowResetForm(false)}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-white transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Înapoi la PIN
                 </button>
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">
                   Asistență PIN
                 </span>
               </div>
@@ -642,23 +661,23 @@ export function CompanyPinLockModal({
                 <div
                   className="w-12 h-12 mx-auto rounded-2xl border flex items-center justify-center shadow-xs"
                   style={{
-                    backgroundColor: `${effectiveThemeColor}15`,
-                    borderColor: `${effectiveThemeColor}30`,
+                    backgroundColor: `${effectiveThemeColor}20`,
+                    borderColor: `${effectiveThemeColor}40`,
                     color: effectiveThemeColor,
                   }}
                 >
                   <Mail className="w-6 h-6" />
                 </div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                <h2 className="text-lg font-bold text-white">
                   Contactează Administratorul
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
+                <p className="text-xs text-slate-200 max-w-xs mx-auto">
                   Trimiteți o solicitare de resetare a codului PIN pentru firma{" "}
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                  <span className="font-semibold text-white">
                     {companyName}
                   </span>
                   . Mesajul va ajunge direct la{" "}
-                  <span className="font-semibold text-blue-600 dark:text-blue-400">
+                  <span className="font-semibold text-blue-400">
                     contact@getapp.ro
                   </span>
                   .
@@ -775,7 +794,7 @@ export function CompanyPinLockModal({
                     <button
                       type="button"
                       onClick={() => setShowResetForm(false)}
-                      className="flex-1 h-10 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      className="flex-1 h-10 rounded-xl border border-white/15 text-xs font-bold text-slate-200 hover:bg-white/10 hover:text-white transition-colors"
                     >
                       Anulează
                     </button>
