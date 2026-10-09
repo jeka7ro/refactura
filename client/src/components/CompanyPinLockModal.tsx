@@ -197,22 +197,19 @@ export function CompanyPinLockModal({
         backgroundImage: `radial-gradient(circle at 50% 35%, ${effectiveThemeColor}40 0%, ${effectiveThemeColor}15 50%, rgba(15, 23, 42, 0.95) 100%)`,
       }}
     >
-      {/* Ceas digital live */}
-      <div className="mb-4 sm:mb-6 text-center select-none animate-in fade-in slide-in-from-top-4 duration-300">
+      {/* Ceas digital live mare cu font alb */}
+      <div className="mb-6 sm:mb-8 w-full max-w-md text-center select-none animate-in fade-in slide-in-from-top-4 duration-300">
         <div
-          className="inline-flex flex-col items-center px-8 py-3.5 rounded-2xl bg-slate-950/75 dark:bg-black/85 backdrop-blur-xl border shadow-2xl"
+          className="w-full py-6 px-4 sm:py-8 sm:px-6 rounded-3xl bg-slate-950/80 dark:bg-black/90 backdrop-blur-2xl border shadow-2xl flex flex-col items-center justify-center"
           style={{
-            borderColor: `${effectiveThemeColor}40`,
-            boxShadow: `0 14px 40px -10px ${effectiveThemeColor}35`,
+            borderColor: `${effectiveThemeColor}50`,
+            boxShadow: `0 20px 50px -10px ${effectiveThemeColor}45`,
           }}
         >
-          <div
-            className="text-4xl sm:text-5xl font-black tracking-tight font-mono leading-none"
-            style={{ color: effectiveThemeColor }}
-          >
+          <div className="text-6xl sm:text-7xl font-black tracking-tight font-mono leading-none text-white drop-shadow-lg">
             {formatRoTime(currentTime)}
           </div>
-          <div className="text-[11px] sm:text-xs font-bold tracking-widest uppercase text-slate-300 mt-2">
+          <div className="text-xs sm:text-sm font-bold tracking-[0.25em] uppercase text-white/90 mt-3 drop-shadow-xs">
             {formatRoDate(currentTime)}
           </div>
         </div>
