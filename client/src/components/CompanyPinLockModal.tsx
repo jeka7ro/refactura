@@ -606,23 +606,21 @@ export function CompanyPinLockModal({
                     className="absolute inset-0 opacity-0 w-full h-full cursor-text"
                     autoFocus
                   />
-                  {/* Afișare steluțe text ASCII (fără emoji) */}
-                  <div className="flex items-center justify-center text-center text-2xl tracking-[0.45em] font-mono font-bold select-none pointer-events-none text-white">
-                    {pin.length > 0 ? (
-                      <>
-                        <span>{"*".repeat(pin.length)}</span>
-                        {isInputFocused && (
-                          <span className="inline-block w-0.5 h-5 bg-white animate-pulse ml-0.5" />
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-white/30">* * * *</span>
-                        {isInputFocused && (
-                          <span className="inline-block w-0.5 h-5 bg-white/60 animate-pulse ml-0.5" />
-                        )}
-                      </>
-                    )}
+                  {/* Steluțe ASCII perfect centrate și aliniate (fără linie verticală) */}
+                  <div className="flex items-center justify-center gap-3.5 select-none pointer-events-none">
+                    {Array.from({ length: Math.max(4, pin.length) }).map((_, i) => {
+                      const isFilled = i < pin.length;
+                      return (
+                        <span
+                          key={i}
+                          className={`inline-flex items-center justify-center w-6 h-6 text-2xl font-mono font-bold leading-none select-none transition-all duration-150 ${
+                            isFilled ? "text-white scale-110" : "text-white/30"
+                          }`}
+                        >
+                          *
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
