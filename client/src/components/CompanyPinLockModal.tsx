@@ -202,11 +202,11 @@ export function CompanyPinLockModal({
     return () => clearInterval(timer);
   }, []);
 
-  // Schimbare imagini stil Google Chromecast exact la fiecare 15 secunde
+  // Schimbare imagini stil Google Chromecast la fiecare 20 secunde
   useEffect(() => {
     const bgTimer = setInterval(() => {
       setBgIndex(prev => (prev + 1) % CHROMECAST_WALLPAPERS.length);
-    }, 15000);
+    }, 20000);
     return () => clearInterval(bgTimer);
   }, []);
 
@@ -366,8 +366,8 @@ export function CompanyPinLockModal({
           return (
             <div
               key={wp.url}
-              className={`absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-1000 ease-in-out scale-[1.02] filter brightness-95 ${
-                isActive ? "opacity-100" : "opacity-0"
+              className={`absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-[2500ms] ease-in-out filter brightness-95 ${
+                isActive ? "opacity-100 scale-100" : "opacity-0 scale-105 pointer-events-none"
               }`}
               style={{
                 backgroundImage: `url('${wp.url}')`,
@@ -398,26 +398,26 @@ export function CompanyPinLockModal({
       {/* Ceas digital Apple Style (iOS / macOS Lock Screen) */}
       <div className="mb-6 sm:mb-8 w-full max-w-md text-center select-none animate-in fade-in slide-in-from-top-4 duration-500">
         <div className="w-full py-5 px-6 rounded-[32px] bg-black/30 dark:bg-black/45 backdrop-blur-3xl border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.35)] flex flex-col items-center justify-center">
-          {/* Rândul Apple: Data & Vremea */}
-          <div className="flex items-center justify-center flex-wrap gap-2 text-white/90 text-sm font-medium tracking-wide mb-1">
+          {/* Rândul Apple: Data & Vremea cu iconiță mai mare */}
+          <div className="flex items-center justify-center flex-wrap gap-2 text-white/90 text-sm sm:text-base font-medium tracking-wide mb-1.5">
             <span>{formatAppleDate(currentTime)}</span>
             {weather && (
               <>
                 <span className="text-white/40">•</span>
-                <div className="inline-flex items-center gap-1.5 text-white/95">
+                <div className="inline-flex items-center gap-2 text-white font-semibold">
                   {(() => {
                     const IconComp = getWeatherIcon(weather.weatherCode);
-                    return <IconComp className="w-4 h-4 text-amber-300 shrink-0" />;
+                    return <IconComp className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300 shrink-0 drop-shadow-sm" />;
                   })()}
-                  <span>{weather.temp > 0 ? `+${weather.temp}` : weather.temp}°C</span>
-                  <span className="text-white/70 text-xs hidden sm:inline">({weather.condition})</span>
+                  <span className="text-base sm:text-lg">{weather.temp > 0 ? `+${weather.temp}` : weather.temp}°C</span>
+                  <span className="text-white/75 text-xs sm:text-sm font-normal hidden sm:inline">({weather.condition})</span>
                 </div>
               </>
             )}
           </div>
 
-          {/* Ora mare Apple (subțire, elegantă, curată) */}
-          <div className="text-7xl sm:text-8xl font-light tracking-tight text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.5)] leading-none my-1 select-none font-sans">
+          {/* Ora mare BOLD stil Apple */}
+          <div className="text-7xl sm:text-8xl font-bold tracking-tight text-white drop-shadow-[0_6px_28px_rgba(0,0,0,0.6)] leading-none my-1 select-none font-sans">
             {formatAppleTime(currentTime)}
           </div>
         </div>
@@ -743,23 +743,22 @@ export function CompanyPinLockModal({
       </div>
 
       {/* Branding GetApp direct sub fereastra de securitate / login */}
-      <div className="mt-5 sm:mt-6 text-center select-none animate-in fade-in duration-300">
+      <div className="mt-6 sm:mt-7 text-center select-none animate-in fade-in duration-300">
         <a
           href="https://www.getapp.ro"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-3 px-4 py-2 rounded-2xl bg-black/45 hover:bg-black/65 backdrop-blur-2xl border border-white/15 text-white shadow-xl transition-all hover:scale-105 group"
+          className="inline-flex items-center gap-3.5 px-5 py-2.5 sm:px-6 sm:py-3 rounded-2xl sm:rounded-3xl bg-black/50 hover:bg-black/70 backdrop-blur-2xl border border-white/20 hover:border-white/35 text-white shadow-2xl transition-all hover:scale-105 group"
         >
           <img
             src="/images/logo_getapp_original.png"
             alt="GetApp"
-            className="h-5 w-auto object-contain filter drop-shadow-xs"
+            className="h-7 sm:h-8 w-auto object-contain filter drop-shadow-sm"
             onError={e => {
-              // fallback direct la url-ul specificat de utilizator daca e nevoie
               (e.target as HTMLImageElement).src = "https://getapp.ro/logo_getapp_original.png";
             }}
           />
-          <div className="flex items-center gap-1.5 border-l border-white/20 pl-3 text-xs font-semibold text-white/90 group-hover:text-white">
+          <div className="flex items-center border-l-2 border-white/25 pl-3.5 sm:pl-4 text-sm sm:text-base font-semibold tracking-wide text-white/95 group-hover:text-white">
             <span>www.getapp.ro</span>
           </div>
         </a>
