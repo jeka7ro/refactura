@@ -345,6 +345,7 @@ export function CompanyPinLockModal({
   const [errorMsg, setErrorMsg] = useState("");
   const [logoFailed, setLogoFailed] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(true);
+  const [isShaking, setIsShaking] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Stare formular reset / contact administrator - campuri curate, completat doar la explicatii
@@ -371,6 +372,8 @@ export function CompanyPinLockModal({
     e.preventDefault();
     if (!pin.trim()) {
       setErrorMsg("Introduceți codul PIN.");
+      setIsShaking(true);
+      setTimeout(() => setIsShaking(false), 550);
       return;
     }
     setErrorMsg("");
@@ -384,6 +387,10 @@ export function CompanyPinLockModal({
     } catch (err: any) {
       setErrorMsg(cleanErrorMessage(err, "Cod PIN incorect."));
       setPin("");
+      setIsShaking(true);
+      setTimeout(() => {
+        setIsShaking(false);
+      }, 550);
       inputRef.current?.focus();
     }
   };
@@ -458,8 +465,28 @@ export function CompanyPinLockModal({
         </span>
       </div>
 
+      {/* Stiluri pentru animația de tremurare Apple la PIN greșit */}
+      <style>{`
+        @keyframes appleShake {
+          0%, 100% { transform: translateX(0); }
+          15% { transform: translateX(-16px); }
+          30% { transform: translateX(14px); }
+          45% { transform: translateX(-10px); }
+          60% { transform: translateX(7px); }
+          75% { transform: translateX(-4px); }
+          90% { transform: translateX(2px); }
+        }
+        .animate-apple-shake {
+          animation: appleShake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+        }
+      `}</style>
+
       {/* Fereastră Unică stil Apple (Ceas + Securitate Firmă) */}
-      <div className="w-full max-w-md bg-black/30 dark:bg-black/45 backdrop-blur-3xl border border-white/[0.08] rounded-[36px] shadow-[0_25px_60px_rgba(0,0,0,0.4)] p-6 sm:p-8 space-y-6 text-white animate-in fade-in zoom-in-95 duration-300">
+      <div
+        className={`w-full max-w-md bg-black/30 dark:bg-black/45 backdrop-blur-3xl border border-white/[0.08] rounded-[36px] shadow-[0_25px_60px_rgba(0,0,0,0.4)] p-6 sm:p-8 space-y-6 text-white transition-all ${
+          isShaking ? "animate-apple-shake ring-2 ring-rose-500/50" : "animate-in fade-in zoom-in-95 duration-300"
+        }`}
+      >
         {/* Header Ceas & Vreme */}
         <div className="flex flex-col items-center justify-center text-center pb-5 border-b border-white/[0.08] select-none">
           {/* Rândul Apple: Data & Vremea */}
