@@ -482,13 +482,8 @@ export default function Settings() {
       return;
     }
 
-    if (!pinNew.trim() || pinNew.trim().length < 4) {
-      setPinError("Codul PIN trebuie să aibă minim 4 caractere.");
-      return;
-    }
-
-    if (pinNew.trim().length > 10) {
-      setPinError("Codul PIN nu poate depăși 10 caractere.");
+    if (!/^\d{4}$/.test(pinNew.trim())) {
+      setPinError("Codul PIN trebuie să conțină exact 4 cifre.");
       return;
     }
 
@@ -1454,15 +1449,17 @@ export default function Settings() {
                         {pinFormMode === "change" && (
                           <div>
                             <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-                              Cod PIN actual
+                              Cod PIN actual (4 cifre)
                             </label>
                             <input
                               type="password"
                               inputMode="numeric"
-                              maxLength={10}
+                              pattern="[0-9]*"
+                              maxLength={4}
                               value={pinCurrent}
                               onChange={e => {
-                                setPinCurrent(e.target.value);
+                                const val = e.target.value.replace(/[^0-9]/g, "").slice(0, 4);
+                                setPinCurrent(val);
                                 if (pinError) setPinError("");
                               }}
                               required
@@ -1475,15 +1472,17 @@ export default function Settings() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
                             <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-                              Cod PIN nou (4-10 cifre)
+                              Cod PIN nou (exact 4 cifre)
                             </label>
                             <input
                               type="password"
                               inputMode="numeric"
-                              maxLength={10}
+                              pattern="[0-9]*"
+                              maxLength={4}
                               value={pinNew}
                               onChange={e => {
-                                setPinNew(e.target.value);
+                                const val = e.target.value.replace(/[^0-9]/g, "").slice(0, 4);
+                                setPinNew(val);
                                 if (pinError) setPinError("");
                               }}
                               required
@@ -1498,10 +1497,12 @@ export default function Settings() {
                             <input
                               type="password"
                               inputMode="numeric"
-                              maxLength={10}
+                              pattern="[0-9]*"
+                              maxLength={4}
                               value={pinConfirm}
                               onChange={e => {
-                                setPinConfirm(e.target.value);
+                                const val = e.target.value.replace(/[^0-9]/g, "").slice(0, 4);
+                                setPinConfirm(val);
                                 if (pinError) setPinError("");
                               }}
                               required

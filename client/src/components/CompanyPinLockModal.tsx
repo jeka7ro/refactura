@@ -19,6 +19,7 @@ import {
   Snowflake,
   CloudLightning,
   MapPin,
+  Timer,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -247,6 +248,24 @@ function getWeatherIcon(code: number) {
   return Sun;
 }
 
+function AsteriskIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5.94" y1="8.5" x2="18.06" y2="15.5" />
+      <line x1="5.94" y1="15.5" x2="18.06" y2="8.5" />
+    </svg>
+  );
+}
+
 export function CompanyPinLockModal({
   companyName = "Companie",
   companyLogo,
@@ -348,6 +367,43 @@ export function CompanyPinLockModal({
   const [isShaking, setIsShaking] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Chei storage pentru blocare la 3 incercari gresite
+  const lockoutStorageKey = `smart_invoice_pin_lockout_${tenantId || "default"}`;
+  const attemptsStorageKey = `smart_invoice_pin_failed_attempts_${tenantId || "default"}`;
+
+  const [lockoutRemaining, setLockoutRemaining] = useState<number>(() => {
+    try {
+      const stored = localStorage.getItem(`smart_invoice_pin_lockout_${tenantId || "default"}`);
+      if (stored) {
+        const remaining = Math.ceil((parseInt(stored, 10) - Date.now()) / 1000);
+        return remaining > 0 ? remaining : 0;
+      }
+    } catch {}
+    return 0;
+  });
+
+  // Timer pentru expirare blocare 1 minut (Apple security timeout)
+  useEffect(() => {
+    if (lockoutRemaining <= 0) return;
+
+    const timer = setInterval(() => {
+      setLockoutRemaining(prev => {
+        if (prev <= 1) {
+          try {
+            localStorage.removeItem(lockoutStorageKey);
+            localStorage.removeItem(attemptsStorageKey);
+          } catch {}
+          setErrorMsg("");
+          setTimeout(() => inputRef.current?.focus(), 100);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [lockoutRemaining, lockoutStorageKey, attemptsStorageKey]);
+
   // Stare formular reset / contact administrator - campuri curate, completat doar la explicatii
   const [showResetForm, setShowResetForm] = useState(false);
   const [fullName, setFullName] = useState("");
@@ -363,35 +419,79 @@ export function CompanyPinLockModal({
   const requestResetMutation = trpc.tenants.requestPinReset.useMutation();
 
   useEffect(() => {
-    if (!showResetForm) {
+    if (!showResetForm && lockoutRemaining <= 0) {
       inputRef.current?.focus();
     }
-  }, [showResetForm]);
+  }, [showResetForm, lockoutRemaining]);
 
-  const handleUnlock = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!pin.trim()) {
-      setErrorMsg("Introduceți codul PIN.");
-      setIsShaking(true);
-      setTimeout(() => setIsShaking(false), 550);
+  const submitPin = async (candidatePin: string) => {
+    if (lockoutRemaining > 0) {
+      setErrorMsg(`Accesul este blocat temporar. Reîncercați în ${lockoutRemaining} secunde.`);
       return;
     }
+    if (candidatePin.length !== 4) return;
+    if (verifyPinMutation.isPending) return;
+
     setErrorMsg("");
 
     try {
-      await verifyPinMutation.mutateAsync({ pin: pin.trim() });
+      await verifyPinMutation.mutateAsync({ pin: candidatePin });
+      try {
+        localStorage.removeItem(lockoutStorageKey);
+        localStorage.removeItem(attemptsStorageKey);
+      } catch {}
       const storageKey = `smart_invoice_unlocked_pin_${tenantId || "default"}`;
       sessionStorage.setItem(storageKey, "true");
       toast.success("Acces deblocat cu succes.");
       onUnlocked();
     } catch (err: any) {
-      setErrorMsg(cleanErrorMessage(err, "Cod PIN incorect."));
+      const currentAttempts = (() => {
+        try {
+          const count = parseInt(localStorage.getItem(attemptsStorageKey) || "0", 10) + 1;
+          localStorage.setItem(attemptsStorageKey, String(count));
+          return count;
+        } catch {
+          return 1;
+        }
+      })();
+
       setPin("");
       setIsShaking(true);
       setTimeout(() => {
         setIsShaking(false);
       }, 550);
-      inputRef.current?.focus();
+
+      if (currentAttempts >= 3) {
+        const lockoutUntil = Date.now() + 60 * 1000;
+        try {
+          localStorage.setItem(lockoutStorageKey, String(lockoutUntil));
+        } catch {}
+        setLockoutRemaining(60);
+        setErrorMsg("Cod PIN greșit de 3 ori. Introducerea este blocată pentru 1 minut.");
+      } else {
+        const remainingAttempts = 3 - currentAttempts;
+        setErrorMsg(
+          `Cod PIN incorect. Mai aveți ${remainingAttempts} ${
+            remainingAttempts === 1 ? "încercare" : "încercări"
+          } înainte de blocare.`
+        );
+        setTimeout(() => inputRef.current?.focus(), 100);
+      }
+    }
+  };
+
+  const handleUnlock = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pin.length === 4) {
+      submitPin(pin);
+    } else if (!pin.trim()) {
+      setErrorMsg("Introduceți codul PIN.");
+      setIsShaking(true);
+      setTimeout(() => setIsShaking(false), 550);
+    } else {
+      setErrorMsg("Codul PIN trebuie să conțină exact 4 cifre.");
+      setIsShaking(true);
+      setTimeout(() => setIsShaking(false), 550);
     }
   };
 
@@ -560,24 +660,38 @@ export function CompanyPinLockModal({
               </div>
             </div>
 
-            {errorMsg && (
+            {lockoutRemaining > 0 ? (
+              <div className="p-3 rounded-xl bg-amber-950/60 border border-amber-500/40 flex items-center justify-between gap-3 text-amber-200 text-xs font-semibold animate-pulse">
+                <div className="flex items-center gap-2">
+                  <Timer className="w-4 h-4 shrink-0 text-amber-400" />
+                  <span>Blocat temporar (3 încercări greșite)</span>
+                </div>
+                <span className="font-mono text-xs px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+                  {lockoutRemaining}s
+                </span>
+              </div>
+            ) : errorMsg ? (
               <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/40 flex items-center gap-2 text-rose-200 text-xs font-semibold">
                 <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
                 <span>{errorMsg}</span>
               </div>
-            )}
+            ) : null}
 
             <form onSubmit={handleUnlock} className="space-y-4" autoComplete="off">
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1.5 text-center">
-                  Cod PIN de acces
+                  Cod PIN de acces (4 cifre)
                 </label>
                 <div
-                  onClick={() => inputRef.current?.focus()}
-                  className={`relative w-full h-12 flex items-center justify-center bg-white/10 dark:bg-black/40 border rounded-2xl cursor-text transition-all ${
-                    isInputFocused
-                      ? "border-white/40 ring-2 ring-white/20"
-                      : "border-white/[0.08]"
+                  onClick={() => {
+                    if (lockoutRemaining <= 0) inputRef.current?.focus();
+                  }}
+                  className={`relative w-full h-12 flex items-center justify-center bg-white/10 dark:bg-black/40 border rounded-2xl transition-all ${
+                    lockoutRemaining > 0
+                      ? "opacity-50 cursor-not-allowed border-amber-500/30"
+                      : isInputFocused
+                      ? "border-white/40 ring-2 ring-white/20 cursor-text"
+                      : "border-white/[0.08] cursor-text"
                   }`}
                 >
                   <input
@@ -590,35 +704,42 @@ export function CompanyPinLockModal({
                     autoCorrect="off"
                     autoCapitalize="off"
                     spellCheck={false}
+                    disabled={lockoutRemaining > 0}
                     data-lpignore="true"
                     data-1p-ignore="true"
                     data-bwignore="true"
                     data-form-type="other"
-                    maxLength={10}
+                    maxLength={4}
                     value={pin}
                     onFocus={() => setIsInputFocused(true)}
                     onBlur={() => setIsInputFocused(false)}
                     onChange={e => {
-                      const val = e.target.value.replace(/[^0-9]/g, "");
+                      if (lockoutRemaining > 0 || verifyPinMutation.isPending) return;
+                      const val = e.target.value.replace(/[^0-9]/g, "").slice(0, 4);
                       setPin(val);
                       if (errorMsg) setErrorMsg("");
+                      if (val.length === 4) {
+                        submitPin(val);
+                      }
                     }}
-                    className="absolute inset-0 opacity-0 w-full h-full cursor-text"
+                    className="absolute inset-0 opacity-0 w-full h-full cursor-text disabled:cursor-not-allowed"
                     autoFocus
                   />
-                  {/* Steluțe ASCII perfect centrate și aliniate (fără linie verticală) */}
-                  <div className="flex items-center justify-center gap-3.5 select-none pointer-events-none">
-                    {Array.from({ length: Math.max(4, pin.length) }).map((_, i) => {
+                  {/* Exact 4 steluțe SVG geometrice perfect centrate pe înălțime și lățime (fără emoji) */}
+                  <div className="flex items-center justify-center gap-4 select-none pointer-events-none">
+                    {[0, 1, 2, 3].map(i => {
                       const isFilled = i < pin.length;
                       return (
-                        <span
+                        <div
                           key={i}
-                          className={`inline-flex items-center justify-center w-6 h-6 text-2xl font-mono font-bold leading-none select-none transition-all duration-150 ${
-                            isFilled ? "text-white scale-110" : "text-white/30"
+                          className={`flex items-center justify-center w-6 h-6 transition-all duration-150 ${
+                            isFilled
+                              ? "text-white scale-110 drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]"
+                              : "text-white/30"
                           }`}
                         >
-                          *
-                        </span>
+                          <AsteriskIcon className="w-4 h-4" />
+                        </div>
                       );
                     })}
                   </div>
@@ -627,16 +748,23 @@ export function CompanyPinLockModal({
 
               <button
                 type="submit"
-                disabled={verifyPinMutation.isPending || !pin.trim()}
-                style={{ backgroundColor: effectiveThemeColor }}
+                disabled={verifyPinMutation.isPending || pin.length !== 4 || lockoutRemaining > 0}
+                style={{ backgroundColor: lockoutRemaining > 0 ? "#475569" : effectiveThemeColor }}
                 className="w-full h-11 rounded-2xl hover:opacity-90 disabled:opacity-50 text-white font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2"
               >
                 {verifyPinMutation.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
+                ) : lockoutRemaining > 0 ? (
+                  <>
+                    <Timer className="w-4 h-4 animate-spin" />
+                    <span>Reîncercați în {lockoutRemaining}s</span>
+                  </>
                 ) : (
-                  <ShieldCheck className="w-4 h-4" />
+                  <>
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Deblochează accesul</span>
+                  </>
                 )}
-                Deblochează accesul
               </button>
             </form>
 
