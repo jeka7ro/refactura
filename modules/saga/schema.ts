@@ -241,6 +241,10 @@ export const sagaComenziConsumuri = mysqlTable("sagaComenziConsumuri", {
   valoare: decimal("valoare", { precision: 12, scale: 2 }).default("0"),
   total: decimal("total", { precision: 12, scale: 2 }).default("0"),
   tvaSuma: decimal("tvaSuma", { precision: 12, scale: 2 }).default("0"),
+  nirId: int("nirId"),
+  nirLineId: int("nirLineId"),
+  supplierName: varchar("supplierName", { length: 255 }),
+  nirNumber: varchar("nirNumber", { length: 50 }),
   lineOrder: int("lineOrder").default(0),
 });
 

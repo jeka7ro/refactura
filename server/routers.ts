@@ -214,19 +214,56 @@ export const appRouter = router({
       }
       return t;
     }),
-    getPinStatus: protectedProcedure.query(async ({ ctx }) => {
-      const tenantId = ctx.user?.tenantId;
-      if (!tenantId)
-        return {
-          pinEnabled: false,
-          companyName: "",
-          logoUrl: "",
-          logoBgColor: "",
-          logoHasBackground: false,
-        };
+    getModules: protectedProcedure.query(async ({ ctx }) => {
+      const { getDefaultTenantForUser } = await import("./db");
+      const tenantId =
+        ctx.user?.tenantId ||
+        (ctx.user?.id ? await getDefaultTenantForUser(ctx.user.id, true) : null) ||
+        1;
       const db = await getDb();
       if (!db)
         return {
+          saga: false,
+          production: false,
+          costCenters: true,
+          integrations: true,
+        };
+      const { tenants } = await import("../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      const [t] = await db
+        .select()
+        .from(tenants)
+        .where(eq(tenants.id, tenantId))
+        .limit(1);
+      if (!t)
+        return {
+          saga: false,
+          production: false,
+          costCenters: true,
+          integrations: true,
+        };
+      let s: any = {};
+      try {
+        s = JSON.parse(t.settings || "{}");
+      } catch {}
+      const m = s.modules || {};
+      return {
+        saga: Boolean(m.saga),
+        production: Boolean(m.production),
+        costCenters: m.costCenters !== undefined ? Boolean(m.costCenters) : true,
+        integrations: m.integrations !== undefined ? Boolean(m.integrations) : true,
+      };
+    }),
+    getPinStatus: protectedProcedure.query(async ({ ctx }) => {
+      const { getDefaultTenantForUser } = await import("./db");
+      const tenantId =
+        ctx.user?.tenantId ||
+        (ctx.user?.id ? await getDefaultTenantForUser(ctx.user.id, true) : null) ||
+        1;
+      const db = await getDb();
+      if (!db)
+        return {
+          tenantId: 1,
           pinEnabled: false,
           companyName: "",
           logoUrl: "",
@@ -242,6 +279,7 @@ export const appRouter = router({
         .limit(1);
       if (!t)
         return {
+          tenantId: 1,
           pinEnabled: false,
           companyName: "",
           logoUrl: "",
@@ -253,10 +291,11 @@ export const appRouter = router({
         s = JSON.parse(t.settings || "{}");
       } catch {}
       return {
+        tenantId: t.id,
         pinEnabled: Boolean(s.accessPinEnabled && s.accessPinHash),
         companyName: t.name || "",
         logoUrl: s.logoBase64 || "",
-        logoBgColor: s.logoBgColor || "",
+        logoBgColor: s.logoBgColor || (s.logoHasBackground ? "#0f172a" : ""),
         logoHasBackground: Boolean(s.logoHasBackground),
         themeColor: s.themeColor || "#16a34a",
         userFullName: ctx.user?.name || s.representativeName || "",
@@ -311,8 +350,11 @@ export const appRouter = router({
     verifyPin: protectedProcedure
       .input(z.object({ pin: z.string().min(1) }))
       .mutation(async ({ input, ctx }) => {
-        const tenantId = ctx.user?.tenantId;
-        if (!tenantId) throw new Error("Neautentificat");
+        const { getDefaultTenantForUser } = await import("./db");
+        const tenantId =
+          ctx.user?.tenantId ||
+          (ctx.user?.id ? await getDefaultTenantForUser(ctx.user.id, true) : null) ||
+          1;
         const db = await getDb();
         if (!db) throw new Error("Baza de date indisponibilă");
         const { tenants } = await import("../drizzle/schema");
@@ -328,7 +370,7 @@ export const appRouter = router({
           s = JSON.parse(t.settings || "{}");
         } catch {}
         if (!s.accessPinEnabled || !s.accessPinHash) {
-          return { success: true };
+          return { success: true, tenantId };
         }
         const crypto = await import("crypto");
         const computedHash = crypto
@@ -338,18 +380,21 @@ export const appRouter = router({
         if (computedHash !== s.accessPinHash) {
           throw new Error("Cod PIN incorect.");
         }
-        return { success: true };
+        return { success: true, tenantId };
       }),
     setPin: protectedProcedure
       .input(
         z.object({
-          pin: z.string().min(4, "Codul PIN trebuie să aibă minim 4 caractere").max(10),
+          pin: z.string().regex(/^\d{4}$/, "Codul PIN trebuie să conțină exact 4 cifre"),
           currentPin: z.string().optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
-        const tenantId = ctx.user?.tenantId;
-        if (!tenantId) throw new Error("Neautentificat");
+        const { getDefaultTenantForUser } = await import("./db");
+        const tenantId =
+          ctx.user?.tenantId ||
+          (ctx.user?.id ? await getDefaultTenantForUser(ctx.user.id, true) : null) ||
+          1;
         const db = await getDb();
         if (!db) throw new Error("Baza de date indisponibilă");
         const { tenants } = await import("../drizzle/schema");
@@ -391,13 +436,16 @@ export const appRouter = router({
           .set({ settings: JSON.stringify(s) })
           .where(eq(tenants.id, tenantId));
 
-        return { success: true };
+        return { success: true, tenantId };
       }),
     disablePin: protectedProcedure
       .input(z.object({ pin: z.string().min(1) }))
       .mutation(async ({ input, ctx }) => {
-        const tenantId = ctx.user?.tenantId;
-        if (!tenantId) throw new Error("Neautentificat");
+        const { getDefaultTenantForUser } = await import("./db");
+        const tenantId =
+          ctx.user?.tenantId ||
+          (ctx.user?.id ? await getDefaultTenantForUser(ctx.user.id, true) : null) ||
+          1;
         const db = await getDb();
         if (!db) throw new Error("Baza de date indisponibilă");
         const { tenants } = await import("../drizzle/schema");
@@ -1678,6 +1726,45 @@ export const appRouter = router({
         throw new Error("Forbidden");
       return getAllTenants();
     }),
+    updateTenantModules: protectedProcedure
+      .input(
+        z.object({
+          tenantId: z.number(),
+          modules: z.object({
+            saga: z.boolean().optional(),
+            production: z.boolean().optional(),
+            costCenters: z.boolean().optional(),
+            integrations: z.boolean().optional(),
+          }),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user?.role !== "superadmin" && ctx.user?.role !== "admin")
+          throw new Error("Forbidden");
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { tenants } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const [t] = await db
+          .select()
+          .from(tenants)
+          .where(eq(tenants.id, input.tenantId))
+          .limit(1);
+        if (!t) throw new Error("Compania nu a fost gasita");
+        let s: any = {};
+        try {
+          s = JSON.parse(t.settings || "{}");
+        } catch {}
+        s.modules = {
+          ...(s.modules || {}),
+          ...input.modules,
+        };
+        await db
+          .update(tenants)
+          .set({ settings: JSON.stringify(s) })
+          .where(eq(tenants.id, input.tenantId));
+        return { success: true, modules: s.modules };
+      }),
     // User Activity & Logins list
     userActivity: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user?.role !== "superadmin" && ctx.user?.role !== "admin")

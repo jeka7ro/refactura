@@ -182,26 +182,63 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     enabled: !!user,
   });
 
-  const { data: pinStatus, isLoading: isPinStatusLoading } = trpc.tenants.getPinStatus.useQuery(
-    undefined,
-    { enabled: !!user }
-  );
+  const {
+    data: pinStatus,
+    isLoading: isPinStatusLoading,
+    isFetched: isPinStatusFetched,
+  } = trpc.tenants.getPinStatus.useQuery(undefined, {
+    enabled: !!user,
+  });
 
-  const tenantId = (user as any)?.tenantId || currentTenant?.id;
+  const effectiveTenantId =
+    pinStatus?.tenantId || (user as any)?.tenantId || currentTenant?.id || 1;
+
+  const checkIsUnlocked = (tId: string | number) => {
+    try {
+      return (
+        sessionStorage.getItem("smart_invoice_pin_session_unlocked") === String(tId) ||
+        sessionStorage.getItem(`smart_invoice_unlocked_pin_${tId}`) === "true"
+      );
+    } catch {
+      return false;
+    }
+  };
 
   const [isPinUnlocked, setIsPinUnlocked] = useState<boolean>(() => {
-    const tid = (user as any)?.tenantId;
-    if (!tid) return false;
-    return sessionStorage.getItem(`smart_invoice_unlocked_pin_${tid}`) === "true";
+    const tid = (user as any)?.tenantId || 1;
+    return checkIsUnlocked(tid);
   });
 
   useEffect(() => {
-    if (tenantId) {
-      setIsPinUnlocked(
-        sessionStorage.getItem(`smart_invoice_unlocked_pin_${tenantId}`) === "true"
-      );
+    if (effectiveTenantId) {
+      setIsPinUnlocked(checkIsUnlocked(effectiveTenantId));
     }
-  }, [tenantId]);
+  }, [effectiveTenantId]);
+
+  const handleLockScreen = (customToastMsg?: string) => {
+    try {
+      sessionStorage.removeItem("smart_invoice_pin_session_unlocked");
+      if (effectiveTenantId) {
+        sessionStorage.removeItem(`smart_invoice_unlocked_pin_${effectiveTenantId}`);
+      }
+      for (let i = sessionStorage.length - 1; i >= 0; i--) {
+        const k = sessionStorage.key(i);
+        if (
+          k &&
+          (k.startsWith("smart_invoice_unlocked_pin") ||
+            k === "smart_invoice_pin_session_unlocked")
+        ) {
+          sessionStorage.removeItem(k);
+        }
+      }
+    } catch {}
+    setIsPinUnlocked(false);
+    if (customToastMsg) {
+      toast.info(customToastMsg);
+    } else {
+      toast.info("Ecranul a fost blocat cu PIN.");
+    }
+  };
 
   // Scurtătură tastatură pentru blocare ecran (Ctrl+L sau Cmd+Alt+L / Cmd+Shift+L)
   useEffect(() => {
@@ -216,17 +253,96 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       if (isLockCombo) {
         e.preventDefault();
         e.stopPropagation();
-        if (tenantId) {
-          sessionStorage.removeItem(`smart_invoice_unlocked_pin_${tenantId}`);
-        }
-        setIsPinUnlocked(false);
-        toast.info("Ecranul a fost blocat cu PIN.");
+        handleLockScreen();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [pinStatus?.pinEnabled, isPinUnlocked, tenantId]);
+  }, [pinStatus?.pinEnabled, isPinUnlocked, effectiveTenantId]);
+
+  // Auto-blocare automată după 10 minute de inactivitate (600.000 ms)
+  useEffect(() => {
+    if (!pinStatus?.pinEnabled || !isPinUnlocked) return;
+
+    const INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000; // 10 minute
+    const activityKey = `smart_invoice_last_act_${effectiveTenantId}`;
+
+    const recordActivity = () => {
+      try {
+        localStorage.setItem(activityKey, String(Date.now()));
+      } catch {}
+    };
+
+    // Marcăm activitatea inițială la intrare
+    recordActivity();
+
+    // Throttling la 3 secunde pentru înregistrarea mișcărilor/tastării
+    let throttleTimer: NodeJS.Timeout | null = null;
+    const onUserActivity = () => {
+      if (!throttleTimer) {
+        throttleTimer = setTimeout(() => {
+          throttleTimer = null;
+          recordActivity();
+        }, 3000);
+      }
+    };
+
+    const activityEvents = [
+      "mousedown",
+      "mousemove",
+      "keydown",
+      "scroll",
+      "touchstart",
+      "click",
+    ];
+
+    activityEvents.forEach(evt => {
+      window.addEventListener(evt, onUserActivity, { passive: true });
+    });
+
+    const checkInactivity = () => {
+      try {
+        const lastActStr = localStorage.getItem(activityKey);
+        const lastAct = lastActStr ? parseInt(lastActStr, 10) : Date.now();
+        if (Date.now() - lastAct >= INACTIVITY_TIMEOUT_MS) {
+          handleLockScreen("Ecranul a fost blocat automat după 10 minute de inactivitate.");
+        }
+      } catch {}
+    };
+
+    // Verificare periodică la fiecare 10 secunde
+    const intervalId = setInterval(checkInactivity, 10000);
+
+    // Verificare imediată la revenire în tab sau trezire din sleep
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === "visible") {
+        checkInactivity();
+      }
+    };
+
+    // Sincronizare între tab-uri dacă ecranul a fost blocat în alt tab
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "smart_invoice_pin_session_unlocked" && !e.newValue) {
+        setIsPinUnlocked(false);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityOrFocus);
+    window.addEventListener("focus", handleVisibilityOrFocus);
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      if (throttleTimer) clearTimeout(throttleTimer);
+      clearInterval(intervalId);
+      activityEvents.forEach(evt => {
+        window.removeEventListener(evt, onUserActivity);
+      });
+      document.removeEventListener("visibilitychange", handleVisibilityOrFocus);
+      window.removeEventListener("focus", handleVisibilityOrFocus);
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, [pinStatus?.pinEnabled, isPinUnlocked, effectiveTenantId]);
 
   const parsedTenantSettings = useMemo(() => {
     if (!currentTenant?.settings) return null;
@@ -278,8 +394,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     }
   }, [loading, user, setLocation]);
 
-  // Loading auth state
-  if (loading || (!!user && isPinStatusLoading)) {
+  // Loading auth state SAU așteptăm răspunsul getPinStatus de la server
+  // Până când getPinStatus este complet încărcat, blocăm randarea oricăror date (FAIL-CLOSED)
+  if (loading || (!!user && !isPinStatusFetched)) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950">
         <div className="animate-spin w-8 h-8 border-4 border-slate-200 dark:border-slate-700 border-t-blue-600 rounded-full" />
@@ -291,20 +408,33 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     return null;
   }
 
-  if (pinStatus?.pinEnabled && !isPinUnlocked) {
+  const isUnlockedCurrent = checkIsUnlocked(effectiveTenantId);
+
+  if (pinStatus?.pinEnabled && (!isPinUnlocked || !isUnlockedCurrent)) {
     return (
       <CompanyPinLockModal
         companyName={pinStatus.companyName || companyName}
         companyLogo={pinStatus.logoUrl || companyLogo}
-        logoBgColor={pinStatus.logoBgColor || parsedTenantSettings?.logoBgColor}
-        logoHasBackground={pinStatus.logoHasBackground ?? parsedTenantSettings?.logoHasBackground}
+        logoBgColor={
+          pinStatus?.logoBgColor ||
+          parsedTenantSettings?.logoBgColor ||
+          (pinStatus?.logoHasBackground || parsedTenantSettings?.logoHasBackground ? "#0f172a" : undefined)
+        }
+        logoHasBackground={Boolean(pinStatus?.logoHasBackground ?? parsedTenantSettings?.logoHasBackground)}
         themeColor={pinStatus?.themeColor || themeColor}
         userFullName={pinStatus?.userFullName || user?.name || ""}
         userPhone={pinStatus?.userPhone || user?.phone || parsedTenantSettings?.phone || ""}
         userRole={pinStatus?.userRole || (user?.role === "admin" ? "Administrator" : "Manager / Utilizator")}
         defaultExplanation={pinStatus?.defaultExplanation}
-        tenantId={tenantId}
-        onUnlocked={() => setIsPinUnlocked(true)}
+        tenantId={effectiveTenantId}
+        onUnlocked={() => {
+          try {
+            sessionStorage.setItem("smart_invoice_pin_session_unlocked", String(effectiveTenantId));
+            sessionStorage.setItem(`smart_invoice_unlocked_pin_${effectiveTenantId}`, "true");
+            localStorage.setItem(`smart_invoice_last_act_${effectiveTenantId}`, String(Date.now()));
+          } catch {}
+          setIsPinUnlocked(true);
+        }}
       />
     );
   }
@@ -644,13 +774,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="border-t border-slate-200 dark:border-slate-700 my-1" />
             {pinStatus?.pinEnabled && (
               <DropdownMenuItem
-                onClick={() => {
-                  if (tenantId) {
-                    sessionStorage.removeItem(`smart_invoice_unlocked_pin_${tenantId}`);
-                  }
-                  setIsPinUnlocked(false);
-                  toast.info("Ecranul a fost blocat cu PIN.");
-                }}
+                onClick={handleLockScreen}
                 className="cursor-pointer text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-between"
               >
                 <div className="flex items-center">

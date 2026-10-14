@@ -28,6 +28,8 @@ import {
   Loader2,
   CheckCircle2,
   AlertTriangle,
+  Sliders,
+  Package,
 } from "lucide-react";
 
 type Tab = "overview" | "activity" | "registrations" | "users" | "pricing" | "seo";
@@ -442,8 +444,58 @@ function RegistrationsTab() {
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 function UsersTab() {
+  const utils = trpc.useUtils();
   const { data: accounts = [], isLoading } = trpc.admin.accounts.useQuery();
   const { data: tenants = [] } = trpc.admin.tenants.useQuery();
+
+  const [editingTenant, setEditingTenant] = useState<any | null>(null);
+  const [tenantModules, setTenantModules] = useState<{
+    saga: boolean;
+    production: boolean;
+    costCenters: boolean;
+    integrations: boolean;
+  }>({
+    saga: true,
+    production: true,
+    costCenters: true,
+    integrations: true,
+  });
+  const [moduleSaveSuccess, setModuleSaveSuccess] = useState(false);
+
+  const updateModules = trpc.admin.updateTenantModules.useMutation({
+    onSuccess: () => {
+      setModuleSaveSuccess(true);
+      utils.admin.tenants.invalidate();
+      setTimeout(() => {
+        setEditingTenant(null);
+        setModuleSaveSuccess(false);
+      }, 800);
+    },
+  });
+
+  const openModuleConfig = (tenant: any) => {
+    let s: any = {};
+    try {
+      s = typeof tenant.settings === "string" ? JSON.parse(tenant.settings || "{}") : (tenant.settings || {});
+    } catch {}
+    const m = s.modules || {};
+    setTenantModules({
+      saga: m.saga !== false,
+      production: m.production !== false,
+      costCenters: m.costCenters !== false,
+      integrations: m.integrations !== false,
+    });
+    setEditingTenant(tenant);
+    setModuleSaveSuccess(false);
+  };
+
+  const handleSaveModules = () => {
+    if (!editingTenant) return;
+    updateModules.mutate({
+      tenantId: editingTenant.id,
+      modules: tenantModules,
+    });
+  };
 
   return (
     <div>
@@ -516,33 +568,111 @@ function UsersTab() {
 
         {/* Tenants */}
         <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-violet-500" />
-            <h3 className="text-sm font-semibold text-slate-800">
-              Companii ({(tenants as any[]).length})
-            </h3>
+          <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-violet-500" />
+              <h3 className="text-sm font-semibold text-slate-800">
+                Companii ({(tenants as any[]).length})
+              </h3>
+            </div>
+            <span className="text-xs text-slate-400 font-normal">
+              Click pe pictograma glisantă pentru module
+            </span>
           </div>
           <div className="divide-y divide-slate-100">
-            {(tenants as any[]).map((t: any) => (
-              <div key={t.id} className="flex items-center gap-3 px-4 py-2.5">
-                <div className="w-7 h-7 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
-                  <Building2 className="w-3.5 h-3.5 text-violet-600" />
+            {(tenants as any[]).map((t: any) => {
+              let s: any = {};
+              try {
+                s = typeof t.settings === "string" ? JSON.parse(t.settings || "{}") : (t.settings || {});
+              } catch {}
+              const mods = s.modules || {};
+              const isSagaOn = mods.saga !== false;
+              const isProdOn = mods.production !== false;
+              const isCostOn = mods.costCenters !== false;
+              const isIntOn = mods.integrations !== false;
+
+              return (
+                <div key={t.id} className="p-3 hover:bg-slate-50/50 transition-colors">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="w-7 h-7 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Building2 className="w-3.5 h-3.5 text-violet-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-slate-800 truncate">{t.name}</p>
+                          {t.cui && (
+                            <span className="text-[10px] font-mono bg-slate-100 text-slate-500 px-1 rounded">
+                              {t.cui}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-400 truncate">{t.email || "Fără email specificat"}</p>
+                        
+                        {/* Modules Badges */}
+                        <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                          <span
+                            className={`text-[10px] px-1.5 py-0.5 rounded font-medium border ${
+                              isSagaOn
+                                ? "bg-blue-50 text-blue-700 border-blue-200"
+                                : "bg-slate-100 text-slate-400 border-slate-200 line-through opacity-60"
+                            }`}
+                          >
+                            Saga
+                          </span>
+                          <span
+                            className={`text-[10px] px-1.5 py-0.5 rounded font-medium border ${
+                              isProdOn
+                                ? "bg-amber-50 text-amber-700 border-amber-200"
+                                : "bg-slate-100 text-slate-400 border-slate-200 line-through opacity-60"
+                            }`}
+                          >
+                            Producție/Gestiune
+                          </span>
+                          <span
+                            className={`text-[10px] px-1.5 py-0.5 rounded font-medium border ${
+                              isCostOn
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : "bg-slate-100 text-slate-400 border-slate-200 line-through opacity-60"
+                            }`}
+                          >
+                            Centre Cost
+                          </span>
+                          <span
+                            className={`text-[10px] px-1.5 py-0.5 rounded font-medium border ${
+                              isIntOn
+                                ? "bg-purple-50 text-purple-700 border-purple-200"
+                                : "bg-slate-100 text-slate-400 border-slate-200 line-through opacity-60"
+                            }`}
+                          >
+                            Integrări
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
+                          t.subscriptionStatus === "active"
+                            ? "bg-green-50 text-green-700 border-green-200"
+                            : "bg-slate-100 text-slate-600 border-slate-200"
+                        }`}
+                      >
+                        {t.subscriptionStatus || "—"}
+                      </span>
+                      <button
+                        onClick={() => openModuleConfig(t)}
+                        title="Configurează module companie"
+                        className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg border border-slate-200 transition-colors"
+                      >
+                        <Sliders className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-slate-800 truncate">{t.name}</p>
-                  <p className="text-xs text-slate-400 truncate">{t.email}</p>
-                </div>
-                <span
-                  className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
-                    t.subscriptionStatus === "active"
-                      ? "bg-green-50 text-green-700 border-green-200"
-                      : "bg-slate-100 text-slate-600 border-slate-200"
-                  }`}
-                >
-                  {t.subscriptionStatus || "—"}
-                </span>
-              </div>
-            ))}
+              );
+            })}
             {(tenants as any[]).length === 0 && (
               <div className="px-4 py-6 text-sm text-slate-400">
                 Nicio companie.
@@ -551,6 +681,193 @@ function UsersTab() {
           </div>
         </div>
       </div>
+
+      {/* Module Configuration Modal */}
+      {editingTenant && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600">
+                  <Sliders className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">
+                    Configurare Module Active
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    {editingTenant.name} {editingTenant.cui ? `(CUI: ${editingTenant.cui})` : ""}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingTenant(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-md"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <p className="text-xs text-slate-600">
+                Activează sau dezactivează modulele vizibile în interfață pentru utilizatorii acestei companii:
+              </p>
+
+              <div className="space-y-3">
+                {/* SAGA */}
+                <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-slate-50/40">
+                  <div>
+                    <div className="text-xs font-semibold text-slate-800">
+                      Modul SAGA C
+                    </div>
+                    <div className="text-[11px] text-slate-500">
+                      Sincronizare clienți, facturi și import/export în contabilitate SAGA.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setTenantModules(prev => ({ ...prev, saga: !prev.saga }))
+                    }
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      tenantModules.saga ? "bg-blue-600" : "bg-slate-300"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        tenantModules.saga ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Producție & Gestiune */}
+                <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-slate-50/40">
+                  <div>
+                    <div className="text-xs font-semibold text-slate-800">
+                      Modul Producție & Gestiune
+                    </div>
+                    <div className="text-[11px] text-slate-500">
+                      Include NIR, Bonuri de consum, Devize de lucrări și Gestiune stocuri.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setTenantModules(prev => ({ ...prev, production: !prev.production }))
+                    }
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      tenantModules.production ? "bg-blue-600" : "bg-slate-300"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        tenantModules.production ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Centre de Cost */}
+                <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-slate-50/40">
+                  <div>
+                    <div className="text-xs font-semibold text-slate-800">
+                      Modul Centre de Cost
+                    </div>
+                    <div className="text-[11px] text-slate-500">
+                      Evidență cheltuieli, alocare pe proiecte și rapoarte de rentabilitate.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setTenantModules(prev => ({ ...prev, costCenters: !prev.costCenters }))
+                    }
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      tenantModules.costCenters ? "bg-blue-600" : "bg-slate-300"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        tenantModules.costCenters ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Integrări */}
+                <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-slate-50/40">
+                  <div>
+                    <div className="text-xs font-semibold text-slate-800">
+                      Modul Integrări Externe
+                    </div>
+                    <div className="text-[11px] text-slate-500">
+                      Conexiuni API externe (SmartBill și alte servicii terțe).
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setTenantModules(prev => ({ ...prev, integrations: !prev.integrations }))
+                    }
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      tenantModules.integrations ? "bg-blue-600" : "bg-slate-300"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        tenantModules.integrations ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              {moduleSaveSuccess && (
+                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-green-50 border border-green-200 text-green-700 text-xs font-medium">
+                  <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                  <span>Modulele au fost actualizate cu succes pentru această companie.</span>
+                </div>
+              )}
+
+              {updateModules.isError && (
+                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs">
+                  <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
+                  <span>{updateModules.error.message || "Eroare la actualizarea modulelor."}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setEditingTenant(null)}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+              >
+                Anulează
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveModules}
+                disabled={updateModules.isPending}
+                className="px-4 py-1.5 rounded-lg text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+              >
+                {updateModules.isPending ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Se salvează...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Salvează modificările</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

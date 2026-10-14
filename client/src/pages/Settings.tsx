@@ -498,9 +498,12 @@ export default function Settings() {
         currentPin: pinFormMode === "change" ? pinCurrent.trim() : undefined,
       });
 
-      const tid = currentTenant?.tenants?.id;
+      const tid = currentTenant?.tenants?.id || pinStatus?.tenantId || (user as any)?.tenantId;
       if (tid) {
-        sessionStorage.setItem(`smart_invoice_unlocked_pin_${tid}`, "true");
+        try {
+          sessionStorage.setItem("smart_invoice_pin_session_unlocked", String(tid));
+          sessionStorage.setItem(`smart_invoice_unlocked_pin_${tid}`, "true");
+        } catch {}
       }
 
       await refetchPinStatus();
@@ -526,10 +529,19 @@ export default function Settings() {
 
     try {
       await disablePinMutation.mutateAsync({ pin: pinCurrent.trim() });
-      const tid = currentTenant?.tenants?.id;
-      if (tid) {
-        sessionStorage.removeItem(`smart_invoice_unlocked_pin_${tid}`);
-      }
+      try {
+        sessionStorage.removeItem("smart_invoice_pin_session_unlocked");
+        for (let i = sessionStorage.length - 1; i >= 0; i--) {
+          const k = sessionStorage.key(i);
+          if (
+            k &&
+            (k.startsWith("smart_invoice_unlocked_pin") ||
+              k === "smart_invoice_pin_session_unlocked")
+          ) {
+            sessionStorage.removeItem(k);
+          }
+        }
+      } catch {}
       await refetchPinStatus();
       resetPinForm();
       toast.success("Protecția cu cod PIN a fost dezactivată.");
@@ -1370,10 +1382,15 @@ export default function Settings() {
                           Cod PIN de Acces Firmă
                         </h3>
                         {pinStatus?.pinEnabled ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-                            <ShieldCheck className="w-3 h-3" />
-                            PIN Activ
-                          </span>
+                          <>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                              <ShieldCheck className="w-3 h-3" />
+                              PIN Activ
+                            </span>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                              Auto-blocare la 10 min
+                            </span>
+                          </>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300">
                             Inactiv
@@ -1382,7 +1399,7 @@ export default function Settings() {
                       </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xl">
                         Protejează datele firmei în birourile unde computerul sau adresa de email sunt partajate.
-                        Când este activ, se va cere codul PIN la fiecare conectare înainte de a permite accesul la facturi, clienți și gestiune.
+                        Când este activ, se va cere codul PIN la fiecare conectare și ecranul se va bloca automat după 10 minute de inactivitate.
                       </p>
                     </div>
                   </div>

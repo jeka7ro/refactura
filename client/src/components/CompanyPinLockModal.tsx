@@ -440,8 +440,10 @@ export function CompanyPinLockModal({
         localStorage.removeItem(lockoutStorageKey);
         localStorage.removeItem(attemptsStorageKey);
       } catch {}
-      const storageKey = `smart_invoice_unlocked_pin_${tenantId || "default"}`;
-      sessionStorage.setItem(storageKey, "true");
+      try {
+        sessionStorage.setItem("smart_invoice_pin_session_unlocked", String(tenantId || "default"));
+        sessionStorage.setItem(`smart_invoice_unlocked_pin_${tenantId || "default"}`, "true");
+      } catch {}
       toast.success("Acces deblocat cu succes.");
       onUnlocked();
     } catch (err: any) {
@@ -526,6 +528,16 @@ export function CompanyPinLockModal({
 
   const effectiveThemeColor = themeColor || "#2563eb";
   const currentWallpaper = CHROMECAST_WALLPAPERS[bgIndex] || CHROMECAST_WALLPAPERS[0];
+
+  const hasCustomLogoBg = Boolean(
+    (logoHasBackground && logoBgColor) ||
+      (logoBgColor &&
+        logoBgColor.toLowerCase() !== "#ffffff" &&
+        logoBgColor.toLowerCase() !== "#fff" &&
+        logoBgColor.trim() !== "") ||
+      logoHasBackground
+  );
+  const effectiveLogoBg = hasCustomLogoBg ? logoBgColor || "#0f172a" : undefined;
 
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center p-4 transition-all duration-300 overflow-y-auto">
@@ -619,7 +631,14 @@ export function CompanyPinLockModal({
             <div className="flex flex-col items-center text-center space-y-3 pt-1">
               {companyLogo && !logoFailed ? (
                 <div className="relative">
-                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-white shadow-2xl border border-white/40 p-3 flex items-center justify-center overflow-hidden">
+                  <div
+                    className={`w-24 h-24 sm:w-28 sm:h-28 rounded-3xl shadow-2xl p-3 flex items-center justify-center overflow-hidden transition-all ${
+                      effectiveLogoBg
+                        ? "border border-white/20"
+                        : "bg-white border border-white/40"
+                    }`}
+                    style={effectiveLogoBg ? { backgroundColor: effectiveLogoBg } : undefined}
+                  >
                     <img
                       src={companyLogo}
                       alt={companyName}

@@ -176,7 +176,9 @@ export default function Login() {
           <p className="text-slate-500 text-base">
             © {new Date().getFullYear()} SmartInvoice · facturaspv.ro
           </p>
-          <img src="/gettsapp_logo_ver2.png" alt="GettsApp" className="h-10 w-auto" />
+          <div className="bg-slate-900 px-3 py-1.5 rounded-xl shadow-xs border border-slate-800 flex items-center">
+            <img src="/gettsapp_logo_ver2.png" alt="GettsApp" className="h-7 w-auto object-contain" />
+          </div>
         </div>
       </div>
 
