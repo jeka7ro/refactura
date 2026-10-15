@@ -293,7 +293,7 @@ export default function ContractsList() {
           <button
             type="button"
             onClick={() => setShowImportModal(true)}
-            className="h-10 px-4 inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold shadow-xs transition-colors box-border shrink-0"
+            className="h-10 px-5 inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold shadow-xs transition-colors box-border shrink-0"
           >
             <Upload className="h-4 w-4 text-primary shrink-0" />
             <span>Importă Arhivă / Folder</span>
@@ -301,7 +301,7 @@ export default function ContractsList() {
 
           <Link
             href="/contracte/new"
-            className="h-10 px-4 inline-flex items-center justify-center gap-2 rounded-lg border border-transparent bg-primary hover:bg-primary/90 text-white text-sm font-semibold shadow-sm transition-colors box-border shrink-0"
+            className="h-10 px-5 inline-flex items-center justify-center gap-2 rounded-full border border-transparent bg-primary hover:bg-primary/90 text-white text-sm font-semibold shadow-sm transition-colors box-border shrink-0"
           >
             <Plus className="h-4 w-4 shrink-0" />
             <span>Contract Nou</span>
@@ -664,7 +664,7 @@ export default function ContractsList() {
                           variant="ghost"
                           size="icon"
                           onClick={() => setActiveLogContractId(c.id)}
-                          className="h-8 w-8 rounded-lg text-slate-600 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/40"
+                          className="h-8 w-8 rounded-full text-slate-600 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/40"
                           title="Jurnal modificări și explicații"
                         >
                           <History className="h-4 w-4" />
@@ -675,7 +675,7 @@ export default function ContractsList() {
                           variant="ghost"
                           size="icon"
                           asChild
-                          className="h-8 w-8 rounded-lg text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                          className="h-8 w-8 rounded-full text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
                           title="Descarcă PDF"
                         >
                           <a href={`/api/pdf/contract/${c.id}?download=1`} download>
@@ -688,7 +688,7 @@ export default function ContractsList() {
                           variant="ghost"
                           size="icon"
                           asChild
-                          className="h-8 w-8 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                          className="h-8 w-8 rounded-full text-slate-600 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
                           title="Descarcă Word (.docx)"
                         >
                           <a href={`/api/pdf/contract/${c.id}?download=1&format=word`} download>
@@ -752,14 +752,14 @@ export default function ContractsList() {
               Pagina {safePage} din {totalPages}
             </span>
             <button
-              className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:pointer-events-none hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:pointer-events-none hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={safePage <= 1}
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
-              className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:pointer-events-none hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:pointer-events-none hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={safePage >= totalPages}
             >
@@ -835,7 +835,7 @@ export default function ContractsList() {
                     explanation: newLogExplanation,
                   });
                 }}
-                className="rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs h-8 px-4"
+                className="rounded-full bg-purple-600 hover:bg-purple-700 text-white text-xs h-8 px-4"
               >
                 {addLogMutation.isPending ? "Se salvează..." : "Salvează în Jurnal"}
               </Button>
@@ -1025,18 +1025,18 @@ export default function ContractsList() {
             </div>
           )}
 
-          <DialogFooter className="mt-4">
+          <DialogFooter className="mt-4 gap-2">
             <Button
               variant="outline"
               onClick={() => setShowImportModal(false)}
-              className="rounded-lg"
+              className="rounded-full px-5"
             >
               Anulează
             </Button>
             <Button
               disabled={uploadedQueue.length === 0 || importingFiles || bulkImportMutation.isPending}
               onClick={handleFinishBulkImport}
-              className="rounded-lg bg-primary text-white"
+              className="rounded-full bg-primary text-white px-5"
             >
               {bulkImportMutation.isPending
                 ? "Se importă..."
