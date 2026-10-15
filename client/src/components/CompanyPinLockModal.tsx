@@ -12,15 +12,8 @@ import {
   User,
   Briefcase,
   FileText,
-  Sun,
-  CloudSun,
-  CloudRain,
-  Cloud,
-  Snowflake,
-  CloudLightning,
   MapPin,
   Timer,
-  CalendarDays,
   Droplets,
   Wind,
 } from "lucide-react";
@@ -256,24 +249,290 @@ function getWeatherLabel(code: number): string {
   return "Senin";
 }
 
-function getWeatherIcon(code: number) {
-  if (code === 0 || code === 1) return Sun;
-  if (code === 2 || code === 3) return CloudSun;
-  if (code === 45 || code === 48) return Cloud;
-  if ((code >= 51 && code <= 65) || (code >= 80 && code <= 82)) return CloudRain;
-  if (code >= 71 && code <= 77) return Snowflake;
-  if (code >= 95) return CloudLightning;
-  return Sun;
-}
+function Weather3DIcon({ code, className = "w-8 h-8" }: { code: number; className?: string }) {
+  // 1. Soare 3D (0, 1) - Sferă 3D aurie strălucitoare cu raze volumetrice
+  if (code === 0 || code === 1) {
+    return (
+      <svg viewBox="0 0 64 64" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="sun3d_full" cx="32%" cy="28%" r="68%">
+            <stop offset="0%" stopColor="#FFFDF0" />
+            <stop offset="20%" stopColor="#FEF08A" />
+            <stop offset="50%" stopColor="#FBBF24" />
+            <stop offset="80%" stopColor="#F59E0B" />
+            <stop offset="100%" stopColor="#D97706" />
+          </radialGradient>
+          <linearGradient id="sun3d_ray_full" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#FDE047" />
+            <stop offset="100%" stopColor="#F59E0B" stopOpacity="0.4" />
+          </linearGradient>
+          <filter id="sun3d_deep_glow" x="-30%" y="-30%" width="160%" height="160%">
+            <feDropShadow dx="0" dy="5" stdDeviation="5" floodColor="#EA580C" floodOpacity="0.45" />
+          </filter>
+        </defs>
+        <g filter="url(#sun3d_deep_glow)">
+          {[0, 45, 90, 135, 180, 225, 270, 315].map((angle) => (
+            <line
+              key={angle}
+              x1="32"
+              y1="5"
+              x2="32"
+              y2="12"
+              stroke="url(#sun3d_ray_full)"
+              strokeWidth="4"
+              strokeLinecap="round"
+              transform={`rotate(${angle} 32 32)`}
+            />
+          ))}
+          <circle cx="32" cy="32" r="16" fill="url(#sun3d_full)" />
+          <ellipse cx="27" cy="24" rx="6" ry="3.2" fill="#FFFFFF" opacity="0.75" transform="rotate(-25 27 24)" />
+        </g>
+      </svg>
+    );
+  }
 
-function getWeatherIconColor(code: number): string {
-  if (code === 0 || code === 1) return "text-amber-400";
-  if (code === 2 || code === 3) return "text-amber-300";
-  if (code === 45 || code === 48) return "text-slate-300";
-  if ((code >= 51 && code <= 65) || (code >= 80 && code <= 82)) return "text-sky-400";
-  if (code >= 71 && code <= 77) return "text-cyan-300";
-  if (code >= 95) return "text-purple-400";
-  return "text-amber-400";
+  // 2. Parțial noros 3D (2) - Soare 3D auriu în spate + Nor volumetric alb satinat în față
+  if (code === 2) {
+    return (
+      <svg viewBox="0 0 64 64" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="sun3d_part" cx="30%" cy="25%" r="70%">
+            <stop offset="0%" stopColor="#FFFBEB" />
+            <stop offset="25%" stopColor="#FDE047" />
+            <stop offset="65%" stopColor="#F59E0B" />
+            <stop offset="100%" stopColor="#D97706" />
+          </radialGradient>
+          <radialGradient id="cloud3d_p_main" cx="35%" cy="25%" r="70%">
+            <stop offset="0%" stopColor="#FFFFFF" />
+            <stop offset="40%" stopColor="#F8FAFC" />
+            <stop offset="75%" stopColor="#E2E8F0" />
+            <stop offset="100%" stopColor="#94A3B8" />
+          </radialGradient>
+          <radialGradient id="cloud3d_p_side" cx="30%" cy="25%" r="70%">
+            <stop offset="0%" stopColor="#FFFFFF" />
+            <stop offset="50%" stopColor="#F1F5F9" />
+            <stop offset="100%" stopColor="#94A3B8" />
+          </radialGradient>
+          <filter id="sun3d_part_glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="#F59E0B" floodOpacity="0.5" />
+          </filter>
+          <filter id="cloud3d_p_shadow" x="-25%" y="-20%" width="150%" height="150%">
+            <feDropShadow dx="0" dy="5" stdDeviation="4.5" floodColor="#0F172A" floodOpacity="0.45" />
+          </filter>
+        </defs>
+        <g filter="url(#sun3d_part_glow)">
+          <circle cx="41" cy="23" r="13" fill="url(#sun3d_part)" />
+          <ellipse cx="37" cy="18" rx="4.5" ry="2.2" fill="#FFFFFF" opacity="0.75" transform="rotate(-25 37 18)" />
+          {[15, 60, 105].map((angle) => (
+            <line
+              key={angle}
+              x1="41"
+              y1="6"
+              x2="41"
+              y2="9.5"
+              stroke="#FDE047"
+              strokeWidth="3"
+              strokeLinecap="round"
+              transform={`rotate(${angle} 41 23)`}
+            />
+          ))}
+        </g>
+        <g filter="url(#cloud3d_p_shadow)">
+          <rect x="15" y="34" width="34" height="15" rx="7.5" fill="url(#cloud3d_p_main)" />
+          <circle cx="22" cy="37" r="11" fill="url(#cloud3d_p_side)" />
+          <circle cx="42" cy="38" r="9" fill="url(#cloud3d_p_side)" />
+          <circle cx="31" cy="29" r="13.5" fill="url(#cloud3d_p_main)" />
+          <path d="M25 18c3-2 8-2 11 1" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" opacity="0.9" />
+        </g>
+      </svg>
+    );
+  }
+
+  // 3. Înnorat 3D (3) - Nor volumetric bogat cu lobi sferici 3D și reflexii lucioase
+  if (code === 3) {
+    return (
+      <svg viewBox="0 0 64 64" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="cloud3d_ov_back" cx="30%" cy="25%" r="75%">
+            <stop offset="0%" stopColor="#CBD5E1" />
+            <stop offset="60%" stopColor="#94A3B8" />
+            <stop offset="100%" stopColor="#475569" />
+          </radialGradient>
+          <radialGradient id="cloud3d_ov_main" cx="35%" cy="25%" r="70%">
+            <stop offset="0%" stopColor="#FFFFFF" />
+            <stop offset="35%" stopColor="#F8FAFC" />
+            <stop offset="70%" stopColor="#E2E8F0" />
+            <stop offset="100%" stopColor="#94A3B8" />
+          </radialGradient>
+          <radialGradient id="cloud3d_ov_left" cx="30%" cy="25%" r="70%">
+            <stop offset="0%" stopColor="#FFFFFF" />
+            <stop offset="50%" stopColor="#F1F5F9" />
+            <stop offset="100%" stopColor="#94A3B8" />
+          </radialGradient>
+          <radialGradient id="cloud3d_ov_right" cx="35%" cy="30%" r="65%">
+            <stop offset="0%" stopColor="#FFFFFF" />
+            <stop offset="50%" stopColor="#E2E8F0" />
+            <stop offset="100%" stopColor="#64748B" />
+          </radialGradient>
+          <filter id="cloud3d_ov_shadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="6" stdDeviation="5" floodColor="#0F172A" floodOpacity="0.45" />
+          </filter>
+        </defs>
+        <g filter="url(#cloud3d_ov_shadow)">
+          <circle cx="26" cy="25" r="13" fill="url(#cloud3d_ov_back)" opacity="0.8" />
+          <circle cx="42" cy="27" r="11" fill="url(#cloud3d_ov_back)" opacity="0.75" />
+          <rect x="16" y="32" width="34" height="15" rx="7.5" fill="url(#cloud3d_ov_main)" />
+          <circle cx="23" cy="35" r="11.5" fill="url(#cloud3d_ov_left)" />
+          <circle cx="43" cy="36" r="9.5" fill="url(#cloud3d_ov_right)" />
+          <circle cx="33" cy="27" r="14.5" fill="url(#cloud3d_ov_main)" />
+          <path d="M26 16c4-3 10-2 13 1" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" opacity="0.9" />
+          <path d="M17 28c2-3 5-3 7-1" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
+        </g>
+      </svg>
+    );
+  }
+
+  // 4. Ceață 3D (45, 48)
+  if (code === 45 || code === 48) {
+    return (
+      <svg viewBox="0 0 64 64" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="fog3d_cloud_body" cx="35%" cy="25%" r="70%">
+            <stop offset="0%" stopColor="#FFFFFF" />
+            <stop offset="45%" stopColor="#F1F5F9" />
+            <stop offset="80%" stopColor="#CBD5E1" />
+            <stop offset="100%" stopColor="#94A3B8" />
+          </radialGradient>
+          <linearGradient id="fog3d_stripe" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#94A3B8" stopOpacity="0.2" />
+            <stop offset="50%" stopColor="#E2E8F0" />
+            <stop offset="100%" stopColor="#94A3B8" stopOpacity="0.2" />
+          </linearGradient>
+          <filter id="fog3d_shadow" x="-20%" y="-20%" width="140%" height="150%">
+            <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#0F172A" floodOpacity="0.3" />
+          </filter>
+        </defs>
+        <g filter="url(#fog3d_shadow)">
+          <rect x="15" y="20" width="34" height="15" rx="7.5" fill="url(#fog3d_cloud_body)" />
+          <circle cx="22" cy="23" r="11" fill="url(#fog3d_cloud_body)" />
+          <circle cx="42" cy="24" r="9" fill="url(#fog3d_cloud_body)" />
+          <circle cx="31" cy="15" r="13.5" fill="url(#fog3d_cloud_body)" />
+          <rect x="14" y="42" width="36" height="4" rx="2" fill="url(#fog3d_stripe)" />
+          <rect x="20" y="49" width="24" height="3.5" rx="1.75" fill="url(#fog3d_stripe)" />
+        </g>
+      </svg>
+    );
+  }
+
+  // 5. Ploaie / Burniță 3D ((51-67), (80-82))
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) {
+    return (
+      <svg viewBox="0 0 64 64" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="rain3d_cloud_body" cx="35%" cy="25%" r="70%">
+            <stop offset="0%" stopColor="#F1F5F9" />
+            <stop offset="40%" stopColor="#CBD5E1" />
+            <stop offset="75%" stopColor="#64748B" />
+            <stop offset="100%" stopColor="#334155" />
+          </radialGradient>
+          <linearGradient id="rain3d_drop_grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#A5F3FC" />
+            <stop offset="50%" stopColor="#38BDF8" />
+            <stop offset="100%" stopColor="#0284C7" />
+          </linearGradient>
+          <filter id="rain3d_shadow" x="-20%" y="-20%" width="140%" height="150%">
+            <feDropShadow dx="0" dy="5" stdDeviation="4.5" floodColor="#0F172A" floodOpacity="0.45" />
+          </filter>
+        </defs>
+        <g filter="url(#rain3d_shadow)">
+          <rect x="15" y="22" width="34" height="15" rx="7.5" fill="url(#rain3d_cloud_body)" />
+          <circle cx="22" cy="25" r="11" fill="url(#rain3d_cloud_body)" />
+          <circle cx="42" cy="26" r="9" fill="url(#rain3d_cloud_body)" />
+          <circle cx="31" cy="17" r="13.5" fill="url(#rain3d_cloud_body)" />
+          <path d="M25 6c3-2 8-2 11 1" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" opacity="0.8" />
+          <g transform="translate(0, 2)">
+            <path d="M19 41c0 2.2-1.8 4-4 4s-4-1.8-4-4c0-2.8 4-8 4-8s4 5.2 4 8z" fill="url(#rain3d_drop_grad)" filter="drop-shadow(0 2px 4px rgba(2,132,199,0.5))" />
+            <circle cx="14" cy="40" r="1" fill="#FFFFFF" opacity="0.85" />
+            <path d="M33 41c0 2.2-1.8 4-4 4s-4-1.8-4-4c0-2.8 4-8 4-8s4 5.2 4 8z" fill="url(#rain3d_drop_grad)" filter="drop-shadow(0 2px 4px rgba(2,132,199,0.5))" />
+            <circle cx="28" cy="40" r="1" fill="#FFFFFF" opacity="0.85" />
+            <path d="M47 41c0 2.2-1.8 4-4 4s-4-1.8-4-4c0-2.8 4-8 4-8s4 5.2 4 8z" fill="url(#rain3d_drop_grad)" filter="drop-shadow(0 2px 4px rgba(2,132,199,0.5))" />
+            <circle cx="42" cy="40" r="1" fill="#FFFFFF" opacity="0.85" />
+          </g>
+        </g>
+      </svg>
+    );
+  }
+
+  // 6. Ninsoare 3D (71-77, 85-86)
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) {
+    return (
+      <svg viewBox="0 0 64 64" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="snow3d_cloud_body" cx="35%" cy="25%" r="70%">
+            <stop offset="0%" stopColor="#FFFFFF" />
+            <stop offset="45%" stopColor="#E0F2FE" />
+            <stop offset="80%" stopColor="#BAE6FD" />
+            <stop offset="100%" stopColor="#7DD3FC" />
+          </radialGradient>
+          <radialGradient id="snow3d_ball" cx="30%" cy="30%" r="70%">
+            <stop offset="0%" stopColor="#FFFFFF" />
+            <stop offset="60%" stopColor="#BAE6FD" />
+            <stop offset="100%" stopColor="#38BDF8" />
+          </radialGradient>
+          <filter id="snow3d_shadow" x="-20%" y="-20%" width="140%" height="150%">
+            <feDropShadow dx="0" dy="5" stdDeviation="4.5" floodColor="#0369A1" floodOpacity="0.35" />
+          </filter>
+        </defs>
+        <g filter="url(#snow3d_shadow)">
+          <rect x="15" y="22" width="34" height="15" rx="7.5" fill="url(#snow3d_cloud_body)" />
+          <circle cx="22" cy="25" r="11" fill="url(#snow3d_cloud_body)" />
+          <circle cx="42" cy="26" r="9" fill="url(#snow3d_cloud_body)" />
+          <circle cx="31" cy="17" r="13.5" fill="url(#snow3d_cloud_body)" />
+          <path d="M25 6c3-2 8-2 11 1" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" opacity="0.9" />
+          <circle cx="18" cy="44" r="3.5" fill="url(#snow3d_ball)" />
+          <circle cx="32" cy="47" r="4" fill="url(#snow3d_ball)" />
+          <circle cx="46" cy="44" r="3.5" fill="url(#snow3d_ball)" />
+        </g>
+      </svg>
+    );
+  }
+
+  // 7. Furtună / Fulgere 3D (95+)
+  return (
+    <svg viewBox="0 0 64 64" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="storm3d_cloud_dark" cx="35%" cy="25%" r="75%">
+          <stop offset="0%" stopColor="#64748B" />
+          <stop offset="45%" stopColor="#334155" />
+          <stop offset="85%" stopColor="#1E293B" />
+          <stop offset="100%" stopColor="#0F172A" />
+        </radialGradient>
+        <linearGradient id="storm3d_bolt_grad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#FEF08A" />
+          <stop offset="50%" stopColor="#FDE047" />
+          <stop offset="100%" stopColor="#EAB308" />
+        </linearGradient>
+        <filter id="storm3d_shadow" x="-20%" y="-20%" width="140%" height="150%">
+          <feDropShadow dx="0" dy="5" stdDeviation="5" floodColor="#000000" floodOpacity="0.55" />
+        </filter>
+        <filter id="storm3d_bolt_glow" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#FACC15" floodOpacity="0.85" />
+        </filter>
+      </defs>
+      <g filter="url(#storm3d_shadow)">
+        <rect x="15" y="20" width="34" height="15" rx="7.5" fill="url(#storm3d_cloud_dark)" />
+        <circle cx="22" cy="23" r="11" fill="url(#storm3d_cloud_dark)" />
+        <circle cx="42" cy="24" r="9" fill="url(#storm3d_cloud_dark)" />
+        <circle cx="31" cy="15" r="13.5" fill="url(#storm3d_cloud_dark)" />
+        <path d="M25 4c3-2 8-2 11 1" stroke="#94A3B8" strokeWidth="2.2" strokeLinecap="round" opacity="0.6" />
+        <polygon
+          points="35,26 26,39 33,39 28,53 42,36 35,36"
+          fill="url(#storm3d_bolt_grad)"
+          filter="url(#storm3d_bolt_glow)"
+        />
+      </g>
+    </svg>
+  );
 }
 
 function getRomanianDayName(dateStr: string, index: number): { dayName: string; shortDate: string } {
@@ -1057,84 +1316,80 @@ export function CompanyPinLockModal({
         )}
       </div>
 
-      {/* Widget Compact Vreme în Partea Dreaptă-Sus (Apple Frost Glass) */}
+      {/* Widget Compact Vreme în Partea Dreaptă-Sus (Apple Frost Glass fără contur, Iconiță 3D ieșită din card) */}
       {weather && (
-        <div className="fixed top-4 right-4 sm:top-5 sm:right-6 z-30 w-[240px] sm:w-[250px] bg-black/50 dark:bg-black/70 backdrop-blur-2xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.55)] p-3 text-white transition-all animate-in fade-in slide-in-from-top-2 duration-300 select-none">
+        <div className="fixed top-4 right-4 sm:top-5 sm:right-6 z-30 w-[180px] sm:w-[190px] bg-slate-900/35 dark:bg-black/35 backdrop-blur-2xl rounded-2xl shadow-[0_16px_40px_rgba(0,0,0,0.4)] p-2.5 text-white transition-all animate-in fade-in slide-in-from-top-2 duration-300 select-none overflow-visible relative">
+          {/* Iconita 3D IESITA DIN CARD: pluteste peste marginea din dreapta-sus a cardului, depasind limitele */}
+          <div className="absolute -top-6 -right-5 z-20 pointer-events-none transform -rotate-2 hover:rotate-0 transition-transform duration-300">
+            <Weather3DIcon
+              code={weather.weatherCode}
+              className="w-16 h-16 drop-shadow-[0_14px_28px_rgba(0,0,0,0.7)]"
+            />
+          </div>
+
           {/* Header Locație & Live Badge */}
-          <div className="flex items-center justify-between pb-1.5 border-b border-white/[0.04]">
-            <div className="flex items-center gap-1.5 min-w-0">
+          <div className="flex items-center justify-between pb-1 pr-11 border-b border-white/[0.04]">
+            <div className="flex items-center gap-1 min-w-0">
               <MapPin className="w-3 h-3 text-rose-400 shrink-0" />
-              <span className="text-xs font-bold tracking-wide text-white truncate max-w-[155px]">
+              <span className="text-[11px] font-bold tracking-wide text-white truncate max-w-[90px]">
                 {weather.city}
               </span>
             </div>
-            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold tracking-wider uppercase bg-white/10 text-white/70">
+            <span className="px-1.5 py-0.5 rounded text-[8px] font-extrabold tracking-wider uppercase bg-white/10 text-white/80">
               Live
             </span>
           </div>
 
-          {/* Vreme Actuală cu Temperatură și Iconiță Compactă */}
-          <div className="py-1.5 flex items-center justify-between gap-2">
-            <div>
-              <div className="text-2xl sm:text-3xl font-black tracking-tight text-white leading-none">
-                {weather.temp > 0 ? `+${weather.temp}` : weather.temp}°C
-              </div>
-              <p className="text-[11px] font-medium text-white/85 mt-1 leading-tight truncate max-w-[150px]">
-                {weather.condition}
+          {/* Vreme Actuală cu Temperatură */}
+          <div className="py-1 pr-11">
+            <div className="text-2xl font-black tracking-tight text-white leading-none">
+              {weather.temp > 0 ? `+${weather.temp}` : weather.temp}°C
+            </div>
+            <p className="text-[10px] font-medium text-white/85 mt-1 leading-tight truncate max-w-[95px]">
+              {weather.condition}
+            </p>
+            {(weather.tempMax !== undefined && weather.tempMin !== undefined) && (
+              <p className="text-[9px] text-white/50 mt-0.5">
+                Max: {weather.tempMax > 0 ? `+${weather.tempMax}` : weather.tempMax}° · Min: {weather.tempMin > 0 ? `+${weather.tempMin}` : weather.tempMin}°
               </p>
-              {(weather.tempMax !== undefined && weather.tempMin !== undefined) && (
-                <p className="text-[10px] text-white/50 mt-0.5">
-                  Max: {weather.tempMax > 0 ? `+${weather.tempMax}` : weather.tempMax}° · Min: {weather.tempMin > 0 ? `+${weather.tempMin}` : weather.tempMin}°
-                </p>
-              )}
-            </div>
-
-            <div className="flex items-center justify-center p-2 rounded-xl bg-white/[0.04] shrink-0">
-              {(() => {
-                const CurrentIcon = getWeatherIcon(weather.weatherCode);
-                const iconColor = getWeatherIconColor(weather.weatherCode);
-                return <CurrentIcon className={`w-8 h-8 ${iconColor} drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]`} />;
-              })()}
-            </div>
+            )}
           </div>
 
           {/* Umiditate & Vânt */}
           {(weather.humidity !== undefined || weather.windSpeed !== undefined) && (
-            <div className="flex items-center justify-between text-[10px] text-white/70 pt-1 pb-1 border-t border-white/[0.04]">
+            <div className="flex items-center justify-between text-[9px] text-white/70 py-1 border-t border-white/[0.04]">
               {weather.humidity !== undefined && (
                 <span className="flex items-center gap-1">
-                  <Droplets className="w-3 h-3 text-sky-400" />
+                  <Droplets className="w-2.5 h-2.5 text-sky-400" />
                   {weather.humidity}%
                 </span>
               )}
               {weather.windSpeed !== undefined && (
                 <span className="flex items-center gap-1">
-                  <Wind className="w-3 h-3 text-teal-300" />
+                  <Wind className="w-2.5 h-2.5 text-teal-300" />
                   {weather.windSpeed} km/h
                 </span>
               )}
             </div>
           )}
 
-          {/* Prognoză Următoarele 5 Zile: Bară Orizontală Compactă */}
+          {/* Prognoză Următoarele 5 Zile: Bară Orizontală Compactă cu Iconițe 3D */}
           {weather.forecast && weather.forecast.length > 0 && (
-            <div className="pt-1.5 border-t border-white/[0.08]">
+            <div className="pt-1 border-t border-white/[0.04]">
               <div className="grid grid-cols-5 gap-1 text-center">
                 {weather.forecast.map((day, idx) => {
-                  const DayIcon = getWeatherIcon(day.weatherCode);
-                  const dayIconColor = getWeatherIconColor(day.weatherCode);
                   const shortDay = day.dayName ? day.dayName.slice(0, 2).toUpperCase() : "";
                   return (
                     <div
                       key={day.date || idx}
-                      className="flex flex-col items-center py-1 px-0.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] transition-colors"
+                      className="flex flex-col items-center py-0.5 px-0.5 rounded-lg hover:bg-white/[0.06] transition-colors"
                       title={`${day.dayName}: ${day.condition} (Max: ${day.tempMax}°, Min: ${day.tempMin}°)`}
                     >
-                      <span className="text-[9px] font-semibold text-white/60 leading-none">
+                      <span className="text-[8px] font-semibold text-white/60 leading-none">
                         {shortDay}
                       </span>
-                      <DayIcon className={`w-3.5 h-3.5 ${dayIconColor} my-1 shrink-0`} />
-                      <span className="text-[10px] font-bold text-white leading-none">
+                      <Weather3DIcon code={day.weatherCode} className="w-4 h-4 my-0.5 shrink-0 drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]" />
+                      <span className="text-[9px] font-bold text-white leading-none">
                         {day.tempMax > 0 ? `+${day.tempMax}` : day.tempMax}°
                       </span>
                     </div>
