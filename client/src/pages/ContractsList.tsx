@@ -19,6 +19,7 @@ import {
   History,
   X,
   Loader2,
+  ChevronLeft,
   ChevronRight,
   ShieldCheck,
   RefreshCw,
@@ -45,20 +46,21 @@ import {
 export default function ContractsList() {
   const [, setLocation] = useLocation();
 
-  // Filters
+  // Filters & Pagination (SmartDevize Rules)
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("toate");
   const [filterPartnerType, setFilterPartnerType] = useState<string>("toate"); // 'toate' | 'client' | 'supplier'
   const [filterStatus, setFilterStatus] = useState<string>("toate");
+  const [page, setPage] = useState<number>(1);
+  const [rowsPerPage, setRowsPerPage] = useState<number>(15);
 
   // Queries
   const { data: stats, isLoading: loadingStats } = trpc.contracts.getStats.useQuery();
   const {
-    data: contractsList = [],
+    data: rawContracts = [],
     isLoading: loadingList,
     refetch,
   } = trpc.contracts.list.useQuery({
-    search: search || undefined,
     type: filterType !== "toate" ? filterType : undefined,
     status: filterStatus !== "toate" ? filterStatus : undefined,
     isSupplier:
@@ -66,6 +68,26 @@ export default function ContractsList() {
   });
 
   const { data: partners = [] } = trpc.clients.list.useQuery();
+
+  // Search & Filter in memory for instant responsiveness and exact filtered / total counts
+  const filteredContracts = useMemo(() => {
+    if (!search.trim()) return rawContracts;
+    const s = search.toLowerCase().trim();
+    return rawContracts.filter((c: any) =>
+      (c.number && c.number.toLowerCase().includes(s)) ||
+      (c.title && c.title.toLowerCase().includes(s)) ||
+      (c.partnerName && c.partnerName.toLowerCase().includes(s)) ||
+      (c.partnerCui && c.partnerCui.toLowerCase().includes(s)) ||
+      (c.partnerSagaCode && c.partnerSagaCode.toLowerCase().includes(s))
+    );
+  }, [rawContracts, search]);
+
+  const totalCount = filteredContracts.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / (rowsPerPage === 9999 ? 1 : rowsPerPage)));
+  const safePage = Math.min(page, totalPages);
+  const paginatedContracts = rowsPerPage === 9999
+    ? filteredContracts
+    : filteredContracts.slice((safePage - 1) * rowsPerPage, safePage * rowsPerPage);
 
   // Audit Log Drawer / Modal state
   const [activeLogContractId, setActiveLogContractId] = useState<number | null>(null);
@@ -271,7 +293,7 @@ export default function ContractsList() {
           <Button
             variant="outline"
             onClick={() => setShowImportModal(true)}
-            className="rounded-2xl border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
+            className="rounded-lg border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
           >
             <Upload className="h-4 w-4 mr-2 text-primary" />
             Importă Arhivă / Folder
@@ -279,7 +301,7 @@ export default function ContractsList() {
 
           <Button
             asChild
-            className="rounded-2xl bg-primary hover:bg-primary/90 text-white font-medium shadow-sm"
+            className="rounded-lg bg-primary hover:bg-primary/90 text-white font-medium shadow-sm"
           >
             <Link href="/contracte/new">
               <Plus className="h-4 w-4 mr-2" />
@@ -289,14 +311,14 @@ export default function ContractsList() {
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards - SmartDevize Rule 4: rounded-lg */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-card p-5 shadow-sm transition-all hover:border-primary/40">
+        <div className="rounded-lg border border-slate-200/80 dark:border-slate-800 bg-card p-5 shadow-sm transition-all hover:border-primary/40">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Contracte Active
             </span>
-            <div className="h-9 w-9 rounded-xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600 dark:text-blue-400">
+            <div className="h-9 w-9 rounded-lg bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600 dark:text-blue-400">
               <FileCheck className="h-5 w-5" />
             </div>
           </div>
@@ -308,12 +330,12 @@ export default function ContractsList() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-card p-5 shadow-sm transition-all hover:border-primary/40">
+        <div className="rounded-lg border border-slate-200/80 dark:border-slate-800 bg-card p-5 shadow-sm transition-all hover:border-primary/40">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Acte Adiționale
             </span>
-            <div className="h-9 w-9 rounded-xl bg-purple-50 dark:bg-purple-950/50 flex items-center justify-center text-purple-600 dark:text-purple-400">
+            <div className="h-9 w-9 rounded-lg bg-purple-50 dark:bg-purple-950/50 flex items-center justify-center text-purple-600 dark:text-purple-400">
               <RefreshCw className="h-5 w-5" />
             </div>
           </div>
@@ -325,12 +347,12 @@ export default function ContractsList() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-card p-5 shadow-sm transition-all hover:border-primary/40">
+        <div className="rounded-lg border border-slate-200/80 dark:border-slate-800 bg-card p-5 shadow-sm transition-all hover:border-primary/40">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Expiră în 30 Zile
             </span>
-            <div className="h-9 w-9 rounded-xl bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400">
+            <div className="h-9 w-9 rounded-lg bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400">
               <Clock className="h-5 w-5" />
             </div>
           </div>
@@ -342,12 +364,12 @@ export default function ContractsList() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-card p-5 shadow-sm transition-all hover:border-primary/40">
+        <div className="rounded-lg border border-slate-200/80 dark:border-slate-800 bg-card p-5 shadow-sm transition-all hover:border-primary/40">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Fișiere Arhivate
             </span>
-            <div className="h-9 w-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+            <div className="h-9 w-9 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
               <ShieldCheck className="h-5 w-5" />
             </div>
           </div>
@@ -360,22 +382,64 @@ export default function ContractsList() {
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-card p-4 shadow-sm space-y-3">
+      {/* Filter Bar - SmartDevize Rule 4: rounded-lg */}
+      <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-card p-4 shadow-sm space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Căutare */}
+          {/* Căutare - SmartDevize Rule 1 */}
           <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Caută după număr, partener, CUI..."
-              className="pl-9 rounded-full border-slate-200 dark:border-slate-700 text-sm"
+            <Search
+              className="w-4 h-4 text-slate-400 pointer-events-none"
+              style={{
+                position: "absolute",
+                left: 12,
+                top: "50%",
+                transform: "translateY(-50%)",
+                zIndex: 1,
+              }}
             />
+            <input
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Caută după număr, partener, CUI..."
+              style={{
+                paddingLeft: 36,
+                paddingRight: search ? 80 : 16,
+                borderRadius: 9999,
+              }}
+              className="w-full h-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm rounded-full text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary transition-all shadow-sm"
+            />
+            {search && (
+              <div
+                style={{
+                  position: "absolute",
+                  right: 10,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "var(--accent, #2563eb)",
+                  color: "white",
+                  borderRadius: 9999,
+                  padding: "2px 10px",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {filteredContracts.length} / {rawContracts.length}
+              </div>
+            )}
           </div>
 
           {/* Filtru Tip Document */}
-          <Select value={filterType} onValueChange={setFilterType}>
+          <Select
+            value={filterType}
+            onValueChange={(val) => {
+              setFilterType(val);
+              setPage(1);
+            }}
+          >
             <SelectTrigger className="rounded-full border-slate-200 dark:border-slate-700 text-sm">
               <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 truncate">
                 <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
@@ -388,7 +452,7 @@ export default function ContractsList() {
                 </span>
               </div>
             </SelectTrigger>
-            <SelectContent className="rounded-2xl">
+            <SelectContent className="rounded-lg">
               <SelectItem value="toate">Toate Tipurile</SelectItem>
               <SelectItem value="contract">Contract Cadru</SelectItem>
               <SelectItem value="act_aditional">Act Adițional</SelectItem>
@@ -398,7 +462,13 @@ export default function ContractsList() {
           </Select>
 
           {/* Filtru Partener */}
-          <Select value={filterPartnerType} onValueChange={setFilterPartnerType}>
+          <Select
+            value={filterPartnerType}
+            onValueChange={(val) => {
+              setFilterPartnerType(val);
+              setPage(1);
+            }}
+          >
             <SelectTrigger className="rounded-full border-slate-200 dark:border-slate-700 text-sm">
               <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 truncate">
                 <Tag className="h-3.5 w-3.5 text-primary shrink-0" />
@@ -409,7 +479,7 @@ export default function ContractsList() {
                 </span>
               </div>
             </SelectTrigger>
-            <SelectContent className="rounded-2xl">
+            <SelectContent className="rounded-lg">
               <SelectItem value="toate">Toți Partenerii</SelectItem>
               <SelectItem value="client">Clienți (Beneficiari)</SelectItem>
               <SelectItem value="supplier">Furnizori (Prestatori)</SelectItem>
@@ -417,7 +487,13 @@ export default function ContractsList() {
           </Select>
 
           {/* Filtru Status */}
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <Select
+            value={filterStatus}
+            onValueChange={(val) => {
+              setFilterStatus(val);
+              setPage(1);
+            }}
+          >
             <SelectTrigger className="rounded-full border-slate-200 dark:border-slate-700 text-sm">
               <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 truncate">
                 <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
@@ -430,7 +506,7 @@ export default function ContractsList() {
                 </span>
               </div>
             </SelectTrigger>
-            <SelectContent className="rounded-2xl">
+            <SelectContent className="rounded-lg">
               <SelectItem value="toate">Toate Statusurile</SelectItem>
               <SelectItem value="activ">Active</SelectItem>
               <SelectItem value="draft">În Redactare (Draft)</SelectItem>
@@ -441,12 +517,29 @@ export default function ContractsList() {
         </div>
       </div>
 
-      {/* Main Table */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-card overflow-hidden shadow-sm">
+      {/* Main Table - SmartDevize Rule 4: rounded-lg container */}
+      <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-card overflow-hidden shadow-sm">
+        {/* Table Header with Total Count - SmartDevize Rule 4 */}
+        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 flex items-center justify-between">
+          <div className="text-xs text-slate-600 dark:text-slate-400">
+            Total: <strong className="text-slate-900 dark:text-white font-bold">{totalCount}</strong>{" "}
+            {totalCount === 1 ? "înregistrare" : "înregistrări"}
+            {search.trim() && (
+              <span className="text-slate-500 ml-1">
+                (filtrat din {rawContracts.length} contracte)
+              </span>
+            )}
+          </div>
+        </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider">
               <tr>
+                {/* SmartDevize Rule 2: Coloana Nr. */}
+                <th style={{ width: 50, textAlign: "center" }} className="py-3.5 px-3 text-center w-[50px]">
+                  Nr.
+                </th>
                 <th className="py-3.5 px-4">Tip</th>
                 <th className="py-3.5 px-4">Număr & Dată</th>
                 <th className="py-3.5 px-4">Partener Contractual</th>
@@ -459,24 +552,32 @@ export default function ContractsList() {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loadingList ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-500">
+                  <td colSpan={8} className="py-12 text-center text-slate-500">
                     <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary mb-2" />
                     Se încarcă biblioteca de documente...
                   </td>
                 </tr>
-              ) : contractsList.length === 0 ? (
+              ) : paginatedContracts.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-500">
+                  <td colSpan={8} className="py-12 text-center text-slate-500">
                     <FileText className="h-10 w-10 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
                     Nu a fost găsit niciun document conform filtrelor selectate.
                   </td>
                 </tr>
               ) : (
-                contractsList.map((c: any) => (
+                paginatedContracts.map((c: any, index: number) => (
                   <tr
                     key={c.id}
                     className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors"
                   >
+                    {/* SmartDevize Rule 2: Nr. Crt. */}
+                    <td
+                      style={{ textAlign: "center", color: "var(--text-secondary, #64748b)", fontSize: 13 }}
+                      className="py-3.5 px-3 text-center font-medium"
+                    >
+                      {(safePage - 1) * (rowsPerPage === 9999 ? 1 : rowsPerPage) + index + 1}
+                    </td>
+
                     {/* Tip */}
                     <td className="py-3.5 px-4 whitespace-nowrap">
                       <div className="flex flex-col gap-1 items-start">
@@ -549,7 +650,7 @@ export default function ContractsList() {
                       {getStatusBadge(c.status)}
                     </td>
 
-                    {/* Actiuni */}
+                    {/* Actiuni - SmartDevize Rule 4: rounded-lg butoane */}
                     <td className="py-3.5 px-4 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1.5">
                         {/* Buton Jurnal Istoric & Explicatii */}
@@ -557,7 +658,7 @@ export default function ContractsList() {
                           variant="ghost"
                           size="icon"
                           onClick={() => setActiveLogContractId(c.id)}
-                          className="h-8 w-8 rounded-xl text-slate-600 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/40"
+                          className="h-8 w-8 rounded-lg text-slate-600 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/40"
                           title="Jurnal modificări și explicații"
                         >
                           <History className="h-4 w-4" />
@@ -568,7 +669,7 @@ export default function ContractsList() {
                           variant="ghost"
                           size="icon"
                           asChild
-                          className="h-8 w-8 rounded-xl text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                          className="h-8 w-8 rounded-lg text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
                           title="Descarcă PDF"
                         >
                           <a href={`/api/pdf/contract/${c.id}?download=1`} download>
@@ -581,7 +682,7 @@ export default function ContractsList() {
                           variant="ghost"
                           size="icon"
                           asChild
-                          className="h-8 w-8 rounded-xl text-slate-600 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                          className="h-8 w-8 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
                           title="Descarcă Word (.docx)"
                         >
                           <a href={`/api/pdf/contract/${c.id}?download=1&format=word`} download>
@@ -596,6 +697,70 @@ export default function ContractsList() {
             </tbody>
           </table>
         </div>
+
+        {/* SmartDevize Rule 3: Footer Paginare */}
+        <div
+          style={{
+            padding: "12px 20px",
+            borderTop: "1px solid var(--border-color, #e2e8f0)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            background: "var(--bg-secondary, #f8fafc)",
+            borderBottomLeftRadius: 8,
+            borderBottomRightRadius: 8,
+          }}
+          className="dark:bg-slate-900/60 dark:border-slate-800 flex-wrap gap-3"
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <span className="text-xs text-slate-600 dark:text-slate-400" style={{ whiteSpace: "nowrap" }}>
+              Afișează&nbsp;
+              <select
+                value={rowsPerPage}
+                onChange={(e) => {
+                  setRowsPerPage(Number(e.target.value));
+                  setPage(1);
+                }}
+                style={{
+                  background: "var(--bg-primary, white)",
+                  border: "1px solid var(--border-color, #e2e8f0)",
+                  borderRadius: 9999,
+                  padding: "2px 8px",
+                }}
+                className="dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 text-xs focus:outline-none"
+              >
+                <option value={10}>10</option>
+                <option value={15}>15</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={9999}>Toți</option>
+              </select>
+              &nbsp;rânduri
+            </span>
+            <span className="text-xs text-slate-500" style={{ whiteSpace: "nowrap" }}>
+              Total înregistrări: <strong>{totalCount}</strong>
+            </span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span className="text-xs text-slate-500" style={{ whiteSpace: "nowrap" }}>
+              Pagina {safePage} din {totalPages}
+            </span>
+            <button
+              className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:pointer-events-none hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={safePage <= 1}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:pointer-events-none hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Drawer / Modal: Jurnal Modificari & Explicatii cu Timestamp */}
@@ -603,7 +768,7 @@ export default function ContractsList() {
         open={!!activeLogContractId}
         onOpenChange={(open) => !open && setActiveLogContractId(null)}
       >
-        <DialogContent className="max-w-2xl rounded-2xl p-6 max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl rounded-lg p-6 max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
               <History className="h-5 w-5 text-purple-600" />
@@ -615,13 +780,13 @@ export default function ContractsList() {
           </DialogHeader>
 
           {/* Formular adaugare nota / explicatie noua */}
-          <div className="bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3 mt-2">
+          <div className="bg-slate-50 dark:bg-slate-900/60 p-4 rounded-lg border border-slate-200 dark:border-slate-800 space-y-3 mt-2">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
               Înregistrează o Notă / Modificare Nouă
             </h4>
 
             {logError && (
-              <div className="text-xs text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 p-2.5 rounded-xl border border-rose-200">
+              <div className="text-xs text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 p-2.5 rounded-lg border border-rose-200">
                 {logError}
               </div>
             )}
@@ -629,10 +794,10 @@ export default function ContractsList() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               <div className="sm:col-span-1">
                 <Select value={newLogActionType} onValueChange={setNewLogActionType}>
-                  <SelectTrigger className="rounded-xl text-xs h-9">
+                  <SelectTrigger className="rounded-lg text-xs h-9">
                     <SelectValue placeholder="Tip Acțiune" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl text-xs">
+                  <SelectContent className="rounded-lg text-xs">
                     <SelectItem value="modificare_termeni">Modificare Termeni</SelectItem>
                     <SelectItem value="modificare_pret">Schimbare Preț / Valoare</SelectItem>
                     <SelectItem value="prelungire">Prelungire Valabilitate</SelectItem>
@@ -647,7 +812,7 @@ export default function ContractsList() {
                   value={newLogExplanation}
                   onChange={(e) => setNewLogExplanation(e.target.value)}
                   placeholder="Ex: Clientul a solicitat prelungirea scadenței la 30 zile..."
-                  className="rounded-xl text-xs h-9"
+                  className="rounded-lg text-xs h-9"
                 />
               </div>
             </div>
@@ -664,7 +829,7 @@ export default function ContractsList() {
                     explanation: newLogExplanation,
                   });
                 }}
-                className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs h-8 px-4"
+                className="rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs h-8 px-4"
               >
                 {addLogMutation.isPending ? "Se salvează..." : "Salvează în Jurnal"}
               </Button>
@@ -688,7 +853,7 @@ export default function ContractsList() {
                     {/* Punct pe linie */}
                     <div className="absolute -left-[31px] top-1 h-3.5 w-3.5 rounded-full bg-purple-600 border-2 border-white dark:border-slate-900"></div>
 
-                    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-card p-3.5 shadow-sm space-y-1.5">
+                    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-card p-3.5 shadow-sm space-y-1.5">
                       <div className="flex items-center justify-between gap-2">
                         <Badge variant="outline" className="text-[11px] font-semibold py-0.5 px-2 rounded-full border-purple-300 text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40">
                           {l.actionType.replace("_", " ").toUpperCase()}
@@ -723,7 +888,7 @@ export default function ContractsList() {
 
       {/* Modal: Import in masa din folder existent Wood Glass */}
       <Dialog open={showImportModal} onOpenChange={setShowImportModal}>
-        <DialogContent className="max-w-3xl rounded-2xl p-6 max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl rounded-lg p-6 max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
               <Upload className="h-5 w-5 text-primary" />
@@ -735,7 +900,7 @@ export default function ContractsList() {
           </DialogHeader>
 
           {importError && (
-            <div className="text-sm text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 p-3 rounded-xl border border-rose-200">
+            <div className="text-sm text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 p-3 rounded-lg border border-rose-200">
               {importError}
             </div>
           )}
@@ -743,7 +908,7 @@ export default function ContractsList() {
           {/* Upload Zone */}
           <div
             onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-primary rounded-2xl p-8 text-center cursor-pointer transition-colors bg-slate-50/50 dark:bg-slate-900/30"
+            className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-primary rounded-lg p-8 text-center cursor-pointer transition-colors bg-slate-50/50 dark:bg-slate-900/30"
           >
             <input
               type="file"
@@ -762,7 +927,7 @@ export default function ContractsList() {
               </div>
             ) : (
               <div className="flex flex-col items-center">
-                <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-3">
+                <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary mb-3">
                   <Upload className="h-6 w-6" />
                 </div>
                 <span className="text-base font-bold text-slate-900 dark:text-white">
@@ -792,7 +957,7 @@ export default function ContractsList() {
                 </Button>
               </div>
 
-              <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden max-h-56 overflow-y-auto">
+              <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden max-h-56 overflow-y-auto">
                 <table className="w-full text-xs text-left">
                   <thead className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold sticky top-0">
                     <tr>
@@ -848,7 +1013,7 @@ export default function ContractsList() {
                 <Input
                   value={globalExplanation}
                   onChange={(e) => setGlobalExplanation(e.target.value)}
-                  className="rounded-xl text-xs mt-1"
+                  className="rounded-lg text-xs mt-1"
                 />
               </div>
             </div>
@@ -858,14 +1023,14 @@ export default function ContractsList() {
             <Button
               variant="outline"
               onClick={() => setShowImportModal(false)}
-              className="rounded-xl"
+              className="rounded-lg"
             >
               Anulează
             </Button>
             <Button
               disabled={uploadedQueue.length === 0 || importingFiles || bulkImportMutation.isPending}
               onClick={handleFinishBulkImport}
-              className="rounded-xl bg-primary text-white"
+              className="rounded-lg bg-primary text-white"
             >
               {bulkImportMutation.isPending
                 ? "Se importă..."
