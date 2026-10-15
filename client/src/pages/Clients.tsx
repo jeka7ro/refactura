@@ -4,6 +4,13 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { DataTable, DataTableColumn } from "@/components/DataTable";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Building2,
   Edit2,
   Trash2,
@@ -14,6 +21,8 @@ import {
   CheckCircle2,
   Eye,
   Filter,
+  Globe,
+  Tag,
 } from "lucide-react";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { toast } from "sonner";
@@ -196,6 +205,24 @@ export default function Clients() {
           ) : (
             <span className="px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-[10px] font-bold uppercase tracking-wider">
               Client
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "regime",
+      label: "REGIM",
+      sortable: true,
+      render: (val: string, row: any) => (
+        <div className="whitespace-nowrap">
+          {val === "EXTERN" ? (
+            <span className="px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-[10px] font-bold uppercase tracking-wider">
+              Extern ({row.currency || "EUR"})
+            </span>
+          ) : (
+            <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 text-[10px] font-medium uppercase tracking-wider">
+              Intern (RON)
             </span>
           )}
         </div>
@@ -500,6 +527,71 @@ export default function Clients() {
           data={processedClients}
           rowKey="id"
           isLoading={isLoading}
+          headerContent={
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Filtru TIP: Client / Furnizor */}
+              <div className="w-[155px] sm:w-[175px] flex-shrink-0">
+                <Select
+                  value={filterType}
+                  onValueChange={val => setFilterType(val as any)}
+                >
+                  <SelectTrigger
+                    className={`h-8 w-full rounded-full text-xs font-bold border ${
+                      filterType !== "all"
+                        ? "border-blue-500 bg-blue-50/70 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-700"
+                        : "border-slate-200 bg-white text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
+                    } hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 shadow-none flex items-center gap-1.5 px-3`}
+                  >
+                    <Tag className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+                    <SelectValue placeholder="Tip partener" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tip: Toți ({counts.total})</SelectItem>
+                    <SelectItem value="client">Clienți ({counts.clientsCount})</SelectItem>
+                    <SelectItem value="supplier">Furnizori ({counts.suppliers})</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Filtru REGIM: Intern / Extern */}
+              <div className="w-[165px] sm:w-[190px] flex-shrink-0">
+                <Select
+                  value={filterRegime}
+                  onValueChange={val => setFilterRegime(val as any)}
+                >
+                  <SelectTrigger
+                    className={`h-8 w-full rounded-full text-xs font-bold border ${
+                      filterRegime !== "all"
+                        ? "border-indigo-500 bg-indigo-50/70 text-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-700"
+                        : "border-slate-200 bg-white text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
+                    } hover:bg-slate-50 focus:ring-2 focus:ring-indigo-500 shadow-none flex items-center gap-1.5 px-3`}
+                  >
+                    <Globe className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
+                    <SelectValue placeholder="Regim" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Regim: Toate ({counts.total})</SelectItem>
+                    <SelectItem value="intern">Interni (RON - {counts.internals})</SelectItem>
+                    <SelectItem value="extern">Externi (EUR - {counts.externals})</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Reset buton */}
+              {(filterType !== "all" || filterRegime !== "all") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilterType("all");
+                    setFilterRegime("all");
+                  }}
+                  className="h-8 px-2.5 rounded-full text-xs font-semibold text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  Resetează
+                </button>
+              )}
+            </div>
+          }
           actions={row => (
             <div className="flex gap-1 justify-end">
               <Link
