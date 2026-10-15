@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Eye,
+  Filter,
 } from "lucide-react";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { toast } from "sonner";
@@ -21,6 +22,9 @@ export default function Clients() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [mutationError, setMutationError] = useState("");
+  const [filterType, setFilterType] = useState<"all" | "client" | "supplier">("all");
+  const [filterRegime, setFilterRegime] = useState<"all" | "intern" | "extern">("all");
+
   const [formData, setFormData] = useState({
     name: "",
     cui: "",
@@ -33,6 +37,7 @@ export default function Clients() {
     currency: "RON",
     regCom: "",
     tva: false,
+    isSupplier: 0,
   });
 
   // Fetch clients
@@ -58,8 +63,10 @@ export default function Clients() {
         currency: "RON",
         regCom: "",
         tva: false,
+        isSupplier: 0,
       });
       setShowForm(false);
+      toast.success("Partener adăugat cu succes.");
     },
     onError: (err) => {
       setMutationError("Eroare creare: " + err.message);
@@ -82,9 +89,11 @@ export default function Clients() {
         currency: "RON",
         regCom: "",
         tva: false,
+        isSupplier: 0,
       });
       setEditingId(null);
       setShowForm(false);
+      toast.success("Partener actualizat cu succes.");
     },
     onError: (err) => {
       setMutationError("Eroare la actualizare: " + err.message);
@@ -95,22 +104,12 @@ export default function Clients() {
   const deleteMutation = trpc.clients.delete.useMutation({
     onSuccess: () => {
       refetch();
+      toast.success("Partener șters.");
     },
     onError: (err) => {
       toast.error("Eroare la ștergere: " + err.message);
     }
   });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name.trim()) return;
-
-    if (editingId) {
-      updateMutation.mutate({ id: editingId, ...formData });
-    } else {
-      createMutation.mutate(formData);
-    }
-  };
 
   const handleEdit = (client: any) => {
     setFormData({
@@ -125,6 +124,7 @@ export default function Clients() {
       currency: client.currency || "RON",
       regCom: client.regCom || "",
       tva: !!client.tva,
+      isSupplier: client.isSupplier ?? 0,
     });
     setEditingId(client.id);
     setShowForm(true);
@@ -136,19 +136,84 @@ export default function Clients() {
     setDeleteTarget(id);
   };
 
+  // KPIs
+  const counts = useMemo(() => {
+    let total = clients.length;
+    let suppliers = 0;
+    let clientsCount = 0;
+    let externals = 0;
+    let internals = 0;
+
+    for (const c of clients) {
+      if (c.isSupplier === 1) suppliers++;
+      else clientsCount++;
+
+      const isExt =
+        (c.currency || "").toUpperCase() === "EUR" ||
+        (c.country && c.country.toUpperCase() !== "RO");
+      if (isExt) externals++;
+      else internals++;
+    }
+
+    return { total, suppliers, clientsCount, externals, internals };
+  }, [clients]);
+
+  // Processed and filtered partners
+  const processedClients = useMemo(() => {
+    return clients
+      .map((c: any) => {
+        const isExt =
+          (c.currency || "").toUpperCase() === "EUR" ||
+          (c.country && c.country.toUpperCase() !== "RO");
+        return {
+          ...c,
+          regime: isExt ? "EXTERN" : "INTERN",
+          typeLabel: c.isSupplier === 1 ? "FURNIZOR" : "CLIENT",
+        };
+      })
+      .filter((c: any) => {
+        if (filterType === "client" && c.isSupplier === 1) return false;
+        if (filterType === "supplier" && c.isSupplier !== 1) return false;
+
+        if (filterRegime === "intern" && c.regime !== "INTERN") return false;
+        if (filterRegime === "extern" && c.regime !== "EXTERN") return false;
+
+        return true;
+      });
+  }, [clients, filterType, filterRegime]);
+
   const columns: DataTableColumn<any>[] = [
     {
       key: "type",
       label: "TIP",
+      sortable: true,
       render: (_: any, row: any) => (
         <div className="whitespace-nowrap">
           {row.isSupplier === 1 ? (
-            <span className="px-1.5 py-0.5 rounded-md bg-orange-100 text-orange-700 border border-orange-200 text-[9px] font-bold uppercase tracking-wider">
+            <span className="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[10px] font-bold uppercase tracking-wider">
               Furnizor
             </span>
           ) : (
-            <span className="px-1.5 py-0.5 rounded-md bg-blue-100 text-blue-700 border border-blue-200 text-[9px] font-bold uppercase tracking-wider">
+            <span className="px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-[10px] font-bold uppercase tracking-wider">
               Client
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "regime",
+      label: "REGIM",
+      sortable: true,
+      render: (val: string, row: any) => (
+        <div className="whitespace-nowrap">
+          {val === "EXTERN" ? (
+            <span className="px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-[10px] font-bold uppercase tracking-wider">
+              Extern ({row.currency || "EUR"})
+            </span>
+          ) : (
+            <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[10px] font-bold uppercase tracking-wider">
+              Intern (RON)
             </span>
           )}
         </div>
@@ -161,7 +226,7 @@ export default function Clients() {
       render: (val: string, row: any) => (
         <Link
           href={`/client/${row.id}`}
-          className="font-semibold text-blue-600 hover:underline whitespace-nowrap"
+          className="font-semibold text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap"
         >
           {val}
         </Link>
@@ -169,8 +234,16 @@ export default function Clients() {
     },
     {
       key: "cui",
-      label: "CUI",
+      label: "CUI / CIF",
       sortable: true,
+      render: (val: string) =>
+        val ? (
+          <span className="font-mono text-slate-700 dark:text-slate-300 font-medium">
+            {val}
+          </span>
+        ) : (
+          <span className="text-slate-400 text-xs">-</span>
+        ),
     },
     {
       key: "sagaCode",
@@ -189,36 +262,39 @@ export default function Clients() {
       key: "city",
       label: "ORAȘ",
       sortable: true,
+      render: (val: string) => val || "-",
     },
     {
-      key: "address",
-      label: "ADRESĂ",
+      key: "country",
+      label: "ȚARĂ",
       sortable: true,
       render: (val: string) => (
-        <div className="truncate max-w-[200px]" title={val}>
-          {val || "-"}
-        </div>
+        <span className="font-mono text-xs text-slate-600 dark:text-slate-400">
+          {val || "RO"}
+        </span>
       ),
-    },
-    {
-      key: "email",
-      label: "EMAIL",
-      sortable: true,
-    },
-    {
-      key: "phone",
-      label: "TELEFON",
-      sortable: true,
     },
     {
       key: "currency",
       label: "MONEDĂ",
       sortable: true,
       render: (value: string) => (
-        <span className="inline-block px-2 py-1 rounded-full text-xs font-normal bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
-          {value}
+        <span className="inline-block px-2 py-0.5 rounded text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+          {value || "RON"}
         </span>
       ),
+    },
+    {
+      key: "phone",
+      label: "TELEFON",
+      sortable: true,
+      render: (val: string) => val || "-",
+    },
+    {
+      key: "email",
+      label: "EMAIL",
+      sortable: true,
+      render: (val: string) => val || "-",
     },
   ];
 
@@ -226,24 +302,25 @@ export default function Clients() {
     <div className="p-3 sm:p-5 max-w-full space-y-3">
       <ConfirmModal
         isOpen={deleteTarget !== null}
-        title="Ștergere Client"
-        message="Această acțiune este ireversibilă. Ești sigur că vrei să ștergi acest client?"
+        title="Ștergere Partener"
+        message="Această acțiune este ireversibilă. Ești sigur că vrei să ștergi acest partener?"
         onCancel={() => setDeleteTarget(null)}
         onConfirm={() => {
           if (deleteTarget !== null) deleteMutation.mutate({ id: deleteTarget });
           setDeleteTarget(null);
         }}
       />
+
       {/* Header + KPI — ascunse când formularul e deschis */}
       {!showForm && (
         <>
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div>
               <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
-                Clienți
+                Parteneri (Clienți & Furnizori)
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Total: <strong>{clients.length}</strong> clienți
+                Total: <strong>{counts.total}</strong> parteneri ({counts.clientsCount} clienți, {counts.suppliers} furnizori)
               </p>
             </div>
             <button
@@ -252,6 +329,7 @@ export default function Clients() {
                 setFormData({
                   name: "",
                   cui: "",
+                  sagaCode: "",
                   address: "",
                   city: "",
                   country: "",
@@ -260,16 +338,17 @@ export default function Clients() {
                   currency: "RON",
                   regCom: "",
                   tva: false,
+                  isSupplier: 0,
                 });
                 setShowForm(true);
               }}
               className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors shadow-sm"
             >
               <Plus className="w-3.5 h-3.5" />
-              Client nou
+              Partener nou
             </button>
           </div>
-          
+
           {mutationError && !showForm && (
             <div className="p-3 mb-4 rounded bg-red-50 text-red-600 border border-red-200 text-sm">
               <AlertCircle className="w-4 h-4 inline mr-2" />
@@ -278,33 +357,37 @@ export default function Clients() {
           )}
 
           {/* KPI Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {[
               {
-                label: "Total Clienți",
-                value: clients.length,
+                label: "Total Parteneri",
+                value: counts.total,
                 cls: "text-slate-900 dark:text-white",
               },
               {
-                label: "Cu TVA",
-                value: clients.filter((c: any) => c.tva).length,
+                label: "Clienți",
+                value: counts.clientsCount,
                 cls: "text-blue-600",
               },
               {
                 label: "Furnizori",
-                value: clients.filter((c: any) => c.isSupplier === 1).length,
-                cls: "text-purple-600",
+                value: counts.suppliers,
+                cls: "text-amber-600",
               },
               {
-                label: "Orașe Unice",
-                value: new Set(clients.map((c: any) => c.city).filter(Boolean))
-                  .size,
-                cls: "text-amber-600",
+                label: "Externi (EUR)",
+                value: counts.externals,
+                cls: "text-indigo-600",
+              },
+              {
+                label: "Interni (RON)",
+                value: counts.internals,
+                cls: "text-slate-700 dark:text-slate-300",
               },
             ].map(k => (
               <div
                 key={k.label}
-                className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4"
+                className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-3 shadow-sm"
               >
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
                   {k.label}
@@ -320,7 +403,7 @@ export default function Clients() {
       {showForm && (
         <div className="flex items-center justify-between">
           <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
-            Clienți
+            {editingId ? "Editare Partener" : "Adăugare Partener Nou"}
           </h1>
         </div>
       )}
@@ -356,30 +439,112 @@ export default function Clients() {
         </div>
       )}
 
-      {/* Tabel */}
+      {/* Tabel cu Filtre Integrate */}
       {!showForm && (
         <DataTable
           columns={columns}
-          data={clients}
+          data={processedClients}
           rowKey="id"
           isLoading={isLoading}
+          headerContent={
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Filtru Tip: Client vs Furnizor */}
+              <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 p-0.5 bg-slate-100 dark:bg-slate-800 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setFilterType("all")}
+                  className={`px-2.5 py-1 rounded font-semibold transition-colors ${
+                    filterType === "all"
+                      ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  Toți ({counts.total})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterType("client")}
+                  className={`px-2.5 py-1 rounded font-semibold transition-colors ${
+                    filterType === "client"
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  Clienți ({counts.clientsCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterType("supplier")}
+                  className={`px-2.5 py-1 rounded font-semibold transition-colors ${
+                    filterType === "supplier"
+                      ? "bg-amber-600 text-white shadow-sm"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  Furnizori ({counts.suppliers})
+                </button>
+              </div>
+
+              {/* Filtru Regim: Intern vs Extern */}
+              <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 p-0.5 bg-slate-100 dark:bg-slate-800 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setFilterRegime("all")}
+                  className={`px-2.5 py-1 rounded font-semibold transition-colors ${
+                    filterRegime === "all"
+                      ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  Toate Piețele
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterRegime("intern")}
+                  className={`px-2.5 py-1 rounded font-semibold transition-colors ${
+                    filterRegime === "intern"
+                      ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  Interni ({counts.internals})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterRegime("extern")}
+                  className={`px-2.5 py-1 rounded font-semibold transition-colors ${
+                    filterRegime === "extern"
+                      ? "bg-indigo-600 text-white shadow-sm"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  Externi ({counts.externals})
+                </button>
+              </div>
+            </div>
+          }
           actions={row => (
             <div className="flex gap-1 justify-end">
               <Link
                 href={`/client/${row.id}`}
-                className="w-6 h-6 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition-colors flex items-center justify-center"
+                title="Vizualizare detalii partener"
+                className="w-6 h-6 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors flex items-center justify-center"
               >
                 <Eye className="w-3 h-3" />
               </Link>
               <button
+                type="button"
                 onClick={() => handleEdit(row)}
-                className="w-6 h-6 rounded-lg border border-slate-200 bg-white hover:bg-blue-50 text-blue-600 transition-colors flex items-center justify-center"
+                title="Editare partener"
+                className="w-6 h-6 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors flex items-center justify-center"
               >
                 <Edit2 className="w-3 h-3" />
               </button>
               <button
+                type="button"
                 onClick={() => handleDelete(row.id)}
-                className="w-6 h-6 rounded-lg border border-slate-200 bg-white hover:bg-red-50 text-red-600 transition-colors flex items-center justify-center"
+                title="Ștergere partener"
+                className="w-6 h-6 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors flex items-center justify-center"
               >
                 <Trash2 className="w-3 h-3" />
               </button>
@@ -391,7 +556,7 @@ export default function Clients() {
   );
 }
 
-// ── Formular Client cu ANAF auto-fill ──────────────────────────────
+// ── Formular Partener cu ANAF auto-fill ──────────────────────────────
 type ClientFormData = {
   name: string;
   cui: string;
@@ -404,6 +569,7 @@ type ClientFormData = {
   currency: string;
   regCom: string;
   tva: boolean;
+  isSupplier: number;
 };
 
 function ClientForm({
@@ -424,12 +590,13 @@ function ClientForm({
     sagaCode: initial.sagaCode || "",
     regCom: (initial as any).regCom || "",
     tva: (initial as any).tva ?? false,
+    isSupplier: initial.isSupplier ?? 0,
   });
   const [cuiLoading, setCuiLoading] = useState(false);
   const [cuiError, setCuiError] = useState("");
   const [cuiFilled, setCuiFilled] = useState(false);
 
-  const set = (k: keyof ClientFormData, v: string) =>
+  const set = (k: keyof ClientFormData, v: any) =>
     setData(p => ({ ...p, [k]: v }));
 
   const lookupCui = async () => {
@@ -456,6 +623,7 @@ function ClientForm({
           city: d.oras || prev.city,
           country: d.country || euMatch[1].toUpperCase(),
           cui: d.cui || rawCui.toUpperCase(),
+          currency: "EUR",
           tva: true,
         }));
         setCuiFilled(true);
@@ -480,7 +648,7 @@ function ClientForm({
         city: d.judet || prev.city,
         country: prev.country || "RO",
         regCom: d.nrRegCom || prev.regCom,
-        tva: d.tva ? 1 : 0,
+        tva: d.tva ? true : false,
       }));
       setCuiFilled(true);
     } catch {
@@ -498,16 +666,45 @@ function ClientForm({
   return (
     <div className="p-6 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-5">
       <h3 className="text-base font-bold text-slate-900 dark:text-white">
-        {editingId ? "Editează Client" : "Client Nou"}
+        {editingId ? "Editează Partener" : "Partener Nou"}
       </h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* CUI cu auto-fill — primul, că populează restul */}
+        {/* Tip Partener: Client vs Furnizor */}
+        <div className="md:col-span-2">
+          <label className={lbl}>Tip Partener</label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => set("isSupplier", 0)}
+              className={`h-10 px-3 rounded-lg border text-xs font-bold uppercase tracking-wider transition-all ${
+                data.isSupplier === 0
+                  ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 shadow-sm"
+                  : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
+              }`}
+            >
+              Client (Vânzări / Facturi)
+            </button>
+            <button
+              type="button"
+              onClick={() => set("isSupplier", 1)}
+              className={`h-10 px-3 rounded-lg border text-xs font-bold uppercase tracking-wider transition-all ${
+                data.isSupplier === 1
+                  ? "border-amber-500 bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 shadow-sm"
+                  : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
+              }`}
+            >
+              Furnizor (Achiziții / NIR)
+            </button>
+          </div>
+        </div>
+
+        {/* CUI cu auto-fill */}
         <div>
           <label className={lbl}>CUI / CIF</label>
           <div className="flex gap-2">
             <input
-              className={inp + " flex-1"}
+              className={inp + " flex-1 font-mono"}
               placeholder="CIF / CUI"
               value={data.cui}
               onChange={e => {
@@ -540,35 +737,35 @@ function ClientForm({
           )}
           {cuiFilled && (
             <div className="flex items-center gap-1 mt-1.5 text-xs text-green-600">
-              <CheckCircle2 className="w-3 h-3" /> Date completate din ANAF
+              <CheckCircle2 className="w-3 h-3" /> Date completate automat
             </div>
           )}
         </div>
 
         {/* Nume */}
         <div>
-          <label className={lbl}>Denumire firmă *</label>
+          <label className={lbl}>Denumire firmă / Nume *</label>
           <input
             className={inp}
-            placeholder="Denumire firmă"
+            placeholder="Denumire partener"
             required
             value={data.name}
             onChange={e => set("name", e.target.value)}
           />
         </div>
 
-        {/* Cod SAGA + Reg. Com. + TVA */}
+        {/* Cod SAGA + Reg. Com. */}
         <div>
           <label className={lbl}>Cod SAGA (Partener)</label>
           <input
-            className={inp}
+            className={inp + " font-mono"}
             placeholder="ex: 00001 sau 01209"
             value={data.sagaCode || ""}
             onChange={e => set("sagaCode", e.target.value)}
           />
         </div>
         <div>
-          <label className={lbl}>Reg. Com. (J..)</label>
+          <label className={lbl}>Nr. Reg. Comerț (J..)</label>
           <input
             className={inp}
             placeholder="Nr. Reg. Comerț"
@@ -576,6 +773,8 @@ function ClientForm({
             onChange={e => set("regCom", e.target.value)}
           />
         </div>
+
+        {/* Status TVA */}
         <div className="md:col-span-2">
           <label className={lbl}>Status TVA</label>
           <button
@@ -605,7 +804,7 @@ function ClientForm({
           />
         </div>
 
-        {/* Oraș + Țară + Monedă (pe același rând) */}
+        {/* Oraș + Țară + Monedă */}
         <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className={lbl}>Județ / Oraș</label>
@@ -626,15 +825,15 @@ function ClientForm({
             />
           </div>
           <div>
-            <label className={lbl}>Monedă</label>
+            <label className={lbl}>Monedă (Regim)</label>
             <select
               className={inp}
               value={data.currency}
               onChange={e => set("currency", e.target.value)}
             >
-              <option value="RON">RON — Leu românesc</option>
-              <option value="EUR">EUR — Euro</option>
-              <option value="USD">USD — Dolar</option>
+              <option value="RON">RON — Intern (România)</option>
+              <option value="EUR">EUR — Extern (Export / UE)</option>
+              <option value="USD">USD — Extern (Valută)</option>
             </select>
           </div>
         </div>
@@ -674,7 +873,7 @@ function ClientForm({
           onClick={() => onSubmit(data)}
         >
           {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
-          {editingId ? "Actualizează" : "Adaugă client"}
+          {editingId ? "Actualizează partener" : "Adaugă partener"}
         </Button>
       </div>
     </div>

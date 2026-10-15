@@ -1348,6 +1348,7 @@ export const appRouter = router({
           currency: z.string().optional(),
           regCom: z.string().optional(),
           tva: z.boolean().optional(),
+          isSupplier: z.coerce.number().optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -1372,6 +1373,7 @@ export const appRouter = router({
           currency: z.string().optional(),
           regCom: z.string().optional(),
           tva: z.coerce.boolean().optional(),
+          isSupplier: z.coerce.number().optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {

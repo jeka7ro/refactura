@@ -480,6 +480,8 @@ type ClientRow = {
   email?: string;
   phone?: string;
   currency?: string;
+  sagaCode?: string;
+  isSupplier?: number;
   totalInvoiced?: string;
   invoiceCount?: number;
   reInvoiceCount?: number;
@@ -511,12 +513,14 @@ export async function createClient(data: {
   email?: string;
   phone?: string;
   currency?: string;
+  isSupplier?: number;
 }) {
   const db = await getDb();
   if (!db) {
     const row: ClientRow = {
       ...data,
       tva: data.tva ? 1 : 0,
+      isSupplier: data.isSupplier ?? 0,
       id: _memClientSeq++,
       isActive: 1,
       totalInvoiced: "0.00",
@@ -552,6 +556,7 @@ export async function updateClient(
     email: string;
     phone: string;
     currency: string;
+    isSupplier: number;
   }>
 ) {
   const db = await getDb();
