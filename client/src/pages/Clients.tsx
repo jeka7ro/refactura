@@ -381,12 +381,6 @@ export default function Clients() {
         );
       },
     },
-    {
-      key: "phone",
-      label: "TELEFON",
-      sortable: true,
-      render: (val: string) => val || "-",
-    },
   ];
 
   return (
