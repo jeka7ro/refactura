@@ -585,6 +585,19 @@ export default function ContractsList() {
                             <Download className="h-4 w-4" />
                           </a>
                         </Button>
+
+                        {/* Buton Download Word (.docx) */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          asChild
+                          className="h-8 w-8 rounded-xl text-slate-600 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                          title="Descarcă Word (.docx)"
+                        >
+                          <a href={`/api/pdf/contract/${c.id}?download=1&format=word`} download>
+                            <FileText className="h-4 w-4 text-blue-600" />
+                          </a>
+                        </Button>
                       </div>
                     </td>
                   </tr>

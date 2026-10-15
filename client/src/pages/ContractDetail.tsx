@@ -202,6 +202,18 @@ export default function ContractDetail() {
           <Button
             variant="outline"
             size="sm"
+            asChild
+            className="rounded-xl border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-blue-700 dark:text-blue-300"
+          >
+            <a href={`${pdfUrl}?download=1&format=word`} download>
+              <FileText className="h-4 w-4 mr-1.5 text-blue-600" />
+              Descarcă Word (.docx)
+            </a>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => {
               const iframe = document.getElementById("pdf-frame") as HTMLIFrameElement;
               if (iframe?.contentWindow) {

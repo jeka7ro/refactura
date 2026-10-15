@@ -2245,7 +2245,47 @@ export function registerPdfRoute(app: any) {
       }
 
       const isDownload = req.query.download === "1";
+      const isWord = req.query.format === "word" || req.query.docx === "1";
       const safeFilename = `${contract.type.toUpperCase()}_${contract.number.replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`;
+
+      // 0. Daca s-a cerut format Word (.docx)
+      if (isWord) {
+        const safeDocxFilename = `${contract.type.toUpperCase()}_${contract.number.replace(/[^a-zA-Z0-9_-]/g, "_")}.docx`;
+        const docxPath = contract.fileUrl?.replace(/\.pdf$/i, ".docx");
+        const relativeDocx = docxPath ? (docxPath.startsWith("/") ? docxPath.slice(1) : docxPath) : null;
+
+        const docxCandidates = [
+          relativeDocx ? path.resolve(process.cwd(), relativeDocx) : null,
+          relativeDocx ? path.resolve(process.cwd(), "dist", "public", relativeDocx) : null,
+          relativeDocx ? path.resolve(process.cwd(), "public", relativeDocx) : null,
+        ].filter(Boolean) as string[];
+
+        let foundDocx: string | null = null;
+        for (const c of docxCandidates) {
+          if (fs.existsSync(c)) {
+            foundDocx = c;
+            break;
+          }
+        }
+        if (!foundDocx) {
+          const dir = path.resolve(process.cwd(), "contracte");
+          if (fs.existsSync(dir)) {
+            const files = fs.readdirSync(dir);
+            const match = files.find(f => f.includes(String(contract.number)) && f.endsWith(".docx"));
+            if (match) foundDocx = path.join(dir, match);
+          }
+        }
+
+        if (foundDocx) {
+          res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+          res.setHeader(
+            "Content-Disposition",
+            `attachment; filename="${safeDocxFilename}"`
+          );
+          fs.createReadStream(foundDocx).pipe(res);
+          return;
+        }
+      }
 
       // 1. Daca exista fisier uploadat direct, il servim
       if (contract.fileUrl) {

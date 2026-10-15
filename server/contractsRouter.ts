@@ -549,6 +549,74 @@ export const contractsRouter = router({
   getTemplates: protectedProcedure.query(async () => {
     return [
       {
+        id: "contract-woodglass-oficial",
+        name: "Contract Vânzare-Cumpărare Tâmplărie Lemn Stratificat (Model Oficial Wood Glass)",
+        type: "contract",
+        description: "Șablonul oficial S.C. WOOD GLASS S.R.L. utilizat pentru producție tâmplărie lemn stratificat Pin/Stejar 68mm, avans 50%, garanție 3 ani și livrare 60 zile",
+        contentHtml: `
+<h2>CONTRACT DE VÂNZARE-CUMPĂRARE</h2>
+<p><strong>Nr. {{contract.number}} din data de {{contract.date}}</strong></p>
+
+<h3>PĂRȚILE CONTRACTANTE</h3>
+<p><strong>1. S.C. WOOD GLASS S.R.L.</strong>, cu sediul în Brașov, Str. Zizinului nr. 625, înregistrată la Oficiul Comerțului sub nr. J2011000729084, CUI RO28396216, cont RON: RO43INGB0000999915654676, cont EURO: RO59INGB0000999915654679, deschis la ING Brașov, reprezentată prin dl. Șaran Vitalie, în calitate de <strong>Furnizor</strong>,</p>
+<p>și</p>
+<p><strong>2. {{partner.name}}</strong>, cu sediul / domiciliul în {{partner.city}}, {{partner.address}}, identificată prin CUI/CNP/VAT {{partner.cui}}, reprezentată prin {{partner.delegat}}, în calitate de <strong>Beneficiar</strong>,</p>
+<p>au convenit să încheie prezentul contract de vânzare-cumpărare cu respectarea următoarelor clauze:</p>
+
+<h3>A. OBIECTUL CONTRACTULUI</h3>
+<p>Furnizorul se obligă să producă (și să transporte), iar Beneficiarul acceptă să cumpere <strong>Tâmplărie din Lemn Stratificat (esență Pin/Stejar 68 mm)</strong>, conform Ofertei de preț nr. {{contract.offerNumber}} / {{contract.offerDate}}, care face parte integrantă din prezentul contract.<br/>
+Mărfurile care fac obiectul prezentului contract vor fi executate și livrate la adresa stabilită de Beneficiar.<br/>
+Specificațiile tehnice detaliate (dimensiuni, finisaje, accesorii și caracteristici de montaj) sunt incluse în anexele contractului.</p>
+
+<h3>B. GARANȚII ȘI RISCURI</h3>
+<p>Furnizorul garantează bunurile vândute împotriva evicțiunii și contra viciilor ascunse. La recepția lucrării și achitarea integrală a prețului, Beneficiarul va primi certificatul de garanție corespunzător lucrării prestate de Furnizor. <strong>Garanția oferită este de 3 ani.</strong><br/>
+Proprietatea asupra mărfii trece de la Furnizor la Beneficiar în momentul achitării integrale a produselor livrate.</p>
+
+<h3>C. VALOAREA CONTRACTULUI</h3>
+<p>Valoarea lucrărilor ce fac obiectul prezentului contract este de <strong>{{contract.value}} {{contract.currency}}</strong>.</p>
+
+<h3>D. MODALITĂȚI DE PLATĂ</h3>
+<p>Plățile se vor efectua astfel, pe baza facturii emise de Furnizor pentru fiecare tranșă:<br/>
+• <strong>50%</strong> se va achita la data semnării prezentului contract (avans);<br/>
+• <strong>50%</strong> se va achita cu cinci zile înainte de livrare.<br/>
+Livrarea produselor este condiționată de achitarea integrală a prețului contractului.<br/>
+Plata se va efectua în contul Furnizorului deschis la ING Brașov (RON: RO43INGB0000999915654676 / EURO: RO59INGB0000999915654679).</p>
+
+<h3>E. TERMEN DE LIVRARE</h3>
+<p>Furnizorul se obligă să producă mărfurile ce fac obiectul prezentului contract în termen de <strong>60 de zile calendaristice</strong> de la plata avansului și a confirmării tuturor detaliilor tehnice necesare execuției.</p>
+
+<h3>F. RECEPȚIA LUCRĂRILOR</h3>
+<p>Recepția mărfurilor se consideră efectuată în momentul livrării la adresa indicată de Beneficiar, conform documentului de transport (CMR / Proces-Verbal) semnat de acesta sau de reprezentantul său.</p>
+
+<h3>G. RĂSPUNDEREA CONTRACTUALĂ</h3>
+<p>Dacă Beneficiarul întârzie plata produselor, va plăti penalități de <strong>0,1%</strong> din suma datorată pentru fiecare zi de întârziere.<br/>
+Dacă Furnizorul întârzie livrarea produselor față de termenul contractual, va plăti penalități de <strong>0,1%</strong> din valoarea produselor nelivrate pentru fiecare zi de întârziere.</p>
+
+<h3>H. FORȚA MAJORĂ</h3>
+<p>Forța majoră exonerează de răspundere partea care o invocă în condițiile legii, cu condiția notificării scrise în termen de 3 zile de la apariția cazului respectiv.</p>
+
+<h3>I. CLAUZE FINALE ȘI LITIGII</h3>
+<p>Eventualele litigii vor fi soluționate pe cale amiabilă sau de instanțele competente din România, respectiv Tribunalul Brașov. Prezentul contract este guvernat de legea română.</p>
+
+<table style="width: 100%; margin-top: 40px;">
+  <tr>
+    <td style="width: 50%; vertical-align: top;">
+      <strong>FURNIZOR</strong><br/>
+      S.C. WOOD GLASS S.R.L.<br/>
+      Reprezentant: ȘARAN VITALIE<br/>
+      Semnătură: __________________________
+    </td>
+    <td style="width: 50%; vertical-align: top;">
+      <strong>BENEFICIAR</strong><br/>
+      {{partner.name}}<br/>
+      Reprezentant: {{partner.delegat}}<br/>
+      Semnătură: __________________________
+    </td>
+  </tr>
+</table>
+`,
+      },
+      {
         id: "contract-cadru-woodglass",
         name: "Contract Cadru de Furnizare & Montaj Tâmplărie / Sticlă",
         type: "contract",
