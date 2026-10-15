@@ -99,11 +99,20 @@ const navItems: NavItem[] = [
       { href: "/facturi", label: "Evidență Facturi", icon: FileText },
       { href: "/facturi-emise-nou", label: "Facturi Emise", icon: FileOutput },
       { href: "/devize", label: "Devize de Lucrări", icon: FileText },
-      { href: "/contracte", label: "Contracte & Documente", icon: FileSignature },
       { href: "/re-facturi", label: "Re-Facturi", icon: FileOutput },
       { href: "/arhiva-facturi", label: "Arhivă Facturi", icon: Archive },
       { href: "/jurnal-spv", label: "Jurnal SPV", icon: FileText },
       { href: "/evidenta-emailuri", label: "Evidență Emailuri", icon: Mail },
+    ],
+  },
+  {
+    href: "/contracte",
+    label: "Contracte & Documente",
+    icon: FileSignature,
+    section: "documente",
+    subItems: [
+      { href: "/contracte", label: "Bibliotecă Contracte", icon: FileSignature },
+      { href: "/contracte/new", label: "Adaugă / Încarcă Document", icon: Plus },
     ],
   },
   {
@@ -163,6 +172,7 @@ const adminNavItems: NavItem[] = [
 const mobileNavItems = [
   { href: "/dashboard", label: "Acasă", icon: LayoutDashboard },
   { href: "/facturi", label: "Facturi", icon: FileText },
+  { href: "/contracte", label: "Contracte", icon: FileSignature },
   { href: "/nir", label: "Gestiune", icon: PackageOpen },
 
   { href: "/setari", label: "Setări", icon: Settings },
