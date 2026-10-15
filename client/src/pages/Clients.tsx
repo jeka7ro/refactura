@@ -41,10 +41,15 @@ export default function Clients() {
   const { data: currentTenant } = trpc.tenants.current.useQuery();
   const { data: tenantsList = [] } = trpc.tenants.list.useQuery();
   const switchTenantMutation = trpc.tenants.switchTenant.useMutation({
-    onSuccess: () => {
-      utils.clients.list.invalidate();
-      utils.tenants.current.invalidate();
+    onSuccess: (data) => {
+      if (data?.token) {
+        localStorage.setItem("authToken", data.token);
+      }
+      try {
+        sessionStorage.clear();
+      } catch {}
       toast.success("Compania activă a fost schimbată.");
+      window.location.reload();
     },
     onError: (err) => {
       toast.error("Eroare schimbare companie: " + err.message);

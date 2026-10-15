@@ -353,10 +353,25 @@ export async function getTenantsByUser(userId: number) {
   if (!db) return [];
 
   return db
-    .select()
+    .select({
+      id: tenants.id,
+      name: tenants.name,
+      email: tenants.email,
+      phone: tenants.phone,
+      address: tenants.address,
+      cui: tenants.cui,
+      subscriptionPlanId: tenants.subscriptionPlanId,
+      subscriptionStatus: tenants.subscriptionStatus,
+      subscriptionStartDate: tenants.subscriptionStartDate,
+      subscriptionEndDate: tenants.subscriptionEndDate,
+      settings: tenants.settings,
+      createdAt: tenants.createdAt,
+      updatedAt: tenants.updatedAt,
+      role: userTenants.role,
+    })
     .from(tenants)
     .innerJoin(userTenants, eq(userTenants.tenantId, tenants.id))
-    .where(eq(userTenants.userId, userId));
+    .where(and(eq(userTenants.userId, userId), eq(userTenants.isActive, 1)));
 }
 
 export async function getUserRole(userId: number, tenantId: number) {

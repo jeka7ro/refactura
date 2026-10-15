@@ -257,9 +257,15 @@ export default function Dashboard() {
   const liveUsdRate = bnrData?.rates?.USD || DEFAULT_USD_TO_RON;
 
   const switchTenantMutation = trpc.tenants.switchTenant.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
+      if (data?.token) {
+        localStorage.setItem("authToken", data.token);
+      }
+      try {
+        sessionStorage.clear();
+      } catch {}
       toast.success("Companie comutată cu succes!");
-      utils.invalidate();
+      window.location.reload();
     },
     onError: (err) => {
       toast.error("Eroare la comutare companie: " + err.message);

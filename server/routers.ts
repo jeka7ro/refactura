@@ -542,7 +542,7 @@ export const appRouter = router({
         const { accounts, userTenants } = await import("../drizzle/schema");
         const { eq, and } = await import("drizzle-orm");
 
-        // Verificare strictă de securitate: tenant-ul trebuie să fie explicit asignat utilizatorului în userTenants
+        // Verificare strictă de securitate: tenant-ul trebuie să fie explicit asignat utilizatorului în userTenants sau utilizatorul e superadmin
         const [hasAccess] = await db
           .select()
           .from(userTenants)
@@ -554,8 +554,17 @@ export const appRouter = router({
             )
           );
 
-        if (!hasAccess) {
+        if (!hasAccess && ctx.user.role !== "superadmin") {
           throw new Error("Acces interzis: datele fiecărui tenant sunt strict confidențiale.");
+        }
+
+        if (!hasAccess && ctx.user.role === "superadmin") {
+          await db.insert(userTenants).values({
+            userId: ctx.user.id,
+            tenantId: input.tenantId,
+            role: "superadmin",
+            isActive: 1,
+          });
         }
 
         await db
@@ -563,7 +572,14 @@ export const appRouter = router({
           .set({ tenantId: input.tenantId })
           .where(eq(accounts.id, ctx.user.id));
 
-        return { success: true, tenantId: input.tenantId };
+        const newToken = await createSessionToken({
+          accountId: ctx.user.id,
+          email: ctx.user.email || "",
+          role: ctx.user.role,
+          tenantId: input.tenantId,
+        });
+
+        return { success: true, tenantId: input.tenantId, token: newToken };
       }),
   }),
 
