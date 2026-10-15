@@ -290,93 +290,99 @@ export default function ContractsList() {
         </div>
 
         <div className="flex items-center gap-2.5 w-full sm:w-auto">
-          <Button
-            variant="outline"
+          <button
+            type="button"
             onClick={() => setShowImportModal(true)}
-            className="rounded-lg border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
+            className="h-10 px-4 inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold shadow-xs transition-colors box-border shrink-0"
           >
-            <Upload className="h-4 w-4 mr-2 text-primary" />
-            Importă Arhivă / Folder
-          </Button>
+            <Upload className="h-4 w-4 text-primary shrink-0" />
+            <span>Importă Arhivă / Folder</span>
+          </button>
 
-          <Button
-            asChild
-            className="rounded-lg bg-primary hover:bg-primary/90 text-white font-medium shadow-sm"
+          <Link
+            href="/contracte/new"
+            className="h-10 px-4 inline-flex items-center justify-center gap-2 rounded-lg border border-transparent bg-primary hover:bg-primary/90 text-white text-sm font-semibold shadow-sm transition-colors box-border shrink-0"
           >
-            <Link href="/contracte/new">
-              <Plus className="h-4 w-4 mr-2" />
-              Contract Nou
-            </Link>
-          </Button>
+            <Plus className="h-4 w-4 shrink-0" />
+            <span>Contract Nou</span>
+          </Link>
         </div>
       </div>
 
-      {/* KPI Cards - SmartDevize Rule 4: rounded-lg */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="rounded-lg border border-slate-200/80 dark:border-slate-800 bg-card p-5 shadow-sm transition-all hover:border-primary/40">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Contracte Active
-            </span>
-            <div className="h-9 w-9 rounded-lg bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600 dark:text-blue-400">
-              <FileCheck className="h-5 w-5" />
+      {/* KPI Cards - SmartDevize Rule 4: rounded-lg, inaltimi perfect egale si contur fin */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
+        <div className="h-full flex flex-col justify-between rounded-lg border border-slate-200/50 dark:border-slate-800/50 bg-card p-5 shadow-xs transition-all hover:border-primary/30">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Contracte Active
+              </span>
+              <div className="h-9 w-9 rounded-lg bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                <FileCheck className="h-5 w-5" />
+              </div>
+            </div>
+            <div className="mt-3 text-3xl font-extrabold text-slate-900 dark:text-white">
+              {loadingStats ? "..." : stats?.totalActive || 0}
             </div>
           </div>
-          <div className="mt-3 text-3xl font-extrabold text-slate-900 dark:text-white">
-            {loadingStats ? "..." : stats?.totalActive || 0}
-          </div>
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 min-h-[32px] flex items-center">
             Valabile și în derulare
           </div>
         </div>
 
-        <div className="rounded-lg border border-slate-200/80 dark:border-slate-800 bg-card p-5 shadow-sm transition-all hover:border-primary/40">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Acte Adiționale
-            </span>
-            <div className="h-9 w-9 rounded-lg bg-purple-50 dark:bg-purple-950/50 flex items-center justify-center text-purple-600 dark:text-purple-400">
-              <RefreshCw className="h-5 w-5" />
+        <div className="h-full flex flex-col justify-between rounded-lg border border-slate-200/50 dark:border-slate-800/50 bg-card p-5 shadow-xs transition-all hover:border-primary/30">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Acte Adiționale
+              </span>
+              <div className="h-9 w-9 rounded-lg bg-purple-50 dark:bg-purple-950/50 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                <RefreshCw className="h-5 w-5" />
+              </div>
+            </div>
+            <div className="mt-3 text-3xl font-extrabold text-slate-900 dark:text-white">
+              {loadingStats ? "..." : stats?.totalAddendums || 0}
             </div>
           </div>
-          <div className="mt-3 text-3xl font-extrabold text-slate-900 dark:text-white">
-            {loadingStats ? "..." : stats?.totalAddendums || 0}
-          </div>
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 min-h-[32px] flex items-center">
             Modificări de termene & prețuri
           </div>
         </div>
 
-        <div className="rounded-lg border border-slate-200/80 dark:border-slate-800 bg-card p-5 shadow-sm transition-all hover:border-primary/40">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Expiră în 30 Zile
-            </span>
-            <div className="h-9 w-9 rounded-lg bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400">
-              <Clock className="h-5 w-5" />
+        <div className="h-full flex flex-col justify-between rounded-lg border border-slate-200/50 dark:border-slate-800/50 bg-card p-5 shadow-xs transition-all hover:border-primary/30">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Expiră în 30 Zile
+              </span>
+              <div className="h-9 w-9 rounded-lg bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                <Clock className="h-5 w-5" />
+              </div>
+            </div>
+            <div className="mt-3 text-3xl font-extrabold text-slate-900 dark:text-white">
+              {loadingStats ? "..." : stats?.expiringSoon || 0}
             </div>
           </div>
-          <div className="mt-3 text-3xl font-extrabold text-slate-900 dark:text-white">
-            {loadingStats ? "..." : stats?.expiringSoon || 0}
-          </div>
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 min-h-[32px] flex items-center">
             Necesită reînnoire sau act adițional
           </div>
         </div>
 
-        <div className="rounded-lg border border-slate-200/80 dark:border-slate-800 bg-card p-5 shadow-sm transition-all hover:border-primary/40">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Fișiere Arhivate
-            </span>
-            <div className="h-9 w-9 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-              <ShieldCheck className="h-5 w-5" />
+        <div className="h-full flex flex-col justify-between rounded-lg border border-slate-200/50 dark:border-slate-800/50 bg-card p-5 shadow-xs transition-all hover:border-primary/30">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Fișiere Arhivate
+              </span>
+              <div className="h-9 w-9 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                <ShieldCheck className="h-5 w-5" />
+              </div>
+            </div>
+            <div className="mt-3 text-3xl font-extrabold text-slate-900 dark:text-white">
+              {loadingStats ? "..." : stats?.totalFiles || 0}
             </div>
           </div>
-          <div className="mt-3 text-3xl font-extrabold text-slate-900 dark:text-white">
-            {loadingStats ? "..." : stats?.totalFiles || 0}
-          </div>
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 min-h-[32px] flex items-center">
             PDF-uri stocate și indexate
           </div>
         </div>

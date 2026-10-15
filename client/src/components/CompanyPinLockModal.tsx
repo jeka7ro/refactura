@@ -672,14 +672,14 @@ export function CompanyPinLockModal({
         }
       `}</style>
 
-      {/* Fereastră Unică stil Apple (Ceas + Securitate Firmă) Centrată */}
+      {/* Fereastră Unică stil Apple (Ceas + Securitate Firmă) Centrată fără contur strident */}
       <div
-        className={`w-full max-w-md z-10 my-auto py-6 bg-black/30 dark:bg-black/45 backdrop-blur-3xl border border-white/[0.08] rounded-[36px] shadow-[0_25px_60px_rgba(0,0,0,0.4)] p-6 sm:p-8 space-y-6 text-white transition-all ${
+        className={`w-full max-w-md z-10 my-auto py-6 bg-black/40 dark:bg-black/55 backdrop-blur-3xl rounded-[36px] shadow-[0_30px_70px_rgba(0,0,0,0.6)] p-6 sm:p-8 space-y-6 text-white transition-all ${
           isShaking ? "animate-apple-shake ring-2 ring-rose-500/50" : "animate-in fade-in zoom-in-95 duration-300"
         }`}
       >
           {/* Header Ceas stil Apple */}
-          <div className="flex flex-col items-center justify-center text-center pb-5 border-b border-white/[0.08] select-none">
+          <div className="flex flex-col items-center justify-center text-center pb-5 border-b border-white/[0.04] select-none">
             {/* Rândul Apple: Data */}
             <div className="flex items-center justify-center text-white/90 text-sm sm:text-base font-medium tracking-wide mb-1.5">
               <span>{formatAppleDate(currentTime)}</span>
@@ -771,12 +771,12 @@ export function CompanyPinLockModal({
                   onClick={() => {
                     if (lockoutRemaining <= 0) inputRef.current?.focus();
                   }}
-                  className={`relative w-full h-12 flex items-center justify-center bg-white/10 dark:bg-black/40 border rounded-2xl transition-all ${
+                  className={`relative w-full h-12 flex items-center justify-center bg-white/[0.06] dark:bg-black/40 rounded-2xl transition-all ${
                     lockoutRemaining > 0
-                      ? "opacity-50 cursor-not-allowed border-amber-500/30"
+                      ? "opacity-50 cursor-not-allowed border border-amber-500/30"
                       : isInputFocused
-                      ? "border-white/40 ring-2 ring-white/20 cursor-text"
-                      : "border-white/[0.08] cursor-text"
+                      ? "border border-white/20 bg-white/[0.1] cursor-text"
+                      : "border border-white/[0.05] cursor-text"
                   }`}
                 >
                   <input
@@ -1059,16 +1059,16 @@ export function CompanyPinLockModal({
 
       {/* Widget Compact Vreme în Partea Dreaptă-Sus (Apple Frost Glass) */}
       {weather && (
-        <div className="fixed top-4 right-4 sm:top-5 sm:right-6 z-30 w-[240px] sm:w-[250px] bg-black/45 dark:bg-black/65 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl p-3 text-white transition-all animate-in fade-in slide-in-from-top-2 duration-300 select-none">
+        <div className="fixed top-4 right-4 sm:top-5 sm:right-6 z-30 w-[240px] sm:w-[250px] bg-black/50 dark:bg-black/70 backdrop-blur-2xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.55)] p-3 text-white transition-all animate-in fade-in slide-in-from-top-2 duration-300 select-none">
           {/* Header Locație & Live Badge */}
-          <div className="flex items-center justify-between pb-1.5 border-b border-white/[0.08]">
+          <div className="flex items-center justify-between pb-1.5 border-b border-white/[0.04]">
             <div className="flex items-center gap-1.5 min-w-0">
               <MapPin className="w-3 h-3 text-rose-400 shrink-0" />
               <span className="text-xs font-bold tracking-wide text-white truncate max-w-[155px]">
                 {weather.city}
               </span>
             </div>
-            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold tracking-wider uppercase bg-white/10 text-white/70 border border-white/10">
+            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold tracking-wider uppercase bg-white/10 text-white/70">
               Live
             </span>
           </div>
@@ -1089,7 +1089,7 @@ export function CompanyPinLockModal({
               )}
             </div>
 
-            <div className="flex items-center justify-center p-2 rounded-xl bg-white/[0.06] border border-white/10 shrink-0">
+            <div className="flex items-center justify-center p-2 rounded-xl bg-white/[0.04] shrink-0">
               {(() => {
                 const CurrentIcon = getWeatherIcon(weather.weatherCode);
                 const iconColor = getWeatherIconColor(weather.weatherCode);
@@ -1100,7 +1100,7 @@ export function CompanyPinLockModal({
 
           {/* Umiditate & Vânt */}
           {(weather.humidity !== undefined || weather.windSpeed !== undefined) && (
-            <div className="flex items-center justify-between text-[10px] text-white/70 pt-1 pb-1 border-t border-white/[0.06]">
+            <div className="flex items-center justify-between text-[10px] text-white/70 pt-1 pb-1 border-t border-white/[0.04]">
               {weather.humidity !== undefined && (
                 <span className="flex items-center gap-1">
                   <Droplets className="w-3 h-3 text-sky-400" />
