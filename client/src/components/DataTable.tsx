@@ -105,7 +105,7 @@ export function DataTable<T extends Record<string, any>>({
     <div className="space-y-2">
       {/* Search & Header Content */}
       {(searchable || headerContent) && (
-        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm px-3 py-2 flex flex-col sm:flex-row gap-3 justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm px-4 py-2.5 flex flex-col sm:flex-row gap-3 justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
           {searchable ? (
             <div style={{ position: "relative", width: "100%", maxWidth: 340 }}>
               <Search
@@ -150,7 +150,7 @@ export function DataTable<T extends Record<string, any>>({
       )}
 
       {/* Table card */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
             <thead>

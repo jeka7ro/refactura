@@ -202,24 +202,6 @@ export default function Clients() {
       ),
     },
     {
-      key: "regime",
-      label: "REGIM",
-      sortable: true,
-      render: (val: string, row: any) => (
-        <div className="whitespace-nowrap">
-          {val === "EXTERN" ? (
-            <span className="px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-[10px] font-bold uppercase tracking-wider">
-              Extern ({row.currency || "EUR"})
-            </span>
-          ) : (
-            <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[10px] font-bold uppercase tracking-wider">
-              Intern (RON)
-            </span>
-          )}
-        </div>
-      ),
-    },
-    {
       key: "name",
       label: "NUME PARTENER",
       sortable: true,
@@ -356,45 +338,117 @@ export default function Clients() {
             </div>
           )}
 
-          {/* KPI Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            {[
-              {
-                label: "Total Parteneri",
-                value: counts.total,
-                cls: "text-slate-900 dark:text-white",
-              },
-              {
-                label: "Clienți",
-                value: counts.clientsCount,
-                cls: "text-blue-600",
-              },
-              {
-                label: "Furnizori",
-                value: counts.suppliers,
-                cls: "text-amber-600",
-              },
-              {
-                label: "Externi (EUR)",
-                value: counts.externals,
-                cls: "text-indigo-600",
-              },
-              {
-                label: "Interni (RON)",
-                value: counts.internals,
-                cls: "text-slate-700 dark:text-slate-300",
-              },
-            ].map(k => (
-              <div
-                key={k.label}
-                className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-3 shadow-sm"
-              >
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                  {k.label}
+          {/* KPI Cards (Grid uniform, rotunjite 2xl, interactive ca filtre exact ca pe Facturi) */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-4 pb-2">
+            {/* TOTAL */}
+            <div
+              className={`bg-white dark:bg-slate-900 rounded-2xl border p-3 sm:p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md cursor-pointer ${
+                filterType === "all" && filterRegime === "all"
+                  ? "border-blue-500/60 ring-1 ring-blue-500/20"
+                  : "border-slate-200 dark:border-slate-800"
+              }`}
+              onClick={() => {
+                setFilterType("all");
+                setFilterRegime("all");
+              }}
+            >
+              <div>
+                <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 truncate">
+                  Total Parteneri
                 </p>
-                <p className={`text-xl font-black ${k.cls}`}>{k.value}</p>
+                <p className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white leading-none">
+                  {counts.total}
+                </p>
               </div>
-            ))}
+            </div>
+
+            {/* CLIENȚI */}
+            <div
+              className={`bg-white dark:bg-slate-900 rounded-2xl border p-3 sm:p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md cursor-pointer ${
+                filterType === "client" && filterRegime === "all"
+                  ? "border-blue-500/60 ring-1 ring-blue-500/20"
+                  : "border-slate-200 dark:border-slate-800"
+              }`}
+              onClick={() => {
+                setFilterType(filterType === "client" ? "all" : "client");
+                setFilterRegime("all");
+              }}
+            >
+              <div>
+                <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 truncate">
+                  Clienți
+                </p>
+                <p className="text-xl sm:text-2xl font-black text-blue-600 dark:text-blue-400 leading-none">
+                  {counts.clientsCount}
+                </p>
+              </div>
+            </div>
+
+            {/* FURNIZORI */}
+            <div
+              className={`bg-white dark:bg-slate-900 rounded-2xl border p-3 sm:p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md cursor-pointer ${
+                filterType === "supplier" && filterRegime === "all"
+                  ? "border-amber-500/60 ring-1 ring-amber-500/20"
+                  : "border-slate-200 dark:border-slate-800"
+              }`}
+              onClick={() => {
+                setFilterType(filterType === "supplier" ? "all" : "supplier");
+                setFilterRegime("all");
+              }}
+            >
+              <div>
+                <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 truncate">
+                  Furnizori
+                </p>
+                <p className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 leading-none">
+                  {counts.suppliers}
+                </p>
+              </div>
+            </div>
+
+            {/* EXTERNI (EUR) */}
+            <div
+              className={`bg-white dark:bg-slate-900 rounded-2xl border p-3 sm:p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md cursor-pointer ${
+                filterRegime === "extern"
+                  ? "border-indigo-500/60 ring-1 ring-indigo-500/20"
+                  : "border-slate-200 dark:border-slate-800"
+              }`}
+              onClick={() => {
+                setFilterRegime(filterRegime === "extern" ? "all" : "extern");
+                setFilterType("all");
+              }}
+            >
+              <div>
+                <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 truncate">
+                  Externi (EUR)
+                </p>
+                <p className="text-xl sm:text-2xl font-black text-indigo-600 dark:text-indigo-400 leading-none">
+                  {counts.externals}
+                </p>
+              </div>
+            </div>
+
+            {/* INTERNI (RON) */}
+            <div
+              className={`bg-white dark:bg-slate-900 rounded-2xl border p-3 sm:p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md cursor-pointer ${
+                filterRegime === "intern"
+                  ? "border-slate-500/60 ring-1 ring-slate-500/20"
+                  : "border-slate-200 dark:border-slate-800"
+              }`}
+              onClick={() => {
+                setFilterRegime(filterRegime === "intern" ? "all" : "intern");
+                setFilterType("all");
+              }}
+            >
+              <div>
+                <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 truncate">
+                  Interni (RON)
+                </p>
+                <p className="text-xl sm:text-2xl font-black text-slate-700 dark:text-slate-300 leading-none">
+                  {counts.internals}
+                </p>
+              </div>
+            </div>
           </div>
         </>
       )}
@@ -439,90 +493,13 @@ export default function Clients() {
         </div>
       )}
 
-      {/* Tabel cu Filtre Integrate */}
+      {/* Tabel */}
       {!showForm && (
         <DataTable
           columns={columns}
           data={processedClients}
           rowKey="id"
           isLoading={isLoading}
-          headerContent={
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Filtru Tip: Client vs Furnizor */}
-              <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 p-0.5 bg-slate-100 dark:bg-slate-800 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setFilterType("all")}
-                  className={`px-2.5 py-1 rounded font-semibold transition-colors ${
-                    filterType === "all"
-                      ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                  }`}
-                >
-                  Toți ({counts.total})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterType("client")}
-                  className={`px-2.5 py-1 rounded font-semibold transition-colors ${
-                    filterType === "client"
-                      ? "bg-blue-600 text-white shadow-sm"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                  }`}
-                >
-                  Clienți ({counts.clientsCount})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterType("supplier")}
-                  className={`px-2.5 py-1 rounded font-semibold transition-colors ${
-                    filterType === "supplier"
-                      ? "bg-amber-600 text-white shadow-sm"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                  }`}
-                >
-                  Furnizori ({counts.suppliers})
-                </button>
-              </div>
-
-              {/* Filtru Regim: Intern vs Extern */}
-              <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 p-0.5 bg-slate-100 dark:bg-slate-800 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setFilterRegime("all")}
-                  className={`px-2.5 py-1 rounded font-semibold transition-colors ${
-                    filterRegime === "all"
-                      ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                  }`}
-                >
-                  Toate Piețele
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterRegime("intern")}
-                  className={`px-2.5 py-1 rounded font-semibold transition-colors ${
-                    filterRegime === "intern"
-                      ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                  }`}
-                >
-                  Interni ({counts.internals})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterRegime("extern")}
-                  className={`px-2.5 py-1 rounded font-semibold transition-colors ${
-                    filterRegime === "extern"
-                      ? "bg-indigo-600 text-white shadow-sm"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                  }`}
-                >
-                  Externi ({counts.externals})
-                </button>
-              </div>
-            </div>
-          }
           actions={row => (
             <div className="flex gap-1 justify-end">
               <Link

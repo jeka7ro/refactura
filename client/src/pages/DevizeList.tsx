@@ -91,7 +91,7 @@ export default function DevizeList() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 pb-2">
         {[
           {
             label: "Total Devize",
@@ -116,7 +116,7 @@ export default function DevizeList() {
         ].map(k => (
           <div
             key={k.label}
-            className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 shadow-sm"
+            className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm"
           >
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
               {k.label}
@@ -145,7 +145,7 @@ export default function DevizeList() {
               setPage(1);
             }}
             placeholder="Caută nr. deviz, client, CUI, nr. factură..."
-            className="w-full h-9 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+            className="w-full h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
             style={{ paddingLeft: 32, paddingRight: 12 }}
           />
         </div>
@@ -154,7 +154,7 @@ export default function DevizeList() {
         </span>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
