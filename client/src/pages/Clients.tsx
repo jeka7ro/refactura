@@ -274,24 +274,41 @@ export default function Clients() {
       render: (val: string) => val || "-",
     },
     {
-      key: "country",
-      label: "ȚARĂ",
-      sortable: true,
-      render: (val: string) => (
-        <span className="font-mono text-xs text-slate-600 dark:text-slate-400">
-          {val || "RO"}
-        </span>
-      ),
-    },
-    {
       key: "currency",
-      label: "MONEDĂ",
+      label: "ȚARĂ / MONEDĂ",
       sortable: true,
-      render: (value: string) => (
-        <span className="inline-block px-2 py-0.5 rounded text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-          {value || "RON"}
-        </span>
-      ),
+      render: (_: any, row: any) => {
+        const countryCode = (row.country || "RO").trim().toUpperCase();
+        const flagCode = countryCode.toLowerCase();
+        const currency = row.currency || (countryCode === "RO" ? "RON" : "EUR");
+        const isEur = currency.toUpperCase() === "EUR";
+
+        return (
+          <div className="flex items-center gap-2 whitespace-nowrap">
+            <img
+              src={`https://flagcdn.com/20x15/${flagCode}.png`}
+              srcSet={`https://flagcdn.com/40x30/${flagCode}.png 2x`}
+              width="20"
+              height="15"
+              alt={countryCode}
+              title={`Țară: ${countryCode}`}
+              className="rounded-[3px] shadow-xs object-cover border border-slate-200 dark:border-slate-700 shrink-0 inline-block"
+              onError={(e) => {
+                (e.currentTarget as HTMLElement).style.display = "none";
+              }}
+            />
+            <span
+              className={`inline-block px-2 py-0.5 rounded text-xs font-mono font-bold border ${
+                isEur
+                  ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+              }`}
+            >
+              {currency}
+            </span>
+          </div>
+        );
+      },
     },
     {
       key: "phone",
