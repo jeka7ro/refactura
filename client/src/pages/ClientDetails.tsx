@@ -686,157 +686,6 @@ export default function ClientDetails() {
         </div>
       </div>
 
-      {/* Visual Analytics Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Monthly Trend Area Chart */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-primary" />
-                Evoluție Facturare Lunară
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5">Volumul vânzărilor către acest client pe luni</p>
-            </div>
-          </div>
-
-          <div className="h-[240px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={monthlyTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="clientBillingGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--primary, #239040)" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="var(--primary, #239040)" stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.2)" />
-                <XAxis
-                  dataKey="month"
-                  tick={{ fontSize: 11, fill: "#94a3b8" }}
-                  axisLine={{ stroke: "rgba(148, 163, 184, 0.2)" }}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fontSize: 11, fill: "#94a3b8" }}
-                  axisLine={{ stroke: "rgba(148, 163, 184, 0.2)" }}
-                  tickLine={false}
-                  tickFormatter={(val) => (val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val)}
-                />
-                <Tooltip
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      const dataPoint = payload[0].payload;
-                      return (
-                        <div className="bg-slate-900 text-white text-xs p-2.5 rounded-xl shadow-lg border border-slate-700">
-                          <div className="font-semibold text-slate-300">{dataPoint.month}</div>
-                          <div className="text-sm font-bold text-white mt-1">
-                            {Number(dataPoint.total).toLocaleString("ro-RO", {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}{" "}
-                            {kpis.currency}
-                          </div>
-                          <div className="text-[10px] text-slate-400 mt-0.5">{dataPoint.count} facturi</div>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="total"
-                  stroke="var(--primary, #239040)"
-                  strokeWidth={2.5}
-                  fillOpacity={1}
-                  fill="url(#clientBillingGradient)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Status Distribution Donut Chart */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-              Status Încasare
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">Rata de colectare a creanțelor</p>
-          </div>
-
-          <div className="h-[180px] w-full my-auto">
-            {statusDistributionData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={statusDistributionData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={75}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {statusDistributionData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        const item = payload[0];
-                        return (
-                          <div className="bg-slate-900 text-white text-xs p-2 rounded-lg shadow-md border border-slate-700">
-                            <span className="font-semibold">{item.name}: </span>
-                            <span className="font-bold">
-                              {Number(item.value).toLocaleString("ro-RO", {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })}{" "}
-                              {kpis.currency}
-                            </span>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-xs text-slate-400">
-                Fără date de plată în perioada selectată
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
-              <span className="text-slate-600 dark:text-slate-400 truncate">Încasat:</span>
-              <span className="font-bold text-slate-900 dark:text-white ml-auto">
-                {kpis.totalInvoiced > 0
-                  ? Math.round((kpis.totalCollected / kpis.totalInvoiced) * 100)
-                  : 0}
-                %
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
-              <span className="text-slate-600 dark:text-slate-400 truncate">Rest:</span>
-              <span className="font-bold text-slate-900 dark:text-white ml-auto">
-                {kpis.totalInvoiced > 0
-                  ? Math.round((kpis.totalPending / kpis.totalInvoiced) * 100)
-                  : 0}
-                %
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Tabs: Facturi Emise | Produse / Servicii | Facturi Primite */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
         {/* Tab Headers */}
@@ -2014,6 +1863,157 @@ export default function ClientDetails() {
             )}
           </div>
         )}
+      </div>
+
+      {/* Visual Analytics Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Monthly Trend Area Chart */}
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-primary" />
+                Evoluție Facturare Lunară
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">Volumul vânzărilor către acest client pe luni</p>
+            </div>
+          </div>
+
+          <div className="h-[240px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={monthlyTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="clientBillingGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--primary, #239040)" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="var(--primary, #239040)" stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.2)" />
+                <XAxis
+                  dataKey="month"
+                  tick={{ fontSize: 11, fill: "#94a3b8" }}
+                  axisLine={{ stroke: "rgba(148, 163, 184, 0.2)" }}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 11, fill: "#94a3b8" }}
+                  axisLine={{ stroke: "rgba(148, 163, 184, 0.2)" }}
+                  tickLine={false}
+                  tickFormatter={(val) => (val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val)}
+                />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const dataPoint = payload[0].payload;
+                      return (
+                        <div className="bg-slate-900 text-white text-xs p-2.5 rounded-xl shadow-lg border border-slate-700">
+                          <div className="font-semibold text-slate-300">{dataPoint.month}</div>
+                          <div className="text-sm font-bold text-white mt-1">
+                            {Number(dataPoint.total).toLocaleString("ro-RO", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}{" "}
+                            {kpis.currency}
+                          </div>
+                          <div className="text-[10px] text-slate-400 mt-0.5">{dataPoint.count} facturi</div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="total"
+                  stroke="var(--primary, #239040)"
+                  strokeWidth={2.5}
+                  fillOpacity={1}
+                  fill="url(#clientBillingGradient)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Status Distribution Donut Chart */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+              Status Încasare
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">Rata de colectare a creanțelor</p>
+          </div>
+
+          <div className="h-[180px] w-full my-auto">
+            {statusDistributionData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={statusDistributionData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={75}
+                    paddingAngle={3}
+                    dataKey="value"
+                  >
+                    {statusDistributionData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const item = payload[0];
+                        return (
+                          <div className="bg-slate-900 text-white text-xs p-2 rounded-lg shadow-md border border-slate-700">
+                            <span className="font-semibold">{item.name}: </span>
+                            <span className="font-bold">
+                              {Number(item.value).toLocaleString("ro-RO", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}{" "}
+                              {kpis.currency}
+                            </span>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-xs text-slate-400">
+                Fără date de plată în perioada selectată
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
+              <span className="text-slate-600 dark:text-slate-400 truncate">Încasat:</span>
+              <span className="font-bold text-slate-900 dark:text-white ml-auto">
+                {kpis.totalInvoiced > 0
+                  ? Math.round((kpis.totalCollected / kpis.totalInvoiced) * 100)
+                  : 0}
+                %
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
+              <span className="text-slate-600 dark:text-slate-400 truncate">Rest:</span>
+              <span className="font-bold text-slate-900 dark:text-white ml-auto">
+                {kpis.totalInvoiced > 0
+                  ? Math.round((kpis.totalPending / kpis.totalInvoiced) * 100)
+                  : 0}
+                %
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Edit Client Profile Modal (In-App UI modal without browser alerts) */}
