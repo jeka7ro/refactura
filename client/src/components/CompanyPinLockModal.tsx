@@ -20,6 +20,9 @@ import {
   CloudLightning,
   MapPin,
   Timer,
+  CalendarDays,
+  Droplets,
+  Wind,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -38,11 +41,26 @@ interface CompanyPinLockModalProps {
   onUnlocked: () => void;
 }
 
+interface DayForecast {
+  date: string;
+  dayName: string;
+  shortDate: string;
+  weatherCode: number;
+  condition: string;
+  tempMax: number;
+  tempMin: number;
+}
+
 interface WeatherData {
   temp: number;
   city: string;
   condition: string;
   weatherCode: number;
+  humidity?: number;
+  windSpeed?: number;
+  tempMax?: number;
+  tempMin?: number;
+  forecast: DayForecast[];
 }
 
 const CHROMECAST_WALLPAPERS = [
@@ -248,6 +266,44 @@ function getWeatherIcon(code: number) {
   return Sun;
 }
 
+function getWeatherIconColor(code: number): string {
+  if (code === 0 || code === 1) return "text-amber-400";
+  if (code === 2 || code === 3) return "text-amber-300";
+  if (code === 45 || code === 48) return "text-slate-300";
+  if ((code >= 51 && code <= 65) || (code >= 80 && code <= 82)) return "text-sky-400";
+  if (code >= 71 && code <= 77) return "text-cyan-300";
+  if (code >= 95) return "text-purple-400";
+  return "text-amber-400";
+}
+
+function getRomanianDayName(dateStr: string, index: number): { dayName: string; shortDate: string } {
+  try {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    const days = ["Duminică", "Luni", "Marți", "Miercuri", "Joi", "Vineri", "Sâmbătă"];
+    const months = [
+      "ian.",
+      "feb.",
+      "mar.",
+      "apr.",
+      "mai",
+      "iun.",
+      "iul.",
+      "aug.",
+      "sep.",
+      "oct.",
+      "noi.",
+      "dec.",
+    ];
+    let dayName = days[dateObj.getDay()] || "";
+    if (index === 0) dayName = "Mâine";
+    const shortDate = `${d} ${months[m - 1] || ""}`;
+    return { dayName, shortDate };
+  } catch {
+    return { dayName: "Ziua " + (index + 1), shortDate: "" };
+  }
+}
+
 function AsteriskIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
   return (
     <svg
@@ -306,15 +362,38 @@ export function CompanyPinLockModal({
     async function fetchWeather(lat: number, lon: number, cityName?: string) {
       try {
         const res = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=6`
         );
         const data = await res.json();
         if (isMounted && data.current) {
+          const forecast: DayForecast[] = [];
+          if (data.daily && Array.isArray(data.daily.time)) {
+            for (let i = 1; i <= 5 && i < data.daily.time.length; i++) {
+              const dateStr = data.daily.time[i];
+              const { dayName, shortDate } = getRomanianDayName(dateStr, i - 1);
+              const code = data.daily.weather_code?.[i] ?? 0;
+              forecast.push({
+                date: dateStr,
+                dayName,
+                shortDate,
+                weatherCode: code,
+                condition: getWeatherLabel(code),
+                tempMax: Math.round(data.daily.temperature_2m_max?.[i] ?? data.current.temperature_2m),
+                tempMin: Math.round(data.daily.temperature_2m_min?.[i] ?? data.current.temperature_2m),
+              });
+            }
+          }
+
           setWeather({
             temp: Math.round(data.current.temperature_2m),
             city: cityName || "București",
             condition: getWeatherLabel(data.current.weather_code),
             weatherCode: data.current.weather_code,
+            humidity: data.current.relative_humidity_2m != null ? Math.round(data.current.relative_humidity_2m) : undefined,
+            windSpeed: data.current.wind_speed_10m != null ? Math.round(data.current.wind_speed_10m) : undefined,
+            tempMax: data.daily?.temperature_2m_max?.[0] != null ? Math.round(data.daily.temperature_2m_max[0]) : undefined,
+            tempMin: data.daily?.temperature_2m_min?.[0] != null ? Math.round(data.daily.temperature_2m_min[0]) : undefined,
+            forecast,
           });
         }
       } catch {}
@@ -593,37 +672,26 @@ export function CompanyPinLockModal({
         }
       `}</style>
 
-      {/* Fereastră Unică stil Apple (Ceas + Securitate Firmă) */}
-      <div
-        className={`w-full max-w-md bg-black/30 dark:bg-black/45 backdrop-blur-3xl border border-white/[0.08] rounded-[36px] shadow-[0_25px_60px_rgba(0,0,0,0.4)] p-6 sm:p-8 space-y-6 text-white transition-all ${
-          isShaking ? "animate-apple-shake ring-2 ring-rose-500/50" : "animate-in fade-in zoom-in-95 duration-300"
-        }`}
-      >
-        {/* Header Ceas & Vreme */}
-        <div className="flex flex-col items-center justify-center text-center pb-5 border-b border-white/[0.08] select-none">
-          {/* Rândul Apple: Data & Vremea */}
-          <div className="flex items-center justify-center flex-wrap gap-2 text-white/90 text-sm sm:text-base font-medium tracking-wide mb-1.5">
-            <span>{formatAppleDate(currentTime)}</span>
-            {weather && (
-              <>
-                <span className="text-white/40">•</span>
-                <div className="inline-flex items-center gap-2 text-white font-semibold">
-                  {(() => {
-                    const IconComp = getWeatherIcon(weather.weatherCode);
-                    return <IconComp className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300 shrink-0 drop-shadow-sm" />;
-                  })()}
-                  <span className="text-base sm:text-lg">{weather.temp > 0 ? `+${weather.temp}` : weather.temp}°C</span>
-                  <span className="text-white/75 text-xs sm:text-sm font-normal hidden sm:inline">({weather.condition})</span>
-                </div>
-              </>
-            )}
-          </div>
+      {/* Container Principal Responsive: Card PIN + Card Separat Vreme */}
+      <div className="w-full max-w-5xl z-10 flex flex-col lg:flex-row items-center justify-center gap-6 my-auto py-6">
+        {/* Fereastră Unică stil Apple (Ceas + Securitate Firmă) */}
+        <div
+          className={`w-full max-w-md bg-black/30 dark:bg-black/45 backdrop-blur-3xl border border-white/[0.08] rounded-[36px] shadow-[0_25px_60px_rgba(0,0,0,0.4)] p-6 sm:p-8 space-y-6 text-white transition-all ${
+            isShaking ? "animate-apple-shake ring-2 ring-rose-500/50" : "animate-in fade-in zoom-in-95 duration-300"
+          }`}
+        >
+          {/* Header Ceas stil Apple */}
+          <div className="flex flex-col items-center justify-center text-center pb-5 border-b border-white/[0.08] select-none">
+            {/* Rândul Apple: Data */}
+            <div className="flex items-center justify-center text-white/90 text-sm sm:text-base font-medium tracking-wide mb-1.5">
+              <span>{formatAppleDate(currentTime)}</span>
+            </div>
 
-          {/* Ora mare BOLD stil Apple */}
-          <div className="text-6xl sm:text-7xl font-bold tracking-tight text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.5)] leading-none my-1 select-none font-sans">
-            {formatAppleTime(currentTime)}
+            {/* Ora mare BOLD stil Apple */}
+            <div className="text-6xl sm:text-7xl font-bold tracking-tight text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.5)] leading-none my-1 select-none font-sans">
+              {formatAppleTime(currentTime)}
+            </div>
           </div>
-        </div>
 
         {!showResetForm ? (
           <>
@@ -988,6 +1056,112 @@ export function CompanyPinLockModal({
               )}
             </div>
           </>
+        )}
+        </div>
+
+        {/* Card Separat: Vreme Actuală + Prognoză Următoarele 5 Zile */}
+        {weather && (
+          <div className="w-full max-w-md lg:w-[380px] bg-black/30 dark:bg-black/45 backdrop-blur-3xl border border-white/[0.08] rounded-[36px] shadow-[0_25px_60px_rgba(0,0,0,0.4)] p-6 sm:p-7 text-white flex flex-col justify-between transition-all animate-in fade-in zoom-in-95 duration-300">
+            {/* Header: Locație & Status Live */}
+            <div>
+              <div className="flex items-center justify-between pb-3.5 border-b border-white/[0.08]">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-rose-400 shrink-0" />
+                  <span className="text-sm font-bold tracking-wide text-white truncate max-w-[200px]">
+                    {weather.city}
+                  </span>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-white/10 text-white/80 border border-white/10">
+                  Live
+                </span>
+              </div>
+
+              {/* Vreme Actuală cu Iconiță Mare */}
+              <div className="py-4 flex items-center justify-between gap-4">
+                <div className="flex flex-col">
+                  <div className="text-5xl sm:text-6xl font-black tracking-tight text-white leading-none">
+                    {weather.temp > 0 ? `+${weather.temp}` : weather.temp}°C
+                  </div>
+                  <span className="text-sm sm:text-base font-semibold text-white/90 mt-1.5">
+                    {weather.condition}
+                  </span>
+                  {(weather.tempMax !== undefined && weather.tempMin !== undefined) && (
+                    <span className="text-xs text-white/60 mt-0.5">
+                      Max: {weather.tempMax > 0 ? `+${weather.tempMax}` : weather.tempMax}° · Min: {weather.tempMin > 0 ? `+${weather.tempMin}` : weather.tempMin}°
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-center p-3 sm:p-3.5 rounded-2xl bg-white/[0.06] border border-white/10 shrink-0">
+                  {(() => {
+                    const CurrentIcon = getWeatherIcon(weather.weatherCode);
+                    const iconColor = getWeatherIconColor(weather.weatherCode);
+                    return <CurrentIcon className={`w-14 h-14 sm:w-16 sm:h-16 ${iconColor} drop-shadow-[0_4px_16px_rgba(0,0,0,0.3)]`} />;
+                  })()}
+                </div>
+              </div>
+
+              {/* Informații suplimentare (Umiditate & Vânt) */}
+              {(weather.humidity !== undefined || weather.windSpeed !== undefined) && (
+                <div className="grid grid-cols-2 gap-2 pb-3.5 pt-0.5">
+                  {weather.humidity !== undefined && (
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-xs text-white/75">
+                      <Droplets className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                      <span>{weather.humidity}% umiditate</span>
+                    </div>
+                  )}
+                  {weather.windSpeed !== undefined && (
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-xs text-white/75">
+                      <Wind className="w-3.5 h-3.5 text-teal-300 shrink-0" />
+                      <span>{weather.windSpeed} km/h vânt</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Prognoză Următoarele 5 Zile */}
+            {weather.forecast && weather.forecast.length > 0 && (
+              <div className="pt-3.5 border-t border-white/[0.08]">
+                <div className="flex items-center gap-2 mb-2 text-white/50 text-[11px] font-bold uppercase tracking-wider">
+                  <CalendarDays className="w-3.5 h-3.5" />
+                  <span>Prognoză următoarele 5 zile</span>
+                </div>
+
+                <div className="space-y-1">
+                  {weather.forecast.map((day, idx) => {
+                    const DayIcon = getWeatherIcon(day.weatherCode);
+                    const dayIconColor = getWeatherIconColor(day.weatherCode);
+                    return (
+                      <div
+                        key={day.date || idx}
+                        className="flex items-center justify-between py-1.5 px-2.5 rounded-xl hover:bg-white/[0.05] transition-colors"
+                      >
+                        <div className="w-24 text-left">
+                          <p className="text-xs font-semibold text-white/95 leading-tight">{day.dayName}</p>
+                          <p className="text-[10px] text-white/50">{day.shortDate}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <DayIcon className={`w-5 h-5 ${dayIconColor} shrink-0`} />
+                          <span className="text-[11px] text-white/70 hidden sm:inline-block w-24 truncate">
+                            {day.condition}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-end gap-2 text-right min-w-[64px]">
+                          <span className="text-xs font-bold text-white">
+                            {day.tempMax > 0 ? `+${day.tempMax}` : day.tempMax}°
+                          </span>
+                          <span className="text-[11px] text-white/50">
+                            {day.tempMin > 0 ? `+${day.tempMin}` : day.tempMin}°
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
