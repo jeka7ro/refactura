@@ -34,6 +34,22 @@ export default function Clients() {
   const [mutationError, setMutationError] = useState("");
   const [filterType, setFilterType] = useState<"all" | "client" | "supplier">("all");
   const [filterRegime, setFilterRegime] = useState<"all" | "intern" | "extern">("all");
+  const [filterCountry, setFilterCountry] = useState<string>("all");
+
+  // Active tenant and switcher
+  const utils = trpc.useUtils();
+  const { data: currentTenant } = trpc.tenants.current.useQuery();
+  const { data: tenantsList = [] } = trpc.tenants.list.useQuery();
+  const switchTenantMutation = trpc.tenants.switchTenant.useMutation({
+    onSuccess: () => {
+      utils.clients.list.invalidate();
+      utils.tenants.current.invalidate();
+      toast.success("Compania activă a fost schimbată.");
+    },
+    onError: (err) => {
+      toast.error("Eroare schimbare companie: " + err.message);
+    }
+  });
 
   const [formData, setFormData] = useState({
     name: "",
@@ -168,15 +184,53 @@ export default function Clients() {
     return { total, suppliers, clientsCount, externals, internals };
   }, [clients]);
 
+  const COUNTRY_INFO: Record<string, { ro: string; keywords: string }> = {
+    RO: { ro: "România", keywords: "romania ro" },
+    HU: { ro: "Ungaria", keywords: "hungary magyarorszag ungaria hu" },
+    FR: { ro: "Franța", keywords: "franta france fr" },
+    NL: { ro: "Olanda", keywords: "netherlands nederland olanda nl" },
+    DE: { ro: "Germania", keywords: "germany deutschland germania de" },
+    BE: { ro: "Belgia", keywords: "belgium belgique belgia be" },
+    IT: { ro: "Italia", keywords: "italy italia it" },
+    MD: { ro: "Moldova", keywords: "republica moldova md" },
+    GB: { ro: "Marea Britanie", keywords: "uk united kingdom england anglia gb" },
+    PL: { ro: "Polonia", keywords: "poland polska polonia pl" },
+    IE: { ro: "Irlanda", keywords: "ireland irlanda ie" },
+    US: { ro: "Statele Unite", keywords: "sua usa united states us" },
+    BG: { ro: "Bulgaria", keywords: "bulgaria bg" },
+    LU: { ro: "Luxemburg", keywords: "luxembourg luxemburg lu" },
+    AT: { ro: "Austria", keywords: "osterreich austria at" },
+    GR: { ro: "Grecia", keywords: "greece grecia gr" },
+    ES: { ro: "Spania", keywords: "spain espana spania es" },
+    TR: { ro: "Turcia", keywords: "turkey turcia tr" },
+    SI: { ro: "Slovenia", keywords: "slovenia si" },
+    CN: { ro: "China", keywords: "china cn" },
+    CZ: { ro: "Cehia", keywords: "czech czechia cehia cz" },
+    SK: { ro: "Slovacia", keywords: "slovakia slovacia sk" },
+    PT: { ro: "Portugalia", keywords: "portugal portugalia pt" },
+    AM: { ro: "Armenia", keywords: "armenia am" },
+    IL: { ro: "Israel", keywords: "israel il" },
+    MU: { ro: "Mauritius", keywords: "mauritius mu" },
+    NO: { ro: "Norvegia", keywords: "norway norvegia no" },
+    EE: { ro: "Estonia", keywords: "estonia ee" },
+    ML: { ro: "Mali", keywords: "mali ml" },
+    HK: { ro: "Hong Kong", keywords: "hong kong hk" },
+  };
+
   // Processed and filtered partners
   const processedClients = useMemo(() => {
     return clients
       .map((c: any) => {
+        const countryCode = (c.country || "RO").trim().toUpperCase();
+        const info = COUNTRY_INFO[countryCode] || { ro: countryCode, keywords: countryCode.toLowerCase() };
         const isExt =
           (c.currency || "").toUpperCase() === "EUR" ||
-          (c.country && c.country.toUpperCase() !== "RO");
+          countryCode !== "RO";
         return {
           ...c,
+          country: countryCode,
+          countryLabel: info.ro,
+          countryName: `${info.ro} ${info.keywords}`,
           regime: isExt ? "EXTERN" : "INTERN",
           typeLabel: c.isSupplier === 1 ? "FURNIZOR" : "CLIENT",
         };
@@ -188,9 +242,21 @@ export default function Clients() {
         if (filterRegime === "intern" && c.regime !== "INTERN") return false;
         if (filterRegime === "extern" && c.regime !== "EXTERN") return false;
 
+        if (filterCountry !== "all" && c.country !== filterCountry) return false;
+
         return true;
       });
-  }, [clients, filterType, filterRegime]);
+  }, [clients, filterType, filterRegime, filterCountry]);
+
+  // Country counts
+  const countryCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const c of clients) {
+      const code = (c.country || "RO").trim().toUpperCase();
+      map.set(code, (map.get(code) || 0) + 1);
+    }
+    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+  }, [clients]);
 
   const columns: DataTableColumn<any>[] = [
     {
@@ -341,14 +407,34 @@ export default function Clients() {
       {/* Header + KPI — ascunse când formularul e deschis */}
       {!showForm && (
         <>
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div>
-              <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
-                Parteneri (Clienți & Furnizori)
-              </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Total: <strong>{counts.total}</strong> parteneri ({counts.clientsCount} clienți, {counts.suppliers} furnizori)
-              </p>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-3 flex-wrap">
+              <div>
+                <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
+                  Parteneri (Clienți & Furnizori)
+                </h1>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Total: <strong>{counts.total}</strong> parteneri ({counts.clientsCount} clienți, {counts.suppliers} furnizori)
+                </p>
+              </div>
+
+              {tenantsList.length > 1 && (
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold">
+                  <Building2 className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-slate-500 text-[11px]">Companie:</span>
+                  <select
+                    value={currentTenant?.id || 4}
+                    onChange={(e) => switchTenantMutation.mutate({ tenantId: Number(e.target.value) })}
+                    className="bg-transparent font-bold text-xs text-slate-900 dark:text-white focus:outline-none cursor-pointer"
+                  >
+                    {tenantsList.map((t: any) => (
+                      <option key={t.id} value={t.id} className="dark:bg-slate-900">
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
             <button
               onClick={() => {
@@ -595,13 +681,55 @@ export default function Clients() {
                 </Select>
               </div>
 
+              {/* Filtru ȚARĂ */}
+              <div className="w-[170px] sm:w-[210px] flex-shrink-0">
+                <Select
+                  value={filterCountry}
+                  onValueChange={val => setFilterCountry(val)}
+                >
+                  <SelectTrigger
+                    className={`h-8 w-full rounded-full text-xs font-bold border ${
+                      filterCountry !== "all"
+                        ? "border-emerald-500 bg-emerald-50/70 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-700"
+                        : "border-slate-200 bg-white text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
+                    } hover:bg-slate-50 focus:ring-2 focus:ring-emerald-500 shadow-none flex items-center gap-1.5 px-3`}
+                  >
+                    <Globe className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                    <SelectValue placeholder="Țară" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    <SelectItem value="all">Toate țările ({counts.total})</SelectItem>
+                    {countryCounts.map(([code, cnt]) => {
+                      const flag = code.toLowerCase();
+                      const name = COUNTRY_INFO[code]?.ro || code;
+                      return (
+                        <SelectItem key={code} value={code}>
+                          <div className="flex items-center gap-2">
+                            <img
+                              src={`https://flagcdn.com/w20/${flag}.png`}
+                              alt={code}
+                              className="w-4 h-3 rounded-[2px] object-cover inline-block shrink-0"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLElement).style.display = "none";
+                              }}
+                            />
+                            <span>{name} ({cnt})</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* Reset buton */}
-              {(filterType !== "all" || filterRegime !== "all") && (
+              {(filterType !== "all" || filterRegime !== "all" || filterCountry !== "all") && (
                 <button
                   type="button"
                   onClick={() => {
                     setFilterType("all");
                     setFilterRegime("all");
+                    setFilterCountry("all");
                   }}
                   className="h-8 px-2.5 rounded-full text-xs font-semibold text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
@@ -610,6 +738,17 @@ export default function Clients() {
               )}
             </div>
           }
+          searchFields={[
+            "country",
+            "countryName",
+            "cui",
+            "sagaCode",
+            "name",
+            "city",
+            "address",
+            "phone",
+            "email",
+          ]}
           actions={row => (
             <div className="flex gap-1 justify-end">
               <Link

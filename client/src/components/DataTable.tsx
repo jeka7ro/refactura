@@ -30,6 +30,8 @@ interface DataTableProps<T> {
   searchable?: boolean;
   headerContent?: React.ReactNode;
   tableId?: string;
+  searchFields?: string[];
+  filterFn?: (row: T, search: string) => boolean;
 }
 
 export function DataTable<T extends Record<string, any>>({
@@ -44,22 +46,61 @@ export function DataTable<T extends Record<string, any>>({
   searchable = true,
   headerContent,
   tableId,
+  searchFields,
+  filterFn,
 }: DataTableProps<T>) {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
   const [selectedRows, setSelectedRows] = useState<Set<any>>(new Set());
   const [search, setSearch] = useState("");
 
-  // Filter data
+  // Filter data with diacritics normalization, custom searchFields, and auto country/name matching
   const filteredData = useMemo(() => {
-    if (!search) return data;
-    return data.filter(row =>
-      columns.some(col => {
+    const q = normalizeText(search);
+    if (!q) return data;
+
+    if (filterFn) {
+      return data.filter(row => filterFn(row, search));
+    }
+
+    return data.filter(row => {
+      // 1. Check all rendered column keys
+      const matchedColumn = columns.some(col => {
         const value = row[col.key];
-        return String(value).toLowerCase().includes(search.toLowerCase());
-      })
-    );
-  }, [data, search, columns]);
+        if (value === null || value === undefined) return false;
+        return normalizeText(String(value)).includes(q);
+      });
+      if (matchedColumn) return true;
+
+      // 2. Check explicit searchFields if provided
+      if (searchFields && searchFields.length > 0) {
+        const matchedField = searchFields.some(field => {
+          const value = row[field];
+          if (value === null || value === undefined) return false;
+          return normalizeText(String(value)).includes(q);
+        });
+        if (matchedField) return true;
+      }
+
+      // 3. Fallback: check country, countryName, cui, sagaCode, name, city, address
+      const extraFields = [
+        "country",
+        "countryName",
+        "cui",
+        "sagaCode",
+        "name",
+        "city",
+        "address",
+        "regime",
+        "typeLabel",
+      ];
+      return extraFields.some(field => {
+        const value = row[field];
+        if (value === null || value === undefined) return false;
+        return normalizeText(String(value)).includes(q);
+      });
+    });
+  }, [data, search, columns, filterFn, searchFields]);
 
   const { sortedData, handleSort, sortColumn, sortDirection, getSortIcon } =
     useTableSort(filteredData, tableId);
