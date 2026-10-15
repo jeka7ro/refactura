@@ -23,6 +23,7 @@ import {
   Filter,
   Globe,
   Tag,
+  FileSignature,
 } from "lucide-react";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { toast } from "sonner";
@@ -611,6 +612,13 @@ export default function Clients() {
           }
           actions={row => (
             <div className="flex gap-1 justify-end">
+              <Link
+                href={`/contracte/new?partnerId=${row.id}&mode=upload`}
+                title="Încarcă contract semnat pentru acest partener"
+                className="w-6 h-6 rounded border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 text-purple-700 dark:text-purple-300 transition-colors flex items-center justify-center"
+              >
+                <FileSignature className="w-3 h-3" />
+              </Link>
               <Link
                 href={`/client/${row.id}`}
                 title="Vizualizare detalii partener"
