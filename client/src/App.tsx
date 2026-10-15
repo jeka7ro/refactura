@@ -44,6 +44,9 @@ import NIRList from "@/pages/NIRList";
 import NIRCreate from "@/pages/NIRCreate";
 import DevizeList from "@/pages/DevizeList";
 import DevizDetail from "@/pages/DevizDetail";
+import ContractsList from "@/pages/ContractsList";
+import ContractDetail from "@/pages/ContractDetail";
+import ContractCreate from "@/pages/ContractCreate";
 import BonuriConsumList from "@/pages/BonuriConsumList";
 import BonConsumDetail from "@/pages/BonConsumDetail";
 import BonConsumCreate from "@/pages/BonConsumCreate";
@@ -224,6 +227,21 @@ function Router() {
       <Route path="/devize/:id">
         <DashboardLayout>
           <DevizDetail />
+        </DashboardLayout>
+      </Route>
+      <Route path="/contracte">
+        <DashboardLayout>
+          <ContractsList />
+        </DashboardLayout>
+      </Route>
+      <Route path="/contracte/new">
+        <DashboardLayout>
+          <ContractCreate />
+        </DashboardLayout>
+      </Route>
+      <Route path="/contracte/:id">
+        <DashboardLayout>
+          <ContractDetail />
         </DashboardLayout>
       </Route>
       <Route path="/bonuri-consum">

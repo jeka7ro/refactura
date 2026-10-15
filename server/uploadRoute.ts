@@ -353,6 +353,55 @@ export function registerUploadRoute(app: Express) {
     }
   );
 
+  // ── CONTRACTS & DOCUMENTS BULK UPLOAD ────────────────────────────────────
+  app.post(
+    "/api/upload-contract",
+    upload.array("files", 100),
+    async (req: Request, res: Response) => {
+      try {
+        const files = req.files as Express.Multer.File[];
+        if (!files || files.length === 0) {
+          res.status(400).json({ error: "Niciun fișier selectat" });
+          return;
+        }
+
+        const uploadDir = path.join(process.cwd(), "dist", "public", "uploads", "contracts");
+        await fs.promises.mkdir(uploadDir, { recursive: true }).catch(() => {});
+
+        const results = [];
+        for (const file of files) {
+          const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_");
+          const key = `${Date.now()}-${Math.floor(Math.random() * 1000)}-${safeName}`;
+          const filePath = path.join(uploadDir, key);
+          await fs.promises.writeFile(filePath, file.buffer);
+
+          const fileUrl = `/uploads/contracts/${key}`;
+
+          // Detect potential CUI or Contract number from file name
+          const cuiMatch = file.originalname.match(/(?:RO|ro)?\s*([0-9]{6,10})/);
+          const detectedCui = cuiMatch ? cuiMatch[1] : null;
+
+          const numMatch = file.originalname.match(/(?:ctr|contract|nr|no)[\s._-]*([a-zA-Z0-9\/-]+)/i);
+          const detectedNumber = numMatch ? numMatch[1] : null;
+
+          results.push({
+            fileKey: key,
+            fileUrl,
+            fileName: file.originalname,
+            fileSize: file.size,
+            detectedCui,
+            detectedNumber,
+          });
+        }
+
+        res.json({ success: true, count: results.length, files: results });
+      } catch (err: any) {
+        console.error("Contract upload error:", err);
+        res.status(500).json({ error: err.message || "Eroare la încărcare documente" });
+      }
+    }
+  );
+
   // ── SAGA XLSX Import ─────────────────────────────────────────────────────
   app.post(
     "/api/saga/import-articles",

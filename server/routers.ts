@@ -4,6 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { horecaRouter } from "../modules/horeca";
 import { sagaRouter } from "../modules/saga";
+import { contractsRouter } from "./contractsRouter";
 import { z } from "zod";
 import { generateReInvoicePDF } from "./pdf";
 import {
@@ -173,6 +174,7 @@ export const appRouter = router({
   saga: sagaRouter,
   auth: authRouter,
   apiKeys: apiKeysRouter,
+  contracts: contractsRouter,
 
   tenants: router({
     list: protectedProcedure.query(async ({ ctx }) => {

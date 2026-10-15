@@ -822,3 +822,51 @@ export const emailLogs = mysqlTable("emailLogs", {
 
 export type EmailLog = typeof emailLogs.$inferSelect;
 export type InsertEmailLog = typeof emailLogs.$inferInsert;
+
+/**
+ * Contracts & Documents — Biblioteca de contracte, acte aditionale si documente
+ */
+export const contracts = mysqlTable("contracts", {
+  id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId").notNull(),
+  partnerId: int("partnerId"), // FK clients.id (client sau furnizor)
+  parentContractId: int("parentContractId"), // FK contracts.id (pentru acte aditionale legate de un contract de baza)
+  type: varchar("type", { length: 50 }).default("contract").notNull(), // contract, act_aditional, pv_receptie, anexa, altul
+  title: varchar("title", { length: 255 }).notNull(),
+  number: varchar("number", { length: 100 }).notNull(),
+  date: varchar("date", { length: 30 }).notNull(),
+  validFrom: varchar("validFrom", { length: 30 }),
+  validUntil: varchar("validUntil", { length: 30 }),
+  value: decimal("value", { precision: 12, scale: 2 }).default("0.00"),
+  currency: varchar("currency", { length: 3 }).default("RON"),
+  status: mysqlEnum("status", ["activ", "draft", "expirat", "reziliat"]).default("activ").notNull(),
+  contentHtml: longtext("contentHtml"), // Continut editat online (WYSIWYG)
+  fileUrl: varchar("fileUrl", { length: 512 }), // URL catre fisierul PDF uploadat / stocat
+  fileName: varchar("fileName", { length: 255 }),
+  fileSize: int("fileSize"),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Contract = typeof contracts.$inferSelect;
+export type InsertContract = typeof contracts.$inferInsert;
+
+/**
+ * Contract Logs — Jurnal de modificari, clauze si explicatii cu timestamp obligatoriu
+ */
+export const contractLogs = mysqlTable("contractLogs", {
+  id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId").notNull(),
+  contractId: int("contractId").notNull(),
+  userId: int("userId"),
+  userName: varchar("userName", { length: 150 }),
+  actionType: varchar("actionType", { length: 50 }).default("modificare").notNull(), // creare, act_aditional, modificare_termeni, modificare_pret, prelungire, notificare, altele
+  explanation: text("explanation").notNull(), // Explicatia/justificarea obligatorie
+  details: text("details"), // Note tehnice sau JSON cu diferente vechi -> noi
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ContractLog = typeof contractLogs.$inferSelect;
+export type InsertContractLog = typeof contractLogs.$inferInsert;
+

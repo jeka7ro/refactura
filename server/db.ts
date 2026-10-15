@@ -205,6 +205,62 @@ export async function getDb() {
         await _db.execute(sql`ALTER TABLE accounts ADD COLUMN phone VARCHAR(30) NULL`);
         console.log("[DB] Added phone to accounts");
       } catch {} // column already exists
+
+      // Contracts table
+      try {
+        await _db.execute(sql`
+          CREATE TABLE IF NOT EXISTS contracts (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            tenantId INT NOT NULL,
+            partnerId INT NULL,
+            parentContractId INT NULL,
+            type VARCHAR(50) NOT NULL DEFAULT 'contract',
+            title VARCHAR(255) NOT NULL,
+            number VARCHAR(100) NOT NULL,
+            date VARCHAR(30) NOT NULL,
+            validFrom VARCHAR(30) NULL,
+            validUntil VARCHAR(30) NULL,
+            value DECIMAL(12, 2) DEFAULT 0.00,
+            currency VARCHAR(3) DEFAULT 'RON',
+            status VARCHAR(20) NOT NULL DEFAULT 'activ',
+            contentHtml LONGTEXT NULL,
+            fileUrl VARCHAR(512) NULL,
+            fileName VARCHAR(255) NULL,
+            fileSize INT NULL,
+            notes TEXT NULL,
+            createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_contracts_tenant (tenantId),
+            INDEX idx_contracts_partner (partnerId),
+            INDEX idx_contracts_parent (parentContractId)
+          )
+        `);
+        console.log("[DB] contracts table ready");
+      } catch (e) {
+        console.warn("[DB] Error creating contracts table:", e);
+      }
+
+      // Contract Logs table (Audit trail with timestamps & explanations)
+      try {
+        await _db.execute(sql`
+          CREATE TABLE IF NOT EXISTS contractLogs (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            tenantId INT NOT NULL,
+            contractId INT NOT NULL,
+            userId INT NULL,
+            userName VARCHAR(150) NULL,
+            actionType VARCHAR(50) NOT NULL DEFAULT 'modificare',
+            explanation TEXT NOT NULL,
+            details TEXT NULL,
+            createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_contractLogs_contract (contractId),
+            INDEX idx_contractLogs_tenant (tenantId)
+          )
+        `);
+        console.log("[DB] contractLogs table ready");
+      } catch (e) {
+        console.warn("[DB] Error creating contractLogs table:", e);
+      }
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;

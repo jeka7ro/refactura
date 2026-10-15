@@ -2191,5 +2191,230 @@ export function registerPdfRoute(app: any) {
     }
   });
 
+  // GET /api/pdf/contract/:id?download=1
+  router.get("/contract/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        res.status(400).json({ error: "ID invalid" });
+        return;
+      }
+
+      const db = await getDb();
+      if (!db) {
+        res.status(500).json({ error: "DB unavailable" });
+        return;
+      }
+
+      const { contracts, clients, tenants } = await import("../drizzle/schema");
+      const [contract] = await db
+        .select({
+          id: contracts.id,
+          tenantId: contracts.tenantId,
+          partnerId: contracts.partnerId,
+          parentContractId: contracts.parentContractId,
+          type: contracts.type,
+          title: contracts.title,
+          number: contracts.number,
+          date: contracts.date,
+          validFrom: contracts.validFrom,
+          validUntil: contracts.validUntil,
+          value: contracts.value,
+          currency: contracts.currency,
+          status: contracts.status,
+          contentHtml: contracts.contentHtml,
+          fileUrl: contracts.fileUrl,
+          fileName: contracts.fileName,
+          notes: contracts.notes,
+          partnerName: clients.name,
+          partnerCui: clients.cui,
+          partnerRegCom: clients.regCom,
+          partnerAddress: clients.address,
+          partnerCity: clients.city,
+          partnerCountry: clients.country,
+          partnerPhone: clients.phone,
+          partnerEmail: clients.email,
+        })
+        .from(contracts)
+        .leftJoin(clients, eq(contracts.partnerId, clients.id))
+        .where(eq(contracts.id, id));
+
+      if (!contract) {
+        res.status(404).json({ error: "Contractul nu a fost găsit" });
+        return;
+      }
+
+      const isDownload = req.query.download === "1";
+      const safeFilename = `${contract.type.toUpperCase()}_${contract.number.replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`;
+
+      // 1. Daca exista fisier uploadat direct, il servim
+      if (contract.fileUrl) {
+        const relativePath = contract.fileUrl.startsWith("/") ? contract.fileUrl.slice(1) : contract.fileUrl;
+        const candidates = [
+          path.resolve(process.cwd(), "dist", "public", relativePath),
+          path.resolve(process.cwd(), relativePath),
+          path.resolve(process.cwd(), "public", relativePath),
+        ];
+
+        let foundPath: string | null = null;
+        for (const p of candidates) {
+          if (fs.existsSync(p)) {
+            foundPath = p;
+            break;
+          }
+        }
+
+        if (foundPath) {
+          res.setHeader("Content-Type", "application/pdf");
+          res.setHeader(
+            "Content-Disposition",
+            `${isDownload ? "attachment" : "inline"}; filename="${safeFilename}"`
+          );
+          fs.createReadStream(foundPath).pipe(res);
+          return;
+        }
+      }
+
+      // 2. Daca este contract generat din aplicatie sau nu are fisier fizic, generam PDF-ul dinamic
+      const [tenant] = await db.select().from(tenants).where(eq(tenants.id, contract.tenantId));
+
+      let tenantSettings: any = {};
+      if (tenant?.settings) {
+        try {
+          tenantSettings = JSON.parse(tenant.settings);
+        } catch {}
+      }
+
+      const PDFDocument = (await import("pdfkit")).default;
+      const doc = new PDFDocument({
+        size: "A4",
+        margins: { top: 40, bottom: 45, left: 40, right: 40 },
+        autoFirstPage: true,
+        bufferPages: true,
+      });
+
+      // Register fonts with safe fallback
+      const robotoReg = path.resolve(process.cwd(), "server/assets/fonts/Roboto-Regular.ttf");
+      const robotoBold = path.resolve(process.cwd(), "server/assets/fonts/Roboto-Bold.ttf");
+      const hasCustomFont = fs.existsSync(robotoReg) && fs.existsSync(robotoBold);
+      if (hasCustomFont) {
+        doc.registerFont("Roboto", robotoReg);
+        doc.registerFont("Roboto-Bold", robotoBold);
+      }
+      const fontRegular = hasCustomFont ? "Roboto" : "Helvetica";
+      const fontBold = hasCustomFont ? "Roboto-Bold" : "Helvetica-Bold";
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `${isDownload ? "attachment" : "inline"}; filename="${safeFilename}"`
+      );
+      doc.pipe(res);
+
+      const PRIMARY = "#1e3a8a";
+      const TEXT_MAIN = "#0f172a";
+      const TEXT_MUTED = "#475569";
+      const BORDER_COLOR = "#cbd5e1";
+      const BG_CARD = "#f8fafc";
+
+      // Antet Companie (Prestator)
+      doc.rect(40, 40, 515, 80).fillColor(BG_CARD).fill();
+      doc.rect(40, 40, 515, 80).strokeColor(BORDER_COLOR).lineWidth(0.5).stroke();
+
+      doc.fillColor(PRIMARY).fontSize(14).font(fontBold).text(tenant?.name || "WOOD GLASS SRL", 55, 52);
+      doc.fillColor(TEXT_MUTED).fontSize(8).font(fontRegular);
+      doc.text(`CUI: ${tenantSettings.cui || tenantSettings.fiscalCode || "RO28396216"} | Reg. Com: ${tenantSettings.regCom || "J08/1314/2011"}`, 55, 72);
+      doc.text(`Sediu: ${tenantSettings.address || "Str. Automotoarelor 12"}, ${tenantSettings.city || "Brașov"}, România`, 55, 84);
+      doc.text(`IBAN: ${tenantSettings.iban || "RO00BTRL0000000000000000"} | Bancă: ${tenantSettings.bank || "Banca Transilvania"}`, 55, 96);
+
+      // Titlu Document
+      let docTitle = "CONTRACT CADRU";
+      if (contract.type === "act_aditional") docTitle = "ACT ADIȚIONAL";
+      else if (contract.type === "pv_receptie") docTitle = "PROCES VERBAL DE RECEPȚIE";
+
+      doc.fillColor(PRIMARY).fontSize(16).font(fontBold).text(`${docTitle} Nr. ${contract.number}`, 40, 140, { align: "center" });
+      doc.fillColor(TEXT_MUTED).fontSize(9).font(fontRegular).text(`Data încheierii: ${contract.date}`, 40, 162, { align: "center" });
+
+      // Casetă Partener (Beneficiar / Furnizor)
+      const partY = 185;
+      doc.rect(40, partY, 515, 65).fillColor(BG_CARD).fill();
+      doc.rect(40, partY, 515, 65).strokeColor(BORDER_COLOR).lineWidth(0.5).stroke();
+
+      doc.fillColor(PRIMARY).fontSize(9).font(fontBold).text("BENEFICIAR / PARTENER CONTRACTUAL", 55, partY + 10);
+      doc.fillColor(TEXT_MAIN).fontSize(10).font(fontBold).text(contract.partnerName || "Nespecificat", 55, partY + 24);
+      doc.fillColor(TEXT_MUTED).fontSize(8).font(fontRegular);
+      doc.text(`CUI: ${contract.partnerCui || "-"} | Reg. Com: ${contract.partnerRegCom || "-"}`, 55, partY + 38);
+      doc.text(`Sediu: ${contract.partnerAddress || "-"}, ${contract.partnerCity || "-"} | Telefon: ${contract.partnerPhone || "-"}`, 55, partY + 50);
+
+      // Continut Contract / Clauze
+      let curY = 270;
+      doc.fillColor(PRIMARY).fontSize(11).font(fontBold).text("CLAUZE CONTRACTUALE & DISPOZIȚII", 40, curY);
+      curY += 20;
+
+      // Daca exista text HTML sau note, le curatam si afisam
+      let bodyText = contract.contentHtml || contract.notes || "";
+      bodyText = bodyText
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+        .replace(/<h2[^>]*>/gi, "\n\n")
+        .replace(/<h3[^>]*>/gi, "\n\n")
+        .replace(/<\/h[23]>/gi, "\n")
+        .replace(/<p[^>]*>/gi, "\n")
+        .replace(/<\/p>/gi, "")
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<li[^>]*>/gi, "\n• ")
+        .replace(/<\/?[^>]+(>|$)/g, "")
+        .replace(/&nbsp;/g, " ")
+        .replace(/&amp;/g, "&")
+        .replace(/&quot;/g, '"')
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .trim();
+
+      if (!bodyText) {
+        bodyText = `Prezentul document atestă relațiile comerciale agreate între părți conform Comenzilor și Devizelor tehnice semnate.\nValabilitate: ${contract.validFrom || contract.date} - ${contract.validUntil || "nedeterminată"}.\nValoare: ${contract.value || "0.00"} ${contract.currency || "RON"}.`;
+      }
+
+      doc.fillColor(TEXT_MAIN).fontSize(9).font(fontRegular).text(bodyText, 40, curY, {
+        width: 515,
+        lineGap: 4,
+      });
+
+      // Casete Semnaturi la final
+      const endY = 700;
+      doc.rect(40, endY, 245, 80).strokeColor(BORDER_COLOR).lineWidth(0.5).stroke();
+      doc.rect(310, endY, 245, 80).strokeColor(BORDER_COLOR).lineWidth(0.5).stroke();
+
+      doc.fillColor(PRIMARY).fontSize(8).font(fontBold);
+      doc.text("FURNIZOR / PRESTATOR", 50, endY + 10);
+      doc.text("BENEFICIAR / CLIENT", 320, endY + 10);
+
+      doc.fillColor(TEXT_MUTED).fontSize(7).font(fontRegular);
+      doc.text(tenant?.name || "WOOD GLASS SRL", 50, endY + 22);
+      doc.text("Semnătura & Ștampila", 50, endY + 62);
+
+      doc.text(contract.partnerName || "Reprezentant Legal", 320, endY + 22);
+      doc.text("Semnătura & Ștampila", 320, endY + 62);
+
+      // Numerotare pagini in footer
+      const range = doc.bufferedPageRange();
+      for (let i = range.start; i < range.start + range.count; i++) {
+        doc.switchToPage(i);
+        doc.fillColor(TEXT_MUTED).fontSize(7).font(fontRegular);
+        doc.text(
+          `Document emis prin Smart Invoice | ${contract.number} | Pagina ${i + 1} din ${range.count}`,
+          40,
+          800,
+          { align: "center", width: 515 }
+        );
+      }
+
+      doc.end();
+    } catch (e: any) {
+      console.error("[PDF Contract Route] Error:", e.message);
+      if (!res.headersSent) res.status(500).json({ error: e.message });
+    }
+  });
+
   app.use("/api/pdf", router);
 }
+
