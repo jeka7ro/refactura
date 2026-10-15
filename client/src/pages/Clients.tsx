@@ -200,11 +200,11 @@ export default function Clients() {
       render: (_: any, row: any) => (
         <div className="whitespace-nowrap">
           {row.isSupplier === 1 ? (
-            <span className="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[10px] font-bold uppercase tracking-wider">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[10px] font-bold uppercase tracking-wider">
               Furnizor
             </span>
           ) : (
-            <span className="px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-[10px] font-bold uppercase tracking-wider">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-[10px] font-bold uppercase tracking-wider">
               Client
             </span>
           )}
@@ -215,15 +215,15 @@ export default function Clients() {
       key: "regime",
       label: "REGIM",
       sortable: true,
-      render: (val: string, row: any) => (
+      render: (val: string) => (
         <div className="whitespace-nowrap">
           {val === "EXTERN" ? (
-            <span className="px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-[10px] font-bold uppercase tracking-wider">
-              Extern ({row.currency || "EUR"})
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-[10px] font-bold uppercase tracking-wider">
+              Extern
             </span>
           ) : (
-            <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 text-[10px] font-medium uppercase tracking-wider">
-              Intern (RON)
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 text-[10px] font-semibold uppercase tracking-wider">
+              Intern
             </span>
           )}
         </div>
@@ -261,7 +261,7 @@ export default function Clients() {
       sortable: true,
       render: (val: string) =>
         val ? (
-          <span className="inline-block px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[11px] font-mono font-bold">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[10px] font-mono font-bold">
             {val}
           </span>
         ) : (
@@ -281,31 +281,31 @@ export default function Clients() {
       render: (_: any, row: any) => {
         const countryCode = (row.country || "RO").trim().toUpperCase();
         const flagCode = countryCode.toLowerCase();
-        const currency = row.currency || (countryCode === "RO" ? "RON" : "EUR");
-        const isEur = currency.toUpperCase() === "EUR";
+        const currency = (row.currency || (countryCode === "RO" ? "RON" : "EUR")).trim().toUpperCase();
+        const isEur = currency === "EUR";
+        const symbol = isEur ? "€" : currency === "USD" ? "$" : currency === "GBP" ? "£" : "RON";
 
         return (
           <div className="flex items-center gap-2 whitespace-nowrap">
-            <img
-              src={`https://flagcdn.com/20x15/${flagCode}.png`}
-              srcSet={`https://flagcdn.com/40x30/${flagCode}.png 2x`}
-              width="20"
-              height="15"
-              alt={countryCode}
-              title={`Țară: ${countryCode}`}
-              className="rounded-[3px] shadow-xs object-cover border border-slate-200 dark:border-slate-700 shrink-0 inline-block"
-              onError={(e) => {
-                (e.currentTarget as HTMLElement).style.display = "none";
-              }}
-            />
+            <div className="w-5 h-5 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 shadow-xs shrink-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800">
+              <img
+                src={`https://flagcdn.com/w40/${flagCode}.png`}
+                alt={countryCode}
+                title={`Țară: ${countryCode}`}
+                className="w-full h-full object-cover rounded-full"
+                onError={(e) => {
+                  (e.currentTarget as HTMLElement).style.display = "none";
+                }}
+              />
+            </div>
             <span
-              className={`inline-block px-2 py-0.5 rounded text-xs font-mono font-bold border ${
+              className={`inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full text-[10px] font-bold font-mono border ${
                 isEur
                   ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800"
                   : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
               }`}
             >
-              {currency}
+              {symbol}
             </span>
           </div>
         );
