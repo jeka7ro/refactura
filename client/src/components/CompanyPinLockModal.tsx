@@ -1316,9 +1316,9 @@ export function CompanyPinLockModal({
         )}
       </div>
 
-      {/* Widget Compact Vreme în Partea Dreaptă-Sus (Apple Frost Glass fără contur, Iconiță 3D ieșită din card) */}
+      {/* Widget Compact Vreme în Partea Dreaptă-Sus (același fundal cu cardul de logare, fără contur, Iconiță 3D ieșită din card) */}
       {weather && (
-        <div className="fixed top-4 right-4 sm:top-5 sm:right-6 z-30 w-[180px] sm:w-[190px] bg-slate-900/35 dark:bg-black/35 backdrop-blur-2xl rounded-2xl shadow-[0_16px_40px_rgba(0,0,0,0.4)] p-2.5 text-white transition-all animate-in fade-in slide-in-from-top-2 duration-300 select-none overflow-visible relative">
+        <div className="fixed top-4 right-4 sm:top-5 sm:right-6 z-50 w-[180px] sm:w-[190px] bg-black/40 dark:bg-black/55 backdrop-blur-3xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.6)] p-2.5 text-white transition-all animate-in fade-in slide-in-from-top-2 duration-300 select-none overflow-visible">
           {/* Iconita 3D IESITA DIN CARD: pluteste peste marginea din dreapta-sus a cardului, depasind limitele */}
           <div className="absolute -top-6 -right-5 z-20 pointer-events-none transform -rotate-2 hover:rotate-0 transition-transform duration-300">
             <Weather3DIcon
