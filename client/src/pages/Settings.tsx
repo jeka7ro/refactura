@@ -1317,7 +1317,7 @@ export default function Settings() {
                   enabled: true,
                 },
                 {
-                  label: "Re-factură achitată",
+                  label: "Re-factură încasată",
                   desc: "Când un client marchează plata",
                   enabled: true,
                 },

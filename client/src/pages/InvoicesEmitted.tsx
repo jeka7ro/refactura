@@ -56,7 +56,7 @@ const statusColors: Record<string, string> = {
 const statusLabels: Record<string, string> = {
   pending: "Neîncasat",
   processed: "Procesat",
-  paid: "Achitată",
+  paid: "Încasată",
   archived: "Arhivată",
 };
 

@@ -40,7 +40,7 @@ import {
 const STATUS_LABELS: Record<string, string> = {
   draft: "Ciornă",
   sent: "Emisă",
-  paid: "Achitată",
+  paid: "Încasată",
   overdue: "Restanță",
   cancelled: "Anulată",
 };
@@ -303,7 +303,7 @@ export default function EmittedInvoices() {
             value: data.length,
             cls: "text-slate-900 dark:text-white",
           },
-          { label: "Achitate", value: counts.paid, cls: "text-emerald-600" },
+          { label: "Încasate", value: counts.paid, cls: "text-emerald-600" },
           { label: "Restanțe", value: counts.overdue, cls: "text-rose-600" },
           {
             label: "Valoare Totală",
@@ -405,7 +405,7 @@ export default function EmittedInvoices() {
                 <SelectItem value="all">Toate statusurile</SelectItem>
                 <SelectItem value="draft">Ciornă ({counts.draft})</SelectItem>
                 <SelectItem value="sent">Emise ({counts.sent})</SelectItem>
-                <SelectItem value="paid">Achitate ({counts.paid})</SelectItem>
+                <SelectItem value="paid">Încasate ({counts.paid})</SelectItem>
                 <SelectItem value="overdue">Restanțe ({counts.overdue})</SelectItem>
               </SelectContent>
             </Select>

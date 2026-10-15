@@ -647,7 +647,7 @@ export default function ClientDetails() {
             <span className="text-xs font-bold text-emerald-600/70">{kpis.currency}</span>
           </div>
           <div className="mt-1 text-[11px] text-slate-400 flex items-center gap-1 font-medium">
-            <span>{kpis.paidCount} facturi achitate integral</span>
+            <span>{kpis.paidCount} facturi încasate integral</span>
           </div>
         </div>
 
@@ -664,7 +664,7 @@ export default function ClientDetails() {
             <span className="text-xs font-bold text-amber-600/70">{kpis.currency}</span>
           </div>
           <div className="mt-1 text-[11px] text-slate-400 flex items-center gap-1 font-medium">
-            <span>{kpis.pendingCount} facturi în așteptare / neachitate</span>
+            <span>{kpis.pendingCount} facturi în așteptare / neîncasate</span>
           </div>
         </div>
 
@@ -959,7 +959,7 @@ export default function ClientDetails() {
                       : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
 
                     const label = isPaid
-                      ? "PLĂTITĂ"
+                      ? "ÎNCASATĂ"
                       : isSent
                       ? "TRIMISĂ"
                       : isStorno

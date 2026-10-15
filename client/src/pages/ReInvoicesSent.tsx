@@ -445,7 +445,7 @@ export default function ReInvoicesSent() {
               cls: "text-slate-900 dark:text-white",
             },
             {
-              label: "Achitate",
+              label: "Încasate",
               value: reInvoices.filter(r => r.status === "paid").length,
               cls: "text-emerald-600",
             },
@@ -549,7 +549,7 @@ export default function ReInvoicesSent() {
                 <SelectItem value="draft">Ciornă ({counts.draft})</SelectItem>
                 <SelectItem value="pending">În Așteptare ({counts.pending})</SelectItem>
                 <SelectItem value="sent">Trimise ({counts.sent})</SelectItem>
-                <SelectItem value="paid">Achitate ({counts.paid})</SelectItem>
+                <SelectItem value="paid">Încasate ({counts.paid})</SelectItem>
                 <SelectItem value="overdue">Restanțe ({counts.overdue})</SelectItem>
                 <SelectItem value="cancelled">Anulate ({counts.cancelled})</SelectItem>
               </SelectContent>

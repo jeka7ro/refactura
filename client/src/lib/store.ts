@@ -674,7 +674,7 @@ export const invoiceStatusLabels: Record<InvoiceStatus, string> = {
 export const reInvoiceStatusLabels: Record<ReInvoiceStatus, string> = {
   draft: "Ciornă",
   sent: "Trimisă",
-  paid: "Achitată",
+  paid: "Încasată",
   overdue: "Restantă",
 };
 

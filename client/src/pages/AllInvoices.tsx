@@ -1599,9 +1599,7 @@ export default function AllInvoices() {
                                   >
                                     <CheckCircle className="w-4 h-4 mr-2" />
                                     <span>
-                                      {row.type === "primit" ||
-                                      (row.type === "emis" &&
-                                        row.source !== "manual")
+                                      {row.type === "primit"
                                         ? "Marchează Achitat"
                                         : "Marchează Încasat"}
                                     </span>
@@ -1804,9 +1802,7 @@ export default function AllInvoices() {
                               >
                                 <CheckCircle className="w-4 h-4 mr-2" />
                                 <span>
-                                  {row.type === "primit" ||
-                                  (row.type === "emis" &&
-                                    row.source !== "manual")
+                                  {row.type === "primit"
                                     ? "Marchează Achitat"
                                     : "Marchează Încasat"}
                                 </span>
