@@ -1,6 +1,6 @@
 // DevizeList.tsx — Lista Devizelor de lucrări
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import {
   Loader2,
   Search,
@@ -48,9 +48,12 @@ export default function DevizeList() {
   });
 
   const filtered = list.filter(
-    n =>
+    (n: any) =>
       !search ||
       n.number?.toLowerCase().includes(search.toLowerCase()) ||
+      n.invoiceNumber?.toLowerCase().includes(search.toLowerCase()) ||
+      n.clientName?.toLowerCase().includes(search.toLowerCase()) ||
+      n.clientCUI?.toLowerCase().includes(search.toLowerCase()) ||
       (n.invoiceId && n.invoiceId.toString().includes(search.toLowerCase()))
   );
 
@@ -66,9 +69,12 @@ export default function DevizeList() {
   );
 
   const STATUS_CLS: Record<string, string> = {
-    draft: "bg-amber-50 text-amber-700 border-amber-200",
-    final: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    draft: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800",
+    final: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800",
   };
+
+  const totalNetAll = list.reduce((s: number, r: any) => s + (Number(r.subtotal || r.total) || 0), 0);
+  const totalGrossAll = list.reduce((s: number, r: any) => s + (Number(r.totalWithVAT || r.total) || 0), 0);
 
   return (
     <div className="p-4 md:p-6 space-y-4">
@@ -79,7 +85,7 @@ export default function DevizeList() {
             Devize de Lucrări
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Gestionează devizele (materiale și manoperă)
+            Evidență devize (materiale și manoperă) asociate facturilor
           </p>
         </div>
       </div>
@@ -94,23 +100,23 @@ export default function DevizeList() {
           },
           {
             label: "Finalizate",
-            value: list.filter(n => n.status === "final").length,
+            value: list.filter((n: any) => n.status === "final").length,
             cls: "text-emerald-600",
           },
           {
-            label: "Ciorne",
-            value: list.filter(n => n.status === "draft").length,
-            cls: "text-amber-600",
+            label: "Valoare Fără TVA",
+            value: `${totalNetAll.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON`,
+            cls: "text-slate-700 dark:text-slate-300",
           },
           {
-            label: "Valoare Totală",
-            value: `${list.reduce((s, r) => s + (Number(r.total) || 0), 0).toLocaleString("ro-RO", { minimumFractionDigits: 2 })} RON`,
-            cls: "text-sky-600",
+            label: "Valoare Totală (cu TVA)",
+            value: `${totalGrossAll.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON`,
+            cls: "text-sky-600 dark:text-sky-400 font-black",
           },
         ].map(k => (
           <div
             key={k.label}
-            className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4"
+            className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 shadow-sm"
           >
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
               {k.label}
@@ -121,7 +127,7 @@ export default function DevizeList() {
       </div>
 
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
+        <div className="relative flex-1 min-w-[240px] max-w-md">
           <Search
             className="w-3.5 h-3.5 text-slate-400"
             style={{
@@ -138,7 +144,7 @@ export default function DevizeList() {
               setSearch(e.target.value);
               setPage(1);
             }}
-            placeholder="Caută nr. deviz, ID factură..."
+            placeholder="Caută nr. deviz, client, CUI, nr. factură..."
             className="w-full h-9 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
             style={{ paddingLeft: 32, paddingRight: 12 }}
           />
@@ -150,9 +156,9 @@ export default function DevizeList() {
 
       <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
                 <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400 w-10">
                   #
                 </th>
@@ -178,34 +184,23 @@ export default function DevizeList() {
                 </th>
                 <th
                   className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-slate-700"
-                  onClick={() => handleSort("invoiceId")}
+                  onClick={() => handleSort("clientName")}
+                >
+                  <div className="flex items-center gap-1">
+                    Client / Beneficiar{" "}
+                    <span className="text-blue-500">
+                      {getSortIcon("clientName")}
+                    </span>
+                  </div>
+                </th>
+                <th
+                  className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-slate-700"
+                  onClick={() => handleSort("invoiceNumber")}
                 >
                   <div className="flex items-center gap-1">
                     Factură asociată{" "}
                     <span className="text-blue-500">
-                      {getSortIcon("invoiceId")}
-                    </span>
-                  </div>
-                </th>
-                <th
-                  className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-slate-700"
-                  onClick={() => handleSort("totalMaterials")}
-                >
-                  <div className="flex items-center justify-end gap-1">
-                    Materiale{" "}
-                    <span className="text-blue-500">
-                      {getSortIcon("totalMaterials")}
-                    </span>
-                  </div>
-                </th>
-                <th
-                  className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-slate-700"
-                  onClick={() => handleSort("totalLabor")}
-                >
-                  <div className="flex items-center justify-end gap-1">
-                    Manoperă{" "}
-                    <span className="text-blue-500">
-                      {getSortIcon("totalLabor")}
+                      {getSortIcon("invoiceNumber")}
                     </span>
                   </div>
                 </th>
@@ -214,9 +209,31 @@ export default function DevizeList() {
                   onClick={() => handleSort("total")}
                 >
                   <div className="flex items-center justify-end gap-1">
-                    Total{" "}
+                    Fără TVA{" "}
                     <span className="text-blue-500">
                       {getSortIcon("total")}
+                    </span>
+                  </div>
+                </th>
+                <th
+                  className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-slate-700"
+                  onClick={() => handleSort("totalVAT")}
+                >
+                  <div className="flex items-center justify-end gap-1">
+                    TVA (21%){" "}
+                    <span className="text-blue-500">
+                      {getSortIcon("totalVAT")}
+                    </span>
+                  </div>
+                </th>
+                <th
+                  className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-slate-700"
+                  onClick={() => handleSort("totalWithVAT")}
+                >
+                  <div className="flex items-center justify-end gap-1">
+                    Total cu TVA{" "}
+                    <span className="text-blue-500">
+                      {getSortIcon("totalWithVAT")}
                     </span>
                   </div>
                 </th>
@@ -239,95 +256,121 @@ export default function DevizeList() {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center">
+                  <td colSpan={10} className="py-12 text-center">
                     <Loader2 className="w-6 h-6 animate-spin text-sky-600 mx-auto" />
                   </td>
                 </tr>
               ) : paginated.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     className="py-12 text-center text-xs text-slate-400"
                   >
-                    Niciun deviz găsit. Devizele sunt generate automat la
-                    facturare.
+                    Niciun deviz găsit. Devizele sunt generate automat la facturare.
                   </td>
                 </tr>
               ) : (
-                paginated.map((row, i) => (
-                  <tr
-                    key={row.id}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                  >
-                    <td className="px-3 py-2 text-slate-400 text-xs">
-                      {(page - 1) * rowsPerPage + i + 1}
-                    </td>
-                    <td className="px-3 py-2">
-                      <button
-                        onClick={() => navigate(`/devize/${row.id}`)}
-                        className="text-xs font-bold text-sky-600 hover:underline"
-                      >
-                        {row.number}
-                      </button>
-                    </td>
-                    <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
-                      {formatDate(String(row.date))}
-                    </td>
-                    <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
-                      {row.invoiceId ? `#${row.invoiceId}` : "—"}
-                    </td>
-                    <td className="px-3 py-2 text-slate-600 dark:text-slate-300 text-right">
-                      {Number(row.totalMaterials).toFixed(2)}
-                    </td>
-                    <td className="px-3 py-2 text-slate-600 dark:text-slate-300 text-right">
-                      {Number(row.totalLabor).toFixed(2)}
-                    </td>
-                    <td className="px-3 py-2 font-medium text-slate-900 dark:text-white text-right">
-                      {Number(row.total).toFixed(2)} RON
-                    </td>
-                    <td className="px-3 py-2 text-center">
-                      <span
-                        className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${STATUS_CLS[row.status || "draft"] || "bg-slate-100 text-slate-600 border-slate-200"}`}
-                      >
-                        {row.status}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => setEditDevizId(row.id)}
-                          title="Editează Deviz"
-                          className="p-1.5 text-slate-400 hover:text-sky-600 rounded bg-slate-50 hover:bg-sky-50 transition-colors"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
+                paginated.map((row: any, i: number) => {
+                  const netVal = Number(row.subtotal || row.total) || 0;
+                  const vatVal = Number(row.totalVAT) || 0;
+                  const grossVal = Number(row.totalWithVAT || row.total) || 0;
+                  const curr = row.currency || "RON";
+
+                  return (
+                    <tr
+                      key={row.id}
+                      className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                    >
+                      <td className="px-3 py-2.5 text-slate-400 font-mono">
+                        {(page - 1) * rowsPerPage + i + 1}
+                      </td>
+                      <td className="px-3 py-2.5 whitespace-nowrap">
                         <button
                           onClick={() => navigate(`/devize/${row.id}`)}
-                          title="Vizualizează"
-                          className="p-1.5 text-slate-400 hover:text-sky-600 rounded bg-slate-50 hover:bg-sky-50 transition-colors"
+                          className="font-bold text-sky-600 dark:text-sky-400 hover:underline"
                         >
-                          <Eye className="w-3.5 h-3.5" />
+                          {row.number}
                         </button>
-                        <a
-                          href={`/api/pdf/deviz/${row.id}?download=1`}
-                          target="_blank"
-                          rel="noreferrer"
-                          title="Descarcă PDF"
-                          className="p-1.5 text-slate-400 hover:text-sky-600 rounded bg-slate-50 hover:bg-sky-50 transition-colors"
+                      </td>
+                      <td className="px-3 py-2.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                        {formatDate(String(row.date))}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <div className="font-semibold text-slate-900 dark:text-white">
+                          {row.clientName || "—"}
+                        </div>
+                        {row.clientCUI && row.clientCUI !== "—" && (
+                          <div className="text-[11px] font-mono text-slate-500">
+                            CUI: {row.clientCUI}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5 whitespace-nowrap">
+                        {row.invoiceId ? (
+                          <Link
+                            href={`/facturi-emise-nou/${row.invoiceId}`}
+                            className="font-mono font-medium text-sky-600 dark:text-sky-400 hover:underline"
+                            title="Deschide factura"
+                          >
+                            {row.invoiceNumber}
+                          </Link>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-mono text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                        {netVal.toFixed(2)}
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-mono text-slate-500 whitespace-nowrap">
+                        {vatVal.toFixed(2)}
+                      </td>
+                      <td className="px-3 py-2.5 font-bold font-mono text-slate-900 dark:text-white text-right whitespace-nowrap">
+                        {grossVal.toFixed(2)} {curr}
+                      </td>
+                      <td className="px-3 py-2.5 text-center whitespace-nowrap">
+                        <span
+                          className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${STATUS_CLS[row.status || "draft"] || "bg-slate-100 text-slate-600 border-slate-200"}`}
                         >
-                          <FileDown className="w-3.5 h-3.5" />
-                        </a>
-                        <button
-                          onClick={() => setDeleteTarget(row.id)}
-                          title="Șterge"
-                          className="p-1.5 text-slate-400 hover:text-red-600 rounded bg-slate-50 hover:bg-red-50 transition-colors"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                          {row.status}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => setEditDevizId(row.id)}
+                            title="Editează Deviz"
+                            className="p-1.5 text-slate-400 hover:text-sky-600 rounded bg-slate-50 hover:bg-sky-50 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => navigate(`/devize/${row.id}`)}
+                            title="Vizualizează"
+                            className="p-1.5 text-slate-400 hover:text-sky-600 rounded bg-slate-50 hover:bg-sky-50 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                          <a
+                            href={`/api/pdf/deviz/${row.id}?download=1`}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="Descarcă PDF"
+                            className="p-1.5 text-slate-400 hover:text-sky-600 rounded bg-slate-50 hover:bg-sky-50 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
+                          >
+                            <FileDown className="w-3.5 h-3.5" />
+                          </a>
+                          <button
+                            onClick={() => setDeleteTarget(row.id)}
+                            title="Șterge"
+                            className="p-1.5 text-slate-400 hover:text-red-600 rounded bg-slate-50 hover:bg-red-50 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

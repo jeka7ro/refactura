@@ -1410,12 +1410,57 @@ export function registerPdfRoute(app: any) {
         return;
       }
 
-      const { devize, devizeLines } = await import("../drizzle/schema");
+      const { devize, devizeLines, emittedInvoices, reInvoices } = await import("../drizzle/schema");
 
       const [deviz] = await db.select().from(devize).where(eq(devize.id, id));
       if (!deviz) {
         res.status(404).json({ error: "Devizul nu a fost găsit" });
         return;
+      }
+
+      let invoice: any = null;
+      if (deviz.invoiceId) {
+        const [emitted] = await db
+          .select()
+          .from(emittedInvoices)
+          .where(and(eq(emittedInvoices.id, deviz.invoiceId), eq(emittedInvoices.tenantId, deviz.tenantId)));
+        if (emitted) {
+          invoice = {
+            id: emitted.id,
+            number: emitted.number,
+            series: emitted.series,
+            clientName: emitted.clientName,
+            clientCUI: emitted.clientCUI,
+            clientAddress: emitted.clientAddress,
+            clientCity: emitted.clientCity,
+            clientRegCom: (emitted as any).clientRegCom || "",
+            intocmitDe: emitted.intocmitDe,
+            delegat: emitted.delegat,
+            totalVAT: emitted.totalVAT,
+            total: emitted.total,
+            currency: emitted.currency,
+          };
+        } else {
+          const [re] = await db
+            .select()
+            .from(reInvoices)
+            .where(and(eq(reInvoices.id, deviz.invoiceId), eq(reInvoices.tenantId, deviz.tenantId)));
+          if (re) {
+            invoice = {
+              id: re.id,
+              number: re.number,
+              clientName: re.clientName,
+              clientCUI: re.clientCUI,
+              clientAddress: re.clientAddress,
+              clientCity: re.clientCity,
+              intocmitDe: (re as any).intocmitDe || "",
+              delegat: (re as any).delegat || "",
+              totalVAT: re.totalVAT,
+              total: re.total,
+              currency: re.currency,
+            };
+          }
+        }
       }
 
       const lines = await db
@@ -1562,56 +1607,52 @@ export function registerPdfRoute(app: any) {
 
       doc.moveDown(0.3);
       doc
-        .moveTo(40, 90)
-        .lineTo(doc.page.width - 40, 90)
+        .moveTo(40, 80)
+        .lineTo(doc.page.width - 40, 80)
         .strokeColor(TEAL)
         .lineWidth(2)
         .stroke();
 
-      // Info
-      let y = 100;
-      doc.rect(40, y, W, 50).fillColor(LIGHT).fill();
-      doc.rect(40, y, W, 50).strokeColor(BORDER).lineWidth(0.5).stroke();
+      // Info 2 Cards: Prestator & Beneficiar
+      let y = 88;
+      const boxW = (W - 12) / 2;
+      const boxH = 78;
 
-      doc
-        .fontSize(7)
-        .font("Roboto-Bold")
-        .fillColor(GRAY)
-        .text("DATE DEVIZ", 50, y + 6);
-      doc
-        .fontSize(7)
-        .font("Roboto")
-        .fillColor(GRAY)
-        .text("Nr. Deviz:", 50, y + 20);
-      doc
-        .fontSize(8)
-        .font("Roboto-Bold")
-        .fillColor("#1e293b")
-        .text(deviz.number, 50, y + 30);
+      // Prestator Card
+      doc.rect(40, y, boxW, boxH).fillColor(LIGHT).fill();
+      doc.rect(40, y, boxW, boxH).strokeColor(BORDER).lineWidth(0.5).stroke();
 
-      doc
-        .fontSize(7)
-        .font("Roboto")
-        .fillColor(GRAY)
-        .text("Data:", 150, y + 20);
-      doc
-        .fontSize(8)
-        .font("Roboto-Bold")
-        .fillColor("#1e293b")
-        .text(new Date(deviz.date).toLocaleDateString("ro-RO"), 150, y + 30);
+      doc.fontSize(7.5).font("Roboto-Bold").fillColor(GRAY).text("PRESTATOR / EMITENT", 48, y + 6);
+      doc.fontSize(8.5).font("Roboto-Bold").fillColor("#0f172a").text(tenant?.name || "Companie Emitentă", 48, y + 17, { width: boxW - 16 });
+      doc.fontSize(7).font("Roboto").fillColor(GRAY);
+      doc.text(`CUI/CIF: ${tenant?.cui || "—"}${tenant?.regCom ? ` | Reg. Com: ${tenant.regCom}` : ""}`, 48, y + 29, { width: boxW - 16 });
+      if (tenant?.address) {
+        doc.text(`Adresă: ${tenant.address}`, 48, y + 39, { width: boxW - 16, lineBreak: false });
+      }
+      if (tenant?.iban) {
+        doc.text(`IBAN: ${tenant.iban}${tenant.bank ? ` (${tenant.bank})` : ""}`, 48, y + 49, { width: boxW - 16, lineBreak: false });
+      }
+      const intocmitNume = invoice?.intocmitDe || settings.representativeName || "Administrator";
+      doc.text(`Întocmit de: ${intocmitNume}`, 48, y + 59, { width: boxW - 16, lineBreak: false });
 
-      doc
-        .fontSize(7)
-        .font("Roboto")
-        .fillColor(GRAY)
-        .text("Factura:", 250, y + 20);
-      doc
-        .fontSize(8)
-        .font("Roboto-Bold")
-        .fillColor("#1e293b")
-        .text(deviz.invoiceId ? `#${deviz.invoiceId}` : "—", 250, y + 30);
+      // Beneficiar Card
+      const box2X = 40 + boxW + 12;
+      doc.rect(box2X, y, boxW, boxH).fillColor(LIGHT).fill();
+      doc.rect(box2X, y, boxW, boxH).strokeColor(BORDER).lineWidth(0.5).stroke();
 
-      y += 65;
+      doc.fontSize(7.5).font("Roboto-Bold").fillColor(GRAY).text("BENEFICIAR / CLIENT", box2X + 8, y + 6);
+      const clientNume = invoice?.clientName || deviz.clientName || "—";
+      const clientCuiVal = invoice?.clientCUI || deviz.clientCUI || "—";
+      doc.fontSize(8.5).font("Roboto-Bold").fillColor("#0f172a").text(clientNume, box2X + 8, y + 17, { width: boxW - 16 });
+      doc.fontSize(7).font("Roboto").fillColor(GRAY);
+      doc.text(`CUI/CIF: ${clientCuiVal}${invoice?.clientRegCom ? ` | Reg. Com: ${invoice.clientRegCom}` : ""}`, box2X + 8, y + 29, { width: boxW - 16 });
+      const clientAddr = [invoice?.clientAddress, invoice?.clientCity].filter(Boolean).join(", ") || "—";
+      doc.text(`Adresă: ${clientAddr}`, box2X + 8, y + 39, { width: boxW - 16, lineBreak: false });
+      doc.text(`Nr. Deviz: ${deviz.number}  |  Data: ${new Date(deviz.date).toLocaleDateString("ro-RO")}`, box2X + 8, y + 49, { width: boxW - 16, lineBreak: false });
+      const invNumDisplay = invoice?.number || (deviz.invoiceId ? `#${deviz.invoiceId}` : "—");
+      doc.text(`Factură asociată: ${invNumDisplay}`, box2X + 8, y + 59, { width: boxW - 16, lineBreak: false });
+
+      y += boxH + 12;
 
       // Tabel Header & Columns
       const colNr = 26;
@@ -1767,6 +1808,21 @@ export function registerPdfRoute(app: any) {
         width: totalsValW,
         align: "right",
       });
+
+      // Semnături
+      y += 34;
+      if (y + 40 > doc.page.height - 40) {
+        doc.addPage();
+        y = 40;
+      }
+      doc.fontSize(7.5).font("Roboto-Bold").fillColor(GRAY);
+      doc.text("Semnătură Prestator / Întocmit:", 45, y);
+      doc.text("Semnătură Beneficiar de primire:", 40 + W - 180, y);
+      doc.fontSize(7).font("Roboto").fillColor("#334155");
+      doc.text(intocmitNume, 45, y + 12);
+      if (invoice?.delegat) {
+        doc.text(`Delegat: ${invoice.delegat}`, 40 + W - 180, y + 12);
+      }
 
       doc.end();
     } catch (e: any) {

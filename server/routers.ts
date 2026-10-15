@@ -5438,30 +5438,96 @@ export const appRouter = router({
   // =========================================================================
   devize: router({
     list: protectedProcedure.query(async ({ ctx }) => {
-      
       const db = await getDb();
       if (!db) throw new Error("No DB");
-      const { devize } = await import("../drizzle/schema");
-      return await db
+      const { devize, emittedInvoices, reInvoices } = await import("../drizzle/schema");
+      const { inArray, desc, eq, and } = await import("drizzle-orm");
+      const tenantId = ctx.user?.tenantId || 1;
+
+      const devizList = await db
         .select()
         .from(devize)
-        .where(eq(devize.tenantId, (ctx.user?.tenantId || 1)))
+        .where(eq(devize.tenantId, tenantId))
         .orderBy(desc(devize.id));
+
+      const invoiceIds = Array.from(new Set(devizList.map(d => d.invoiceId).filter(Boolean))) as number[];
+      const invoiceMap = new Map<number, any>();
+
+      if (invoiceIds.length > 0) {
+        const emitted = await db
+          .select({
+            id: emittedInvoices.id,
+            number: emittedInvoices.number,
+            series: emittedInvoices.series,
+            clientName: emittedInvoices.clientName,
+            clientCUI: emittedInvoices.clientCUI,
+            subtotal: emittedInvoices.subtotal,
+            totalVAT: emittedInvoices.totalVAT,
+            total: emittedInvoices.total,
+            currency: emittedInvoices.currency,
+          })
+          .from(emittedInvoices)
+          .where(and(eq(emittedInvoices.tenantId, tenantId), inArray(emittedInvoices.id, invoiceIds)));
+
+        for (const e of emitted) {
+          invoiceMap.set(e.id, { ...e, type: "emitted" });
+        }
+
+        const missingIds = invoiceIds.filter(id => !invoiceMap.has(id));
+        if (missingIds.length > 0) {
+          const reInvs = await db
+            .select({
+              id: reInvoices.id,
+              number: reInvoices.number,
+              clientName: reInvoices.clientName,
+              clientCUI: reInvoices.clientCUI,
+              total: reInvoices.total,
+              currency: reInvoices.currency,
+            })
+            .from(reInvoices)
+            .where(and(eq(reInvoices.tenantId, tenantId), inArray(reInvoices.id, missingIds)));
+
+          for (const r of reInvs) {
+            invoiceMap.set(r.id, { ...r, type: "reInvoice" });
+          }
+        }
+      }
+
+      return devizList.map(d => {
+        const inv = d.invoiceId ? invoiceMap.get(d.invoiceId) : null;
+        const totalNet = Number(d.total) || 0;
+        const vatRate = 21;
+        const totalVAT = inv?.totalVAT != null ? Number(inv.totalVAT) : Number((totalNet * (vatRate / 100)).toFixed(2));
+        const totalWithVAT = inv?.total != null ? Number(inv.total) : Number((totalNet + totalVAT).toFixed(2));
+
+        return {
+          ...d,
+          invoiceNumber: inv?.number || (d.invoiceId ? `#${d.invoiceId}` : "—"),
+          clientName: inv?.clientName || "—",
+          clientCUI: inv?.clientCUI || "—",
+          subtotal: totalNet,
+          vatRate,
+          totalVAT,
+          totalWithVAT,
+          currency: inv?.currency || "RON",
+        };
+      });
     }),
 
     getById: protectedProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input, ctx }) => {
-        
         const db = await getDb();
         if (!db) throw new Error("No DB");
-        const { devize, devizeLines } = await import("../drizzle/schema");
+        const { devize, devizeLines, emittedInvoices, reInvoices, tenants } = await import("../drizzle/schema");
+        const { eq, and } = await import("drizzle-orm");
+        const tenantId = ctx.user?.tenantId || 1;
 
         const [deviz] = await db
           .select()
           .from(devize)
           .where(
-            and(eq(devize.id, input.id), eq(devize.tenantId, (ctx.user?.tenantId || 1)))
+            and(eq(devize.id, input.id), eq(devize.tenantId, tenantId))
           );
         if (!deviz) throw new Error("Not found");
 
@@ -5471,7 +5537,86 @@ export const appRouter = router({
           .where(eq(devizeLines.devizId, deviz.id))
           .orderBy(devizeLines.lineOrder);
 
-        return { deviz, lines };
+        const [tenant] = await db
+          .select()
+          .from(tenants)
+          .where(eq(tenants.id, tenantId));
+
+        let issuerSettings: any = {};
+        try {
+          issuerSettings = JSON.parse(tenant?.settings || "{}");
+        } catch {}
+
+        let invoice: any = null;
+        if (deviz.invoiceId) {
+          const [emitted] = await db
+            .select()
+            .from(emittedInvoices)
+            .where(eq(emittedInvoices.id, deviz.invoiceId));
+          if (emitted) {
+            invoice = emitted;
+          } else {
+            const [reInv] = await db
+              .select()
+              .from(reInvoices)
+              .where(eq(reInvoices.id, deviz.invoiceId));
+            if (reInv) {
+              invoice = reInv;
+            }
+          }
+        }
+
+        const totalNet = Number(deviz.total) || 0;
+        const vatRate = 21;
+        const totalVAT = invoice?.totalVAT != null ? Number(invoice.totalVAT) : Number((totalNet * (vatRate / 100)).toFixed(2));
+        const totalWithVAT = invoice?.total != null ? Number(invoice.total) : Number((totalNet + totalVAT).toFixed(2));
+
+        return {
+          deviz: {
+            ...deviz,
+            invoiceNumber: invoice?.number || (deviz.invoiceId ? `#${deviz.invoiceId}` : "—"),
+            clientName: invoice?.clientName || "—",
+            clientCUI: invoice?.clientCUI || invoice?.clientCui || "—",
+            vatRate,
+            totalVAT,
+            totalWithVAT,
+            currency: invoice?.currency || "RON",
+          },
+          lines,
+          invoice: invoice ? {
+            id: invoice.id,
+            number: invoice.number,
+            series: invoice.series,
+            clientName: invoice.clientName,
+            clientCUI: invoice.clientCUI || invoice.clientCui,
+            clientRegCom: invoice.clientRegCom,
+            clientAddress: invoice.clientAddress,
+            clientCity: invoice.clientCity,
+            clientCountry: invoice.clientCountry,
+            clientEmail: invoice.clientEmail,
+            clientPhone: invoice.clientPhone,
+            issueDate: invoice.issueDate,
+            dueDate: invoice.dueDate,
+            subtotal: invoice.subtotal,
+            totalVAT: invoice.totalVAT,
+            total: invoice.total,
+            currency: invoice.currency,
+            intocmitDe: invoice.intocmitDe || issuerSettings.intocmitDe || "Administrator",
+            delegat: invoice.delegat || issuerSettings.delegat || "—",
+            agentVanzari: invoice.agentVanzari || "—",
+          } : null,
+          issuer: {
+            name: tenant?.name || "Companie",
+            cui: tenant?.cui || "",
+            regCom: issuerSettings.regCom || "",
+            address: tenant?.address || "",
+            city: issuerSettings.city || "",
+            iban: invoice?.companyIBAN || issuerSettings.iban || "",
+            bank: invoice?.companyBank || issuerSettings.bank || "",
+            intocmitDe: issuerSettings.intocmitDe || "Administrator",
+            delegat: issuerSettings.delegat || "—",
+          },
+        };
       }),
 
     getByInvoiceId: protectedProcedure
