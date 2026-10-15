@@ -318,7 +318,7 @@ export default function CursValutar() {
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="p-3 sm:p-5 max-w-full space-y-6 pb-12">
       {/* Page Header Banner - Matches Dashboard exactly */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
         <div>

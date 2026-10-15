@@ -49,7 +49,7 @@ export default function DevizDetail() {
   const currency = deviz.currency || "RON";
 
   return (
-    <div className="p-4 md:p-6 space-y-5 max-w-full">
+    <div className="p-3 sm:p-5 space-y-5 max-w-full">
       {/* Header & Butoane Acțiuni */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">

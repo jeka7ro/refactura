@@ -33,7 +33,7 @@ export default function BonConsumDetail() {
     );
 
   return (
-    <div className="p-4 md:p-6 max-w-full space-y-6">
+    <div className="p-3 sm:p-5 max-w-full space-y-6">
       <div className="flex items-center gap-4">
         <Link href="/bonuri-consum">
           <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500">

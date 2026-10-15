@@ -136,7 +136,7 @@ export default function ContractDetail() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-3 sm:p-5 max-w-full space-y-6">
       {/* Top Action Bar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
         <div className="flex items-center gap-3">

@@ -383,7 +383,7 @@ export default function ClientDetails() {
 
   if (error || !data) {
     return (
-      <div className="p-6 max-w-4xl mx-auto">
+      <div className="p-3 sm:p-5 max-w-full">
         <div className="text-red-500 bg-red-50 dark:bg-red-950/40 p-6 rounded-2xl border border-red-200 dark:border-red-900 shadow-sm flex items-center gap-4">
           <AlertCircle className="w-8 h-8 text-red-500 shrink-0" />
           <div>
@@ -406,7 +406,7 @@ export default function ClientDetails() {
   const { client, topLines = [] } = data;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
+    <div className="p-3 sm:p-5 max-w-full space-y-6">
       {/* Top Navigation & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">

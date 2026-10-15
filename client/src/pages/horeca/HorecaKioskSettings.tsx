@@ -202,7 +202,7 @@ export default function HorecaKioskSettings() {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto fade-in">
+    <div className="p-3 sm:p-5 max-w-full space-y-6 fade-in">
       {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div>

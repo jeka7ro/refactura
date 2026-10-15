@@ -77,7 +77,7 @@ export default function DevizeList() {
   const totalGrossAll = list.reduce((s: number, r: any) => s + (Number(r.totalWithVAT || r.total) || 0), 0);
 
   return (
-    <div className="p-4 md:p-6 space-y-4">
+    <div className="p-3 sm:p-5 max-w-full space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">

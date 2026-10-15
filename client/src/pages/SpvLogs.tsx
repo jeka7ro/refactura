@@ -53,7 +53,7 @@ export default function SpvLogs() {
 
   return (
     <>
-      <div className="p-8 max-w-[1400px] mx-auto space-y-6">
+      <div className="p-3 sm:p-5 max-w-full space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Jurnal Sincronizări SPV ANAF</h1>
           <p className="text-slate-500 mt-1">

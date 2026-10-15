@@ -104,7 +104,7 @@ export default function HorecaTestPanel() {
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto fade-in">
+    <div className="p-3 sm:p-5 max-w-full space-y-6 fade-in">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>

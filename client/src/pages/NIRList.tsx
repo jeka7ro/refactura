@@ -392,7 +392,7 @@ export default function NIRList() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-4">
+    <div className="p-3 sm:p-5 max-w-full space-y-4">
       {/* Header Pagina */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>

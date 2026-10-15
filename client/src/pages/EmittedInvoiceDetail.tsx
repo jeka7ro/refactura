@@ -218,7 +218,7 @@ export default function EmittedInvoiceDetail() {
   const isSpvValidated = invoice.spvStatus === "validat" || Boolean(invoice.spvIndex);
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="p-3 sm:p-5 max-w-full space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">

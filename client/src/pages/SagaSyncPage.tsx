@@ -267,7 +267,7 @@ export default function SagaSyncPage() {
   const helpPath = getSagaPathHelp(activeTab);
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
+    <div className="p-3 sm:p-5 max-w-full space-y-6">
       {/* Breadcrumb & Navigation */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium">

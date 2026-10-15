@@ -650,7 +650,7 @@ export default function ReInvoice() {
   };
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-3 sm:p-5 max-w-full space-y-6">
       {invoice.status === "refactured" && (
         <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-md">
           <div className="flex">

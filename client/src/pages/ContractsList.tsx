@@ -276,7 +276,7 @@ export default function ContractsList() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="p-3 sm:p-5 max-w-full space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>

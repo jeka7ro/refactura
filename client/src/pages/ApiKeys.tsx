@@ -39,7 +39,7 @@ export default function ApiKeysPage() {
   const baseUrl = window.location.origin;
 
   return (
-    <div className="p-5 max-w-3xl space-y-6">
+    <div className="p-3 sm:p-5 max-w-full space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
