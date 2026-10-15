@@ -672,14 +672,12 @@ export function CompanyPinLockModal({
         }
       `}</style>
 
-      {/* Container Principal Responsive: Card PIN + Card Separat Vreme */}
-      <div className="w-full max-w-5xl z-10 flex flex-col lg:flex-row items-center justify-center gap-6 my-auto py-6">
-        {/* Fereastră Unică stil Apple (Ceas + Securitate Firmă) */}
-        <div
-          className={`w-full max-w-md bg-black/30 dark:bg-black/45 backdrop-blur-3xl border border-white/[0.08] rounded-[36px] shadow-[0_25px_60px_rgba(0,0,0,0.4)] p-6 sm:p-8 space-y-6 text-white transition-all ${
-            isShaking ? "animate-apple-shake ring-2 ring-rose-500/50" : "animate-in fade-in zoom-in-95 duration-300"
-          }`}
-        >
+      {/* Fereastră Unică stil Apple (Ceas + Securitate Firmă) Centrată */}
+      <div
+        className={`w-full max-w-md z-10 my-auto py-6 bg-black/30 dark:bg-black/45 backdrop-blur-3xl border border-white/[0.08] rounded-[36px] shadow-[0_25px_60px_rgba(0,0,0,0.4)] p-6 sm:p-8 space-y-6 text-white transition-all ${
+          isShaking ? "animate-apple-shake ring-2 ring-rose-500/50" : "animate-in fade-in zoom-in-95 duration-300"
+        }`}
+      >
           {/* Header Ceas stil Apple */}
           <div className="flex flex-col items-center justify-center text-center pb-5 border-b border-white/[0.08] select-none">
             {/* Rândul Apple: Data */}
@@ -1057,113 +1055,96 @@ export function CompanyPinLockModal({
             </div>
           </>
         )}
-        </div>
+      </div>
 
-        {/* Card Separat: Vreme Actuală + Prognoză Următoarele 5 Zile */}
-        {weather && (
-          <div className="w-full max-w-md lg:w-[380px] bg-black/30 dark:bg-black/45 backdrop-blur-3xl border border-white/[0.08] rounded-[36px] shadow-[0_25px_60px_rgba(0,0,0,0.4)] p-6 sm:p-7 text-white flex flex-col justify-between transition-all animate-in fade-in zoom-in-95 duration-300">
-            {/* Header: Locație & Status Live */}
+      {/* Widget Compact Vreme în Partea Dreaptă-Sus (Apple Frost Glass) */}
+      {weather && (
+        <div className="fixed top-4 right-4 sm:top-5 sm:right-6 z-30 w-[240px] sm:w-[250px] bg-black/45 dark:bg-black/65 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl p-3 text-white transition-all animate-in fade-in slide-in-from-top-2 duration-300 select-none">
+          {/* Header Locație & Live Badge */}
+          <div className="flex items-center justify-between pb-1.5 border-b border-white/[0.08]">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <MapPin className="w-3 h-3 text-rose-400 shrink-0" />
+              <span className="text-xs font-bold tracking-wide text-white truncate max-w-[155px]">
+                {weather.city}
+              </span>
+            </div>
+            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold tracking-wider uppercase bg-white/10 text-white/70 border border-white/10">
+              Live
+            </span>
+          </div>
+
+          {/* Vreme Actuală cu Temperatură și Iconiță Compactă */}
+          <div className="py-1.5 flex items-center justify-between gap-2">
             <div>
-              <div className="flex items-center justify-between pb-3.5 border-b border-white/[0.08]">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-rose-400 shrink-0" />
-                  <span className="text-sm font-bold tracking-wide text-white truncate max-w-[200px]">
-                    {weather.city}
-                  </span>
-                </div>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-white/10 text-white/80 border border-white/10">
-                  Live
-                </span>
+              <div className="text-2xl sm:text-3xl font-black tracking-tight text-white leading-none">
+                {weather.temp > 0 ? `+${weather.temp}` : weather.temp}°C
               </div>
-
-              {/* Vreme Actuală cu Iconiță Mare */}
-              <div className="py-4 flex items-center justify-between gap-4">
-                <div className="flex flex-col">
-                  <div className="text-5xl sm:text-6xl font-black tracking-tight text-white leading-none">
-                    {weather.temp > 0 ? `+${weather.temp}` : weather.temp}°C
-                  </div>
-                  <span className="text-sm sm:text-base font-semibold text-white/90 mt-1.5">
-                    {weather.condition}
-                  </span>
-                  {(weather.tempMax !== undefined && weather.tempMin !== undefined) && (
-                    <span className="text-xs text-white/60 mt-0.5">
-                      Max: {weather.tempMax > 0 ? `+${weather.tempMax}` : weather.tempMax}° · Min: {weather.tempMin > 0 ? `+${weather.tempMin}` : weather.tempMin}°
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-center p-3 sm:p-3.5 rounded-2xl bg-white/[0.06] border border-white/10 shrink-0">
-                  {(() => {
-                    const CurrentIcon = getWeatherIcon(weather.weatherCode);
-                    const iconColor = getWeatherIconColor(weather.weatherCode);
-                    return <CurrentIcon className={`w-14 h-14 sm:w-16 sm:h-16 ${iconColor} drop-shadow-[0_4px_16px_rgba(0,0,0,0.3)]`} />;
-                  })()}
-                </div>
-              </div>
-
-              {/* Informații suplimentare (Umiditate & Vânt) */}
-              {(weather.humidity !== undefined || weather.windSpeed !== undefined) && (
-                <div className="grid grid-cols-2 gap-2 pb-3.5 pt-0.5">
-                  {weather.humidity !== undefined && (
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-xs text-white/75">
-                      <Droplets className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-                      <span>{weather.humidity}% umiditate</span>
-                    </div>
-                  )}
-                  {weather.windSpeed !== undefined && (
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-xs text-white/75">
-                      <Wind className="w-3.5 h-3.5 text-teal-300 shrink-0" />
-                      <span>{weather.windSpeed} km/h vânt</span>
-                    </div>
-                  )}
-                </div>
+              <p className="text-[11px] font-medium text-white/85 mt-1 leading-tight truncate max-w-[150px]">
+                {weather.condition}
+              </p>
+              {(weather.tempMax !== undefined && weather.tempMin !== undefined) && (
+                <p className="text-[10px] text-white/50 mt-0.5">
+                  Max: {weather.tempMax > 0 ? `+${weather.tempMax}` : weather.tempMax}° · Min: {weather.tempMin > 0 ? `+${weather.tempMin}` : weather.tempMin}°
+                </p>
               )}
             </div>
 
-            {/* Prognoză Următoarele 5 Zile */}
-            {weather.forecast && weather.forecast.length > 0 && (
-              <div className="pt-3.5 border-t border-white/[0.08]">
-                <div className="flex items-center gap-2 mb-2 text-white/50 text-[11px] font-bold uppercase tracking-wider">
-                  <CalendarDays className="w-3.5 h-3.5" />
-                  <span>Prognoză următoarele 5 zile</span>
-                </div>
-
-                <div className="space-y-1">
-                  {weather.forecast.map((day, idx) => {
-                    const DayIcon = getWeatherIcon(day.weatherCode);
-                    const dayIconColor = getWeatherIconColor(day.weatherCode);
-                    return (
-                      <div
-                        key={day.date || idx}
-                        className="flex items-center justify-between py-1.5 px-2.5 rounded-xl hover:bg-white/[0.05] transition-colors"
-                      >
-                        <div className="w-24 text-left">
-                          <p className="text-xs font-semibold text-white/95 leading-tight">{day.dayName}</p>
-                          <p className="text-[10px] text-white/50">{day.shortDate}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <DayIcon className={`w-5 h-5 ${dayIconColor} shrink-0`} />
-                          <span className="text-[11px] text-white/70 hidden sm:inline-block w-24 truncate">
-                            {day.condition}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-end gap-2 text-right min-w-[64px]">
-                          <span className="text-xs font-bold text-white">
-                            {day.tempMax > 0 ? `+${day.tempMax}` : day.tempMax}°
-                          </span>
-                          <span className="text-[11px] text-white/50">
-                            {day.tempMin > 0 ? `+${day.tempMin}` : day.tempMin}°
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+            <div className="flex items-center justify-center p-2 rounded-xl bg-white/[0.06] border border-white/10 shrink-0">
+              {(() => {
+                const CurrentIcon = getWeatherIcon(weather.weatherCode);
+                const iconColor = getWeatherIconColor(weather.weatherCode);
+                return <CurrentIcon className={`w-8 h-8 ${iconColor} drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]`} />;
+              })()}
+            </div>
           </div>
-        )}
-      </div>
+
+          {/* Umiditate & Vânt */}
+          {(weather.humidity !== undefined || weather.windSpeed !== undefined) && (
+            <div className="flex items-center justify-between text-[10px] text-white/70 pt-1 pb-1 border-t border-white/[0.06]">
+              {weather.humidity !== undefined && (
+                <span className="flex items-center gap-1">
+                  <Droplets className="w-3 h-3 text-sky-400" />
+                  {weather.humidity}%
+                </span>
+              )}
+              {weather.windSpeed !== undefined && (
+                <span className="flex items-center gap-1">
+                  <Wind className="w-3 h-3 text-teal-300" />
+                  {weather.windSpeed} km/h
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Prognoză Următoarele 5 Zile: Bară Orizontală Compactă */}
+          {weather.forecast && weather.forecast.length > 0 && (
+            <div className="pt-1.5 border-t border-white/[0.08]">
+              <div className="grid grid-cols-5 gap-1 text-center">
+                {weather.forecast.map((day, idx) => {
+                  const DayIcon = getWeatherIcon(day.weatherCode);
+                  const dayIconColor = getWeatherIconColor(day.weatherCode);
+                  const shortDay = day.dayName ? day.dayName.slice(0, 2).toUpperCase() : "";
+                  return (
+                    <div
+                      key={day.date || idx}
+                      className="flex flex-col items-center py-1 px-0.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] transition-colors"
+                      title={`${day.dayName}: ${day.condition} (Max: ${day.tempMax}°, Min: ${day.tempMin}°)`}
+                    >
+                      <span className="text-[9px] font-semibold text-white/60 leading-none">
+                        {shortDay}
+                      </span>
+                      <DayIcon className={`w-3.5 h-3.5 ${dayIconColor} my-1 shrink-0`} />
+                      <span className="text-[10px] font-bold text-white leading-none">
+                        {day.tempMax > 0 ? `+${day.tempMax}` : day.tempMax}°
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Branding GetApp jos de tot pe mijloc, la nivelul locatiei pozei */}
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-20 select-none animate-in fade-in duration-300">

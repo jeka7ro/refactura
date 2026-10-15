@@ -441,111 +441,8 @@ export default function ContractCreate() {
         /* ═════════════════════════════════════════════════════════════════════
            TAB 1: ÎNCARCĂ CONTRACT SEMNAT (PDF)
            ═════════════════════════════════════════════════════════════════════ */
-        <div className="space-y-6">
-          {/* File Upload Dropzone */}
-          <div
-            onDragOver={(e) => {
-              e.preventDefault();
-              setIsDragging(true);
-            }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={handleDrop}
-            className={`rounded-2xl border-2 border-dashed transition-all p-6 sm:p-8 text-center ${
-              isDragging
-                ? "border-primary bg-primary/5"
-                : uploadedFile
-                ? "border-emerald-300 dark:border-emerald-800 bg-emerald-50/30 dark:bg-emerald-950/20"
-                : "border-slate-300 dark:border-slate-700 bg-card hover:border-primary/50"
-            }`}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf"
-              onChange={(e) => {
-                if (e.target.files && e.target.files.length > 0) {
-                  handleUploadFile(e.target.files[0]);
-                }
-              }}
-              className="hidden"
-            />
-
-            {isUploading ? (
-              <div className="flex flex-col items-center justify-center py-4">
-                <Loader2 className="h-10 w-10 animate-spin text-primary mb-3" />
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                  Se încarcă și se analizează contractul...
-                </h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  Detectare automată număr, dată și CUI partener din conținut
-                </p>
-              </div>
-            ) : uploadedFile ? (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 max-w-2xl mx-auto p-4 rounded-xl bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 shadow-xs">
-                <div className="flex items-center gap-3 min-w-0 text-left">
-                  <div className="h-11 w-11 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-                    <FileCheck className="h-6 w-6" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="font-bold text-xs text-slate-900 dark:text-white truncate">
-                      {uploadedFile.fileName}
-                    </div>
-                    <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
-                      <span>Dimensiune: {formatFileSize(uploadedFile.fileSize)}</span>
-                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                        <CheckCircle2 className="h-3 w-3" />
-                        Gata pentru arhivare
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="rounded-xl text-xs h-8 border-slate-200 dark:border-slate-700"
-                  >
-                    Înlocuiește Fișier
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setUploadedFile(null)}
-                    className="h-8 w-8 text-slate-400 hover:text-rose-500 rounded-xl"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="py-2">
-                <div className="h-12 w-12 rounded-2xl bg-primary/10 text-primary mx-auto flex items-center justify-center mb-3">
-                  <FileUp className="h-6 w-6" />
-                </div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                  Trageți și plasați fișierul PDF aici
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
-                  Încărcați contractul sau actul adițional semnat (PDF scanat). Sistemul va extrage automat numărul și CUI-ul pentru potrivire instantă cu partenerul.
-                </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="mt-4 rounded-xl text-xs font-semibold border-slate-300 dark:border-slate-700 shadow-xs"
-                >
-                  <Upload className="h-3.5 w-3.5 mr-2 text-primary" />
-                  Alege Fișier PDF de pe Calculator
-                </Button>
-              </div>
-            )}
-          </div>
-
-          {/* Partner & Contract Meta Grid */}
+        <div className="space-y-5">
+          {/* Partner & Contract Meta Grid: 1, 2, 3 direct sus */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {/* Pas 1: Match Partener SAGA */}
             <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-card p-4 shadow-sm space-y-3">
@@ -758,6 +655,119 @@ export default function ContractCreate() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Atașează Contract Semnat (PDF scanat sau document original) - Card Compact Sub 1, 2, 3 */}
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDragging(true);
+            }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleDrop}
+            className={`rounded-2xl border-2 border-dashed transition-all p-4 ${
+              isDragging
+                ? "border-primary bg-primary/5"
+                : uploadedFile
+                ? "border-emerald-300 dark:border-emerald-800 bg-emerald-50/30 dark:bg-emerald-950/20"
+                : "border-slate-300 dark:border-slate-700 bg-card hover:border-primary/50"
+            }`}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf"
+              onChange={(e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                  handleUploadFile(e.target.files[0]);
+                }
+              }}
+              className="hidden"
+            />
+
+            {isUploading ? (
+              <div className="flex items-center justify-center gap-3 py-2 text-center">
+                <Loader2 className="h-5 w-5 animate-spin text-primary shrink-0" />
+                <div className="text-left">
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+                    Se încarcă și se analizează contractul...
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    Detectare automată număr, dată și CUI partener din fișierul PDF
+                  </p>
+                </div>
+              </div>
+            ) : uploadedFile ? (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-2 rounded-xl bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 shadow-xs">
+                <div className="flex items-center gap-3 min-w-0 text-left">
+                  <div className="h-9 w-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                    <FileCheck className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                      {uploadedFile.fileName}
+                    </div>
+                    <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
+                      <span>Dimensiune: {formatFileSize(uploadedFile.fileSize)}</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Document atașat gata pentru salvare
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="rounded-xl text-xs h-7.5 px-3 border-slate-200 dark:border-slate-700"
+                  >
+                    Înlocuiește Fișier
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setUploadedFile(null)}
+                    className="h-7.5 w-7.5 text-slate-400 hover:text-rose-500 rounded-xl"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 py-1 px-2">
+                <div className="flex items-center gap-3 text-left">
+                  <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <FileUp className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <span>Atașează Fișierul Semnat (PDF scanat sau document semnat)</span>
+                      <span className="text-[10px] font-normal px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500">
+                        Opțional / Recomandat
+                      </span>
+                    </h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Trageți PDF-ul direct aici sau alegeți fișierul de pe calculator pentru arhivare
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="rounded-xl text-xs font-semibold border-slate-300 dark:border-slate-700 shadow-xs h-8 shrink-0"
+                >
+                  <Upload className="h-3.5 w-3.5 mr-1.5 text-primary" />
+                  Alege PDF de pe Calculator
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Audit Note */}
