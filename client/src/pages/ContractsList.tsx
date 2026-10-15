@@ -7,7 +7,6 @@ import {
   Upload,
   Search,
   Filter,
-  Eye,
   Download,
   Calendar,
   Building2,
@@ -504,9 +503,13 @@ export default function ContractsList() {
 
                     {/* Partener */}
                     <td className="py-3.5 px-4">
-                      <div className="font-semibold text-slate-900 dark:text-slate-100">
+                      <Link
+                        href={`/contracte/${c.id}`}
+                        className="font-semibold text-slate-900 dark:text-slate-100 hover:text-primary transition-colors cursor-pointer block"
+                        title="Deschide detaliile contractului"
+                      >
                         {c.partnerName || "Nespecificat"}
-                      </div>
+                      </Link>
                       <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500">
                         {c.partnerCui && <span>CUI: {c.partnerCui}</span>}
                         {c.partnerSagaCode && (
@@ -549,19 +552,6 @@ export default function ContractsList() {
                     {/* Actiuni */}
                     <td className="py-3.5 px-4 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1.5">
-                        {/* Buton Deschide PDF */}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          asChild
-                          className="h-8 w-8 rounded-xl text-slate-600 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800"
-                          title="Deschide și vizualizează PDF"
-                        >
-                          <Link href={`/contracte/${c.id}`}>
-                            <Eye className="h-4 w-4" />
-                          </Link>
-                        </Button>
-
                         {/* Buton Jurnal Istoric & Explicatii */}
                         <Button
                           variant="ghost"
