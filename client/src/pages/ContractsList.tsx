@@ -116,7 +116,7 @@ export default function ContractsList() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [importingFiles, setImportingFiles] = useState(false);
   const [uploadedQueue, setUploadedQueue] = useState<any[]>([]);
-  const [globalExplanation, setGlobalExplanation] = useState("Preluare și arhivare contracte existente Wood Glass");
+  const [globalExplanation, setGlobalExplanation] = useState("Preluare și arhivare contracte existente");
   const [importError, setImportError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -892,13 +892,13 @@ export default function ContractsList() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal: Import in masa din folder existent Wood Glass */}
+      {/* Modal: Import in masa din folder existent */}
       <Dialog open={showImportModal} onOpenChange={setShowImportModal}>
         <DialogContent className="max-w-3xl rounded-lg p-6 max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
               <Upload className="h-5 w-5 text-primary" />
-              Import în Masă din Folderul Existent Wood Glass
+              Import în Masă din Folderul Existent de Contracte
             </DialogTitle>
             <DialogDescription className="text-sm text-slate-500">
               Selectează sau trage fișierele PDF din folderul tău de contracte. Sistemul va detecta automat partenerii existenți din baza de date și va genera evidența fără introducere manuală.

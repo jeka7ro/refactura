@@ -2361,11 +2361,11 @@ export function registerPdfRoute(app: any) {
       doc.rect(40, 40, 515, 80).fillColor(BG_CARD).fill();
       doc.rect(40, 40, 515, 80).strokeColor(BORDER_COLOR).lineWidth(0.5).stroke();
 
-      doc.fillColor(PRIMARY).fontSize(14).font(fontBold).text(tenant?.name || "WOOD GLASS SRL", 55, 52);
+      doc.fillColor(PRIMARY).fontSize(14).font(fontBold).text(tenant?.name || "Furnizor / Prestator", 55, 52);
       doc.fillColor(TEXT_MUTED).fontSize(8).font(fontRegular);
-      doc.text(`CUI: ${tenantSettings.cui || tenantSettings.fiscalCode || "RO28396216"} | Reg. Com: ${tenantSettings.regCom || "J08/1314/2011"}`, 55, 72);
-      doc.text(`Sediu: ${tenantSettings.address || "Str. Automotoarelor 12"}, ${tenantSettings.city || "Brașov"}, România`, 55, 84);
-      doc.text(`IBAN: ${tenantSettings.iban || "RO00BTRL0000000000000000"} | Bancă: ${tenantSettings.bank || "Banca Transilvania"}`, 55, 96);
+      doc.text(`CUI: ${tenant?.cui || tenantSettings.cui || tenantSettings.fiscalCode || "-"} | Reg. Com: ${tenantSettings.regCom || "-"}`, 55, 72);
+      doc.text(`Sediu: ${tenant?.address || tenantSettings.address || "-"}, ${tenantSettings.city || ""}, România`, 55, 84);
+      doc.text(`IBAN: ${tenantSettings.iban || "-"} | Bancă: ${tenantSettings.bank || "-"}`, 55, 96);
 
       // Titlu Document
       let docTitle = "CONTRACT CADRU";
@@ -2429,7 +2429,7 @@ export function registerPdfRoute(app: any) {
       doc.text("BENEFICIAR / CLIENT", 320, endY + 10);
 
       doc.fillColor(TEXT_MUTED).fontSize(7).font(fontRegular);
-      doc.text(tenant?.name || "WOOD GLASS SRL", 50, endY + 22);
+      doc.text(tenant?.name || "Furnizor / Prestator", 50, endY + 22);
       doc.text("Semnătura & Ștampila", 50, endY + 62);
 
       doc.text(contract.partnerName || "Reprezentant Legal", 320, endY + 22);

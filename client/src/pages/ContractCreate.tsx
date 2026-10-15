@@ -52,6 +52,23 @@ export default function ContractCreate() {
   const { data: allContracts = [] } = trpc.contracts.list.useQuery();
   const { data: tenant } = trpc.tenants.current.useQuery();
 
+  const parsedTenantSettings = useMemo(() => {
+    if (!tenant?.settings) return null;
+    try {
+      return typeof tenant.settings === "string" ? JSON.parse(tenant.settings) : tenant.settings;
+    } catch {
+      return null;
+    }
+  }, [tenant?.settings]);
+
+  const activeTenantName = tenant?.name || "Compania Ta";
+  const activeTenantCui = tenant?.cui || parsedTenantSettings?.cui || parsedTenantSettings?.fiscalCode || "-";
+  const activeTenantRegCom = parsedTenantSettings?.regCom || "-";
+  const activeTenantCity = parsedTenantSettings?.city || "";
+  const activeTenantAddress = tenant?.address || parsedTenantSettings?.address || "";
+  const activeTenantIban = parsedTenantSettings?.iban || "-";
+  const activeTenantBank = parsedTenantSettings?.bank || "-";
+
   // Form State
   const [selectedPartnerId, setSelectedPartnerId] = useState<number | null>(
     partnerIdParam ? parseInt(partnerIdParam) : null
@@ -75,10 +92,10 @@ export default function ContractCreate() {
 
   // Generator specific fields
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(
-    typeParam === "act_aditional" ? "act-aditional-modificare" : "contract-cadru-woodglass"
+    typeParam === "act_aditional" ? "act-aditional-modificare" : "contract-vanzare-cumparare"
   );
   const [contractObject, setContractObject] = useState<string>(
-    "Fabricarea, livrarea și montajul de tâmplărie din aluminiu și confecții din sticlă securizată"
+    "Furnizarea de produse și prestarea de servicii conform comenzilor și specificațiilor tehnice agreate"
   );
   const [paymentTermDays, setPaymentTermDays] = useState<string>("30");
   const [deliveryDays, setDeliveryDays] = useState<string>("15");
@@ -100,7 +117,7 @@ export default function ContractCreate() {
   // Common fields
   const [explanation, setExplanation] = useState<string>(
     activeMode === "upload"
-      ? "Contract semnat fizic, scanat și arhivat în biblioteca digitală Wood Glass"
+      ? "Contract semnat fizic, scanat și arhivat în biblioteca digitală"
       : "Contract generat digital din sistem"
   );
   const [contentHtml, setContentHtml] = useState<string>("");
@@ -196,15 +213,15 @@ export default function ContractCreate() {
 
     let raw = tmpl.contentHtml || "";
 
-    // Replace Tenant Variables (Wood Glass SRL)
+    // Replace Tenant Variables
     raw = raw
-      .replace(/{{tenant\.name}}/g, tenant?.name || "WOOD GLASS SRL")
-      .replace(/{{tenant\.cui}}/g, (tenant as any)?.fiscalCode || "RO28396216")
-      .replace(/{{tenant\.regCom}}/g, "J08/1314/2011")
-      .replace(/{{tenant\.city}}/g, "Brașov")
-      .replace(/{{tenant\.address}}/g, "Str. Automotoarelor 12")
-      .replace(/{{tenant\.iban}}/g, "RO00BTRL0000000000000000")
-      .replace(/{{tenant\.bank}}/g, "Banca Transilvania");
+      .replace(/{{tenant\.name}}/g, activeTenantName)
+      .replace(/{{tenant\.cui}}/g, activeTenantCui)
+      .replace(/{{tenant\.regCom}}/g, activeTenantRegCom)
+      .replace(/{{tenant\.city}}/g, activeTenantCity)
+      .replace(/{{tenant\.address}}/g, activeTenantAddress)
+      .replace(/{{tenant\.iban}}/g, activeTenantIban)
+      .replace(/{{tenant\.bank}}/g, activeTenantBank);
 
     // Replace Partner Variables
     if (selectedPartner) {
@@ -301,7 +318,7 @@ export default function ContractCreate() {
     const title =
       docType === "act_aditional"
         ? `Act Adițional ${docNumber} la Contract ${parentContract?.number || ""}`
-        : `${docType === "pv_receptie" ? "Proces Verbal" : "Contract"} ${docNumber} - ${selectedPartner?.name || "Wood Glass"}`;
+        : `${docType === "pv_receptie" ? "Proces Verbal" : "Contract"} ${docNumber} - ${selectedPartner?.name || activeTenantName}`;
 
     createMutation.mutate({
       partnerId: selectedPartnerId,
@@ -357,7 +374,9 @@ export default function ContractCreate() {
                 : "Generează Contract Nou din Șablon"}
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Asociere directă cu baza de clienți și furnizori SAGA Wood Glass SRL
+              {activeMode === "upload"
+                ? `Asociere directă cu baza de parteneri ${activeTenantName}`
+                : `Generare document oficial conform șabloanelor pentru ${activeTenantName}`}
             </p>
           </div>
         </div>
@@ -404,7 +423,7 @@ export default function ContractCreate() {
           type="button"
           onClick={() => {
             setActiveMode("upload");
-            setExplanation("Contract semnat fizic, scanat și arhivat în biblioteca digitală Wood Glass");
+            setExplanation("Contract semnat fizic, scanat și arhivat în biblioteca digitală");
           }}
           className={`flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl text-xs font-bold transition-all ${
             activeMode === "upload"
@@ -778,7 +797,7 @@ export default function ContractCreate() {
             <Input
               value={explanation}
               onChange={(e) => setExplanation(e.target.value)}
-              placeholder="Ex: Contract semnat fizic la sediul clientului, scanat și arhivat în biblioteca Wood Glass..."
+              placeholder="Ex: Contract semnat fizic la sediul clientului, scanat și arhivat în bibliotecă..."
               className="rounded-xl text-xs"
             />
           </div>
@@ -943,10 +962,10 @@ export default function ContractCreate() {
                   <div className="border-b border-slate-200 dark:border-slate-800 pb-4 flex justify-between items-start">
                     <div>
                       <div className="text-base font-extrabold text-slate-900 dark:text-white uppercase tracking-tight">
-                        WOOD GLASS SRL
+                        {activeTenantName}
                       </div>
                       <div className="text-[11px] text-slate-500">
-                        CUI: RO28396216 | J08/1314/2011 | Brașov, Str. Automotoarelor 12
+                        CUI: {activeTenantCui} {activeTenantRegCom !== "-" ? `| ${activeTenantRegCom}` : ""} {activeTenantAddress ? `| ${activeTenantAddress}` : ""}
                       </div>
                     </div>
                     <div className="text-right">
@@ -959,7 +978,7 @@ export default function ContractCreate() {
                     <h2 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
                       {selectedTemplateId === "act-aditional-modificare"
                         ? "ACT ADIȚIONAL DE MODIFICARE"
-                        : "CONTRACT COMERCIAL DE LIVRARE ȘI MONTAJ"}
+                        : "CONTRACT COMERCIAL DE FURNIZARE / SERVICII"}
                     </h2>
                     <p className="text-[11px] text-slate-500 mt-0.5">
                       Încheiat astăzi, {docDate}, între părțile contractante:
@@ -969,8 +988,8 @@ export default function ContractCreate() {
                   <div className="grid grid-cols-2 gap-4 p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-[11px]">
                     <div>
                       <div className="font-bold text-slate-700 dark:text-slate-300 uppercase">Prestator / Furnizor:</div>
-                      <div className="font-semibold text-slate-900 dark:text-white">WOOD GLASS SRL</div>
-                      <div className="text-slate-500">CUI: RO28396216 | Brașov</div>
+                      <div className="font-semibold text-slate-900 dark:text-white">{activeTenantName}</div>
+                      <div className="text-slate-500">CUI: {activeTenantCui} {activeTenantCity ? `| ${activeTenantCity}` : ""}</div>
                     </div>
                     <div>
                       <div className="font-bold text-slate-700 dark:text-slate-300 uppercase">Beneficiar / Partener:</div>
@@ -990,18 +1009,18 @@ export default function ContractCreate() {
                     </div>
                     <div>
                       <strong className="text-slate-900 dark:text-white">Art. 2 Termen de plată și livrare: </strong>
-                      Termen de scadență facturi: {paymentTermDays} zile calendaristice. Termen de execuție și livrare: {deliveryDays} zile lucrătoare de la confirmarea măsurătorilor finale.
+                      Termen de scadență facturi: {paymentTermDays} zile calendaristice. Termen de execuție și livrare: {deliveryDays} zile lucrătoare de la confirmarea comenzii.
                     </div>
                     <div>
                       <strong className="text-slate-900 dark:text-white">Art. 3 Garanție: </strong>
-                      Garanția pentru montaj și feronerie este de {warrantyMonths} luni, iar garanția pentru pachetele de sticlă termoizolantă este de 36 luni.
+                      Garanția comercială acordată este de {warrantyMonths} luni de la data recepției.
                     </div>
                   </div>
 
                   <div className="pt-6 border-t border-slate-200 dark:border-slate-800 flex justify-between text-[11px]">
                     <div>
                       <div className="font-bold">PRESTATOR:</div>
-                      <div>WOOD GLASS SRL</div>
+                      <div>{activeTenantName}</div>
                       <div className="text-slate-400 mt-4">[Semnătură & Ștampilă]</div>
                     </div>
                     <div className="text-right">
