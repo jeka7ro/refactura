@@ -19,7 +19,6 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle2,
-  Eye,
   Filter,
   Globe,
   Tag,
@@ -385,12 +384,6 @@ export default function Clients() {
     {
       key: "phone",
       label: "TELEFON",
-      sortable: true,
-      render: (val: string) => val || "-",
-    },
-    {
-      key: "email",
-      label: "EMAIL",
       sortable: true,
       render: (val: string) => val || "-",
     },
@@ -762,13 +755,6 @@ export default function Clients() {
                 className="w-6 h-6 rounded border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 text-purple-700 dark:text-purple-300 transition-colors flex items-center justify-center"
               >
                 <FileSignature className="w-3 h-3" />
-              </Link>
-              <Link
-                href={`/client/${row.id}`}
-                title="Vizualizare detalii partener"
-                className="w-6 h-6 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors flex items-center justify-center"
-              >
-                <Eye className="w-3 h-3" />
               </Link>
               <button
                 type="button"
