@@ -204,6 +204,7 @@ export default function ReInvoice() {
     return m ? m[0] : null;
   }, [notes]);
   const [globalMarkup, setGlobalMarkup] = useState<number | string>(15);
+  const [invoiceBnrRate, setInvoiceBnrRate] = useState<number | null>(null);
 
   // Local interface to allow empty strings while typing
   interface EditableLine extends Omit<
@@ -1320,6 +1321,8 @@ export default function ReInvoice() {
                 </label>
                 <InvoiceCurrencyCalculator
                   currentCurrency={currency}
+                  activeExchangeRate={invoiceBnrRate || undefined}
+                  issueDate={today}
                   onSelectCurrency={c => {
                     setCurrency(c as Currency);
                     toast(`Moneda facturii a fost comutată în ${c}`);
@@ -1368,6 +1371,7 @@ export default function ReInvoice() {
               totalVAT={totalVAT}
               notes={notes}
               onNotesChange={setNotes}
+              onRateChange={(rate) => setInvoiceBnrRate(rate)}
             />
 
             <div>

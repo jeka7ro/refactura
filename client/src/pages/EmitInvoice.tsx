@@ -195,7 +195,7 @@ export default function EmitInvoice() {
 
   const currentBnrRateForInvoice = useMemo(() => {
     if (!bnrData) return null;
-    let targetRate = bnrData.rates?.EUR || 4.975;
+    let targetRate = bnrData.rates?.EUR || 5.3370;
     if (issueDate && Array.isArray(bnrData.history) && bnrData.history.length > 0) {
       let matched = bnrData.history.find((h: any) => h.date === issueDate);
       if (!matched) {
@@ -212,6 +212,9 @@ export default function EmitInvoice() {
     }
     return targetRate;
   }, [bnrData, issueDate]);
+
+  const [invoiceBnrRate, setInvoiceBnrRate] = useState<number | null>(null);
+  const effectiveInvoiceBnrRate = invoiceBnrRate || currentBnrRateForInvoice || (bnrData?.rates?.EUR ?? 5.3370);
 
   const [appliedQrExchangeRate, setAppliedQrExchangeRate] = useState<number | null>(null);
   const [qrPricePerUser, setQrPricePerUser] = useState<string>("3.50");
@@ -943,7 +946,7 @@ export default function EmitInvoice() {
 
       setRawQrData(data);
 
-      const effectiveRate = data.exchange_rate ? Number(data.exchange_rate) : (rateToUse || 4.975);
+      const effectiveRate = data.exchange_rate ? Number(data.exchange_rate) : (rateToUse || 5.3370);
       setAppliedQrExchangeRate(effectiveRate);
 
       const basePriceEur = Number(data.invoice_lines?.[0]?.unit_price_eur || data.deviz_nominal?.[0]?.unit_price_eur || 3.5);
@@ -1667,6 +1670,8 @@ export default function EmitInvoice() {
           <div className="flex items-center gap-2">
             <InvoiceCurrencyCalculator
               currentCurrency={currency}
+              activeExchangeRate={effectiveInvoiceBnrRate}
+              issueDate={issueDate}
               lines={lines.map((l, idx) => ({
                 id: l.id,
                 description: l.description || `Linia ${idx + 1}`,
@@ -2205,6 +2210,7 @@ export default function EmitInvoice() {
               totalVAT={totalVAT}
               notes={mentiuni}
               onNotesChange={setMentiuni}
+              onRateChange={(rate) => setInvoiceBnrRate(rate)}
             />
 
             <span className="hidden sm:inline-block w-px h-4 bg-slate-200 dark:bg-slate-700" />
@@ -2359,7 +2365,7 @@ export default function EmitInvoice() {
                 <div className="flex items-center gap-1">
                   <span className="text-[11px] text-blue-700 dark:text-blue-300 font-medium">Curs BNR:</span>
                   <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                    {appliedQrExchangeRate ? appliedQrExchangeRate.toFixed(4) : (currentBnrRateForInvoice ? currentBnrRateForInvoice.toFixed(4) : "4.9750")}
+                    {appliedQrExchangeRate ? appliedQrExchangeRate.toFixed(4) : (currentBnrRateForInvoice ? currentBnrRateForInvoice.toFixed(4) : "5.3370")}
                   </span>
                 </div>
 

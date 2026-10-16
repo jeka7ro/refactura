@@ -46,6 +46,8 @@ export const PRESETS = [50, 100, 200, 300, 500, 1000];
 
 export interface InvoiceCurrencyCalculatorProps {
   currentCurrency?: string;
+  activeExchangeRate?: number;
+  issueDate?: string;
   onApplyPrice?: (price: number, lineId?: string) => void;
   onSelectCurrency?: (curr: string) => void;
   activeLineIndex?: number;
@@ -62,6 +64,8 @@ export interface InvoiceCurrencyCalculatorProps {
 
 export function InvoiceCurrencyCalculator({
   currentCurrency = "RON",
+  activeExchangeRate,
+  issueDate,
   onApplyPrice,
   onSelectCurrency,
   activeLineIndex = 0,
@@ -109,16 +113,47 @@ export function InvoiceCurrencyCalculator({
 
   const bnrDate = bnrData?.formattedDate || new Date().toLocaleDateString("ro-RO");
 
+  // Preluare curs istoric dacă data emiterii este furnizată
+  const historicalRate = useMemo(() => {
+    if (!bnrData || !issueDate || !Array.isArray(bnrData.history) || bnrData.history.length === 0) {
+      return null;
+    }
+    let matched = bnrData.history.find((h: any) => h.date === issueDate);
+    if (!matched) {
+      const sortedPrior = [...bnrData.history]
+        .filter((h: any) => h.date <= issueDate)
+        .sort((a: any, b: any) => b.date.localeCompare(a.date));
+      if (sortedPrior.length > 0) {
+        matched = sortedPrior[0];
+      }
+    }
+    return matched || null;
+  }, [bnrData, issueDate]);
+
   const ratesMap: Record<SupportedCurrency, number> = useMemo(() => {
+    const liveRates = bnrData?.rates || {};
+    const hist = historicalRate || ({} as any);
+
+    // Prioritate maximă: cursul activ setat pe factură (ex: 5.3370)
+    const resolvedEur =
+      activeExchangeRate && activeExchangeRate > 0
+        ? activeExchangeRate
+        : hist.EUR || liveRates.EUR || 5.3370;
+
+    const resolvedUsd = hist.USD || liveRates.USD || 4.7571;
+    const resolvedGbp = hist.GBP || liveRates.GBP || 6.3104;
+    const resolvedChf = hist.CHF || liveRates.CHF || 5.7356;
+    const resolvedMdl = hist.MDL || liveRates.MDL || 0.2656;
+
     return {
       RON: 1,
-      EUR: bnrData?.rates?.EUR || 5.2647,
-      USD: bnrData?.rates?.USD || 4.5934,
-      GBP: bnrData?.rates?.GBP || 6.1178,
-      CHF: bnrData?.rates?.CHF || 5.5707,
-      MDL: bnrData?.rates?.MDL || 0.2620,
+      EUR: resolvedEur,
+      USD: resolvedUsd,
+      GBP: resolvedGbp,
+      CHF: resolvedChf,
+      MDL: resolvedMdl,
     };
-  }, [bnrData]);
+  }, [bnrData, historicalRate, activeExchangeRate]);
 
   // Rata oficială BNR dintre fromCurrency și toCurrency
   const officialPairRate = useMemo(() => {

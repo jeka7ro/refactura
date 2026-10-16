@@ -12,6 +12,7 @@ interface BnrInvoiceRateToggleProps {
   notes: string;
   onNotesChange: (updatedNotes: string) => void;
   className?: string;
+  onRateChange?: (rate: number, currency: string) => void;
 }
 
 const BNR_LINE_REGEX = /^(?:Curs BNR|Factură (?:emisă|calculată) la cursul BNR)[^\n]*\n?/m;
@@ -67,7 +68,7 @@ export function BnrInvoiceRateToggle({
   const bnrRateInfo = useMemo(() => {
     if (!bnrData) return null;
 
-    let targetRate = bnrData.rates?.[refCurrency] || (refCurrency === "EUR" ? 5.3527 : 4.7616);
+    let targetRate = bnrData.rates?.[refCurrency] || (refCurrency === "EUR" ? 5.3370 : 4.7571);
 
     if (issueDate && Array.isArray(bnrData.history) && bnrData.history.length > 0) {
       // 1. Căutare exactă după data emiterii
@@ -101,10 +102,17 @@ export function BnrInvoiceRateToggle({
     if (customRate && !isNaN(parseFloat(customRate)) && parseFloat(customRate) > 0) {
       return parseFloat(customRate);
     }
-    return bnrRateInfo?.rate || (refCurrency === "EUR" ? 5.3527 : 4.7616);
+    return bnrRateInfo?.rate || (refCurrency === "EUR" ? 5.3370 : 4.7571);
   }, [customRate, bnrRateInfo, refCurrency]);
 
   const activeRateStr = activeRate.toFixed(4);
+
+  // Notificăm componenta părinte (EmitInvoice) despre rata activă
+  useEffect(() => {
+    if (onRateChange && activeRate > 0) {
+      onRateChange(activeRate, refCurrency);
+    }
+  }, [activeRate, refCurrency, onRateChange]);
 
   // Generare text oficial pentru factură
   // Generare text oficial pentru factură (strict cursul valutar, fără valoare din factură)
