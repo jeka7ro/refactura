@@ -2349,7 +2349,7 @@ export default function EmitInvoice() {
         {/* Butoane Salvare & Emitere Factură */}
         <div className="flex items-center justify-between flex-wrap gap-4 pt-1">
           <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-            Factură în <strong className="text-slate-800 dark:text-slate-200">{currency}</strong> · Serie: <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{series}</span>-{invoiceNumber}
+            Factură în <strong className="text-slate-800 dark:text-slate-200">{currency}</strong> · Serie & Număr: <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{fullInvoiceNumber || series}</span>
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
