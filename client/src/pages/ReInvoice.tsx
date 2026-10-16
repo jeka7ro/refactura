@@ -1325,13 +1325,13 @@ export default function ReInvoice() {
                     toast(`Moneda facturii a fost comutată în ${c}`);
                   }}
                   onApplyPrice={(price, lineId) => {
-                    const targetId = lineId || lines[0]?.id;
-                    if (targetId) {
-                      setLines(prev =>
-                        prev.map(l => (l.id === targetId ? { ...l, unitPrice: price } : l))
-                      );
-                      toast(`Preț actualizat: ${price}`);
-                    }
+                    setLines(prev => {
+                      if (!prev || prev.length === 0) return prev;
+                      const targetIdx = lineId ? prev.findIndex(l => l.id === lineId) : 0;
+                      const finalIdx = targetIdx >= 0 ? targetIdx : 0;
+                      return prev.map((l, idx) => (idx === finalIdx ? { ...l, unitPrice: price } : l));
+                    });
+                    toast(`Preț actualizat: ${price}`);
                   }}
                 />
               </div>

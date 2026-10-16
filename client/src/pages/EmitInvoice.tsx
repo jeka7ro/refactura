@@ -1673,11 +1673,26 @@ export default function EmitInvoice() {
                 unitPrice: l.unitPrice,
               }))}
               onApplyPrice={(price, lineId) => {
-                if (lineId) {
-                  updateLine(lineId, "unitPrice", price);
-                } else if (lines.length > 0) {
-                  updateLine(lines[0].id, "unitPrice", price);
-                }
+                setLines(prev => {
+                  if (!prev || prev.length === 0) {
+                    return [{ ...defaultLine(), unitPrice: price, quantity: 1 }];
+                  }
+                  const targetIdx = lineId ? prev.findIndex(l => l.id === lineId) : 0;
+                  const finalIdx = targetIdx >= 0 ? targetIdx : 0;
+                  return prev.map((l, idx) => {
+                    if (idx === finalIdx) {
+                      return {
+                        ...l,
+                        unitPrice: price,
+                        quantity:
+                          !l.quantity || parseFloat(String(l.quantity)) === 0
+                            ? 1
+                            : l.quantity,
+                      };
+                    }
+                    return l;
+                  });
+                });
               }}
               trigger={
                 <button

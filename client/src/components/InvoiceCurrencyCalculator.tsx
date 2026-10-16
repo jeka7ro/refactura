@@ -87,13 +87,18 @@ export function InvoiceCurrencyCalculator({
   const [useCustomRate, setUseCustomRate] = useState(false);
   const [selectedLineId, setSelectedLineId] = useState<string>("");
 
-  // Set default selectedLineId if lines provided
+  // Sincronizare selectedLineId cu liniile curente (fallback automat pe linia 1 dacă linia selectată nu mai există)
   useEffect(() => {
-    if (lines && lines.length > 0 && !selectedLineId) {
-      const activeLine = lines[activeLineIndex] || lines[0];
-      if (activeLine) {
-        setSelectedLineId(activeLine.id);
+    if (lines && lines.length > 0) {
+      const exists = lines.some(l => l.id === selectedLineId);
+      if (!exists) {
+        const activeLine = lines[activeLineIndex] || lines[0];
+        if (activeLine) {
+          setSelectedLineId(activeLine.id);
+        }
       }
+    } else if (selectedLineId) {
+      setSelectedLineId("");
     }
   }, [lines, activeLineIndex, selectedLineId]);
 
@@ -475,8 +480,11 @@ export function InvoiceCurrencyCalculator({
             <button
               type="button"
               onClick={() => {
-                const targetId = selectedLineId || (lines && lines[0]?.id);
-                onApplyPrice(parseFloat(convertedResult.toFixed(2)), targetId);
+                const validTargetId =
+                  lines && lines.some(l => l.id === selectedLineId)
+                    ? selectedLineId
+                    : (lines && lines[0]?.id) || "";
+                onApplyPrice(parseFloat(convertedResult.toFixed(2)), validTargetId);
                 setOpen(false);
               }}
               className="w-full flex items-center justify-center gap-1.5 h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"

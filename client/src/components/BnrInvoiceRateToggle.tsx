@@ -107,44 +107,18 @@ export function BnrInvoiceRateToggle({
   const activeRateStr = activeRate.toFixed(4);
 
   // Generare text oficial pentru factură
+  // Generare text oficial pentru factură (strict cursul valutar, fără valoare din factură)
   const generatedText = useMemo(() => {
     const targetDate = formattedInvoiceDate || bnrRateInfo?.dateStr;
     const dateText = targetDate ? ` la data de ${targetDate}` : "";
     const rateText = `1 ${refCurrency} = ${activeRateStr} RON`;
 
     if (currency === "RON") {
-      const equiv =
-        total > 0 && activeRate > 0
-          ? ` (Echivalent: ${(total / activeRate).toLocaleString("ro-RO", {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })} ${refCurrency})`
-          : "";
-      return `Factură emisă la cursul BNR${dateText}: ${rateText}${equiv}.`;
+      return `Factură emisă la cursul BNR${dateText}: ${rateText}.`;
     }
 
-    // Factură în valută (EUR, USD etc.)
-    const totalRon = total * activeRate;
-    const vatRon = totalVAT * activeRate;
-    const formattedTotalRon = totalRon.toLocaleString("ro-RO", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-    const formattedVatRon = vatRon.toLocaleString("ro-RO", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-
-    const isTotalRelevant = total > 0;
-    const totalDetails = isTotalRelevant
-      ? ` (Total: ${total.toLocaleString("ro-RO", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })} ${currency} = ${formattedTotalRon} RON, TVA: ${formattedVatRon} RON)`
-      : "";
-
-    return `Curs BNR${dateText}: ${rateText}${totalDetails}.`;
-  }, [refCurrency, activeRateStr, bnrRateInfo, formattedInvoiceDate, currency, total, totalVAT, activeRate]);
+    return `Curs BNR${dateText}: ${rateText}.`;
+  }, [refCurrency, activeRateStr, bnrRateInfo, formattedInvoiceDate, currency]);
 
   // Actualizare automată a textului din mențiuni când toggle-ul este activ
   useEffect(() => {
