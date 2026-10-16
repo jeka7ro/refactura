@@ -25,6 +25,7 @@ export function BnrInvoiceRateToggle({
   notes,
   onNotesChange,
   className = "",
+  onRateChange,
 }: BnrInvoiceRateToggleProps) {
   // Verificăm dacă există deja o mențiune BNR în textul existent
   const hasExistingBnrInNotes = useMemo(() => {
