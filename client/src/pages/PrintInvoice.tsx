@@ -3,6 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { formatCurrency, formatDate } from "@/lib/store";
 import { Loader2 } from "lucide-react";
 import { useEffect, useMemo } from "react";
+import { QRCodeCanvas } from "qrcode.react";
 
 export default function PrintInvoice() {
   const { id } = useParams<{ id: string }>();
@@ -46,6 +47,50 @@ export default function PrintInvoice() {
     if (curr && curr !== "RON" && curr !== "LEI") return true;
     return false;
   }, [invoice]);
+
+  const effectiveIban = useMemo(() => {
+    const fromInv = ((invoice as any)?.companyIBAN || "").trim().replace(/\s+/g, "").toUpperCase();
+    if (fromInv) return fromInv;
+    const invCur = (invoice?.currency || "RON").toUpperCase();
+    if (Array.isArray(settings.bankAccounts) && settings.bankAccounts.length > 0) {
+      const match = settings.bankAccounts.find((a: any) => (a.currency || "RON").toUpperCase() === invCur && a.iban);
+      if (match?.iban) return String(match.iban).trim().replace(/\s+/g, "").toUpperCase();
+    }
+    if (invCur === "EUR" && settings.ibanEur) return String(settings.ibanEur).trim().replace(/\s+/g, "").toUpperCase();
+    if (settings.iban) return String(settings.iban).trim().replace(/\s+/g, "").toUpperCase();
+    return "";
+  }, [invoice, settings]);
+
+  const effectiveBank = useMemo(() => {
+    const fromInv = ((invoice as any)?.companyBank || "").trim();
+    if (fromInv) return fromInv;
+    const invCur = (invoice?.currency || "RON").toUpperCase();
+    if (Array.isArray(settings.bankAccounts) && settings.bankAccounts.length > 0) {
+      const match = settings.bankAccounts.find((a: any) => (a.currency || "RON").toUpperCase() === invCur && a.bank);
+      if (match?.bank) return String(match.bank).trim();
+    }
+    if (invCur === "EUR" && settings.bankEur) return String(settings.bankEur).trim();
+    if (settings.bank) return String(settings.bank).trim();
+    return "";
+  }, [invoice, settings]);
+
+  const epcQrPayload = useMemo(() => {
+    if (!effectiveIban || !invoice) return "";
+    const totalAmount = parseFloat(String(invoice.total || 0));
+    return [
+      "BCD",
+      "002",
+      "1",
+      "SCT",
+      "",
+      (tenant?.name || "").slice(0, 70).trim(),
+      effectiveIban,
+      (invoice.currency || "RON").toUpperCase() + totalAmount.toFixed(2),
+      "",
+      (invoice.number || "").slice(0, 35).trim(),
+      `Factura ${invoice.number || ""}`.slice(0, 140),
+    ].join("\n");
+  }, [effectiveIban, invoice, tenant]);
 
   useEffect(() => {
     if (invoice && tenant && !window.location.search.includes("view=1")) {
@@ -115,14 +160,14 @@ export default function PrintInvoice() {
                 {settings.city ? `, ${settings.city}` : ""}
               </p>
             )}
-            {settings.iban && (
+            {effectiveIban && (
               <p>
-                <strong>IBAN:</strong> {settings.iban}
+                <strong>IBAN ({invoice.currency || "RON"}):</strong> {effectiveIban}
               </p>
             )}
-            {settings.bank && (
+            {effectiveBank && (
               <p>
-                <strong>Bancă:</strong> {settings.bank}
+                <strong>Bancă:</strong> {effectiveBank}
               </p>
             )}
           </div>
@@ -225,7 +270,31 @@ export default function PrintInvoice() {
         </tbody>
       </table>
 
-      <div className="flex justify-end mb-12">
+      <div className="flex justify-between items-start mb-8 gap-6 flex-wrap">
+        {effectiveIban && epcQrPayload ? (
+          <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-lg max-w-[340px]">
+            <div className="p-1 bg-white rounded border border-slate-200 shrink-0">
+              <QRCodeCanvas value={epcQrPayload} size={64} level="M" />
+            </div>
+            <div className="text-xs leading-tight text-slate-700 min-w-0">
+              <div className="font-bold text-[11px]" style={{ color: totalDueColor }}>
+                {isForeign ? "SCANEAZĂ ȘI PLĂTEȘTE / SCAN & PAY" : "SCANEAZĂ ȘI PLĂTEȘTE"}
+              </div>
+              <div className="text-[10px] text-slate-500 mt-0.5">
+                Mobile Banking (RoPay / SEPA)
+              </div>
+              <div className="font-semibold text-slate-900 mt-1 truncate">
+                IBAN: {effectiveIban}
+              </div>
+              {effectiveBank && (
+                <div className="text-slate-600 text-[10px] truncate">
+                  Bancă: {effectiveBank}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : <div />}
+
         <div className="w-64">
           <div className="flex justify-between py-2 text-sm border-b border-gray-200">
             <span className="text-gray-600">{isForeign ? "Subtotal (excl. VAT)" : "Subtotal"}</span>

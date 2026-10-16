@@ -2873,11 +2873,46 @@ export const appRouter = router({
           (invoiceData.currency && invoiceData.currency !== "RON" && safeCountry !== "RO") ||
           (/^[A-Za-z]{2}/.test(safeClientCui) && !safeClientCui.toUpperCase().startsWith("RO"));
 
+        let safeCompanyIban = (invoiceData.companyIBAN || "").trim().replace(/\s+/g, "").toUpperCase();
+        let safeCompanyBank = (invoiceData.companyBank || "").trim();
+
+        if (!safeCompanyIban) {
+          try {
+            const [t] = await db
+              .select({ settings: tenants.settings })
+              .from(tenants)
+              .where(eq(tenants.id, (ctx.user?.tenantId || 1)));
+            if (t?.settings) {
+              const s = typeof t.settings === "string" ? JSON.parse(t.settings) : t.settings;
+              const invCur = (invoiceData.currency || "RON").toUpperCase();
+              if (Array.isArray(s.bankAccounts) && s.bankAccounts.length > 0) {
+                const matchingAcc = s.bankAccounts.find(
+                  (a: any) => (a.currency || "RON").toUpperCase() === invCur && a.iban
+                );
+                if (matchingAcc) {
+                  safeCompanyIban = String(matchingAcc.iban).trim().replace(/\s+/g, "").toUpperCase();
+                  safeCompanyBank = matchingAcc.bank ? String(matchingAcc.bank).trim() : safeCompanyBank;
+                }
+              }
+              if (!safeCompanyIban && invCur === "EUR" && s.ibanEur) {
+                safeCompanyIban = String(s.ibanEur).trim().replace(/\s+/g, "").toUpperCase();
+                safeCompanyBank = s.bankEur ? String(s.bankEur).trim() : safeCompanyBank;
+              }
+              if (!safeCompanyIban && s.iban) {
+                safeCompanyIban = String(s.iban).trim().replace(/\s+/g, "").toUpperCase();
+                safeCompanyBank = s.bank ? String(s.bank).trim() : safeCompanyBank;
+              }
+            }
+          } catch {}
+        }
+
         const [result] = await db
           .insert(emittedInvoices)
           .values({
             tenantId: (ctx.user?.tenantId || 1),
             ...invoiceData,
+            companyIBAN: safeCompanyIban || null,
+            companyBank: safeCompanyBank || null,
             clientCUI: safeClientCui || null,
             clientId: assignedClientId || null,
             clientCountry: safeCountry,
@@ -3271,6 +3306,8 @@ export const appRouter = router({
         if (data.dueDate !== undefined) updateData.dueDate = data.dueDate;
         if (data.currency) updateData.currency = data.currency;
         if (data.status) updateData.status = data.status;
+        if (data.companyIBAN !== undefined) updateData.companyIBAN = data.companyIBAN;
+        if (data.companyBank !== undefined) updateData.companyBank = data.companyBank;
         if (data.notes !== undefined) updateData.notes = data.notes;
         if (data.number) updateData.number = data.number;
         if (data.series) updateData.series = data.series;

@@ -228,6 +228,57 @@ export function generateUblXml(
   const isForeignCurrency = invoice.currency && invoice.currency !== "RON";
   const vatInRon = isForeignCurrency ? (totalVat === 0 ? 0 : totalVat * 5.0) : totalVat;
 
+  // Supplier IBAN and Bank for PaymentMeans (BR-RO CIUS-RO compliant)
+  let supplierIban = ((invoice as any).companyIBAN || "").trim().replace(/\s+/g, "").toUpperCase();
+  let supplierBank = ((invoice as any).companyBank || "").trim();
+
+  if (!supplierIban && tenant.settings) {
+    try {
+      const s = typeof tenant.settings === "string" ? JSON.parse(tenant.settings) : tenant.settings;
+      const invCur = (invoice.currency || "RON").toUpperCase();
+      if (Array.isArray(s.bankAccounts) && s.bankAccounts.length > 0) {
+        const matchingAcc = s.bankAccounts.find((a: any) => (a.currency || "RON").toUpperCase() === invCur && a.iban);
+        if (matchingAcc) {
+          supplierIban = String(matchingAcc.iban).trim().replace(/\s+/g, "").toUpperCase();
+          supplierBank = matchingAcc.bank ? String(matchingAcc.bank).trim() : supplierBank;
+        }
+      }
+      if (!supplierIban && invCur === "EUR" && s.ibanEur) {
+        supplierIban = String(s.ibanEur).trim().replace(/\s+/g, "").toUpperCase();
+        supplierBank = s.bankEur ? String(s.bankEur).trim() : supplierBank;
+      }
+      if (!supplierIban && s.iban) {
+        supplierIban = String(s.iban).trim().replace(/\s+/g, "").toUpperCase();
+        supplierBank = s.bank ? String(s.bank).trim() : supplierBank;
+      }
+    } catch {}
+  }
+
+  const paymentMeansXml = supplierIban
+    ? `
+    <cac:PaymentMeans>
+        <cbc:PaymentMeansCode>42</cbc:PaymentMeansCode>
+        <cbc:PaymentID>${escapeXml(invoice.number)}</cbc:PaymentID>
+        <cac:PayeeFinancialAccount>
+            <cbc:ID>${escapeXml(supplierIban)}</cbc:ID>${
+              supplierBank
+                ? `
+            <cac:FinancialInstitutionBranch>
+                <cac:FinancialInstitution>
+                    <cbc:Name>${escapeXml(supplierBank)}</cbc:Name>
+                </cac:FinancialInstitution>
+            </cac:FinancialInstitutionBranch>`
+                : ""
+            }
+        </cac:PayeeFinancialAccount>
+    </cac:PaymentMeans>
+    <cac:PaymentTerms>
+        <cbc:Note>Plata prin virament bancar in contul ${escapeXml(supplierIban)}${
+          supplierBank ? ` (${escapeXml(supplierBank)})` : ""
+        }, scadenta ${dueDate}.</cbc:Note>
+    </cac:PaymentTerms>`
+    : "";
+
   // Build the full XML
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
@@ -286,7 +337,7 @@ export function generateUblXml(
                 ${clientCui ? `<cbc:CompanyID>${clientCui}</cbc:CompanyID>` : ""}
             </cac:PartyLegalEntity>
         </cac:Party>
-    </cac:AccountingCustomerParty>
+    </cac:AccountingCustomerParty>${paymentMeansXml}
 
     <cac:TaxTotal>
         <cbc:TaxAmount currencyID="${invoice.currency}">${totalVat.toFixed(2)}</cbc:TaxAmount>${xmlTaxSubtotals}

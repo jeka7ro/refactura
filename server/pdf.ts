@@ -2,7 +2,37 @@ import PDFDocument from "pdfkit";
 import { Readable } from "stream";
 import fs from "fs";
 import path from "path";
+import QRCode from "qrcode";
 import { translateProductDescriptionSync } from "./invoiceTranslator";
+
+function drawQrCodeVector(
+  doc: PDFKit.PDFDocument,
+  text: string,
+  x: number,
+  y: number,
+  size: number
+) {
+  try {
+    const qr = QRCode.create(text, { errorCorrectionLevel: "M" });
+    const moduleCount = qr.modules.size;
+    const cellSize = size / moduleCount;
+
+    doc.save();
+    doc.fillColor("#0f172a");
+    for (let row = 0; row < moduleCount; row++) {
+      for (let col = 0; col < moduleCount; col++) {
+        if (qr.modules.get(row, col)) {
+          doc
+            .rect(x + col * cellSize, y + row * cellSize, cellSize, cellSize)
+            .fill();
+        }
+      }
+    }
+    doc.restore();
+  } catch (err) {
+    console.error("[PDF] Failed to draw vector QR code:", err);
+  }
+}
 
 function sanitizeData(obj: any): any {
   if (typeof obj === "string") return obj; // Removed stripDiacritics
@@ -770,6 +800,71 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     ? (displaySubtotal + displayVat)
     : data.total;
 
+  const summaryStartY = y;
+  const totalDueBg = data.themeColor || "#2563eb";
+
+  // 1. Draw payment card on the left if IBAN exists
+  const cleanIban = (data.companyIBAN || "").replace(/\s+/g, "").toUpperCase();
+  let paymentBoxHeight = 0;
+
+  if (cleanIban) {
+    const payBoxX = leftX;
+    const payBoxY = summaryStartY;
+    const payBoxW = totX - leftX - 15;
+    const payBoxH = 68;
+    paymentBoxHeight = payBoxH;
+
+    doc.save();
+    doc.fillColor("#f8fafc");
+    doc.roundedRect(payBoxX, payBoxY, payBoxW, payBoxH, 6).fill();
+    doc.strokeColor("#e2e8f0");
+    doc.lineWidth(0.75);
+    doc.roundedRect(payBoxX, payBoxY, payBoxW, payBoxH, 6).stroke();
+    doc.restore();
+
+    const epcQrPayload = [
+      "BCD",
+      "002",
+      "1",
+      "SCT",
+      "",
+      (data.companyName || "").slice(0, 70).trim(),
+      cleanIban,
+      (data.currency || "RON").toUpperCase() + displayTotal.toFixed(2),
+      "",
+      (data.number || "").slice(0, 35).trim(),
+      `Factura ${data.number || ""}`.slice(0, 140),
+    ].join("\n");
+
+    const qrSize = 56;
+    const qrPadding = 6;
+    drawQrCodeVector(doc, epcQrPayload, payBoxX + qrPadding, payBoxY + qrPadding, qrSize);
+
+    const textX = payBoxX + qrSize + qrPadding * 2;
+    const textW = payBoxW - (qrSize + qrPadding * 3);
+    let ty = payBoxY + 7;
+
+    doc.font("Roboto-Bold").fontSize(7.5).fillColor(totalDueBg);
+    doc.text(isBilingual ? "SCANEAZĂ ȘI PLĂTEȘTE / SCAN & PAY" : "SCANEAZĂ ȘI PLĂTEȘTE", textX, ty, { width: textW });
+    ty += 11;
+
+    doc.font("Roboto").fontSize(6.5).fillColor("#64748b");
+    doc.text("Mobile Banking (RoPay / SEPA Instant)", textX, ty, { width: textW });
+    ty += 10;
+
+    doc.font("Roboto-Bold").fontSize(7).fillColor("#0f172a");
+    doc.text(`IBAN: ${cleanIban}`, textX, ty, { width: textW });
+    ty += 9;
+
+    if (data.companyBank) {
+      doc.font("Roboto").fontSize(6.5).fillColor("#475569");
+      doc.text(`Bancă: ${data.companyBank}`, textX, ty, { width: textW });
+    }
+
+    doc.fillColor("#000000");
+  }
+
+  // 2. Draw Totals on the right
   doc.font("Roboto-Bold").fontSize(9);
   doc.text(L.subtotal, totX, y, { width: labelW });
   doc
@@ -789,7 +884,6 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     });
   y += 15;
 
-  const totalDueBg = data.themeColor || "#2563eb";
   doc.save();
   doc.fillColor(totalDueBg);
   doc.roundedRect(totX, y, totW, 26, 6).fill();
@@ -803,12 +897,16 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   });
   doc.fillColor("#000000");
 
+  const totalsBlockHeight = 56;
+  const bottomSectionHeight = Math.max(totalsBlockHeight, paymentBoxHeight);
+  y = summaryStartY + bottomSectionHeight + 14;
+
   if (data.notes) {
     doc
       .fontSize(8)
       .font("Roboto-Bold")
-      .text(L.notes, leftX, y + 35);
-    doc.font("Roboto").text(data.notes, leftX, y + 47, { width: pageWidth });
+      .text(L.notes, leftX, y);
+    doc.font("Roboto").text(data.notes, leftX, y + 12, { width: pageWidth });
   }
 
   const footerY = doc.page.height - 30;
