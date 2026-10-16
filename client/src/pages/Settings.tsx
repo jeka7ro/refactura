@@ -170,7 +170,7 @@ export default function Settings() {
     defaultVatRate: 19,
     invoicePrefix: "INV",
     invoiceStartNumber: 1,
-    defaultDueDays: 15,
+    defaultDueDays: 7,
     defaultMarkupPercent: 20,
   }));
 

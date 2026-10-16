@@ -152,7 +152,7 @@ export default function EmitInvoice() {
   );
   const [dueDate, setDueDate] = useState(() => {
     const d = new Date();
-    d.setDate(d.getDate() + 30);
+    d.setDate(d.getDate() + 7);
     return d.toISOString().split("T")[0];
   });
 
@@ -1367,7 +1367,17 @@ export default function EmitInvoice() {
             <input
               type="date"
               value={issueDate}
-              onChange={e => setIssueDate(e.target.value)}
+              onChange={e => {
+                const newDate = e.target.value;
+                setIssueDate(newDate);
+                if (newDate) {
+                  const d = new Date(newDate + "T00:00:00");
+                  if (!isNaN(d.getTime())) {
+                    d.setDate(d.getDate() + 7);
+                    setDueDate(d.toISOString().split("T")[0]);
+                  }
+                }
+              }}
               className={inputCls}
             />
           </div>

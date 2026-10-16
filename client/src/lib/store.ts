@@ -620,7 +620,7 @@ export const mockCompanySettings: CompanySettings = {
   defaultVatRate: 19,
   invoicePrefix: "RF",
   invoiceStartNumber: 1,
-  defaultDueDays: 30,
+  defaultDueDays: 7,
   defaultMarkupPercent: 15,
 };
 

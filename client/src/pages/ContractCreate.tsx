@@ -97,7 +97,7 @@ export default function ContractCreate() {
   const [contractObject, setContractObject] = useState<string>(
     "Furnizarea de produse și prestarea de servicii conform comenzilor și specificațiilor tehnice agreate"
   );
-  const [paymentTermDays, setPaymentTermDays] = useState<string>("30");
+  const [paymentTermDays, setPaymentTermDays] = useState<string>("7");
   const [deliveryDays, setDeliveryDays] = useState<string>("15");
   const [warrantyMonths, setWarrantyMonths] = useState<string>("24");
   const [customClauses, setCustomClauses] = useState<string>("");

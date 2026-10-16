@@ -194,7 +194,11 @@ export default function ReInvoice() {
   const [showAdvancedClientInfo, setShowAdvancedClientInfo] = useState(false);
 
   const [currency, setCurrency] = useState<Currency>("RON");
-  const [dueDate, setDueDate] = useState("");
+  const [dueDate, setDueDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().split("T")[0];
+  });
   const [notes, setNotes] = useState("");
   const today = useMemo(() => new Date().toISOString().split("T")[0], []);
   const bnrNoteMatch = useMemo(() => {
@@ -342,7 +346,7 @@ export default function ReInvoice() {
     if (invoice) {
       setCurrency(invoice.currency);
       const due = new Date();
-      due.setDate(due.getDate() + 30);
+      due.setDate(due.getDate() + 7);
       setDueDate(due.toISOString().split("T")[0]);
       setLines(
         invoice.lines.map(l => {

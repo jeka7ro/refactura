@@ -93,7 +93,7 @@ export default function InvoicesEmitted() {
   );
   const [dueDate, setDueDate] = useState(() => {
     const d = new Date();
-    d.setDate(d.getDate() + 30);
+    d.setDate(d.getDate() + 7);
     return d.toISOString().split("T")[0];
   });
   const [currency, setCurrency] = useState("RON");
@@ -261,7 +261,7 @@ export default function InvoicesEmitted() {
     ]);
     setIssueDate(new Date().toISOString().split("T")[0]);
     const d = new Date();
-    d.setDate(d.getDate() + 30);
+    d.setDate(d.getDate() + 7);
     setDueDate(d.toISOString().split("T")[0]);
   };
 
@@ -391,7 +391,17 @@ export default function InvoicesEmitted() {
                 <input
                   type="date"
                   value={issueDate}
-                  onChange={e => setIssueDate(e.target.value)}
+                  onChange={e => {
+                    const newDate = e.target.value;
+                    setIssueDate(newDate);
+                    if (newDate) {
+                      const d = new Date(newDate + "T00:00:00");
+                      if (!isNaN(d.getTime())) {
+                        d.setDate(d.getDate() + 7);
+                        setDueDate(d.toISOString().split("T")[0]);
+                      }
+                    }
+                  }}
                   className="w-full h-10 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
