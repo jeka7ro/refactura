@@ -96,6 +96,10 @@ export const contractsRouter = router({
           fileName: contracts.fileName,
           fileSize: contracts.fileSize,
           notes: contracts.notes,
+          supplierSignature: contracts.supplierSignature,
+          clientSignature: contracts.clientSignature,
+          signatureType: contracts.signatureType,
+          signedAt: contracts.signedAt,
           createdAt: contracts.createdAt,
           updatedAt: contracts.updatedAt,
           partnerName: clients.name,
@@ -182,6 +186,11 @@ export const contractsRouter = router({
           fileName: contracts.fileName,
           fileSize: contracts.fileSize,
           notes: contracts.notes,
+          supplierSignature: contracts.supplierSignature,
+          clientSignature: contracts.clientSignature,
+          signatureType: contracts.signatureType,
+          digitalSignatureMetadata: contracts.digitalSignatureMetadata,
+          signedAt: contracts.signedAt,
           createdAt: contracts.createdAt,
           updatedAt: contracts.updatedAt,
           partnerName: clients.name,
@@ -250,6 +259,11 @@ export const contractsRouter = router({
         fileName: z.string().optional().nullable(),
         fileSize: z.number().optional().nullable(),
         notes: z.string().optional().nullable(),
+        supplierSignature: z.string().optional().nullable(),
+        clientSignature: z.string().optional().nullable(),
+        signatureType: z.string().optional().nullable(),
+        digitalSignatureMetadata: z.string().optional().nullable(),
+        signedAt: z.string().optional().nullable(),
         explanation: z.string().optional(), // Justificare initiala
       })
     )
@@ -276,6 +290,11 @@ export const contractsRouter = router({
         fileName: input.fileName || null,
         fileSize: input.fileSize || null,
         notes: input.notes || null,
+        supplierSignature: input.supplierSignature || null,
+        clientSignature: input.clientSignature || null,
+        signatureType: input.signatureType || "none",
+        digitalSignatureMetadata: input.digitalSignatureMetadata || null,
+        signedAt: input.signedAt || null,
       });
 
       const newId = (result as any).insertId;
@@ -299,6 +318,7 @@ export const contractsRouter = router({
           date: input.date,
           status: input.status,
           partnerId: input.partnerId,
+          signatureType: input.signatureType || "none",
         }),
       });
 
@@ -323,6 +343,11 @@ export const contractsRouter = router({
         status: z.enum(["activ", "draft", "expirat", "reziliat"]).optional(),
         contentHtml: z.string().optional().nullable(),
         notes: z.string().optional().nullable(),
+        supplierSignature: z.string().optional().nullable(),
+        clientSignature: z.string().optional().nullable(),
+        signatureType: z.string().optional().nullable(),
+        digitalSignatureMetadata: z.string().optional().nullable(),
+        signedAt: z.string().optional().nullable(),
         actionType: z.string().default("modificare_termeni"),
         explanation: z.string().min(3, "Explicația modificării este obligatorie pentru trasabilitate"),
       })
@@ -352,6 +377,11 @@ export const contractsRouter = router({
       if (input.status !== undefined) updateData.status = input.status;
       if (input.contentHtml !== undefined) updateData.contentHtml = input.contentHtml;
       if (input.notes !== undefined) updateData.notes = input.notes;
+      if (input.supplierSignature !== undefined) updateData.supplierSignature = input.supplierSignature;
+      if (input.clientSignature !== undefined) updateData.clientSignature = input.clientSignature;
+      if (input.signatureType !== undefined) updateData.signatureType = input.signatureType;
+      if (input.digitalSignatureMetadata !== undefined) updateData.digitalSignatureMetadata = input.digitalSignatureMetadata;
+      if (input.signedAt !== undefined) updateData.signedAt = input.signedAt;
 
       await db
         .update(contracts)
@@ -372,6 +402,75 @@ export const contractsRouter = router({
           newStatus: input.status || prev.status,
           previousValidUntil: prev.validUntil,
           newValidUntil: input.validUntil || prev.validUntil,
+        }),
+      });
+
+      return { success: true };
+    }),
+
+  /**
+   * Semnare olografică sau electronică digitală
+   */
+  sign: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        role: z.enum(["supplier", "client"]),
+        signatureType: z.enum(["olografic", "digital", "hibrid"]).default("olografic"),
+        signatureData: z.string(), // Base64 data URL sau token certificat
+        metadata: z.record(z.string(), z.any()).optional(),
+        signatoryName: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const tenantId = ctx.user?.tenantId || 1;
+      const db = await getDb();
+      if (!db) throw new Error("Baza de date indisponibilă");
+
+      const [contract] = await db
+        .select()
+        .from(contracts)
+        .where(and(eq(contracts.id, input.id), eq(contracts.tenantId, tenantId)));
+
+      if (!contract) throw new Error("Contractul nu a fost găsit");
+
+      const nowStr = new Date().toISOString();
+      const updateData: any = {
+        signedAt: nowStr,
+        signatureType: input.signatureType,
+      };
+
+      if (input.role === "supplier") {
+        updateData.supplierSignature = input.signatureData;
+      } else {
+        updateData.clientSignature = input.signatureData;
+      }
+
+      if (input.metadata) {
+        updateData.digitalSignatureMetadata = JSON.stringify(input.metadata);
+      }
+
+      await db
+        .update(contracts)
+        .set(updateData)
+        .where(and(eq(contracts.id, input.id), eq(contracts.tenantId, tenantId)));
+
+      const roleLabel = input.role === "supplier" ? "Furnizor / Prestator" : "Beneficiar / Client";
+      const typeLabel = input.signatureType === "digital" ? "electronică digitală" : "olografică digitală";
+
+      await db.insert(contractLogs).values({
+        tenantId,
+        contractId: input.id,
+        userId: ctx.user?.id || null,
+        userName: ctx.user?.name || ctx.user?.email || "Semnatar",
+        actionType: "semnare",
+        explanation: `Semnătură ${typeLabel} aplicată de ${roleLabel} (${input.signatoryName || "Reprezentant legal"})`,
+        details: JSON.stringify({
+          role: input.role,
+          signatureType: input.signatureType,
+          signatoryName: input.signatoryName,
+          signedAt: nowStr,
+          hasMetadata: !!input.metadata,
         }),
       });
 

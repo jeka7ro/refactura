@@ -240,6 +240,23 @@ export async function getDb() {
         console.warn("[DB] Error creating contracts table:", e);
       }
 
+      // Safe migrations for contract signatures (olographic & digital)
+      try {
+        await _db.execute(sql`ALTER TABLE contracts ADD COLUMN supplierSignature LONGTEXT NULL`);
+      } catch {}
+      try {
+        await _db.execute(sql`ALTER TABLE contracts ADD COLUMN clientSignature LONGTEXT NULL`);
+      } catch {}
+      try {
+        await _db.execute(sql`ALTER TABLE contracts ADD COLUMN signatureType VARCHAR(50) DEFAULT 'none'`);
+      } catch {}
+      try {
+        await _db.execute(sql`ALTER TABLE contracts ADD COLUMN digitalSignatureMetadata TEXT NULL`);
+      } catch {}
+      try {
+        await _db.execute(sql`ALTER TABLE contracts ADD COLUMN signedAt VARCHAR(30) NULL`);
+      } catch {}
+
       // Contract Logs table (Audit trail with timestamps & explanations)
       try {
         await _db.execute(sql`

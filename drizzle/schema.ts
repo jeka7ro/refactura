@@ -845,6 +845,11 @@ export const contracts = mysqlTable("contracts", {
   fileName: varchar("fileName", { length: 255 }),
   fileSize: int("fileSize"),
   notes: text("notes"),
+  supplierSignature: longtext("supplierSignature"),
+  clientSignature: longtext("clientSignature"),
+  signatureType: varchar("signatureType", { length: 50 }).default("none"),
+  digitalSignatureMetadata: text("digitalSignatureMetadata"),
+  signedAt: varchar("signedAt", { length: 30 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

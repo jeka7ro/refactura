@@ -2226,6 +2226,11 @@ export function registerPdfRoute(app: any) {
           fileUrl: contracts.fileUrl,
           fileName: contracts.fileName,
           notes: contracts.notes,
+          supplierSignature: contracts.supplierSignature,
+          clientSignature: contracts.clientSignature,
+          signatureType: contracts.signatureType,
+          digitalSignatureMetadata: contracts.digitalSignatureMetadata,
+          signedAt: contracts.signedAt,
           partnerName: clients.name,
           partnerCui: clients.cui,
           partnerRegCom: clients.regCom,
@@ -2420,20 +2425,68 @@ export function registerPdfRoute(app: any) {
       });
 
       // Casete Semnaturi la final
-      const endY = 700;
-      doc.rect(40, endY, 245, 80).strokeColor(BORDER_COLOR).lineWidth(0.5).stroke();
-      doc.rect(310, endY, 245, 80).strokeColor(BORDER_COLOR).lineWidth(0.5).stroke();
+      const endY = 690;
+      doc.rect(40, endY, 245, 95).strokeColor(BORDER_COLOR).lineWidth(0.5).stroke();
+      doc.rect(310, endY, 245, 95).strokeColor(BORDER_COLOR).lineWidth(0.5).stroke();
 
       doc.fillColor(PRIMARY).fontSize(8).font(fontBold);
-      doc.text("FURNIZOR / PRESTATOR", 50, endY + 10);
-      doc.text("BENEFICIAR / CLIENT", 320, endY + 10);
+      doc.text("FURNIZOR / PRESTATOR", 50, endY + 8);
+      doc.text("BENEFICIAR / CLIENT", 320, endY + 8);
 
       doc.fillColor(TEXT_MUTED).fontSize(7).font(fontRegular);
-      doc.text(tenant?.name || "Furnizor / Prestator", 50, endY + 22);
-      doc.text("Semnătura & Ștampila", 50, endY + 62);
+      doc.text(tenant?.name || "Furnizor / Prestator", 50, endY + 20);
+      doc.text(contract.partnerName || "Reprezentant Legal", 320, endY + 20);
 
-      doc.text(contract.partnerName || "Reprezentant Legal", 320, endY + 22);
-      doc.text("Semnătura & Ștampila", 320, endY + 62);
+      // Helper pentru decodare imagine base64 semnatură
+      const parseSignatureBuffer = (val?: string | null): Buffer | null => {
+        if (!val) return null;
+        try {
+          const match = val.match(/^data:image\/\w+;base64,(.+)$/s);
+          const raw = match ? match[1] : val;
+          if (raw.length > 50) return Buffer.from(raw, "base64");
+          return null;
+        } catch {
+          return null;
+        }
+      };
+
+      // Semnătură Furnizor (Olografică sau Digitală)
+      const suppBuf = parseSignatureBuffer(contract.supplierSignature);
+      if (suppBuf) {
+        try {
+          doc.image(suppBuf, 50, endY + 34, { fit: [180, 42] });
+          doc.fillColor("#059669").fontSize(6).font(fontBold).text("Semnat Olografic Digital", 50, endY + 80);
+        } catch {
+          doc.fillColor(TEXT_MUTED).fontSize(7).font(fontRegular).text("Semnătura & Ștampila", 50, endY + 75);
+        }
+      } else if (contract.signatureType === "digital" && contract.digitalSignatureMetadata) {
+        doc.rect(50, endY + 34, 180, 42).fillColor("#f0fdf4").fill();
+        doc.rect(50, endY + 34, 180, 42).strokeColor("#86efac").lineWidth(0.5).stroke();
+        doc.fillColor("#15803d").fontSize(7).font(fontBold).text("CERTIFICAT DIGITAL eIDAS", 58, endY + 40);
+        doc.fillColor("#166534").fontSize(6).font(fontRegular).text(`Semnat la: ${contract.signedAt || contract.date}`, 58, endY + 52);
+        doc.text("Integritate garantată SHA-256", 58, endY + 62);
+      } else {
+        doc.fillColor(TEXT_MUTED).fontSize(7).font(fontRegular).text("Semnătura & Ștampila", 50, endY + 75);
+      }
+
+      // Semnătură Beneficiar (Olografică sau Digitală)
+      const clientBuf = parseSignatureBuffer(contract.clientSignature);
+      if (clientBuf) {
+        try {
+          doc.image(clientBuf, 320, endY + 34, { fit: [180, 42] });
+          doc.fillColor("#059669").fontSize(6).font(fontBold).text("Semnat Olografic Digital", 320, endY + 80);
+        } catch {
+          doc.fillColor(TEXT_MUTED).fontSize(7).font(fontRegular).text("Semnătura & Ștampila", 320, endY + 75);
+        }
+      } else if (contract.signatureType === "digital" && contract.digitalSignatureMetadata) {
+        doc.rect(320, endY + 34, 180, 42).fillColor("#f0fdf4").fill();
+        doc.rect(320, endY + 34, 180, 42).strokeColor("#86efac").lineWidth(0.5).stroke();
+        doc.fillColor("#15803d").fontSize(7).font(fontBold).text("CERTIFICAT DIGITAL eIDAS", 328, endY + 40);
+        doc.fillColor("#166534").fontSize(6).font(fontRegular).text(`Semnat la: ${contract.signedAt || contract.date}`, 328, endY + 52);
+        doc.text("Integritate garantată SHA-256", 328, endY + 62);
+      } else {
+        doc.fillColor(TEXT_MUTED).fontSize(7).font(fontRegular).text("Semnătura & Ștampila", 320, endY + 75);
+      }
 
       // Numerotare pagini in footer
       const range = doc.bufferedPageRange();

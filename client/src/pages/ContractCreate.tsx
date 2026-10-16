@@ -18,6 +18,8 @@ import {
   X,
   RefreshCw,
   Eye,
+  PenTool,
+  Edit3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import PartnerCombobox, { PartnerItem } from "@/components/PartnerCombobox";
+import ContractVisualEditor from "@/components/ContractVisualEditor";
 
 export default function ContractCreate() {
   const [, setLocation] = useLocation();
@@ -39,11 +42,11 @@ export default function ContractCreate() {
   const parentContractIdParam = searchParams.get("parentContractId");
   const typeParam = searchParams.get("type");
   const partnerIdParam = searchParams.get("partnerId");
-  const modeParam = searchParams.get("mode"); // "upload" | "generate"
+  const modeParam = searchParams.get("mode"); // "editor" | "upload" | "generate"
 
-  // Main Mode: "upload" (Upload existing signed PDF) OR "generate" (Digital template generator)
-  const [activeMode, setActiveMode] = useState<"upload" | "generate">(
-    modeParam === "generate" ? "generate" : "upload"
+  // Main Mode: "editor" (Visual rich editor & signatures) OR "upload" (Upload signed PDF) OR "generate" (Template generator)
+  const [activeMode, setActiveMode] = useState<"editor" | "upload" | "generate">(
+    modeParam === "generate" ? "generate" : modeParam === "upload" ? "upload" : "editor"
   );
 
   // Queries
@@ -118,10 +121,19 @@ export default function ContractCreate() {
   const [explanation, setExplanation] = useState<string>(
     activeMode === "upload"
       ? "Contract semnat fizic, scanat și arhivat în biblioteca digitală"
+      : activeMode === "editor"
+      ? "Contract redactat în editorul vizual cu formatare și semnături"
       : "Contract generat digital din sistem"
   );
   const [contentHtml, setContentHtml] = useState<string>("");
   const [errorMsg, setErrorMsg] = useState<string>("");
+
+  // Signatures State
+  const [supplierSignature, setSupplierSignature] = useState<string | null>(null);
+  const [clientSignature, setClientSignature] = useState<string | null>(null);
+  const [signatureType, setSignatureType] = useState<"olografic" | "digital" | "hibrid" | "none">("none");
+  const [digitalSignatureMetadata, setDigitalSignatureMetadata] = useState<any>(null);
+  const [signedAt, setSignedAt] = useState<string | null>(null);
 
   // Selected Partner Details
   const selectedPartner = useMemo(() => {
@@ -289,6 +301,34 @@ export default function ContractCreate() {
     explanation,
   ]);
 
+  // Initializare sablon curat pentru Editor Vizual daca e gol
+  useEffect(() => {
+    if (activeMode === "editor" && !contentHtml) {
+      setContentHtml(`
+<h2 style="text-align: center; color: #1e3a8a; text-transform: uppercase; font-size: 16px; margin-bottom: 4px;">CONTRACT COMERCIAL DE FURNIZARE ȘI PRESTĂRI SERVICII</h2>
+<p style="text-align: center; color: #64748b; font-size: 11px; margin-top: 0;">Nr. <strong>${docNumber}</strong> din data de <strong>${docDate}</strong></p>
+
+<h3 style="color: #1e3a8a; font-size: 13px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 18px;">1. PĂRȚILE CONTRACTANTE</h3>
+<p><strong>1.1. PRESTATOR / FURNIZOR:</strong> <strong>${activeTenantName}</strong>, cu sediul în ${activeTenantCity || "România"}, ${activeTenantAddress || "-"}, CUI: <strong>${activeTenantCui}</strong>, Reg. Com.: ${activeTenantRegCom}, Cont IBAN: <strong>${activeTenantIban}</strong>, deschis la ${activeTenantBank}, reprezentată legal prin Administrator,</p>
+<p>și</p>
+<p><strong>1.2. BENEFICIAR / CLIENT:</strong> <strong>${selectedPartner?.name || "[Selectați Partenerul din antet]"}</strong>, cu sediul în ${selectedPartner?.city || "-"}, ${selectedPartner?.address || "-"}, identificat prin CUI: <strong>${selectedPartner?.cui || "-"}</strong>, Reg. Com.: ${selectedPartner?.regCom || "-"}, reprezentat legal prin Administrator,</p>
+<p>au convenit încheierea prezentului contract comercial cu respectarea următoarelor clauze:</p>
+
+<h3 style="color: #1e3a8a; font-size: 13px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 18px;">2. OBIECTUL CONTRACTULUI</h3>
+<p>Obiectul contractului îl constituie producția, livrarea de mărfuri/produse și/sau prestarea de servicii, conform comenzilor scrise, ofertelor și specificațiilor tehnice agreate între părți.</p>
+
+<h3 style="color: #1e3a8a; font-size: 13px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 18px;">3. VALOAREA CONTRACTULUI ȘI MODALITĂȚI DE PLATĂ</h3>
+<p>Valoarea contractului este de <strong>${docValue} ${docCurrency}</strong> (la care se adaugă TVA conform legii). Plățile se vor efectua prin transfer bancar pe baza facturilor fiscale emise de Prestator, cu termen de scadență de <strong>${paymentTermDays} zile</strong> calendaristice de la data emiterii facturii.</p>
+
+<h3 style="color: #1e3a8a; font-size: 13px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 18px;">4. TERMENE DE LIVRARE ȘI GARANȚIE</h3>
+<p>Termenul estimat de livrare este de <strong>${deliveryDays} zile</strong> de la confirmarea comenzii. Perioada de garanție comercială acordată este de <strong>${warrantyMonths} luni</strong> de la data recepției calitative și cantitative.</p>
+
+<h3 style="color: #1e3a8a; font-size: 13px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 18px;">5. LITIGII ȘI DISPOZIȚII FINALE</h3>
+<p>Litigiile de orice natură decurgând din derularea prezentului contract se vor soluționa pe cale amiabilă sau de instanțele judecătorești competente de la sediul Prestatorului.</p>
+`);
+    }
+  }, [activeMode, activeTenantName, selectedPartner?.name, docNumber, docDate]);
+
   const createMutation = trpc.contracts.create.useMutation({
     onSuccess: (res) => {
       setLocation(`/contracte/${res.id}`);
@@ -332,14 +372,21 @@ export default function ContractCreate() {
       value: docValue,
       currency: docCurrency,
       status: docStatus,
-      contentHtml: activeMode === "generate" ? contentHtml : null,
+      contentHtml: activeMode === "upload" ? null : contentHtml,
       fileUrl: activeMode === "upload" && uploadedFile ? uploadedFile.fileUrl : null,
       fileName: activeMode === "upload" && uploadedFile ? uploadedFile.fileName : null,
       fileSize: activeMode === "upload" && uploadedFile ? uploadedFile.fileSize : null,
+      supplierSignature,
+      clientSignature,
+      signatureType: signatureType !== "none" ? signatureType : undefined,
+      digitalSignatureMetadata: digitalSignatureMetadata ? JSON.stringify(digitalSignatureMetadata) : undefined,
+      signedAt,
       explanation:
         explanation ||
         (activeMode === "upload"
           ? "Contract semnat fizic, arhivat în bibliotecă"
+          : activeMode === "editor"
+          ? "Contract redactat în editorul vizual cu formatare și semnătură"
           : "Contract generat digital din sistem"),
     });
   };
@@ -369,12 +416,16 @@ export default function ContractCreate() {
           <div>
             <h1 className="text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
               <FileSignature className="h-6 w-6 text-primary" />
-              {activeMode === "upload"
+              {activeMode === "editor"
+                ? "Editor Vizual Contract & Semnătură Olografică / Digitală"
+                : activeMode === "upload"
                 ? "Încarcă Contract / Act Adițional Semnat"
                 : "Generează Contract Nou din Șablon"}
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              {activeMode === "upload"
+              {activeMode === "editor"
+                ? `Redactare liberă cu fonturi, culori, copy-paste din Word/Docs și semnături pentru ${activeTenantName}`
+                : activeMode === "upload"
                 ? `Asociere directă cu baza de parteneri ${activeTenantName}`
                 : `Generare document oficial conform șabloanelor pentru ${activeTenantName}`}
             </p>
@@ -403,7 +454,11 @@ export default function ContractCreate() {
             ) : (
               <span className="flex items-center gap-1.5">
                 <Save className="h-4 w-4" />
-                {activeMode === "upload" ? "Salvează & Arhivează PDF" : "Generează & Salvează"}
+                {activeMode === "editor"
+                  ? "Salvează Contractul Formatat"
+                  : activeMode === "upload"
+                  ? "Salvează & Arhivează PDF"
+                  : "Generează & Salvează"}
               </span>
             )}
           </Button>
@@ -417,22 +472,22 @@ export default function ContractCreate() {
         </div>
       )}
 
-      {/* Main Mode Switcher Tabs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-100 dark:bg-slate-800/60 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800">
+      {/* Main Mode Switcher Tabs: 3 Optiuni */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 bg-slate-100 dark:bg-slate-800/60 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800">
         <button
           type="button"
           onClick={() => {
-            setActiveMode("upload");
-            setExplanation("Contract semnat fizic, scanat și arhivat în biblioteca digitală");
+            setActiveMode("editor");
+            setExplanation("Contract redactat în editorul vizual cu formatare și semnătură");
           }}
-          className={`flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl text-xs font-bold transition-all ${
-            activeMode === "upload"
+          className={`flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-xs font-bold transition-all ${
+            activeMode === "editor"
               ? "bg-white dark:bg-slate-900 text-primary shadow-sm border border-slate-200/80 dark:border-slate-700"
               : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
           }`}
         >
-          <Upload className="h-4 w-4" />
-          <span>Am deja contractul semnat (Încarcă PDF / Scanare)</span>
+          <Edit3 className="h-4 w-4 text-primary" />
+          <span>Editor Vizual & Semnătură</span>
           <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary uppercase tracking-wider font-extrabold">
             Recomandat
           </span>
@@ -441,24 +496,301 @@ export default function ContractCreate() {
         <button
           type="button"
           onClick={() => {
+            setActiveMode("upload");
+            setExplanation("Contract semnat fizic, scanat și arhivat în biblioteca digitală");
+          }}
+          className={`flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-xs font-bold transition-all ${
+            activeMode === "upload"
+              ? "bg-white dark:bg-slate-900 text-primary shadow-sm border border-slate-200/80 dark:border-slate-700"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+          }`}
+        >
+          <Upload className="h-4 w-4 text-emerald-600" />
+          <span>Încarcă PDF Semnat Fizic</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
             setActiveMode("generate");
             setExplanation("Contract generat digital din sistem");
           }}
-          className={`flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl text-xs font-bold transition-all ${
+          className={`flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-xs font-bold transition-all ${
             activeMode === "generate"
               ? "bg-white dark:bg-slate-900 text-primary shadow-sm border border-slate-200/80 dark:border-slate-700"
               : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
           }`}
         >
-          <Sparkles className="h-4 w-4" />
-          <span>Vreau să redactez un document nou (Generează din Șablon)</span>
+          <Sparkles className="h-4 w-4 text-amber-500" />
+          <span>Generator Rapid Șabloane</span>
         </button>
       </div>
 
       {/* Content Form depending on Mode */}
-      {activeMode === "upload" ? (
+      {activeMode === "editor" ? (
         /* ═════════════════════════════════════════════════════════════════════
-           TAB 1: ÎNCARCĂ CONTRACT SEMNAT (PDF)
+           TAB: EDITOR VIZUAL & REDACTARE LIBERĂ (COPY-PASTE / STILURI / SEMNĂTURĂ)
+           ═════════════════════════════════════════════════════════════════════ */
+        <div className="space-y-6">
+          {/* Partner & Contract Meta Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {/* Pas 1: Match Partener SAGA */}
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-card p-4 shadow-sm space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Building2 className="h-4 w-4 text-primary" />
+                  1. Partener Contractual
+                </span>
+                <span className="text-[10px] text-slate-400 font-normal">
+                  {partners.length} în SAGA
+                </span>
+              </h3>
+
+              <div>
+                <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">
+                  Caută Client sau Furnizor:
+                </label>
+                <PartnerCombobox
+                  value={selectedPartnerId}
+                  onChange={(id) => setSelectedPartnerId(id)}
+                  partners={partners as any[]}
+                  placeholder="Caută după nume, CUI sau cod..."
+                />
+              </div>
+
+              {selectedPartner && (
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-[11px] space-y-1">
+                  <div className="font-bold text-slate-900 dark:text-white flex items-center justify-between">
+                    <span className="truncate">{selectedPartner.name}</span>
+                    {selectedPartner.isSupplier === 1 ? (
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                        Furnizor
+                      </span>
+                    ) : (
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                        Client
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-slate-500 font-mono text-[10px]">
+                    CUI: {selectedPartner.cui || "-"} | Cod SAGA: {selectedPartner.sagaCode || "-"}
+                  </div>
+                  <div className="text-slate-500 truncate text-[10px]">
+                    {selectedPartner.city || "-"}, {selectedPartner.address || "-"}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Pas 2: Tip Document & Legătură */}
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-card p-4 shadow-sm space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <FileText className="h-4 w-4 text-primary" />
+                2. Tip Document
+              </h3>
+
+              <div>
+                <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">
+                  Clasificare Document:
+                </label>
+                <Select value={docType} onValueChange={setDocType}>
+                  <SelectTrigger className="rounded-xl text-xs h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl text-xs">
+                    <SelectItem value="contract">Contract Cadru / Comercial</SelectItem>
+                    <SelectItem value="act_aditional">Act Adițional</SelectItem>
+                    <SelectItem value="pv_receptie">Proces Verbal Recepție</SelectItem>
+                    <SelectItem value="anexa">Anexă Tehnică / Caiet de Sarcini</SelectItem>
+                    <SelectItem value="acord">Acord de Confidențialitate (NDA)</SelectItem>
+                    <SelectItem value="altul">Alt Document Semnat</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {docType === "act_aditional" && (
+                <div>
+                  <label className="text-[11px] font-semibold text-purple-700 dark:text-purple-300 block mb-1">
+                    Legați de Contractul Principal:
+                  </label>
+                  <Select
+                    value={parentContractId ? String(parentContractId) : ""}
+                    onValueChange={(val) => setParentContractId(val ? parseInt(val) : null)}
+                  >
+                    <SelectTrigger className="rounded-xl text-xs h-9 border-purple-200 dark:border-purple-800">
+                      <SelectValue placeholder="Alege contractul principal..." />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl text-xs">
+                      {allContracts
+                        .filter(
+                          (c: any) =>
+                            c.type === "contract" &&
+                            (!selectedPartnerId || c.partnerId === selectedPartnerId)
+                        )
+                        .map((c: any) => (
+                          <SelectItem key={c.id} value={String(c.id)}>
+                            {c.number} — {c.partnerName || "Fără partener"} ({c.date})
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div>
+                <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">
+                  Status Document:
+                </label>
+                <Select
+                  value={docStatus}
+                  onValueChange={(v) => setDocStatus(v as any)}
+                >
+                  <SelectTrigger className="rounded-xl text-xs h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl text-xs">
+                    <SelectItem value="activ">Activ / În vigoare</SelectItem>
+                    <SelectItem value="draft">În Verificare / Ciornă</SelectItem>
+                    <SelectItem value="expirat">Expirat</SelectItem>
+                    <SelectItem value="reziliat">Reziliat</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Pas 3: Număr, Date, Valoare */}
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-card p-4 shadow-sm space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <Calendar className="h-4 w-4 text-primary" />
+                3. Date & Valoare
+              </h3>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                    Număr:
+                  </label>
+                  <Input
+                    value={docNumber}
+                    onChange={(e) => setDocNumber(e.target.value)}
+                    className="h-8 rounded-xl text-xs mt-0.5"
+                    placeholder="ex: 145/2026"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                    Dată Semnare:
+                  </label>
+                  <Input
+                    type="date"
+                    value={docDate}
+                    onChange={(e) => setDocDate(e.target.value)}
+                    className="h-8 rounded-xl text-xs mt-0.5"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                    Valabil De La:
+                  </label>
+                  <Input
+                    type="date"
+                    value={validFrom}
+                    onChange={(e) => setValidFrom(e.target.value)}
+                    className="h-8 rounded-xl text-xs mt-0.5"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                    Valabil Până La:
+                  </label>
+                  <Input
+                    type="date"
+                    value={validUntil}
+                    onChange={(e) => setValidUntil(e.target.value)}
+                    className="h-8 rounded-xl text-xs mt-0.5"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div className="col-span-2">
+                  <label className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                    Valoare Contract:
+                  </label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={docValue}
+                    onChange={(e) => setDocValue(e.target.value)}
+                    className="h-8 rounded-xl text-xs mt-0.5 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                    Monedă:
+                  </label>
+                  <Select value={docCurrency} onValueChange={setDocCurrency}>
+                    <SelectTrigger className="h-8 rounded-xl text-xs mt-0.5">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl text-xs">
+                      <SelectItem value="RON">RON</SelectItem>
+                      <SelectItem value="EUR">EUR</SelectItem>
+                      <SelectItem value="USD">USD</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Visual Rich Editor Component */}
+          <ContractVisualEditor
+            value={contentHtml}
+            onChange={(html) => setContentHtml(html)}
+            tenantName={activeTenantName}
+            tenantCui={activeTenantCui}
+            tenantIban={activeTenantIban}
+            tenantBank={activeTenantBank}
+            partnerName={selectedPartner?.name || ""}
+            partnerCui={selectedPartner?.cui || ""}
+            docNumber={docNumber}
+            docDate={docDate}
+            docValue={docValue}
+            docCurrency={docCurrency}
+            onSetDocValue={(val) => setDocValue(val)}
+            supplierSignature={supplierSignature}
+            clientSignature={clientSignature}
+            signatureType={signatureType}
+            signedAt={signedAt}
+            onUpdateSignatures={(sigs) => {
+              if (sigs.supplierSignature !== undefined) setSupplierSignature(sigs.supplierSignature);
+              if (sigs.clientSignature !== undefined) setClientSignature(sigs.clientSignature);
+              if (sigs.signatureType !== undefined) setSignatureType(sigs.signatureType);
+              if (sigs.signedAt !== undefined) setSignedAt(sigs.signedAt);
+              if (sigs.metadata !== undefined) setDigitalSignatureMetadata(sigs.metadata);
+            }}
+          />
+
+          {/* Audit Note */}
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-card p-4 shadow-sm">
+            <label className="text-xs font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 flex items-center gap-1.5 mb-1.5">
+              Notă Înregistrare / Istoric Audit (salvată timestampat în jurnal):
+            </label>
+            <Input
+              value={explanation}
+              onChange={(e) => setExplanation(e.target.value)}
+              placeholder="Ex: Contract redactat și agreat cu clauze personalizate..."
+              className="rounded-xl text-xs"
+            />
+          </div>
+        </div>
+      ) : activeMode === "upload" ? (
+        /* ═════════════════════════════════════════════════════════════════════
+           TAB 2: ÎNCARCĂ CONTRACT SEMNAT (PDF)
            ═════════════════════════════════════════════════════════════════════ */
         <div className="space-y-5">
           {/* Partner & Contract Meta Grid: 1, 2, 3 direct sus */}

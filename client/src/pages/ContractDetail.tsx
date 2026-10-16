@@ -17,6 +17,8 @@ import {
   Edit,
   ExternalLink,
   Loader2,
+  PenTool,
+  FileSignature,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +38,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import ContractSignaturePadModal from "@/components/ContractSignaturePadModal";
+import { toast } from "sonner";
 
 export default function ContractDetail() {
   const params = useParams<{ id: string }>();
@@ -53,6 +57,41 @@ export default function ContractDetail() {
   const [logActionType, setLogActionType] = useState("modificare_termeni");
   const [logExplanation, setLogExplanation] = useState("");
   const [logError, setLogError] = useState("");
+
+  // Signature state
+  const [showSigModal, setShowSigModal] = useState(false);
+  const [sigRole, setSigRole] = useState<"supplier" | "client">("supplier");
+
+  const signMutation = trpc.contracts.sign.useMutation({
+    onSuccess: () => {
+      refetch();
+      const iframe = document.getElementById("pdf-frame") as HTMLIFrameElement;
+      if (iframe) {
+        iframe.src = `${pdfUrl}?t=${Date.now()}#view=FitH`;
+      }
+      toast.success("Semnătura a fost salvată și aplicată pe contract");
+    },
+    onError: (err) => {
+      toast.error("Eroare la aplicarea semnăturii: " + err.message);
+    },
+  });
+
+  const handleSaveSignature = (data: {
+    signatureDataUrl: string;
+    signatureType: "olografic" | "digital" | "hibrid";
+    signatoryName: string;
+    metadata?: any;
+  }) => {
+    if (!contract) return;
+    signMutation.mutate({
+      id: contract.id,
+      role: sigRole,
+      signatureType: data.signatureType,
+      signatureData: data.signatureDataUrl,
+      signatoryName: data.signatoryName,
+      metadata: data.metadata,
+    });
+  };
 
   const addLogMutation = trpc.contracts.addLog.useMutation({
     onSuccess: () => {
@@ -165,6 +204,19 @@ export default function ContractDetail() {
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setSigRole(!contract.supplierSignature ? "supplier" : "client");
+              setShowSigModal(true);
+            }}
+            className="rounded-xl border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-semibold"
+          >
+            <PenTool className="h-4 w-4 mr-1.5 text-emerald-600" />
+            Semnează Olografic / Digital
+          </Button>
+
           <Button
             variant="outline"
             size="sm"
@@ -306,6 +358,99 @@ export default function ContractDetail() {
                 </Link>
               </Button>
             )}
+          </div>
+
+          {/* Card Semnături & Certificare Digitală */}
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-card p-5 shadow-sm space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <FileSignature className="h-4 w-4 text-emerald-600" />
+                Semnături & Certificare
+              </h3>
+              {contract.signatureType && contract.signatureType !== "none" && (
+                <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300">
+                  {contract.signatureType === "digital" ? "Digital eIDAS" : contract.signatureType === "hibrid" ? "Hibrid" : "Olografic"}
+                </Badge>
+              )}
+            </div>
+
+            <div className="space-y-3 text-xs">
+              {/* Furnizor signature box */}
+              <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/40">
+                <div className="flex items-center justify-between font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <span>Furnizor / Prestator:</span>
+                  {contract.supplierSignature ? (
+                    <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Semnat
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-slate-400 italic">Nesemnat</span>
+                  )}
+                </div>
+
+                {contract.supplierSignature && (
+                  <div className="my-2 py-1 text-center bg-white dark:bg-slate-950 rounded-lg p-2 border border-slate-100 dark:border-slate-800">
+                    <img
+                      src={contract.supplierSignature}
+                      alt="Semnătură Furnizor"
+                      className="max-h-12 max-w-[160px] object-contain mx-auto"
+                    />
+                  </div>
+                )}
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSigRole("supplier");
+                    setShowSigModal(true);
+                  }}
+                  className="w-full h-7 rounded-lg text-xs mt-1 border-primary/30 text-primary hover:bg-primary/10"
+                >
+                  <PenTool className="h-3 w-3 mr-1" />
+                  {contract.supplierSignature ? "Re-semnează Furnizor" : "Semnează ca Furnizor"}
+                </Button>
+              </div>
+
+              {/* Beneficiar signature box */}
+              <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/40">
+                <div className="flex items-center justify-between font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <span>Beneficiar / Client:</span>
+                  {contract.clientSignature ? (
+                    <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Semnat
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-slate-400 italic">Nesemnat</span>
+                  )}
+                </div>
+
+                {contract.clientSignature && (
+                  <div className="my-2 py-1 text-center bg-white dark:bg-slate-950 rounded-lg p-2 border border-slate-100 dark:border-slate-800">
+                    <img
+                      src={contract.clientSignature}
+                      alt="Semnătură Beneficiar"
+                      className="max-h-12 max-w-[160px] object-contain mx-auto"
+                    />
+                  </div>
+                )}
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSigRole("client");
+                    setShowSigModal(true);
+                  }}
+                  className="w-full h-7 rounded-lg text-xs mt-1 border-primary/30 text-primary hover:bg-primary/10"
+                >
+                  <PenTool className="h-3 w-3 mr-1" />
+                  {contract.clientSignature ? "Re-semnează Beneficiar" : "Semnează ca Beneficiar"}
+                </Button>
+              </div>
+            </div>
           </div>
 
           {/* Acte Aditionale Legate */}
@@ -481,6 +626,16 @@ export default function ContractDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Signature Modal */}
+      <ContractSignaturePadModal
+        open={showSigModal}
+        onOpenChange={setShowSigModal}
+        role={sigRole}
+        partyName={sigRole === "supplier" ? (contract.tenant?.name || "Furnizor") : (contract.partnerName || "Beneficiar")}
+        contractNumber={contract.number}
+        onSaveSignature={handleSaveSignature}
+      />
     </div>
   );
 }
