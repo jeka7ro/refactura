@@ -245,8 +245,10 @@ export async function generateSagaExportXML(
     if (company.address) xml += `      <FurnizorAdresa>${escapeXml(company.address)}</FurnizorAdresa>\n`;
     if (company.phone) xml += `      <FurnizorTelefon>${escapeXml(company.phone)}</FurnizorTelefon>\n`;
     if (company.email) xml += `      <FurnizorMail>${escapeXml(company.email)}</FurnizorMail>\n`;
-    if (company.bank) xml += `      <FurnizorBanca>${escapeXml(company.bank)}</FurnizorBanca>\n`;
-    if (company.iban) xml += `      <FurnizorIBAN>${escapeXml(company.iban)}</FurnizorIBAN>\n`;
+    const furnizorBanca = (inv as any).companyBank || company.bank;
+    const furnizorIban = (inv as any).companyIBAN || company.iban;
+    if (furnizorBanca) xml += `      <FurnizorBanca>${escapeXml(furnizorBanca)}</FurnizorBanca>\n`;
+    if (furnizorIban) xml += `      <FurnizorIBAN>${escapeXml(furnizorIban)}</FurnizorIBAN>\n`;
 
     // Clientul
     xml += `      <ClientNume>${escapeXml(client?.name || "Client Necunoscut")}</ClientNume>\n`;

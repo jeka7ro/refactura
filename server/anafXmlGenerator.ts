@@ -254,7 +254,9 @@ export function generateUblXml(
     } catch {}
   }
 
-  const paymentMeansXml = supplierIban
+  const isValidIban = supplierIban.length >= 15 && /^[A-Z]{2}[0-9A-Z]{13,32}$/.test(supplierIban);
+
+  const paymentMeansXml = isValidIban
     ? `
     <cac:PaymentMeans>
         <cbc:PaymentMeansCode>42</cbc:PaymentMeansCode>
