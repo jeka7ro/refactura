@@ -2194,9 +2194,9 @@ export default function EmitInvoice() {
       {/* Panou Opțiuni & Acțiuni Salvare Factură */}
       <div className="space-y-4 pt-2">
         {/* Card Toggles & Opțiuni (Curs BNR, Taxare Inversă, Email, Deviz, Smart QR) */}
-        <div className="p-3 sm:p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-wrap items-center justify-between gap-3 sm:gap-4">
-          {/* Opțiuni Principale */}
-          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+        <div className="p-3 sm:p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col gap-3">
+          {/* Rând Unificat de Comutatoare (Toggles) */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5 text-xs">
             {/* Toggle Curs BNR */}
             <BnrInvoiceRateToggle
               currency={currency}
@@ -2206,6 +2206,8 @@ export default function EmitInvoice() {
               notes={mentiuni}
               onNotesChange={setMentiuni}
             />
+
+            <span className="hidden sm:inline-block w-px h-4 bg-slate-200 dark:bg-slate-700" />
 
             {/* Toggle Taxare Inversă / VAT Reverse Charge */}
             <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap">
@@ -2223,6 +2225,8 @@ export default function EmitInvoice() {
               />
             </label>
 
+            <span className="hidden sm:inline-block w-px h-4 bg-slate-200 dark:bg-slate-700" />
+
             {/* Toggle Creare Deviz */}
             <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap">
               <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
@@ -2234,8 +2238,10 @@ export default function EmitInvoice() {
               />
             </label>
 
+            <span className="hidden sm:inline-block w-px h-4 bg-slate-200 dark:bg-slate-700" />
+
             {/* Toggle Trimite Factura pe Email */}
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="inline-flex items-center gap-2 flex-wrap">
               <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap">
                 <Mail className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
@@ -2252,22 +2258,22 @@ export default function EmitInvoice() {
                 />
               </label>
               {sendEmailToClient && (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-xs">
+                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-xs">
                   <span className="text-[11px] text-blue-600 dark:text-blue-400 font-medium">La:</span>
                   <input
                     type="email"
                     value={clientEmail}
                     onChange={e => setClientEmail(e.target.value)}
                     placeholder="adresa@client.ro"
-                    className="bg-transparent text-xs text-slate-800 dark:text-slate-200 outline-none w-36 placeholder:text-slate-400"
+                    className="bg-transparent text-xs text-slate-800 dark:text-slate-200 outline-none w-32 placeholder:text-slate-400"
                   />
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Opțiuni Integrări: Preluare Deviz Smart QR */}
-          <div className="flex items-center gap-2 flex-wrap">
+            <span className="hidden sm:inline-block w-px h-4 bg-slate-200 dark:bg-slate-700" />
+
+            {/* Toggle Preluare Deviz Smart QR */}
             <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap">
               <QrCode className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap flex items-center gap-1.5">
@@ -2280,9 +2286,17 @@ export default function EmitInvoice() {
                 disabled={loadingQrPontaj}
               />
             </label>
+          </div>
 
-            {isQrPontajActive && (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-xs flex-wrap">
+          {/* Sub-bar Parametri Smart QR (Afișat pe rând dedicat când comutatorul este activ) */}
+          {isQrPontajActive && (
+            <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 flex-wrap text-xs">
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-blue-100/70 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 font-bold text-[11px] shrink-0">
+                <QrCode className="w-3 h-3 text-blue-600" />
+                <span>Parametri Smart QR:</span>
+              </div>
+
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-xs flex-wrap">
                 <span className="text-[11px] text-blue-700 dark:text-blue-300 font-medium">Client:</span>
                 <select
                   value={qrTenantId}
@@ -2342,10 +2356,12 @@ export default function EmitInvoice() {
 
                 <span className="text-blue-300 dark:text-blue-700">|</span>
 
-                <span className="text-[11px] text-blue-700 dark:text-blue-300 font-medium">Curs BNR:</span>
-                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                  {appliedQrExchangeRate ? appliedQrExchangeRate.toFixed(4) : (currentBnrRateForInvoice ? currentBnrRateForInvoice.toFixed(4) : "4.9750")}
-                </span>
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px] text-blue-700 dark:text-blue-300 font-medium">Curs BNR:</span>
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                    {appliedQrExchangeRate ? appliedQrExchangeRate.toFixed(4) : (currentBnrRateForInvoice ? currentBnrRateForInvoice.toFixed(4) : "4.9750")}
+                  </span>
+                </div>
 
                 <button
                   type="button"
@@ -2357,8 +2373,8 @@ export default function EmitInvoice() {
                   <RotateCcw className={`w-3 h-3 ${loadingQrPontaj ? "animate-spin" : ""}`} />
                 </button>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Butoane Salvare & Emitere Factură */}

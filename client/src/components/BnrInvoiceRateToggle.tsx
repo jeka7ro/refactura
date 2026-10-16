@@ -156,10 +156,7 @@ export function BnrInvoiceRateToggle({
   };
 
   return (
-    <div
-      className={`inline-flex items-center gap-2.5 shrink-0 ${className}`}
-      title={isEnabled ? generatedText : "Activează includerea cursului BNR pe factură"}
-    >
+    <div className={`inline-flex items-center gap-2.5 flex-wrap ${className}`}>
       <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap shrink-0">
         <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
           Curs BNR
