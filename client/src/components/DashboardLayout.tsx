@@ -831,7 +831,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         )}
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden px-1 pb-[calc(85px+env(safe-area-inset-bottom))] md:pb-6 scrollbar-hide">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden px-1 pb-[calc(85px+env(safe-area-inset-bottom))] md:pb-12">
           {children}
         </main>
       </div>

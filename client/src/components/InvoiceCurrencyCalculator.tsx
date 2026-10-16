@@ -187,12 +187,15 @@ export function InvoiceCurrencyCalculator({
       </PopoverTrigger>
 
       <PopoverContent
+        side="top"
         align="end"
-        sideOffset={6}
-        className="w-[360px] sm:w-[410px] p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl space-y-3.5 z-50 animate-in fade-in-50 zoom-in-95"
+        sideOffset={8}
+        avoidCollisions={true}
+        collisionPadding={16}
+        className="w-[360px] sm:w-[410px] max-h-[min(540px,calc(100vh-80px))] flex flex-col p-3.5 sm:p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl z-50 animate-in fade-in-50 zoom-in-95"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5 shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center">
               <Calculator className="w-4 h-4" />
@@ -209,14 +212,16 @@ export function InvoiceCurrencyCalculator({
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Butoane rapide de comutare direcție: EUR ➔ RON vs RON ➔ EUR */}
-        <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-lg">
+        {/* Scrollable Body for middle content */}
+        <div className="flex-1 overflow-y-auto space-y-2.5 sm:space-y-3 pr-1 py-1 -mr-1">
+          {/* Butoane rapide de comutare direcție: EUR ➔ RON vs RON ➔ EUR */}
+          <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-lg">
           <button
             type="button"
             onClick={() => {
@@ -443,9 +448,10 @@ export function InvoiceCurrencyCalculator({
             </div>
           )}
         </div>
+        </div>
 
-        {/* Butoane Acțiuni Directe în Factură */}
-        <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-2">
+        {/* Butoane Acțiuni Directe în Factură (Footer Vizibil Permanent) */}
+        <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-2 shrink-0 bg-white dark:bg-slate-900">
           {lines && lines.length > 1 && onApplyPrice && (
             <div className="flex items-center gap-2">
               <label className="text-[11px] font-bold text-slate-500 shrink-0">

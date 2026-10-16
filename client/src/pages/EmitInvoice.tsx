@@ -1248,7 +1248,7 @@ export default function EmitInvoice() {
   };
 
   return (
-    <div className="p-3 sm:p-5 max-w-full space-y-4">
+    <div className="p-3 sm:p-5 max-w-full space-y-4 pb-20 sm:pb-28">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
           <button
@@ -2176,214 +2176,231 @@ export default function EmitInvoice() {
         )}
       </div>
 
-      {/* Save buttons bottom */}
-      <div className="flex items-center justify-end gap-3.5 sm:gap-4 pb-4 flex-nowrap overflow-x-auto">
-        {/* Toggle Curs BNR */}
-        <BnrInvoiceRateToggle
-          currency={currency}
-          issueDate={issueDate}
-          total={total}
-          totalVAT={totalVAT}
-          notes={mentiuni}
-          onNotesChange={setMentiuni}
-        />
-
-        {/* Toggle Taxare Inversă / VAT Reverse Charge */}
-        <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap shrink-0">
-          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap flex items-center gap-1.5">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                isReverseCharge ? "bg-blue-600 animate-pulse" : "bg-slate-300 dark:bg-slate-600"
-              }`}
+      {/* Panou Opțiuni & Acțiuni Salvare Factură */}
+      <div className="space-y-4 pt-2">
+        {/* Card Toggles & Opțiuni (Curs BNR, Taxare Inversă, Email, Deviz, Smart QR) */}
+        <div className="p-3 sm:p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-wrap items-center justify-between gap-3 sm:gap-4">
+          {/* Opțiuni Principale */}
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+            {/* Toggle Curs BNR */}
+            <BnrInvoiceRateToggle
+              currency={currency}
+              issueDate={issueDate}
+              total={total}
+              totalVAT={totalVAT}
+              notes={mentiuni}
+              onNotesChange={setMentiuni}
             />
-            Taxare Inversă
-          </span>
-          <Switch
-            checked={isReverseCharge}
-            onCheckedChange={handleToggleReverseCharge}
-          />
-        </label>
 
-        {/* Toggle Trimite Factura pe Email */}
-        <div className="flex items-center gap-2 shrink-0">
-          <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap">
-            <Mail className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
-              Trimite pe Email
-            </span>
-            <Switch
-              checked={sendEmailToClient}
-              onCheckedChange={checked => {
-                setSendEmailToClient(checked);
-                if (checked && !clientEmail) {
-                  setShowAdvancedClientInfo(true);
-                }
-              }}
-            />
-          </label>
-          {sendEmailToClient && (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-xs">
-              <span className="text-[11px] text-blue-600 dark:text-blue-400 font-medium">La:</span>
-              <input
-                type="email"
-                value={clientEmail}
-                onChange={e => setClientEmail(e.target.value)}
-                placeholder="adresa@client.ro"
-                className="bg-transparent text-xs text-slate-800 dark:text-slate-200 outline-none w-36 placeholder:text-slate-400"
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Toggle Preluare Deviz Smart QR */}
-        <div className="flex items-center gap-2 shrink-0">
-          <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap">
-            <QrCode className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap flex items-center gap-1.5">
-              Preluare Deviz Smart QR
-              {loadingQrPontaj && <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />}
-            </span>
-            <Switch
-              checked={isQrPontajActive}
-              onCheckedChange={handleToggleQrPontaj}
-              disabled={loadingQrPontaj}
-            />
-          </label>
-
-          {isQrPontajActive && (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-xs">
-              <span className="text-[11px] text-blue-700 dark:text-blue-300 font-medium">Client:</span>
-              <select
-                value={qrTenantId}
-                onChange={e => handleQrParamChange(Number(e.target.value), qrMonth, qrYear)}
-                disabled={loadingQrPontaj}
-                className="bg-transparent text-xs text-slate-800 dark:text-slate-200 font-semibold outline-none cursor-pointer pr-1"
-              >
-                {qrTenantsList.map((t: any) => (
-                  <option key={t.id} value={t.id} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">
-                    {t.nume} {t.active_employees_count !== undefined ? `(${t.active_employees_count} pers)` : ""}
-                  </option>
-                ))}
-              </select>
-
-              <span className="text-blue-300 dark:text-blue-700">|</span>
-
-              <span className="text-[11px] text-blue-700 dark:text-blue-300 font-medium">Luna:</span>
-              <select
-                value={qrMonth}
-                onChange={e => handleQrParamChange(qrTenantId, Number(e.target.value), qrYear)}
-                disabled={loadingQrPontaj}
-                className="bg-transparent text-xs text-slate-800 dark:text-slate-200 font-semibold outline-none cursor-pointer pr-1"
-              >
-                <option value={1} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Ianuarie</option>
-                <option value={2} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Februarie</option>
-                <option value={3} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Martie</option>
-                <option value={4} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Aprilie</option>
-                <option value={5} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Mai</option>
-                <option value={6} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Iunie</option>
-                <option value={7} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Iulie</option>
-                <option value={8} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">August</option>
-                <option value={9} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Septembrie</option>
-                <option value={10} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Octombrie</option>
-                <option value={11} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Noiembrie</option>
-                <option value={12} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Decembrie</option>
-              </select>
-
-              <select
-                value={qrYear}
-                onChange={e => handleQrParamChange(qrTenantId, qrMonth, Number(e.target.value))}
-                disabled={loadingQrPontaj}
-                className="bg-transparent text-xs text-slate-800 dark:text-slate-200 font-semibold outline-none cursor-pointer"
-              >
-                <option value={2025} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">2025</option>
-                <option value={2026} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">2026</option>
-                <option value={2027} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">2027</option>
-              </select>
-
-              <span className="text-blue-300 dark:text-blue-700">|</span>
-
-              <div className="flex items-center gap-1">
-                <span className="text-[11px] text-blue-700 dark:text-blue-300 font-medium">Preț:</span>
-                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                  {qrPricePerUser} EUR
-                </span>
-              </div>
-
-              <span className="text-blue-300 dark:text-blue-700">|</span>
-
-              <span className="text-[11px] text-blue-700 dark:text-blue-300 font-medium">Curs BNR:</span>
-              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                {appliedQrExchangeRate ? appliedQrExchangeRate.toFixed(4) : (currentBnrRateForInvoice ? currentBnrRateForInvoice.toFixed(4) : "4.9750")}
+            {/* Toggle Taxare Inversă / VAT Reverse Charge */}
+            <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap flex items-center gap-1.5">
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    isReverseCharge ? "bg-blue-600 animate-pulse" : "bg-slate-300 dark:bg-slate-600"
+                  }`}
+                />
+                Taxare Inversă
               </span>
+              <Switch
+                checked={isReverseCharge}
+                onCheckedChange={handleToggleReverseCharge}
+              />
+            </label>
 
-              <button
-                type="button"
-                onClick={() => fetchAndApplyQrData(qrTenantId, qrMonth, qrYear)}
-                disabled={loadingQrPontaj}
-                title="Reîncarcă datele din Smart QR"
-                className="ml-1 p-0.5 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 rounded transition-colors"
-              >
-                <RotateCcw className={`w-3 h-3 ${loadingQrPontaj ? "animate-spin" : ""}`} />
-              </button>
+            {/* Toggle Creare Deviz */}
+            <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                Creare Deviz
+              </span>
+              <Switch
+                checked={createDeviz}
+                onCheckedChange={setCreateDeviz}
+              />
+            </label>
+
+            {/* Toggle Trimite Factura pe Email */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap">
+                <Mail className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                  Trimite pe Email
+                </span>
+                <Switch
+                  checked={sendEmailToClient}
+                  onCheckedChange={checked => {
+                    setSendEmailToClient(checked);
+                    if (checked && !clientEmail) {
+                      setShowAdvancedClientInfo(true);
+                    }
+                  }}
+                />
+              </label>
+              {sendEmailToClient && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-xs">
+                  <span className="text-[11px] text-blue-600 dark:text-blue-400 font-medium">La:</span>
+                  <input
+                    type="email"
+                    value={clientEmail}
+                    onChange={e => setClientEmail(e.target.value)}
+                    placeholder="adresa@client.ro"
+                    className="bg-transparent text-xs text-slate-800 dark:text-slate-200 outline-none w-36 placeholder:text-slate-400"
+                  />
+                </div>
+              )}
             </div>
-          )}
+          </div>
+
+          {/* Opțiuni Integrări: Preluare Deviz Smart QR */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap">
+              <QrCode className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap flex items-center gap-1.5">
+                Preluare Deviz Smart QR
+                {loadingQrPontaj && <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />}
+              </span>
+              <Switch
+                checked={isQrPontajActive}
+                onCheckedChange={handleToggleQrPontaj}
+                disabled={loadingQrPontaj}
+              />
+            </label>
+
+            {isQrPontajActive && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-xs flex-wrap">
+                <span className="text-[11px] text-blue-700 dark:text-blue-300 font-medium">Client:</span>
+                <select
+                  value={qrTenantId}
+                  onChange={e => handleQrParamChange(Number(e.target.value), qrMonth, qrYear)}
+                  disabled={loadingQrPontaj}
+                  className="bg-transparent text-xs text-slate-800 dark:text-slate-200 font-semibold outline-none cursor-pointer pr-1"
+                >
+                  {qrTenantsList.map((t: any) => (
+                    <option key={t.id} value={t.id} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">
+                      {t.nume} {t.active_employees_count !== undefined ? `(${t.active_employees_count} pers)` : ""}
+                    </option>
+                  ))}
+                </select>
+
+                <span className="text-blue-300 dark:text-blue-700">|</span>
+
+                <span className="text-[11px] text-blue-700 dark:text-blue-300 font-medium">Luna:</span>
+                <select
+                  value={qrMonth}
+                  onChange={e => handleQrParamChange(qrTenantId, Number(e.target.value), qrYear)}
+                  disabled={loadingQrPontaj}
+                  className="bg-transparent text-xs text-slate-800 dark:text-slate-200 font-semibold outline-none cursor-pointer pr-1"
+                >
+                  <option value={1} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Ianuarie</option>
+                  <option value={2} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Februarie</option>
+                  <option value={3} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Martie</option>
+                  <option value={4} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Aprilie</option>
+                  <option value={5} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Mai</option>
+                  <option value={6} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Iunie</option>
+                  <option value={7} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Iulie</option>
+                  <option value={8} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">August</option>
+                  <option value={9} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Septembrie</option>
+                  <option value={10} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Octombrie</option>
+                  <option value={11} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Noiembrie</option>
+                  <option value={12} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Decembrie</option>
+                </select>
+
+                <select
+                  value={qrYear}
+                  onChange={e => handleQrParamChange(qrTenantId, qrMonth, Number(e.target.value))}
+                  disabled={loadingQrPontaj}
+                  className="bg-transparent text-xs text-slate-800 dark:text-slate-200 font-semibold outline-none cursor-pointer"
+                >
+                  <option value={2025} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">2025</option>
+                  <option value={2026} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">2026</option>
+                  <option value={2027} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">2027</option>
+                </select>
+
+                <span className="text-blue-300 dark:text-blue-700">|</span>
+
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px] text-blue-700 dark:text-blue-300 font-medium">Preț:</span>
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                    {qrPricePerUser} EUR
+                  </span>
+                </div>
+
+                <span className="text-blue-300 dark:text-blue-700">|</span>
+
+                <span className="text-[11px] text-blue-700 dark:text-blue-300 font-medium">Curs BNR:</span>
+                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                  {appliedQrExchangeRate ? appliedQrExchangeRate.toFixed(4) : (currentBnrRateForInvoice ? currentBnrRateForInvoice.toFixed(4) : "4.9750")}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => fetchAndApplyQrData(qrTenantId, qrMonth, qrYear)}
+                  disabled={loadingQrPontaj}
+                  title="Reîncarcă datele din Smart QR"
+                  className="ml-1 p-0.5 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 rounded transition-colors cursor-pointer"
+                >
+                  <RotateCcw className={`w-3 h-3 ${loadingQrPontaj ? "animate-spin" : ""}`} />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Toggle Creare Deviz - strict pe un singur rând */}
-        <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap shrink-0">
-          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
-            Creare Deviz
-          </span>
-          <Switch
-            checked={createDeviz}
-            onCheckedChange={setCreateDeviz}
-          />
-        </label>
-
-        {isSpvValidated ? (
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 px-4 h-10 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs font-bold">
-              <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-              <span>Factură blocată la editare (Validată în SPV)</span>
-            </div>
-            <Link href={`/facturi-emise-nou/storno/${editId}`}>
-              <button
-                type="button"
-                className="flex items-center gap-1.5 px-6 h-10 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold shadow-md transition-all active:scale-[0.98]"
-              >
-                <RotateCcw className="w-4 h-4" />
-                Emite Factură Storno
-              </button>
-            </Link>
+        {/* Butoane Salvare & Emitere Factură */}
+        <div className="flex items-center justify-between flex-wrap gap-4 pt-1">
+          <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+            Factură în <strong className="text-slate-800 dark:text-slate-200">{currency}</strong> · Serie: <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{series}</span>-{invoiceNumber}
           </div>
-        ) : (
-          <>
-            <button
-              onClick={() => handleSave("draft")}
-              disabled={saving}
-              className="flex items-center gap-1.5 px-6 h-10 rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-60 whitespace-nowrap shrink-0"
-            >
-              {saving ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              Salvează Ciornă
-            </button>
-            <button
-              onClick={() => handleSave("sent")}
-              disabled={saving}
-              className="flex items-center gap-1.5 px-8 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition-colors disabled:opacity-60 whitespace-nowrap shrink-0"
-            >
-              {saving ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4" />
-              )}
-              Emite Factura
-            </button>
-          </>
-        )}
+
+          <div className="flex items-center gap-3 flex-wrap">
+            {isSpvValidated ? (
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-1.5 px-4 h-10 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs font-bold">
+                  <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  <span>Factură blocată la editare (Validată în SPV)</span>
+                </div>
+                <Link href={`/facturi-emise-nou/storno/${editId}`}>
+                  <button
+                    type="button"
+                    className="flex items-center gap-1.5 px-6 h-10 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold shadow-md transition-all active:scale-[0.98] cursor-pointer"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Emite Factură Storno
+                  </button>
+                </Link>
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => handleSave("draft")}
+                  disabled={saving}
+                  className="flex items-center gap-1.5 px-6 h-10 rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-60 whitespace-nowrap cursor-pointer shadow-2xs"
+                >
+                  {saving ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  Salvează Ciornă
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSave("sent")}
+                  disabled={saving}
+                  className="flex items-center gap-1.5 px-8 h-10 rounded-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-bold transition-all disabled:opacity-60 whitespace-nowrap cursor-pointer shadow-md hover:shadow-lg active:scale-[0.99]"
+                >
+                  {saving ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                  Emite Factura
+                </button>
+              </>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
