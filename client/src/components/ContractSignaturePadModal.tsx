@@ -27,6 +27,7 @@ interface ContractSignaturePadModalProps {
   onOpenChange: (open: boolean) => void;
   role: "supplier" | "client";
   partyName: string;
+  defaultSignatoryName?: string;
   contractNumber?: string;
   onSaveSignature: (data: {
     signatureDataUrl: string;
@@ -46,6 +47,7 @@ export default function ContractSignaturePadModal({
   onOpenChange,
   role,
   partyName,
+  defaultSignatoryName,
   contractNumber,
   onSaveSignature,
 }: ContractSignaturePadModalProps) {
@@ -60,8 +62,16 @@ export default function ContractSignaturePadModal({
   const [strokesHistory, setStrokesHistory] = useState<ImageData[]>([]);
   const [saveAsDefault, setSaveAsDefault] = useState(false);
 
-  // Digital certificate state
-  const [signatoryName, setSignatoryName] = useState(partyName || "");
+  // Digital certificate state - prefer a person's name over company legal entity name
+  const getInitialSignatory = () => {
+    if (defaultSignatoryName?.trim()) return defaultSignatoryName;
+    if (partyName && !partyName.includes("SRL") && !partyName.includes("S.R.L.") && !partyName.includes("SA")) {
+      return partyName;
+    }
+    return role === "supplier" ? "Elena Cazmal" : "";
+  };
+
+  const [signatoryName, setSignatoryName] = useState(getInitialSignatory());
   const [signatoryRole, setSignatoryRole] = useState(
     role === "supplier" ? "Administrator" : "Reprezentant Legal"
   );
@@ -70,12 +80,18 @@ export default function ContractSignaturePadModal({
   const [uploadedStamp, setUploadedStamp] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Update default name when party changes
+  // Update name when dialog opens or props change
   useEffect(() => {
-    if (partyName && !signatoryName) {
-      setSignatoryName(partyName);
+    if (open) {
+      if (defaultSignatoryName?.trim()) {
+        setSignatoryName(defaultSignatoryName);
+      } else if (partyName && !partyName.includes("SRL") && !partyName.includes("S.R.L.")) {
+        setSignatoryName(partyName);
+      } else if (role === "supplier") {
+        setSignatoryName("Elena Cazmal");
+      }
     }
-  }, [partyName, signatoryName]);
+  }, [open, defaultSignatoryName, partyName, role]);
 
   // Canvas setup & resizing
   const setupCanvas = useCallback(() => {
@@ -355,7 +371,7 @@ export default function ContractSignaturePadModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl rounded-2xl p-5 sm:p-6 bg-card border-slate-200 dark:border-slate-800">
+      <DialogContent className="max-w-2xl rounded-2xl p-5 sm:p-6 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-2xl">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -558,13 +574,13 @@ export default function ContractSignaturePadModal({
              TAB 2: SEMNĂTURĂ ELECTRONICĂ & CERTIFICAT DIGITAL eIDAS
              ═════════════════════════════════════════════════════════════════ */
           <div className="space-y-4">
-            <div className="p-3.5 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/60 text-xs text-emerald-900 dark:text-emerald-200 flex items-start gap-3">
+            <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-900 dark:text-emerald-200 flex items-start gap-3">
               <ShieldCheck className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
               <div>
                 <h4 className="font-bold">Certificare Electronică Digitală conform Regulamentului eIDAS</h4>
                 <p className="text-[11px] text-emerald-700 dark:text-emerald-300 mt-0.5 leading-relaxed">
                   Documentul va include un sigiliu electronic securizat cu hash unic SHA-256, marcă temporală exactă și
-                  datele complete de identificare ale reprezentantului legal.
+                  datele complete de identificare. Pentru a semna, verifică datele și apasă butonul albastru <strong>„Aplică Semnătura pe Document”</strong> de mai jos.
                 </p>
               </div>
             </div>

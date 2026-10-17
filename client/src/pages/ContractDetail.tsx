@@ -19,6 +19,7 @@ import {
   Loader2,
   PenTool,
   FileSignature,
+  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -191,11 +192,27 @@ export default function ContractDetail() {
           </Button>
 
           <div>
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 flex-wrap">
               <h1 className="text-xl font-extrabold text-slate-900 dark:text-white">
                 {getTypeLabel(contract.type)} {contract.number}
               </h1>
               {getStatusBadge(contract.status)}
+              {contract.language === "en" ? (
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 px-2 py-0.5 rounded-full">
+                  <Globe className="h-3 w-3" />
+                  English (EN)
+                </span>
+              ) : contract.language === "ro_en" ? (
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 px-2 py-0.5 rounded-full">
+                  <Globe className="h-3 w-3" />
+                  Bilingv (RO - EN)
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-full">
+                  <Globe className="h-3 w-3" />
+                  Română (RO)
+                </span>
+              )}
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
               {contract.title} | Data încheierii: <strong>{contract.date}</strong>
@@ -221,9 +238,9 @@ export default function ContractDetail() {
             variant="outline"
             size="sm"
             onClick={() => setShowAddLogModal(true)}
-            className="rounded-xl border-purple-200 dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-950/40 text-purple-700 dark:text-purple-300 font-medium"
+            className="rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium"
           >
-            <History className="h-4 w-4 mr-1.5" />
+            <History className="h-4 w-4 mr-1.5 text-slate-500" />
             Adaugă Notă în Jurnal
           </Button>
 
@@ -457,7 +474,7 @@ export default function ContractDetail() {
           <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-card p-5 shadow-sm space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                <RefreshCw className="h-4 w-4 text-purple-600" />
+                <RefreshCw className="h-4 w-4 text-slate-500" />
                 Acte Adiționale ({contract.addendums?.length || 0})
               </h3>
               <Button
@@ -482,10 +499,10 @@ export default function ContractDetail() {
                   <Link
                     key={a.id}
                     href={`/contracte/${a.id}`}
-                    className="block p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-800 bg-slate-50/50 dark:bg-slate-900/30 transition-all"
+                    className="block p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600 bg-slate-50/50 dark:bg-slate-900/30 transition-all"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-purple-700 dark:text-purple-300">
+                      <span className="font-bold text-xs text-slate-900 dark:text-white">
                         {a.number}
                       </span>
                       <span className="text-[11px] text-slate-400">{a.date}</span>
@@ -503,7 +520,7 @@ export default function ContractDetail() {
           <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-card p-5 shadow-sm space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                <History className="h-4 w-4 text-purple-600" />
+                <History className="h-4 w-4 text-slate-500" />
                 Jurnal Modificări & Explicații
               </h3>
               <span className="text-xs text-slate-400 font-mono">
@@ -519,10 +536,10 @@ export default function ContractDetail() {
               <div className="relative pl-5 space-y-3.5 border-l-2 border-slate-200 dark:border-slate-800 mt-2">
                 {contract.logs.map((l: any) => (
                   <div key={l.id} className="relative">
-                    <div className="absolute -left-[27px] top-1 h-3 w-3 rounded-full bg-purple-600 border-2 border-white dark:border-slate-900"></div>
+                    <div className="absolute -left-[27px] top-1 h-3 w-3 rounded-full bg-slate-500 border-2 border-white dark:border-slate-900"></div>
                     <div>
                       <div className="flex items-center justify-between gap-1 text-[11px]">
-                        <span className="font-bold text-purple-700 dark:text-purple-300 uppercase">
+                        <span className="font-bold text-slate-800 dark:text-slate-200 uppercase">
                           {l.actionType.replace("_", " ")}
                         </span>
                         <span className="text-slate-400 font-mono">
@@ -553,7 +570,7 @@ export default function ContractDetail() {
         <DialogContent className="max-w-md rounded-2xl p-6">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold flex items-center gap-2">
-              <History className="h-5 w-5 text-purple-600" />
+              <History className="h-5 w-5 text-slate-600" />
               Adaugă Notă / Solicitare în Jurnal
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
@@ -619,7 +636,7 @@ export default function ContractDetail() {
                   explanation: logExplanation,
                 });
               }}
-              className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white"
+              className="rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:hover:bg-white dark:text-slate-900"
             >
               {addLogMutation.isPending ? "Se salvează..." : "Salvează Eveniment"}
             </Button>

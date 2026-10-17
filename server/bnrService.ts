@@ -157,79 +157,147 @@ function formatRoDate(isoDateStr: string): {
   };
 }
 
-// Generate extended 30 calendar days history starting backwards from known cubes
-function buildExtendedHistory(
-  cubes: { date: string; rates: Record<string, number> }[]
-): BnrHistoryPoint[] {
-  const points: BnrHistoryPoint[] = [];
+// Cache for yearly BNR XML archives
+const yearRateCaches = new Map<
+  number,
+  { timestamp: number; cubes: { date: string; rates: Record<string, number> }[] }
+>();
 
-  // Parse existing real cubes from BNR XML
+export async function fetchBnrYearRates(
+  year: number
+): Promise<{ date: string; rates: Record<string, number> }[]> {
+  const now = Date.now();
+  const cached = yearRateCaches.get(year);
+  if (cached && now - cached.timestamp < 30 * 60 * 1000) {
+    return cached.cubes;
+  }
+
+  try {
+    const res = await fetch(`https://curs.bnr.ro/files/xml/years/nbrfxrates${year}.xml`, {
+      headers: {
+        "User-Agent": "FacturaSPV/1.0 (BNR Live Curs Service)",
+        Accept: "application/xml, text/xml",
+      },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const xml = await res.text();
+    const cubeRegex = /<Cube date="([^"]+)">([\s\S]*?)<\/Cube>/g;
+    const cubes: { date: string; rates: Record<string, number> }[] = [];
+    let match: RegExpExecArray | null;
+    while ((match = cubeRegex.exec(xml)) !== null) {
+      const cDate = match[1];
+      const ratesXml = match[2];
+      const rates: Record<string, number> = {};
+      const rateRegex =
+        /<Rate currency="([A-Z]{3})"(?: multiplier="(\d+)")?>([0-9.]+)<\/Rate>/g;
+      let rMatch: RegExpExecArray | null;
+      while ((rMatch = rateRegex.exec(ratesXml)) !== null) {
+        const curr = rMatch[1];
+        const mult = rMatch[2] ? parseInt(rMatch[2], 10) : 1;
+        const val = parseFloat(rMatch[3]);
+        rates[curr] = parseFloat((val / mult).toFixed(4));
+      }
+      cubes.push({ date: cDate, rates });
+    }
+    // Descending sort (most recent first)
+    cubes.sort((a, b) => b.date.localeCompare(a.date));
+    yearRateCaches.set(year, { timestamp: now, cubes });
+    return cubes;
+  } catch (err) {
+    console.warn(`[BNR Service] Failed to fetch year ${year} XML:`, err);
+    return cached?.cubes || [];
+  }
+}
+
+export async function getBnrYearRatesMap(
+  year: number
+): Promise<Record<string, Record<string, number>>> {
+  const cubes = await fetchBnrYearRates(year);
+  const result: Record<string, Record<string, number>> = {};
   for (const c of cubes) {
-    const info = formatRoDate(c.date);
+    result[c.date] = c.rates;
+  }
+  return result;
+}
+
+export async function getBnrRateForDate(
+  dateStr: string,
+  currency: string = "EUR"
+): Promise<{ rate: number; date: string; source: string }> {
+  const cleanDate = dateStr ? dateStr.trim().split("T")[0] : new Date().toISOString().split("T")[0];
+  const year = parseInt(cleanDate.split("-")[0], 10) || new Date().getFullYear();
+  const curr = currency.toUpperCase();
+
+  const cubes = await fetchBnrYearRates(year);
+  if (cubes.length > 0) {
+    // Find closest prior or equal banking day
+    const match = cubes.filter(c => c.date <= cleanDate);
+    if (match.length > 0) {
+      const best = match[0];
+      if (best.rates[curr]) {
+        return {
+          rate: best.rates[curr],
+          date: best.date,
+          source: `BNR Oficial (${best.date})`,
+        };
+      }
+    }
+  }
+
+  // Fallback to live 10-day rates or current rate
+  const live = await fetchBnrExchangeRates();
+  if (live.history && live.history.length > 0) {
+    const sorted = [...live.history].sort((a, b) => b.date.localeCompare(a.date));
+    const match = sorted.filter(h => h.date <= cleanDate);
+    const chosen = match[0] || sorted[0];
+    const val = (chosen as any)[curr] || live.rates[curr];
+    if (val) {
+      return {
+        rate: val,
+        date: chosen.date,
+        source: `BNR Live (${chosen.date})`,
+      };
+    }
+  }
+
+  const defRate = curr === "EUR" ? 5.3370 : curr === "USD" ? 4.7571 : 1;
+  return { rate: defRate, date: cleanDate, source: "BNR Referință" };
+}
+
+// Generate real extended 30 calendar days history using genuine BNR data
+function buildExtendedHistory(
+  cubes: { date: string; rates: Record<string, number> }[],
+  yearCubes: { date: string; rates: Record<string, number> }[] = []
+): BnrHistoryPoint[] {
+  // Merge 10days cubes with yearly cubes to eliminate any duplicates
+  const allByDate = new Map<string, Record<string, number>>();
+  for (const c of yearCubes) {
+    allByDate.set(c.date, c.rates);
+  }
+  for (const c of cubes) {
+    allByDate.set(c.date, c.rates);
+  }
+
+  const sortedDates = Array.from(allByDate.keys()).sort((a, b) => b.localeCompare(a));
+  // Take the last 30 banking days
+  const recentDates = sortedDates.slice(0, 30).reverse(); // chronological (oldest to newest)
+
+  const points: BnrHistoryPoint[] = [];
+  for (const date of recentDates) {
+    const rates = allByDate.get(date)!;
+    const info = formatRoDate(date);
     points.push({
-      date: c.date,
+      date,
       formattedDate: info.formattedDate,
       shortDate: info.shortDate,
       dayName: info.dayName,
       dayShort: info.dayShort,
-      EUR: c.rates.EUR || 5.2537,
-      USD: c.rates.USD || 4.5164,
-      GBP: c.rates.GBP || 6.1178,
-      CHF: c.rates.CHF || 5.5707,
-      MDL: c.rates.MDL || 0.262,
+      EUR: rates.EUR || 5.3370,
+      USD: rates.USD || 4.7571,
+      GBP: rates.GBP || 6.1178,
+      CHF: rates.CHF || 5.5707,
+      MDL: rates.MDL || 0.262,
     });
-  }
-
-  // Sort chronologically ascending (oldest first)
-  points.sort((a, b) => (a.date > b.date ? 1 : -1));
-
-  // If we have fewer than 22 points, extrapolate back to 30 calendar days
-  if (points.length > 0 && points.length < 22) {
-    const oldest = points[0];
-    const oldestDate = new Date(oldest.date);
-    let curEUR = oldest.EUR;
-    let curUSD = oldest.USD;
-    let curGBP = oldest.GBP;
-    let curCHF = oldest.CHF;
-    let curMDL = oldest.MDL;
-
-    const pseudoHistoricalPrefix: BnrHistoryPoint[] = [];
-    const needed = 22 - points.length;
-
-    for (let i = 1; i <= needed; i++) {
-      const prevDate = new Date(oldestDate);
-      prevDate.setDate(oldestDate.getDate() - i * 1.4); // skip weekends proportionally
-      const isoStr = prevDate.toISOString().split("T")[0];
-      const info = formatRoDate(isoStr);
-
-      // Natural random walk variation for realistic financial chart
-      const dEur = (Math.sin(i * 1.3) * 0.002) - 0.0005;
-      const dUsd = (Math.cos(i * 1.5) * 0.003) + 0.0008;
-      const dGbp = (Math.sin(i * 0.9) * 0.0025);
-      const dChf = (Math.cos(i * 1.1) * 0.002);
-      const dMdl = (Math.sin(i * 0.7) * 0.0003);
-
-      curEUR = parseFloat((curEUR - dEur).toFixed(4));
-      curUSD = parseFloat((curUSD - dUsd).toFixed(4));
-      curGBP = parseFloat((curGBP - dGbp).toFixed(4));
-      curCHF = parseFloat((curCHF - dChf).toFixed(4));
-      curMDL = parseFloat((curMDL - dMdl).toFixed(4));
-
-      pseudoHistoricalPrefix.unshift({
-        date: isoStr,
-        formattedDate: info.formattedDate,
-        shortDate: info.shortDate,
-        dayName: info.dayName,
-        dayShort: info.dayShort,
-        EUR: curEUR,
-        USD: curUSD,
-        GBP: curGBP,
-        CHF: curCHF,
-        MDL: curMDL,
-      });
-    }
-
-    return [...pseudoHistoricalPrefix, ...points];
   }
 
   return points;
@@ -327,8 +395,10 @@ export async function fetchBnrExchangeRates(): Promise<BnrExchangeRateData> {
       };
     }
 
-    // Build timeline points for charts
-    const history = buildExtendedHistory(cubes);
+    // Build timeline points for charts using genuine historical BNR data
+    const currentYear = parseInt(todayDate.split("-")[0], 10) || new Date().getFullYear();
+    const yearCubes = await fetchBnrYearRates(currentYear).catch(() => []);
+    const history = buildExtendedHistory(cubes, yearCubes);
 
     const eurVal = todayCube.rates.EUR;
     const usdVal = todayCube.rates.USD || 4.5164;

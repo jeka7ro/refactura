@@ -132,7 +132,7 @@ export function InvoiceCurrencyCalculator({
 
   const ratesMap: Record<SupportedCurrency, number> = useMemo(() => {
     const liveRates = bnrData?.rates || {};
-    const hist = historicalRate || ({} as any);
+    const hist: any = historicalRate || {};
 
     // Prioritate maximă: cursul activ setat pe factură (ex: 5.3370)
     const resolvedEur =

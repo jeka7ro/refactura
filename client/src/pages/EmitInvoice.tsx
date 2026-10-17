@@ -193,9 +193,17 @@ export default function EmitInvoice() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: bnrRateQuery } = trpc.system.getBnrRateForDate.useQuery(
+    { date: issueDate || new Date().toISOString().split("T")[0], currency },
+    { enabled: currency !== "RON" && !!issueDate }
+  );
+
   const currentBnrRateForInvoice = useMemo(() => {
+    if (bnrRateQuery?.rate) return bnrRateQuery.rate;
     if (!bnrData) return null;
-    let targetRate = bnrData.rates?.EUR || 5.3370;
+    let targetRate =
+      bnrData.rates?.[currency] ||
+      (currency === "EUR" ? 5.3370 : currency === "USD" ? 4.7571 : currency === "GBP" ? 6.3104 : 1);
     if (issueDate && Array.isArray(bnrData.history) && bnrData.history.length > 0) {
       let matched = bnrData.history.find((h: any) => h.date === issueDate);
       if (!matched) {
@@ -206,15 +214,19 @@ export default function EmitInvoice() {
           matched = sortedPrior[0];
         }
       }
-      if (matched && (matched as any).EUR) {
-        targetRate = (matched as any).EUR;
+      if (matched && (matched as any)[currency]) {
+        targetRate = (matched as any)[currency];
       }
     }
     return targetRate;
-  }, [bnrData, issueDate]);
+  }, [bnrRateQuery, bnrData, issueDate, currency]);
 
   const [invoiceBnrRate, setInvoiceBnrRate] = useState<number | null>(null);
-  const effectiveInvoiceBnrRate = invoiceBnrRate || currentBnrRateForInvoice || (bnrData?.rates?.EUR ?? 5.3370);
+  const effectiveInvoiceBnrRate =
+    invoiceBnrRate ||
+    currentBnrRateForInvoice ||
+    (bnrData?.rates?.[currency] ?? (currency === "EUR" ? 5.3370 : currency === "USD" ? 4.7571 : 1));
+  const effectiveBnrRateDate = bnrRateQuery?.date || issueDate;
 
   const [appliedQrExchangeRate, setAppliedQrExchangeRate] = useState<number | null>(null);
   const [qrPricePerUser, setQrPricePerUser] = useState<string>("3.50");
@@ -521,6 +533,11 @@ export default function EmitInvoice() {
         setShowAdvancedClientInfo(true);
       }
       setCurrency((originalInvoice.currency || "RON") as Currency);
+      const cursMatch = (originalInvoice.notes || "").match(/curs\s+([0-9]+[.,][0-9]+)/i);
+      if (cursMatch) {
+        const parsed = parseFloat(cursMatch[1].replace(",", "."));
+        if (parsed > 0) setInvoiceBnrRate(parsed);
+      }
       if ((originalInvoice as any).companyIBAN) {
         setSelectedIban((originalInvoice as any).companyIBAN);
       }
@@ -1118,6 +1135,9 @@ export default function EmitInvoice() {
     isReverseCharge && !isReverseChargeNotePresent(mentiuni)
       ? addReverseChargeNote(mentiuni)
       : mentiuni,
+    currency !== "RON" && !mentiuni.toLowerCase().includes("curs")
+      ? `Curs ${currency} = ${effectiveInvoiceBnrRate.toFixed(4)} Lei (din ${effectiveBnrRateDate || issueDate})`
+      : "",
     numarComanda ? `Comanda: ${numarComanda}` : "",
     numarContract ? `Contract: ${numarContract}` : "",
     intocmitDe ? `Întocmit de: ${intocmitDe}` : "",
@@ -1394,13 +1414,16 @@ export default function EmitInvoice() {
             />
           </div>
 
-          <div className="sm:col-span-1 lg:col-span-2">
+          <div className={currency !== "RON" ? "sm:col-span-1 lg:col-span-1" : "sm:col-span-1 lg:col-span-2"}>
             <div className="h-6 flex items-center mb-1">
               <label className={labelCls + " !mb-0"}>Monedă</label>
             </div>
             <select
               value={currency}
-              onChange={e => setCurrency(e.target.value as Currency)}
+              onChange={e => {
+                setCurrency(e.target.value as Currency);
+                setInvoiceBnrRate(null);
+              }}
               className={selectCls}
             >
               <option value="RON">RON</option>
@@ -1410,7 +1433,39 @@ export default function EmitInvoice() {
             </select>
           </div>
 
-          <div className="sm:col-span-2 lg:col-span-3">
+          {currency !== "RON" && (
+            <div className="sm:col-span-1 lg:col-span-2">
+              <div className="h-6 flex items-center justify-between mb-1">
+                <label className={labelCls + " !mb-0 text-amber-700 dark:text-amber-400 font-bold flex items-center gap-1 truncate"}>
+                  Curs BNR ({currency})
+                </label>
+                {effectiveBnrRateDate && (
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono" title="Data oficială a cursului BNR">
+                    {effectiveBnrRateDate.split("-").reverse().join(".")}
+                  </span>
+                )}
+              </div>
+              <div className="relative">
+                <input
+                  type="number"
+                  step="0.0001"
+                  min="0.0001"
+                  value={invoiceBnrRate ?? effectiveInvoiceBnrRate}
+                  onChange={e => {
+                    const v = parseFloat(e.target.value);
+                    setInvoiceBnrRate(isNaN(v) ? null : v);
+                  }}
+                  className={`${inputCls} font-bold text-amber-700 dark:text-amber-300 pr-10`}
+                  placeholder="5.3370"
+                />
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-400 pointer-events-none">
+                  Lei
+                </span>
+              </div>
+            </div>
+          )}
+
+          <div className={currency !== "RON" ? "sm:col-span-2 lg:col-span-2" : "sm:col-span-2 lg:col-span-3"}>
             <div className="h-6 flex items-center mb-1">
               <label className={labelCls + " !mb-0 truncate"}>Cont Bancar (IBAN Factură)</label>
             </div>
@@ -2095,6 +2150,24 @@ export default function EmitInvoice() {
                 {formatCurrency(total, currency)}
               </span>
             </div>
+
+            {currency !== "RON" && (
+              <div className="mt-2.5 pt-2 border-t border-dashed border-amber-300 dark:border-amber-800/80 bg-amber-50/80 dark:bg-amber-950/40 p-2.5 rounded-lg flex items-center justify-between">
+                <div>
+                  <p className="text-[11px] font-bold text-amber-900 dark:text-amber-300 uppercase tracking-wider">
+                    Echivalent Lei (Curs BNR)
+                  </p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                    1 {currency} = {effectiveInvoiceBnrRate.toFixed(4)} Lei ({effectiveBnrRateDate || issueDate})
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-base sm:text-lg font-black text-amber-700 dark:text-amber-400">
+                    ≈ {formatCurrency(total * effectiveInvoiceBnrRate, "RON")}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

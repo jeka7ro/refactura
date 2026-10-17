@@ -72,7 +72,7 @@ export default function HorecaKioskSettings() {
 
   const updateMut = trpc.horeca.kioskBridge.updateLocation.useMutation({
     onSuccess: () => {
-      toast.success("✅ Setări actualizate pe Smart Kiosk!");
+      toast.success("Setări actualizate pe Smart Kiosk!");
       refetchDetail();
       refetchLocations();
     },

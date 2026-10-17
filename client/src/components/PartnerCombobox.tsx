@@ -13,6 +13,10 @@ export interface PartnerItem {
   regCom?: string | null;
   country?: string | null;
   currency?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  contactPerson?: string | null;
+  delegat?: string | null;
 }
 
 interface PartnerComboboxProps {

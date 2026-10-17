@@ -115,4 +115,7 @@ client/public/__manus__/version.json
 # Local scratch and test artifacts
 scratch/
 rowood/
+contracte/
+client/public/uploads/
 *.pdf
+

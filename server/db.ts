@@ -256,6 +256,9 @@ export async function getDb() {
       try {
         await _db.execute(sql`ALTER TABLE contracts ADD COLUMN signedAt VARCHAR(30) NULL`);
       } catch {}
+      try {
+        await _db.execute(sql`ALTER TABLE contracts ADD COLUMN language VARCHAR(20) DEFAULT 'ro'`);
+      } catch {}
 
       // Contract Logs table (Audit trail with timestamps & explanations)
       try {

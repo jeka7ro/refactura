@@ -104,11 +104,11 @@ export default function EmittedInvoiceDetail() {
     onSuccess: res => {
       utils.emittedInvoice.getById.invalidate({ id: invoiceId });
       if (res.status === "validat") {
-        toast.success("✅ Factura a fost validată de ANAF!");
+        toast.success("Factura a fost validată de ANAF!");
       } else if (res.status === "in_procesare") {
-        toast.info("⏳ ANAF procesează în continuare factura. Mai încearcă peste câteva minute.");
+        toast.info("ANAF procesează în continuare factura. Mai încearcă peste câteva minute.");
       } else if (res.status === "eroare") {
-        toast.error("❌ ANAF a respins factura: " + (res.errors?.join(", ") || "eroare necunoscută"));
+        toast.error("ANAF a respins factura: " + (res.errors?.join(", ") || "eroare necunoscută"));
       } else {
         toast.info("Status ANAF: " + (res.stare || "necunoscut"));
       }
@@ -263,7 +263,7 @@ export default function EmittedInvoiceDetail() {
                 title="Conform legislației fiscale (OUG 120/2021 și Codul Fiscal art. 330), documentul a fost validat în SPV și nu mai poate fi modificat. Pentru corecții, emiteți o factură de stornare."
               >
                 <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                <span>🔒 Blocată la editare (Document oficial înregistrat în SPV)</span>
+                <span>Blocată la editare (Document oficial înregistrat în SPV)</span>
               </div>
               <Link href={`/facturi-emise-nou/storno/${invoice.id}`}>
                 <button
@@ -727,8 +727,8 @@ export default function EmittedInvoiceDetail() {
                       : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
                   }`}>
                     {selectedLanguages.length > 1
-                      ? `🌍 Bilingv (${selectedLanguages.map(c => c.toUpperCase()).join(" + ")})`
-                      : `📄 ${selectedLanguages[0].toUpperCase()}`}
+                      ? `Bilingv (${selectedLanguages.map(c => c.toUpperCase()).join(" + ")})`
+                      : selectedLanguages[0].toUpperCase()}
                   </span>
                 </div>
                 <p className="text-xs text-slate-500">

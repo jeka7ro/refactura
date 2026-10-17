@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getDb } from "./db";
 import { contracts, contractLogs, clients, tenants } from "../drizzle/schema";
 import { eq, and, desc, sql, like, or } from "drizzle-orm";
+import { getAllContractTemplates } from "./contractTemplates";
 
 export const contractsRouter = router({
   /**
@@ -92,6 +93,7 @@ export const contractsRouter = router({
           value: contracts.value,
           currency: contracts.currency,
           status: contracts.status,
+          language: contracts.language,
           fileUrl: contracts.fileUrl,
           fileName: contracts.fileName,
           fileSize: contracts.fileSize,
@@ -181,6 +183,7 @@ export const contractsRouter = router({
           value: contracts.value,
           currency: contracts.currency,
           status: contracts.status,
+          language: contracts.language,
           contentHtml: contracts.contentHtml,
           fileUrl: contracts.fileUrl,
           fileName: contracts.fileName,
@@ -254,6 +257,7 @@ export const contractsRouter = router({
         value: z.string().optional().nullable(),
         currency: z.string().default("RON"),
         status: z.enum(["activ", "draft", "expirat", "reziliat"]).default("activ"),
+        language: z.enum(["ro", "en", "ro_en"]).default("ro"),
         contentHtml: z.string().optional().nullable(),
         fileUrl: z.string().optional().nullable(),
         fileName: z.string().optional().nullable(),
@@ -285,6 +289,7 @@ export const contractsRouter = router({
         value: input.value || "0.00",
         currency: input.currency || "RON",
         status: input.status,
+        language: input.language || "ro",
         contentHtml: input.contentHtml || null,
         fileUrl: input.fileUrl || null,
         fileName: input.fileName || null,
@@ -341,6 +346,7 @@ export const contractsRouter = router({
         value: z.string().optional().nullable(),
         currency: z.string().optional(),
         status: z.enum(["activ", "draft", "expirat", "reziliat"]).optional(),
+        language: z.enum(["ro", "en", "ro_en"]).optional(),
         contentHtml: z.string().optional().nullable(),
         notes: z.string().optional().nullable(),
         supplierSignature: z.string().optional().nullable(),
@@ -375,6 +381,7 @@ export const contractsRouter = router({
       if (input.value !== undefined) updateData.value = input.value;
       if (input.currency !== undefined) updateData.currency = input.currency;
       if (input.status !== undefined) updateData.status = input.status;
+      if (input.language !== undefined) updateData.language = input.language;
       if (input.contentHtml !== undefined) updateData.contentHtml = input.contentHtml;
       if (input.notes !== undefined) updateData.notes = input.notes;
       if (input.supplierSignature !== undefined) updateData.supplierSignature = input.supplierSignature;
@@ -643,196 +650,40 @@ export const contractsRouter = router({
     }),
 
   /**
-   * Sabloane oficiale preconfigurate (Contract Cadru Tamplarie/Sticla, Act Aditional, PV Receptie)
+   * Sabloane oficiale preconfigurate (Romana, Engleza sau Bilingv) cu filtrare stricta per tenant
    */
-  getTemplates: protectedProcedure.query(async () => {
-    return [
-      {
-        id: "contract-vanzare-cumparare",
-        name: "Contract Vânzare-Cumpărare / Livrare Mărfuri",
-        type: "contract",
-        description: "Șablon standardizat de vânzare-cumpărare cu clauze de avans, garanție, termene de plată și livrare",
-        contentHtml: `
-<h2>CONTRACT DE VÂNZARE-CUMPĂRARE</h2>
-<p><strong>Nr. {{contract.number}} din data de {{contract.date}}</strong></p>
+  getTemplates: protectedProcedure
+    .input(
+      z
+        .object({
+          language: z.enum(["ro", "en", "ro_en"]).default("ro"),
+        })
+        .optional()
+    )
+    .query(async ({ input, ctx }) => {
+      const tenantId = ctx.user?.tenantId || 1;
+      const db = await getDb();
 
-<h3>PĂRȚILE CONTRACTANTE</h3>
-<p><strong>1. {{tenant.name}}</strong>, cu sediul în {{tenant.city}}, {{tenant.address}}, înregistrată la Oficiul Comerțului sub nr. {{tenant.regCom}}, CUI {{tenant.cui}}, cont IBAN: {{tenant.iban}}, deschis la {{tenant.bank}}, reprezentată legal prin Administrator, în calitate de <strong>Furnizor</strong>,</p>
-<p>și</p>
-<p><strong>2. {{partner.name}}</strong>, cu sediul / domiciliul în {{partner.city}}, {{partner.address}}, identificată prin CUI/CNP/VAT {{partner.cui}}, reprezentată prin {{partner.delegat}}, în calitate de <strong>Beneficiar</strong>,</p>
-<p>au convenit să încheie prezentul contract de vânzare-cumpărare cu respectarea următoarelor clauze:</p>
+      let currentTenant: any = null;
+      if (db) {
+        const [t] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
+        currentTenant = t;
+      }
 
-<h3>A. OBIECTUL CONTRACTULUI</h3>
-<p>Furnizorul se obligă să producă / furnizeze (și să transporte), iar Beneficiarul acceptă să cumpere mărfurile / produsele convenite, conform Ofertei / Comenzii nr. {{contract.offerNumber}} / {{contract.offerDate}}, care face parte integrantă din prezentul contract.<br/>
-Mărfurile care fac obiectul prezentului contract vor fi executate și livrate la adresa stabilită de Beneficiar.<br/>
-Specificațiile tehnice detaliate sunt incluse în anexele contractului.</p>
+      const tenantCui = (currentTenant?.cui || "").toUpperCase();
+      const tenantName = (currentTenant?.name || "").toUpperCase();
 
-<h3>B. GARANȚII ȘI RISCURI</h3>
-<p>Furnizorul garantează bunurile vândute împotriva evicțiunii și contra viciilor ascunse. La recepția lucrării și achitarea integrală a prețului, Beneficiarul va primi certificatul de garanție corespunzător. Garanția oferită este de {{contract.warrantyMonths}} luni.<br/>
-Proprietatea asupra mărfii trece de la Furnizor la Beneficiar în momentul achitării integrale a produselor livrate.</p>
+      const isTradeInvest = tenantId === 1 || tenantCui.includes("42322117") || tenantName.includes("TRADE INVEST");
+      const isWoodGlass = tenantId === 4 || tenantCui.includes("28396216") || tenantName.includes("WOOD GLASS");
+      const language = (input?.language as any) || "ro";
 
-<h3>C. VALOAREA CONTRACTULUI</h3>
-<p>Valoarea mărfurilor ce fac obiectul prezentului contract este de <strong>{{contract.value}} {{contract.currency}}</strong>.</p>
-
-<h3>D. MODALITĂȚI DE PLATĂ</h3>
-<p>Plățile se vor efectua pe baza facturilor fiscale emise de Furnizor, prin ordin de plată în contul bancar specificat în antet.</p>
-
-<h3>E. TERMEN DE LIVRARE</h3>
-<p>Furnizorul se obligă să livreze mărfurile în termen de <strong>{{contract.deliveryDays}} de zile</strong> de la confirmarea comenzii și a detaliilor tehnice.</p>
-
-<h3>F. RECEPȚIA LUCRĂRILOR</h3>
-<p>Recepția mărfurilor se consideră efectuată în momentul livrării la adresa indicată de Beneficiar, conform documentului de transport sau a procesului-verbal de recepție semnat de acesta.</p>
-
-<h3>G. RĂSPUNDEREA CONTRACTUALĂ</h3>
-<p>Pentru fiecare zi de întârziere la plată sau livrare, partea în culpă datorează penalități de 0,1% pe zi din suma/valoarea datorată.</p>
-
-<h3>H. CLAUZE FINALE ȘI LITIGII</h3>
-<p>Eventualele litigii vor fi soluționate pe cale amiabilă sau de instanțele judecătorești competente de la sediul Furnizorului.</p>
-
-<table style="width: 100%; margin-top: 40px;">
-  <tr>
-    <td style="width: 50%; vertical-align: top;">
-      <strong>FURNIZOR</strong><br/>
-      {{tenant.name}}<br/>
-      Administrator<br/>
-      Semnătură: __________________________
-    </td>
-    <td style="width: 50%; vertical-align: top;">
-      <strong>BENEFICIAR</strong><br/>
-      {{partner.name}}<br/>
-      Reprezentant: {{partner.delegat}}<br/>
-      Semnătură: __________________________
-    </td>
-  </tr>
-</table>
-`,
-      },
-      {
-        id: "contract-cadru-general",
-        name: "Contract Cadru de Furnizare / Prestări Servicii",
-        type: "contract",
-        description: "Șablon standardizat pentru vânzare produse, livrări periodice și prestări servicii comerciale",
-        contentHtml: `
-<h2>CONTRACT CADRU DE FURNIZARE ȘI SERVICII</h2>
-<p><strong>Nr. {{contract.number}} din data de {{contract.date}}</strong></p>
-
-<h3>1. PĂRȚILE CONTRACTANTE</h3>
-<p><strong>1.1. PRESTATOR / FURNIZOR:</strong><br/>
-<strong>{{tenant.name}}</strong>, cu sediul în {{tenant.city}}, {{tenant.address}}, CUI {{tenant.cui}}, Reg. Com. {{tenant.regCom}}, Cont IBAN: {{tenant.iban}}, deschis la {{tenant.bank}}, reprezentată legal prin Administrator.</p>
-
-<p><strong>1.2. BENEFICIAR / CLIENT:</strong><br/>
-<strong>{{partner.name}}</strong>, cu sediul în {{partner.city}}, {{partner.address}}, CUI {{partner.cui}}, Reg. Com. {{partner.regCom}}, Cont IBAN: {{partner.iban}}, deschis la {{partner.bank}}, reprezentată legal prin {{partner.delegat}}.</p>
-
-<h3>2. OBIECTUL CONTRACTULUI</h3>
-<p>2.1. Obiectul prezentului contract îl constituie producția, livrarea de mărfuri și/sau prestarea de servicii, conform devizelor, comenzilor și anexelor tehnice agreate de ambele părți.</p>
-
-<h3>3. VALOAREA CONTRACTULUI ȘI MODALITĂȚI DE PLATĂ</h3>
-<p>3.1. Valoarea totală estimată a contractului este de <strong>{{contract.value}} {{contract.currency}}</strong> (la care se adaugă TVA conform legislației în vigoare).</p>
-<p>3.2. Plata se va efectua prin ordin de plată sau transfer bancar pe baza facturilor fiscale emise de Prestator, cu termen de scadență de <strong>{{contract.paymentTerm}} zile</strong> de la data emiterii facturii.</p>
-
-<h3>4. TERMENE DE LIVRARE ȘI MONTAJ</h3>
-<p>4.1. Livrarea produselor se va efectua în termen de <strong>{{contract.deliveryDays}} zile lucrătoare</strong> de la achitarea avansului și aprobarea detaliilor de execuție.</p>
-
-<h3>5. GARANȚIA PRODUSELOR ȘI LUCRĂRILOR</h3>
-<p>5.1. Prestatorul acordă o garanție de <strong>{{contract.warrantyMonths}} luni</strong> conform specificațiilor tehnice agreate.</p>
-
-<h3>6. SEMNĂTURILE PĂRȚILOR</h3>
-<table style="width: 100%; margin-top: 40px;">
-  <tr>
-    <td style="width: 50%; vertical-align: top;">
-      <strong>FURNIZOR / PRESTATOR</strong><br/>
-      {{tenant.name}}<br/>
-      Administrator<br/>
-      __________________________
-    </td>
-    <td style="width: 50%; vertical-align: top;">
-      <strong>BENEFICIAR / CLIENT</strong><br/>
-      {{partner.name}}<br/>
-      Reprezentant Legal<br/>
-      __________________________
-    </td>
-  </tr>
-</table>
-`,
-      },
-      {
-        id: "act-aditional-modificare",
-        name: "Act Adițional — Modificare Termene / Prețuri / Clauze",
-        type: "act_aditional",
-        description: "Pentru modificarea termenelor de plată, a valorilor contractuale sau suplimentarea lucrărilor",
-        contentHtml: `
-<h2>ACT ADIȚIONAL Nr. {{contract.number}}</h2>
-<p><strong>La Contractul Cadru Nr. {{parentContract.number}} din data de {{parentContract.date}}</strong></p>
-
-<h3>PĂRȚILE CONTRACTANTE</h3>
-<p>Între <strong>{{tenant.name}}</strong> (Furnizor/Prestator) și <strong>{{partner.name}}</strong> (Beneficiar/Client), ambele părți contractante ale Contractului Cadru menționat.</p>
-
-<h3>ARTICOLUL 1. OBIECTUL ACTULUI ADIȚIONAL</h3>
-<p>Părțile convin de comun acord modificarea următoarelor clauze contractuale începând cu data de <strong>{{contract.date}}</strong>:</p>
-<p><em>{{contract.explanation}}</em></p>
-
-<h3>ARTICOLUL 2. CLAUZE MODIFICATE</h3>
-<p>2.1. Termenul de plată agreat devine <strong>{{contract.paymentTerm}} zile</strong> de la emiterea facturii.</p>
-<p>2.2. Valoarea adițională a lucrărilor este de <strong>{{contract.value}} {{contract.currency}}</strong>.</p>
-
-<h3>ARTICOLUL 3. DISPOZIȚII FINALE</h3>
-<p>Celelalte clauze ale Contractului Cadru rămân neschimbate și își păstrează valabilitatea integrală.</p>
-
-<table style="width: 100%; margin-top: 40px;">
-  <tr>
-    <td style="width: 50%; vertical-align: top;">
-      <strong>FURNIZOR</strong><br/>
-      {{tenant.name}}<br/>
-      __________________________
-    </td>
-    <td style="width: 50%; vertical-align: top;">
-      <strong>BENEFICIAR</strong><br/>
-      {{partner.name}}<br/>
-      __________________________
-    </td>
-  </tr>
-</table>
-`,
-      },
-      {
-        id: "pv-receptie-lucrari",
-        name: "Proces Verbal de Recepție Lucrări & Montaj",
-        type: "pv_receptie",
-        description: "Pentru recepția calitativă și cantitativă a produselor și montajului la locația clientului",
-        contentHtml: `
-<h2>PROCES VERBAL DE RECEPȚIE CALITATIVĂ ȘI CANTITATIVĂ</h2>
-<p><strong>Nr. {{contract.number}} din data de {{contract.date}}</strong></p>
-
-<p>Încheiat astăzi, <strong>{{contract.date}}</strong>, la obiectivul din <strong>{{partner.city}}, {{partner.address}}</strong>.</p>
-
-<p>Comisia de recepție formată din:</p>
-<ul>
-  <li>Reprezentant Furnizor ({{tenant.name}}): __________________________</li>
-  <li>Reprezentant Beneficiar ({{partner.name}}): __________________________</li>
-</ul>
-
-<h3>CONSTATĂRI</h3>
-<p>1. Lucrările executate conform Contractului Nr. {{parentContract.number}} au fost verificate pe teren.</p>
-<p>2. Elementele livrate corespund dimensional și calitativ cerințelor din anexa tehnică.</p>
-<p>3. Feroneria, etanșeitatea și funcționarea sistemelor au fost testate și declarate corespunzătoare.</p>
-
-<h3>OBSERVAȚII</h3>
-<p>{{contract.notes}}</p>
-
-<table style="width: 100%; margin-top: 40px;">
-  <tr>
-    <td style="width: 50%; vertical-align: top;">
-      <strong>PREDAT DE FURNIZOR</strong><br/>
-      Semnătura: _________________
-    </td>
-    <td style="width: 50%; vertical-align: top;">
-      <strong>PRIMIT DE BENEFICIAR</strong><br/>
-      Semnătura: _________________
-    </td>
-  </tr>
-</table>
-`,
-      },
-    ];
-  }),
+      return getAllContractTemplates({
+        tenantId,
+        tenantName,
+        tenantCui,
+        isTradeInvest,
+        isWoodGlass,
+        language,
+      });
+    }),
 });

@@ -2502,18 +2502,52 @@ export const appRouter = router({
         linesMap.get(l.emittedInvoiceId)!.push(l.description);
       }
 
-      return rows.map(row => {
-        const isActuallySent =
-          row.status === "draft" &&
-          (Boolean(row.spvIndex) ||
-            row.spvStatus === "validat" ||
-            row.spvStatus === "in_procesare");
-        return {
-          ...row,
-          status: isActuallySent ? "sent" : (row.status || "sent"),
-          itemsText: (linesMap.get(row.id) || []).join(" "),
-        };
-      });
+      const { getBnrRateForDate } = await import("./bnrService");
+
+      const enrichedRows = await Promise.all(
+        rows.map(async row => {
+          const isActuallySent =
+            row.status === "draft" &&
+            (Boolean(row.spvIndex) ||
+              row.spvStatus === "validat" ||
+              row.spvStatus === "in_procesare");
+
+          const totalNum = parseFloat(String(row.total || 0));
+          const curr = (row.currency || "RON").toUpperCase();
+          let exchangeRate = 1;
+          let rateDate = row.issueDate || "";
+
+          if (curr !== "RON") {
+            // Check if explicit rate in notes (e.g. SAGA notes: "EUR la curs 5.2429")
+            const notesMatch = row.notes?.match(/curs\s+([0-9]+[.,][0-9]+)/i);
+            if (notesMatch) {
+              exchangeRate = parseFloat(notesMatch[1].replace(",", "."));
+            } else if (row.issueDate) {
+              const bnrRes = await getBnrRateForDate(row.issueDate, curr).catch(() => null);
+              if (bnrRes && bnrRes.rate) {
+                exchangeRate = bnrRes.rate;
+                rateDate = bnrRes.date;
+              }
+            }
+          }
+
+          const totalRon =
+            curr === "RON"
+              ? totalNum
+              : parseFloat((totalNum * exchangeRate).toFixed(2));
+
+          return {
+            ...row,
+            status: isActuallySent ? "sent" : (row.status || "sent"),
+            itemsText: (linesMap.get(row.id) || []).join(" "),
+            exchangeRate,
+            rateDate,
+            totalRon,
+          };
+        })
+      );
+
+      return enrichedRows;
     }),
 
     getById: protectedProcedure

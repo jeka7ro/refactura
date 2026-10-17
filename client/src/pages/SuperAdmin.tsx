@@ -1128,10 +1128,10 @@ function ActivityTab() {
               className="h-9 px-2.5 text-xs rounded-lg border border-slate-200 bg-white text-slate-700 outline-none"
             >
               <option value="all">Toate activitățile</option>
-              <option value="today">🟢 Conectați Azi</option>
-              <option value="week">🔵 Conectați în 7 zile</option>
-              <option value="inactive">⚪ Inactivi / Fără logare</option>
-              <option value="never">🔴 Niciodată logați</option>
+              <option value="today">Conectați Azi</option>
+              <option value="week">Conectați în 7 zile</option>
+              <option value="inactive">Inactivi / Fără logare</option>
+              <option value="never">Niciodată logați</option>
             </select>
 
             {/* Toggle View */}
@@ -1145,7 +1145,7 @@ function ActivityTab() {
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
-                🏢 Pe Tenanți
+                Pe Tenanți
               </button>
               <button
                 type="button"
@@ -1156,7 +1156,7 @@ function ActivityTab() {
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
-                👥 Listă Utilizatori
+                Listă Utilizatori
               </button>
             </div>
           </div>

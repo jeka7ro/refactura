@@ -115,6 +115,93 @@ export default function EmittedInvoices() {
   const { data = [], isLoading, refetch } = trpc.emittedInvoice.list.useQuery();
   const { data: archiveRaw = [], refetch: refetchArchive } = trpc.invoiceArchive.list.useQuery({ limit: 5000 });
   const { data: clientsData = [] } = trpc.clients.list.useQuery();
+  const { data: bnrYearRates } = trpc.system.getBnrYearRates.useQuery({
+    year: new Date().getFullYear(),
+  });
+  const { data: bnrData } = trpc.system.getBnrRates.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const getInvoiceRateAndRon = (
+    row: {
+      total: number | string;
+      currency?: string | null;
+      issueDate?: string | null;
+      notes?: string | null;
+      exchangeRate?: number | null;
+      rateDate?: string | null;
+      totalRon?: number | null;
+    }
+  ) => {
+    const total = parseFloat(String(row.total || 0));
+    const curr = (row.currency || "RON").toUpperCase();
+
+    if (curr === "RON") {
+      return {
+        rate: 1,
+        totalRon: total,
+        rateDate: row.issueDate || "",
+        isForeign: false,
+      };
+    }
+
+    // 1. If backend already computed it and has valid exchangeRate > 0
+    if (row.exchangeRate && row.exchangeRate > 0 && row.exchangeRate !== 1) {
+      const totalRon =
+        typeof row.totalRon === "number"
+          ? row.totalRon
+          : parseFloat((total * row.exchangeRate).toFixed(2));
+      return {
+        rate: row.exchangeRate,
+        totalRon,
+        rateDate: row.rateDate || row.issueDate || "",
+        isForeign: true,
+      };
+    }
+
+    // 2. Check if explicit curs in notes (e.g. SAGA notes: "EUR la curs 5.2429")
+    if (row.notes) {
+      const match = row.notes.match(/curs\s+([0-9]+[.,][0-9]+)/i);
+      if (match) {
+        const parsedRate = parseFloat(match[1].replace(",", "."));
+        if (parsedRate > 0) {
+          return {
+            rate: parsedRate,
+            totalRon: parseFloat((total * parsedRate).toFixed(2)),
+            rateDate: row.issueDate || "",
+            isForeign: true,
+          };
+        }
+      }
+    }
+
+    // 3. Look up from bnrYearRates map (closest prior banking day)
+    if (bnrYearRates && row.issueDate) {
+      const cleanDate = row.issueDate.split("T")[0];
+      const availableDates = Object.keys(bnrYearRates).sort((a, b) => b.localeCompare(a));
+      const priorDates = availableDates.filter(d => d <= cleanDate);
+      const chosenDate = priorDates[0] || availableDates[0];
+      if (chosenDate && bnrYearRates[chosenDate]?.[curr]) {
+        const rate = bnrYearRates[chosenDate][curr];
+        return {
+          rate,
+          totalRon: parseFloat((total * rate).toFixed(2)),
+          rateDate: chosenDate,
+          isForeign: true,
+        };
+      }
+    }
+
+    // 4. Fallback to live BNR rate or reference default
+    const liveRate = bnrData?.rates?.[curr];
+    const rate = liveRate || (curr === "EUR" ? 5.3370 : curr === "USD" ? 4.7571 : 1);
+    return {
+      rate,
+      totalRon: parseFloat((total * rate).toFixed(2)),
+      rateDate: row.issueDate || "",
+      isForeign: true,
+    };
+  };
 
   const getClientId = (r: any) => {
     if (r.clientId) return r.clientId;
@@ -258,10 +345,43 @@ export default function EmittedInvoices() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
   const paged = filtered.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
-  const totalValue = useMemo(
-    () => filtered.reduce((s, r) => s + parseFloat(String(r.total || 0)), 0),
-    [filtered]
-  );
+  const totals = useMemo(() => {
+    let totalRonOnly = 0;
+    let totalEur = 0;
+    let totalEurInRon = 0;
+    let totalUsd = 0;
+    let totalUsdInRon = 0;
+    let totalConvertedRon = 0;
+
+    for (const r of filtered) {
+      const computed = getInvoiceRateAndRon(r);
+      const originalTotal = parseFloat(String(r.total || 0));
+      const curr = (r.currency || "RON").toUpperCase();
+
+      totalConvertedRon += computed.totalRon;
+
+      if (curr === "EUR") {
+        totalEur += originalTotal;
+        totalEurInRon += computed.totalRon;
+      } else if (curr === "USD") {
+        totalUsd += originalTotal;
+        totalUsdInRon += computed.totalRon;
+      } else {
+        totalRonOnly += originalTotal;
+      }
+    }
+
+    return {
+      totalRonOnly,
+      totalEur,
+      totalEurInRon,
+      totalUsd,
+      totalUsdInRon,
+      totalConvertedRon,
+      hasEur: totalEur > 0,
+      hasForeign: totalEur > 0 || totalUsd > 0,
+    };
+  }, [filtered, bnrYearRates, bnrData]);
 
   const counts = useMemo(
     () => ({
@@ -296,31 +416,97 @@ export default function EmittedInvoices() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-4 gap-1.5 sm:gap-4 pb-2">
-        {[
-          {
-            label: "Total Facturi",
-            value: data.length,
-            cls: "text-slate-900 dark:text-white",
-          },
-          { label: "Încasate", value: counts.paid, cls: "text-emerald-600" },
-          { label: "Restanțe", value: counts.overdue, cls: "text-rose-600" },
-          {
-            label: "Valoare Totală",
-            value: formatCurrency(totalValue, "RON"),
-            cls: "text-slate-900 dark:text-white",
-          },
-        ].map(k => (
-          <div
-            key={k.label}
-            className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-2 sm:p-4 flex flex-col justify-center h-14 sm:h-20 shadow-sm transition-all hover:shadow-md cursor-pointer"
-          >
-            <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5 sm:mb-1 truncate">
-              {k.label}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4 pb-2">
+        {/* Card 1: Total Facturi */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-2.5 sm:p-4 flex flex-col justify-between min-h-[4.5rem] sm:min-h-[5.5rem] shadow-sm transition-all hover:shadow-md">
+          <div>
+            <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 truncate">
+              Total Facturi
             </p>
-            <p className={`text-base sm:text-2xl font-black leading-none truncate ${k.cls}`}>{k.value}</p>
+            <p className="text-base sm:text-2xl font-black text-slate-900 dark:text-white leading-none truncate">
+              {allData.length}
+            </p>
           </div>
-        ))}
+          {filtered.length !== allData.length && (
+            <p className="text-[10px] sm:text-[11px] font-medium text-slate-400 mt-1 truncate">
+              {filtered.length} filtrate
+            </p>
+          )}
+        </div>
+
+        {/* Card 2: Încasate */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-2.5 sm:p-4 flex flex-col justify-between min-h-[4.5rem] sm:min-h-[5.5rem] shadow-sm transition-all hover:shadow-md">
+          <div>
+            <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 truncate">
+              Încasate
+            </p>
+            <p className="text-base sm:text-2xl font-black text-emerald-600 leading-none truncate">
+              {counts.paid}
+            </p>
+          </div>
+          <p className="text-[10px] sm:text-[11px] font-medium text-emerald-600/70 mt-1 truncate">
+            {allData.length > 0 ? `${Math.round((counts.paid / allData.length) * 100)}% din total` : "0%"}
+          </p>
+        </div>
+
+        {/* Card 3: Restanțe */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-2.5 sm:p-4 flex flex-col justify-between min-h-[4.5rem] sm:min-h-[5.5rem] shadow-sm transition-all hover:shadow-md">
+          <div>
+            <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 truncate">
+              Restanțe
+            </p>
+            <p className="text-base sm:text-2xl font-black text-rose-600 leading-none truncate">
+              {counts.overdue}
+            </p>
+          </div>
+          <p className="text-[10px] sm:text-[11px] font-medium text-slate-400 mt-1 truncate">
+            {counts.overdue === 0 ? "Fără restanțe" : "Necesită atenție"}
+          </p>
+        </div>
+
+        {/* Card 4: Total EUR (cu echivalent Lei la curs BNR din ziua fiecărei facturi) */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-amber-200/80 dark:border-amber-900/50 p-2.5 sm:p-4 flex flex-col justify-between min-h-[4.5rem] sm:min-h-[5.5rem] shadow-sm transition-all hover:shadow-md bg-gradient-to-br from-amber-50/40 to-transparent dark:from-amber-950/20">
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 truncate">
+                Valoare EUR
+              </p>
+              <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-100/80 dark:bg-amber-900/50 px-1.5 py-0.5 rounded leading-none">
+                EUR
+              </span>
+            </div>
+            <p className="text-base sm:text-2xl font-black text-amber-600 dark:text-amber-400 leading-none truncate">
+              {formatCurrency(totals.totalEur, "EUR")}
+            </p>
+          </div>
+          <p className="text-[10px] sm:text-[11px] font-semibold text-slate-600 dark:text-slate-300 mt-1 truncate" title="Echivalent în lei la cursul oficial BNR din data fiecărei facturi">
+            {totals.totalEur > 0
+              ? `≈ ${formatCurrency(totals.totalEurInRon, "RON")} (curs BNR)`
+              : "0,00 facturi EUR"}
+          </p>
+        </div>
+
+        {/* Card 5: Valoare Totală (Echivalent RON la curs BNR) */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-2.5 sm:p-4 flex flex-col justify-between min-h-[4.5rem] sm:min-h-[5.5rem] shadow-sm transition-all hover:shadow-md col-span-2 sm:col-span-1">
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">
+                Valoare Totală
+              </p>
+              <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-1.5 py-0.5 rounded leading-none">
+                RON
+              </span>
+            </div>
+            <p className="text-base sm:text-2xl font-black text-slate-900 dark:text-white leading-none truncate">
+              {formatCurrency(totals.totalConvertedRon, "RON")}
+            </p>
+          </div>
+          <p className="text-[10px] sm:text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-1 truncate" title={totals.hasEur ? `${formatCurrency(totals.totalRonOnly, "RON")} + ${formatCurrency(totals.totalEur, "EUR")} convertit la curs BNR` : "Toate facturile emise"}>
+            {totals.hasEur
+              ? `${formatCurrency(totals.totalRonOnly, "RON")} + ${formatCurrency(totals.totalEur, "EUR")}`
+              : "Inclusiv toate emiterile"}
+          </p>
+        </div>
       </div>
 
       {/* Reminder Termen Legal SPV (5 zile lucrătoare) */}
@@ -598,34 +784,69 @@ export default function EmittedInvoices() {
                           </span>
                         </div>
                         <div className="h-5 flex items-center justify-end">
-                          {row._source === "archive" ? (
-                            <span className="text-[11px] font-normal text-violet-600 leading-none">
-                              Din SPV
-                            </span>
-                          ) : isExternalInvoice(row) ? (
-                            <span
-                              className="px-2 py-0.5 rounded-full text-[10px] font-normal bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 leading-none"
-                              title="Factură externă (UE/Non-UE). Nu se transmite în RO e-Factura, se declară prin D390/D300."
-                            >
-                              Extern (D390)
-                            </span>
-                          ) : (
-                            <div className="flex items-center gap-1 leading-none">
-                              <span
-                                className={`text-[11px] font-normal ${SPV_COLORS[row.spvStatus || "nesincronizat"]}`}
-                              >
-                                {SPV_LABELS[row.spvStatus || "nesincronizat"]}
-                              </span>
-                              <SpvDeadlineBadge
-                                issueDate={row.issueDate}
-                                spvStatus={row.spvStatus}
-                                clientCountry={row.clientCountry}
-                                clientCUI={row.clientCUI}
-                                spvIndex={row.spvIndex}
-                                spvSentAt={row.spvSentAt}
-                              />
-                            </div>
-                          )}
+                          {(() => {
+                            const computed = getInvoiceRateAndRon(row);
+                            if (computed.isForeign) {
+                              return (
+                                <div className="flex items-center gap-1.5 leading-none">
+                                  <span
+                                    className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1 py-0.5 rounded border border-emerald-200 dark:border-emerald-800/60"
+                                    title={`Curs BNR din ${formatDate(computed.rateDate || row.issueDate)}: ${computed.rate.toFixed(4)} lei/${row.currency}`}
+                                  >
+                                    ≈ {formatCurrency(computed.totalRon, "RON")}
+                                  </span>
+                                  <span
+                                    className="text-[9px] text-slate-400 font-mono"
+                                    title={`Curs oficial BNR: ${computed.rate.toFixed(4)}`}
+                                  >
+                                    ({computed.rate.toFixed(4)})
+                                  </span>
+                                  {isExternalInvoice(row) && (
+                                    <span
+                                      className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800"
+                                      title="Factură externă (UE/Non-UE). Nu se transmite în RO e-Factura, se declară prin D390/D300."
+                                    >
+                                      D390
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            }
+                            if (row._source === "archive") {
+                              return (
+                                <span className="text-[11px] font-normal text-violet-600 leading-none">
+                                  Din SPV
+                                </span>
+                              );
+                            }
+                            if (isExternalInvoice(row)) {
+                              return (
+                                <span
+                                  className="px-2 py-0.5 rounded-full text-[10px] font-normal bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 leading-none"
+                                  title="Factură externă (UE/Non-UE). Nu se transmite în RO e-Factura, se declară prin D390/D300."
+                                >
+                                  Extern (D390)
+                                </span>
+                              );
+                            }
+                            return (
+                              <div className="flex items-center gap-1 leading-none">
+                                <span
+                                  className={`text-[11px] font-normal ${SPV_COLORS[row.spvStatus || "nesincronizat"]}`}
+                                >
+                                  {SPV_LABELS[row.spvStatus || "nesincronizat"]}
+                                </span>
+                                <SpvDeadlineBadge
+                                  issueDate={row.issueDate}
+                                  spvStatus={row.spvStatus}
+                                  clientCountry={row.clientCountry}
+                                  clientCUI={row.clientCUI}
+                                  spvIndex={row.spvIndex}
+                                  spvSentAt={row.spvSentAt}
+                                />
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     </td>
@@ -756,6 +977,43 @@ export default function EmittedInvoices() {
                 ))
               )}
             </tbody>
+            {filtered.length > 0 && (
+              <tfoot className="bg-slate-50/80 dark:bg-slate-800/60 border-t-2 border-slate-200 dark:border-slate-700">
+                <tr>
+                  <td colSpan={3} className="px-4 py-3 text-left text-xs font-bold text-slate-800 dark:text-slate-100">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span>TOTAL ({filtered.length} facturi{filtered.length !== allData.length ? " filtrate" : ""}):</span>
+                      {totals.hasEur && (
+                        <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-100/70 dark:bg-amber-900/40 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
+                          {formatCurrency(totals.totalEur, "EUR")} (convertit la curs BNR)
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="hidden md:table-cell px-4 py-3 text-left text-xs text-slate-400">
+                    —
+                  </td>
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
+                    <div className="flex flex-col items-end">
+                      <span className="text-sm font-black text-slate-900 dark:text-white">
+                        {formatCurrency(totals.totalConvertedRon, "RON")}
+                      </span>
+                      {totals.hasEur && (
+                        <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400" title="Defalcat: Valoare RON + Valoare EUR">
+                          {formatCurrency(totals.totalRonOnly, "RON")} + {formatCurrency(totals.totalEur, "EUR")}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="hidden lg:table-cell px-4 py-3 text-left text-xs text-slate-400 font-normal">
+                    {counts.paid} încasate · {counts.overdue} restanțe
+                  </td>
+                  <td className="px-4 py-3 text-right text-xs text-slate-400">
+                    —
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
 
@@ -889,7 +1147,7 @@ export default function EmittedInvoices() {
             </div>
 
             <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-xs text-amber-800 dark:text-amber-300">
-              <p className="font-semibold mb-1">ℹ️ Notă importantă privind facturile din România:</p>
+              <p className="font-semibold mb-1">Notă importantă privind facturile din România:</p>
               <p>
                 Facturile din România se preiau automat prin sincronizarea SPV e-Factura. Acest modul importă <strong>exclusiv facturile externe</strong> (în valută precum EUR, USD sau către clienți externi). Facturile de România din fișier sunt omise automat.
               </p>

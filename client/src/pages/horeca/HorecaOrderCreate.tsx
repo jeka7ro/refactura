@@ -371,7 +371,7 @@ export default function HorecaOrderCreate() {
                     .map(t => (
                       <option key={t.id} value={t.number}>
                         Masa {t.number} ({t.capacity} locuri){" "}
-                        {t.status === "occupied" ? "⚠️ Ocupată" : ""}
+                        {t.status === "occupied" ? "(Ocupată)" : ""}
                       </option>
                     ))}
                 </select>

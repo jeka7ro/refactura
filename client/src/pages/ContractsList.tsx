@@ -215,7 +215,7 @@ export default function ContractsList() {
     switch (type) {
       case "act_aditional":
         return (
-          <Badge variant="outline" className="border-purple-300 dark:border-purple-800 text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 font-semibold px-2.5 py-0.5 rounded-full text-xs">
+          <Badge variant="outline" className="border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 font-semibold px-2.5 py-0.5 rounded-full text-xs">
             Act Adițional
           </Badge>
         );
@@ -244,28 +244,28 @@ export default function ContractsList() {
     switch (status) {
       case "activ":
         return (
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full">
+          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
             Activ
           </span>
         );
       case "draft":
         return (
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full">
+          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
             <span className="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
-            În Redactare
+            Draft
           </span>
         );
       case "expirat":
         return (
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-full">
+          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full">
             <span className="h-1.5 w-1.5 rounded-full bg-rose-500"></span>
             Expirat
           </span>
         );
       case "reziliat":
         return (
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-500/10 px-2.5 py-1 rounded-full">
+          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-500/10 px-2 py-0.5 rounded-full">
             <span className="h-1.5 w-1.5 rounded-full bg-slate-500"></span>
             Reziliat
           </span>
@@ -336,7 +336,7 @@ export default function ContractsList() {
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Acte Adiționale
               </span>
-              <div className="h-9 w-9 rounded-lg bg-purple-50 dark:bg-purple-950/50 flex items-center justify-center text-purple-600 dark:text-purple-400">
+              <div className="h-9 w-9 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300">
                 <RefreshCw className="h-5 w-5" />
               </div>
             </div>
@@ -543,30 +543,29 @@ export default function ContractsList() {
             <thead className="bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider">
               <tr>
                 {/* SmartDevize Rule 2: Coloana Nr. */}
-                <th style={{ width: 50, textAlign: "center" }} className="py-3.5 px-3 text-center w-[50px]">
+                <th style={{ width: 44, textAlign: "center" }} className="py-2 px-2 text-center w-[44px]">
                   Nr.
                 </th>
-                <th className="py-3.5 px-4">Tip</th>
-                <th className="py-3.5 px-4">Număr & Dată</th>
-                <th className="py-3.5 px-4">Partener Contractual</th>
-                <th className="py-3.5 px-4">Perioadă</th>
-                <th className="py-3.5 px-4 text-right">Valoare</th>
-                <th className="py-3.5 px-4 text-center">Status</th>
-                <th className="py-3.5 px-4 text-right">Acțiuni</th>
+                <th className="py-2 px-3">Document / Număr</th>
+                <th className="py-2 px-3">Partener Contractual</th>
+                <th className="py-2 px-3">Perioadă</th>
+                <th className="py-2 px-3 text-right">Valoare</th>
+                <th className="py-2 px-3 text-center">Status</th>
+                <th className="py-2 px-3 text-right">Acțiuni</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {loadingList ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-500">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary mb-2" />
+                  <td colSpan={7} className="py-8 text-center text-slate-500">
+                    <Loader2 className="h-5 w-5 animate-spin mx-auto text-primary mb-2" />
                     Se încarcă biblioteca de documente...
                   </td>
                 </tr>
               ) : paginatedContracts.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-500">
-                    <FileText className="h-10 w-10 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
+                  <td colSpan={7} className="py-8 text-center text-slate-500">
+                    <FileText className="h-8 w-8 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
                     Nu a fost găsit niciun document conform filtrelor selectate.
                   </td>
                 </tr>
@@ -578,96 +577,116 @@ export default function ContractsList() {
                   >
                     {/* SmartDevize Rule 2: Nr. Crt. */}
                     <td
-                      style={{ textAlign: "center", color: "var(--text-secondary, #64748b)", fontSize: 13 }}
-                      className="py-3.5 px-3 text-center font-medium"
+                      style={{ textAlign: "center", color: "var(--text-secondary, #64748b)", fontSize: 12 }}
+                      className="py-2 px-2 text-center font-medium"
                     >
                       {(safePage - 1) * (rowsPerPage === 9999 ? 1 : rowsPerPage) + index + 1}
                     </td>
 
-                    {/* Tip */}
-                    <td className="py-3.5 px-4 whitespace-nowrap">
-                      <div className="flex flex-col gap-1 items-start">
-                        {getTypeBadge(c.type)}
+                    {/* Document / Numar & Data */}
+                    <td className="py-2 px-3">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <Link
+                          href={`/contracte/${c.id}`}
+                          className="font-bold text-slate-900 dark:text-white hover:text-primary transition-colors text-xs"
+                        >
+                          {c.number}
+                        </Link>
+                        {c.type === "act_aditional" && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200 dark:border-amber-800 leading-tight">
+                            Act Adițional
+                          </span>
+                        )}
+                        {c.type === "pv_receptie" && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 leading-tight">
+                            PV
+                          </span>
+                        )}
                         {c.childCount > 0 && (
-                          <span className="text-[11px] text-purple-600 dark:text-purple-400 font-medium">
-                            +{c.childCount} acte adiționale
+                          <span className="text-[10px] font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-1 rounded">
+                            +{c.childCount} acte
+                          </span>
+                        )}
+                        {c.language === "en" ? (
+                          <span className="text-[9px] font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 px-1 py-0.2 rounded uppercase">
+                            EN
+                          </span>
+                        ) : c.language === "ro_en" ? (
+                          <span className="text-[9px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800 px-1 py-0.2 rounded uppercase">
+                            RO-EN
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
+                        <span>{c.date}</span>
+                        {c.title && (
+                          <span className="text-slate-400 truncate max-w-[200px]" title={c.title}>
+                            • {c.title}
                           </span>
                         )}
                       </div>
                     </td>
 
-                    {/* Numar & Data */}
-                    <td className="py-3.5 px-4">
-                      <Link
-                        href={`/contracte/${c.id}`}
-                        className="font-bold text-slate-900 dark:text-white hover:text-primary transition-colors flex items-center gap-1.5"
-                      >
-                        {c.number}
-                      </Link>
-                      <div className="text-xs text-slate-500 mt-0.5">{c.date}</div>
-                      <div className="text-xs text-slate-400 truncate max-w-[220px]">{c.title}</div>
-                    </td>
-
                     {/* Partener */}
-                    <td className="py-3.5 px-4">
+                    <td className="py-2 px-3">
                       <Link
                         href={`/contracte/${c.id}`}
-                        className="font-semibold text-slate-900 dark:text-slate-100 hover:text-primary transition-colors cursor-pointer block"
-                        title="Deschide detaliile contractului"
+                        className="font-semibold text-slate-900 dark:text-slate-100 hover:text-primary transition-colors cursor-pointer text-xs block truncate max-w-[240px]"
+                        title={c.partnerName || "Nespecificat"}
                       >
                         {c.partnerName || "Nespecificat"}
                       </Link>
-                      <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500">
+                      <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5">
                         {c.partnerCui && <span>CUI: {c.partnerCui}</span>}
                         {c.partnerSagaCode && (
-                          <span className="text-[11px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-300 font-mono">
+                          <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-600 dark:text-slate-300 font-mono">
                             SAGA: {c.partnerSagaCode}
                           </span>
                         )}
                         {c.partnerIsSupplier !== undefined && (
-                          <Badge variant="outline" className="text-[10px] py-0 px-1.5 rounded-full">
+                          <span className="text-[9px] uppercase px-1 py-0.2 rounded font-semibold bg-slate-100 dark:bg-slate-800 text-slate-500">
                             {c.partnerIsSupplier === 1 ? "FURNIZOR" : "CLIENT"}
-                          </Badge>
+                          </span>
                         )}
                       </div>
                     </td>
 
                     {/* Perioada */}
-                    <td className="py-3.5 px-4 whitespace-nowrap text-xs text-slate-600 dark:text-slate-300">
-                      <div>De la: {c.validFrom || c.date}</div>
-                      <div className="text-slate-400">
-                        Până la: {c.validUntil || "Nedeterminat"}
+                    <td className="py-2 px-3 whitespace-nowrap text-xs text-slate-600 dark:text-slate-300">
+                      <div>{c.validFrom || c.date}</div>
+                      <div className="text-[11px] text-slate-400">
+                        {c.validUntil ? `până la ${c.validUntil}` : "nedeterminat"}
                       </div>
                     </td>
 
                     {/* Valoare */}
-                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                      <div className="font-bold text-slate-900 dark:text-white">
+                    <td className="py-2 px-3 text-right whitespace-nowrap">
+                      <div className="font-bold text-xs text-slate-900 dark:text-white">
                         {Number(c.value || 0) > 0 ? (
                           `${Number(c.value).toLocaleString("ro-RO", { minimumFractionDigits: 2 })} ${c.currency || "RON"}`
                         ) : (
-                          <span className="text-slate-400 font-normal">Conform comenzi</span>
+                          <span className="text-slate-400 font-normal text-xs">Conform comenzi</span>
                         )}
                       </div>
                     </td>
 
                     {/* Status */}
-                    <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                    <td className="py-2 px-3 text-center whitespace-nowrap">
                       {getStatusBadge(c.status)}
                     </td>
 
-                    {/* Actiuni - SmartDevize Rule 4: rounded-lg butoane */}
-                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1.5">
+                    {/* Actiuni */}
+                    <td className="py-2 px-3 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1">
                         {/* Buton Jurnal Istoric & Explicatii */}
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => setActiveLogContractId(c.id)}
-                          className="h-8 w-8 rounded-full text-slate-600 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/40"
+                          className="h-7 w-7 rounded-md text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800"
                           title="Jurnal modificări și explicații"
                         >
-                          <History className="h-4 w-4" />
+                          <History className="h-3.5 w-3.5" />
                         </Button>
 
                         {/* Buton Download PDF */}
@@ -675,11 +694,11 @@ export default function ContractsList() {
                           variant="ghost"
                           size="icon"
                           asChild
-                          className="h-8 w-8 rounded-full text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                          className="h-7 w-7 rounded-md text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
                           title="Descarcă PDF"
                         >
                           <a href={`/api/pdf/contract/${c.id}?download=1`} download>
-                            <Download className="h-4 w-4" />
+                            <Download className="h-3.5 w-3.5" />
                           </a>
                         </Button>
 
@@ -688,11 +707,11 @@ export default function ContractsList() {
                           variant="ghost"
                           size="icon"
                           asChild
-                          className="h-8 w-8 rounded-full text-slate-600 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
+                          className="h-7 w-7 rounded-md text-slate-600 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40"
                           title="Descarcă Word (.docx)"
                         >
                           <a href={`/api/pdf/contract/${c.id}?download=1&format=word`} download>
-                            <FileText className="h-4 w-4 text-blue-600" />
+                            <FileText className="h-3.5 w-3.5 text-blue-600" />
                           </a>
                         </Button>
                       </div>
@@ -777,7 +796,7 @@ export default function ContractsList() {
         <DialogContent className="max-w-2xl rounded-lg p-6 max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
-              <History className="h-5 w-5 text-purple-600" />
+              <History className="h-5 w-5 text-slate-600 dark:text-slate-400" />
               Jurnal Modificări & Explicații — {activeContractData?.number}
             </DialogTitle>
             <DialogDescription className="text-sm text-slate-500">
@@ -835,7 +854,7 @@ export default function ContractsList() {
                     explanation: newLogExplanation,
                   });
                 }}
-                className="rounded-full bg-purple-600 hover:bg-purple-700 text-white text-xs h-8 px-4"
+                className="rounded-full bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white dark:text-slate-900 text-white text-xs h-8 px-4"
               >
                 {addLogMutation.isPending ? "Se salvează..." : "Salvează în Jurnal"}
               </Button>
@@ -857,11 +876,11 @@ export default function ContractsList() {
                 {activeContractData.logs.map((l: any) => (
                   <div key={l.id} className="relative group">
                     {/* Punct pe linie */}
-                    <div className="absolute -left-[31px] top-1 h-3.5 w-3.5 rounded-full bg-purple-600 border-2 border-white dark:border-slate-900"></div>
+                    <div className="absolute -left-[31px] top-1 h-3.5 w-3.5 rounded-full bg-slate-500 border-2 border-white dark:border-slate-900"></div>
 
                     <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-card p-3.5 shadow-sm space-y-1.5">
                       <div className="flex items-center justify-between gap-2">
-                        <Badge variant="outline" className="text-[11px] font-semibold py-0.5 px-2 rounded-full border-purple-300 text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40">
+                        <Badge variant="outline" className="text-[11px] font-semibold py-0.5 px-2 rounded-full border-slate-300 text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800">
                           {l.actionType.replace("_", " ").toUpperCase()}
                         </Badge>
                         <span className="text-xs text-slate-400 flex items-center gap-1 font-mono">

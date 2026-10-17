@@ -19,7 +19,6 @@ import {
   Type,
   Palette,
   Highlighter,
-  Sparkles,
   FileSignature,
   FileCheck,
   ShieldCheck,
@@ -29,7 +28,16 @@ import {
   Redo2,
   Copy,
   Plus,
+  ChevronDown,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import ContractSignaturePadModal from "./ContractSignaturePadModal";
 import { toast } from "sonner";
 
@@ -42,6 +50,9 @@ interface ContractVisualEditorProps {
   tenantBank: string;
   partnerName: string;
   partnerCui: string;
+  partnerContactName?: string;
+  partnerPhone?: string;
+  partnerEmail?: string;
   docNumber: string;
   docDate: string;
   docValue: string;
@@ -69,6 +80,9 @@ export default function ContractVisualEditor({
   tenantBank,
   partnerName,
   partnerCui,
+  partnerContactName,
+  partnerPhone,
+  partnerEmail,
   docNumber,
   docDate,
   docValue,
@@ -94,13 +108,17 @@ export default function ContractVisualEditor({
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showBgPicker, setShowBgPicker] = useState(false);
 
-  // Initialize editor content once
+  // Referință pentru ultima valoare emisă din interiorul editorului (pentru a evita resetarea cursorului la tastare)
+  const lastEmittedValueRef = useRef<string>("");
+
+  // Sincronizează conținutul editorului când prop-ul `value` este actualizat din exterior (alegere partener, schimbare limbă, șablon etc.)
   useEffect(() => {
-    if (editorRef.current && value && editorRef.current.innerHTML !== value) {
-      // Only set if completely empty or distinct to avoid losing cursor position
-      if (!editorRef.current.innerHTML.trim() || Math.abs(editorRef.current.innerHTML.length - value.length) > 50) {
-        editorRef.current.innerHTML = value;
+    if (!editorRef.current) return;
+    if (value !== undefined && value !== lastEmittedValueRef.current) {
+      if (editorRef.current.innerHTML !== value) {
+        editorRef.current.innerHTML = value || "";
       }
+      lastEmittedValueRef.current = value || "";
     }
   }, [value]);
 
@@ -112,11 +130,13 @@ export default function ContractVisualEditor({
     triggerContentChange();
   };
 
-  const triggerContentChange = () => {
+  const triggerContentChange = useCallback(() => {
     if (editorRef.current) {
-      onChange(editorRef.current.innerHTML);
+      const html = editorRef.current.innerHTML;
+      lastEmittedValueRef.current = html;
+      onChange(html);
     }
-  };
+  }, [onChange]);
 
   // Change font family
   const handleFontChange = (font: string) => {
@@ -224,34 +244,6 @@ export default function ContractVisualEditor({
     toast.info(`Câmp inserat: ${token}`);
   };
 
-  // Load Framework Contract (Value 0) Clause Preset
-  const handleLoadContractCadruPreset = () => {
-    if (onSetDocValue) {
-      onSetDocValue("0.00");
-    }
-
-    const frameworkClause = `
-<div style="background-color: #f8fafc; border-left: 4px solid #1e3a8a; padding: 14px 18px; margin: 20px 0; font-size: 12px; color: #1e293b; border-radius: 4px;">
-  <p style="margin: 0 0 8px 0; font-weight: bold; color: #1e3a8a; text-transform: uppercase;">
-    CLAUZĂ CONTRACT CADRU — FACTURARE PE BAZĂ DE COMENZI & DEVIZE (VALOARE INIȚIALĂ 0.00 RON)
-  </p>
-  <p style="margin: 0 0 6px 0; line-height: 1.6;">
-    1. Prezentul contract are natura juridică a unui <strong>Contract Cadru de Furnizare / Prestări Servicii</strong> cu valoare financiară inițială de <strong>0.00 ${docCurrency || "RON"}</strong>.
-  </p>
-  <p style="margin: 0 0 6px 0; line-height: 1.6;">
-    2. Comenzile efective de produse, bunuri sau execuție de lucrări se vor lansa punctual de către Beneficiar prin comenzi scrise, oferte sau devize tehnice acceptate de ambele părți.
-  </p>
-  <p style="margin: 0; line-height: 1.6;">
-    3. Facturarea se va efectua distinct pentru fiecare comandă confirmată și livrată, cu respectarea termenului de plată agreat în prezentul contract cadru, fiecare factură fiscală făcând referire expresă la numărul prezentului contract.
-  </p>
-</div>
-<p><br/></p>
-`;
-
-    execCmd("insertHTML", frameworkClause);
-    toast.success("Clauza de Contract Cadru (Valoare 0.00 RON) a fost inserată");
-  };
-
   // Signatures management
   const handleOpenSignatureModal = (role: "supplier" | "client") => {
     setSigModalRole(role);
@@ -309,20 +301,6 @@ export default function ContractVisualEditor({
       <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
         {/* Row 1: Font, Size, Style & Colors */}
         <div className="p-2 sm:p-2.5 flex flex-wrap items-center gap-1.5 border-b border-slate-100 dark:border-slate-800 text-xs">
-          {/* Preset Button: Contract Cadru 0 */}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleLoadContractCadruPreset}
-            className="h-8 text-xs font-bold text-primary bg-primary/5 hover:bg-primary/10 border-primary/30 rounded-xl mr-1 shrink-0"
-          >
-            <Sparkles className="h-3.5 w-3.5 mr-1 text-primary" />
-            Contract Cadru (Valoare 0)
-          </Button>
-
-          <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block" />
-
           {/* Font Family Selector */}
           <select
             value={activeFont}
@@ -404,7 +382,7 @@ export default function ContractVisualEditor({
               className="flex items-center gap-1.5 h-8 px-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium"
               title="Culoare text"
             >
-              <Palette className="h-3.5 w-3.5 text-primary" />
+              <Palette className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
               <span
                 className="h-3.5 w-3.5 rounded-full border border-slate-300 inline-block"
                 style={{ backgroundColor: textColor }}
@@ -420,12 +398,9 @@ export default function ContractVisualEditor({
                   {[
                     { color: "#0f172a", name: "Negru" },
                     { color: "#1e3a8a", name: "Bleumarin" },
-                    { color: "#2563eb", name: "Albastru" },
-                    { color: "#059669", name: "Smarald" },
-                    { color: "#dc2626", name: "Roșu" },
-                    { color: "#7c3aed", name: "Violet" },
-                    { color: "#d97706", name: "Chihlimbar" },
+                    { color: "#334155", name: "Slate Închis" },
                     { color: "#475569", name: "Gri Închis" },
+                    { color: "#64748b", name: "Gri Mediu" },
                     { color: "#94a3b8", name: "Gri Muted" },
                     { color: "#000000", name: "Pure Black" },
                   ].map((c) => (
@@ -454,7 +429,7 @@ export default function ContractVisualEditor({
               className="flex items-center gap-1.5 h-8 px-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium"
               title="Culoare fundal text (Evidențiere)"
             >
-              <Highlighter className="h-3.5 w-3.5 text-amber-500" />
+              <Highlighter className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
               <span
                 className="h-3.5 w-3.5 rounded-full border border-slate-300 inline-block"
                 style={{ backgroundColor: bgColor === "transparent" ? "#ffffff" : bgColor }}
@@ -469,12 +444,9 @@ export default function ContractVisualEditor({
                 <div className="grid grid-cols-5 gap-1.5">
                   {[
                     { color: "transparent", name: "Fără evidențiere" },
-                    { color: "#fef08a", name: "Galben Neon" },
-                    { color: "#bbf7d0", name: "Verde Pal" },
-                    { color: "#bfdbfe", name: "Albastru Pal" },
-                    { color: "#fbcfe8", name: "Roz Pastel" },
-                    { color: "#fed7aa", name: "Portocaliu Pal" },
-                    { color: "#f1f5f9", name: "Gri Neutru" },
+                    { color: "#fef08a", name: "Galben Pal" },
+                    { color: "#e2e8f0", name: "Gri Pal" },
+                    { color: "#f1f5f9", name: "Alb-Gri Deschis" },
                   ].map((c) => (
                     <button
                       key={c.color}
@@ -566,7 +538,7 @@ export default function ContractVisualEditor({
             </button>
           </div>
 
-          {/* Table & Separator */}
+          {/* Table, Separator & Dynamic Variables Dropdown */}
           <div className="flex items-center gap-1">
             <Button
               type="button"
@@ -590,78 +562,72 @@ export default function ContractVisualEditor({
             >
               <Minus className="h-3.5 w-3.5" />
             </Button>
+
+            {/* Meniu Câmpuri Dinamice (Curat, organizat, fără aglomerare) */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs rounded-xl px-2.5 gap-1.5 font-medium border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50"
+                  title="Inserează o variabilă la poziția cursorului"
+                >
+                  <Plus className="h-3.5 w-3.5 text-primary" />
+                  <span>Inserează Câmp</span>
+                  <ChevronDown className="h-3 w-3 text-slate-400" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" side="bottom" sideOffset={6} avoidCollisions={false} className="w-64 text-xs rounded-xl p-1.5 z-50 max-h-[380px] overflow-y-auto shadow-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <DropdownMenuLabel className="text-[10px] uppercase font-bold text-slate-400 px-2 py-1">
+                  Beneficiar (Client)
+                </DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleInsertVariable("Client", partnerName || "[Partener]")}>
+                  Beneficiar: {partnerName ? partnerName.slice(0, 18) + "..." : "Nume"}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleInsertVariable("CUI_Client", partnerCui || "-")}>
+                  CUI Beneficiar ({partnerCui || "-"})
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleInsertVariable("Reprezentant_Client", partnerContactName || "Administrator")}>
+                  Reprezentant ({partnerContactName || "Reprezentant"})
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleInsertVariable("Telefon_Client", partnerPhone || "-")}>
+                  Telefon ({partnerPhone || "-"})
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleInsertVariable("Email_Client", partnerEmail || "-")}>
+                  Email ({partnerEmail || "-"})
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-[10px] uppercase font-bold text-slate-400 px-2 py-1">
+                  Furnizor (Prestator)
+                </DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleInsertVariable("Furnizor", tenantName)}>
+                  Furnizor: {tenantName.slice(0, 18)}...
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleInsertVariable("CUI_Furnizor", tenantCui)}>
+                  CUI Furnizor ({tenantCui})
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleInsertVariable("IBAN", tenantIban)}>
+                  IBAN Furnizor
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-[10px] uppercase font-bold text-slate-400 px-2 py-1">
+                  Detalii Contract
+                </DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleInsertVariable("Număr_Contract", docNumber)}>
+                  Număr Contract ({docNumber})
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleInsertVariable("Data_Contract", docDate)}>
+                  Dată ({docDate})
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleInsertVariable("Valoare", `${docValue} ${docCurrency}`)}>
+                  Valoare ({docValue} {docCurrency})
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-        </div>
-
-        {/* Row 2: Dynamic Variables Pills (Insert at Cursor) */}
-        <div className="px-2.5 py-1.5 bg-slate-50/70 dark:bg-slate-900/40 flex items-center gap-1.5 overflow-x-auto text-[11px]">
-          <span className="text-slate-400 font-semibold uppercase tracking-wider text-[10px] shrink-0 mr-1">
-            Inserează Câmp:
-          </span>
-
-          <button
-            type="button"
-            onClick={() => handleInsertVariable("Furnizor", tenantName)}
-            className="px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-primary text-slate-700 dark:text-slate-300 font-medium shrink-0 transition-colors"
-          >
-            + Furnizor ({tenantName.slice(0, 14)}...)
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleInsertVariable("CUI_Furnizor", tenantCui)}
-            className="px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-primary text-slate-700 dark:text-slate-300 font-medium shrink-0 transition-colors"
-          >
-            + CUI Furnizor
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleInsertVariable("IBAN", tenantIban)}
-            className="px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-primary text-slate-700 dark:text-slate-300 font-medium shrink-0 transition-colors"
-          >
-            + IBAN Furnizor
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleInsertVariable("Client", partnerName || "[Partener]")}
-            className="px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-900 hover:border-primary text-blue-700 dark:text-blue-300 font-medium shrink-0 transition-colors"
-          >
-            + Beneficiar ({partnerName ? partnerName.slice(0, 14) + "..." : "Client"})
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleInsertVariable("CUI_Client", partnerCui || "-")}
-            className="px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-900 hover:border-primary text-blue-700 dark:text-blue-300 font-medium shrink-0 transition-colors"
-          >
-            + CUI Beneficiar
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleInsertVariable("Număr_Contract", docNumber)}
-            className="px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-900 hover:border-primary text-purple-700 dark:text-purple-300 font-medium shrink-0 transition-colors"
-          >
-            + Nr. Contract ({docNumber})
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleInsertVariable("Data_Contract", docDate)}
-            className="px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-900 hover:border-primary text-purple-700 dark:text-purple-300 font-medium shrink-0 transition-colors"
-          >
-            + Data ({docDate})
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleInsertVariable("Valoare", `${docValue} ${docCurrency}`)}
-            className="px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-900 hover:border-primary text-emerald-700 dark:text-emerald-300 font-medium shrink-0 transition-colors"
-          >
-            + Valoare ({docValue} {docCurrency})
-          </button>
         </div>
       </div>
 
@@ -842,6 +808,7 @@ export default function ContractVisualEditor({
         onOpenChange={setSigModalOpen}
         role={sigModalRole}
         partyName={sigModalRole === "supplier" ? tenantName : partnerName || "Beneficiar"}
+        defaultSignatoryName={sigModalRole === "supplier" ? "Elena Cazmal" : partnerContactName}
         contractNumber={docNumber}
         onSaveSignature={handleSaveSignature}
       />

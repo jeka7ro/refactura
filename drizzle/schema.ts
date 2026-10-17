@@ -850,6 +850,7 @@ export const contracts = mysqlTable("contracts", {
   signatureType: varchar("signatureType", { length: 50 }).default("none"),
   digitalSignatureMetadata: text("digitalSignatureMetadata"),
   signedAt: varchar("signedAt", { length: 30 }),
+  language: varchar("language", { length: 20 }).default("ro"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

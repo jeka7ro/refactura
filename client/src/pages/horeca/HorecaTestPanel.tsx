@@ -326,12 +326,12 @@ export default function HorecaTestPanel() {
                           <div className="flex gap-1 mt-1">
                             {p.isVegetarian && (
                               <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
-                                🌱 Veg
+                                Veg
                               </span>
                             )}
                             {p.isSpicy && (
                               <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded">
-                                🌶️ Spicy
+                                Spicy
                               </span>
                             )}
                           </div>
@@ -370,7 +370,7 @@ export default function HorecaTestPanel() {
             </div>
 
             <p className="text-xs text-amber-600 font-semibold">
-              ⚠️ Vizualizare READ-ONLY — comenzile NU sunt trimise la bucătărie
+              Vizualizare READ-ONLY — comenzile NU sunt trimise la bucătărie
               din acest panou
             </p>
 
