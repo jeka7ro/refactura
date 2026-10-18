@@ -46,10 +46,12 @@ interface ContractVisualEditorProps {
   onChange: (html: string) => void;
   tenantName: string;
   tenantCui: string;
+  tenantRegCom?: string;
   tenantIban: string;
   tenantBank: string;
   partnerName: string;
   partnerCui: string;
+  partnerRegCom?: string;
   partnerContactName?: string;
   partnerPhone?: string;
   partnerEmail?: string;
@@ -76,10 +78,12 @@ export default function ContractVisualEditor({
   onChange,
   tenantName,
   tenantCui,
+  tenantRegCom,
   tenantIban,
   tenantBank,
   partnerName,
   partnerCui,
+  partnerRegCom,
   partnerContactName,
   partnerPhone,
   partnerEmail,
@@ -588,6 +592,9 @@ export default function ContractVisualEditor({
                 <DropdownMenuItem onClick={() => handleInsertVariable("CUI_Client", partnerCui || "-")}>
                   CUI Beneficiar ({partnerCui || "-"})
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleInsertVariable("J_Client", partnerRegCom || "-")}>
+                  Reg. Com. / J Beneficiar ({partnerRegCom || "-"})
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleInsertVariable("Reprezentant_Client", partnerContactName || "Administrator")}>
                   Reprezentant ({partnerContactName || "Reprezentant"})
                 </DropdownMenuItem>
@@ -607,6 +614,9 @@ export default function ContractVisualEditor({
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleInsertVariable("CUI_Furnizor", tenantCui)}>
                   CUI Furnizor ({tenantCui})
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleInsertVariable("J_Furnizor", tenantRegCom || "-")}>
+                  Reg. Com. / J Furnizor ({tenantRegCom || "-"})
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleInsertVariable("IBAN", tenantIban)}>
                   IBAN Furnizor

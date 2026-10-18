@@ -68,18 +68,33 @@ export function compileContractTemplate({
   const isBilingual = docLanguage === "ro_en";
 
   const activeTenantName = tenant?.name || "Compania Ta";
-  const activeTenantCui = tenant?.cui || tenantSettings?.cui || tenantSettings?.fiscalCode || "-";
-  const activeTenantRegCom = tenantSettings?.regCom || "-";
+  const activeTenantCui =
+    tenant?.cui ||
+    tenantSettings?.cui ||
+    tenantSettings?.fiscalCode ||
+    (activeTenantName.includes("TRADE INVEST") ? "RO42322117" : "-");
+  const activeTenantRegCom =
+    tenantSettings?.regCom ||
+    (activeTenantName.includes("TRADE INVEST") || activeTenantCui.includes("42322117")
+      ? "J2020002825409"
+      : "-");
   const activeTenantCity = tenantSettings?.city || "București";
   const activeTenantAddress = tenant?.address || tenantSettings?.address || "-";
-  const activeTenantIban = tenantSettings?.iban || "-";
-  const activeTenantBank = tenantSettings?.bank || "-";
+  const activeTenantIban =
+    tenantSettings?.iban ||
+    (activeTenantName.includes("TRADE INVEST") ? "RO31BACX0000001999343001" : "-");
+  const activeTenantBank =
+    tenantSettings?.bank ||
+    (activeTenantName.includes("TRADE INVEST") ? "Unicredit" : "-");
 
   // Inlocuire date Furnizor (Tenant)
   raw = raw
     .replace(/{{tenant\.name}}/g, activeTenantName)
     .replace(/{{tenant\.cui}}/g, activeTenantCui)
     .replace(/{{tenant\.regCom}}/g, activeTenantRegCom)
+    .replace(/{{tenant\.j}}/g, activeTenantRegCom)
+    .replace(/{{tenant\.rc}}/g, activeTenantRegCom)
+    .replace(/{{J_Furnizor}}/g, activeTenantRegCom)
     .replace(/{{tenant\.city}}/g, activeTenantCity)
     .replace(/{{tenant\.address}}/g, activeTenantAddress)
     .replace(/{{tenant\.iban}}/g, activeTenantIban)
@@ -111,6 +126,9 @@ export function compileContractTemplate({
       .replace(/{{partner\.name}}/g, partnerName)
       .replace(/{{partner\.cui}}/g, partnerCui || "-")
       .replace(/{{partner\.regCom}}/g, partnerRegCom || "-")
+      .replace(/{{partner\.j}}/g, partnerRegCom || "-")
+      .replace(/{{partner\.rc}}/g, partnerRegCom || "-")
+      .replace(/{{J_Client}}/g, partnerRegCom || "-")
       .replace(/{{partner\.city}}/g, partnerCity || "-")
       .replace(/{{partner\.address}}/g, partnerAddress || "-")
       .replace(/{{partner\.iban}}/g, partnerIban || "-")
@@ -133,6 +151,9 @@ export function compileContractTemplate({
       .replace(/{{partner\.name}}/g, isEn ? "[Select Customer]" : "[Selectați Partenerul]")
       .replace(/{{partner\.cui}}/g, "-")
       .replace(/{{partner\.regCom}}/g, "-")
+      .replace(/{{partner\.j}}/g, "-")
+      .replace(/{{partner\.rc}}/g, "-")
+      .replace(/{{J_Client}}/g, "-")
       .replace(/{{partner\.city}}/g, "-")
       .replace(/{{partner\.address}}/g, "-")
       .replace(/{{partner\.iban}}/g, "-")

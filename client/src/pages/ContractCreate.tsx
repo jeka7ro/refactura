@@ -71,13 +71,14 @@ export default function ContractCreate() {
     }
   }, [tenant?.settings]);
 
+  const isTradeInvestTenant = !!(tenant?.name?.toLowerCase().includes("trade invest"));
   const activeTenantName = tenant?.name || "Compania Ta";
-  const activeTenantCui = tenant?.cui || parsedTenantSettings?.cui || parsedTenantSettings?.fiscalCode || "-";
-  const activeTenantRegCom = parsedTenantSettings?.regCom || "-";
-  const activeTenantCity = parsedTenantSettings?.city || "";
+  const activeTenantCui = tenant?.cui || parsedTenantSettings?.cui || parsedTenantSettings?.fiscalCode || (isTradeInvestTenant ? "RO42322117" : "-");
+  const activeTenantRegCom = parsedTenantSettings?.regCom || (isTradeInvestTenant ? "J2020002825409" : "") || "-";
+  const activeTenantCity = parsedTenantSettings?.city || (isTradeInvestTenant ? "București" : "");
   const activeTenantAddress = tenant?.address || parsedTenantSettings?.address || "";
-  const activeTenantIban = parsedTenantSettings?.iban || "-";
-  const activeTenantBank = parsedTenantSettings?.bank || "-";
+  const activeTenantIban = parsedTenantSettings?.iban || (isTradeInvestTenant ? "RO31BACX0000001999343001" : "-");
+  const activeTenantBank = parsedTenantSettings?.bank || (isTradeInvestTenant ? "Unicredit Bank" : "-");
 
   // Form State
   const [selectedPartnerId, setSelectedPartnerId] = useState<number | null>(
@@ -151,10 +152,33 @@ export default function ContractCreate() {
   const [digitalSignatureMetadata, setDigitalSignatureMetadata] = useState<any>(null);
   const [signedAt, setSignedAt] = useState<string | null>(null);
 
-  // Selected Partner Details
+  const [partnerEnrichment, setPartnerEnrichment] = useState<{ id: number | string; regCom?: string } | null>(null);
+
+  // Selected Partner Details cu fallback și auto-îmbogățire Reg. Com.
   const selectedPartner = useMemo(() => {
-    return partners.find((p: any) => p.id === selectedPartnerId);
-  }, [partners, selectedPartnerId]);
+    const p = partners.find((item: any) => item.id === selectedPartnerId);
+    if (!p) return null;
+    let regCom = p.regCom || p.clientRegCom || "";
+    if (!regCom && partnerEnrichment && partnerEnrichment.id === p.id && partnerEnrichment.regCom) {
+      regCom = partnerEnrichment.regCom;
+    }
+    if (!regCom && p.cui) {
+      const cleanCui = String(p.cui).replace(/^RO/i, "").trim();
+      const sibling = partners.find(
+        (item: any) =>
+          item.id !== p.id &&
+          String(item.cui || "").replace(/^RO/i, "").trim() === cleanCui &&
+          !!(item.regCom || item.clientRegCom)
+      );
+      if (sibling?.regCom || sibling?.clientRegCom) {
+        regCom = sibling.regCom || sibling.clientRegCom;
+      }
+    }
+    if (regCom && (!p.regCom || p.regCom !== regCom)) {
+      return { ...p, regCom };
+    }
+    return p;
+  }, [partners, selectedPartnerId, partnerEnrichment]);
 
   // Selected Parent Contract
   const parentContract = useMemo(() => {
@@ -167,6 +191,28 @@ export default function ContractCreate() {
       setSelectedPartnerId(parentContract.partnerId);
     }
   }, [parentContract, selectedPartnerId]);
+
+  // Auto-enrichment ANAF pentru Reg. Com. dacă partenerul nu are încă J în baza de date locală
+  useEffect(() => {
+    if (!selectedPartner || selectedPartner.regCom || !selectedPartner.cui) return;
+    const cleanCui = String(selectedPartner.cui).replace(/^RO/i, "").trim();
+    if (!cleanCui || !/^\d{2,10}$/.test(cleanCui)) return;
+
+    let isMounted = true;
+    fetch(`/api/anaf/${cleanCui}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!isMounted) return;
+        if (data?.nrRegCom) {
+          setPartnerEnrichment({ id: selectedPartner.id, regCom: data.nrRegCom });
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedPartner?.id, selectedPartner?.cui, selectedPartner?.regCom]);
 
   // Sincronizare inițială automată a datelor de contact când se încarcă sau selectează partenerul
   useEffect(() => {
@@ -342,7 +388,13 @@ export default function ContractCreate() {
     const compiled = compileContractTemplate({
       rawHtml: tmpl.contentHtml || "",
       tenant,
-      tenantSettings: parsedTenantSettings,
+      tenantSettings: {
+        ...parsedTenantSettings,
+        cui: activeTenantCui,
+        regCom: activeTenantRegCom,
+        iban: activeTenantIban,
+        bank: activeTenantBank,
+      },
       partner: currentPartner,
       partnerContactName: curContactName,
       partnerPhone: curPhone,
@@ -879,7 +931,7 @@ export default function ContractCreate() {
               </label>
               {selectedPartner ? (
                 <span className="text-[11px] text-slate-500 font-mono">
-                  CUI: {selectedPartner.cui || "-"} {selectedPartner.city ? `• ${selectedPartner.city}` : ""}
+                  CUI: {selectedPartner.cui || "-"} {selectedPartner.regCom ? `• Reg. Com: ${selectedPartner.regCom}` : ""} {selectedPartner.city ? `• ${selectedPartner.city}` : ""}
                 </span>
               ) : (
                 <span className="text-[10px] text-slate-400">{partners.length} parteneri disponibili</span>
@@ -1245,10 +1297,12 @@ export default function ContractCreate() {
             onChange={(html) => setContentHtml(html)}
             tenantName={activeTenantName}
             tenantCui={activeTenantCui}
+            tenantRegCom={activeTenantRegCom}
             tenantIban={activeTenantIban}
             tenantBank={activeTenantBank}
             partnerName={selectedPartner?.name || selectedPartner?.clientName || ""}
             partnerCui={selectedPartner?.cui || selectedPartner?.clientCUI || ""}
+            partnerRegCom={selectedPartner?.regCom || selectedPartner?.clientRegCom || ""}
             partnerContactName={partnerContactName}
             partnerPhone={partnerPhone}
             partnerEmail={partnerEmail}

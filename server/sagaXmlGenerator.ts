@@ -2,6 +2,26 @@ import { eq, and, desc } from "drizzle-orm";
 import { getDb } from "./db";
 import { format } from "date-fns";
 import * as schema from "../drizzle/schema";
+import iconv from "iconv-lite";
+
+/**
+ * Asigură codificarea corectă Windows-1250 pentru fișierele XML destinate SAGA C:
+ * 1. Normalizează diacriticele românești cu virgulă la cele cu sedilă compatibile Windows-1250 (FoxPro)
+ * 2. Convertește conținutul la un Buffer în codepage-ul Windows-1250 real
+ */
+export function toSagaXmlBuffer(xmlString: string): Buffer {
+  const normalized = xmlString
+    .replace(/Ș/g, "\u015E")
+    .replace(/ș/g, "\u015F")
+    .replace(/Ț/g, "\u0162")
+    .replace(/ț/g, "\u0163");
+
+  try {
+    return iconv.encode(normalized, "windows-1250");
+  } catch {
+    return Buffer.from(normalized, "utf8");
+  }
+}
 
 export interface TenantCompanyProfile {
   name: string;
@@ -49,18 +69,20 @@ export async function getTenantCompanyProfile(tenantId: number): Promise<TenantC
     }
   }
 
+  const isTradeInvest = tenant?.name?.toLowerCase().includes("trade invest") || tenantId === 1 || tenantId === 9;
+
   return {
-    name: tenant?.name || "TRADE INVEST NETWORK S.R.L.",
-    cui: tenant?.cui ? tenant.cui.trim() : "RO42322117",
-    regCom: settings.regCom || "J2020002825409",
+    name: tenant?.name || (isTradeInvest ? "TRADE INVEST NETWORK S.R.L." : "Companie"),
+    cui: tenant?.cui?.trim() || settings.cui?.trim() || (isTradeInvest ? "RO42322117" : ""),
+    regCom: settings.regCom?.trim() || settings.rc?.trim() || (isTradeInvest ? "J2020002825409" : ""),
     country: settings.country || "RO",
-    county: settings.county || "B",
-    city: settings.city || "Bucuresti",
-    address: settings.address || tenant?.address || "Bucuresti",
-    phone: tenant?.phone || "",
-    email: tenant?.email || "",
-    bank: settings.bank || "",
-    iban: settings.iban || "",
+    county: settings.county || (isTradeInvest ? "B" : ""),
+    city: settings.city || (isTradeInvest ? "Bucuresti" : ""),
+    address: settings.address || tenant?.address || (isTradeInvest ? "MUNICIPIUL BUCUREŞTI, SECTOR 1, STR POPA SAVU, NR.78" : "Bucuresti"),
+    phone: tenant?.phone || settings.phone || "",
+    email: tenant?.email || settings.email || "",
+    bank: settings.bank || (isTradeInvest ? "Unicredit" : ""),
+    iban: settings.iban || (isTradeInvest ? "RO31BACX0000001999343001" : ""),
   };
 }
 
@@ -250,7 +272,9 @@ export async function generateSagaExportXML(
     if (furnizorBanca) xml += `      <FurnizorBanca>${escapeXml(furnizorBanca)}</FurnizorBanca>\n`;
     if (furnizorIban) xml += `      <FurnizorIBAN>${escapeXml(furnizorIban)}</FurnizorIBAN>\n`;
 
-    // Clientul
+    // Clientul (cu Codul SAGA asociat pentru a evita dublurile în 4111)
+    const clientCode = (inv as any).clientCode || (client?.sagaCode && client.sagaCode !== "null" ? client.sagaCode : null) || client?.id;
+    if (clientCode) xml += `      <ClientCod>${escapeXml(clientCode)}</ClientCod>\n`;
     xml += `      <ClientNume>${escapeXml(client?.name || "Client Necunoscut")}</ClientNume>\n`;
     xml += `      <ClientCIF>${escapeXml(client?.cui || "")}</ClientCIF>\n`;
     if (client?.regCom) xml += `      <ClientNrRegCom>${escapeXml(client.regCom)}</ClientNrRegCom>\n`;
@@ -292,6 +316,9 @@ export async function generateSagaExportXML(
       totalFactura = rawInvTotal;
     }
 
+    if (inv.series) {
+      xml += `      <FacturaSerie>${escapeXml(inv.series)}</FacturaSerie>\n`;
+    }
     xml += `      <FacturaNumar>${escapeXml(inv.number)}</FacturaNumar>\n`;
     xml += `      <FacturaData>${formatDate(inv.issueDate)}</FacturaData>\n`;
     if (inv.dueDate) {
@@ -301,6 +328,9 @@ export async function generateSagaExportXML(
     xml += `      <FacturaTVAIncasare>Nu</FacturaTVAIncasare>\n`;
     xml += `      <FacturaTip></FacturaTip>\n`;
     xml += `      <FacturaMoneda>${escapeXml(inv.currency || "RON")}</FacturaMoneda>\n`;
+    xml += `      <FacturaTotalValoare>${totalValoare.toFixed(2)}</FacturaTotalValoare>\n`;
+    xml += `      <FacturaTotalTVA>${totalTva.toFixed(2)}</FacturaTotalTVA>\n`;
+    xml += `      <FacturaTotal>${totalFactura.toFixed(2)}</FacturaTotal>\n`;
     if (inv.spvIndex) {
       xml += formatSpvTags(inv.spvIndex);
     }
@@ -452,6 +482,9 @@ export async function generateSagaExportXML(
     xml += `      <FacturaTVAIncasare>Nu</FacturaTVAIncasare>\n`;
     xml += `      <FacturaTip></FacturaTip>\n`;
     xml += `      <FacturaMoneda>RON</FacturaMoneda>\n`;
+    xml += `      <FacturaTotalValoare>${totalValoare.toFixed(2)}</FacturaTotalValoare>\n`;
+    xml += `      <FacturaTotalTVA>${totalTva.toFixed(2)}</FacturaTotalTVA>\n`;
+    xml += `      <FacturaTotal>${totalFactura.toFixed(2)}</FacturaTotal>\n`;
     if (spvIndex) {
       xml += formatSpvTags(spvIndex);
     }
@@ -563,6 +596,9 @@ export async function generateSagaExportXML(
     xml += `      <FacturaTVAIncasare>Nu</FacturaTVAIncasare>\n`;
     xml += `      <FacturaTip></FacturaTip>\n`;
     xml += `      <FacturaMoneda>RON</FacturaMoneda>\n`;
+    xml += `      <FacturaTotalValoare>${totalValoare.toFixed(2)}</FacturaTotalValoare>\n`;
+    xml += `      <FacturaTotalTVA>${totalTva.toFixed(2)}</FacturaTotalTVA>\n`;
+    xml += `      <FacturaTotal>${totalFactura.toFixed(2)}</FacturaTotal>\n`;
     if (n.idSPV) {
       xml += formatSpvTags(n.idSPV);
     }
@@ -715,6 +751,9 @@ export async function generateSagaNirXML(tenantId: number, nirId?: number | numb
     xml += `      <FacturaTVAIncasare>Nu</FacturaTVAIncasare>\n`;
     xml += `      <FacturaTip></FacturaTip>\n`;
     xml += `      <FacturaMoneda>RON</FacturaMoneda>\n`;
+    xml += `      <FacturaTotalValoare>${totalValoare.toFixed(2)}</FacturaTotalValoare>\n`;
+    xml += `      <FacturaTotalTVA>${totalTva.toFixed(2)}</FacturaTotalTVA>\n`;
+    xml += `      <FacturaTotal>${totalFactura.toFixed(2)}</FacturaTotal>\n`;
     if (spvIndex) {
       xml += formatSpvTags(spvIndex);
     }
@@ -803,8 +842,9 @@ export async function generateSagaClientsXML(tenantId: number) {
   xml += `<Clienti>\n`;
 
   for (const client of clientsList) {
+    const cod = client.sagaCode && client.sagaCode !== "null" ? client.sagaCode : client.id;
     xml += `  <Linie>\n`;
-    xml += `    <Cod>${client.id}</Cod>\n`;
+    xml += `    <Cod>${escapeXml(cod)}</Cod>\n`;
     xml += `    <Denumire>${escapeXml(client.name)}</Denumire>\n`;
     xml += `    <Cod_fiscal>${escapeXml(client.cui || "")}</Cod_fiscal>\n`;
     if (client.regCom) xml += `    <Reg_com>${escapeXml(client.regCom)}</Reg_com>\n`;

@@ -68,6 +68,7 @@
     "form-data": "^4.0.6",
     "framer-motion": "^12.23.22",
     "google-auth-library": "^10.9.0",
+    "iconv-lite": "^0.6.3",
     "input-otp": "^1.4.2",
     "jose": "6.1.0",
     "jszip": "^3.10.1",

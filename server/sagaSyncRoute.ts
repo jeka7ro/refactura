@@ -10,6 +10,7 @@ import {
   generateSagaClientsXML,
   getTenantCompanyProfile,
   updateTenantSagaToken,
+  toSagaXmlBuffer,
 } from "./sagaXmlGenerator.js";
 import { getDb } from "./db.js";
 import * as schema from "../drizzle/schema.js";
@@ -45,7 +46,7 @@ router.get("/", async (req, res) => {
       const fileName = targetNirId ? `F_${safeCui}_NIR_${targetNirId}.xml` : `F_${safeCui}_NIR_ALL.xml`;
       res.set("Content-Type", "application/xml; charset=windows-1250");
       res.set("Content-Disposition", `attachment; filename="${fileName}"`);
-      return res.send(Buffer.from(xmlContent, "utf8"));
+      return res.send(toSagaXmlBuffer(xmlContent));
     }
 
     if (type === "facturi") {
@@ -56,7 +57,7 @@ router.get("/", async (req, res) => {
       const fileName = exportMonth === 0 ? `F_${safeCui}_ALL_${exportYear}.xml` : `F_${safeCui}_${exportMonth}_${exportYear}.xml`;
       res.set("Content-Type", "application/xml; charset=windows-1250");
       res.set("Content-Disposition", `attachment; filename="${fileName}"`);
-      return res.send(Buffer.from(xmlContent, "utf8"));
+      return res.send(toSagaXmlBuffer(xmlContent));
     }
 
     if (type === "articole") {
@@ -64,7 +65,7 @@ router.get("/", async (req, res) => {
       const fileName = `ART_${dateStr}.xml`;
       res.set("Content-Type", "application/xml; charset=windows-1250");
       res.set("Content-Disposition", `attachment; filename="${fileName}"`);
-      return res.send(Buffer.from(xmlContent, "utf8"));
+      return res.send(toSagaXmlBuffer(xmlContent));
     }
 
     if (type === "clienti") {
@@ -72,7 +73,7 @@ router.get("/", async (req, res) => {
       const fileName = `CLI_${dateStr}.xml`;
       res.set("Content-Type", "application/xml; charset=windows-1250");
       res.set("Content-Disposition", `attachment; filename="${fileName}"`);
-      return res.send(Buffer.from(xmlContent, "utf8"));
+      return res.send(toSagaXmlBuffer(xmlContent));
     }
 
     // Implicit: Pachet complet ZIP (conform SAGA C Diverse > Import date)
@@ -85,13 +86,13 @@ router.get("/", async (req, res) => {
 
     const zip = new AdmZip();
     // Nume standard recunoscute instant de ecranul "Import date" din SAGA C
-    zip.addFile(`FACTURI.XML`, Buffer.from(xmlFacturi, "utf8"));
-    zip.addFile(`CLIENTI.XML`, Buffer.from(xmlClienti, "utf8"));
-    zip.addFile(`ARTICOLE.XML`, Buffer.from(xmlArticole, "utf8"));
+    zip.addFile(`FACTURI.XML`, toSagaXmlBuffer(xmlFacturi));
+    zip.addFile(`CLIENTI.XML`, toSagaXmlBuffer(xmlClienti));
+    zip.addFile(`ARTICOLE.XML`, toSagaXmlBuffer(xmlArticole));
     // Păstrăm și denumirile alternative cu CUI și dată
-    zip.addFile(`F_${safeCui}_${exportMonth}_${exportYear}.xml`, Buffer.from(xmlFacturi, "utf8"));
-    zip.addFile(`ART_${dateStr}.xml`, Buffer.from(xmlArticole, "utf8"));
-    zip.addFile(`CLI_${dateStr}.xml`, Buffer.from(xmlClienti, "utf8"));
+    zip.addFile(`F_${safeCui}_${exportMonth}_${exportYear}.xml`, toSagaXmlBuffer(xmlFacturi));
+    zip.addFile(`ART_${dateStr}.xml`, toSagaXmlBuffer(xmlArticole));
+    zip.addFile(`CLI_${dateStr}.xml`, toSagaXmlBuffer(xmlClienti));
 
     const zipBuffer = zip.toBuffer();
 
@@ -158,9 +159,9 @@ router.post("/push", async (req, res) => {
     const fileName = `F_${sagaCui}_${exportMonth}_${exportYear}.xml`;
 
     const form = new FormData();
-    form.append("file", Buffer.from(xmlContent, "utf8"), {
+    form.append("file", toSagaXmlBuffer(xmlContent), {
       filename: fileName,
-      contentType: "application/xml",
+      contentType: "application/xml; charset=windows-1250",
     });
 
     console.log(`[SAGA WEB API] Se trimite ${fileName} către SAGA Web API (CUI: ${sagaCui})...`);
