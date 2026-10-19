@@ -115,7 +115,7 @@ client/public/__manus__/version.json
 # Local scratch and test artifacts
 scratch/
 rowood/
-contracte/
-client/public/uploads/
-*.pdf
+contracte/*.zip
+contracte/Aplica_ie_Pontaj_QR/
+test_*.pdf
 

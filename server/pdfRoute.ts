@@ -2294,11 +2294,24 @@ export function registerPdfRoute(app: any) {
 
       // 1. Daca exista fisier uploadat direct, il servim
       if (contract.fileUrl) {
-        const relativePath = contract.fileUrl.startsWith("/") ? contract.fileUrl.slice(1) : contract.fileUrl;
+        const cleanFileUrl = contract.fileUrl.trim();
+        const relativePath = cleanFileUrl.startsWith("/") ? cleanFileUrl.slice(1) : cleanFileUrl;
+        const baseName = path.basename(cleanFileUrl);
+        const baseWithSpaces = baseName.replace(/_/g, " ");
+        const baseWithUnderscores = baseName.replace(/\s+/g, "_");
+
         const candidates = [
           path.resolve(process.cwd(), "dist", "public", relativePath),
+          path.resolve(process.cwd(), "client", "public", relativePath),
           path.resolve(process.cwd(), relativePath),
           path.resolve(process.cwd(), "public", relativePath),
+          path.resolve(process.cwd(), "client", "public", "uploads", "contracts", baseName),
+          path.resolve(process.cwd(), "client", "public", "uploads", "contracts", baseWithUnderscores),
+          path.resolve(process.cwd(), "dist", "public", "uploads", "contracts", baseName),
+          path.resolve(process.cwd(), "dist", "public", "uploads", "contracts", baseWithUnderscores),
+          path.resolve(process.cwd(), "contracte", baseName),
+          path.resolve(process.cwd(), "contracte", baseWithSpaces),
+          path.resolve(process.cwd(), "contracte", baseWithUnderscores),
         ];
 
         let foundPath: string | null = null;
