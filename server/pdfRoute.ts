@@ -22,6 +22,32 @@ import { getDb } from "./db";
 import { tenants } from "../drizzle/schema";
 import { eq, sql, and } from "drizzle-orm";
 
+function getXmlText(node: any, fallback = ""): string {
+  if (node === null || node === undefined) return fallback;
+  if (typeof node === "string") return node.trim() || fallback;
+  if (typeof node === "number") return String(node);
+  if (typeof node === "object") {
+    if (node["#text"] !== undefined) return String(node["#text"]).trim() || fallback;
+    if (node["_text"] !== undefined) return String(node["_text"]).trim() || fallback;
+  }
+  const str = String(node).trim();
+  return str === "[object Object]" ? fallback : (str || fallback);
+}
+
+function parseXmlNumber(node: any, fallback = 0): number {
+  if (node === null || node === undefined) return fallback;
+  if (typeof node === "number") return isNaN(node) ? fallback : node;
+  if (typeof node === "object") {
+    if (node["#text"] !== undefined) return parseXmlNumber(node["#text"], fallback);
+    if (node["_text"] !== undefined) return parseXmlNumber(node["_text"], fallback);
+    if (node["text"] !== undefined) return parseXmlNumber(node["text"], fallback);
+    return fallback;
+  }
+  const str = String(node).trim().replace(",", ".");
+  const num = parseFloat(str);
+  return isNaN(num) ? fallback : num;
+}
+
 export function registerPdfRoute(app: any) {
   const router = Router();
 
@@ -305,31 +331,7 @@ export function registerPdfRoute(app: any) {
         }
       } catch (_) {}
 
-      const getXmlText = (node: any, fallback = ""): string => {
-        if (node === null || node === undefined) return fallback;
-        if (typeof node === "string") return node.trim() || fallback;
-        if (typeof node === "number") return String(node);
-        if (typeof node === "object") {
-          if (node["#text"] !== undefined) return String(node["#text"]).trim() || fallback;
-          if (node["_text"] !== undefined) return String(node["_text"]).trim() || fallback;
-        }
-        const str = String(node).trim();
-        return str === "[object Object]" ? fallback : (str || fallback);
-      };
 
-      const parseXmlNumber = (node: any, fallback = 0): number => {
-        if (node === null || node === undefined) return fallback;
-        if (typeof node === "number") return isNaN(node) ? fallback : node;
-        if (typeof node === "object") {
-          if (node["#text"] !== undefined) return parseXmlNumber(node["#text"], fallback);
-          if (node["_text"] !== undefined) return parseXmlNumber(node["_text"], fallback);
-          if (node["text"] !== undefined) return parseXmlNumber(node["text"], fallback);
-          return fallback;
-        }
-        const str = String(node).trim().replace(",", ".");
-        const num = parseFloat(str);
-        return isNaN(num) ? fallback : num;
-      };
 
       const direction = inv.direction; // 'in' or 'out'
       const supplierParty =
@@ -817,6 +819,7 @@ export function registerPdfRoute(app: any) {
 
   // ─── GET /api/pdf/nir/:id — PDF Nota de Intrare-Recepție ─────────────────────
   router.get("/nir/:id", async (req: Request, res: Response) => {
+    let doc: any = null;
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -937,7 +940,7 @@ export function registerPdfRoute(app: any) {
 
       // ── Generate NIR PDF with PDFKit ──
       const PDFDocument = (await import("pdfkit")).default;
-      const doc = new PDFDocument({
+      doc = new PDFDocument({
         size: "A4",
         margin: 40,
         bufferPages: true,
@@ -1466,7 +1469,14 @@ export function registerPdfRoute(app: any) {
       doc.end();
     } catch (e: any) {
       console.error("[PDF NIR Route] Error:", e.message);
-      if (!res.headersSent) res.status(500).json({ error: e.message });
+      try {
+        if (doc) doc.end();
+      } catch {}
+      if (!res.headersSent) {
+        res.status(500).json({ error: e.message });
+      } else {
+        res.end();
+      }
     }
   });
 
