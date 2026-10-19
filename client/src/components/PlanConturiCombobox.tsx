@@ -21,6 +21,7 @@ export const POPULAR_NIR_ACCOUNTS: PlanContItem[] = [
   { cod: "341", denumire: "SEMIFABRICATE", shortLabel: "Semifabricate" },
   { cod: "4091", denumire: "AVANSURI FURNIZORI STOCURI", shortLabel: "Avansuri" },
   { cod: "605", denumire: "ENERGIE SI APA", shortLabel: "Utilități" },
+  { cod: "624", denumire: "CHELTUIELI CU TRANSPORTUL DE BUNURI SI PERSOANE", shortLabel: "Transport" },
   { cod: "628", denumire: "ALTE CHELTUIELI CU SERVICIILE", shortLabel: "Servicii terți" },
   { cod: "628.01", denumire: "ALTE CHELT CU SERVICIILE EXECUTATE DE TERTI DEDUCTIBIL", shortLabel: "Servicii terți" },
   { cod: "628.02", denumire: "ALTE CHELT CU SERVICIILE - NEDEDUCTIBIL", shortLabel: "Servicii (neded.)" },
@@ -261,7 +262,8 @@ export default function PlanConturiCombobox({
               if (!isOpen) setIsOpen(true);
               const clean = val.trim();
               const codePrefix = clean.split(/[·\-—\s]/)[0].trim();
-              const exact = accounts.find(
+              const allCandidates = [...POPULAR_NIR_ACCOUNTS, ...accounts];
+              const exact = allCandidates.find(
                 (a) =>
                   a.cod.toLowerCase() === clean.toLowerCase() ||
                   a.cod.toLowerCase() === codePrefix.toLowerCase() ||

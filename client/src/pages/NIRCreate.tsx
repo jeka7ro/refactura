@@ -415,8 +415,7 @@ export default function NIRCreate() {
               (l.description || "").toLowerCase().includes("intretinere") ||
               (l.description || "").toLowerCase().includes("gaz") ||
               (l.description || "").toLowerCase().includes("energie") ||
-              (l.description || "").toLowerCase().includes("curent") ||
-              isTransport;
+              (l.description || "").toLowerCase().includes("curent");
 
             // 1. Caută în cele existente conform denumirii produsului (exact sau prefix)
             const matchedArticle = articles.find((a: any) => {
@@ -436,6 +435,9 @@ export default function NIRCreate() {
             } else if (isAvans) {
               defType = "Avans";
               defAccount = "4091";
+            } else if (isTransport) {
+              defType = "Transport";
+              defAccount = "624";
             } else if (isServiceText) {
               defType = "Servicii";
               defAccount = "628";
@@ -535,26 +537,39 @@ export default function NIRCreate() {
   const removeLine = (idx: number) =>
     setLines(prev => prev.filter((_, i) => i !== idx));
 
-  const updateLine = (idx: number, field: keyof NirLineForm, value: any) => {
+  const updateLine = (
+    idx: number,
+    fieldOrPatch: keyof NirLineForm | Partial<NirLineForm>,
+    value?: any
+  ) => {
     setLines(prev => {
       const updated = [...prev];
-      updated[idx] = { ...updated[idx], [field]: value };
-      if (field === "cantitateReceptionata" || field === "unitPrice") {
-        const qty = parseFloat(updated[idx].cantitateReceptionata) || 0;
-        const price = parseFloat(updated[idx].unitPrice) || 0;
-        updated[idx].total = (qty * price).toFixed(2);
+      if (typeof fieldOrPatch === "object" && fieldOrPatch !== null) {
+        updated[idx] = { ...updated[idx], ...fieldOrPatch };
+        if (fieldOrPatch.accountingAccount && !fieldOrPatch.accountingType) {
+          const t = getAccountType(fieldOrPatch.accountingAccount);
+          if (t) updated[idx].accountingType = t;
+        }
+      } else {
+        const field = fieldOrPatch as keyof NirLineForm;
+        updated[idx] = { ...updated[idx], [field]: value };
+        if (field === "accountingType" && value) {
+          if (TIP_TO_CONT[value]) {
+            updated[idx].accountingAccount = TIP_TO_CONT[value];
+          }
+        }
+        if (field === "accountingAccount" && value) {
+          const t = getAccountType(value);
+          if (t) updated[idx].accountingType = t;
+        }
       }
-      // Când schimbi Tipul pe rând, actualizează automat Contul pe același rând
-      if (field === "accountingType") {
-        updated[idx].accountingAccount = TIP_TO_CONT[value] || "371";
-      }
-      if (field === "accountingAccount") {
-        const t = getAccountType(value);
-        if (t) updated[idx].accountingType = t;
-      }
+
+      const qty = parseFloat(updated[idx].cantitateReceptionata) || 0;
+      const price = parseFloat(updated[idx].unitPrice) || 0;
+      updated[idx].total = (qty * price).toFixed(2);
       
       // Auto-link article if description matches perfectly
-      if (field === "description") {
+      if (fieldOrPatch === "description") {
         const descNorm = normalizeName(value);
         const matched = articles.find((a: any) => {
           const aNorm = normalizeName(a.name);
@@ -571,11 +586,14 @@ export default function NIRCreate() {
           updated[idx].accountingType = matched.category || updated[idx].accountingType;
           updated[idx].accountingAccount = matched.accountingAccount || updated[idx].accountingAccount;
         } else {
-          const lower = value.toLowerCase();
+          const lower = String(value || "").toLowerCase();
           if (lower.includes("avans")) {
             updated[idx].accountingType = "Avans";
             updated[idx].accountingAccount = "4091";
-          } else if (lower.includes("transport") || lower.includes("servici")) {
+          } else if (lower.includes("transport")) {
+            updated[idx].accountingType = "Transport";
+            updated[idx].accountingAccount = "624";
+          } else if (lower.includes("servici")) {
             updated[idx].accountingType = "Servicii";
             updated[idx].accountingAccount = "628";
           }
@@ -583,7 +601,7 @@ export default function NIRCreate() {
       }
       
       // Auto-fill when selecting an article or typing code
-      if (field === "articleSearchText") {
+      if (fieldOrPatch === "articleSearchText") {
         const cleanVal = String(value || "").trim();
         const codePart = cleanVal.split(" - ")[0].trim();
         const matched = articles.find(
@@ -1026,14 +1044,15 @@ export default function NIRCreate() {
                             value={line.articleSearchText ?? ""}
                             articles={articles}
                             onChange={(code, art) => {
-                              updateLine(idx, "articleSearchText", code);
+                              const patch: Partial<NirLineForm> = { articleSearchText: code };
                               if (art) {
-                                if (art.id) updateLine(idx, "sagaArticleId", art.id);
-                                if (art.unit) updateLine(idx, "unit", art.unit);
-                                if (art.vatRate !== null && art.vatRate !== undefined) updateLine(idx, "vatRate", String(art.vatRate));
-                                if (art.category) updateLine(idx, "accountingType", art.category);
-                                if (art.accountingAccount) updateLine(idx, "accountingAccount", art.accountingAccount);
+                                if (art.id) patch.sagaArticleId = art.id;
+                                if (art.unit) patch.unit = art.unit;
+                                if (art.vatRate !== null && art.vatRate !== undefined) patch.vatRate = String(art.vatRate);
+                                if (art.category) patch.accountingType = art.category;
+                                if (art.accountingAccount) patch.accountingAccount = art.accountingAccount;
                               }
+                              updateLine(idx, patch);
                             }}
                             placeholder="Articol SAGA (lasă gol pt nou)"
                           />
@@ -1048,8 +1067,11 @@ export default function NIRCreate() {
                               value={line.accountingAccount || "371"}
                               accounts={planConturiList}
                               onChange={(cont, denumire) => {
-                                updateLine(idx, "accountingAccount", cont);
-                                updateLine(idx, "accountingType", denumire);
+                                const t = getAccountType(cont) || denumire || "Mărfuri";
+                                updateLine(idx, {
+                                  accountingAccount: cont,
+                                  accountingType: t,
+                                });
                               }}
                               placeholder="Tip (ex: 371)"
                             />

@@ -47,6 +47,20 @@ export async function convertXmlToPdf(
           return str === "[object Object]" ? fallback : (str || fallback);
         };
 
+        const parseXmlNumber = (node: any, fallback = 0): number => {
+          if (node === null || node === undefined) return fallback;
+          if (typeof node === "number") return isNaN(node) ? fallback : node;
+          if (typeof node === "object") {
+            if (node["#text"] !== undefined) return parseXmlNumber(node["#text"], fallback);
+            if (node["_text"] !== undefined) return parseXmlNumber(node["_text"], fallback);
+            if (node["text"] !== undefined) return parseXmlNumber(node["text"], fallback);
+            return fallback;
+          }
+          const str = String(node).trim().replace(",", ".");
+          const num = parseFloat(str);
+          return isNaN(num) ? fallback : num;
+        };
+
         const invNumber = getXmlText(invoice["cbc:ID"]);
         const issueDate = getXmlText(invoice["cbc:IssueDate"]);
         const dueDate = getXmlText(invoice["cbc:DueDate"], issueDate);
@@ -88,64 +102,52 @@ export async function convertXmlToPdf(
 
         const mappedLines = lines.map((l: any) => {
           const name =
-            l["cac:Item"]?.["cbc:Name"] ||
-            l["cac:Item"]?.["cbc:Description"] ||
+            getXmlText(l["cac:Item"]?.["cbc:Name"]) ||
+            getXmlText(l["cac:Item"]?.["cbc:Description"]) ||
             "Produs";
           const um = l["cbc:InvoicedQuantity"]?.["@_unitCode"] || "buc";
-          const qty =
-            l["cbc:InvoicedQuantity"]?.["#text"] ||
-            l["cbc:InvoicedQuantity"] ||
-            "0";
-          const price =
-            l["cac:Price"]?.["cbc:PriceAmount"]?.["#text"] ||
-            l["cac:Price"]?.["cbc:PriceAmount"] ||
-            "0";
-          const val =
-            l["cbc:LineExtensionAmount"]?.["#text"] ||
-            l["cbc:LineExtensionAmount"] ||
-            "0";
+          const qty = parseXmlNumber(
+            l["cbc:InvoicedQuantity"] ?? l["cbc:CreditedQuantity"],
+            1
+          );
+          const price = parseXmlNumber(
+            l["cac:Price"]?.["cbc:PriceAmount"],
+            0
+          );
+          const val = parseXmlNumber(
+            l["cbc:LineExtensionAmount"],
+            qty * price
+          );
 
           const tvaNode =
             l["cac:Item"]?.["cac:ClassifiedTaxCategory"] ||
             l["cac:TaxTotal"]?.["cac:TaxSubtotal"];
-          let tvaPercent = "19"; // default
-          if (Array.isArray(tvaNode)) {
-            tvaPercent = tvaNode[0]?.["cbc:Percent"] || "19";
-          } else if (tvaNode) {
-            tvaPercent = tvaNode["cbc:Percent"] || "19";
-          }
+          const tvaNodeObj = Array.isArray(tvaNode) ? tvaNode[0] : tvaNode;
+          const tvaPercent = parseXmlNumber(tvaNodeObj?.["cbc:Percent"], 19);
 
           return {
             description: name,
-            quantity: parseFloat(qty),
-            unitPrice: parseFloat(price),
+            quantity: qty,
+            unitPrice: price,
             unit: um,
-            vatRate: parseFloat(tvaPercent),
-            total: parseFloat(val),
+            vatRate: tvaPercent,
+            total: val,
           };
         });
 
         const legalTotal = invoice["cac:LegalMonetaryTotal"] || {};
         const taxTotal = invoice["cac:TaxTotal"] || {};
+        const taxTotalObj = Array.isArray(taxTotal) ? taxTotal[0] : taxTotal;
 
-        let totalTaxAmt = "0.00";
-        if (Array.isArray(taxTotal)) {
-          totalTaxAmt = taxTotal[0]?.["cbc:TaxAmount"]?.["#text"] || "0.00";
-        } else {
-          totalTaxAmt =
-            taxTotal["cbc:TaxAmount"]?.["#text"] ||
-            taxTotal["cbc:TaxAmount"] ||
-            "0.00";
-        }
-
-        const subTotal =
-          legalTotal["cbc:TaxExclusiveAmount"]?.["#text"] ||
-          legalTotal["cbc:TaxExclusiveAmount"] ||
-          "0.00";
-        const payable =
-          legalTotal["cbc:PayableAmount"]?.["#text"] ||
-          legalTotal["cbc:PayableAmount"] ||
-          "0.00";
+        const totalTaxAmt = parseXmlNumber(taxTotalObj?.["cbc:TaxAmount"], 0);
+        const subTotal = parseXmlNumber(
+          legalTotal["cbc:TaxExclusiveAmount"] ?? legalTotal["cbc:LineExtensionAmount"],
+          0
+        );
+        const payable = parseXmlNumber(
+          legalTotal["cbc:TaxInclusiveAmount"] ?? legalTotal["cbc:PayableAmount"],
+          0
+        );
 
         const data: any = {
           number: invNumber,
@@ -170,9 +172,9 @@ export async function convertXmlToPdf(
           logoBase64: "DEFAULT_TEXT_LOGO",
           template: "classic",
           currency: currency,
-          subtotal: parseFloat(subTotal),
-          totalVAT: parseFloat(totalTaxAmt),
-          total: parseFloat(payable),
+          subtotal: subTotal,
+          totalVAT: totalTaxAmt,
+          total: payable,
           lines: mappedLines,
           spvIndex: (fileNameBase || "").match(/SPV_(\d+)/i)?.[1] || undefined,
         };

@@ -266,7 +266,7 @@ export function registerPdfRoute(app: any) {
         attributeNamePrefix: "@_",
       });
       const parsed = parser.parse(xmlContent);
-      const invoiceObj = parsed.Invoice || parsed.CreditNote;
+      const invoiceObj = parsed.Invoice || parsed.CreditNote || parsed["ubl:Invoice"] || parsed["ubl:CreditNote"] || parsed[Object.keys(parsed)[0]];
 
       if (!invoiceObj) {
         res.status(500).json({
@@ -275,6 +275,14 @@ export function registerPdfRoute(app: any) {
         });
         return;
       }
+
+      const isCreditNote = !!(
+        parsed.CreditNote ||
+        parsed["ubl:CreditNote"] ||
+        invoiceObj["cbc:CreditNoteTypeCode"] ||
+        invoiceObj["CreditNoteTypeCode"] ||
+        String(invoiceObj["cbc:InvoiceTypeCode"] || invoiceObj["InvoiceTypeCode"] || "").trim() === "381"
+      );
 
       // Default logo string for the text-based layout
       let logoBase64 = "DEFAULT_TEXT_LOGO";
@@ -309,30 +317,62 @@ export function registerPdfRoute(app: any) {
         return str === "[object Object]" ? fallback : (str || fallback);
       };
 
+      const parseXmlNumber = (node: any, fallback = 0): number => {
+        if (node === null || node === undefined) return fallback;
+        if (typeof node === "number") return isNaN(node) ? fallback : node;
+        if (typeof node === "object") {
+          if (node["#text"] !== undefined) return parseXmlNumber(node["#text"], fallback);
+          if (node["_text"] !== undefined) return parseXmlNumber(node["_text"], fallback);
+          if (node["text"] !== undefined) return parseXmlNumber(node["text"], fallback);
+          return fallback;
+        }
+        const str = String(node).trim().replace(",", ".");
+        const num = parseFloat(str);
+        return isNaN(num) ? fallback : num;
+      };
+
       const direction = inv.direction; // 'in' or 'out'
       const supplierParty =
-        invoiceObj["cac:AccountingSupplierParty"]?.["cac:Party"];
+        invoiceObj["cac:AccountingSupplierParty"]?.["cac:Party"] ||
+        invoiceObj["AccountingSupplierParty"]?.["Party"];
       const customerParty =
-        invoiceObj["cac:AccountingCustomerParty"]?.["cac:Party"];
+        invoiceObj["cac:AccountingCustomerParty"]?.["cac:Party"] ||
+        invoiceObj["AccountingCustomerParty"]?.["Party"];
 
       const extractPartyDetails = (party: any) => ({
         name:
           getXmlText(party?.["cac:PartyName"]?.["cbc:Name"]) ||
+          getXmlText(party?.["PartyName"]?.["Name"]) ||
           getXmlText(party?.["cac:PartyLegalEntity"]?.["cbc:RegistrationName"]) ||
+          getXmlText(party?.["PartyLegalEntity"]?.["RegistrationName"]) ||
           "",
         cui:
           getXmlText(party?.["cac:PartyTaxScheme"]?.["cbc:CompanyID"]) ||
+          getXmlText(party?.["PartyTaxScheme"]?.["CompanyID"]) ||
           getXmlText(party?.["cac:PartyLegalEntity"]?.["cbc:CompanyID"]) ||
+          getXmlText(party?.["PartyLegalEntity"]?.["CompanyID"]) ||
           "",
-        address: getXmlText(party?.["cac:PostalAddress"]?.["cbc:StreetName"]),
-        city: getXmlText(party?.["cac:PostalAddress"]?.["cbc:CityName"]),
-        county: getXmlText(party?.["cac:PostalAddress"]?.["cbc:CountrySubentity"]),
+        address:
+          getXmlText(party?.["cac:PostalAddress"]?.["cbc:StreetName"]) ||
+          getXmlText(party?.["PostalAddress"]?.["StreetName"]),
+        city:
+          getXmlText(party?.["cac:PostalAddress"]?.["cbc:CityName"]) ||
+          getXmlText(party?.["PostalAddress"]?.["CityName"]),
+        county:
+          getXmlText(party?.["cac:PostalAddress"]?.["cbc:CountrySubentity"]) ||
+          getXmlText(party?.["PostalAddress"]?.["CountrySubentity"]),
         country:
           getXmlText(party?.["cac:PostalAddress"]?.["cac:Country"]?.["cbc:IdentificationCode"]) ||
+          getXmlText(party?.["PostalAddress"]?.["Country"]?.["IdentificationCode"]) ||
           getXmlText(party?.["cac:PostalAddress"]?.["cac:Country"]?.["cbc:Name"]) ||
+          getXmlText(party?.["PostalAddress"]?.["Country"]?.["Name"]) ||
           "",
-        email: getXmlText(party?.["cac:Contact"]?.["cbc:ElectronicMail"]),
-        phone: getXmlText(party?.["cac:Contact"]?.["cbc:Telephone"]),
+        email:
+          getXmlText(party?.["cac:Contact"]?.["cbc:ElectronicMail"]) ||
+          getXmlText(party?.["Contact"]?.["ElectronicMail"]),
+        phone:
+          getXmlText(party?.["cac:Contact"]?.["cbc:Telephone"]) ||
+          getXmlText(party?.["Contact"]?.["Telephone"]),
         iban: "",
       });
 
@@ -342,19 +382,22 @@ export function registerPdfRoute(app: any) {
       // Extract real IBAN and Bank from PaymentMeans
       let supplierIban = "";
       let supplierBank = "";
-      const rawPm = invoiceObj["cac:PaymentMeans"];
+      const rawPm = invoiceObj["cac:PaymentMeans"] || invoiceObj["PaymentMeans"];
       const pmList = Array.isArray(rawPm) ? rawPm : (rawPm ? [rawPm] : []);
       for (const pm of pmList) {
-        const acc = pm?.["cac:PayeeFinancialAccount"];
+        const acc = pm?.["cac:PayeeFinancialAccount"] || pm?.["PayeeFinancialAccount"];
         if (acc) {
-          const accId = getXmlText(acc["cbc:ID"]);
+          const accId = getXmlText(acc["cbc:ID"] || acc["ID"]);
           if (accId && accId.length > 5 && !accId.toUpperCase().includes("VAT")) {
             supplierIban = accId;
             supplierBank =
-              getXmlText(acc["cbc:Name"]) ||
+              getXmlText(acc["cbc:Name"] || acc["Name"]) ||
               getXmlText(
                 acc["cac:FinancialInstitutionBranch"]?.["cac:FinancialInstitution"]?.[
                   "cbc:Name"
+                ] ||
+                acc["FinancialInstitutionBranch"]?.["FinancialInstitution"]?.[
+                  "Name"
                 ]
               ) ||
               "";
@@ -383,51 +426,102 @@ export function registerPdfRoute(app: any) {
       }
 
       let xmlLines =
-        invoiceObj["cac:InvoiceLine"] || invoiceObj["cac:CreditNoteLine"] || [];
+        invoiceObj["cac:InvoiceLine"] ||
+        invoiceObj["cac:CreditNoteLine"] ||
+        invoiceObj["InvoiceLine"] ||
+        invoiceObj["CreditNoteLine"] ||
+        [];
       if (!Array.isArray(xmlLines)) xmlLines = [xmlLines];
 
       const lines = xmlLines.map((line: any) => {
-        const item = line["cac:Item"];
-        const price = line["cac:Price"];
-        const taxCategory = item?.["cac:ClassifiedTaxCategory"];
+        const item = line["cac:Item"] || line["Item"];
+        const price = line["cac:Price"] || line["Price"];
+        const taxCategory = item?.["cac:ClassifiedTaxCategory"] || item?.["ClassifiedTaxCategory"];
+        const taxCategoryObj = Array.isArray(taxCategory) ? taxCategory[0] : taxCategory;
+
+        const rawQty = parseXmlNumber(
+          line["cbc:InvoicedQuantity"] ??
+            line["InvoicedQuantity"] ??
+            line["cbc:CreditedQuantity"] ??
+            line["CreditedQuantity"],
+          1
+        );
+        const rawUnitPrice = parseXmlNumber(
+          price?.["cbc:PriceAmount"] ?? price?.["PriceAmount"],
+          0
+        );
+        const rawTotal = parseXmlNumber(
+          line["cbc:LineExtensionAmount"] ?? line["LineExtensionAmount"],
+          rawQty * rawUnitPrice
+        );
+        const vatRate = parseXmlNumber(
+          taxCategoryObj?.["cbc:Percent"] ?? taxCategoryObj?.["Percent"],
+          19
+        );
+
+        // If CreditNote, ensure negative values
+        const quantity = isCreditNote && rawQty > 0 ? -rawQty : rawQty;
+        const total = isCreditNote && rawTotal > 0 ? -rawTotal : rawTotal;
+
+        const rawDesc = getXmlText(
+          item?.["cbc:Name"] ||
+            item?.["Name"] ||
+            item?.["cbc:Description"] ||
+            item?.["Description"],
+          "Articol"
+        );
+        const cleanDesc = rawDesc
+          .replace(/&amp;/g, "&")
+          .replace(/&lt;/g, "<")
+          .replace(/&gt;/g, ">")
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'");
 
         return {
-          description: getXmlText(
-            item?.["cbc:Name"] || item?.["cbc:Description"],
-            "Articol"
-          ),
-          quantity: parseFloat(
-            line["cbc:InvoicedQuantity"]?.["#text"] ||
-              line["cbc:InvoicedQuantity"] ||
-              line["cbc:CreditedQuantity"]?.["#text"] ||
-              line["cbc:CreditedQuantity"] ||
-              "1"
-          ),
-          unitPrice: parseFloat(
-            price?.["cbc:PriceAmount"]?.["#text"] ||
-              price?.["cbc:PriceAmount"] ||
-              "0"
-          ),
+          description: cleanDesc,
+          quantity,
+          unitPrice: rawUnitPrice,
           unit: String(
             line["cbc:InvoicedQuantity"]?.["@_unitCode"] ||
+              line["InvoicedQuantity"]?.["@_unitCode"] ||
               line["cbc:CreditedQuantity"]?.["@_unitCode"] ||
+              line["CreditedQuantity"]?.["@_unitCode"] ||
               "buc"
           ),
-          vatRate: parseFloat(
-            taxCategory?.["cbc:Percent"]?.["#text"] ||
-              taxCategory?.["cbc:Percent"] ||
-              "19"
-          ),
-          total: parseFloat(
-            line["cbc:LineExtensionAmount"]?.["#text"] ||
-              line["cbc:LineExtensionAmount"] ||
-              "0"
-          ),
+          vatRate,
+          total,
         };
       });
 
-      const legalTotal = invoiceObj["cac:LegalMonetaryTotal"];
-      const taxTotal = invoiceObj["cac:TaxTotal"];
+      const legalTotal = invoiceObj["cac:LegalMonetaryTotal"] || invoiceObj["LegalMonetaryTotal"];
+      const taxTotal = invoiceObj["cac:TaxTotal"] || invoiceObj["TaxTotal"];
+      const taxTotalObj = Array.isArray(taxTotal) ? taxTotal[0] : taxTotal;
+
+      let subtotal = parseXmlNumber(
+        legalTotal?.["cbc:TaxExclusiveAmount"] ??
+          legalTotal?.["TaxExclusiveAmount"] ??
+          legalTotal?.["cbc:LineExtensionAmount"] ??
+          legalTotal?.["LineExtensionAmount"],
+        0
+      );
+      let totalVAT = parseXmlNumber(
+        taxTotalObj?.["cbc:TaxAmount"] ?? taxTotalObj?.["TaxAmount"],
+        0
+      );
+      let total = parseXmlNumber(
+        legalTotal?.["cbc:TaxInclusiveAmount"] ??
+          legalTotal?.["TaxInclusiveAmount"] ??
+          legalTotal?.["cbc:PayableAmount"] ??
+          legalTotal?.["PayableAmount"],
+        0
+      );
+
+      // If CreditNote, ensure negative totals
+      if (isCreditNote) {
+        if (subtotal > 0) subtotal = -subtotal;
+        if (totalVAT > 0) totalVAT = -totalVAT;
+        if (total > 0) total = -total;
+      }
 
       // Extragere număr index SPV
       let spvIndex: string | null = (inv as any).spvIndex || null;
@@ -455,11 +549,11 @@ export function registerPdfRoute(app: any) {
       }
 
       const pdfData = {
-        number: getXmlText(invoiceObj["cbc:ID"], inv.invoiceNumber || ""),
-        date: getXmlText(invoiceObj["cbc:IssueDate"], inv.issueDate || ""),
+        number: getXmlText(invoiceObj["cbc:ID"] || invoiceObj["ID"], inv.invoiceNumber || ""),
+        date: getXmlText(invoiceObj["cbc:IssueDate"] || invoiceObj["IssueDate"], inv.issueDate || ""),
         dueDate: getXmlText(
-          invoiceObj["cbc:DueDate"],
-          getXmlText(invoiceObj["cbc:IssueDate"], inv.dueDate || inv.issueDate || "")
+          invoiceObj["cbc:DueDate"] || invoiceObj["DueDate"],
+          getXmlText(invoiceObj["cbc:IssueDate"] || invoiceObj["IssueDate"], inv.dueDate || inv.issueDate || "")
         ),
 
         companyName: supplierDetails.name,
@@ -488,26 +582,15 @@ export function registerPdfRoute(app: any) {
         logoBgColor,
         themeColor,
         template: "classic" as any,
+        isCreditNote,
+        documentTitle: isCreditNote ? "FACTURĂ STORNO" : undefined,
         lines,
 
-        subtotal: parseFloat(
-          legalTotal?.["cbc:TaxExclusiveAmount"]?.["#text"] ||
-            legalTotal?.["cbc:TaxExclusiveAmount"] ||
-            "0"
-        ),
-        totalVAT: parseFloat(
-          taxTotal?.["cbc:TaxAmount"]?.["#text"] ||
-            taxTotal?.["cbc:TaxAmount"] ||
-            "0"
-        ),
-        total: parseFloat(
-          legalTotal?.["cbc:TaxInclusiveAmount"]?.["#text"] ||
-            legalTotal?.["cbc:TaxInclusiveAmount"] ||
-            legalTotal?.["cbc:PayableAmount"]?.["#text"] ||
-            "0"
-        ),
+        subtotal,
+        totalVAT,
+        total,
         currency: getXmlText(
-          invoiceObj["cbc:DocumentCurrencyCode"],
+          invoiceObj["cbc:DocumentCurrencyCode"] || invoiceObj["DocumentCurrencyCode"],
           "RON"
         ),
       };
@@ -963,44 +1046,43 @@ export function registerPdfRoute(app: any) {
 
       // Titlu NIR dreapta
       doc
-        .fontSize(18)
+        .fontSize(16)
         .font("Roboto-Bold")
         .fillColor(TEAL)
-        .text("NOTĂ DE INTRARE-RECEPȚIE", 0, 35, { align: "right" });
+        .text("NOTĂ DE INTRARE-RECEPȚIE", 0, 30, { align: "right" });
       doc
-        .fontSize(9)
+        .fontSize(8)
         .font("Roboto")
         .fillColor(GRAY)
-        .text("(Cod formular 14-3-1/aA — OMFP 2634/2015)", 0, 57, {
+        .text("(Cod formular 14-3-1/aA — OMFP 2634/2015)", 0, 48, {
           align: "right",
         });
       if (spvIndex) {
         doc
-          .fontSize(8)
+          .fontSize(7.5)
           .font("Roboto-Bold")
           .fillColor(TEAL)
-          .text(`ID Încărcare SPV: ${spvIndex}`, 0, 72, { align: "right" });
+          .text(`ID Încărcare SPV: ${spvIndex}`, 0, 60, { align: "right" });
       }
 
-      doc.moveDown(0.3);
       doc
-        .moveTo(40, 90)
-        .lineTo(doc.page.width - 40, 90)
+        .moveTo(40, 75)
+        .lineTo(doc.page.width - 40, 75)
         .strokeColor(TEAL)
-        .lineWidth(2)
+        .lineWidth(1.5)
         .stroke();
 
       // ── DATE NIR ─────────────────────────────────────────────────────────────
-      let y = 100;
-      doc.rect(40, y, W, 70).fillColor(LIGHT).fill();
-      doc.rect(40, y, W, 70).strokeColor(BORDER).lineWidth(0.5).stroke();
+      let y = 82;
+      doc.rect(40, y, W, 54).fillColor(LIGHT).fill();
+      doc.rect(40, y, W, 54).strokeColor(BORDER).lineWidth(0.5).stroke();
 
       doc
-        .fontSize(7)
+        .fontSize(6.5)
         .font("Roboto-Bold")
         .fillColor(GRAY)
-        .text("DATE NIR", 50, y + 6);
-      y += 16;
+        .text("DATE NIR", 50, y + 4);
+      y += 14;
 
       const col = W / 4;
       const fields: [string, string][] = [
@@ -1011,15 +1093,15 @@ export function registerPdfRoute(app: any) {
       ];
       fields.forEach(([label, val], i) => {
         const x = 50 + i * col;
-        doc.fontSize(7).font("Roboto").fillColor(GRAY).text(label, x, y);
+        doc.fontSize(6.5).font("Roboto").fillColor(GRAY).text(label, x, y);
         doc
-          .fontSize(8)
+          .fontSize(7.5)
           .font("Roboto-Bold")
           .fillColor("#1e293b")
-          .text(val, x, y + 10);
+          .text(val, x, y + 8);
       });
 
-      y += 32;
+      y += 20;
       const fields2: [string, string][] = [
         ["Gestiunea:", nirRow.gestiune || "—"],
       ];
@@ -1030,68 +1112,68 @@ export function registerPdfRoute(app: any) {
       fields2.push(["ID Încărcare SPV:", spvIndex || "—"]);
       fields2.forEach(([label, val], i) => {
         const x = 50 + i * col;
-        doc.fontSize(7).font("Roboto").fillColor(GRAY).text(label, x, y);
+        doc.fontSize(6.5).font("Roboto").fillColor(GRAY).text(label, x, y);
         const isSpv = label.includes("SPV") && val !== "—";
         doc
-          .fontSize(8)
+          .fontSize(7.5)
           .font("Roboto-Bold")
           .fillColor(isSpv ? TEAL : "#1e293b")
-          .text(val, x, y + 10);
+          .text(val, x, y + 8);
       });
 
       // ── FURNIZOR + FIRMA ──────────────────────────────────────────────────────
-      y = 180;
+      y = 142;
       const halfW = (W - 10) / 2;
 
       // Furnizor box
-      doc.rect(40, y, halfW, 70).fillColor(LIGHT).fill();
-      doc.rect(40, y, halfW, 70).strokeColor(BORDER).lineWidth(0.5).stroke();
+      doc.rect(40, y, halfW, 58).fillColor(LIGHT).fill();
+      doc.rect(40, y, halfW, 58).strokeColor(BORDER).lineWidth(0.5).stroke();
       doc
-        .fontSize(7)
+        .fontSize(6.5)
         .font("Roboto-Bold")
         .fillColor(GRAY)
-        .text("FURNIZOR", 50, y + 6);
+        .text("FURNIZOR", 50, y + 4);
       doc
-        .fontSize(9)
+        .fontSize(8)
         .font("Roboto-Bold")
         .fillColor("#1e293b")
-        .text(nirRow.supplierName || "—", 50, y + 18, { width: halfW - 20 });
+        .text(nirRow.supplierName || "—", 50, y + 15, { width: halfW - 20 });
       doc
-        .fontSize(7)
+        .fontSize(6.5)
         .font("Roboto")
         .fillColor(GRAY)
-        .text(`CUI: ${nirRow.supplierCUI || "—"}`, 50, y + 31)
-        .text(nirRow.supplierAddress || "", 50, y + 42, { width: halfW - 20 });
+        .text(`CUI: ${nirRow.supplierCUI || "—"}`, 50, y + 26)
+        .text(nirRow.supplierAddress || "", 50, y + 36, { width: halfW - 20 });
 
       // Firma box
       const x2 = 40 + halfW + 10;
-      doc.rect(x2, y, halfW, 70).fillColor(LIGHT).fill();
-      doc.rect(x2, y, halfW, 70).strokeColor(BORDER).lineWidth(0.5).stroke();
+      doc.rect(x2, y, halfW, 58).fillColor(LIGHT).fill();
+      doc.rect(x2, y, halfW, 58).strokeColor(BORDER).lineWidth(0.5).stroke();
       doc
-        .fontSize(7)
+        .fontSize(6.5)
         .font("Roboto-Bold")
         .fillColor(GRAY)
-        .text("UNITATEA", x2 + 10, y + 6);
+        .text("UNITATEA", x2 + 10, y + 4);
       doc
-        .fontSize(9)
+        .fontSize(8)
         .font("Roboto-Bold")
         .fillColor("#1e293b")
-        .text(tenant?.name || "—", x2 + 10, y + 18, { width: halfW - 20 });
+        .text(tenant?.name || "—", x2 + 10, y + 15, { width: halfW - 20 });
       doc
-        .fontSize(7)
+        .fontSize(6.5)
         .font("Roboto")
         .fillColor(GRAY)
-        .text(`CUI: ${tenant?.cui || "—"}`, x2 + 10, y + 31)
-        .text(tenant?.address || "", x2 + 10, y + 42, { width: halfW - 20 });
+        .text(`CUI: ${tenant?.cui || "—"}`, x2 + 10, y + 26)
+        .text(tenant?.address || "", x2 + 10, y + 36, { width: halfW - 20 });
 
       // ── TABEL PRODUSE ─────────────────────────────────────────────────────────
-      y = 260;
+      y = 208;
       doc
-        .fontSize(7)
+        .fontSize(6.5)
         .font("Roboto-Bold")
         .fillColor(GRAY)
         .text("PRODUSE / SERVICII RECEPȚIONATE", 40, y);
-      y += 12;
+      y += 10;
 
       // Header tabel
       const cols = showAccounting 
@@ -1123,26 +1205,26 @@ export function registerPdfRoute(app: any) {
             "Valoare",
           ];
       let xOff = 40;
-      doc.rect(40, y, W, 16).fillColor(TEAL).fill();
+      doc.rect(40, y, W, 14).fillColor(TEAL).fill();
       headers.forEach((h, i) => {
         doc
-          .fontSize(6.5)
+          .fontSize(6)
           .font("Roboto-Bold")
           .fillColor("white")
-          .text(h, xOff + 3, y + 5, {
+          .text(h, xOff + 2, y + 4, {
             width: cols[i] - 4,
             align: (showAccounting ? (i > 4) : (i > 2)) ? "right" : "left",
           });
         xOff += cols[i];
       });
-      y += 16;
+      y += 14;
 
       // Rows
       lines.forEach((line, idx) => {
-        const rowH = 16;
-        const hasDiff =
-          parseFloat(line.cantitateReceptionata || "0") !==
-          parseFloat(line.cantitateComanda || "0");
+        const rowH = 14;
+        const cantRec = parseXmlNumber(line.cantitateReceptionata, 0);
+        const cantDoc = parseXmlNumber(line.cantitateComanda, 0);
+        const hasDiff = cantRec !== cantDoc;
         doc
           .rect(40, y, W, rowH)
           .fillColor(idx % 2 === 0 ? LIGHT : "white")
@@ -1153,6 +1235,10 @@ export function registerPdfRoute(app: any) {
         doc.rect(40, y, W, rowH).strokeColor(BORDER).lineWidth(0.3).stroke();
 
         let xc = 40;
+        const lineUnitPrice = parseXmlNumber(line.unitPrice, 0);
+        const lineTotalVal = parseXmlNumber(line.total, cantRec * lineUnitPrice);
+        const lineVatRate = parseXmlNumber(line.vatRate, 19);
+
         const cells = [
           { val: String(idx + 1), align: "left" as const },
           { val: (line as any).articleCode || "—", align: "left" as const },
@@ -1167,43 +1253,39 @@ export function registerPdfRoute(app: any) {
         cells.push(
           { val: line.unit || "buc", align: "left" as const },
           {
-            val: parseFloat(line.cantitateComanda || "0").toLocaleString(
-              "ro-RO"
-            ),
+            val: cantDoc.toLocaleString("ro-RO"),
             align: "right" as const,
           },
           {
-            val: parseFloat(line.cantitateReceptionata || "0").toLocaleString(
-              "ro-RO"
-            ),
+            val: cantRec.toLocaleString("ro-RO"),
             align: "right" as const,
           },
           {
-            val: parseFloat(line.unitPrice || "0").toLocaleString("ro-RO", {
+            val: lineUnitPrice.toLocaleString("ro-RO", {
               minimumFractionDigits: 2,
             }),
             align: "right" as const,
           },
           {
-            val: line.vatRate || "19",
+            val: String(lineVatRate),
             align: "center" as const,
           },
           {
-            val: parseFloat(line.total || "0").toLocaleString("ro-RO", {
+            val: lineTotalVal.toLocaleString("ro-RO", {
               minimumFractionDigits: 2,
             }),
             align: "right" as const,
           }
         );
         cells.forEach((cell, ci) => {
-          const isQtyIdx = showAccounting ? 6 : 4;
+          const isQtyIdx = showAccounting ? 7 : 5;
           const color = ci === isQtyIdx && hasDiff ? "#b45309" : "#1e293b";
           doc
-            .fontSize(7)
+            .fontSize(6.5)
             .font(ci === isQtyIdx && hasDiff ? "Roboto-Bold" : "Roboto")
             .fillColor(color)
-            .text(cell.val, xc + 3, y + 5, {
-              width: cols[ci] - 6,
+            .text(cell.val, xc + 2, y + 3.5, {
+              width: cols[ci] - 4,
               align: cell.align,
               ellipsis: true,
             });
@@ -1212,77 +1294,84 @@ export function registerPdfRoute(app: any) {
         y += rowH;
 
         // New page if needed
-        if (y > doc.page.height - 180) {
+        if (y > doc.page.height - 140) {
           doc.addPage();
           y = 40;
         }
       });
 
       // Calculate totals
-      const totalFaraTva = lines.reduce((s, l) => s + parseFloat(l.total || "0"), 0);
-      const totalTva = lines.reduce((s, l) => s + (parseFloat(l.total || "0") * parseFloat(l.vatRate || "19") / 100), 0);
+      const totalFaraTva = lines.reduce((s, l) => {
+        const lineTot = parseXmlNumber(l.total) || (parseXmlNumber(l.cantitateReceptionata) * parseXmlNumber(l.unitPrice));
+        return s + lineTot;
+      }, 0);
+      const totalTva = lines.reduce((s, l) => {
+        const lineTot = parseXmlNumber(l.total) || (parseXmlNumber(l.cantitateReceptionata) * parseXmlNumber(l.unitPrice));
+        const rate = parseXmlNumber(l.vatRate, 19);
+        return s + (lineTot * rate) / 100;
+      }, 0);
       const totalCuTva = totalFaraTva + totalTva;
 
       // 1. TOTAL FARA TVA
-      doc.rect(40, y, W, 16).fillColor(LIGHT).strokeColor(BORDER).lineWidth(0.5).fillAndStroke();
-      doc.fontSize(7).font("Roboto-Bold").fillColor(GRAY).text("TOTAL FĂRĂ TVA:", 40 + 3, y + 5, { width: W - 65, align: "right" });
-      doc.fillColor("#334155").text(`${totalFaraTva.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}`, 40 + W - 70 - 10, y + 5, { width: 75, align: "right" });
-      y += 16;
+      doc.rect(40, y, W, 14).fillColor(LIGHT).strokeColor(BORDER).lineWidth(0.5).fillAndStroke();
+      doc.fontSize(6.5).font("Roboto-Bold").fillColor(GRAY).text("TOTAL FĂRĂ TVA:", 40 + 3, y + 4, { width: W - 75, align: "right" });
+      doc.fillColor("#334155").text(`${totalFaraTva.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}`, 40 + W - 70, y + 4, { width: 68, align: "right" });
+      y += 14;
       
       // 2. TOTAL TVA
-      doc.rect(40, y, W, 16).fillColor(LIGHT).strokeColor(BORDER).lineWidth(0.5).fillAndStroke();
-      doc.fontSize(7).font("Roboto-Bold").fillColor(GRAY).text("TOTAL TVA:", 40 + 3, y + 5, { width: W - 65, align: "right" });
-      doc.fillColor("#334155").text(`${totalTva.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}`, 40 + W - 70 - 10, y + 5, { width: 75, align: "right" });
-      y += 16;
+      doc.rect(40, y, W, 14).fillColor(LIGHT).strokeColor(BORDER).lineWidth(0.5).fillAndStroke();
+      doc.fontSize(6.5).font("Roboto-Bold").fillColor(GRAY).text("TOTAL TVA:", 40 + 3, y + 4, { width: W - 75, align: "right" });
+      doc.fillColor("#334155").text(`${totalTva.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}`, 40 + W - 70, y + 4, { width: 68, align: "right" });
+      y += 14;
       
       // 3. TOTAL CU TVA
-      doc.rect(40, y, W, 18).fillColor(TEAL).fill();
-      doc.fontSize(8).font("Roboto-Bold").fillColor("white").text("TOTAL CU TVA:", 40 + 3, y + 5, { width: W - 65, align: "right" });
-      doc.fontSize(9).text(`${totalCuTva.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}`, 40 + W - 70 - 10, y + 4.5, { width: 75, align: "right" });
-      y += 26;
+      doc.rect(40, y, W, 16).fillColor(TEAL).fill();
+      doc.fontSize(7.5).font("Roboto-Bold").fillColor("white").text("TOTAL CU TVA:", 40 + 3, y + 4.5, { width: W - 75, align: "right" });
+      doc.fontSize(8.5).text(`${totalCuTva.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}`, 40 + W - 70, y + 4, { width: 68, align: "right" });
+      y += 22;
 
       // Diferente alert
       const hasDifferences = lines.some(
         l =>
-          parseFloat(l.cantitateReceptionata || "0") !==
-          parseFloat(l.cantitateComanda || "0")
+          parseXmlNumber(l.cantitateReceptionata) !==
+          parseXmlNumber(l.cantitateComanda)
       );
       if (hasDifferences) {
-        doc.rect(40, y, W, 24).fillColor("#fef3c7").fill();
-        doc.rect(40, y, W, 24).strokeColor("#f59e0b").lineWidth(0.5).stroke();
+        doc.rect(40, y, W, 20).fillColor("#fef3c7").fill();
+        doc.rect(40, y, W, 20).strokeColor("#f59e0b").lineWidth(0.5).stroke();
         doc
-          .fontSize(8)
+          .fontSize(7)
           .font("Roboto-Bold")
           .fillColor("#92400e")
           .text(
             "⚠ ATENȚIE: Există diferențe cantitative — NIR se întocmește în 3 exemplare (conf. OMFP 2634/2015)",
             50,
-            y + 8
+            y + 6
           );
-        y += 30;
+        y += 24;
         if (nirRow.differenceNotes) {
           doc
-            .fontSize(7)
+            .fontSize(6.5)
             .font("Roboto")
             .fillColor(GRAY)
             .text(`Constatări: ${nirRow.differenceNotes}`, 50, y);
-          y += 14;
+          y += 12;
         }
       }
 
       // ── COMISIA DE RECEPȚIE ───────────────────────────────────────────────────
-      y += 8;
-      if (y > doc.page.height - 120) {
+      y += 6;
+      if (y > doc.page.height - 90) {
         doc.addPage();
         y = 40;
       }
 
       doc
-        .fontSize(8)
+        .fontSize(7)
         .font("Roboto-Bold")
         .fillColor(GRAY)
         .text("COMISIA DE RECEPȚIE", 40, y);
-      y += 12;
+      y += 10;
 
       const members = [
         { name: nirRow.member1Name, func: nirRow.member1Function },
@@ -1290,103 +1379,89 @@ export function registerPdfRoute(app: any) {
         { name: nirRow.member3Name, func: nirRow.member3Function },
       ].filter(m => m.name);
 
-      if (members.length > 0) {
-        const mW = W / 3;
-        members.forEach((m, i) => {
-          const mx = 40 + i * mW;
+      const mW = W / 3;
+      const signatureList = members.length > 0
+        ? members
+        : [
+            { name: "", func: "Gestionar" },
+            { name: "", func: "Contabil" },
+            { name: "", func: "Șef depozit" },
+          ];
+
+      signatureList.forEach((m, i) => {
+        const mx = 40 + i * mW;
+        doc
+          .rect(mx, y, mW - 8, 42)
+          .strokeColor(BORDER)
+          .lineWidth(0.5)
+          .stroke();
+        doc
+          .fontSize(6.5)
+          .font("Roboto-Bold")
+          .fillColor(GRAY)
+          .text(m.func || "Membru", mx + 5, y + 4);
+        if (m.name) {
           doc
-            .rect(mx, y, mW - 8, 55)
-            .strokeColor(BORDER)
-            .lineWidth(0.5)
-            .stroke();
-          doc
-            .fontSize(7)
-            .font("Roboto-Bold")
-            .fillColor(GRAY)
-            .text(m.func || "Membru", mx + 6, y + 5);
-          doc
-            .fontSize(8)
+            .fontSize(7.5)
             .font("Roboto")
             .fillColor("#1e293b")
-            .text(m.name || "", mx + 6, y + 16);
-          // Signature line
-          doc
-            .moveTo(mx + 6, y + 46)
-            .lineTo(mx + mW - 20, y + 46)
-            .strokeColor("#94a3b8")
-            .lineWidth(0.5)
-            .stroke();
-          doc
-            .fontSize(6)
-            .font("Roboto")
-            .fillColor(GRAY)
-            .text("Semnătura", mx + 6, y + 48);
-        });
-        y += 65;
-      } else {
-        // Empty signature boxes
-        const mW = W / 3;
-        ["Gestionar", "Contabil", "Șef depozit"].forEach((label, i) => {
-          const mx = 40 + i * mW;
-          doc
-            .rect(mx, y, mW - 8, 55)
-            .strokeColor(BORDER)
-            .lineWidth(0.5)
-            .stroke();
-          doc
-            .fontSize(7)
-            .font("Roboto-Bold")
-            .fillColor(GRAY)
-            .text(label, mx + 6, y + 5);
-          doc
-            .moveTo(mx + 6, y + 46)
-            .lineTo(mx + mW - 20, y + 46)
-            .strokeColor("#94a3b8")
-            .lineWidth(0.5)
-            .stroke();
-          doc
-            .fontSize(6)
-            .font("Roboto")
-            .fillColor(GRAY)
-            .text("Semnătura", mx + 6, y + 48);
-        });
-        y += 65;
-      }
+            .text(m.name, mx + 5, y + 14);
+        }
+        // Signature line
+        doc
+          .moveTo(mx + 5, y + 34)
+          .lineTo(mx + mW - 15, y + 34)
+          .strokeColor("#94a3b8")
+          .lineWidth(0.5)
+          .stroke();
+        doc
+          .fontSize(5.5)
+          .font("Roboto")
+          .fillColor(GRAY)
+          .text("Semnătura", mx + 5, y + 35);
+      });
+      y += 50;
 
       // Observatii
       if (nirRow.notes) {
-        y += 5;
         doc
-          .fontSize(7)
+          .fontSize(6.5)
           .font("Roboto-Bold")
           .fillColor(GRAY)
           .text("OBSERVAȚII:", 40, y);
         doc
-          .fontSize(7)
+          .fontSize(6.5)
           .font("Roboto")
           .fillColor("#1e293b")
-          .text(nirRow.notes, 110, y, { width: W - 70 });
-        y += 14;
+          .text(nirRow.notes, 100, y, { width: W - 60 });
+        y += 12;
       }
 
-      // Footer
-      const footerY = doc.page.height - 35;
-      doc
-        .moveTo(40, footerY - 5)
-        .lineTo(doc.page.width - 40, footerY - 5)
-        .strokeColor(BORDER)
-        .lineWidth(0.5)
-        .stroke();
-      doc
-        .fontSize(6.5)
-        .font("Roboto")
-        .fillColor(GRAY)
-        .text(
-          `NIR ${nirRow.nirNumber} • Generat: ${new Date().toLocaleDateString("ro-RO")} • ${tenant?.name || ""}`,
-          40,
-          footerY,
-          { align: "center", width: W }
-        );
+      // Footer - Switch through all buffered pages and draw footer without creating extra page
+      const footerY = doc.page.height - 25;
+      const range = doc.bufferedPageRange();
+      for (let i = range.start; i < range.start + range.count; i++) {
+        doc.switchToPage(i);
+        const oldBottom = doc.page.margins.bottom;
+        doc.page.margins.bottom = 0;
+        doc
+          .moveTo(40, footerY - 5)
+          .lineTo(doc.page.width - 40, footerY - 5)
+          .strokeColor(BORDER)
+          .lineWidth(0.5)
+          .stroke();
+        doc
+          .fontSize(6.5)
+          .font("Roboto")
+          .fillColor(GRAY)
+          .text(
+            `NIR ${nirRow.nirNumber} • Generat: ${new Date().toLocaleDateString("ro-RO")} • ${tenant?.name || ""} • Pagina ${i + 1} din ${range.count}`,
+            40,
+            footerY,
+            { align: "center", width: W, lineBreak: false }
+          );
+        doc.page.margins.bottom = oldBottom;
+      }
 
       doc.end();
     } catch (e: any) {

@@ -97,6 +97,8 @@ export interface ReInvoiceData {
   currency: string;
   notes?: string;
   spvIndex?: string | number | null;
+  isCreditNote?: boolean;
+  documentTitle?: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -378,20 +380,24 @@ function drawTotals(
 
   const computedLinesSubtotal = data.lines && data.lines.length > 0
     ? data.lines.reduce((s, l) => s + (Math.round(l.quantity * l.unitPrice * 100) / 100), 0)
-    : data.subtotal;
+    : (Number.isFinite(data.subtotal) ? data.subtotal : 0);
   const computedLinesVat = data.lines && data.lines.length > 0
     ? data.lines.reduce((s, l) => s + (Math.round((Math.round(l.quantity * l.unitPrice * 100) / 100) * ((l.vatRate || 0) / 100) * 100) / 100), 0)
-    : data.totalVAT;
+    : (Number.isFinite(data.totalVAT) ? data.totalVAT : 0);
 
-  const displaySubtotal = (data.lines && data.lines.length > 0 && Math.abs(computedLinesSubtotal - data.subtotal) > 0.01)
+  const rawSub = Number.isFinite(data.subtotal) ? data.subtotal : computedLinesSubtotal;
+  const rawVat = Number.isFinite(data.totalVAT) ? data.totalVAT : computedLinesVat;
+  const rawTot = Number.isFinite(data.total) ? data.total : (rawSub + rawVat);
+
+  const displaySubtotal = (data.lines && data.lines.length > 0 && Math.abs(computedLinesSubtotal - rawSub) > 0.01 && rawSub === 0)
     ? computedLinesSubtotal
-    : data.subtotal;
-  const displayVat = (data.lines && data.lines.length > 0 && Math.abs(computedLinesVat - data.totalVAT) > 0.01)
+    : rawSub;
+  const displayVat = (data.lines && data.lines.length > 0 && Math.abs(computedLinesVat - rawVat) > 0.01 && rawVat === 0)
     ? computedLinesVat
-    : data.totalVAT;
-  const displayTotal = (data.lines && data.lines.length > 0 && Math.abs((displaySubtotal + displayVat) - data.total) > 0.01)
+    : rawVat;
+  const displayTotal = (data.lines && data.lines.length > 0 && Math.abs((displaySubtotal + displayVat) - rawTot) > 0.01 && rawTot === 0)
     ? (displaySubtotal + displayVat)
-    : data.total;
+    : rawTot;
 
   doc.fontSize(9).font("Roboto").fillColor("#64748b");
   doc.text(L.subtotalAlt, totX, y, { width: labelW });
@@ -446,56 +452,82 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   }
 
   // Header: Left "Factura", Right "Seria și numărul"
+  const classicTitle = data.documentTitle || (data.isCreditNote ? (isBilingual ? "FACTURĂ STORNO / CREDIT NOTE" : "FACTURĂ STORNO") : L.title);
+  const titleX = leftX + (data.logoBase64 && data.logoBase64 !== "DEFAULT_TEXT_LOGO" ? (isBilingual ? 130 : 180) : 0);
+
+  const metaColW = isBilingual ? 230 : 210;
+  const numberColW = Math.max(metaColW, 230);
+  const numberColX = leftX + pageWidth - numberColW;
+
+  // Title on the left - ensure it never overflows into right column
+  const maxTitleW = Math.max(120, numberColX - titleX - 12);
+  let titleFontSize = isBilingual ? 16 : (data.isCreditNote ? 18 : 24);
+  doc.font("Roboto-Bold");
+  while (titleFontSize > 11 && doc.fontSize(titleFontSize).widthOfString(classicTitle) > maxTitleW) {
+    titleFontSize -= 0.5;
+  }
   doc
-    .fontSize(isBilingual ? 18 : 24)
+    .fontSize(titleFontSize)
     .font("Roboto-Bold")
     .fillColor("#000000")
-    .text(L.title, leftX + (data.logoBase64 && data.logoBase64 !== "DEFAULT_TEXT_LOGO" ? (isBilingual ? 130 : 180) : 0), y + 5);
+    .text(classicTitle, titleX, y + 5, { width: maxTitleW, lineBreak: false });
 
-  const rightColW = isBilingual ? 215 : 180;
-  const rightColX = leftX + pageWidth - rightColW;
+  // Number on the right - auto-shrink font so it NEVER wraps or collides
+  const formattedNum = formatPdfNumber(data.number);
+  let numFontSize = 16;
+  doc.font("Roboto-Bold");
+  while (numFontSize > 8 && doc.fontSize(numFontSize).widthOfString(formattedNum) > numberColW) {
+    numFontSize -= 0.5;
+  }
+
   doc
-    .fontSize(16)
+    .fontSize(numFontSize)
     .font("Roboto-Bold")
-    .text(formatPdfNumber(data.number), rightColX, y, { width: rightColW, align: "right" });
+    .fillColor("#000000")
+    .text(formattedNum, numberColX, y, { width: numberColW, align: "right", lineBreak: false });
 
-  y += 30;
-  const metaLabelW = isBilingual ? 120 : 80;
-  const metaValW = rightColW - metaLabelW;
-  doc.fontSize(8.5).font("Roboto-Bold");
-  doc.text(L.issueDate, rightColX, y, { width: metaLabelW });
+  const numHeight = doc.fontSize(numFontSize).font("Roboto-Bold").heightOfString(formattedNum, { width: numberColW, lineBreak: false });
+  y += Math.max(Math.ceil(numHeight) + 8, 28);
+
+  const metaColX = leftX + pageWidth - metaColW;
+  const metaLabelW = isBilingual ? 120 : 95;
+  const metaValW = metaColW - metaLabelW;
+
+  doc.fontSize(8.5).font("Roboto-Bold").fillColor("#000000");
+  doc.text(L.issueDate, metaColX, y, { width: metaLabelW, lineBreak: false });
   doc
     .font("Roboto")
-    .text(formatPdfDate(data.date), rightColX + metaLabelW, y, {
+    .text(formatPdfDate(data.date), metaColX + metaLabelW, y, {
       width: metaValW,
       align: "right",
+      lineBreak: false,
     });
 
   y += 14;
-  doc.font("Roboto-Bold").text(L.dueDate, rightColX, y, { width: metaLabelW });
+  doc.font("Roboto-Bold").text(L.dueDate, metaColX, y, { width: metaLabelW, lineBreak: false });
   doc
     .font("Roboto")
     .text(
       formatPdfDate(data.dueDate),
-      rightColX + metaLabelW,
+      metaColX + metaLabelW,
       y,
-      { width: metaValW, align: "right" }
+      { width: metaValW, align: "right", lineBreak: false }
     );
 
   if (data.spvIndex) {
     y += 14;
     const spvLabel = isBilingual ? "Index e-Factura SPV:" : "Index încărcare SPV:";
     const spvLabelW = isBilingual ? 120 : 95;
-    const spvValW = rightColW - spvLabelW;
-    doc.font("Roboto-Bold").fillColor("#047857").text(spvLabel, rightColX, y, { width: spvLabelW });
+    const spvValW = metaColW - spvLabelW;
+    doc.font("Roboto-Bold").fillColor("#047857").text(spvLabel, metaColX, y, { width: spvLabelW, lineBreak: false });
     doc
       .font("Roboto-Bold")
       .fillColor("#047857")
       .text(
         String(data.spvIndex),
-        rightColX + spvLabelW,
+        metaColX + spvLabelW,
         y,
-        { width: spvValW, align: "right" }
+        { width: spvValW, align: "right", lineBreak: false }
       );
     doc.fillColor("#000000");
   }
@@ -723,7 +755,9 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     const textH = roHeight + (hasTranslation ? enHeight + 3 : 0);
     const rowH = Math.max(textH + 5, 18);
 
-    const lineVal = line.quantity * line.unitPrice;
+    const lineVal = typeof line.total === "number" && !isNaN(line.total)
+      ? line.total
+      : (line.quantity * line.unitPrice);
     const lineVat = (lineVal * (line.vatRate || 0)) / 100;
 
     doc.fillColor("#000000").font("Roboto").fontSize(8);
@@ -785,29 +819,33 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
 
   const computedLinesSubtotal = data.lines && data.lines.length > 0
     ? data.lines.reduce((s, l) => s + (Math.round(l.quantity * l.unitPrice * 100) / 100), 0)
-    : data.subtotal;
+    : (Number.isFinite(data.subtotal) ? data.subtotal : 0);
   const computedLinesVat = data.lines && data.lines.length > 0
     ? data.lines.reduce((s, l) => s + (Math.round((Math.round(l.quantity * l.unitPrice * 100) / 100) * ((l.vatRate || 0) / 100) * 100) / 100), 0)
-    : data.totalVAT;
+    : (Number.isFinite(data.totalVAT) ? data.totalVAT : 0);
 
-  const displaySubtotal = (data.lines && data.lines.length > 0 && Math.abs(computedLinesSubtotal - data.subtotal) > 0.01)
+  const rawSub = Number.isFinite(data.subtotal) ? data.subtotal : computedLinesSubtotal;
+  const rawVat = Number.isFinite(data.totalVAT) ? data.totalVAT : computedLinesVat;
+  const rawTot = Number.isFinite(data.total) ? data.total : (rawSub + rawVat);
+
+  const displaySubtotal = (data.lines && data.lines.length > 0 && Math.abs(computedLinesSubtotal - rawSub) > 0.01 && rawSub === 0)
     ? computedLinesSubtotal
-    : data.subtotal;
-  const displayVat = (data.lines && data.lines.length > 0 && Math.abs(computedLinesVat - data.totalVAT) > 0.01)
+    : rawSub;
+  const displayVat = (data.lines && data.lines.length > 0 && Math.abs(computedLinesVat - rawVat) > 0.01 && rawVat === 0)
     ? computedLinesVat
-    : data.totalVAT;
-  const displayTotal = (data.lines && data.lines.length > 0 && Math.abs((displaySubtotal + displayVat) - data.total) > 0.01)
+    : rawVat;
+  const displayTotal = (data.lines && data.lines.length > 0 && Math.abs((displaySubtotal + displayVat) - rawTot) > 0.01 && rawTot === 0)
     ? (displaySubtotal + displayVat)
-    : data.total;
+    : rawTot;
 
   const summaryStartY = y;
   const totalDueBg = data.themeColor || "#2563eb";
 
-  // 1. Draw payment card on the left if IBAN exists
+  // 1. Draw payment card on the left if IBAN exists and total is positive
   const cleanIban = (data.companyIBAN || "").replace(/\s+/g, "").toUpperCase();
   let paymentBoxHeight = 0;
 
-  if (cleanIban) {
+  if (cleanIban && displayTotal > 0) {
     const payBoxX = leftX;
     const payBoxY = summaryStartY;
     const payBoxW = totX - leftX - 15;
@@ -972,21 +1010,30 @@ function generateModern(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     .rect(doc.page.width - 190, 18, 150, 54)
     .fillColor(accentBlue)
     .fill();
+  const modernTitle = data.documentTitle || (data.isCreditNote ? (isBilingual ? "STORNO / CREDIT" : "STORNO") : (isBilingual ? "FACTURĂ / INVOICE" : "FACTURĂ"));
   doc
     .fontSize(isBilingual ? 11 : 14)
     .font("Roboto-Bold")
     .fillColor("#ffffff")
-    .text(isBilingual ? "FACTURĂ / INVOICE" : "FACTURĂ", doc.page.width - 185, 26, {
+    .text(modernTitle, doc.page.width - 185, 26, {
       width: 140,
       align: "center",
     });
+  const modernNum = formatPdfNumber(data.number);
+  const modernNumText = `Nr. ${modernNum}`;
+  let modernNumFontSize = 9;
+  doc.font("Roboto");
+  while (modernNumFontSize > 6.5 && doc.fontSize(modernNumFontSize).widthOfString(modernNumText) > 138) {
+    modernNumFontSize -= 0.5;
+  }
   doc
-    .fontSize(9)
+    .fontSize(modernNumFontSize)
     .font("Roboto")
     .fillColor("#bfdbfe")
-    .text(`Nr. ${data.number}`, doc.page.width - 185, 44, {
+    .text(modernNumText, doc.page.width - 185, 44, {
       width: 140,
       align: "center",
+      lineBreak: false,
     });
   doc
     .fontSize(8)
@@ -1206,17 +1253,17 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
 
   // Metadata pills
   doc.fontSize(9).font("Roboto").fillColor("#64748b");
-  doc.text(`${L.number} ${formatPdfNumber(data.number)}`, leftX, y);
-  doc.text(
-    `${isBilingual ? "Date:" : "Emisă:"} ${formatPdfDate(data.date)}`,
-    leftX + 120,
-    y
-  );
-  doc.text(
-    `${isBilingual ? "Due:" : "Scadentă:"} ${formatPdfDate(data.dueDate)}`,
-    leftX + 260,
-    y
-  );
+  const numStr = `${L.number} ${formatPdfNumber(data.number)}`;
+  const dateStr = `${isBilingual ? "Date:" : "Emisă:"} ${formatPdfDate(data.date)}`;
+  const dueStr = `${isBilingual ? "Due:" : "Scadentă:"} ${formatPdfDate(data.dueDate)}`;
+
+  doc.text(numStr, leftX, y, { lineBreak: false });
+  const numW = doc.widthOfString(numStr);
+  const dateX = Math.max(leftX + 130, leftX + numW + 15);
+  doc.text(dateStr, dateX, y, { lineBreak: false });
+  const dateW = doc.widthOfString(dateStr);
+  const dueX = Math.max(dateX + 130, dateX + dateW + 15);
+  doc.text(dueStr, dueX, y, { lineBreak: false });
   y += 30;
 
   doc
@@ -1335,7 +1382,9 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
         .fillColor("#f8fafc")
         .fill();
     }
-    const lineVal = line.quantity * line.unitPrice;
+    const lineVal = typeof line.total === "number" && !isNaN(line.total)
+      ? line.total
+      : (line.quantity * line.unitPrice);
     const lineVat = (lineVal * (line.vatRate || 0)) / 100;
     const lineTotal = lineVal + lineVat;
 
@@ -1390,20 +1439,24 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
 
   const computedLinesSubtotal = data.lines && data.lines.length > 0
     ? data.lines.reduce((s, l) => s + (Math.round(l.quantity * l.unitPrice * 100) / 100), 0)
-    : data.subtotal;
+    : (Number.isFinite(data.subtotal) ? data.subtotal : 0);
   const computedLinesVat = data.lines && data.lines.length > 0
     ? data.lines.reduce((s, l) => s + (Math.round((Math.round(l.quantity * l.unitPrice * 100) / 100) * ((l.vatRate || 0) / 100) * 100) / 100), 0)
-    : data.totalVAT;
+    : (Number.isFinite(data.totalVAT) ? data.totalVAT : 0);
 
-  const displaySubtotal = (data.lines && data.lines.length > 0 && Math.abs(computedLinesSubtotal - data.subtotal) > 0.01)
+  const rawSub = Number.isFinite(data.subtotal) ? data.subtotal : computedLinesSubtotal;
+  const rawVat = Number.isFinite(data.totalVAT) ? data.totalVAT : computedLinesVat;
+  const rawTot = Number.isFinite(data.total) ? data.total : (rawSub + rawVat);
+
+  const displaySubtotal = (data.lines && data.lines.length > 0 && Math.abs(computedLinesSubtotal - rawSub) > 0.01 && rawSub === 0)
     ? computedLinesSubtotal
-    : data.subtotal;
-  const displayVat = (data.lines && data.lines.length > 0 && Math.abs(computedLinesVat - data.totalVAT) > 0.01)
+    : rawSub;
+  const displayVat = (data.lines && data.lines.length > 0 && Math.abs(computedLinesVat - rawVat) > 0.01 && rawVat === 0)
     ? computedLinesVat
-    : data.totalVAT;
-  const displayTotal = (data.lines && data.lines.length > 0 && Math.abs((displaySubtotal + displayVat) - data.total) > 0.01)
+    : rawVat;
+  const displayTotal = (data.lines && data.lines.length > 0 && Math.abs((displaySubtotal + displayVat) - rawTot) > 0.01 && rawTot === 0)
     ? (displaySubtotal + displayVat)
-    : data.total;
+    : rawTot;
 
   doc.fontSize(9).font("Roboto").fillColor("#64748b");
   doc
