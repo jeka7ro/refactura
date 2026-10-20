@@ -2017,10 +2017,37 @@ export const appRouter = router({
           receivedMap.set(desc, (receivedMap.get(desc) || 0) + qty);
         }
 
-        return lines.map(l => ({
-          ...l,
-          receivedQuantity: receivedMap.get(l.description || "") || 0,
-        }));
+        const [inv] = await db
+          .select({ rawXml: invoiceArchive.rawXml, notes: invoiceArchive.notes, total: invoiceArchive.total })
+          .from(invoiceArchive)
+          .where(eq(invoiceArchive.id, input.id));
+
+        const isCreditNote = !!(
+          (inv?.rawXml && (
+            inv.rawXml.includes("<CreditNote") ||
+            inv.rawXml.includes(":CreditNote") ||
+            inv.rawXml.includes("CreditNoteLine") ||
+            inv.rawXml.includes("<cbc:InvoiceTypeCode>381</cbc:InvoiceTypeCode>") ||
+            inv.rawXml.includes("<InvoiceTypeCode>381</InvoiceTypeCode>")
+          )) ||
+          (inv?.notes && /storno|credit\s*note/i.test(inv.notes)) ||
+          (inv?.total && parseFloat(inv.total) < 0)
+        );
+
+        return lines.map(l => {
+          let q = parseFloat(String(l.quantity || "1"));
+          let tot = parseFloat(String(l.total || "0"));
+          if (isCreditNote) {
+            if (q > 0) q = -q;
+            if (tot > 0) tot = -tot;
+          }
+          return {
+            ...l,
+            quantity: String(q),
+            total: String(tot),
+            receivedQuantity: receivedMap.get(l.description || "") || 0,
+          };
+        });
       }),
 
     create: protectedProcedure
@@ -4938,6 +4965,51 @@ export const appRouter = router({
           finalNirNumber = `NIR-${year}-${String(nextNum).padStart(4, "0")}`;
         }
 
+        // Lookup invoice metadata (issueDate, SPV Index, currency)
+        let spvIndexToSave: string | undefined = undefined;
+        let invoiceDocDate: string = input.receiptDate;
+        let invoiceDueDate: string = input.receiptDate;
+        let invoiceCurrency = "RON";
+        let exchangeRate = 1.0;
+
+        if (input.invoiceArchiveId) {
+          const { invoiceArchive } = await import("../drizzle/schema");
+          const [inv] = await db
+            .select()
+            .from(invoiceArchive)
+            .where(eq(invoiceArchive.id, input.invoiceArchiveId));
+          if (inv) {
+            if (inv.currency && inv.currency.trim()) {
+              invoiceCurrency = inv.currency.trim().toUpperCase();
+            }
+            if (inv.issueDate) invoiceDocDate = inv.issueDate;
+            if (inv.dueDate) invoiceDueDate = inv.dueDate;
+            if (inv.spvIndex) {
+              spvIndexToSave = inv.spvIndex;
+            } else if (inv.notes) {
+              const m = inv.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
+              if (m) spvIndexToSave = m[1];
+            }
+            if (!spvIndexToSave && inv.fileName) {
+              const m = inv.fileName.match(/(?:SPV_|_INDEX_|id_|index_)(\d{8,12})/i);
+              if (m) spvIndexToSave = m[1];
+            }
+          }
+        }
+
+        const isForeignCurrency = invoiceCurrency !== "RON" && invoiceCurrency !== "LEI";
+        if (isForeignCurrency) {
+          try {
+            const { getBnrRateForDate } = await import("./bnrService");
+            const bnrRes = await getBnrRateForDate(invoiceDocDate, invoiceCurrency);
+            if (bnrRes?.rate && bnrRes.rate > 0) {
+              exchangeRate = bnrRes.rate;
+            }
+          } catch (e) {
+            console.warn("[NIR create] BNR rate lookup fallback:", e);
+          }
+        }
+
         // 2. Insert into main NIR table
         const [result] = await db.insert(nir).values({
           tenantId,
@@ -4950,6 +5022,8 @@ export const appRouter = router({
           supplierAddress: input.supplierAddress,
           gestiune: input.gestiune,
           receiptDate: input.receiptDate,
+          currency: invoiceCurrency,
+          exchangeRate: exchangeRate.toFixed(4),
           member1Name: input.member1Name,
           member1Function: input.member1Function,
           member2Name: input.member2Name,
@@ -4995,45 +5069,40 @@ export const appRouter = router({
           totalTvaSuma += (parseFloat(l.total || "0") * parseFloat(l.vatRate || "19")) / 100;
         });
 
-        // Lookup invoice metadata (issueDate and SPV Index) for SAGA Intrari
-        let spvIndexToSave: string | undefined = undefined;
-        let invoiceDocDate: string = input.receiptDate;
-        let invoiceDueDate: string = input.receiptDate;
+        let valoareRon = totalValoare;
+        let tvaRon = totalTvaSuma;
+        let totalRon = totalValoare + totalTvaSuma;
+        let valoareValuta: string | undefined = undefined;
+        let tvaValuta: string | undefined = undefined;
+        let totalValuta: string | undefined = undefined;
 
-        if (input.invoiceArchiveId) {
-          const { invoiceArchive } = await import("../drizzle/schema");
-          const [inv] = await db
-            .select()
-            .from(invoiceArchive)
-            .where(eq(invoiceArchive.id, input.invoiceArchiveId));
-          if (inv) {
-            if (inv.issueDate) invoiceDocDate = inv.issueDate;
-            if (inv.dueDate) invoiceDueDate = inv.dueDate;
-            if (inv.spvIndex) {
-              spvIndexToSave = inv.spvIndex;
-            } else if (inv.notes) {
-              const m = inv.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
-              if (m) spvIndexToSave = m[1];
-            }
-            if (!spvIndexToSave && inv.fileName) {
-              const m = inv.fileName.match(/(?:SPV_|_INDEX_|id_|index_)(\d{8,12})/i);
-              if (m) spvIndexToSave = m[1];
-            }
-          }
+        if (isForeignCurrency) {
+          valoareValuta = totalValoare.toFixed(2);
+          tvaValuta = totalTvaSuma.toFixed(2);
+          totalValuta = (totalValoare + totalTvaSuma).toFixed(2);
+
+          valoareRon = Math.round(totalValoare * exchangeRate * 100) / 100;
+          tvaRon = Math.round(totalTvaSuma * exchangeRate * 100) / 100;
+          totalRon = Math.round((valoareRon + tvaRon) * 100) / 100;
         }
 
         const [sagaIntResult] = await db.insert(sagaIntrari).values({
           tenantId,
-          tip: "Factura",
+          tip: isForeignCurrency ? "Factura valuta" : "Factura",
           nrDoc: input.invoiceNumber || finalNirNumber,
           numeFurnizor: input.supplierName,
           cuiFurnizor: input.supplierCUI,
           data: invoiceDocDate,
           scadent: invoiceDueDate,
-          valoare: totalValoare.toString(),
-          tva: totalTvaSuma.toString(),
-          total: (totalValoare + totalTvaSuma).toString(),
-          neachitat: (totalValoare + totalTvaSuma).toString(),
+          valuta: invoiceCurrency,
+          curs: exchangeRate.toFixed(4),
+          valoareValuta,
+          tvaValuta,
+          totalValuta,
+          valoare: valoareRon.toFixed(2),
+          tva: tvaRon.toFixed(2),
+          total: totalRon.toFixed(2),
+          neachitat: totalRon.toFixed(2),
           idSPV: spvIndexToSave,
           nirId: nirId,
           status: "draft",
@@ -5225,18 +5294,42 @@ export const appRouter = router({
           const existingSagaIntrari = await db.select().from(sagaIntrari).where(eq(sagaIntrari.nirId, id));
           if (existingSagaIntrari.length > 0) {
             const intrareId = existingSagaIntrari[0].id;
+            const existingHeader = existingSagaIntrari[0];
+            const isForeign = existingHeader.valuta && existingHeader.valuta !== "RON" && existingHeader.valuta !== "LEI";
+            const currentCurs = parseFloat(String(existingHeader.curs || "1")) || 1;
+
             let totalValoare = 0;
             let totalTvaSuma = 0;
             lines.forEach(l => {
               totalValoare += parseFloat(l.total || "0");
               totalTvaSuma += (parseFloat(l.total || "0") * parseFloat(l.vatRate || "19")) / 100;
             });
+
+            let valoareRon = totalValoare;
+            let tvaRon = totalTvaSuma;
+            let totalRon = totalValoare + totalTvaSuma;
+            let valoareValuta: string | null = null;
+            let tvaValuta: string | null = null;
+            let totalValuta: string | null = null;
+
+            if (isForeign) {
+              valoareValuta = totalValoare.toFixed(2);
+              tvaValuta = totalTvaSuma.toFixed(2);
+              totalValuta = (totalValoare + totalTvaSuma).toFixed(2);
+
+              valoareRon = Math.round(totalValoare * currentCurs * 100) / 100;
+              tvaRon = Math.round(totalTvaSuma * currentCurs * 100) / 100;
+              totalRon = Math.round((valoareRon + tvaRon) * 100) / 100;
+            }
             
             await db.update(sagaIntrari).set({
-              valoare: totalValoare.toString(),
-              tva: totalTvaSuma.toString(),
-              total: (totalValoare + totalTvaSuma).toString(),
-              neachitat: (totalValoare + totalTvaSuma).toString(),
+              valoareValuta,
+              tvaValuta,
+              totalValuta,
+              valoare: valoareRon.toFixed(2),
+              tva: tvaRon.toFixed(2),
+              total: totalRon.toFixed(2),
+              neachitat: totalRon.toFixed(2),
             }).where(eq(sagaIntrari.id, intrareId));
             
             await db.delete(sagaIntrariLinii).where(eq(sagaIntrariLinii.intrareId, intrareId));

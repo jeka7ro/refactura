@@ -658,6 +658,8 @@ export const nir = mysqlTable("nir", {
   notes: text("notes"),
   accountingType: varchar("accountingType", { length: 50 }).default("Marfuri"),
   accountingAccount: varchar("accountingAccount", { length: 20 }).default("371"),
+  currency: varchar("currency", { length: 10 }).default("RON"),
+  exchangeRate: decimal("exchangeRate", { precision: 12, scale: 4 }).default("1.0000"),
   status: mysqlEnum("status", ["draft", "finalizat"]).default("draft"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

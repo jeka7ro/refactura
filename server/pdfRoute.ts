@@ -868,12 +868,14 @@ export function registerPdfRoute(app: any) {
       const { invoiceArchive } = await import("../drizzle/schema");
       const { and: andOp } = await import("drizzle-orm");
       let spvIndex: string | null = null;
+      let linkedInvoice: any = null;
       if (nirRow.invoiceArchiveId) {
         const [inv] = await db
           .select()
           .from(invoiceArchive)
           .where(eqOp(invoiceArchive.id, nirRow.invoiceArchiveId));
         if (inv) {
+          linkedInvoice = inv;
           if (inv.spvIndex) spvIndex = inv.spvIndex;
           else if (inv.notes) {
             const m = inv.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
@@ -896,6 +898,7 @@ export function registerPdfRoute(app: any) {
             )
           );
         for (const inv of invs) {
+          if (!linkedInvoice) linkedInvoice = inv;
           if (inv.spvIndex) { spvIndex = inv.spvIndex; break; }
           if (inv.notes) {
             const m = inv.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
@@ -920,6 +923,20 @@ export function registerPdfRoute(app: any) {
         const m = nirRow.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
         if (m) spvIndex = m[1];
       }
+
+      const isCreditNote = !!(
+        (linkedInvoice?.rawXml && (
+          linkedInvoice.rawXml.includes("<CreditNote") ||
+          linkedInvoice.rawXml.includes(":CreditNote") ||
+          linkedInvoice.rawXml.includes("CreditNoteLine") ||
+          linkedInvoice.rawXml.includes("<cbc:InvoiceTypeCode>381</cbc:InvoiceTypeCode>") ||
+          linkedInvoice.rawXml.includes("<InvoiceTypeCode>381</InvoiceTypeCode>")
+        )) ||
+        (linkedInvoice?.notes && /storno|credit\s*note/i.test(linkedInvoice.notes)) ||
+        (linkedInvoice?.total && parseFloat(linkedInvoice.total) < 0) ||
+        (nirRow.notes && /storno|credit\s*note/i.test(nirRow.notes)) ||
+        linesRaw.some(l => parseFloat(String(l.cantitateReceptionata || "0")) < 0 || parseFloat(String(l.total || "0")) < 0)
+      );
       let settings: any = {};
       try {
         settings = JSON.parse(tenant?.settings || "{}");
@@ -1048,11 +1065,12 @@ export function registerPdfRoute(app: any) {
       }
 
       // Titlu NIR dreapta
+      const nirTitle = isCreditNote ? "NOTĂ DE INTRARE-RECEPȚIE (STORNO)" : "NOTĂ DE INTRARE-RECEPȚIE";
       doc
-        .fontSize(16)
+        .fontSize(isCreditNote ? 14 : 16)
         .font("Roboto-Bold")
         .fillColor(TEAL)
-        .text("NOTĂ DE INTRARE-RECEPȚIE", 0, 30, { align: "right" });
+        .text(nirTitle, 0, 30, { align: "right" });
       doc
         .fontSize(8)
         .font("Roboto")
@@ -1225,8 +1243,19 @@ export function registerPdfRoute(app: any) {
       // Rows
       lines.forEach((line, idx) => {
         const rowH = 14;
-        const cantRec = parseXmlNumber(line.cantitateReceptionata, 0);
-        const cantDoc = parseXmlNumber(line.cantitateComanda, 0);
+        let cantRec = parseXmlNumber(line.cantitateReceptionata, 0);
+        let cantDoc = parseXmlNumber(line.cantitateComanda, 0);
+        let lineUnitPrice = parseXmlNumber(line.unitPrice, 0);
+        let lineTotalVal = parseXmlNumber(line.total, cantRec * lineUnitPrice);
+        const lineVatRate = parseXmlNumber(line.vatRate, 19);
+
+        // If the source document is a CreditNote (Storno), ensure quantities and values are displayed as negative
+        if (isCreditNote) {
+          if (cantRec > 0) cantRec = -cantRec;
+          if (cantDoc > 0) cantDoc = -cantDoc;
+          if (lineTotalVal > 0) lineTotalVal = -lineTotalVal;
+        }
+
         const hasDiff = cantRec !== cantDoc;
         doc
           .rect(40, y, W, rowH)
@@ -1238,9 +1267,6 @@ export function registerPdfRoute(app: any) {
         doc.rect(40, y, W, rowH).strokeColor(BORDER).lineWidth(0.3).stroke();
 
         let xc = 40;
-        const lineUnitPrice = parseXmlNumber(line.unitPrice, 0);
-        const lineTotalVal = parseXmlNumber(line.total, cantRec * lineUnitPrice);
-        const lineVatRate = parseXmlNumber(line.vatRate, 19);
 
         const cells = [
           { val: String(idx + 1), align: "left" as const },
@@ -1304,17 +1330,41 @@ export function registerPdfRoute(app: any) {
       });
 
       // Calculate totals
-      const totalFaraTva = lines.reduce((s, l) => {
-        const lineTot = parseXmlNumber(l.total) || (parseXmlNumber(l.cantitateReceptionata) * parseXmlNumber(l.unitPrice));
+      let totalFaraTva = lines.reduce((s, l) => {
+        let lineTot = parseXmlNumber(l.total) || (parseXmlNumber(l.cantitateReceptionata) * parseXmlNumber(l.unitPrice));
+        if (isCreditNote && lineTot > 0) lineTot = -lineTot;
         return s + lineTot;
       }, 0);
-      const totalTva = lines.reduce((s, l) => {
-        const lineTot = parseXmlNumber(l.total) || (parseXmlNumber(l.cantitateReceptionata) * parseXmlNumber(l.unitPrice));
+      let totalTva = lines.reduce((s, l) => {
+        let lineTot = parseXmlNumber(l.total) || (parseXmlNumber(l.cantitateReceptionata) * parseXmlNumber(l.unitPrice));
+        if (isCreditNote && lineTot > 0) lineTot = -lineTot;
         const rate = parseXmlNumber(l.vatRate, 19);
         return s + (lineTot * rate) / 100;
       }, 0);
-      const totalCuTva = totalFaraTva + totalTva;
+      let totalCuTva = totalFaraTva + totalTva;
 
+      // Diferente alert
+      const hasDifferences = lines.some(
+        l =>
+          parseXmlNumber(l.cantitateReceptionata) !==
+          parseXmlNumber(l.cantitateComanda)
+      );
+
+      // Daca NIR-ul provine dintr-o factura si nu sunt diferente cantitative,
+      // aliniem totalurile cu valorile oficiale din factura (elimina diferentele de rotunjire de 1-3 bani)
+      if (linkedInvoice && !hasDifferences) {
+        const invTotal = parseXmlNumber(linkedInvoice.total, 0);
+        const invVat = parseXmlNumber(linkedInvoice.totalVAT, 0);
+        if (invTotal !== 0) {
+          const calcAbs = Math.abs(totalCuTva);
+          const invAbs = Math.abs(invTotal);
+          if (Math.abs(calcAbs - invAbs) <= 0.15) {
+            totalCuTva = isCreditNote && invTotal > 0 ? -invTotal : invTotal;
+            totalTva = isCreditNote && invVat > 0 ? -invVat : invVat;
+            totalFaraTva = totalCuTva - totalTva;
+          }
+        }
+      }
       // 1. TOTAL FARA TVA
       doc.rect(40, y, W, 14).fillColor(LIGHT).strokeColor(BORDER).lineWidth(0.5).fillAndStroke();
       doc.fontSize(6.5).font("Roboto-Bold").fillColor(GRAY).text("TOTAL FĂRĂ TVA:", 40 + 3, y + 4, { width: W - 75, align: "right" });
@@ -1329,16 +1379,10 @@ export function registerPdfRoute(app: any) {
       
       // 3. TOTAL CU TVA
       doc.rect(40, y, W, 16).fillColor(TEAL).fill();
-      doc.fontSize(7.5).font("Roboto-Bold").fillColor("white").text("TOTAL CU TVA:", 40 + 3, y + 4.5, { width: W - 75, align: "right" });
+      doc.fontSize(7.5).font("Roboto-Bold").fillColor("white").text(isCreditNote ? "TOTAL CU TVA (STORNO):" : "TOTAL CU TVA:", 40 + 3, y + 4.5, { width: W - 75, align: "right" });
       doc.fontSize(8.5).text(`${totalCuTva.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}`, 40 + W - 70, y + 4, { width: 68, align: "right" });
       y += 22;
 
-      // Diferente alert
-      const hasDifferences = lines.some(
-        l =>
-          parseXmlNumber(l.cantitateReceptionata) !==
-          parseXmlNumber(l.cantitateComanda)
-      );
       if (hasDifferences) {
         doc.rect(40, y, W, 20).fillColor("#fef3c7").fill();
         doc.rect(40, y, W, 20).strokeColor("#f59e0b").lineWidth(0.5).stroke();

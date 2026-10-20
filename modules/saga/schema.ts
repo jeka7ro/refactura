@@ -146,6 +146,11 @@ export const sagaIntrari = mysqlTable("sagaIntrari", {
   idSPV: varchar("idSPV", { length: 100 }),                  // ID încărcare SPV
   nirId: int("nirId"),                                        // Link la NIR existent (opțional)
   status: varchar("status", { length: 20 }).default("draft"), // draft / validat / stornat
+  valuta: varchar("valuta", { length: 3 }).default("RON"),   // RON / EUR / USD / etc.
+  curs: decimal("curs", { precision: 12, scale: 4 }).default("1.0000"), // Curs BNR
+  valoareValuta: decimal("valoareValuta", { precision: 12, scale: 2 }), // Subtotal in valuta
+  tvaValuta: decimal("tvaValuta", { precision: 12, scale: 2 }),         // TVA in valuta
+  totalValuta: decimal("totalValuta", { precision: 12, scale: 2 }),     // Total in valuta
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

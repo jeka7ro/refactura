@@ -263,6 +263,20 @@ export async function runSagaMigrations(db: MySql2Database<any>) {
       INDEX idx_artcont_source (sourceType, sourceId)
     )`);
 
+    // Safe migration: valuta & curs on sagaIntrari
+    const alterQueries = [
+      sql`ALTER TABLE sagaIntrari ADD COLUMN valuta VARCHAR(3) DEFAULT 'RON'`,
+      sql`ALTER TABLE sagaIntrari ADD COLUMN curs DECIMAL(12,4) DEFAULT 1.0000`,
+      sql`ALTER TABLE sagaIntrari ADD COLUMN valoareValuta DECIMAL(12,2) DEFAULT NULL`,
+      sql`ALTER TABLE sagaIntrari ADD COLUMN tvaValuta DECIMAL(12,2) DEFAULT NULL`,
+      sql`ALTER TABLE sagaIntrari ADD COLUMN totalValuta DECIMAL(12,2) DEFAULT NULL`,
+    ];
+    for (const q of alterQueries) {
+      try {
+        await db.execute(q);
+      } catch {}
+    }
+
     console.log("[SAGA] Migrations complete — 12 tables ready.");
   } catch (err: any) {
     console.error("[SAGA] Migration error:", err.message);

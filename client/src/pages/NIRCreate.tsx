@@ -47,6 +47,7 @@ export const SAGA_NIR_TYPES = [
   { code: "327", name: "Mărfuri în curs", label: "327 — Mărfuri în curs" },
   { code: "4091", name: "Avansuri", label: "4091 — Avansuri furnizori stocuri" },
   { code: "605", name: "Utilități", label: "605 — Utilități (Energie și apă)" },
+  { code: "6058", name: "Alte utilități", label: "6058 — Chelt. cu alte utilități" },
   { code: "611", name: "Reparații", label: "611 — Întreținere și reparații" },
   { code: "612", name: "Chirii", label: "612 — Chirii și redevențe" },
   { code: "624", name: "Transport", label: "624 — Transport bunuri" },
@@ -60,6 +61,7 @@ const getAccountType = (accCode: string): string => {
   const c = accCode.trim();
   const matched = SAGA_NIR_TYPES.find(t => t.code === c);
   if (matched) return matched.name;
+  if (c === "6058" || c.startsWith("6058")) return "Alte utilități";
   if (c.startsWith("371")) return "Mărfuri";
   if (c.startsWith("301")) return "Materii prime";
   if (c.startsWith("3021")) return "Materiale auxiliare";
@@ -141,6 +143,10 @@ const TIP_TO_CONT: Record<string, string> = {
   Nedefinit: "371",
   Servicii: "628",
   "Utilități": "605",
+  "Alte utilități": "6058",
+  "Alte utilitati": "6058",
+  Salubrizare: "6058",
+  Salubritate: "6058",
   "Reparații": "611",
   Chirii: "612",
   Transport: "624",
@@ -388,12 +394,26 @@ export default function NIRCreate() {
       setInvoiceNumber(sourceInvoice.invoiceNumber || "");
       if ((sourceInvoice as any).spvIndex) setSpvIndex((sourceInvoice as any).spvIndex);
       const archLns = archiveLines as any[];
+      const isSourceCreditNote = !!(
+        (sourceInvoice as any)?.isCreditNote ||
+        sourceInvoice?.rawXml?.includes("<CreditNote") ||
+        sourceInvoice?.rawXml?.includes(":CreditNote") ||
+        sourceInvoice?.rawXml?.includes("CreditNoteLine") ||
+        sourceInvoice?.rawXml?.includes("<cbc:InvoiceTypeCode>381</cbc:InvoiceTypeCode>") ||
+        sourceInvoice?.rawXml?.includes("<InvoiceTypeCode>381</InvoiceTypeCode>") ||
+        parseFloat(sourceInvoice?.total || "0") < 0 ||
+        ((sourceInvoice as any)?.notes || "").toLowerCase().includes("storno")
+      );
+
       if (archLns.length > 0) {
         const assignedByDesc = new Map<string, { code: string; id?: number }>();
 
         const newLines = archLns
           .map((l: any) => {
-            const qty = parseFloat(String(l.quantity || "1"));
+            let qty = parseFloat(String(l.quantity || "1"));
+            if (isSourceCreditNote && qty > 0) {
+              qty = -qty;
+            }
             const received = parseFloat(String(l.receivedQuantity || "0"));
             let remaining = qty;
             if (qty < 0) {
@@ -407,15 +427,26 @@ export default function NIRCreate() {
 
             const isAvans = (l.description || "").toLowerCase().includes("avans") || qty < 0;
             const isTransport = (l.description || "").toLowerCase().includes("transport");
+            const isSalubrizare =
+              (l.description || "").toLowerCase().includes("salubri") ||
+              (l.description || "").toLowerCase().includes("deseu") ||
+              (l.description || "").toLowerCase().includes("deșeu") ||
+              (l.description || "").toLowerCase().includes("gunoi") ||
+              (sourceInvoice?.supplierName || "").toLowerCase().includes("salubri") ||
+              (sourceInvoice?.supplierName || "").toLowerCase().includes("salubritate");
+            const isUtilitati =
+              (l.description || "").toLowerCase().includes("apa") ||
+              (l.description || "").toLowerCase().includes("apă") ||
+              (l.description || "").toLowerCase().includes("gaz") ||
+              (l.description || "").toLowerCase().includes("energie") ||
+              (l.description || "").toLowerCase().includes("curent");
             const isServiceText = (l.description || "").toLowerCase().includes("servici") || 
               (l.description || "").toLowerCase().includes("abonament") || 
               (l.description || "").toLowerCase().includes("manopera") ||
               (l.description || "").toLowerCase().includes("consultant") ||
               (l.description || "").toLowerCase().includes("reparatii") ||
               (l.description || "").toLowerCase().includes("intretinere") ||
-              (l.description || "").toLowerCase().includes("gaz") ||
-              (l.description || "").toLowerCase().includes("energie") ||
-              (l.description || "").toLowerCase().includes("curent");
+              isUtilitati;
 
             // 1. Caută în cele existente conform denumirii produsului (exact sau prefix)
             const matchedArticle = articles.find((a: any) => {
@@ -435,9 +466,15 @@ export default function NIRCreate() {
             } else if (isAvans) {
               defType = "Avans";
               defAccount = "4091";
+            } else if (isSalubrizare) {
+              defType = "Alte utilități";
+              defAccount = "6058";
             } else if (isTransport) {
               defType = "Transport";
               defAccount = "624";
+            } else if (isUtilitati) {
+              defType = "Utilități";
+              defAccount = "605";
             } else if (isServiceText) {
               defType = "Servicii";
               defAccount = "628";
@@ -459,8 +496,14 @@ export default function NIRCreate() {
               matchedId = undefined;
             }
 
-            const calcTotal = (remaining * unitPrice).toFixed(2);
-            const parsedLTotal = parseFloat(String(l.total || "0"));
+            let calcTotal = (remaining * unitPrice).toFixed(2);
+            let parsedLTotal = parseFloat(String(l.total || "0"));
+            if (isSourceCreditNote && parsedLTotal > 0) {
+              parsedLTotal = -parsedLTotal;
+            }
+            if (isSourceCreditNote && parseFloat(calcTotal) > 0) {
+              calcTotal = (-parseFloat(calcTotal)).toFixed(2);
+            }
             const finalTotal = !isNaN(parsedLTotal) && parsedLTotal !== 0 && Math.abs(parseFloat(calcTotal)) !== Math.abs(parsedLTotal)
               ? parsedLTotal.toFixed(2)
               : calcTotal;
@@ -495,16 +538,20 @@ export default function NIRCreate() {
           setLines([]);
         }
       } else {
+        let srcTotal = parseFloat(sourceInvoice.total || "0");
+        let srcQty = isSourceCreditNote ? "-1" : "1";
+        if (isSourceCreditNote && srcTotal > 0) srcTotal = -srcTotal;
+
         setLines([
           {
             articleSearchText: "",
             description: `Marfă conform factură ${sourceInvoice.invoiceNumber || ""}`,
             unit: "buc",
-            cantitateComanda: "1",
-            cantitateReceptionata: "1",
-            unitPrice: String(sourceInvoice.total || "0"),
+            cantitateComanda: srcQty,
+            cantitateReceptionata: srcQty,
+            unitPrice: String(Math.abs(srcTotal)),
             vatRate: "21",
-            total: String(sourceInvoice.total || "0"),
+            total: String(srcTotal),
             observations: "",
             accountingType: "Marfuri",
             accountingAccount: "371",
@@ -564,9 +611,16 @@ export default function NIRCreate() {
         }
       }
 
-      const qty = parseFloat(updated[idx].cantitateReceptionata) || 0;
-      const price = parseFloat(updated[idx].unitPrice) || 0;
-      updated[idx].total = (qty * price).toFixed(2);
+      const isQtyOrPriceChange =
+        fieldOrPatch === "cantitateReceptionata" ||
+        fieldOrPatch === "unitPrice" ||
+        (typeof fieldOrPatch === "object" && ("cantitateReceptionata" in fieldOrPatch || "unitPrice" in fieldOrPatch));
+
+      if (fieldOrPatch !== "total" && (isQtyOrPriceChange || !updated[idx].total)) {
+        const qty = parseFloat(updated[idx].cantitateReceptionata) || 0;
+        const price = parseFloat(updated[idx].unitPrice) || 0;
+        updated[idx].total = (qty * price).toFixed(2);
+      }
       
       // Auto-link article if description matches perfectly
       if (fieldOrPatch === "description") {
@@ -686,6 +740,19 @@ export default function NIRCreate() {
   );
   const totalCuTva = totalFaraTva + totalTva;
 
+  const isCreditNote = Boolean(
+    (sourceInvoice as any)?.isCreditNote ||
+    sourceInvoice?.rawXml?.includes("<CreditNote") ||
+    sourceInvoice?.rawXml?.includes(":CreditNote") ||
+    sourceInvoice?.rawXml?.includes("CreditNoteLine") ||
+    sourceInvoice?.rawXml?.includes("<cbc:InvoiceTypeCode>381</cbc:InvoiceTypeCode>") ||
+    sourceInvoice?.rawXml?.includes("<InvoiceTypeCode>381</InvoiceTypeCode>") ||
+    parseFloat(sourceInvoice?.total || "0") < 0 ||
+    ((sourceInvoice as any)?.notes || "").toLowerCase().includes("storno") ||
+    (existingNir as any)?.notes?.toLowerCase().includes("storno") ||
+    lines.some(l => parseFloat(l.cantitateReceptionata || "0") < 0 || parseFloat(l.total || "0") < 0)
+  );
+
   return (
     <div className="p-3 sm:p-5 space-y-5 max-w-full">
       {/* Header */}
@@ -701,9 +768,14 @@ export default function NIRCreate() {
             <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 flex-wrap">
               <ClipboardCheck className="w-5 h-5" style={{ color: "var(--tenant-theme-color, #16a34a)" }} />
               {isEdit ? nirNumber : (nirNumber ? `NIR Nou — ${nirNumber}` : "NIR Nou")}
+              {isCreditNote && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 ml-1">
+                  STORNO
+                </span>
+              )}
               {spvIndex && (
                 <span
-                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 ml-2"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 ml-1"
                   title={`Index încărcare ANAF SPV: ${spvIndex}`}
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
@@ -1124,8 +1196,14 @@ export default function NIRCreate() {
                           className="w-full h-7 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 text-slate-600 focus:outline-none text-xs text-center"
                         />
                       </td>
-                      <td className="px-1 py-1.5 w-[120px] text-right font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                        {parseFloat(line.total || "0").toLocaleString("ro-RO", { minimumFractionDigits: 2 })}
+                      <td className="px-1 py-1.5 w-[115px]">
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={line.total}
+                          onChange={e => updateLine(idx, "total", e.target.value)}
+                          className="w-full h-7 px-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-primary text-xs text-right font-bold text-slate-700 dark:text-slate-300"
+                        />
                       </td>
                       <td className="px-1 py-1.5 min-w-[130px]">
                         <input

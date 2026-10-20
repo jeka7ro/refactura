@@ -333,6 +333,13 @@ export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
           continue;
         }
 
+        const isCreditNote = !!(
+          rootKey?.includes("CreditNote") ||
+          invoiceObj["cbc:CreditNoteTypeCode"] ||
+          invoiceObj["CreditNoteTypeCode"] ||
+          String(invoiceObj["cbc:InvoiceTypeCode"] || invoiceObj["InvoiceTypeCode"] || "").trim() === "381"
+        );
+
         // Extract invoice details
         const invoiceNumber = invoiceObj["ID"] || `SPV-${downloadId}`;
         const issueDate = invoiceObj["IssueDate"] || "";
@@ -370,8 +377,10 @@ export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
           legalTotal?.["PayableAmount"]?.["#text"] ||
           legalTotal?.["PayableAmount"] ||
           "0";
-        const parsedTotal = parseFloat(typeof rawTotal === "object" ? "0" : rawTotal);
-        const total = isNaN(parsedTotal) ? 0 : parsedTotal;
+        let parsedTotal = parseFloat(typeof rawTotal === "object" ? "0" : rawTotal);
+        if (isNaN(parsedTotal)) parsedTotal = 0;
+        if (isCreditNote && parsedTotal > 0) parsedTotal = -parsedTotal;
+        const total = parsedTotal;
 
         const taxTotal = invoiceObj["TaxTotal"];
         const taxTotalObj = Array.isArray(taxTotal) ? taxTotal[0] : taxTotal;
@@ -379,8 +388,10 @@ export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
           taxTotalObj?.["TaxAmount"]?.["#text"] ||
           taxTotalObj?.["TaxAmount"] ||
           "0";
-        const parsedVAT = parseFloat(typeof rawVAT === "object" ? "0" : rawVAT);
-        const totalVAT = isNaN(parsedVAT) ? 0 : parsedVAT;
+        let parsedVAT = parseFloat(typeof rawVAT === "object" ? "0" : rawVAT);
+        if (isNaN(parsedVAT)) parsedVAT = 0;
+        if (isCreditNote && parsedVAT > 0) parsedVAT = -parsedVAT;
+        const totalVAT = parsedVAT;
 
         const currency =
           invoiceObj["DocumentCurrencyCode"]?.["#text"] ||
@@ -441,27 +452,33 @@ export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
                     item?.["Name"] ||
                     item?.["Description"] ||
                     "Articol";
-                  const qty = parseFloat(
+                  let qty = parseFloat(
                     line["InvoicedQuantity"]?.["#text"] ||
                       line["InvoicedQuantity"] ||
                       line["CreditedQuantity"]?.["#text"] ||
                       line["CreditedQuantity"] ||
                       "1"
                   );
-                  const unitPrice = parseFloat(
+                  if (isNaN(qty)) qty = 1;
+                  if (isCreditNote && qty > 0) qty = -qty;
+
+                  let unitPrice = parseFloat(
                     price?.["PriceAmount"]?.["#text"] ||
                       price?.["PriceAmount"] ||
                       "0"
                   );
+                  if (isNaN(unitPrice)) unitPrice = 0;
                   const unit =
                     line["InvoicedQuantity"]?.["@_unitCode"] ||
                     line["CreditedQuantity"]?.["@_unitCode"] ||
                     "buc";
-                  const lineTotal = parseFloat(
+                  let lineTotal = parseFloat(
                     line["LineExtensionAmount"]?.["#text"] ||
                       line["LineExtensionAmount"] ||
-                      String(qty * unitPrice)
+                      String(Math.abs(qty) * unitPrice)
                   );
+                  if (isNaN(lineTotal)) lineTotal = 0;
+                  if (isCreditNote && lineTotal > 0) lineTotal = -lineTotal;
                   let vatRate = 19;
                   const taxCategory = item?.["ClassifiedTaxCategory"];
                   if (taxCategory?.["Percent"]) {
@@ -608,27 +625,33 @@ export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
               const price = line["cac:Price"];
               const description =
                 item?.["cbc:Name"] || item?.["cbc:Description"] || "Articol";
-              const qty = parseFloat(
+              let qty = parseFloat(
                 line["cbc:InvoicedQuantity"]?.["#text"] ||
                   line["cbc:InvoicedQuantity"] ||
                   line["cbc:CreditedQuantity"]?.["#text"] ||
                   line["cbc:CreditedQuantity"] ||
                   "1"
               );
-              const unitPrice = parseFloat(
+              if (isNaN(qty)) qty = 1;
+              if (isCreditNote && qty > 0) qty = -qty;
+
+              let unitPrice = parseFloat(
                 price?.["cbc:PriceAmount"]?.["#text"] ||
                   price?.["cbc:PriceAmount"] ||
                   "0"
               );
+              if (isNaN(unitPrice)) unitPrice = 0;
               const unit =
                 line["cbc:InvoicedQuantity"]?.["@_unitCode"] ||
                 line["cbc:CreditedQuantity"]?.["@_unitCode"] ||
                 "buc";
-              const lineTotal = parseFloat(
+              let lineTotal = parseFloat(
                 line["cbc:LineExtensionAmount"]?.["#text"] ||
                   line["cbc:LineExtensionAmount"] ||
-                  String(qty * unitPrice)
+                  String(Math.abs(qty) * unitPrice)
               );
+              if (isNaN(lineTotal)) lineTotal = 0;
+              if (isCreditNote && lineTotal > 0) lineTotal = -lineTotal;
 
               // Extract VAT rate
               let vatRate = 19;

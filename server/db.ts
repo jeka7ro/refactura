@@ -123,6 +123,14 @@ export async function getDb() {
       await runHorecaMigrations(_db as any);
       await runSagaMigrations(_db as any);
 
+      // Safe migrations: add currency & exchangeRate to nir table
+      try {
+        await _db.execute(sql`ALTER TABLE nir ADD COLUMN currency VARCHAR(10) DEFAULT 'RON'`);
+      } catch {}
+      try {
+        await _db.execute(sql`ALTER TABLE nir ADD COLUMN exchangeRate DECIMAL(12,4) DEFAULT 1.0000`);
+      } catch {}
+
       // Safe migrations: add cron tracking fields to integrations
       try {
         await _db.execute(sql`ALTER TABLE integrations ADD COLUMN lastCronImported INT DEFAULT 0`);
@@ -1561,40 +1569,61 @@ export async function createInvoiceArchiveEntry(data: InsertInvoiceArchive) {
       const { XMLParser } = await import("fast-xml-parser");
       const parser = new XMLParser({ ignoreAttributes: false });
       const parsed = parser.parse(data.rawXml);
-      const invoiceObj = parsed.Invoice || parsed.CreditNote || parsed.Factura;
+      const invoiceObj = parsed.Invoice || parsed.CreditNote || parsed["ubl:Invoice"] || parsed["ubl:CreditNote"] || parsed.Factura;
+      const isCreditNote = !!(
+        parsed.CreditNote ||
+        parsed["ubl:CreditNote"] ||
+        invoiceObj?.["cbc:CreditNoteTypeCode"] ||
+        invoiceObj?.["CreditNoteTypeCode"] ||
+        String(invoiceObj?.["cbc:InvoiceTypeCode"] || invoiceObj?.["InvoiceTypeCode"] || "").trim() === "381"
+      );
       
       if (invoiceObj) {
-        let xmlLines = invoiceObj["cac:InvoiceLine"] || invoiceObj["cac:CreditNoteLine"] || [];
+        let xmlLines = invoiceObj["cac:InvoiceLine"] || invoiceObj["cac:CreditNoteLine"] || invoiceObj["InvoiceLine"] || invoiceObj["CreditNoteLine"] || [];
         if (!Array.isArray(xmlLines)) xmlLines = [xmlLines];
 
         if (xmlLines.length > 0) {
           const linesToInsert = xmlLines.map((line: any) => {
-            const item = line["cac:Item"];
-            const price = line["cac:Price"];
-            const description = item?.["cbc:Name"] || item?.["cbc:Description"] || "Articol";
-            const qty = parseFloat(
+            const item = line["cac:Item"] || line["Item"];
+            const price = line["cac:Price"] || line["Price"];
+            const description = item?.["cbc:Name"] || item?.["Name"] || item?.["cbc:Description"] || item?.["Description"] || "Articol";
+            let qty = parseFloat(
               line["cbc:InvoicedQuantity"]?.["#text"] ||
               line["cbc:InvoicedQuantity"] ||
+              line["InvoicedQuantity"]?.["#text"] ||
+              line["InvoicedQuantity"] ||
               line["cbc:CreditedQuantity"]?.["#text"] ||
               line["cbc:CreditedQuantity"] ||
+              line["CreditedQuantity"]?.["#text"] ||
+              line["CreditedQuantity"] ||
               "1"
             );
+            if (isNaN(qty)) qty = 1;
+            if (isCreditNote && qty > 0) qty = -qty;
+
             let unitPrice = parseFloat(
               price?.["cbc:PriceAmount"]?.["#text"] ||
               price?.["cbc:PriceAmount"] ||
+              price?.["PriceAmount"]?.["#text"] ||
+              price?.["PriceAmount"] ||
               "0"
             );
             if (isNaN(unitPrice)) unitPrice = 0;
             const unit =
               line["cbc:InvoicedQuantity"]?.["@_unitCode"] ||
+              line["InvoicedQuantity"]?.["@_unitCode"] ||
               line["cbc:CreditedQuantity"]?.["@_unitCode"] ||
+              line["CreditedQuantity"]?.["@_unitCode"] ||
               "buc";
             let lineTotal = parseFloat(
               line["cbc:LineExtensionAmount"]?.["#text"] ||
               line["cbc:LineExtensionAmount"] ||
-              String(qty * unitPrice)
+              line["LineExtensionAmount"]?.["#text"] ||
+              line["LineExtensionAmount"] ||
+              String(Math.abs(qty) * unitPrice)
             );
             if (isNaN(lineTotal)) lineTotal = 0;
+            if (isCreditNote && lineTotal > 0) lineTotal = -lineTotal;
 
             let vatRate = 19;
             const taxCategory = item?.["cac:ClassifiedTaxCategory"];
@@ -1672,12 +1701,41 @@ export async function getInvoiceArchiveById(id: number, tenantId: number) {
     receivedMap.set(desc, (receivedMap.get(desc) || 0) + qty);
   }
 
-  const linesWithReceived = lines.map(l => ({
-    ...l,
-    receivedQuantity: receivedMap.get(l.description || "") || 0,
-  }));
+  const isCreditNote = !!(
+    (entry.rawXml && (
+      entry.rawXml.includes("<CreditNote") ||
+      entry.rawXml.includes(":CreditNote") ||
+      entry.rawXml.includes("CreditNoteLine") ||
+      entry.rawXml.includes("<cbc:InvoiceTypeCode>381</cbc:InvoiceTypeCode>") ||
+      entry.rawXml.includes("<InvoiceTypeCode>381</InvoiceTypeCode>")
+    )) ||
+    (entry.notes && /storno|credit\s*note/i.test(entry.notes)) ||
+    parseFloat(entry.total || "0") < 0
+  );
 
-  return { ...entry, lines: linesWithReceived } as any;
+  const linesWithReceived = lines.map(l => {
+    let q = parseFloat(String(l.quantity || "1"));
+    let tot = parseFloat(String(l.total || "0"));
+    if (isCreditNote) {
+      if (q > 0) q = -q;
+      if (tot > 0) tot = -tot;
+    }
+    return {
+      ...l,
+      quantity: String(q),
+      total: String(tot),
+      receivedQuantity: receivedMap.get(l.description || "") || 0,
+    };
+  });
+
+  let adjustedTotal = entry.total;
+  let adjustedTotalVAT = entry.totalVAT;
+  if (isCreditNote) {
+    if (parseFloat(entry.total || "0") > 0) adjustedTotal = (-Math.abs(parseFloat(entry.total || "0"))).toFixed(2);
+    if (parseFloat(entry.totalVAT || "0") > 0) adjustedTotalVAT = (-Math.abs(parseFloat(entry.totalVAT || "0"))).toFixed(2);
+  }
+
+  return { ...entry, total: adjustedTotal, totalVAT: adjustedTotalVAT, isCreditNote, lines: linesWithReceived } as any;
 }
 
 export async function getInvoiceArchiveByIds(ids: number[], tenantId: number) {

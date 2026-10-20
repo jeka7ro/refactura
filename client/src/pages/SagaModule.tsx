@@ -40,7 +40,7 @@ import { ConfirmDeleteWrapper } from "@/components/ui/ConfirmModal";
 // ── Types ─────────────────────────────────────────────────────────────────────
 type SagaPage =
   | "articole" | "gestiuni" | "furnizori" | "clienti" | "planConturi"
-  | "intrari" | "comenzi" | "retete"
+  | "intrari" | "intrariValuta" | "comenzi" | "retete"
   | "situatieStocuri" | "fiseArticole" | "registruInventar"
   | "articoleContabile"
   | "nomenclator" | "mapare" | "export" | "setari";
@@ -60,6 +60,7 @@ const SAGA_MENU = [
     label: "Operații", items: [
       { id: "articoleContabile" as SagaPage, label: "Articole contabile", icon: FileText },
       { id: "intrari" as SagaPage, label: "Intrări", icon: Download, shortcut: "ALT+3" },
+      { id: "intrariValuta" as SagaPage, label: "Intrări valută", icon: Download },
       { id: "comenzi" as SagaPage, label: "Comenzi / Producție", icon: Factory },
     ],
   },
@@ -90,6 +91,7 @@ const PAGE_TITLES: Record<SagaPage, string> = {
   clienti: "CLIENȚI",
   planConturi: "PLAN CONTURI",
   intrari: "INTRĂRI",
+  intrariValuta: "INTRĂRI VALUTĂ",
   comenzi: "COMENZI",
   retete: "REȚETE",
   situatieStocuri: "SITUAȚIE STOCURI",
@@ -247,7 +249,8 @@ export default function SagaModule() {
             {activePage === "clienti" && <ClientiTab />}
             {activePage === "planConturi" && <PlanConturiTab />}
             {activePage === "retete" && <ReteteTab />}
-            {activePage === "intrari" && <IntrariTab />}
+            {activePage === "intrari" && <IntrariTab mode="ron" />}
+            {activePage === "intrariValuta" && <IntrariTab mode="valuta" />}
             {activePage === "comenzi" && <ComenziTab />}
             {activePage === "articoleContabile" && <ArticoleContabileTab />}
             {activePage === "situatieStocuri" && <SituatieStocuriTab />}
@@ -2152,9 +2155,11 @@ function PlanConturiTab() {
 }
 
 // ── INTRĂRI TAB ───────────────────────────────────────────────────────────────
-function IntrariTab() {
+function IntrariTab({ mode = "ron" }: { mode?: "ron" | "valuta" }) {
   const utils = trpc.useUtils();
-  const { data: intrari = [], isLoading } = trpc.saga.intrari.list.useQuery();
+  const { data: allIntrari = [], isLoading } = trpc.saga.intrari.list.useQuery();
+  const isValutaRow = (r: any) => !!r.valuta && r.valuta !== "RON" && r.valuta !== "LEI";
+  const intrari = allIntrari.filter((r: any) => (mode === "valuta" ? isValutaRow(r) : !isValutaRow(r)));
   const createMut = trpc.saga.intrari.create.useMutation({
     onSuccess: () => { utils.saga.intrari.list.invalidate(); toast.success("Intrare creată"); setShowForm(false); },
   });
@@ -2231,9 +2236,11 @@ function IntrariTab() {
               <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Nr.Doc</th>
               <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Data</th>
               <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Furnizor</th>
-              <th className="text-right px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Valoare</th>
-              <th className="text-right px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">TVA</th>
-              <th className="text-right px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Total</th>
+              {mode === "valuta" && <th className="text-right px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Curs BNR</th>}
+              <th className="text-right px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">{mode === "valuta" ? "Valoare (valută)" : "Valoare"}</th>
+              <th className="text-right px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">{mode === "valuta" ? "TVA (valută)" : "TVA"}</th>
+              <th className="text-right px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">{mode === "valuta" ? "Total (valută)" : "Total"}</th>
+              {mode === "valuta" && <th className="text-right px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Total RON</th>}
               <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Status</th>
               <th className="px-4 py-2.5"></th>
             </tr>
@@ -2253,9 +2260,11 @@ function IntrariTab() {
                   <td className="px-4 py-2 text-slate-900 dark:text-white font-medium">{intr.nrDoc || "—"}</td>
                   <td className="px-4 py-2 text-slate-500">{intr.data}</td>
                   <td className="px-4 py-2 text-slate-900 dark:text-white">{intr.numeFurnizor || "—"}</td>
-                  <td className="px-4 py-2 text-right font-mono">{Number(intr.valoare || 0).toFixed(2)}</td>
-                  <td className="px-4 py-2 text-right font-mono text-slate-500">{Number(intr.tva || 0).toFixed(2)}</td>
-                  <td className="px-4 py-2 text-right font-mono font-bold text-slate-900 dark:text-white">{Number(intr.total || 0).toFixed(2)}</td>
+                  {mode === "valuta" && <td className="px-4 py-2 text-right font-mono text-slate-500">{Number(intr.curs || 1).toFixed(4)}</td>}
+                  <td className="px-4 py-2 text-right font-mono">{Number(mode === "valuta" ? intr.valoareValuta || 0 : intr.valoare || 0).toFixed(2)}{mode === "valuta" ? ` ${intr.valuta}` : ""}</td>
+                  <td className="px-4 py-2 text-right font-mono text-slate-500">{Number(mode === "valuta" ? intr.tvaValuta || 0 : intr.tva || 0).toFixed(2)}{mode === "valuta" ? ` ${intr.valuta}` : ""}</td>
+                  <td className="px-4 py-2 text-right font-mono font-bold text-slate-900 dark:text-white">{Number(mode === "valuta" ? intr.totalValuta || 0 : intr.total || 0).toFixed(2)}{mode === "valuta" ? ` ${intr.valuta}` : ""}</td>
+                  {mode === "valuta" && <td className="px-4 py-2 text-right font-mono text-slate-500">{Number(intr.total || 0).toFixed(2)} RON</td>}
                   <td className="px-4 py-2">
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
                       intr.status === "validat" ? "bg-green-100 text-green-700" :

@@ -119,12 +119,16 @@ export async function resolveNirSpvData(db: any, n: any) {
   let archiveTotal: number | null = null;
   let archiveTotalVat: number | null = null;
 
+  let currency = n.currency || "RON";
+  let exchangeRate = parseFloat(String(n.exchangeRate || "1")) || 1;
+
   if (n.invoiceArchiveId) {
     const [inv] = await db
       .select()
       .from(schema.invoiceArchive)
       .where(eq(schema.invoiceArchive.id, n.invoiceArchiveId));
     if (inv) {
+      if (inv.currency && inv.currency.trim()) currency = inv.currency.trim().toUpperCase();
       if (inv.issueDate) docDate = inv.issueDate;
       if (inv.dueDate) dueDate = inv.dueDate;
       if (inv.total) archiveTotal = parseFloat(String(inv.total));
@@ -153,6 +157,7 @@ export async function resolveNirSpvData(db: any, n: any) {
         )
       );
     for (const inv of invs) {
+      if (inv.currency && inv.currency.trim()) currency = inv.currency.trim().toUpperCase();
       if (inv.issueDate && (!docDate || docDate === n.receiptDate)) docDate = inv.issueDate;
       if (inv.dueDate && !dueDate) dueDate = inv.dueDate;
       if (archiveTotal === null && inv.total) archiveTotal = parseFloat(String(inv.total));
@@ -165,24 +170,28 @@ export async function resolveNirSpvData(db: any, n: any) {
     }
   }
 
-  if (!spvIndex) {
-    const { sagaIntrari } = await import("../modules/saga/schema");
-    const [si] = await db
-      .select()
-      .from(sagaIntrari)
-      .where(
-        and(
-          eq(sagaIntrari.tenantId, n.tenantId),
-          n.invoiceNumber ? eq(sagaIntrari.nrDoc, n.invoiceNumber) : eq(sagaIntrari.nirId, n.id)
-        )
-      );
-    if (si) {
-      if (si.idSPV) spvIndex = si.idSPV;
-      if (si.data && (!docDate || docDate === n.receiptDate)) docDate = si.data;
-      if (si.scadent && !dueDate) dueDate = si.scadent;
-      if (archiveTotal === null && si.total) archiveTotal = parseFloat(String(si.total));
-      if (archiveTotalVat === null && si.tva) archiveTotalVat = parseFloat(String(si.tva));
+  const { sagaIntrari } = await import("../modules/saga/schema");
+  const [si] = await db
+    .select()
+    .from(sagaIntrari)
+    .where(
+      and(
+        eq(sagaIntrari.tenantId, n.tenantId),
+        n.invoiceNumber ? eq(sagaIntrari.nrDoc, n.invoiceNumber) : eq(sagaIntrari.nirId, n.id)
+      )
+    );
+  if (si) {
+    if (si.valuta && si.valuta.trim()) currency = si.valuta.trim().toUpperCase();
+    if (si.curs) exchangeRate = parseFloat(String(si.curs)) || exchangeRate;
+    if (currency !== "RON" && currency !== "LEI" && si.totalValuta) {
+      archiveTotal = parseFloat(String(si.totalValuta));
+      if (si.tvaValuta) archiveTotalVat = parseFloat(String(si.tvaValuta));
     }
+    if (!spvIndex && si.idSPV) spvIndex = si.idSPV;
+    if (si.data && (!docDate || docDate === n.receiptDate)) docDate = si.data;
+    if (si.scadent && !dueDate) dueDate = si.scadent;
+    if (archiveTotal === null && si.total) archiveTotal = parseFloat(String(si.total));
+    if (archiveTotalVat === null && si.tva) archiveTotalVat = parseFloat(String(si.tva));
   }
 
   if (!spvIndex && n.notes) {
@@ -190,7 +199,7 @@ export async function resolveNirSpvData(db: any, n: any) {
     if (m) spvIndex = m[1];
   }
 
-  return { spvIndex, docDate, dueDate, archiveTotal, archiveTotalVat };
+  return { spvIndex, docDate, dueDate, archiveTotal, archiveTotalVat, currency, exchangeRate };
 }
 
 /**
@@ -406,7 +415,7 @@ export async function generateSagaExportXML(
       .where(eq(schema.nirLines.nirId, n.id));
 
     // Preia datele reale ale facturii (data emiterii furnizorului și index SPV)
-    const { spvIndex, docDate, dueDate, archiveTotal, archiveTotalVat } = await resolveNirSpvData(db, n);
+    const { spvIndex, docDate, dueDate, archiveTotal, archiveTotalVat, currency, exchangeRate } = await resolveNirSpvData(db, n);
 
     let totalValoare = 0;
     let totalTva = 0;
@@ -481,7 +490,10 @@ export async function generateSagaExportXML(
     xml += `      <FacturaTaxareInversa>Nu</FacturaTaxareInversa>\n`;
     xml += `      <FacturaTVAIncasare>Nu</FacturaTVAIncasare>\n`;
     xml += `      <FacturaTip></FacturaTip>\n`;
-    xml += `      <FacturaMoneda>RON</FacturaMoneda>\n`;
+    xml += `      <FacturaMoneda>${escapeXml(currency || "RON")}</FacturaMoneda>\n`;
+    if (currency && currency !== "RON" && currency !== "LEI" && exchangeRate && exchangeRate > 0) {
+      xml += `      <FacturaCurs>${exchangeRate.toFixed(4)}</FacturaCurs>\n`;
+    }
     xml += `      <FacturaTotalValoare>${totalValoare.toFixed(2)}</FacturaTotalValoare>\n`;
     xml += `      <FacturaTotalTVA>${totalTva.toFixed(2)}</FacturaTotalTVA>\n`;
     xml += `      <FacturaTotal>${totalFactura.toFixed(2)}</FacturaTotal>\n`;
@@ -560,14 +572,25 @@ export async function generateSagaExportXML(
     totalTva = Math.round(totalTva * 100) / 100;
     let totalFactura = Math.round((totalValoare + totalTva) * 100) / 100;
 
-    const headerVal = parseFloat(String(n.valoare));
-    const headerTva = parseFloat(String(n.tva));
-    const headerTot = parseFloat(String(n.total));
-    if (!isNaN(headerTot) && headerTot > 0) {
-      totalFactura = headerTot;
-      if (!isNaN(headerTva) && headerTva >= 0) {
-        totalTva = headerTva;
-        totalValoare = !isNaN(headerVal) && headerVal > 0 ? headerVal : Math.round((totalFactura - totalTva) * 100) / 100;
+    const isValuta = (n as any).valuta && (n as any).valuta !== "RON" && (n as any).valuta !== "LEI";
+    const headerTotValuta = parseFloat(String((n as any).totalValuta));
+    const headerTvaValuta = parseFloat(String((n as any).tvaValuta));
+    const headerValValuta = parseFloat(String((n as any).valoareValuta));
+
+    if (isValuta && !isNaN(headerTotValuta) && headerTotValuta > 0) {
+      totalFactura = headerTotValuta;
+      totalTva = !isNaN(headerTvaValuta) ? headerTvaValuta : 0;
+      totalValoare = !isNaN(headerValValuta) ? headerValValuta : Math.round((totalFactura - totalTva) * 100) / 100;
+    } else {
+      const headerVal = parseFloat(String(n.valoare));
+      const headerTva = parseFloat(String(n.tva));
+      const headerTot = parseFloat(String(n.total));
+      if (!isNaN(headerTot) && headerTot > 0) {
+        totalFactura = headerTot;
+        if (!isNaN(headerTva) && headerTva >= 0) {
+          totalTva = headerTva;
+          totalValoare = !isNaN(headerVal) && headerVal > 0 ? headerVal : Math.round((totalFactura - totalTva) * 100) / 100;
+        }
       }
     }
 
@@ -594,8 +617,13 @@ export async function generateSagaExportXML(
     }
     xml += `      <FacturaTaxareInversa>Nu</FacturaTaxareInversa>\n`;
     xml += `      <FacturaTVAIncasare>Nu</FacturaTVAIncasare>\n`;
+    const curr = (n as any).valuta || "RON";
+    const curs = parseFloat(String((n as any).curs || "1")) || 1;
     xml += `      <FacturaTip></FacturaTip>\n`;
-    xml += `      <FacturaMoneda>RON</FacturaMoneda>\n`;
+    xml += `      <FacturaMoneda>${escapeXml(curr)}</FacturaMoneda>\n`;
+    if (curr !== "RON" && curr !== "LEI" && curs > 0) {
+      xml += `      <FacturaCurs>${curs.toFixed(4)}</FacturaCurs>\n`;
+    }
     xml += `      <FacturaTotalValoare>${totalValoare.toFixed(2)}</FacturaTotalValoare>\n`;
     xml += `      <FacturaTotalTVA>${totalTva.toFixed(2)}</FacturaTotalTVA>\n`;
     xml += `      <FacturaTotal>${totalFactura.toFixed(2)}</FacturaTotal>\n`;
@@ -675,7 +703,7 @@ export async function generateSagaNirXML(tenantId: number, nirId?: number | numb
       .where(eq(schema.nirLines.nirId, n.id));
 
     // Preia datele reale ale facturii (data emiterii furnizorului și index SPV)
-    const { spvIndex, docDate, dueDate, archiveTotal, archiveTotalVat } = await resolveNirSpvData(db, n);
+    const { spvIndex, docDate, dueDate, archiveTotal, archiveTotalVat, currency, exchangeRate } = await resolveNirSpvData(db, n);
 
     let totalValoare = 0;
     let totalTva = 0;
@@ -750,7 +778,10 @@ export async function generateSagaNirXML(tenantId: number, nirId?: number | numb
     xml += `      <FacturaTaxareInversa>Nu</FacturaTaxareInversa>\n`;
     xml += `      <FacturaTVAIncasare>Nu</FacturaTVAIncasare>\n`;
     xml += `      <FacturaTip></FacturaTip>\n`;
-    xml += `      <FacturaMoneda>RON</FacturaMoneda>\n`;
+    xml += `      <FacturaMoneda>${escapeXml(currency || "RON")}</FacturaMoneda>\n`;
+    if (currency && currency !== "RON" && currency !== "LEI" && exchangeRate && exchangeRate > 0) {
+      xml += `      <FacturaCurs>${exchangeRate.toFixed(4)}</FacturaCurs>\n`;
+    }
     xml += `      <FacturaTotalValoare>${totalValoare.toFixed(2)}</FacturaTotalValoare>\n`;
     xml += `      <FacturaTotalTVA>${totalTva.toFixed(2)}</FacturaTotalTVA>\n`;
     xml += `      <FacturaTotal>${totalFactura.toFixed(2)}</FacturaTotal>\n`;

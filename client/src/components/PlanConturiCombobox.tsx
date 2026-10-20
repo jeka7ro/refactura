@@ -21,6 +21,7 @@ export const POPULAR_NIR_ACCOUNTS: PlanContItem[] = [
   { cod: "341", denumire: "SEMIFABRICATE", shortLabel: "Semifabricate" },
   { cod: "4091", denumire: "AVANSURI FURNIZORI STOCURI", shortLabel: "Avansuri" },
   { cod: "605", denumire: "ENERGIE SI APA", shortLabel: "Utilități" },
+  { cod: "6058", denumire: "CHELT. CU ALTE UTILITATI", shortLabel: "Alte utilități" },
   { cod: "624", denumire: "CHELTUIELI CU TRANSPORTUL DE BUNURI SI PERSOANE", shortLabel: "Transport" },
   { cod: "628", denumire: "ALTE CHELTUIELI CU SERVICIILE", shortLabel: "Servicii terți" },
   { cod: "628.01", denumire: "ALTE CHELT CU SERVICIILE EXECUTATE DE TERTI DEDUCTIBIL", shortLabel: "Servicii terți" },
@@ -198,8 +199,8 @@ export default function PlanConturiCombobox({
       }
     }
 
-    scored.sort((a, b) => b.score - a.score);
-    return scored.slice(0, 50).map((s) => s.item);
+    scored.sort((a, b) => b.score - a.score || a.item.cod.localeCompare(b.item.cod, undefined, { numeric: true }));
+    return scored.slice(0, 500).map((s) => s.item);
   }, [search, accounts]);
 
   // Reset activeIndex when query or results change
