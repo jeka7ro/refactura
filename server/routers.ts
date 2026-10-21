@@ -749,7 +749,7 @@ export const appRouter = router({
                 quantity: l.quantity.toString() as any,
                 unitPrice: l.unitPrice.toString() as any,
                 unit: l.unit,
-                vatRate: l.vatRate?.toString() as any,
+                vatRate: (l.vatRate !== undefined && l.vatRate !== null ? l.vatRate : (inv.totalVAT === 0 ? 0 : 19)).toString() as any,
                 total: (l.quantity * l.unitPrice).toString() as any,
                 currency: inv.currency,
               }))
