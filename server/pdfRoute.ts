@@ -1022,6 +1022,7 @@ export function registerPdfRoute(app: any) {
       const GRAY = "#64748b";
       const LIGHT = "#f8fafc";
       const BORDER = "#e2e8f0";
+      const fmt2 = (n: number) => n.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
       // ── HEADER ──────────────────────────────────────────────────────────────
       // Logo stânga
@@ -1413,7 +1414,6 @@ export function registerPdfRoute(app: any) {
         } catch {}
       }
       const curSuffix = isForeignNir ? ` (${nirCur})` : "";
-      const fmt2 = (n: number) => n.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
       // 1. TOTAL FARA TVA
       doc.rect(40, y, W, 14).fillColor(LIGHT).strokeColor(BORDER).lineWidth(0.5).fillAndStroke();
