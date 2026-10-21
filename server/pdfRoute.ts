@@ -135,7 +135,7 @@ export function registerPdfRoute(app: any) {
             l.vatRate !== null &&
             String(l.vatRate).trim() !== ""
               ? parseFloat(String(l.vatRate))
-              : 19,
+              : 21,
           total: parseFloat(l.total || "0"),
         }))
       );
@@ -506,7 +506,7 @@ export function registerPdfRoute(app: any) {
         } else if (subtotal > 0 && totalVAT > 0) {
           vatRate = Math.round((totalVAT / subtotal) * 100);
         } else {
-          vatRate = 0;
+          vatRate = isZeroVatInvoice ? 0 : 21;
         }
 
         // If CreditNote, ensure negative values

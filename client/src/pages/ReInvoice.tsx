@@ -89,7 +89,7 @@ export default function ReInvoice() {
         status: singleData.status,
         lines: (singleData.lines && Array.isArray(singleData.lines) && singleData.lines.length > 0)
           ? singleData.lines.map(l => {
-              const defaultVat = parseFloat(String(singleData.totalVAT || "0")) === 0 ? 0 : 19;
+              const defaultVat = parseFloat(String(singleData.totalVAT || "0")) === 0 ? 0 : 21;
               const lineVat = (l.vatRate !== undefined && l.vatRate !== null && String(l.vatRate).trim() !== "")
                 ? parseFloat(String(l.vatRate))
                 : defaultVat;
@@ -123,7 +123,7 @@ export default function ReInvoice() {
                       : singleData.total || "0"
                   )
                 ),
-                vatRate: parseFloat(String(singleData.totalVAT || "0")) === 0 ? 0 : 19,
+                vatRate: parseFloat(String(singleData.totalVAT || "0")) === 0 ? 0 : 21,
                 unit: "servicii",
                 markupPercent: 15,
               },
@@ -136,7 +136,7 @@ export default function ReInvoice() {
       multiData.forEach((d, i) => {
         if (d.lines && Array.isArray(d.lines) && d.lines.length > 0) {
           allLines.push(...d.lines.map(l => {
-            const defaultVat = parseFloat(String(d.totalVAT || "0")) === 0 ? 0 : 19;
+            const defaultVat = parseFloat(String(d.totalVAT || "0")) === 0 ? 0 : 21;
             const lineVat = (l.vatRate !== undefined && l.vatRate !== null && String(l.vatRate).trim() !== "")
               ? parseFloat(String(l.vatRate))
               : defaultVat;
@@ -168,8 +168,8 @@ export default function ReInvoice() {
                   : d.total || "0"
               )
             ),
-            vatPercent: parseFloat(String(d.totalVAT || "0")) === 0 ? 0 : 19,
-            vatRate: parseFloat(String(d.totalVAT || "0")) === 0 ? 0 : 19,
+            vatPercent: parseFloat(String(d.totalVAT || "0")) === 0 ? 0 : 21,
+            vatRate: parseFloat(String(d.totalVAT || "0")) === 0 ? 0 : 21,
           });
         }
       });
@@ -631,8 +631,8 @@ export default function ReInvoice() {
           unitPrice: Number(l.unitPrice),
           markupPercent: Number(l.markupPercent || 0),
           originalUnitPrice: Number(l.originalUnitPrice),
-          vatRate: Number((l as any).vatRate ?? ((l as any).vatPercent ?? 19)),
-          vatPercent: Number((l as any).vatRate ?? ((l as any).vatPercent ?? 19)),
+          vatRate: Number((l as any).vatRate ?? ((l as any).vatPercent ?? 21)),
+          vatPercent: Number((l as any).vatRate ?? ((l as any).vatPercent ?? 21)),
           devizType: (l as any).devizType,
           devizCode: (l as any).devizCode,
         })),

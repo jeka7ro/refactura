@@ -749,7 +749,7 @@ export const appRouter = router({
                 quantity: l.quantity.toString() as any,
                 unitPrice: l.unitPrice.toString() as any,
                 unit: l.unit,
-                vatRate: (l.vatRate !== undefined && l.vatRate !== null ? l.vatRate : (inv.totalVAT === 0 ? 0 : 19)).toString() as any,
+                vatRate: (l.vatRate !== undefined && l.vatRate !== null ? l.vatRate : (inv.totalVAT === 0 ? 0 : 21)).toString() as any,
                 total: (l.quantity * l.unitPrice).toString() as any,
                 currency: inv.currency,
               }))
@@ -5375,7 +5375,7 @@ export const appRouter = router({
                 cod: art?.code || (l as any).articleCode || undefined,
                 denumire: l.description,
                 um: l.unit || "buc",
-                tvaPercent: (l.vatRate !== undefined && l.vatRate !== null && String(l.vatRate).trim() !== "") ? String(l.vatRate) : "19",
+                tvaPercent: (l.vatRate !== undefined && l.vatRate !== null && String(l.vatRate).trim() !== "") ? String(l.vatRate) : "21",
                 cantitate: l.cantitateReceptionata,
                 pretUnitar: l.unitPrice || "0",
                 valoare: val.toString(),
@@ -5597,7 +5597,7 @@ export const appRouter = router({
                 lines.map((l, idx) => {
                   const art = loadedArticles.find(a => a.id === l.sagaArticleId);
                   const val = parseFloat(l.total || "0") || 0;
-                  const vatP = parseFloat(l.vatRate ?? "19") || 0;
+                  const vatP = parseFloat(l.vatRate ?? "21") || 0;
                   const tva = Math.round(((val * vatP) / 100) * 100) / 100;
                   return {
                     intrareId,
@@ -5606,7 +5606,7 @@ export const appRouter = router({
                     cod: art?.code || undefined,
                     denumire: l.description,
                     um: l.unit || "buc",
-                    tvaPercent: (l.vatRate !== undefined && l.vatRate !== null && String(l.vatRate).trim() !== "") ? String(l.vatRate) : "19",
+                    tvaPercent: (l.vatRate !== undefined && l.vatRate !== null && String(l.vatRate).trim() !== "") ? String(l.vatRate) : "21",
                     cantitate: l.cantitateReceptionata,
                     pretUnitar: l.unitPrice || "0",
                     valoare: val.toString(),
