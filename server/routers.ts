@@ -5091,6 +5091,8 @@ export const appRouter = router({
           notes: z.string().optional(),
           accountingType: z.string().optional(),
           accountingAccount: z.string().optional(),
+          currency: z.string().optional(),
+          exchangeRate: z.string().optional(),
           lines: z.array(
             z.object({
               description: z.string(),
@@ -5217,8 +5219,15 @@ export const appRouter = router({
           }
         }
 
+        if (input.currency && input.currency.trim()) {
+          invoiceCurrency = input.currency.trim().toUpperCase();
+        }
+        if (input.exchangeRate && parseFloat(input.exchangeRate) > 0) {
+          exchangeRate = parseFloat(input.exchangeRate);
+        }
+
         const isForeignCurrency = invoiceCurrency !== "RON" && invoiceCurrency !== "LEI";
-        if (isForeignCurrency) {
+        if (isForeignCurrency && (!input.exchangeRate || exchangeRate <= 1)) {
           try {
             const { getBnrRateForDate } = await import("./bnrService");
             const bnrRes = await getBnrRateForDate(invoiceDocDate, invoiceCurrency);
@@ -5410,6 +5419,8 @@ export const appRouter = router({
           notes: z.string().optional(),
           accountingType: z.string().optional(),
           accountingAccount: z.string().optional(),
+          currency: z.string().optional(),
+          exchangeRate: z.string().optional(),
           status: z.enum(["draft", "finalizat"]).optional(),
           lines: z
             .array(
@@ -5505,6 +5516,8 @@ export const appRouter = router({
           "notes",
           "accountingType",
           "accountingAccount",
+          "currency",
+          "exchangeRate",
           "status",
         ] as const;
         for (const f of fields) {

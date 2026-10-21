@@ -171,6 +171,8 @@ export default function NIRCreate() {
   const [gestiune, setGestiune] = useState("");
   const [accountingType, setAccountingType] = useState("Marfuri");
   const [accountingAccount, setAccountingAccount] = useState("371");
+  const [currency, setCurrency] = useState("RON");
+  const [exchangeRate, setExchangeRate] = useState("1.0000");
   const [notes, setNotes] = useState("");
   // Furnizor
   const [supplierName, setSupplierName] = useState("");
@@ -320,6 +322,8 @@ export default function NIRCreate() {
       setMember3Function(existingNir.member3Function || "Sef depozit");
       setDifferenceNotes(existingNir.differenceNotes || "");
       setNotes(existingNir.notes || "");
+      if ((existingNir as any).currency) setCurrency(String((existingNir as any).currency).trim().toUpperCase());
+      if ((existingNir as any).exchangeRate) setExchangeRate(String((existingNir as any).exchangeRate));
       setStatus((existingNir.status as any) || "draft");
 
       // Calculate highest numeric code in articles
@@ -392,6 +396,12 @@ export default function NIRCreate() {
       setSupplierName(sourceInvoice.supplierName || "");
       setSupplierCUI(sourceInvoice.supplierCUI || "");
       setInvoiceNumber(sourceInvoice.invoiceNumber || "");
+      if (sourceInvoice.currency && sourceInvoice.currency.trim()) {
+        setCurrency(sourceInvoice.currency.trim().toUpperCase());
+      }
+      if ((sourceInvoice as any).exchangeRate) {
+        setExchangeRate(String((sourceInvoice as any).exchangeRate));
+      }
       if ((sourceInvoice as any).spvIndex) setSpvIndex((sourceInvoice as any).spvIndex);
       const archLns = archiveLines as any[];
       const srcTotalNum = parseFloat(sourceInvoice?.total || "0");
@@ -461,7 +471,10 @@ export default function NIRCreate() {
             let defAccount = "371";
             if (matchedArticle) {
               defType = matchedArticle.category || "Marfuri";
-              defAccount = matchedArticle.accountingAccount || "371";
+              defAccount = matchedArticle.accountingAccount || TIP_TO_CONT[defType] || "371";
+              if (defType.toLowerCase().includes("materii prime") && (!defAccount || defAccount.startsWith("371") || defAccount.startsWith("302"))) {
+                defAccount = "301";
+              }
             } else if (isAvans) {
               defType = "Avans";
               defAccount = "4091";
@@ -615,7 +628,19 @@ export default function NIRCreate() {
       if (fieldOrPatch !== "total" && (isQtyOrPriceChange || !updated[idx].total)) {
         const qty = parseFloat(updated[idx].cantitateReceptionata) || 0;
         const price = parseFloat(updated[idx].unitPrice) || 0;
-        updated[idx].total = (qty * price).toFixed(2);
+        const descLower = String(updated[idx].description || "").toLowerCase();
+        const isDiscount = descLower.includes("rabat") || descLower.includes("discount") || descLower.includes("reducere") || (qty < 0 && price < 0);
+
+        if (isDiscount) {
+          const absQty = Math.abs(qty) || 1;
+          const absPrice = Math.abs(price);
+          updated[idx].unitPrice = absPrice.toFixed(2);
+          updated[idx].cantitateReceptionata = String(-absQty);
+          updated[idx].cantitateComanda = String(-absQty);
+          updated[idx].total = (-absQty * absPrice).toFixed(2);
+        } else {
+          updated[idx].total = (qty * price).toFixed(2);
+        }
       }
       
       // Auto-link article if description matches perfectly
@@ -688,6 +713,8 @@ export default function NIRCreate() {
     gestiune: gestiune || undefined,
     accountingType: accountingType || undefined,
     accountingAccount: accountingAccount || undefined,
+    currency: currency || undefined,
+    exchangeRate: exchangeRate || undefined,
     receiptDate,
     member1Name: member1Name || undefined,
     member1Function: member1Function || undefined,
@@ -794,6 +821,14 @@ export default function NIRCreate() {
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
                   Index SPV: {spvIndex}
+                </span>
+              )}
+              {currency && currency !== "RON" && currency !== "LEI" && (
+                <span
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 ml-1"
+                  title={`Factură în valută (${currency}) la cursul de ${parseFloat(exchangeRate || "1").toFixed(4)} RON`}
+                >
+                  Valută: {currency} (Curs: {parseFloat(exchangeRate || "1").toFixed(4)})
                 </span>
               )}
             </h1>
@@ -1244,19 +1279,19 @@ export default function NIRCreate() {
             <tfoot>
               <tr className="border-t-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
                 <td colSpan={showAccounting ? 9 : 8} className="px-3 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 text-right">
-                  TOTAL FĂRĂ TVA:
+                  TOTAL FĂRĂ TVA{currency && currency !== "RON" && currency !== "LEI" ? ` (${currency})` : ""}:
                 </td>
                 <td className="px-1 py-2 text-right text-sm font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                  {totalFaraTva.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}
+                  {totalFaraTva.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </td>
                 <td colSpan={2}></td>
               </tr>
               <tr className="bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700/50">
                 <td colSpan={showAccounting ? 9 : 8} className="px-3 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-400 text-right">
-                  TOTAL TVA:
+                  TOTAL TVA{currency && currency !== "RON" && currency !== "LEI" ? ` (${currency})` : ""}:
                 </td>
                 <td className="px-1 py-1.5 text-right text-sm font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                  {totalTva.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}
+                  {totalTva.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </td>
                 <td colSpan={2}></td>
               </tr>
@@ -1272,16 +1307,30 @@ export default function NIRCreate() {
                   style={{ color: "var(--tenant-theme-color, #16a34a)" }}
                   className="px-3 py-2 text-xs font-black text-right"
                 >
-                  TOTAL CU TVA:
+                  {isCreditNote ? "TOTAL CU TVA (STORNO)" : "TOTAL CU TVA"}{currency && currency !== "RON" && currency !== "LEI" ? ` (${currency})` : ""}:
                 </td>
                 <td
                   style={{ color: "var(--tenant-theme-color, #16a34a)" }}
                   className="px-1 py-2 text-right text-[15px] font-black whitespace-nowrap"
                 >
-                  {totalCuTva.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}
+                  {totalCuTva.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </td>
                 <td colSpan={2}></td>
               </tr>
+              {currency && currency !== "RON" && currency !== "LEI" && (
+                <tr className="bg-blue-50/70 dark:bg-blue-950/40 border-t border-blue-200 dark:border-blue-800/60">
+                  <td
+                    colSpan={showAccounting ? 9 : 8}
+                    className="px-3 py-1.5 text-xs font-bold text-blue-700 dark:text-blue-300 text-right"
+                  >
+                    Echivalent RON (curs {parseFloat(exchangeRate || "1").toFixed(4)}):
+                  </td>
+                  <td className="px-1 py-1.5 text-right text-xs font-black text-blue-800 dark:text-blue-200 whitespace-nowrap">
+                    {(totalCuTva * (parseFloat(exchangeRate) || 1)).toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON
+                  </td>
+                  <td colSpan={2}></td>
+                </tr>
+              )}
             </tfoot>
           </table>
         </div>

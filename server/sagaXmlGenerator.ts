@@ -128,10 +128,25 @@ export function resolveSagaLineTip(
   lineAccount?: string | null,
   fallbackAccountingType?: string | null
 ): string {
-  const acc = String(lineAccount || "").trim();
   const rawType = String(lineAccountingType || fallbackAccountingType || "").trim();
+  const lower = rawType.toLowerCase();
+  const acc = String(lineAccount || "").trim();
 
-  // 1. Mappings by accounting account (standard Plan de Conturi General Romania)
+  // 1. Normalizare după denumirea tipului explicit ales de utilizator
+  if (lower.includes("materii prime") || lower.includes("materie prima")) return "Materii prime";
+  if (lower.includes("materiale auxiliare") || lower.includes("auxiliar")) return "Materiale auxiliare";
+  if (lower.includes("piese de schimb")) return "Piese de schimb";
+  if (lower.includes("combustibil")) return "Combustibili";
+  if (lower.includes("obiecte de inventar") || lower.includes("inventar")) return "Obiecte de inventar";
+  if (lower.includes("produse finite")) return "Produse finite";
+  if (lower.includes("semifabricate")) return "Semifabricate";
+  if (lower.includes("ambalaj")) return "Ambalaje";
+  if (lower.includes("servici") || lower.includes("avans") || lower.includes("utilitati") || lower.includes("manopera") || lower.includes("transport")) return "Servicii";
+  if (lower.includes("alte mat") || lower.includes("alte consumabile")) return "Alte mat. consumabile";
+  if (lower.includes("consumabil") || lower.includes("materiale consumabile")) return "Materiale consumabile";
+  if (lower.includes("marfuri") || lower.includes("marfa")) return "Marfuri";
+
+  // 2. Mappings by accounting account (standard Plan de Conturi General Romania)
   if (acc.startsWith("301")) return "Materii prime";
   if (acc.startsWith("3021")) return "Materiale auxiliare";
   if (acc.startsWith("3022")) return "Combustibili";
@@ -144,21 +159,6 @@ export function resolveSagaLineTip(
   if (acc.startsWith("341")) return "Semifabricate";
   if (acc.startsWith("381")) return "Ambalaje";
   if (acc.startsWith("6") || acc.startsWith("7") || acc.startsWith("409")) return "Servicii";
-
-  // 2. Normalizare după denumirea tipului
-  const lower = rawType.toLowerCase();
-  if (lower.includes("materii prime") || lower.includes("materie prima")) return "Materii prime";
-  if (lower.includes("materiale auxiliare") || lower.includes("auxiliar")) return "Materiale auxiliare";
-  if (lower.includes("alte mat") || lower.includes("alte consumabile")) return "Alte mat. consumabile";
-  if (lower.includes("piese de schimb")) return "Piese de schimb";
-  if (lower.includes("combustibil")) return "Combustibili";
-  if (lower.includes("consumabil") || lower.includes("materiale consumabile")) return "Materiale consumabile";
-  if (lower.includes("obiecte de inventar") || lower.includes("inventar")) return "Obiecte de inventar";
-  if (lower.includes("marfuri") || lower.includes("marfa")) return "Marfuri";
-  if (lower.includes("produse finite")) return "Produse finite";
-  if (lower.includes("semifabricate")) return "Semifabricate";
-  if (lower.includes("ambalaj")) return "Ambalaje";
-  if (lower.includes("servici") || lower.includes("avans") || lower.includes("utilitati") || lower.includes("manopera")) return "Servicii";
 
   return rawType || "Materii prime";
 }
@@ -601,6 +601,16 @@ export async function generateSagaExportXML(
     let lineIndex = 1;
     for (const item of processedLines) {
       const lineTip = resolveSagaLineTip((item.line as any).accountingType, item.lineAcc, n.accountingType);
+      let lineAcc = item.lineAcc;
+      if (lineTip === "Materii prime" && (!lineAcc || lineAcc.startsWith("371") || lineAcc.startsWith("302"))) {
+        lineAcc = "301";
+      } else if (lineTip === "Marfuri" && (!lineAcc || lineAcc.startsWith("301") || lineAcc.startsWith("302"))) {
+        lineAcc = "371";
+      } else if (lineTip === "Obiecte de inventar" && (!lineAcc || !lineAcc.startsWith("303"))) {
+        lineAcc = "303";
+      } else if ((lineTip === "Materiale consumabile" || lineTip === "Alte mat. consumabile") && (!lineAcc || !lineAcc.startsWith("302"))) {
+        lineAcc = "3028";
+      }
       xml += `        <Linie>\n`;
       xml += `          <LinieNrCrt>${lineIndex++}</LinieNrCrt>\n`;
       if (n.gestiune && !item.isServiceOrAdvance) {
@@ -619,7 +629,7 @@ export async function generateSagaExportXML(
       xml += `          <Valoare>${item.lineVal.toFixed(2)}</Valoare>\n`;
       xml += `          <ProcTVA>${item.rate}</ProcTVA>\n`;
       xml += `          <TVA>${item.lineVat.toFixed(2)}</TVA>\n`;
-      xml += `          <Cont>${escapeXml(item.lineAcc)}</Cont>\n`;
+      xml += `          <Cont>${escapeXml(lineAcc)}</Cont>\n`;
       xml += `        </Linie>\n`;
     }
     xml += `      </Continut>\n`;
@@ -758,6 +768,16 @@ export async function generateSagaExportXML(
     let lineIndex = 1;
     for (const item of processedLines) {
       const lineTip = resolveSagaLineTip((item.line as any).tip, item.lineAcc);
+      let lineAcc = item.lineAcc;
+      if (lineTip === "Materii prime" && (!lineAcc || lineAcc.startsWith("371") || lineAcc.startsWith("302"))) {
+        lineAcc = "301";
+      } else if (lineTip === "Marfuri" && (!lineAcc || lineAcc.startsWith("301") || lineAcc.startsWith("302"))) {
+        lineAcc = "371";
+      } else if (lineTip === "Obiecte de inventar" && (!lineAcc || !lineAcc.startsWith("303"))) {
+        lineAcc = "303";
+      } else if ((lineTip === "Materiale consumabile" || lineTip === "Alte mat. consumabile") && (!lineAcc || !lineAcc.startsWith("302"))) {
+        lineAcc = "3028";
+      }
       xml += `        <Linie>\n`;
       xml += `          <LinieNrCrt>${lineIndex++}</LinieNrCrt>\n`;
       xml += `          <Tip>${escapeXml(lineTip)}</Tip>\n`;
@@ -773,7 +793,7 @@ export async function generateSagaExportXML(
       xml += `          <Valoare>${item.lineVal.toFixed(2)}</Valoare>\n`;
       xml += `          <ProcTVA>${item.rate}</ProcTVA>\n`;
       xml += `          <TVA>${item.lineVat.toFixed(2)}</TVA>\n`;
-      xml += `          <Cont>${escapeXml(item.lineAcc)}</Cont>\n`;
+      xml += `          <Cont>${escapeXml(lineAcc)}</Cont>\n`;
       xml += `        </Linie>\n`;
     }
     xml += `      </Continut>\n`;
@@ -940,6 +960,16 @@ export async function generateSagaNirXML(tenantId: number, nirId?: number | numb
     let lineIndex = 1;
     for (const item of processedLines) {
       const lineTip = resolveSagaLineTip((item.line as any).accountingType, item.lineAcc, n.accountingType);
+      let lineAcc = item.lineAcc;
+      if (lineTip === "Materii prime" && (!lineAcc || lineAcc.startsWith("371") || lineAcc.startsWith("302"))) {
+        lineAcc = "301";
+      } else if (lineTip === "Marfuri" && (!lineAcc || lineAcc.startsWith("301") || lineAcc.startsWith("302"))) {
+        lineAcc = "371";
+      } else if (lineTip === "Obiecte de inventar" && (!lineAcc || !lineAcc.startsWith("303"))) {
+        lineAcc = "303";
+      } else if ((lineTip === "Materiale consumabile" || lineTip === "Alte mat. consumabile") && (!lineAcc || !lineAcc.startsWith("302"))) {
+        lineAcc = "3028";
+      }
       xml += `        <Linie>\n`;
       xml += `          <LinieNrCrt>${lineIndex++}</LinieNrCrt>\n`;
       if (n.gestiune && !item.isServiceOrAdvance) {
@@ -958,7 +988,7 @@ export async function generateSagaNirXML(tenantId: number, nirId?: number | numb
       xml += `          <Valoare>${item.lineVal.toFixed(2)}</Valoare>\n`;
       xml += `          <ProcTVA>${item.rate}</ProcTVA>\n`;
       xml += `          <TVA>${item.lineVat.toFixed(2)}</TVA>\n`;
-      xml += `          <Cont>${escapeXml(item.lineAcc)}</Cont>\n`;
+      xml += `          <Cont>${escapeXml(lineAcc)}</Cont>\n`;
       xml += `        </Linie>\n`;
     }
     xml += `      </Continut>\n`;
