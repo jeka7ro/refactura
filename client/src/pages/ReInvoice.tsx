@@ -88,14 +88,20 @@ export default function ReInvoice() {
         currency: (singleData.currency || "RON") as Currency,
         status: singleData.status,
         lines: (singleData.lines && Array.isArray(singleData.lines) && singleData.lines.length > 0)
-          ? singleData.lines.map(l => ({ 
-              ...l, 
-              id: `${singleData.id}-${l.id}`,
-              originalUnitPrice: parseFloat(String(l.unitPrice || "0")),
-              unitPrice: parseFloat(String(l.unitPrice || "0")),
-              markupPercent: 15,
-              vatRate: parseFloat(String(l.vatRate || "21"))
-            }))
+          ? singleData.lines.map(l => {
+              const defaultVat = parseFloat(String(singleData.totalVAT || "0")) === 0 ? 0 : 19;
+              const lineVat = (l.vatRate !== undefined && l.vatRate !== null && String(l.vatRate).trim() !== "")
+                ? parseFloat(String(l.vatRate))
+                : defaultVat;
+              return { 
+                ...l, 
+                id: `${singleData.id}-${l.id}`,
+                originalUnitPrice: parseFloat(String(l.unitPrice || "0")),
+                unitPrice: parseFloat(String(l.unitPrice || "0")),
+                markupPercent: 15,
+                vatRate: lineVat,
+              };
+            })
           : [
               {
                 id: `line-auto-${singleData.id}`,
@@ -117,7 +123,7 @@ export default function ReInvoice() {
                       : singleData.total || "0"
                   )
                 ),
-                vatRate: 21,
+                vatRate: parseFloat(String(singleData.totalVAT || "0")) === 0 ? 0 : 19,
                 unit: "servicii",
                 markupPercent: 15,
               },
@@ -129,14 +135,20 @@ export default function ReInvoice() {
       const isRefactured = multiData.some(d => d.status === "refactured");
       multiData.forEach((d, i) => {
         if (d.lines && Array.isArray(d.lines) && d.lines.length > 0) {
-          allLines.push(...d.lines.map(l => ({ 
-            ...l, 
-            id: `${d.id}-${l.id}`,
-            originalUnitPrice: parseFloat(String(l.unitPrice || "0")),
-            unitPrice: parseFloat(String(l.unitPrice || "0")),
-            markupPercent: 15,
-            vatRate: parseFloat(String(l.vatRate || "21"))
-          })));
+          allLines.push(...d.lines.map(l => {
+            const defaultVat = parseFloat(String(d.totalVAT || "0")) === 0 ? 0 : 19;
+            const lineVat = (l.vatRate !== undefined && l.vatRate !== null && String(l.vatRate).trim() !== "")
+              ? parseFloat(String(l.vatRate))
+              : defaultVat;
+            return { 
+              ...l, 
+              id: `${d.id}-${l.id}`,
+              originalUnitPrice: parseFloat(String(l.unitPrice || "0")),
+              unitPrice: parseFloat(String(l.unitPrice || "0")),
+              markupPercent: 15,
+              vatRate: lineVat,
+            };
+          }));
         } else {
           allLines.push({
             id: `line-auto-${d.id}`,
@@ -156,7 +168,8 @@ export default function ReInvoice() {
                   : d.total || "0"
               )
             ),
-            vatPercent: 21,
+            vatPercent: parseFloat(String(d.totalVAT || "0")) === 0 ? 0 : 19,
+            vatRate: parseFloat(String(d.totalVAT || "0")) === 0 ? 0 : 19,
           });
         }
       });
@@ -618,7 +631,8 @@ export default function ReInvoice() {
           unitPrice: Number(l.unitPrice),
           markupPercent: Number(l.markupPercent || 0),
           originalUnitPrice: Number(l.originalUnitPrice),
-          vatPercent: Number((l as any).vatRate ?? 21),
+          vatRate: Number((l as any).vatRate ?? ((l as any).vatPercent ?? 19)),
+          vatPercent: Number((l as any).vatRate ?? ((l as any).vatPercent ?? 19)),
           devizType: (l as any).devizType,
           devizCode: (l as any).devizCode,
         })),

@@ -1314,7 +1314,7 @@ export async function createReInvoice(data: {
         originalUnitPrice: l.originalUnitPrice?.toString() as any,
         unitPrice: l.unitPrice.toString() as any,
         unit: l.unit ?? "buc",
-        vatRate: (l.vatRate ?? 21).toString() as any,
+        vatRate: (l.vatRate ?? l.vatPercent ?? 19).toString() as any,
         markupPercent: l.markupPercent?.toString() as any,
         total: l.total.toString() as any,
         lineOrder: l.lineOrder ?? i,

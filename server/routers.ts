@@ -812,6 +812,7 @@ export const appRouter = router({
               unitPrice: z.number(),
               unit: z.string().optional(),
               vatRate: z.number().optional(),
+              vatPercent: z.number().optional(),
               markupPercent: z.number().optional(),
               total: z.number(),
               lineOrder: z.number(),
@@ -5374,7 +5375,7 @@ export const appRouter = router({
                 cod: art?.code || (l as any).articleCode || undefined,
                 denumire: l.description,
                 um: l.unit || "buc",
-                tvaPercent: l.vatRate || "21",
+                tvaPercent: (l.vatRate !== undefined && l.vatRate !== null && String(l.vatRate).trim() !== "") ? String(l.vatRate) : "19",
                 cantitate: l.cantitateReceptionata,
                 pretUnitar: l.unitPrice || "0",
                 valoare: val.toString(),
@@ -5596,7 +5597,8 @@ export const appRouter = router({
                 lines.map((l, idx) => {
                   const art = loadedArticles.find(a => a.id === l.sagaArticleId);
                   const val = parseFloat(l.total || "0") || 0;
-                  const tva = Math.round(((val * (parseFloat(l.vatRate ?? "21") || 0)) / 100) * 100) / 100;
+                  const vatP = parseFloat(l.vatRate ?? "19") || 0;
+                  const tva = Math.round(((val * vatP) / 100) * 100) / 100;
                   return {
                     intrareId,
                     tip: l.accountingType || "Marfa",
@@ -5604,7 +5606,7 @@ export const appRouter = router({
                     cod: art?.code || undefined,
                     denumire: l.description,
                     um: l.unit || "buc",
-                    tvaPercent: l.vatRate ?? "21",
+                    tvaPercent: (l.vatRate !== undefined && l.vatRate !== null && String(l.vatRate).trim() !== "") ? String(l.vatRate) : "19",
                     cantitate: l.cantitateReceptionata,
                     pretUnitar: l.unitPrice || "0",
                     valoare: val.toString(),

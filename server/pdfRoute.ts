@@ -130,7 +130,12 @@ export function registerPdfRoute(app: any) {
           quantity: parseFloat(l.quantity || "1"),
           unitPrice: parseFloat(l.unitPrice || "0"),
           unit: l.unit || "buc",
-          vatRate: parseFloat(l.vatRate || "21"),
+          vatRate:
+            l.vatRate !== undefined &&
+            l.vatRate !== null &&
+            String(l.vatRate).trim() !== ""
+              ? parseFloat(String(l.vatRate))
+              : 19,
           total: parseFloat(l.total || "0"),
         }))
       );
