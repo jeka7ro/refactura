@@ -23,7 +23,7 @@ export const sagaArticles = mysqlTable("sagaArticles", {
   code: varchar("code", { length: 50 }).notNull(),       // Cod intern (ART-0001 sau cod SAGA importat)
   name: varchar("name", { length: 255 }).notNull(),       // Denumire articol
   unit: varchar("unit", { length: 20 }).default("buc"),   // Unitate de măsură
-  vatRate: decimal("vatRate", { precision: 5, scale: 2 }).default("19.00"),
+  vatRate: decimal("vatRate", { precision: 5, scale: 2 }).default("21.00"),
   category: varchar("category", { length: 100 }).default("Marfuri"), // Grupa/tipul
   accountingAccount: varchar("accountingAccount", { length: 20 }).default("371"), // Cont contabil
   sagaCode: varchar("sagaCode", { length: 50 }),          // Codul original din SAGA (dacă importat)
@@ -89,7 +89,7 @@ export const sagaGestiuni = mysqlTable("sagaGestiuni", {
   analitic4428: varchar("analitic4428", { length: 20 }), // TVA neexigibilă
   analitic607: varchar("analitic607", { length: 20 }),   // Chelt. mărfuri
   analitic707: varchar("analitic707", { length: 20 }),   // Venituri mărfuri
-  tvaImplicit: decimal("tvaImplicit", { precision: 5, scale: 2 }).default("19.00"),
+  tvaImplicit: decimal("tvaImplicit", { precision: 5, scale: 2 }).default("21.00"),
   isActive: int("isActive").default(1),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -167,7 +167,7 @@ export const sagaIntrariLinii = mysqlTable("sagaIntrariLinii", {
   cod: varchar("cod", { length: 50 }),
   denumire: varchar("denumire", { length: 255 }).notNull(),
   um: varchar("um", { length: 20 }).default("buc"),
-  tvaPercent: decimal("tvaPercent", { precision: 5, scale: 2 }).default("19.00"),
+  tvaPercent: decimal("tvaPercent", { precision: 5, scale: 2 }).default("21.00"),
   cantitate: decimal("cantitate", { precision: 12, scale: 3 }).default("0"),
   pretUnitar: decimal("pretUnitar", { precision: 12, scale: 4 }).default("0"),
   valoare: decimal("valoare", { precision: 12, scale: 2 }).default("0"),
@@ -217,7 +217,7 @@ export const sagaComenziLinii = mysqlTable("sagaComenziLinii", {
   cod: varchar("cod", { length: 50 }),
   denumire: varchar("denumire", { length: 255 }).notNull(),
   um: varchar("um", { length: 20 }).default("buc"),
-  tvaPercent: decimal("tvaPercent", { precision: 5, scale: 2 }).default("19.00"),
+  tvaPercent: decimal("tvaPercent", { precision: 5, scale: 2 }).default("21.00"),
   cantitate: decimal("cantitate", { precision: 12, scale: 3 }).default("0"),
   pretUnitar: decimal("pretUnitar", { precision: 12, scale: 4 }).default("0"),
   valoare: decimal("valoare", { precision: 12, scale: 2 }).default("0"),
@@ -240,7 +240,7 @@ export const sagaComenziConsumuri = mysqlTable("sagaComenziConsumuri", {
   cod: varchar("cod", { length: 50 }),
   denumire: varchar("denumire", { length: 255 }).notNull(),
   um: varchar("um", { length: 20 }).default("buc"),
-  tvaPercent: decimal("tvaPercent", { precision: 5, scale: 2 }).default("19.00"),
+  tvaPercent: decimal("tvaPercent", { precision: 5, scale: 2 }).default("21.00"),
   cantitate: decimal("cantitate", { precision: 12, scale: 3 }).default("0"),
   pretUnitar: decimal("pretUnitar", { precision: 12, scale: 4 }).default("0"),
   valoare: decimal("valoare", { precision: 12, scale: 2 }).default("0"),

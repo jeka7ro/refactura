@@ -1,5 +1,11 @@
 import { SignJWT, jwtVerify } from "jose";
 
+if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
+  console.error(
+    "[SECURITY] JWT_SECRET nu este setat! Se folosește cheia implicită publică — oricine poate falsifica sesiuni. Setează JWT_SECRET în mediul de producție."
+  );
+}
+
 const secret = new TextEncoder().encode(
   process.env.JWT_SECRET || "your-secret-key-change-in-production"
 );

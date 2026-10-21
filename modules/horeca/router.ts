@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../../server/_core/trpc";
 import { z } from "zod";
 import { getDb } from "../../server/db";
@@ -19,6 +20,29 @@ import {
   horecaStockMovements,
 } from "./schema";
 import { bonuriConsum, bonuriConsumLines } from "../../drizzle/schema";
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Bridge-urile către Smart Kiosk / Syrve NU sunt separate pe firme (backend-ul de kiosk
+//  are propriile locații și comenzi). De aceea sunt accesibile doar firmelor autorizate
+//  explicit (HORECA_KIOSK_TENANT_IDS, implicit 1 și 9 = firma proprietară) sau superadmin.
+// ─────────────────────────────────────────────────────────────────────────────
+const KIOSK_ALLOWED_TENANTS = new Set(
+  (process.env.HORECA_KIOSK_TENANT_IDS || "1,9")
+    .split(",")
+    .map(x => parseInt(x.trim(), 10))
+    .filter(n => Number.isFinite(n))
+);
+const kioskProcedure = protectedProcedure.use(({ ctx, next }) => {
+  const tid = ctx.user.tenantId;
+  if (ctx.user.role !== "superadmin" && !(tid && KIOSK_ALLOWED_TENANTS.has(tid))) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Această firmă nu are acces la integrarea Smart Kiosk.",
+    });
+  }
+  return next({ ctx });
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  HORECA MODULE ROUTER
@@ -65,8 +89,8 @@ export const horecaRouter = router({
             ])
             .default("restaurant"),
           currency: z.string().default("RON"),
-          defaultVatFood: z.number().default(9),
-          defaultVatAlcohol: z.number().default(19),
+          defaultVatFood: z.number().default(11),
+          defaultVatAlcohol: z.number().default(21),
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -213,6 +237,12 @@ export const horecaRouter = router({
         const db = await getDb();
         if (!db) throw new Error("No DB");
 
+        const [ownIng] = await db
+          .select({ id: horecaIngredients.id })
+          .from(horecaIngredients)
+          .where(and(eq(horecaIngredients.id, input.ingredientId), eq(horecaIngredients.tenantId, ctx.user.tenantId!)));
+        if (!ownIng) throw new Error("Ingredientul nu a fost găsit");
+
         // 1. Insert movement
         await db.insert(horecaStockMovements).values({
           tenantId: ctx.user.tenantId!,
@@ -350,7 +380,7 @@ export const horecaRouter = router({
           description: z.string().optional(),
           sku: z.string().optional(),
           price: z.string(),
-          vatRate: z.number().default(9),
+          vatRate: z.number().default(11),
           unit: z.string().default("portie"),
           isAvailableDelivery: z.number().default(1),
           isAvailableDineIn: z.number().default(1),
@@ -582,6 +612,13 @@ export const horecaRouter = router({
         const db = await getDb();
         if (!db) throw new Error("No DB");
         const { id, ...rest } = input;
+        if (rest.currentOrderId) {
+          const [ownOrd] = await db
+            .select({ id: horecaOrders.id })
+            .from(horecaOrders)
+            .where(and(eq(horecaOrders.id, rest.currentOrderId), eq(horecaOrders.tenantId, ctx.user.tenantId!)));
+          if (!ownOrd) throw new Error("Comanda nu a fost găsită");
+        }
         await db
           .update(horecaTables)
           .set(rest)
@@ -723,7 +760,7 @@ export const horecaRouter = router({
           name: z.string().min(1),
           quantity: z.string(),
           unitPrice: z.string(),
-          vatRate: z.number().default(9),
+          vatRate: z.number().default(11),
           notes: z.string().optional(),
           modifiers: z.string().optional(),
           kitchenSection: z.string().optional(),
@@ -733,6 +770,18 @@ export const horecaRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        const [ownOrder] = await db
+          .select({ id: horecaOrders.id })
+          .from(horecaOrders)
+          .where(and(eq(horecaOrders.id, input.orderId), eq(horecaOrders.tenantId, ctx.user.tenantId!)));
+        if (!ownOrder) throw new Error("Order not found");
+        if (input.menuItemId) {
+          const [ownItem] = await db
+            .select({ id: horecaMenuItems.id })
+            .from(horecaMenuItems)
+            .where(and(eq(horecaMenuItems.id, input.menuItemId), eq(horecaMenuItems.tenantId, ctx.user.tenantId!)));
+          if (!ownItem) throw new Error("Produsul nu a fost găsit");
+        }
         const qty = Number(input.quantity);
         const price = Number(input.unitPrice);
         const vatRate = input.vatRate;
@@ -774,7 +823,7 @@ export const horecaRouter = router({
             vatAmount: totalVat.toFixed(2),
             total: subtotal.toFixed(2),
           })
-          .where(eq(horecaOrders.id, input.orderId));
+          .where(and(eq(horecaOrders.id, input.orderId), eq(horecaOrders.tenantId, ctx.user.tenantId!)));
         return { success: true };
       }),
 
@@ -862,7 +911,7 @@ export const horecaRouter = router({
               const recipeLines = await db
                 .select()
                 .from(horecaRecipeLines)
-                .where(eq(horecaRecipeLines.menuItemId, line.menuItemId));
+                .where(and(eq(horecaRecipeLines.menuItemId, line.menuItemId), eq(horecaRecipeLines.tenantId, ctx.user.tenantId!)));
               for (const recipe of recipeLines) {
                 const consumeQty = Number(recipe.quantity) * Number(line.quantity);
                 const unitCost = Number(recipe.unitCost || 0);
@@ -908,7 +957,7 @@ export const horecaRouter = router({
 
           // 2. Real-time deduction from local Horeca Inventory
           for (const stockUpd of horecaStockUpdates) {
-             await db.execute(sql`UPDATE horecaIngredients SET currentStock = currentStock - ${stockUpd.qty} WHERE id = ${stockUpd.ingredientId}`);
+             await db.execute(sql`UPDATE horecaIngredients SET currentStock = currentStock - ${stockUpd.qty} WHERE id = ${stockUpd.ingredientId} AND tenantId = ${ctx.user.tenantId!}`);
              await db.insert(horecaStockMovements).values({
                tenantId: ctx.user.tenantId!,
                locationId: oldOrder.locationId,
@@ -921,7 +970,7 @@ export const horecaRouter = router({
           }
 
           // 3. Mark order as stock deducted
-          await db.update(horecaOrders).set({ stockDeducted: 1 }).where(eq(horecaOrders.id, id));
+          await db.update(horecaOrders).set({ stockDeducted: 1 }).where(and(eq(horecaOrders.id, id), eq(horecaOrders.tenantId, ctx.user.tenantId!)));
         }
 
         return { success: true };
@@ -944,7 +993,7 @@ export const horecaRouter = router({
         const [order] = await db
           .select()
           .from(horecaOrders)
-          .where(eq(horecaOrders.id, input.id));
+          .where(and(eq(horecaOrders.id, input.id), eq(horecaOrders.tenantId, ctx.user.tenantId!)));
         if (order?.tableId) {
           await db
             .update(horecaTables)
@@ -1114,7 +1163,7 @@ export const horecaRouter = router({
           .select()
           .from(horecaShifts)
           .where(
-            and(eq(horecaShifts.id, input.id), eq(horecaShifts.status, "open"))
+            and(eq(horecaShifts.id, input.id), eq(horecaShifts.status, "open"), eq(horecaShifts.tenantId, ctx.user.tenantId!))
           );
         if (!shift)
           throw new Error("Tura nu a fost găsită sau este deja închisă!");
@@ -1176,7 +1225,7 @@ export const horecaRouter = router({
             notes: input.notes,
             zReportData: zData,
           })
-          .where(eq(horecaShifts.id, input.id));
+          .where(and(eq(horecaShifts.id, input.id), eq(horecaShifts.tenantId, ctx.user.tenantId!)));
 
         return { success: true };
       }),
@@ -1359,7 +1408,7 @@ export const horecaRouter = router({
   // ── KIOSK BRIDGE — Proxy to Smart Kiosk backend (localhost:4000) for testing ──
   kioskBridge: router({
     // List all locations from the external Smart Kiosk backend
-    listLocations: protectedProcedure.query(async () => {
+    listLocations: kioskProcedure.query(async () => {
       const KIOSK_API =
         process.env.SMART_KIOSK_API_URL || "http://localhost:4000";
       const API_KEY = process.env.SMART_KIOSK_API_KEY || "sk-live-2024-secure";
@@ -1373,7 +1422,7 @@ export const horecaRouter = router({
     }),
 
     // Get a single location's full data
-    getLocation: protectedProcedure
+    getLocation: kioskProcedure
       .input(z.object({ locationId: z.string() }))
       .query(async ({ input }) => {
         const KIOSK_API =
@@ -1392,7 +1441,7 @@ export const horecaRouter = router({
       }),
 
     // Update location settings on Smart Kiosk backend
-    updateLocation: protectedProcedure
+    updateLocation: kioskProcedure
       .input(
         z.object({
           locationId: z.string(),
@@ -1436,7 +1485,7 @@ export const horecaRouter = router({
       }),
 
     // Get promotions config from Smart Kiosk
-    getPromotions: protectedProcedure.query(async () => {
+    getPromotions: kioskProcedure.query(async () => {
       const KIOSK_API =
         process.env.SMART_KIOSK_API_URL || "http://localhost:4000";
       const API_KEY = process.env.SMART_KIOSK_API_KEY || "sk-live-2024-secure";
@@ -1449,7 +1498,7 @@ export const horecaRouter = router({
     }),
 
     // Get kiosk screensaver configs
-    getKioskConfigs: protectedProcedure.query(async () => {
+    getKioskConfigs: kioskProcedure.query(async () => {
       const KIOSK_API =
         process.env.SMART_KIOSK_API_URL || "http://localhost:4000";
 
@@ -1459,7 +1508,7 @@ export const horecaRouter = router({
     }),
 
     // ── READ-ONLY: Menu from Syrve via Smart Kiosk ──
-    getMenu: protectedProcedure
+    getMenu: kioskProcedure
       .input(
         z.object({
           brandId: z.string().default("smashme"),
@@ -1481,7 +1530,7 @@ export const horecaRouter = router({
       }),
 
     // ── READ-ONLY: Orders list from Smart Kiosk ──
-    listOrders: protectedProcedure
+    listOrders: kioskProcedure
       .input(
         z.object({
           status: z.string().optional(),
@@ -1505,7 +1554,7 @@ export const horecaRouter = router({
       }),
 
     // ── READ-ONLY: Single order detail ──
-    getOrder: protectedProcedure
+    getOrder: kioskProcedure
       .input(z.object({ orderId: z.string() }))
       .query(async ({ input }) => {
         const KIOSK_API =
@@ -1521,7 +1570,7 @@ export const horecaRouter = router({
       }),
 
     // ── READ-ONLY: Brands list ──
-    listBrands: protectedProcedure.query(async () => {
+    listBrands: kioskProcedure.query(async () => {
       const KIOSK_API =
         process.env.SMART_KIOSK_API_URL || "http://localhost:4000";
       const API_KEY = process.env.SMART_KIOSK_API_KEY || "sk-live-2024-secure";
@@ -1536,7 +1585,7 @@ export const horecaRouter = router({
 
   // ── AGGREGATOR BRIDGE — Proxy to Aggregator Monitor (Supabase) ──
   aggregatorBridge: router({
-    listPlatformSales: protectedProcedure
+    listPlatformSales: kioskProcedure
       .input(z.object({ organizationId: z.string().optional() }).optional())
       .query(async ({ input }) => {
         if (!input?.organizationId) return [];

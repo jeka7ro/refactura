@@ -1,4 +1,5 @@
 import { router, protectedProcedure } from "./_core/trpc";
+import { tenantOf } from "./tenant";
 import { z } from "zod";
 import { getDb } from "./db";
 import { contracts, contractLogs, clients, tenants } from "../drizzle/schema";
@@ -10,7 +11,7 @@ export const contractsRouter = router({
    * Statistici pentru cardurile KPI
    */
   getStats: protectedProcedure.query(async ({ ctx }) => {
-    const tenantId = ctx.user?.tenantId || 1;
+    const tenantId = tenantOf(ctx);
     const db = await getDb();
     if (!db) return { totalActive: 0, totalAddendums: 0, expiringSoon: 0, totalFiles: 0 };
 
@@ -67,7 +68,7 @@ export const contractsRouter = router({
         .optional()
     )
     .query(async ({ input, ctx }) => {
-      const tenantId = ctx.user?.tenantId || 1;
+      const tenantId = tenantOf(ctx);
       const db = await getDb();
       if (!db) return [];
 
@@ -164,7 +165,7 @@ export const contractsRouter = router({
   getById: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input, ctx }) => {
-      const tenantId = ctx.user?.tenantId || 1;
+      const tenantId = tenantOf(ctx);
       const db = await getDb();
       if (!db) throw new Error("Baza de date indisponibilă");
 
@@ -272,7 +273,7 @@ export const contractsRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const tenantId = ctx.user?.tenantId || 1;
+      const tenantId = tenantOf(ctx);
       const db = await getDb();
       if (!db) throw new Error("Baza de date indisponibilă");
 
@@ -359,7 +360,7 @@ export const contractsRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const tenantId = ctx.user?.tenantId || 1;
+      const tenantId = tenantOf(ctx);
       const db = await getDb();
       if (!db) throw new Error("Baza de date indisponibilă");
 
@@ -430,7 +431,7 @@ export const contractsRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const tenantId = ctx.user?.tenantId || 1;
+      const tenantId = tenantOf(ctx);
       const db = await getDb();
       if (!db) throw new Error("Baza de date indisponibilă");
 
@@ -497,7 +498,7 @@ export const contractsRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const tenantId = ctx.user?.tenantId || 1;
+      const tenantId = tenantOf(ctx);
       const db = await getDb();
       if (!db) throw new Error("Baza de date indisponibilă");
 
@@ -520,7 +521,7 @@ export const contractsRouter = router({
   delete: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
-      const tenantId = ctx.user?.tenantId || 1;
+      const tenantId = tenantOf(ctx);
       const db = await getDb();
       if (!db) throw new Error("Baza de date indisponibilă");
 
@@ -556,7 +557,7 @@ export const contractsRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const tenantId = ctx.user?.tenantId || 1;
+      const tenantId = tenantOf(ctx);
       const db = await getDb();
       if (!db) throw new Error("Baza de date indisponibilă");
 
@@ -661,7 +662,7 @@ export const contractsRouter = router({
         .optional()
     )
     .query(async ({ input, ctx }) => {
-      const tenantId = ctx.user?.tenantId || 1;
+      const tenantId = tenantOf(ctx);
       const db = await getDb();
 
       let currentTenant: any = null;

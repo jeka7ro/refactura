@@ -434,19 +434,15 @@ export default function NIRCreate() {
               (l.description || "").toLowerCase().includes("gunoi") ||
               (sourceInvoice?.supplierName || "").toLowerCase().includes("salubri") ||
               (sourceInvoice?.supplierName || "").toLowerCase().includes("salubritate");
-            const isUtilitati =
-              (l.description || "").toLowerCase().includes("apa") ||
-              (l.description || "").toLowerCase().includes("apă") ||
-              (l.description || "").toLowerCase().includes("gaz") ||
-              (l.description || "").toLowerCase().includes("energie") ||
-              (l.description || "").toLowerCase().includes("curent");
             const isServiceText = (l.description || "").toLowerCase().includes("servici") || 
               (l.description || "").toLowerCase().includes("abonament") || 
               (l.description || "").toLowerCase().includes("manopera") ||
               (l.description || "").toLowerCase().includes("consultant") ||
               (l.description || "").toLowerCase().includes("reparatii") ||
               (l.description || "").toLowerCase().includes("intretinere") ||
-              isUtilitati;
+              (l.description || "").toLowerCase().includes("gaz") ||
+              (l.description || "").toLowerCase().includes("energie") ||
+              (l.description || "").toLowerCase().includes("curent");
 
             // 1. Caută în cele existente conform denumirii produsului (exact sau prefix)
             const matchedArticle = articles.find((a: any) => {
@@ -472,9 +468,6 @@ export default function NIRCreate() {
             } else if (isTransport) {
               defType = "Transport";
               defAccount = "624";
-            } else if (isUtilitati) {
-              defType = "Utilități";
-              defAccount = "605";
             } else if (isServiceText) {
               defType = "Servicii";
               defAccount = "628";
@@ -735,7 +728,11 @@ export default function NIRCreate() {
     0
   );
   const totalTva = lines.reduce(
-    (s, l) => s + ((parseFloat(l.total) || 0) * (parseFloat(l.vatRate) || 19) / 100),
+    (s, l) => {
+      const r = parseFloat(l.vatRate);
+      const rate = isNaN(r) ? 21 : r; // 0% este valid
+      return s + Math.round((((parseFloat(l.total) || 0) * rate) / 100) * 100) / 100;
+    },
     0
   );
   const totalCuTva = totalFaraTva + totalTva;
@@ -989,6 +986,7 @@ export default function NIRCreate() {
                 className="w-full h-8 px-2.5 pr-7 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none border-none"
               >
                 <option value="21">21</option>
+                <option value="11">11</option>
                 <option value="19">19</option>
                 <option value="9">9</option>
                 <option value="5">5</option>
@@ -1191,7 +1189,7 @@ export default function NIRCreate() {
                       <td className="px-1 py-1.5 w-[70px]">
                         <input
                           type="number"
-                          value={line.vatRate || "19"}
+                          value={line.vatRate === "" || line.vatRate == null ? "21" : line.vatRate}
                           onChange={e => updateLine(idx, "vatRate", e.target.value)}
                           className="w-full h-7 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 text-slate-600 focus:outline-none text-xs text-center"
                         />

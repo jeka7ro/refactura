@@ -18,7 +18,7 @@ export async function convertXmlToPdf(
     const { XMLParser } = await import("fast-xml-parser");
     const PDFDocument = (await import("pdfkit")).default;
 
-    const parser = new XMLParser({
+    const parser = new XMLParser({ numberParseOptions: { leadingZeros: false, hex: false, eNotation: false },
       ignoreAttributes: false,
       attributeNamePrefix: "@_",
     });
@@ -96,8 +96,12 @@ export async function convertXmlToPdf(
           getXmlText(cusParty["cac:PostalAddress"]?.["cbc:StreetName"]) || "";
         const cusCity = getXmlText(cusParty["cac:PostalAddress"]?.["cbc:CityName"]) || "";
 
-        let lines = invoice["cac:InvoiceLine"];
-        if (!lines) lines = [];
+        let lines =
+          invoice["cac:InvoiceLine"] ||
+          invoice["cac:CreditNoteLine"] ||
+          invoice["InvoiceLine"] ||
+          invoice["CreditNoteLine"] ||
+          [];
         if (!Array.isArray(lines)) lines = [lines];
 
         const mappedLines = lines.map((l: any) => {
@@ -123,7 +127,7 @@ export async function convertXmlToPdf(
             l["cac:Item"]?.["cac:ClassifiedTaxCategory"] ||
             l["cac:TaxTotal"]?.["cac:TaxSubtotal"];
           const tvaNodeObj = Array.isArray(tvaNode) ? tvaNode[0] : tvaNode;
-          const tvaPercent = parseXmlNumber(tvaNodeObj?.["cbc:Percent"], 19);
+          const tvaPercent = parseXmlNumber(tvaNodeObj?.["cbc:Percent"], 0);
 
           return {
             description: name,

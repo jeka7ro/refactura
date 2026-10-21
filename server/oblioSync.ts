@@ -209,7 +209,8 @@ export async function syncOblioInvoices(tenantId: number): Promise<{
             dueDate: inv.dueDate || "",
             total: String(total),
             totalVAT: String(
-              (Math.round(Math.abs(total) * 0.19 * 100) / 100) *
+              // Oblio nu trimite TVA separat în listă: estimare din total (cotă standard 21%)
+              (Math.round(((Math.abs(total) * 21) / 121) * 100) / 100) *
                 (isStorno ? -1 : 1)
             ),
             currency: inv.currency || "RON",

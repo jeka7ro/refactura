@@ -131,6 +131,11 @@ export async function getDb() {
         await _db.execute(sql`ALTER TABLE nir ADD COLUMN exchangeRate DECIMAL(12,4) DEFAULT 1.0000`);
       } catch {}
 
+      // TVA standard România = 21% (din 01.08.2025)
+      try {
+        await _db.execute(sql`ALTER TABLE emittedInvoiceLines ALTER COLUMN vatRate SET DEFAULT 21.00`);
+      } catch {}
+
       // Safe migrations: add cron tracking fields to integrations
       try {
         await _db.execute(sql`ALTER TABLE integrations ADD COLUMN lastCronImported INT DEFAULT 0`);
@@ -1185,7 +1190,7 @@ export async function createReInvoice(data: {
 
   if (catalogLines.length > 0) {
     hasDeviz = true;
-    const baseVat = catalogLines[0]?.vatRate ?? 19;
+    const baseVat = catalogLines[0]?.vatRate ?? 21;
     const laborTotal = catalogLines.reduce(
       (sum: number, l: any) => sum + l.quantity * l.unitPrice,
       0
@@ -1209,8 +1214,8 @@ export async function createReInvoice(data: {
   let tVat = 0;
   finalLines.forEach((l: any) => {
     const rowTotal = l.quantity * l.unitPrice;
-    tVat += rowTotal * ((l.vatRate ?? 19) / 100);
-    tTotal += rowTotal + rowTotal * ((l.vatRate ?? 19) / 100);
+    tVat += rowTotal * ((l.vatRate ?? 21) / 100);
+    tTotal += rowTotal + rowTotal * ((l.vatRate ?? 21) / 100);
   });
 
   const [result] = await db.insert(reInvoices).values({
@@ -1567,7 +1572,7 @@ export async function createInvoiceArchiveEntry(data: InsertInvoiceArchive) {
   if (data.rawXml) {
     try {
       const { XMLParser } = await import("fast-xml-parser");
-      const parser = new XMLParser({ ignoreAttributes: false });
+      const parser = new XMLParser({ numberParseOptions: { leadingZeros: false, hex: false, eNotation: false }, ignoreAttributes: false });
       const parsed = parser.parse(data.rawXml);
       const invoiceObj = parsed.Invoice || parsed.CreditNote || parsed["ubl:Invoice"] || parsed["ubl:CreditNote"] || parsed.Factura;
       const isCreditNote = !!(
@@ -1625,14 +1630,17 @@ export async function createInvoiceArchiveEntry(data: InsertInvoiceArchive) {
             if (isNaN(lineTotal)) lineTotal = 0;
             if (isCreditNote && lineTotal > 0) lineTotal = -lineTotal;
 
-            let vatRate = 19;
-            const taxCategory = item?.["cac:ClassifiedTaxCategory"];
-            if (taxCategory?.["cbc:Percent"]) {
-              vatRate = parseFloat(
-                taxCategory["cbc:Percent"]?.["#text"] ||
-                taxCategory["cbc:Percent"] ||
-                "19"
-              );
+            let vatRate = 0;
+            {
+              let taxCat = item?.["cac:ClassifiedTaxCategory"];
+              if (Array.isArray(taxCat)) taxCat = taxCat[0];
+              const pctNode = taxCat?.["cbc:Percent"];
+              const pctRaw =
+                pctNode !== null && typeof pctNode === "object"
+                  ? pctNode["#text"]
+                  : pctNode;
+              const pct = parseFloat(String(pctRaw));
+              vatRate = isNaN(pct) ? 0 : pct;
             }
 
             return {

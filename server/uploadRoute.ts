@@ -3,6 +3,7 @@ import multer, { FileFilterCallback } from "multer";
 import fs from "fs";
 import path from "path";
 import { sql } from "drizzle-orm";
+import { resolveRequestTenant } from "./fileAuth";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -68,7 +69,7 @@ export function attachSagaInvoicesImportRoute(app: Express) {
         const tenantIdStr = req.body.tenantId;
         if (!file) return res.status(400).json({ error: "Niciun fișier primit." });
 
-        const tenantId = tenantIdStr ? parseInt(tenantIdStr, 10) : 1;
+        const tenantId = resolveRequestTenant(req, tenantIdStr);
         const ext = path.extname(file.originalname).toLowerCase();
 
         const {
@@ -122,7 +123,7 @@ export function attachSagaFurnizoriImportRoute(app: Express) {
         if (!db) return res.status(500).json({ error: "DB unavailable" });
 
         // Fallback for missing tenantId in test environments
-        const tenantId = tenantIdStr ? parseInt(tenantIdStr, 10) : 1;
+        const tenantId = resolveRequestTenant(req, tenantIdStr);
 
         console.log(`[SAGA Import Furnizori] Processing file for tenant ${tenantId}`);
 
@@ -218,7 +219,7 @@ export function attachSagaClientiImportRoute(app: Express) {
         if (!file) return res.status(400).json({ error: "Missing file" });
         if (!db) return res.status(500).json({ error: "DB unavailable" });
 
-        const tenantId = tenantIdStr ? parseInt(tenantIdStr, 10) : 1;
+        const tenantId = resolveRequestTenant(req, tenantIdStr);
         console.log(`[SAGA Import Clienti] Processing file for tenant ${tenantId}`);
 
         const workbook = XLSX.read(file.buffer, { type: "buffer" });
@@ -415,7 +416,7 @@ export function registerUploadRoute(app: Express) {
         }
 
         // tenantId from query or body
-        const tenantId = parseInt(req.body.tenantId || req.query.tenantId as string);
+        const tenantId = resolveRequestTenant(req, req.body.tenantId || req.query.tenantId);
         if (!tenantId) {
           res.status(400).json({ error: "tenantId lipsă" });
           return;
@@ -472,7 +473,7 @@ export function registerUploadRoute(app: Express) {
             if (!cod || !denumire) { skipped++; continue; }
 
             const um = String(row.UM || row.Um || row.um || "buc").trim();
-            const tva = String(row.TVA || row.Tva || row.tva || "19").trim();
+            const tva = String(row.TVA || row.Tva || row.tva || "21").trim();
             const denTip = String(row.DEN_TIP || row.Den_tip || "Marfuri").trim();
             const tipCod = String(row.TIP || row.Tip || row.tip || "07").trim().padStart(2, "0");
             const codBare = String(row.COD_BARE || row.Cod_bare || "").trim();

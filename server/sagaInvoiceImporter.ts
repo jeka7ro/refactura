@@ -5,6 +5,17 @@
  * 2. Format SAGA Excel / XLSX / CSV
  */
 import { XMLParser } from "fast-xml-parser";
+
+/** Deduce cota TVA din bază și TVA (21% standard, 11% redusă; păstrează 19/9/5 pentru documente vechi). */
+function inferVatRate(base: number, vat: number): number {
+  if (!(vat > 0)) return 0;
+  if (!(base > 0)) return 21;
+  const pct = (vat / base) * 100;
+  for (const r of [21, 11, 19, 9, 5]) {
+    if (Math.abs(pct - r) <= 0.6) return r;
+  }
+  return Math.round(pct * 100) / 100;
+}
 import * as XLSX from "xlsx";
 import { eq, and } from "drizzle-orm";
 import { getDb } from "./db";
@@ -89,7 +100,7 @@ export function parseSagaXmlInvoices(buffer: Buffer): ParsedSagaInvoice[] {
     }
   }
 
-  const parser = new XMLParser({
+  const parser = new XMLParser({ numberParseOptions: { leadingZeros: false, hex: false, eNotation: false },
     ignoreAttributes: false,
     attributeNamePrefix: "@_",
     trimValues: true,
@@ -328,7 +339,7 @@ export function parseSagaXmlInvoices(buffer: Buffer): ParsedSagaInvoice[] {
         quantity: 1,
         unitPrice: subtotal,
         unit: "buc",
-        vatRate: totalVAT > 0 ? 19 : 0,
+        vatRate: inferVatRate(subtotal, totalVAT),
         total,
         vatAmount: totalVAT,
       }],
@@ -413,7 +424,7 @@ export function parseSagaXlsxInvoices(buffer: Buffer): ParsedSagaInvoice[] {
         quantity: 1,
         unitPrice: subtotal,
         unit: "buc",
-        vatRate: tvaValuta > 0 ? 19 : 0,
+        vatRate: inferVatRate(subtotal, tvaValuta),
         total: totalValuta,
         vatAmount: tvaValuta,
       }],

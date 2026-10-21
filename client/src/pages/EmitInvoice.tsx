@@ -55,7 +55,7 @@ export const addReverseChargeNote = (text: string): string => {
   return cleaned ? `${cleaned}\n${REVERSE_CHARGE_LEGAL_TEXT}` : REVERSE_CHARGE_LEGAL_TEXT;
 };
 
-const VAT_RATES = [21, 19, 9, 5, 0];
+const VAT_RATES = [21, 11, 19, 9, 5, 0];
 const UNITS = [
   "buc",
   "ore",
@@ -684,7 +684,7 @@ export default function EmitInvoice() {
       setIsReverseCharge(true);
       setMentiuni(prev => addReverseChargeNote(prev));
       setLines(prev =>
-        prev.map(l => (l.vatRate === 21 || l.vatRate === 19 ? { ...l, vatRate: 0 } : l))
+        prev.map(l => (l.vatRate === 21 || l.vatRate === 19 || l.vatRate === 11 ? { ...l, vatRate: 0 } : l))
       );
     } else if (!shouldEnable && isReverseCharge && !isReverseChargeNotePresent(mentiuni)) {
       setIsReverseCharge(false);
@@ -851,7 +851,7 @@ export default function EmitInvoice() {
     if (checked) {
       setMentiuni(prev => addReverseChargeNote(prev));
       setLines(prev =>
-        prev.map(l => (l.vatRate === 21 || l.vatRate === 19 ? { ...l, vatRate: 0 } : l))
+        prev.map(l => (l.vatRate === 21 || l.vatRate === 19 || l.vatRate === 11 ? { ...l, vatRate: 0 } : l))
       );
       toast.success("Taxare Inversă activată: Cota TVA setată la 0% și mențiunea Art. 196 adăugată pe factură.");
     } else {

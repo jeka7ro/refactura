@@ -18,6 +18,7 @@ import { registerAnafProxy } from "../anafProxy";
 import { registerViesProxy } from "../viesProxy";
 import { registerPdfRoute } from "../pdfRoute";
 import { registerPublicApi } from "../publicApi";
+import { requireFileAuth, requireUploadAccess } from "../fileAuth";
 import { registerSagaSyncRoute } from "../sagaSyncRoute";
 
 async function startServer() {
@@ -28,6 +29,13 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+  // Rutele de import/export/upload cer autentificare; tenantul vine din sesiune, nu din request.
+  app.use("/api/saga", requireFileAuth);
+  app.use("/api/saga-sync", requireFileAuth);
+  app.use("/api/upload-invoice", requireFileAuth);
+  app.use("/api/upload-contract", requireFileAuth);
+  app.use("/api/anaf", requireFileAuth);
+  app.use("/api/vies", requireFileAuth);
   registerUploadRoute(app);
   attachSagaFurnizoriImportRoute(app);
   attachSagaClientiImportRoute(app);
@@ -53,11 +61,11 @@ async function startServer() {
     })
   );
 
-  // Serve local uploads
-  app.use(
-    "/uploads",
-    express.static(path.resolve(process.cwd(), "dist/public/uploads"))
-  );
+  // Serve local uploads (facturi și contracte doar pentru utilizatori autentificați)
+  const uploadsDir = path.resolve(process.cwd(), "dist/public/uploads");
+  app.use("/uploads/invoices", requireUploadAccess("invoices"), express.static(path.join(uploadsDir, "invoices")));
+  app.use("/uploads/contracts", requireUploadAccess("contracts"), express.static(path.join(uploadsDir, "contracts")));
+  app.use("/uploads", express.static(uploadsDir));
 
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {

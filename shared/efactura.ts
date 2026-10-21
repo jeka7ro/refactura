@@ -76,8 +76,9 @@ export function parseEfacturaXML(xmlText: string): ParsedEfactura {
         "Linie";
       const qty = parseFloat(find(el, ["InvoicedQuantity", "Quantity"]) || "1");
       const price = parseFloat(find(el, ["PriceAmount", "UnitPrice"]) || "0");
-      const vat = parseFloat(find(el, ["Percent", "TaxPercent"]) || "19");
-      if (qty > 0 && price > 0) {
+      const vatRaw = parseFloat(find(el, ["Percent", "TaxPercent"]) || "");
+      const vat = Number.isFinite(vatRaw) ? vatRaw : 0;
+      if (qty !== 0 && Number.isFinite(price)) {
         lines.push({
           description: desc,
           quantity: qty,

@@ -8,6 +8,10 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import App from "./App";
 import { getLoginUrl } from "./const";
 import "./index.css";
+import { installAuthCookieSync } from "./lib/authCookie";
+
+// Necesar pentru ca PDF-urile (/api/pdf/...) să fie autentificate
+installAuthCookieSync();
 
 const queryClient = new QueryClient();
 

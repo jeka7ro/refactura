@@ -23,6 +23,17 @@ export function toSagaXmlBuffer(xmlString: string): Buffer {
   }
 }
 
+/**
+ * Detectează codul țării din CUI sau returnează RO ca fallback
+ */
+export function detectCountryFromCui(cui?: string | null): string {
+  if (!cui) return "RO";
+  const clean = cui.trim().toUpperCase();
+  const match = clean.match(/^([A-Z]{2})/);
+  if (match && match[1] !== "RO") return match[1];
+  return "RO";
+}
+
 export interface TenantCompanyProfile {
   name: string;
   cui: string;
@@ -112,6 +123,46 @@ export function formatSpvTags(spvIndex: string): string {
   ].join("\n") + "\n";
 }
 
+export function resolveSagaLineTip(
+  lineAccountingType?: string | null,
+  lineAccount?: string | null,
+  fallbackAccountingType?: string | null
+): string {
+  const acc = String(lineAccount || "").trim();
+  const rawType = String(lineAccountingType || fallbackAccountingType || "").trim();
+
+  // 1. Mappings by accounting account (standard Plan de Conturi General Romania)
+  if (acc.startsWith("301")) return "Materii prime";
+  if (acc.startsWith("3021")) return "Materiale auxiliare";
+  if (acc.startsWith("3022")) return "Combustibili";
+  if (acc.startsWith("3024")) return "Piese de schimb";
+  if (acc.startsWith("3028")) return "Alte mat. consumabile";
+  if (acc.startsWith("302")) return "Materiale consumabile";
+  if (acc.startsWith("303")) return "Obiecte de inventar";
+  if (acc.startsWith("371")) return "Marfuri";
+  if (acc.startsWith("345")) return "Produse finite";
+  if (acc.startsWith("341")) return "Semifabricate";
+  if (acc.startsWith("381")) return "Ambalaje";
+  if (acc.startsWith("6") || acc.startsWith("7") || acc.startsWith("409")) return "Servicii";
+
+  // 2. Normalizare după denumirea tipului
+  const lower = rawType.toLowerCase();
+  if (lower.includes("materii prime") || lower.includes("materie prima")) return "Materii prime";
+  if (lower.includes("materiale auxiliare") || lower.includes("auxiliar")) return "Materiale auxiliare";
+  if (lower.includes("alte mat") || lower.includes("alte consumabile")) return "Alte mat. consumabile";
+  if (lower.includes("piese de schimb")) return "Piese de schimb";
+  if (lower.includes("combustibil")) return "Combustibili";
+  if (lower.includes("consumabil") || lower.includes("materiale consumabile")) return "Materiale consumabile";
+  if (lower.includes("obiecte de inventar") || lower.includes("inventar")) return "Obiecte de inventar";
+  if (lower.includes("marfuri") || lower.includes("marfa")) return "Marfuri";
+  if (lower.includes("produse finite")) return "Produse finite";
+  if (lower.includes("semifabricate")) return "Semifabricate";
+  if (lower.includes("ambalaj")) return "Ambalaje";
+  if (lower.includes("servici") || lower.includes("avans") || lower.includes("utilitati") || lower.includes("manopera")) return "Servicii";
+
+  return rawType || "Materii prime";
+}
+
 export async function resolveNirSpvData(db: any, n: any) {
   let spvIndex = "";
   let docDate = n.receiptDate;
@@ -171,15 +222,22 @@ export async function resolveNirSpvData(db: any, n: any) {
   }
 
   const { sagaIntrari } = await import("../modules/saga/schema");
-  const [si] = await db
+  let [si] = await db
     .select()
     .from(sagaIntrari)
-    .where(
-      and(
-        eq(sagaIntrari.tenantId, n.tenantId),
-        n.invoiceNumber ? eq(sagaIntrari.nrDoc, n.invoiceNumber) : eq(sagaIntrari.nirId, n.id)
-      )
-    );
+    .where(and(eq(sagaIntrari.tenantId, n.tenantId), eq(sagaIntrari.nirId, n.id)));
+  if (!si && n.invoiceNumber) {
+    const cands = await db
+      .select()
+      .from(sagaIntrari)
+      .where(and(eq(sagaIntrari.tenantId, n.tenantId), eq(sagaIntrari.nrDoc, n.invoiceNumber)));
+    const norm = (x: any) => String(x || "").replace(/\D/g, "");
+    const nirCui = norm(n.supplierCUI);
+    // Doar dacă furnizorul coincide (sau nu putem determina furnizorul și există un singur candidat)
+    si = cands.find((c: any) => nirCui && norm(c.cuiFurnizor) === nirCui)
+      || (!nirCui && cands.length === 1 ? cands[0] : undefined);
+  }
+
   if (si) {
     if (si.valuta && si.valuta.trim()) currency = si.valuta.trim().toUpperCase();
     if (si.curs) exchangeRate = parseFloat(String(si.curs)) || exchangeRate;
@@ -281,20 +339,32 @@ export async function generateSagaExportXML(
     if (furnizorBanca) xml += `      <FurnizorBanca>${escapeXml(furnizorBanca)}</FurnizorBanca>\n`;
     if (furnizorIban) xml += `      <FurnizorIBAN>${escapeXml(furnizorIban)}</FurnizorIBAN>\n`;
 
-    // Clientul (cu Codul SAGA asociat pentru a evita dublurile în 4111)
+    // Clientul (cu date complete din factură sau din profilul de client, și codul SAGA asociat)
+    const clientName = inv.clientName || client?.name || "Client";
+    const clientCif = inv.clientCUI || client?.cui || "";
+    const clientRegCom = (inv as any).clientRegCom || client?.regCom || "";
+    const clientCounty = (inv as any).clientCounty || (client as any)?.county || "";
+    const clientCountry = inv.clientCountry || (client as any)?.country || detectCountryFromCui(clientCif);
+    const clientCity = inv.clientCity || client?.city || "";
+    const clientAddress = inv.clientAddress || client?.address || "";
+    const clientBank = (client as any)?.bank || "";
+    const clientIban = (client as any)?.iban || "";
+    const clientPhone = inv.clientPhone || client?.phone || "";
+    const clientMail = inv.clientEmail || client?.email || "";
+
     const clientCode = (inv as any).clientCode || (client?.sagaCode && client.sagaCode !== "null" ? client.sagaCode : null) || client?.id;
     if (clientCode) xml += `      <ClientCod>${escapeXml(clientCode)}</ClientCod>\n`;
-    xml += `      <ClientNume>${escapeXml(client?.name || "Client Necunoscut")}</ClientNume>\n`;
-    xml += `      <ClientCIF>${escapeXml(client?.cui || "")}</ClientCIF>\n`;
-    if (client?.regCom) xml += `      <ClientNrRegCom>${escapeXml(client.regCom)}</ClientNrRegCom>\n`;
-    if ((client as any)?.county) xml += `      <ClientJudet>${escapeXml((client as any).county)}</ClientJudet>\n`;
-    xml += `      <ClientTara>RO</ClientTara>\n`;
-    if (client?.city) xml += `      <ClientLocalitate>${escapeXml(client.city)}</ClientLocalitate>\n`;
-    if (client?.address) xml += `      <ClientAdresa>${escapeXml(client.address)}</ClientAdresa>\n`;
-    if ((client as any)?.bank) xml += `      <ClientBanca>${escapeXml((client as any).bank)}</ClientBanca>\n`;
-    if ((client as any)?.iban) xml += `      <ClientIBAN>${escapeXml((client as any).iban)}</ClientIBAN>\n`;
-    if (client?.phone) xml += `      <ClientTelefon>${escapeXml(client.phone)}</ClientTelefon>\n`;
-    if (client?.email) xml += `      <ClientMail>${escapeXml(client.email)}</ClientMail>\n`;
+    xml += `      <ClientNume>${escapeXml(clientName)}</ClientNume>\n`;
+    xml += `      <ClientCIF>${escapeXml(clientCif)}</ClientCIF>\n`;
+    if (clientRegCom) xml += `      <ClientNrRegCom>${escapeXml(clientRegCom)}</ClientNrRegCom>\n`;
+    if (clientCounty) xml += `      <ClientJudet>${escapeXml(clientCounty)}</ClientJudet>\n`;
+    xml += `      <ClientTara>${escapeXml(clientCountry || "RO")}</ClientTara>\n`;
+    if (clientCity) xml += `      <ClientLocalitate>${escapeXml(clientCity)}</ClientLocalitate>\n`;
+    if (clientAddress) xml += `      <ClientAdresa>${escapeXml(clientAddress)}</ClientAdresa>\n`;
+    if (clientBank) xml += `      <ClientBanca>${escapeXml(clientBank)}</ClientBanca>\n`;
+    if (clientIban) xml += `      <ClientIBAN>${escapeXml(clientIban)}</ClientIBAN>\n`;
+    if (clientPhone) xml += `      <ClientTelefon>${escapeXml(clientPhone)}</ClientTelefon>\n`;
+    if (clientMail) xml += `      <ClientMail>${escapeXml(clientMail)}</ClientMail>\n`;
 
     // Date factură & totaluri
     let totalValoare = 0;
@@ -304,7 +374,7 @@ export async function generateSagaExportXML(
       const price = parseFloat(String(line.unitPrice)) || 0;
       const rate = parseFloat(String(line.vatRate)) || 0;
       const rawTotal = parseFloat(String(line.total));
-      const lineVal = (!isNaN(rawTotal) && rawTotal > 0)
+      const lineVal = (!isNaN(rawTotal) && rawTotal !== 0)
         ? rawTotal
         : Math.round(qty * price * 100) / 100;
       const lineVat = Math.round(lineVal * (rate / 100) * 100) / 100;
@@ -321,7 +391,7 @@ export async function generateSagaExportXML(
     let totalFactura = Math.round((totalValoare + totalTva) * 100) / 100;
 
     const rawInvTotal = parseFloat(String(inv.total));
-    if (!isNaN(rawInvTotal) && rawInvTotal > 0) {
+    if (!isNaN(rawInvTotal) && rawInvTotal !== 0) {
       totalFactura = rawInvTotal;
     }
 
@@ -351,6 +421,7 @@ export async function generateSagaExportXML(
     for (const item of processedLines) {
       xml += `        <Linie>\n`;
       xml += `          <LinieNrCrt>${lineIndex++}</LinieNrCrt>\n`;
+      xml += `          <Tip>Servicii</Tip>\n`;
       xml += `          <Descriere>${escapeXml(item.line.description)}</Descriere>\n`;
       if (item.line.devizCode) {
         xml += `          <CodArticolClient>${escapeXml(item.line.devizCode)}</CodArticolClient>\n`;
@@ -394,14 +465,16 @@ export async function generateSagaExportXML(
     monthNirs = monthNirs.filter((n) => options.nirIds!.includes(n.id));
   }
 
-  const monthSagaIntrari = noileIntrari.filter((n) => {
-    if (!n.data) return false;
-    const nDate = n.data.substring(0, 10);
-    return nDate >= startDateStr && nDate <= endDateStr;
-  });
+  // Urmărim cheile unice de document (CUI_NrFactura) pentru a preveni exportul duplicat
+  const exportedDocKeys = new Set<string>();
 
   // a. Facturi Intrări din modulul NIR
   for (const n of monthNirs) {
+    const docNum = (n.invoiceNumber || n.nirNumber || "").trim();
+    const docKey = `${(n.supplierCUI || "").trim().toUpperCase()}_${docNum.toUpperCase()}`;
+    if (docKey && exportedDocKeys.has(docKey)) continue;
+    if (docKey) exportedDocKeys.add(docKey);
+
     const linesData = await db
       .select({
         line: schema.nirLines,
@@ -423,15 +496,33 @@ export async function generateSagaExportXML(
     const processedLines = linesData.map((row) => {
       const line = row.line;
       const code = row.articleCode;
-      const qty = parseFloat(String(line.cantitateReceptionata)) || 0;
-      const price = parseFloat(String(line.unitPrice)) || 0;
+      let qty = parseFloat(String(line.cantitateReceptionata)) || 0;
+      let price = parseFloat(String(line.unitPrice)) || 0;
       const rate = parseFloat(String(line.vatRate)) || 0;
 
       const rawTotal = parseFloat(String(line.total));
-      const lineVal = (!isNaN(rawTotal) && rawTotal > 0)
+      let lineVal = (!isNaN(rawTotal) && rawTotal !== 0)
         ? rawTotal
         : Math.round(qty * price * 100) / 100;
-      const lineVat = Math.round(lineVal * (rate / 100) * 100) / 100;
+
+      // Consistență SAGA: Cantitate * Pret = Valoare
+      // Dacă Valoarea este negativă (discount/storno), cantitatea sau prețul trebuie să reflecte semnul negativ
+      if (lineVal < 0) {
+        if (qty > 0 && price > 0) {
+          qty = -qty;
+        } else if (qty > 0 && price === 0) {
+          qty = -qty;
+          price = Math.abs(lineVal);
+        }
+      } else if (lineVal > 0) {
+        qty = Math.abs(qty);
+        price = Math.abs(price);
+      }
+
+      // TVA-ul liniei are obligatoriu același semn ca Valoarea
+      let lineVat = Math.round(lineVal * (rate / 100) * 100) / 100;
+      if (lineVal < 0 && lineVat > 0) lineVat = -lineVat;
+      if (lineVal > 0 && lineVat < 0) lineVat = Math.abs(lineVat);
       const lineTotal = Math.round((lineVal + lineVat) * 100) / 100;
 
       totalValoare += lineVal;
@@ -458,10 +549,11 @@ export async function generateSagaExportXML(
     totalTva = Math.round(totalTva * 100) / 100;
     let totalFactura = Math.round((totalValoare + totalTva) * 100) / 100;
 
-    if (archiveTotal && !isNaN(archiveTotal) && archiveTotal > 0) {
+    // Aliniem cu totalul facturii doar pentru diferențe de rotunjire (recepție parțială / prețuri modificate = se păstrează suma liniilor)
+    if (archiveTotal && !isNaN(archiveTotal) && Math.abs(Math.abs(archiveTotal) - Math.abs(totalFactura)) <= 0.15) {
       totalFactura = archiveTotal;
-      if (archiveTotalVat !== null && !isNaN(archiveTotalVat) && archiveTotalVat >= 0) {
-        totalTva = archiveTotalVat;
+      if (archiveTotalVat !== null && !isNaN(archiveTotalVat)) {
+        totalTva = totalFactura < 0 ? -Math.abs(archiveTotalVat) : Math.abs(archiveTotalVat);
         totalValoare = Math.round((totalFactura - totalTva) * 100) / 100;
       }
     }
@@ -469,8 +561,10 @@ export async function generateSagaExportXML(
     xml += `  <Factura>\n`;
     xml += `    <Antet>\n`;
     // Furnizorul
+    const supplierCountry = detectCountryFromCui(n.supplierCUI);
     xml += `      <FurnizorNume>${escapeXml(n.supplierName || "")}</FurnizorNume>\n`;
     xml += `      <FurnizorCIF>${escapeXml(n.supplierCUI || "")}</FurnizorCIF>\n`;
+    xml += `      <FurnizorTara>${escapeXml(supplierCountry)}</FurnizorTara>\n`;
 
     // Clientul suntem NOI
     xml += `      <ClientNume>${escapeXml(company.name)}</ClientNume>\n`;
@@ -506,11 +600,13 @@ export async function generateSagaExportXML(
 
     let lineIndex = 1;
     for (const item of processedLines) {
+      const lineTip = resolveSagaLineTip((item.line as any).accountingType, item.lineAcc, n.accountingType);
       xml += `        <Linie>\n`;
       xml += `          <LinieNrCrt>${lineIndex++}</LinieNrCrt>\n`;
       if (n.gestiune && !item.isServiceOrAdvance) {
         xml += `          <Gestiune>${escapeXml(n.gestiune)}</Gestiune>\n`;
       }
+      xml += `          <Tip>${escapeXml(lineTip)}</Tip>\n`;
       xml += `          <Descriere>${escapeXml(item.line.description)}</Descriere>\n`;
       if (item.code && !item.isServiceOrAdvance) {
         xml += `          <Cod>${escapeXml(item.code)}</Cod>\n`;
@@ -531,74 +627,99 @@ export async function generateSagaExportXML(
     xml += `  </Factura>\n`;
   }
 
-  // b. Facturi Intrări din modulul SAGA (sagaIntrari)
-  for (const n of monthSagaIntrari) {
-    const linesData = await db
-      .select()
-      .from(sagaIntrariLinii)
-      .where(eq(sagaIntrariLinii.intrareId, n.id));
-
-    let totalValoare = 0;
-    let totalTva = 0;
-
-    const processedLines = linesData.map((line) => {
-      const qty = parseFloat(String(line.cantitate)) || 0;
-      const price = parseFloat(String(line.pretUnitar)) || 0;
-      const rate = parseFloat(String(line.tvaPercent)) || 0;
-      const lineVal = parseFloat(String(line.valoare)) || Math.round(qty * price * 100) / 100;
-      const lineVat = parseFloat(String(line.tvaSuma)) || Math.round(lineVal * (rate / 100) * 100) / 100;
-      const lineTotal = parseFloat(String(line.total)) || Math.round((lineVal + lineVat) * 100) / 100;
-
-      totalValoare += lineVal;
-      totalTva += lineVat;
-
-      const lineAcc = String(line.cont || "371").trim();
-      const isServiceOrAdvance = lineAcc.startsWith("6") || lineAcc.startsWith("7") || lineAcc.startsWith("409") || (line as any).tip === "Servicii" || (line as any).tip === "Serviciu";
-
-      return {
-        line,
-        qty,
-        price,
-        rate,
-        lineVal,
-        lineVat,
-        lineTotal,
-        lineAcc,
-        isServiceOrAdvance,
-      };
+  // b. Facturi Intrări din modulul SAGA (sagaIntrari) — doar cele standalone, nelegate de un NIR deja exportat
+  if (options?.nirIds === undefined) {
+    const monthSagaIntrari = noileIntrari.filter((n) => {
+      if (n.nirId) return false; // deja exportat prin NIR
+      if (!n.data) return false;
+      const nDate = n.data.substring(0, 10);
+      return nDate >= startDateStr && nDate <= endDateStr;
     });
 
-    totalValoare = Math.round(totalValoare * 100) / 100;
-    totalTva = Math.round(totalTva * 100) / 100;
-    let totalFactura = Math.round((totalValoare + totalTva) * 100) / 100;
+    for (const n of monthSagaIntrari) {
+      const docKey = `${(n.cuiFurnizor || "").trim().toUpperCase()}_${(n.nrDoc || "").trim().toUpperCase()}`;
+      if (docKey && exportedDocKeys.has(docKey)) continue;
+      if (docKey) exportedDocKeys.add(docKey);
 
-    const isValuta = (n as any).valuta && (n as any).valuta !== "RON" && (n as any).valuta !== "LEI";
-    const headerTotValuta = parseFloat(String((n as any).totalValuta));
-    const headerTvaValuta = parseFloat(String((n as any).tvaValuta));
-    const headerValValuta = parseFloat(String((n as any).valoareValuta));
+      const linesData = await db
+        .select()
+        .from(sagaIntrariLinii)
+        .where(eq(sagaIntrariLinii.intrareId, n.id));
 
-    if (isValuta && !isNaN(headerTotValuta) && headerTotValuta > 0) {
-      totalFactura = headerTotValuta;
-      totalTva = !isNaN(headerTvaValuta) ? headerTvaValuta : 0;
-      totalValoare = !isNaN(headerValValuta) ? headerValValuta : Math.round((totalFactura - totalTva) * 100) / 100;
-    } else {
-      const headerVal = parseFloat(String(n.valoare));
-      const headerTva = parseFloat(String(n.tva));
-      const headerTot = parseFloat(String(n.total));
-      if (!isNaN(headerTot) && headerTot > 0) {
-        totalFactura = headerTot;
-        if (!isNaN(headerTva) && headerTva >= 0) {
-          totalTva = headerTva;
-          totalValoare = !isNaN(headerVal) && headerVal > 0 ? headerVal : Math.round((totalFactura - totalTva) * 100) / 100;
+      let totalValoare = 0;
+      let totalTva = 0;
+
+      const processedLines = linesData.map((line) => {
+        let qty = parseFloat(String(line.cantitate)) || 0;
+        let price = parseFloat(String(line.pretUnitar)) || 0;
+        const rate = parseFloat(String(line.tvaPercent)) || 0;
+        let lineVal = parseFloat(String(line.valoare)) || Math.round(qty * price * 100) / 100;
+
+        if (lineVal < 0) {
+          if (qty > 0 && price > 0) qty = -qty;
+          else if (qty > 0 && price === 0) { qty = -qty; price = Math.abs(lineVal); }
+        } else if (lineVal > 0) {
+          qty = Math.abs(qty);
+          price = Math.abs(price);
+        }
+
+        let lineVat = parseFloat(String(line.tvaSuma)) || Math.round(lineVal * (rate / 100) * 100) / 100;
+        if (lineVal < 0 && lineVat > 0) lineVat = -lineVat;
+        if (lineVal > 0 && lineVat < 0) lineVat = Math.abs(lineVat);
+        const lineTotal = parseFloat(String(line.total)) || Math.round((lineVal + lineVat) * 100) / 100;
+
+        totalValoare += lineVal;
+        totalTva += lineVat;
+
+        const lineAcc = String(line.cont || "371").trim();
+        const isServiceOrAdvance = lineAcc.startsWith("6") || lineAcc.startsWith("7") || lineAcc.startsWith("409") || (line as any).tip === "Servicii" || (line as any).tip === "Serviciu";
+
+        return {
+          line,
+          qty,
+          price,
+          rate,
+          lineVal,
+          lineVat,
+          lineTotal,
+          lineAcc,
+          isServiceOrAdvance,
+        };
+      });
+
+      totalValoare = Math.round(totalValoare * 100) / 100;
+      totalTva = Math.round(totalTva * 100) / 100;
+      let totalFactura = Math.round((totalValoare + totalTva) * 100) / 100;
+
+      const isValuta = (n as any).valuta && (n as any).valuta !== "RON" && (n as any).valuta !== "LEI";
+      const headerTotValuta = parseFloat(String((n as any).totalValuta));
+      const headerTvaValuta = parseFloat(String((n as any).tvaValuta));
+      const headerValValuta = parseFloat(String((n as any).valoareValuta));
+
+      if (isValuta && !isNaN(headerTotValuta) && headerTotValuta !== 0) {
+        totalFactura = headerTotValuta;
+        totalTva = !isNaN(headerTvaValuta) ? (totalFactura < 0 ? -Math.abs(headerTvaValuta) : Math.abs(headerTvaValuta)) : 0;
+        totalValoare = !isNaN(headerValValuta) ? headerValValuta : Math.round((totalFactura - totalTva) * 100) / 100;
+      } else {
+        const headerVal = parseFloat(String(n.valoare));
+        const headerTva = parseFloat(String(n.tva));
+        const headerTot = parseFloat(String(n.total));
+        if (!isNaN(headerTot) && headerTot !== 0) {
+          totalFactura = headerTot;
+          if (!isNaN(headerTva)) {
+            totalTva = totalFactura < 0 ? -Math.abs(headerTva) : Math.abs(headerTva);
+            totalValoare = !isNaN(headerVal) && headerVal !== 0 ? headerVal : Math.round((totalFactura - totalTva) * 100) / 100;
+          }
         }
       }
-    }
 
-    xml += `  <Factura>\n`;
+      xml += `  <Factura>\n`;
     xml += `    <Antet>\n`;
     // Furnizorul
+    const supplierCountry = detectCountryFromCui(n.cuiFurnizor);
     xml += `      <FurnizorNume>${escapeXml(n.numeFurnizor || "")}</FurnizorNume>\n`;
     xml += `      <FurnizorCIF>${escapeXml(n.cuiFurnizor || "")}</FurnizorCIF>\n`;
+    xml += `      <FurnizorTara>${escapeXml(supplierCountry)}</FurnizorTara>\n`;
 
     // Clientul suntem NOI
     xml += `      <ClientNume>${escapeXml(company.name)}</ClientNume>\n`;
@@ -636,8 +757,10 @@ export async function generateSagaExportXML(
 
     let lineIndex = 1;
     for (const item of processedLines) {
+      const lineTip = resolveSagaLineTip((item.line as any).tip, item.lineAcc);
       xml += `        <Linie>\n`;
       xml += `          <LinieNrCrt>${lineIndex++}</LinieNrCrt>\n`;
+      xml += `          <Tip>${escapeXml(lineTip)}</Tip>\n`;
       xml += `          <Descriere>${escapeXml(item.line.denumire)}</Descriere>\n`;
       if (item.line.cod && !item.isServiceOrAdvance) {
         xml += `          <Cod>${escapeXml(item.line.cod)}</Cod>\n`;
@@ -656,6 +779,7 @@ export async function generateSagaExportXML(
     xml += `      </Continut>\n`;
     xml += `    </Detalii>\n`;
     xml += `  </Factura>\n`;
+    }
   }
 
   xml += `</Facturi>\n`;
@@ -711,15 +835,33 @@ export async function generateSagaNirXML(tenantId: number, nirId?: number | numb
     const processedLines = linesData.map((row) => {
       const line = row.line;
       const code = row.articleCode;
-      const qty = parseFloat(String(line.cantitateReceptionata)) || 0;
-      const price = parseFloat(String(line.unitPrice)) || 0;
+      let qty = parseFloat(String(line.cantitateReceptionata)) || 0;
+      let price = parseFloat(String(line.unitPrice)) || 0;
       const rate = parseFloat(String(line.vatRate)) || 0;
 
       const rawTotal = parseFloat(String(line.total));
-      const lineVal = (!isNaN(rawTotal) && rawTotal > 0)
+      let lineVal = (!isNaN(rawTotal) && rawTotal !== 0)
         ? rawTotal
         : Math.round(qty * price * 100) / 100;
-      const lineVat = Math.round(lineVal * (rate / 100) * 100) / 100;
+
+      // Consistență SAGA: Cantitate * Pret = Valoare
+      // Dacă Valoarea este negativă (discount/storno), cantitatea sau prețul trebuie să reflecte semnul negativ
+      if (lineVal < 0) {
+        if (qty > 0 && price > 0) {
+          qty = -qty;
+        } else if (qty > 0 && price === 0) {
+          qty = -qty;
+          price = Math.abs(lineVal);
+        }
+      } else if (lineVal > 0) {
+        qty = Math.abs(qty);
+        price = Math.abs(price);
+      }
+
+      // TVA-ul liniei are obligatoriu același semn ca Valoarea
+      let lineVat = Math.round(lineVal * (rate / 100) * 100) / 100;
+      if (lineVal < 0 && lineVat > 0) lineVat = -lineVat;
+      if (lineVal > 0 && lineVat < 0) lineVat = Math.abs(lineVat);
       const lineTotal = Math.round((lineVal + lineVat) * 100) / 100;
 
       totalValoare += lineVal;
@@ -746,10 +888,11 @@ export async function generateSagaNirXML(tenantId: number, nirId?: number | numb
     totalTva = Math.round(totalTva * 100) / 100;
     let totalFactura = Math.round((totalValoare + totalTva) * 100) / 100;
 
-    if (archiveTotal && !isNaN(archiveTotal) && archiveTotal > 0) {
+    // Aliniem cu totalul facturii doar pentru diferențe de rotunjire (recepție parțială / prețuri modificate = se păstrează suma liniilor)
+    if (archiveTotal && !isNaN(archiveTotal) && Math.abs(Math.abs(archiveTotal) - Math.abs(totalFactura)) <= 0.15) {
       totalFactura = archiveTotal;
-      if (archiveTotalVat !== null && !isNaN(archiveTotalVat) && archiveTotalVat >= 0) {
-        totalTva = archiveTotalVat;
+      if (archiveTotalVat !== null && !isNaN(archiveTotalVat)) {
+        totalTva = totalFactura < 0 ? -Math.abs(archiveTotalVat) : Math.abs(archiveTotalVat);
         totalValoare = Math.round((totalFactura - totalTva) * 100) / 100;
       }
     }
@@ -757,8 +900,10 @@ export async function generateSagaNirXML(tenantId: number, nirId?: number | numb
     xml += `  <Factura>\n`;
     xml += `    <Antet>\n`;
     // Furnizorul (de la cine s-a recepționat)
+    const supplierCountry = detectCountryFromCui(n.supplierCUI);
     xml += `      <FurnizorNume>${escapeXml(n.supplierName || "")}</FurnizorNume>\n`;
     xml += `      <FurnizorCIF>${escapeXml(n.supplierCUI || "")}</FurnizorCIF>\n`;
+    xml += `      <FurnizorTara>${escapeXml(supplierCountry)}</FurnizorTara>\n`;
 
     // Clientul suntem NOI (astfel SAGA C știe că este achiziție / intrare de marfă)
     xml += `      <ClientNume>${escapeXml(company.name)}</ClientNume>\n`;
@@ -794,11 +939,13 @@ export async function generateSagaNirXML(tenantId: number, nirId?: number | numb
 
     let lineIndex = 1;
     for (const item of processedLines) {
+      const lineTip = resolveSagaLineTip((item.line as any).accountingType, item.lineAcc, n.accountingType);
       xml += `        <Linie>\n`;
       xml += `          <LinieNrCrt>${lineIndex++}</LinieNrCrt>\n`;
       if (n.gestiune && !item.isServiceOrAdvance) {
         xml += `          <Gestiune>${escapeXml(n.gestiune)}</Gestiune>\n`;
       }
+      xml += `          <Tip>${escapeXml(lineTip)}</Tip>\n`;
       xml += `          <Descriere>${escapeXml(item.line.description)}</Descriere>\n`;
       if (item.code && !item.isServiceOrAdvance) {
         xml += `          <Cod>${escapeXml(item.code)}</Cod>\n`;
@@ -846,7 +993,7 @@ export async function generateSagaArticlesXML(tenantId: number) {
     xml += `    <Denumire>${escapeXml(art.name)}</Denumire>\n`;
     xml += `    <UM>${escapeXml(art.unit || "buc")}</UM>\n`;
     xml += `    <Tip>${escapeXml(art.category || "Marfuri")}</Tip>\n`;
-    xml += `    <TVA>${art.vatRate || "19"}</TVA>\n`;
+    xml += `    <TVA>${art.vatRate || "21"}</TVA>\n`;
     if (art.barcode) {
       xml += `    <Cod_bare>${escapeXml(art.barcode)}</Cod_bare>\n`;
     }

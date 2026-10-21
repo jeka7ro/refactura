@@ -13,16 +13,33 @@ const EU_COUNTRIES = new Set([
 export function generateUblXml(
   invoice: ReInvoice,
   lines: ReInvoiceLine[],
-  tenant: Tenant
+  tenant: Tenant,
+  exchangeRate?: number
 ): string {
   const issueDate = new Date(invoice.issueDate).toISOString().split("T")[0];
   const dueDate = invoice.dueDate
     ? new Date(invoice.dueDate).toISOString().split("T")[0]
     : issueDate;
 
-  // Seller CUI (always Romania, ensure RO prefix once)
-  const cleanSellerCui = (tenant.cui || "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
-  const supplierCui = cleanSellerCui.startsWith("RO") ? cleanSellerCui : "RO" + cleanSellerCui;
+  let tenantSettings: any = {};
+  try {
+    if (tenant.settings) tenantSettings = JSON.parse(tenant.settings);
+  } catch (e) {}
+
+  const tenantCity = tenantSettings.city || "";
+  const tenantRegCom = tenantSettings.regCom || "";
+  const tenantCounty = tenantSettings.county || "";
+
+  // Seller CUI: In Romania, VAT registered sellers must have RO prefix in BT-31 / CompanyID
+  const rawSellerCui = (tenant.cui || "").trim().toUpperCase();
+  const cleanSellerDigits = rawSellerCui.replace(/[^0-9]/g, "");
+  const hasVatLines = lines.some(l => parseFloat(String(l.vatRate || "0")) > 0);
+  const isSellerVatPayer =
+    tenantSettings.isVatPayer !== false &&
+    tenantSettings.tva !== false &&
+    (rawSellerCui.startsWith("RO") || hasVatLines || cleanSellerDigits.length > 0);
+
+  const supplierVatId = isSellerVatPayer ? `RO${cleanSellerDigits}` : cleanSellerDigits;
 
   // Buyer Country & CUI
   const rawClientCui = (invoice.clientCUI || "").trim().toUpperCase();
@@ -36,15 +53,56 @@ export function generateUblXml(
     }
   }
 
+  const cleanBuyerDigits = rawClientCui.replace(/[^0-9]/g, "");
   const cleanBuyerCui = rawClientCui.replace(/[^A-Z0-9]/gi, "");
-  let clientCui = cleanBuyerCui;
+  const isB2C =
+    !cleanBuyerDigits ||
+    cleanBuyerDigits === "0000000000000" ||
+    (cleanBuyerDigits.length === 13 && /^[1-9]\d{12}$/.test(cleanBuyerDigits));
+
+  // Determine buyer VAT status:
+  // In Romania, a company has a VAT identifier (BT-48) ONLY if registered for VAT (RO prefix).
+  // Non-VAT companies (art. 310) must NOT have PartyTaxScheme, otherwise ANAF rejects with BR-RO-040!
+  const isBuyerVatPayer =
+    !isB2C &&
+    buyerCountry === "RO" &&
+    (rawClientCui.startsWith("RO") || (invoice as any).clientTva === 1 || (invoice as any).clientTva === true);
+
+  let buyerTaxSchemeXml = "";
+  let buyerLegalId = "";
+
   if (buyerCountry === "RO") {
-    clientCui = cleanBuyerCui.startsWith("RO") ? cleanBuyerCui : (cleanBuyerCui ? "RO" + cleanBuyerCui : "");
-  } else {
-    // For foreign EU clients (e.g. BE0785292895), ensure the 2-letter country code is prefixed once
-    if (cleanBuyerCui && !cleanBuyerCui.startsWith(buyerCountry) && EU_COUNTRIES.has(buyerCountry)) {
-      clientCui = buyerCountry + cleanBuyerCui;
+    if (isB2C) {
+      buyerLegalId = "0000000000000";
+    } else if (isBuyerVatPayer) {
+      const vatId = `RO${cleanBuyerDigits}`;
+      buyerTaxSchemeXml = `
+            <cac:PartyTaxScheme>
+                <cbc:CompanyID>${vatId}</cbc:CompanyID>
+                <cac:TaxScheme>
+                    <cbc:ID>VAT</cbc:ID>
+                </cac:TaxScheme>
+            </cac:PartyTaxScheme>`;
+      buyerLegalId = vatId;
+    } else {
+      // Non-VAT Romanian entity: no PartyTaxScheme, numeric CUI in LegalEntity
+      buyerLegalId = cleanBuyerDigits || "0000000000000";
     }
+  } else if (EU_COUNTRIES.has(buyerCountry)) {
+    const vatCountryPrefix = buyerCountry === "GR" ? "EL" : buyerCountry;
+    const euVatId = cleanBuyerCui.startsWith(vatCountryPrefix)
+      ? cleanBuyerCui
+      : vatCountryPrefix + cleanBuyerCui;
+    buyerTaxSchemeXml = `
+            <cac:PartyTaxScheme>
+                <cbc:CompanyID>${euVatId}</cbc:CompanyID>
+                <cac:TaxScheme>
+                    <cbc:ID>VAT</cbc:ID>
+                </cac:TaxScheme>
+            </cac:PartyTaxScheme>`;
+    buyerLegalId = euVatId;
+  } else {
+    buyerLegalId = cleanBuyerCui || "UNKNOWN";
   }
 
   // Reverse charge detection
@@ -58,54 +116,32 @@ export function generateUblXml(
     notesLower.includes("art. 307") ||
     (buyerCountry !== "RO" && EU_COUNTRIES.has(buyerCountry));
 
-  // Calculate tax subtotals by VAT rate
-  const taxGroups = new Map<
-    number,
-    { taxableAmount: number; taxAmount: number }
-  >();
-  for (const line of lines) {
-    const rate = parseFloat(String(line.vatRate || "0"));
-    const amount =
-      parseFloat(String(line.quantity)) * parseFloat(String(line.unitPrice));
-    const tax = amount * (rate / 100);
-
-    if (!taxGroups.has(rate)) {
-      taxGroups.set(rate, { taxableAmount: 0, taxAmount: 0 });
-    }
-    const group = taxGroups.get(rate)!;
-    group.taxableAmount += amount;
-    group.taxAmount += tax;
-  }
-
-  let tenantSettings: any = {};
-  try {
-    if (tenant.settings) tenantSettings = JSON.parse(tenant.settings);
-  } catch (e) {}
-
-  const tenantCity = tenantSettings.city || "";
-  const tenantRegCom = tenantSettings.regCom || "";
-  const tenantCounty = tenantSettings.county || tenantCity || "";
-
   // BR-RO-110: Map Romanian city/county to ISO 3166-2:RO subdivision code
   const COUNTY_MAP: Record<string, string> = {
     "alba": "RO-AB", "arad": "RO-AR", "arges": "RO-AG", "bacau": "RO-BC",
-    "bihor": "RO-BH", "bistrita": "RO-BN", "botosani": "RO-BT", "brasov": "RO-BV",
-    "braila": "RO-BR", "bucuresti": "RO-B", "bucharest": "RO-B", "buzau": "RO-BZ",
-    "caras": "RO-CS", "severin": "RO-CS", "calarasi": "RO-CL", "cluj": "RO-CJ",
-    "constanta": "RO-CT", "covasna": "RO-CV", "dambovita": "RO-DB", "dolj": "RO-DJ",
-    "galati": "RO-GL", "giurgiu": "RO-GR", "gorj": "RO-GJ", "harghita": "RO-HR",
-    "hunedoara": "RO-HD", "ialomita": "RO-IL", "iasi": "RO-IS", "ilfov": "RO-IF",
-    "maramures": "RO-MM", "mehedinti": "RO-MH", "mures": "RO-MS", "neamt": "RO-NT",
-    "olt": "RO-OT", "prahova": "RO-PH", "satu": "RO-SM", "salaj": "RO-SJ",
-    "sibiu": "RO-SB", "suceava": "RO-SV", "teleorman": "RO-TR", "timis": "RO-TM",
-    "timisoara": "RO-TM", "tulcea": "RO-TL", "vaslui": "RO-VS", "valcea": "RO-VL",
-    "vrancea": "RO-VN",
+    "bihor": "RO-BH", "bistrita": "RO-BN", "nasaud": "RO-BN", "botosani": "RO-BT", "brasov": "RO-BV",
+    "braila": "RO-BR", "buzau": "RO-BZ", "caras": "RO-CS", "severin": "RO-CS",
+    "calarasi": "RO-CL", "cluj": "RO-CJ", "constanta": "RO-CT", "covasna": "RO-CV",
+    "dambovita": "RO-DB", "dolj": "RO-DJ", "galati": "RO-GL", "giurgiu": "RO-GR",
+    "gorj": "RO-GJ", "harghita": "RO-HR", "hunedoara": "RO-HD", "ialomita": "RO-IL",
+    "iasi": "RO-IS", "ilfov": "RO-IF", "maramures": "RO-MM", "mehedinti": "RO-MH",
+    "mures": "RO-MS", "neamt": "RO-NT", "olt": "RO-OT", "prahova": "RO-PH",
+    "satu": "RO-SM", "salaj": "RO-SJ", "sibiu": "RO-SB", "suceava": "RO-SV",
+    "teleorman": "RO-TR", "timis": "RO-TM", "tulcea": "RO-TL",
+    "vaslui": "RO-VS", "valcea": "RO-VL", "vrancea": "RO-VN",
   };
-  const getCountyCode = (city: string): string => {
-    if (!city) return "RO-B"; // default Bucharest
-    const key = city.toLowerCase()
+
+  const getCountyCode = (text: string): string => {
+    if (!text) return "RO-B";
+    const key = text.toLowerCase()
       .normalize("NFD").replace(/\p{Diacritic}/gu, "")
       .trim();
+
+    // Check Bucharest / Sectoare
+    if (key.includes("bucuresti") || key.includes("bucharest") || key.includes("sector")) {
+      return "RO-B";
+    }
+
     for (const [k, v] of Object.entries(COUNTY_MAP)) {
       if (key.includes(k)) return v;
     }
@@ -120,17 +156,20 @@ export function generateUblXml(
     return "SECTOR1";
   };
 
-  const sellerSubdivision = getCountyCode(tenantCounty);
+  // Inspect county, city AND full address to accurately determine subdivision
+  const sellerSubdivision = getCountyCode(`${tenantCounty} ${tenantCity} ${tenant.address || ""}`);
   const sellerCity = getSectorOrCity(sellerSubdivision, tenant.address || "", tenantCity);
 
   let buyerAddressXml = "";
   if (buyerCountry === "RO") {
-    const clientCounty = (invoice as any).clientCounty || (invoice as any).clientCity || "";
-    const buyerSubdivision = getCountyCode(clientCounty);
-    const buyerCity = getSectorOrCity(buyerSubdivision, (invoice as any).clientAddress || "", (invoice as any).clientCity || "");
+    const clientCounty = (invoice as any).clientCounty || "";
+    const clientCity = (invoice as any).clientCity || "";
+    const clientAddress = (invoice as any).clientAddress || "";
+    const buyerSubdivision = getCountyCode(`${clientCounty} ${clientCity} ${clientAddress}`);
+    const buyerCity = getSectorOrCity(buyerSubdivision, clientAddress, clientCity);
     buyerAddressXml = `
             <cac:PostalAddress>
-                <cbc:StreetName>${escapeXml((invoice as any).clientAddress || "Nesetata")}</cbc:StreetName>
+                <cbc:StreetName>${escapeXml(clientAddress || "Nesetata")}</cbc:StreetName>
                 <cbc:CityName>${escapeXml(buyerCity)}</cbc:CityName>
                 <cbc:CountrySubentity>${buyerSubdivision}</cbc:CountrySubentity>
                 <cac:Country>
@@ -149,13 +188,35 @@ export function generateUblXml(
             </cac:PostalAddress>`;
   }
 
+  // Calculate tax subtotals and line totals with exact decimal rounding
+  const taxGroups = new Map<
+    number,
+    { taxableAmount: number; taxAmount: number }
+  >();
+
+  let sumLineExtension = 0;
+
   // Generate lines
   const xmlLines = lines
     .map((line, idx) => {
-      const qty = parseFloat(String(line.quantity));
-      const unitPrice = parseFloat(String(line.unitPrice));
-      const lineTotal = qty * unitPrice;
+      const rawQty = parseFloat(String(line.quantity || "0"));
+      const rawUnitPrice = parseFloat(String(line.unitPrice || "0"));
+      const lineTotal = Math.round(rawQty * rawUnitPrice * 100) / 100;
+      sumLineExtension += lineTotal;
+
+      // Rule BR-27: Item net price (BT-146) must NOT be negative.
+      // Negative signs for storno/discounts belong strictly on the quantity.
+      const unitPrice = Math.abs(rawUnitPrice);
+      const qty = lineTotal < 0 ? -Math.abs(rawQty) : Math.abs(rawQty);
       const vatRate = parseFloat(String(line.vatRate || "0"));
+      const lineVat = Math.round(lineTotal * (vatRate / 100) * 100) / 100;
+
+      if (!taxGroups.has(vatRate)) {
+        taxGroups.set(vatRate, { taxableAmount: 0, taxAmount: 0 });
+      }
+      const group = taxGroups.get(vatRate)!;
+      group.taxableAmount += lineTotal;
+      group.taxAmount += lineVat;
 
       let taxCategoryId = "S";
       if (vatRate === 0) {
@@ -184,9 +245,16 @@ export function generateUblXml(
     })
     .join("");
 
+  sumLineExtension = Math.round(sumLineExtension * 100) / 100;
+
   // Generate tax subtotals
+  let sumTaxAmount = 0;
   const xmlTaxSubtotals = Array.from(taxGroups.entries())
     .map(([rate, group]) => {
+      const taxable = Math.round(group.taxableAmount * 100) / 100;
+      const tax = Math.round(group.taxAmount * 100) / 100;
+      sumTaxAmount += tax;
+
       let taxCategoryId = "S";
       let exemptionCode = "";
       let exemptionReason = "";
@@ -205,8 +273,8 @@ export function generateUblXml(
 
       return `
         <cac:TaxSubtotal>
-            <cbc:TaxableAmount currencyID="${invoice.currency}">${group.taxableAmount.toFixed(2)}</cbc:TaxableAmount>
-            <cbc:TaxAmount currencyID="${invoice.currency}">${group.taxAmount.toFixed(2)}</cbc:TaxAmount>
+            <cbc:TaxableAmount currencyID="${invoice.currency}">${taxable.toFixed(2)}</cbc:TaxableAmount>
+            <cbc:TaxAmount currencyID="${invoice.currency}">${tax.toFixed(2)}</cbc:TaxAmount>
             <cac:TaxCategory>
                 <cbc:ID>${taxCategoryId}</cbc:ID>
                 <cbc:Percent>${rate.toFixed(2)}</cbc:Percent>
@@ -220,13 +288,19 @@ export function generateUblXml(
     })
     .join("");
 
-  const subtotal = parseFloat(String(invoice.subtotal));
-  const totalVat = parseFloat(String(invoice.totalVAT));
-  const total = parseFloat(String(invoice.total));
+  sumTaxAmount = Math.round(sumTaxAmount * 100) / 100;
+  const finalTaxInclusive = Math.round((sumLineExtension + sumTaxAmount) * 100) / 100;
 
-  // Foreign currency support (BR-RO-030): TaxCurrencyCode must be RON, TaxTotal in RON must exist
+  // Foreign currency support (BR-RO-030): TaxCurrencyCode must be RON, second TaxTotal in RON must exist
   const isForeignCurrency = invoice.currency && invoice.currency !== "RON";
-  const vatInRon = isForeignCurrency ? (totalVat === 0 ? 0 : totalVat * 5.0) : totalVat;
+  if (isForeignCurrency && sumTaxAmount !== 0 && !(exchangeRate && exchangeRate > 0)) {
+    throw new Error(
+      `Cursul BNR pentru ${invoice.currency} nu a putut fi determinat; TVA în RON (BR-RO-030) nu poate fi calculat.`
+    );
+  }
+  const vatInRon = isForeignCurrency
+    ? (sumTaxAmount === 0 ? 0 : Math.round(sumTaxAmount * (exchangeRate as number) * 100) / 100)
+    : sumTaxAmount;
 
   // Supplier IBAN and Bank for PaymentMeans (BR-RO CIUS-RO compliant)
   let supplierIban = ((invoice as any).companyIBAN || "").trim().replace(/\s+/g, "").toUpperCase();
@@ -308,15 +382,16 @@ export function generateUblXml(
                     <cbc:IdentificationCode>RO</cbc:IdentificationCode>
                 </cac:Country>
             </cac:PostalAddress>
+            ${isSellerVatPayer ? `
             <cac:PartyTaxScheme>
-                <cbc:CompanyID>${supplierCui}</cbc:CompanyID>
+                <cbc:CompanyID>${supplierVatId}</cbc:CompanyID>
                 <cac:TaxScheme>
                     <cbc:ID>VAT</cbc:ID>
                 </cac:TaxScheme>
-            </cac:PartyTaxScheme>
+            </cac:PartyTaxScheme>` : ""}
             <cac:PartyLegalEntity>
                 <cbc:RegistrationName>${escapeXml(tenant.name)}</cbc:RegistrationName>
-                <cbc:CompanyID>${supplierCui}</cbc:CompanyID>
+                <cbc:CompanyID>${supplierVatId}</cbc:CompanyID>
                 ${tenantRegCom ? `<cbc:CompanyLegalForm>${escapeXml(tenantRegCom)}</cbc:CompanyLegalForm>` : ""}
             </cac:PartyLegalEntity>
         </cac:Party>
@@ -326,23 +401,16 @@ export function generateUblXml(
         <cac:Party>
             <cac:PartyName>
                 <cbc:Name>${escapeXml(invoice.clientName)}</cbc:Name>
-            </cac:PartyName>${buyerAddressXml}
-            ${clientCui ? `
-            <cac:PartyTaxScheme>
-                <cbc:CompanyID>${clientCui}</cbc:CompanyID>
-                <cac:TaxScheme>
-                    <cbc:ID>VAT</cbc:ID>
-                </cac:TaxScheme>
-            </cac:PartyTaxScheme>` : ""}
+            </cac:PartyName>${buyerAddressXml}${buyerTaxSchemeXml}
             <cac:PartyLegalEntity>
                 <cbc:RegistrationName>${escapeXml(invoice.clientName)}</cbc:RegistrationName>
-                ${clientCui ? `<cbc:CompanyID>${clientCui}</cbc:CompanyID>` : ""}
+                <cbc:CompanyID>${buyerLegalId}</cbc:CompanyID>
             </cac:PartyLegalEntity>
         </cac:Party>
     </cac:AccountingCustomerParty>${paymentMeansXml}
 
     <cac:TaxTotal>
-        <cbc:TaxAmount currencyID="${invoice.currency}">${totalVat.toFixed(2)}</cbc:TaxAmount>${xmlTaxSubtotals}
+        <cbc:TaxAmount currencyID="${invoice.currency}">${sumTaxAmount.toFixed(2)}</cbc:TaxAmount>${xmlTaxSubtotals}
     </cac:TaxTotal>
     ${isForeignCurrency ? `
     <cac:TaxTotal>
@@ -350,10 +418,10 @@ export function generateUblXml(
     </cac:TaxTotal>` : ""}
 
     <cac:LegalMonetaryTotal>
-        <cbc:LineExtensionAmount currencyID="${invoice.currency}">${subtotal.toFixed(2)}</cbc:LineExtensionAmount>
-        <cbc:TaxExclusiveAmount currencyID="${invoice.currency}">${subtotal.toFixed(2)}</cbc:TaxExclusiveAmount>
-        <cbc:TaxInclusiveAmount currencyID="${invoice.currency}">${total.toFixed(2)}</cbc:TaxInclusiveAmount>
-        <cbc:PayableAmount currencyID="${invoice.currency}">${total.toFixed(2)}</cbc:PayableAmount>
+        <cbc:LineExtensionAmount currencyID="${invoice.currency}">${sumLineExtension.toFixed(2)}</cbc:LineExtensionAmount>
+        <cbc:TaxExclusiveAmount currencyID="${invoice.currency}">${sumLineExtension.toFixed(2)}</cbc:TaxExclusiveAmount>
+        <cbc:TaxInclusiveAmount currencyID="${invoice.currency}">${finalTaxInclusive.toFixed(2)}</cbc:TaxInclusiveAmount>
+        <cbc:PayableAmount currencyID="${invoice.currency}">${finalTaxInclusive.toFixed(2)}</cbc:PayableAmount>
     </cac:LegalMonetaryTotal>
 ${xmlLines}
 </Invoice>`;

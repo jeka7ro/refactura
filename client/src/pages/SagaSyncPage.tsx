@@ -78,7 +78,7 @@ export default function SagaSyncPage() {
         category: a.category || "Marfuri",
         account: a.accountingAccount || "371",
         unit: a.unit || "buc",
-        vat: `${a.vatRate || 19}%`,
+        vat: `${a.vatRate ?? 21}%`,
       }));
     } else if (activeTab === "furnizori") {
       return furnizori.map((f: any) => ({

@@ -94,7 +94,7 @@ export default function ReInvoice() {
               originalUnitPrice: parseFloat(String(l.unitPrice || "0")),
               unitPrice: parseFloat(String(l.unitPrice || "0")),
               markupPercent: 15,
-              vatRate: parseFloat(String(l.vatRate || "19"))
+              vatRate: parseFloat(String(l.vatRate || "21"))
             }))
           : [
               {
@@ -135,7 +135,7 @@ export default function ReInvoice() {
             originalUnitPrice: parseFloat(String(l.unitPrice || "0")),
             unitPrice: parseFloat(String(l.unitPrice || "0")),
             markupPercent: 15,
-            vatRate: parseFloat(String(l.vatRate || "19"))
+            vatRate: parseFloat(String(l.vatRate || "21"))
           })));
         } else {
           allLines.push({
@@ -618,7 +618,7 @@ export default function ReInvoice() {
           unitPrice: Number(l.unitPrice),
           markupPercent: Number(l.markupPercent || 0),
           originalUnitPrice: Number(l.originalUnitPrice),
-          vatPercent: Number((l as any).vatRate ?? 19),
+          vatPercent: Number((l as any).vatRate ?? 21),
           devizType: (l as any).devizType,
           devizCode: (l as any).devizCode,
         })),
@@ -1415,7 +1415,7 @@ export default function ReInvoice() {
                 <span>{formatCurrency(subtotal, currency)}</span>
               </div>
               <div className="flex justify-between text-slate-500">
-                <span>TVA ({lines[0]?.vatRate ?? 19}%):</span>
+                <span>TVA ({lines[0]?.vatRate ?? 21}%):</span>
                 <span>{formatCurrency(totalVAT, currency)}</span>
               </div>
               <div className="flex justify-between text-slate-900 dark:text-white border-t border-slate-100 dark:border-slate-800 pt-2 mt-2">

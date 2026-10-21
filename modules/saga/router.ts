@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { tenantOf } from "../../server/tenant";
 import { router, protectedProcedure } from "../../server/_core/trpc";
 import { getDb } from "../../server/db";
 import {
@@ -11,6 +12,13 @@ import {
 } from "./schema";
 import { eq, and, desc, like, sql, count } from "drizzle-orm";
 
+// Verifies that a parent row belongs to the caller's tenant (404-style error otherwise).
+async function assertOwned(db: any, table: any, id: number, tenantId: number) {
+  const [row] = await db.select({ id: table.id }).from(table)
+    .where(and(eq(table.id, id), eq(table.tenantId, tenantId))).limit(1);
+  if (!row) throw new Error("Documentul nu a fost găsit");
+}
+
 export const sagaRouter = router({
   articles: router({
     list: protectedProcedure.query(async ({ ctx }) => {
@@ -20,7 +28,7 @@ export const sagaRouter = router({
       return db
         .select()
         .from(sagaArticles)
-        .where(eq(sagaArticles.tenantId, (ctx.user?.tenantId || 1)))
+        .where(eq(sagaArticles.tenantId, (tenantOf(ctx))))
         .orderBy(sagaArticles.name);
     }),
 
@@ -28,7 +36,7 @@ export const sagaRouter = router({
       
       const db = await getDb();
       if (!db) throw new Error("No DB");
-      const tenantId = ctx.user?.tenantId || 1;
+      const tenantId = tenantOf(ctx);
       const [maxRow] = await db
         .select({ code: sagaArticles.code })
         .from(sagaArticles)
@@ -44,17 +52,6 @@ export const sagaRouter = router({
       let maxNum = 0;
       if (maxRow?.code) {
         maxNum = parseInt(maxRow.code, 10) || 0;
-      } else {
-        // Fallback across all tenants if tenant has no numeric articles yet
-        const [anyMax] = await db
-          .select({ code: sagaArticles.code })
-          .from(sagaArticles)
-          .where(sql`${sagaArticles.code} REGEXP '^[0-9]+$'`)
-          .orderBy(sql`CAST(${sagaArticles.code} AS UNSIGNED) DESC`)
-          .limit(1);
-        if (anyMax?.code) {
-          maxNum = parseInt(anyMax.code, 10) || 0;
-        }
       }
       const next = maxNum + 1;
       return String(next).padStart(8, "0");
@@ -66,7 +63,7 @@ export const sagaRouter = router({
           code: z.string().min(1),
           name: z.string().min(1),
           unit: z.string().default("buc"),
-          vatRate: z.number().default(19),
+          vatRate: z.number().default(21),
           category: z.string().default("Marfuri"),
           accountingAccount: z.string().default("371"),
           sagaCode: z.string().optional(),
@@ -78,7 +75,7 @@ export const sagaRouter = router({
         const db = await getDb();
         if (!db) throw new Error("No DB");
         await db.insert(sagaArticles).values({
-          tenantId: (ctx.user?.tenantId || 1),
+          tenantId: (tenantOf(ctx)),
           code: input.code,
           name: input.name,
           unit: input.unit,
@@ -119,7 +116,7 @@ export const sagaRouter = router({
           .where(
             and(
               eq(sagaArticles.id, id),
-              eq(sagaArticles.tenantId, (ctx.user?.tenantId || 1))
+              eq(sagaArticles.tenantId, (tenantOf(ctx)))
             )
           );
         return { success: true };
@@ -137,7 +134,7 @@ export const sagaRouter = router({
           .where(
             and(
               eq(sagaArticleMappings.sagaArticleId, input.id),
-              eq(sagaArticleMappings.tenantId, (ctx.user?.tenantId || 1))
+              eq(sagaArticleMappings.tenantId, (tenantOf(ctx)))
             )
           );
         await db
@@ -145,7 +142,7 @@ export const sagaRouter = router({
           .where(
             and(
               eq(sagaArticles.id, input.id),
-              eq(sagaArticles.tenantId, (ctx.user?.tenantId || 1))
+              eq(sagaArticles.tenantId, (tenantOf(ctx)))
             )
           );
         return { success: true };
@@ -159,7 +156,7 @@ export const sagaRouter = router({
               code: z.string(),
               name: z.string(),
               unit: z.string().default("buc"),
-              vatRate: z.number().default(19),
+              vatRate: z.number().default(21),
               category: z.string().default("Marfuri"),
               accountingAccount: z.string().default("371"),
               barcode: z.string().optional(),
@@ -182,7 +179,7 @@ export const sagaRouter = router({
             .from(sagaArticles)
             .where(
               and(
-                eq(sagaArticles.tenantId, (ctx.user?.tenantId || 1)),
+                eq(sagaArticles.tenantId, (tenantOf(ctx))),
                 eq(sagaArticles.code, art.code)
               )
             );
@@ -204,7 +201,7 @@ export const sagaRouter = router({
             skipped++;
           } else {
             await db.insert(sagaArticles).values({
-              tenantId: (ctx.user?.tenantId || 1),
+              tenantId: (tenantOf(ctx)),
               code: art.code,
               name: art.name,
               unit: art.unit,
@@ -243,7 +240,7 @@ export const sagaRouter = router({
           sagaArticles,
           eq(sagaArticleMappings.sagaArticleId, sagaArticles.id)
         )
-        .where(eq(sagaArticleMappings.tenantId, (ctx.user?.tenantId || 1)))
+        .where(eq(sagaArticleMappings.tenantId, (tenantOf(ctx))))
         .orderBy(desc(sagaArticleMappings.createdAt));
       return rows;
     }),
@@ -261,7 +258,7 @@ export const sagaRouter = router({
         const db = await getDb();
         if (!db) throw new Error("No DB");
         await db.insert(sagaArticleMappings).values({
-          tenantId: (ctx.user?.tenantId || 1),
+          tenantId: (tenantOf(ctx)),
           sagaArticleId: input.sagaArticleId,
           externalName: input.externalName,
           supplierCUI: input.supplierCUI || null,
@@ -281,7 +278,7 @@ export const sagaRouter = router({
           .where(
             and(
               eq(sagaArticleMappings.id, input.id),
-              eq(sagaArticleMappings.tenantId, (ctx.user?.tenantId || 1))
+              eq(sagaArticleMappings.tenantId, (tenantOf(ctx)))
             )
           );
         return { success: true };
@@ -307,7 +304,7 @@ export const sagaRouter = router({
         const allArticles = await db
           .select()
           .from(sagaArticles)
-          .where(eq(sagaArticles.tenantId, (ctx.user?.tenantId || 1)));
+          .where(eq(sagaArticles.tenantId, (tenantOf(ctx))));
 
         const scored = allArticles
           .map((art) => {
@@ -341,13 +338,13 @@ export const sagaRouter = router({
         })
         .from(nirLines)
         .innerJoin(nir, eq(nir.id, nirLines.nirId))
-        .where(eq(nir.tenantId, (ctx.user?.tenantId || 1)));
+        .where(eq(nir.tenantId, (tenantOf(ctx))));
 
       // Get all existing mappings
       const existingMappings = await db
         .select({ externalName: sagaArticleMappings.externalName })
         .from(sagaArticleMappings)
-        .where(eq(sagaArticleMappings.tenantId, (ctx.user?.tenantId || 1)));
+        .where(eq(sagaArticleMappings.tenantId, (tenantOf(ctx))));
 
       const mappedNames = new Set(
         existingMappings.map((m) => m.externalName.toLowerCase())
@@ -392,7 +389,7 @@ export const sagaRouter = router({
       const { generateSagaExportXML, getTenantCompanyProfile } = await import(
         "../../server/sagaXmlGenerator"
       );
-      const tenantId = ctx.user?.tenantId || 1;
+      const tenantId = tenantOf(ctx);
       const xml = await generateSagaExportXML(tenantId, input.month, input.year, {
         nirIds: input.nirIds,
         invoiceIds: input.invoiceIds,
@@ -427,7 +424,7 @@ export const sagaRouter = router({
       const { generateSagaNirXML, getTenantCompanyProfile } = await import(
         "../../server/sagaXmlGenerator"
       );
-      const tenantId = ctx.user?.tenantId || 1;
+      const tenantId = tenantOf(ctx);
       const targetIds =
         input?.nirIds && input.nirIds.length > 0 ? input.nirIds : input?.nirId;
       const xml = await generateSagaNirXML(tenantId, targetIds);
@@ -445,7 +442,7 @@ export const sagaRouter = router({
   exportArticole: protectedProcedure.mutation(async ({ ctx }) => {
     const { generateSagaArticlesXML } = await import("../../server/sagaXmlGenerator");
     const { format } = await import("date-fns");
-    const tenantId = ctx.user?.tenantId || 1;
+    const tenantId = tenantOf(ctx);
     const xml = await generateSagaArticlesXML(tenantId);
     const filename = `ART_${format(new Date(), "ddMMyyyy")}.xml`;
     return { xml, filename };
@@ -454,7 +451,7 @@ export const sagaRouter = router({
   exportClienti: protectedProcedure.mutation(async ({ ctx }) => {
     const { generateSagaClientsXML } = await import("../../server/sagaXmlGenerator");
     const { format } = await import("date-fns");
-    const tenantId = ctx.user?.tenantId || 1;
+    const tenantId = tenantOf(ctx);
     const xml = await generateSagaClientsXML(tenantId);
     const filename = `CLI_${format(new Date(), "ddMMyyyy")}.xml`;
     return { xml, filename };
@@ -462,7 +459,7 @@ export const sagaRouter = router({
 
   getSagaWebConfig: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
-    const tenantId = ctx.user?.tenantId || 1;
+    const tenantId = tenantOf(ctx);
     if (!db) return { sagaWebToken: "", sagaWebCui: "" };
     const { tenants } = await import("../../drizzle/schema");
     const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
@@ -487,7 +484,7 @@ export const sagaRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
-      const tenantId = ctx.user?.tenantId || 1;
+      const tenantId = tenantOf(ctx);
       if (!db) throw new Error("DB unavailable");
       const { tenants } = await import("../../drizzle/schema");
       const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
@@ -522,7 +519,7 @@ export const sagaRouter = router({
       const FormData = (await import("form-data")).default;
       const { generateSagaExportXML, getTenantCompanyProfile, updateTenantSagaToken } =
         await import("../../server/sagaXmlGenerator");
-      const tenantId = ctx.user?.tenantId || 1;
+      const tenantId = tenantOf(ctx);
 
       const db = await getDb();
       let token = input.sagaToken?.trim();
@@ -606,7 +603,7 @@ export const sagaRouter = router({
     return db
       .select()
       .from(sagaExportHistory)
-      .where(eq(sagaExportHistory.tenantId, (ctx.user?.tenantId || 1)))
+      .where(eq(sagaExportHistory.tenantId, (tenantOf(ctx))))
       .orderBy(desc(sagaExportHistory.createdAt))
       .limit(20);
   }),
@@ -622,7 +619,7 @@ export const sagaRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
-      const tenantId = ctx.user?.tenantId || 1;
+      const tenantId = tenantOf(ctx);
       if (!db) return { invoices: [], nirs: [], totalAllInvoices: 0, totalAllNirs: 0 };
 
       const schema = await import("../../drizzle/schema");
@@ -790,7 +787,7 @@ export const sagaRouter = router({
       const db = await getDb();
       if (!db) return [];
       return db.select().from(sagaGestiuni)
-        .where(eq(sagaGestiuni.tenantId, (ctx.user?.tenantId || 1)))
+        .where(eq(sagaGestiuni.tenantId, (tenantOf(ctx))))
         .orderBy(sagaGestiuni.cod);
     }),
 
@@ -812,7 +809,7 @@ export const sagaRouter = router({
         
         const db = await getDb();
         if (!db) throw new Error("No DB");
-        await db.insert(sagaGestiuni).values({ ...input, tenantId: (ctx.user?.tenantId || 1) });
+        await db.insert(sagaGestiuni).values({ ...input, tenantId: (tenantOf(ctx)) });
         return { ok: true };
       }),
 
@@ -837,7 +834,7 @@ export const sagaRouter = router({
         if (!db) throw new Error("No DB");
         const { id, ...data } = input;
         await db.update(sagaGestiuni).set(data)
-          .where(and(eq(sagaGestiuni.id, id), eq(sagaGestiuni.tenantId, (ctx.user?.tenantId || 1))));
+          .where(and(eq(sagaGestiuni.id, id), eq(sagaGestiuni.tenantId, (tenantOf(ctx)))));
         return { ok: true };
       }),
 
@@ -848,7 +845,7 @@ export const sagaRouter = router({
         const db = await getDb();
         if (!db) throw new Error("No DB");
         await db.delete(sagaGestiuni)
-          .where(and(eq(sagaGestiuni.id, input.id), eq(sagaGestiuni.tenantId, (ctx.user?.tenantId || 1))));
+          .where(and(eq(sagaGestiuni.id, input.id), eq(sagaGestiuni.tenantId, (tenantOf(ctx)))));
         return { ok: true };
       }),
 
@@ -857,7 +854,7 @@ export const sagaRouter = router({
       const db = await getDb();
       if (!db) return "0001";
       const result = await db.select({ cnt: count() }).from(sagaGestiuni)
-        .where(eq(sagaGestiuni.tenantId, (ctx.user?.tenantId || 1)));
+        .where(eq(sagaGestiuni.tenantId, (tenantOf(ctx))));
       return String((result[0]?.cnt || 0) + 1).padStart(4, "0");
     }),
   }),
@@ -871,7 +868,7 @@ export const sagaRouter = router({
       const db = await getDb();
       if (!db) return [];
       return db.select().from(sagaFurnizori)
-        .where(eq(sagaFurnizori.tenantId, (ctx.user?.tenantId || 1)))
+        .where(eq(sagaFurnizori.tenantId, (tenantOf(ctx))))
         .orderBy(sagaFurnizori.cod);
     }),
 
@@ -894,7 +891,7 @@ export const sagaRouter = router({
         
         const db = await getDb();
         if (!db) throw new Error("No DB");
-        await db.insert(sagaFurnizori).values({ ...input, tenantId: (ctx.user?.tenantId || 1) });
+        await db.insert(sagaFurnizori).values({ ...input, tenantId: (tenantOf(ctx)) });
         return { ok: true };
       }),
 
@@ -920,7 +917,7 @@ export const sagaRouter = router({
         if (!db) throw new Error("No DB");
         const { id, ...data } = input;
         await db.update(sagaFurnizori).set(data)
-          .where(and(eq(sagaFurnizori.id, id), eq(sagaFurnizori.tenantId, (ctx.user?.tenantId || 1))));
+          .where(and(eq(sagaFurnizori.id, id), eq(sagaFurnizori.tenantId, (tenantOf(ctx)))));
         return { ok: true };
       }),
 
@@ -931,7 +928,7 @@ export const sagaRouter = router({
         const db = await getDb();
         if (!db) throw new Error("No DB");
         await db.delete(sagaFurnizori)
-          .where(and(eq(sagaFurnizori.id, input.id), eq(sagaFurnizori.tenantId, (ctx.user?.tenantId || 1))));
+          .where(and(eq(sagaFurnizori.id, input.id), eq(sagaFurnizori.tenantId, (tenantOf(ctx)))));
         return { ok: true };
       }),
 
@@ -940,7 +937,7 @@ export const sagaRouter = router({
       const db = await getDb();
       if (!db) return "F001";
       const result = await db.select({ cnt: count() }).from(sagaFurnizori)
-        .where(eq(sagaFurnizori.tenantId, (ctx.user?.tenantId || 1)));
+        .where(eq(sagaFurnizori.tenantId, (tenantOf(ctx))));
       return "F" + String((result[0]?.cnt || 0) + 1).padStart(3, "0");
     }),
   }),
@@ -954,7 +951,7 @@ export const sagaRouter = router({
       const db = await getDb();
       if (!db) return [];
       return db.select().from(sagaIntrari)
-        .where(eq(sagaIntrari.tenantId, (ctx.user?.tenantId || 1)))
+        .where(eq(sagaIntrari.tenantId, (tenantOf(ctx))))
         .orderBy(desc(sagaIntrari.data));
     }),
 
@@ -965,7 +962,7 @@ export const sagaRouter = router({
         const db = await getDb();
         if (!db) throw new Error("No DB");
         const [header] = await db.select().from(sagaIntrari)
-          .where(and(eq(sagaIntrari.id, input.id), eq(sagaIntrari.tenantId, (ctx.user?.tenantId || 1))));
+          .where(and(eq(sagaIntrari.id, input.id), eq(sagaIntrari.tenantId, (tenantOf(ctx)))));
         if (!header) throw new Error("Intrare not found");
         const lines = await db.select().from(sagaIntrariLinii)
           .where(eq(sagaIntrariLinii.intrareId, input.id))
@@ -1001,9 +998,9 @@ export const sagaRouter = router({
         const db = await getDb();
         if (!db) throw new Error("No DB");
         // Get next nrIntern
-        const existing = await db.select({ cnt: count() }).from(sagaIntrari)
-          .where(eq(sagaIntrari.tenantId, (ctx.user?.tenantId || 1)));
-        const nrIntern = (existing[0]?.cnt || 0) + 1;
+        const existing = await db.select({ cnt: sql<number>`COALESCE(MAX(${sagaIntrari.nrIntern}), 0)` }).from(sagaIntrari)
+          .where(eq(sagaIntrari.tenantId, (tenantOf(ctx))));
+        const nrIntern = Number(existing[0]?.cnt || 0) + 1;
         
         const { lines, ...headerData } = input;
         // Calculate totals from lines
@@ -1011,7 +1008,7 @@ export const sagaRouter = router({
         for (const l of (lines || [])) {
           const cant = parseFloat(l.cantitate || "0");
           const pret = parseFloat(l.pretUnitar || "0");
-          const tvaP = parseFloat(l.tvaPercent || "19");
+          const tvaP = parseFloat(l.tvaPercent || "21");
           const val = cant * pret;
           valoare += val;
           tvaTot += val * tvaP / 100;
@@ -1019,7 +1016,7 @@ export const sagaRouter = router({
 
         const [result] = await db.insert(sagaIntrari).values({
           ...headerData,
-          tenantId: (ctx.user?.tenantId || 1),
+          tenantId: (tenantOf(ctx)),
           nrIntern,
           valoare: String(valoare.toFixed(2)),
           tva: String(tvaTot.toFixed(2)),
@@ -1034,7 +1031,7 @@ export const sagaRouter = router({
             const l = lines[i];
             const cant = parseFloat(l.cantitate || "0");
             const pret = parseFloat(l.pretUnitar || "0");
-            const tvaP = parseFloat(l.tvaPercent || "19");
+            const tvaP = parseFloat(l.tvaPercent || "21");
             const val = cant * pret;
             const tvaS = val * tvaP / 100;
             await db.insert(sagaIntrariLinii).values({
@@ -1077,9 +1074,10 @@ export const sagaRouter = router({
         
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        await assertOwned(db, sagaIntrari, input.intrareId, tenantOf(ctx));
         const cant = parseFloat(input.cantitate || "0");
         const pret = parseFloat(input.pretUnitar || "0");
-        const tvaP = parseFloat(input.tvaPercent || "19");
+        const tvaP = parseFloat(input.tvaPercent || "21");
         const val = cant * pret;
         const tvaS = val * tvaP / 100;
         await db.insert(sagaIntrariLinii).values({
@@ -1107,7 +1105,8 @@ export const sagaRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
-        await db.delete(sagaIntrariLinii).where(eq(sagaIntrariLinii.id, input.id));
+        await assertOwned(db, sagaIntrari, input.intrareId, tenantOf(ctx));
+        await db.delete(sagaIntrariLinii).where(and(eq(sagaIntrariLinii.id, input.id), eq(sagaIntrariLinii.intrareId, input.intrareId)));
         // Recalculate header
         const allLines = await db.select().from(sagaIntrariLinii)
           .where(eq(sagaIntrariLinii.intrareId, input.intrareId));
@@ -1128,7 +1127,7 @@ export const sagaRouter = router({
         const db = await getDb();
         if (!db) throw new Error("No DB");
         await db.update(sagaIntrari).set({ status: "validat" })
-          .where(and(eq(sagaIntrari.id, input.id), eq(sagaIntrari.tenantId, (ctx.user?.tenantId || 1))));
+          .where(and(eq(sagaIntrari.id, input.id), eq(sagaIntrari.tenantId, (tenantOf(ctx)))));
         // TODO: auto-generate articole contabile (371=D / 401=C)
         return { ok: true };
       }),
@@ -1140,7 +1139,7 @@ export const sagaRouter = router({
         const db = await getDb();
         if (!db) throw new Error("No DB");
         await db.update(sagaIntrari).set({ status: "stornat" })
-          .where(and(eq(sagaIntrari.id, input.id), eq(sagaIntrari.tenantId, (ctx.user?.tenantId || 1))));
+          .where(and(eq(sagaIntrari.id, input.id), eq(sagaIntrari.tenantId, (tenantOf(ctx)))));
         return { ok: true };
       }),
 
@@ -1150,9 +1149,10 @@ export const sagaRouter = router({
         
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        await assertOwned(db, sagaIntrari, input.id, tenantOf(ctx));
         await db.delete(sagaIntrariLinii).where(eq(sagaIntrariLinii.intrareId, input.id));
         await db.delete(sagaIntrari)
-          .where(and(eq(sagaIntrari.id, input.id), eq(sagaIntrari.tenantId, (ctx.user?.tenantId || 1))));
+          .where(and(eq(sagaIntrari.id, input.id), eq(sagaIntrari.tenantId, (tenantOf(ctx)))));
         return { ok: true };
       }),
   }),
@@ -1166,7 +1166,7 @@ export const sagaRouter = router({
       const db = await getDb();
       if (!db) return [];
       return db.select().from(sagaComenzi)
-        .where(eq(sagaComenzi.tenantId, (ctx.user?.tenantId || 1)))
+        .where(eq(sagaComenzi.tenantId, (tenantOf(ctx))))
         .orderBy(desc(sagaComenzi.data));
     }),
 
@@ -1177,7 +1177,7 @@ export const sagaRouter = router({
         const db = await getDb();
         if (!db) throw new Error("No DB");
         const [header] = await db.select().from(sagaComenzi)
-          .where(and(eq(sagaComenzi.id, input.id), eq(sagaComenzi.tenantId, (ctx.user?.tenantId || 1))));
+          .where(and(eq(sagaComenzi.id, input.id), eq(sagaComenzi.tenantId, (tenantOf(ctx)))));
         if (!header) throw new Error("Comanda not found");
         const produse = await db.select().from(sagaComenziLinii)
           .where(eq(sagaComenziLinii.comandaId, input.id))
@@ -1202,11 +1202,11 @@ export const sagaRouter = router({
         
         const db = await getDb();
         if (!db) throw new Error("No DB");
-        const existing = await db.select({ cnt: count() }).from(sagaComenzi)
-          .where(eq(sagaComenzi.tenantId, (ctx.user?.tenantId || 1)));
-        const nrComanda = (existing[0]?.cnt || 0) + 1;
+        const existing = await db.select({ cnt: sql<number>`COALESCE(MAX(${sagaComenzi.nrComanda}), 0)` }).from(sagaComenzi)
+          .where(eq(sagaComenzi.tenantId, (tenantOf(ctx))));
+        const nrComanda = Number(existing[0]?.cnt || 0) + 1;
         const [result] = await db.insert(sagaComenzi).values({
-          ...input, tenantId: (ctx.user?.tenantId || 1), nrComanda,
+          ...input, tenantId: (tenantOf(ctx)), nrComanda,
         });
         return { id: result.insertId, nrComanda };
       }),
@@ -1226,9 +1226,10 @@ export const sagaRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        await assertOwned(db, sagaComenzi, input.comandaId, tenantOf(ctx));
         const cant = parseFloat(input.cantitate || "0");
         const pret = parseFloat(input.pretUnitar || "0");
-        const tvaP = parseFloat(input.tvaPercent || "19");
+        const tvaP = parseFloat(input.tvaPercent || "21");
         const val = cant * pret;
         const tvaS = val * tvaP / 100;
         await db.insert(sagaComenziLinii).values({
@@ -1255,9 +1256,10 @@ export const sagaRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        await assertOwned(db, sagaComenzi, input.comandaId, tenantOf(ctx));
         const cant = parseFloat(input.cantitate || "0");
         const pret = parseFloat(input.pretUnitar || "0");
-        const tvaP = parseFloat(input.tvaPercent || "19");
+        const tvaP = parseFloat(input.tvaPercent || "21");
         const val = cant * pret;
         const tvaS = val * tvaP / 100;
         await db.insert(sagaComenziConsumuri).values({
@@ -1275,10 +1277,11 @@ export const sagaRouter = router({
         
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        await assertOwned(db, sagaComenzi, input.id, tenantOf(ctx));
         await db.delete(sagaComenziLinii).where(eq(sagaComenziLinii.comandaId, input.id));
         await db.delete(sagaComenziConsumuri).where(eq(sagaComenziConsumuri.comandaId, input.id));
         await db.delete(sagaComenzi)
-          .where(and(eq(sagaComenzi.id, input.id), eq(sagaComenzi.tenantId, (ctx.user?.tenantId || 1))));
+          .where(and(eq(sagaComenzi.id, input.id), eq(sagaComenzi.tenantId, (tenantOf(ctx)))));
         return { ok: true };
       }),
   }),
@@ -1292,7 +1295,7 @@ export const sagaRouter = router({
       const db = await getDb();
       if (!db) return [];
       return db.select().from(sagaRetete)
-        .where(eq(sagaRetete.tenantId, (ctx.user?.tenantId || 1)))
+        .where(eq(sagaRetete.tenantId, (tenantOf(ctx))))
         .orderBy(sagaRetete.denumire);
     }),
 
@@ -1303,7 +1306,7 @@ export const sagaRouter = router({
         const db = await getDb();
         if (!db) throw new Error("No DB");
         const [reteta] = await db.select().from(sagaRetete)
-          .where(and(eq(sagaRetete.id, input.id), eq(sagaRetete.tenantId, (ctx.user?.tenantId || 1))));
+          .where(and(eq(sagaRetete.id, input.id), eq(sagaRetete.tenantId, (tenantOf(ctx)))));
         if (!reteta) throw new Error("Reteta not found");
         const linii = await db.select().from(sagaReteteLinii)
           .where(eq(sagaReteteLinii.retetaId, input.id))
@@ -1326,7 +1329,7 @@ export const sagaRouter = router({
         const db = await getDb();
         if (!db) throw new Error("No DB");
         const [result] = await db.insert(sagaRetete).values({
-          tenantId: (ctx.user?.tenantId || 1),
+          tenantId: (tenantOf(ctx)),
           articolProdusId: input.articolProdusId,
           denumire: input.denumire,
         });
@@ -1351,9 +1354,10 @@ export const sagaRouter = router({
         
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        await assertOwned(db, sagaRetete, input.id, tenantOf(ctx));
         await db.delete(sagaReteteLinii).where(eq(sagaReteteLinii.retetaId, input.id));
         await db.delete(sagaRetete)
-          .where(and(eq(sagaRetete.id, input.id), eq(sagaRetete.tenantId, (ctx.user?.tenantId || 1))));
+          .where(and(eq(sagaRetete.id, input.id), eq(sagaRetete.tenantId, (tenantOf(ctx)))));
         return { ok: true };
       }),
   }),
@@ -1369,7 +1373,7 @@ export const sagaRouter = router({
         const db = await getDb();
         if (!db) return [];
         return db.select().from(sagaArticoleContabile)
-          .where(eq(sagaArticoleContabile.tenantId, (ctx.user?.tenantId || 1)))
+          .where(eq(sagaArticoleContabile.tenantId, (tenantOf(ctx))))
           .orderBy(desc(sagaArticoleContabile.data))
           .limit(500);
       }),
@@ -1394,7 +1398,7 @@ export const sagaRouter = router({
         
         const db = await getDb();
         if (!db) throw new Error("No DB");
-        await db.insert(sagaArticoleContabile).values({ ...input, tenantId: (ctx.user?.tenantId || 1) });
+        await db.insert(sagaArticoleContabile).values({ ...input, tenantId: (tenantOf(ctx)) });
         return { ok: true };
       }),
 
@@ -1405,7 +1409,7 @@ export const sagaRouter = router({
         const db = await getDb();
         if (!db) throw new Error("No DB");
         await db.delete(sagaArticoleContabile)
-          .where(and(eq(sagaArticoleContabile.id, input.id), eq(sagaArticoleContabile.tenantId, (ctx.user?.tenantId || 1))));
+          .where(and(eq(sagaArticoleContabile.id, input.id), eq(sagaArticoleContabile.tenantId, (tenantOf(ctx)))));
         return { ok: true };
       }),
   }),

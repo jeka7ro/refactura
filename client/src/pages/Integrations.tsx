@@ -491,8 +491,19 @@ export default function Integrations() {
   });
 
   const exportSagaMutation = trpc.integrations.exportSaga.useMutation({
-    onSuccess: (data) => {
-      const blob = new Blob([data.xml], { type: "text/xml" });
+    onSuccess: (data: any) => {
+      let blob: Blob;
+      if (data.base64) {
+        const binaryStr = window.atob(data.base64);
+        const len = binaryStr.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryStr.charCodeAt(i);
+        }
+        blob = new Blob([bytes], { type: "application/xml; charset=windows-1250" });
+      } else {
+        blob = new Blob([data.xml], { type: "application/xml; charset=windows-1250" });
+      }
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;

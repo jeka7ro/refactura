@@ -8,6 +8,7 @@ import {
   timestamp,
   varchar,
   decimal,
+  uniqueIndex,
 } from "drizzle-orm/mysql-core";
 
 /**
@@ -549,7 +550,7 @@ export const invoiceArchiveLines = mysqlTable("invoiceArchiveLines", {
   quantity: decimal("quantity", { precision: 12, scale: 2 }).notNull(),
   unitPrice: decimal("unitPrice", { precision: 12, scale: 2 }).notNull(),
   unit: varchar("unit", { length: 50 }).notNull().default("buc"),
-  vatRate: decimal("vatRate", { precision: 5, scale: 2 }), // Percentage (e.g. 19.00)
+  vatRate: decimal("vatRate", { precision: 5, scale: 2 }), // Percentage (e.g. 21.00)
   total: decimal("total", { precision: 12, scale: 2 }),
   currency: varchar("currency", { length: 3 }).default("RON"),
 });
@@ -620,7 +621,7 @@ export const emittedInvoiceLines = mysqlTable("emittedInvoiceLines", {
   quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull(),
   unitPrice: decimal("unitPrice", { precision: 12, scale: 2 }).notNull(),
   unit: varchar("unit", { length: 20 }).default("buc"),
-  vatRate: decimal("vatRate", { precision: 5, scale: 2 }).default("19.00"),
+  vatRate: decimal("vatRate", { precision: 5, scale: 2 }).default("21.00"),
   total: decimal("total", { precision: 12, scale: 2 }).notNull(),
   devizCode: varchar("devizCode", { length: 100 }),
   devizType: varchar("devizType", { length: 50 }),
@@ -663,7 +664,9 @@ export const nir = mysqlTable("nir", {
   status: mysqlEnum("status", ["draft", "finalizat"]).default("draft"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, (table) => ({
+  uniqueTenantNirNumber: uniqueIndex("unique_tenant_nir_number").on(table.tenantId, table.nirNumber),
+}));
 
 export type Nir = typeof nir.$inferSelect;
 export type InsertNir = typeof nir.$inferInsert;

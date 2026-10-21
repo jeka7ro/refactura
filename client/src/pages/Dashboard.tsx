@@ -309,7 +309,7 @@ export default function Dashboard() {
         rawTotal: rawTot,
         totalRon: toRon(rawTot, cur, liveEurRate, liveUsdRate),
         totalVATRon: toRon(
-          vat > 0 ? vat : (rawTot * 19) / 119,
+          vat > 0 ? vat : (rawTot * 21) / 121,
           cur,
           liveEurRate,
           liveUsdRate
@@ -343,7 +343,7 @@ export default function Dashboard() {
         rawTotal: rawTot,
         totalRon: toRon(rawTot, cur, liveEurRate, liveUsdRate),
         totalVATRon: toRon(
-          vat > 0 ? vat : (rawTot * 19) / 119,
+          vat > 0 ? vat : (rawTot * 21) / 121,
           cur,
           liveEurRate,
           liveUsdRate
@@ -381,7 +381,7 @@ export default function Dashboard() {
         rawTotal: rawTot,
         totalRon: toRon(rawTot, cur, liveEurRate, liveUsdRate),
         totalVATRon: toRon(
-          vat > 0 ? vat : (rawTot * 19) / 119,
+          vat > 0 ? vat : (rawTot * 21) / 121,
           cur,
           liveEurRate,
           liveUsdRate

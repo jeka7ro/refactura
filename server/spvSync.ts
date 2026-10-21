@@ -3,7 +3,7 @@
  * Flow: Utilizator → redirect SPV OAuth → callback token → descarca facturile
  */
 import { createInvoiceArchiveEntry, getDb } from "./db";
-import { integrations, tenants, costCenterRules } from "../drizzle/schema";
+import { integrations, tenants, costCenterRules, invoiceArchive } from "../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import { XMLParser } from "fast-xml-parser";
 import { convertXmlToPdf } from "./anafPdf";
@@ -116,7 +116,7 @@ export async function syncSpvInvoices(
         }
 
         const xmlText = await xmlRes.text();
-        const parser = new XMLParser({
+        const parser = new XMLParser({ numberParseOptions: { leadingZeros: false, hex: false, eNotation: false },
           ignoreAttributes: false,
           attributeNamePrefix: "@_",
           removeNSPrefix: true,
@@ -263,7 +263,6 @@ export async function syncSpvInvoices(
           invoiceNumber: String(invoiceNumber),
           supplierName,
           supplierCUI,
-          supplierAddress,
           issueDate,
           dueDate: issueDate,
           total: String(total),

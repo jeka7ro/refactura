@@ -302,7 +302,7 @@ function NomenclatorTab() {
 
   // Form state for new article
   const [form, setForm] = useState({
-    code: "", name: "", unit: "buc", vatRate: 19,
+    code: "", name: "", unit: "buc", vatRate: 21,
     category: "Marfuri", accountingAccount: "371", sagaCode: "", barcode: "",
   });
 
@@ -425,6 +425,7 @@ function NomenclatorTab() {
               <select value={form.vatRate} onChange={(e) => setForm({ ...form, vatRate: Number(e.target.value) })}
                 className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 dark:text-white">
                 <option value={21}>21%</option>
+                <option value={11}>11%</option>
                 <option value={19}>19%</option>
                 <option value={9}>9%</option>
                 <option value={5}>5%</option>
@@ -1654,10 +1655,11 @@ function SetariTab() {
             Cotă TVA implicită
           </label>
           <select
-            defaultValue="19"
+            defaultValue="21"
             className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 dark:text-white"
           >
             <option value="21">21%</option>
+            <option value="11">11%</option>
             <option value="19">19%</option>
             <option value="9">9%</option>
             <option value="5">5%</option>
@@ -1691,7 +1693,7 @@ function GestiuniTab() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     cod: "", denumire: "", tipGestiune: "cantitativ-valorica", gestionar: "",
-    analitic371: "", analitic607: "", analitic707: "", tvaImplicit: "19.00",
+    analitic371: "", analitic607: "", analitic707: "", tvaImplicit: "21.00",
   });
 
   return (

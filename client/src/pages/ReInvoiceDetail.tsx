@@ -9,6 +9,7 @@ import {
   Mail,
   Send,
   AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 import {
   formatCurrency,
@@ -37,6 +38,22 @@ export default function ReInvoiceDetail() {
     },
     onError: err => {
       toast.error(err.message || "Eroare la trimiterea în SPV");
+    },
+  });
+
+  const checkSpvStatus = trpc.reinvoice.checkSpvStatus.useMutation({
+    onSuccess: res => {
+      if (res.status === "validat") {
+        toast.success("Factura a fost validată cu succes în SPV!");
+      } else if (res.status === "eroare") {
+        toast.error(`ANAF a respins factura: ${res.errors?.join("; ") || res.stare}`);
+      } else {
+        toast.info(`Status ANAF: ${res.stare || "în prelucrare"}`);
+      }
+      utils.reinvoice.getById.invalidate({ id: invoiceId });
+    },
+    onError: err => {
+      toast.error(err.message || "Eroare la verificarea statusului SPV");
     },
   });
 
@@ -107,10 +124,23 @@ export default function ReInvoiceDetail() {
               Trimite în SPV
             </button>
           )}
-          {invoice.spvStatus === "in_procesare" && (
-            <div className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold border border-blue-200">
-              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Procesare SPV
-            </div>
+          {(invoice.spvStatus === "in_procesare" || invoice.spvStatus === "eroare") && (
+            <button
+              onClick={() => checkSpvStatus.mutate({ id: invoiceId })}
+              disabled={checkSpvStatus.isPending}
+              className={`flex items-center gap-1.5 px-3 h-8 rounded-lg text-white text-xs font-bold transition-colors ${
+                invoice.spvStatus === "eroare"
+                  ? "bg-rose-600 hover:bg-rose-700"
+                  : "bg-amber-500 hover:bg-amber-600"
+              }`}
+            >
+              {checkSpvStatus.isPending ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="w-3.5 h-3.5" />
+              )}
+              Verifică Status ANAF
+            </button>
           )}
           {invoice.spvStatus === "validat" && (
             <div className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">

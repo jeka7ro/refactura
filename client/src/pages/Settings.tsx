@@ -167,7 +167,7 @@ export default function Settings() {
     bank: "",
     defaultCurrency: "RON",
     defaultLanguage: "ro",
-    defaultVatRate: 19,
+    defaultVatRate: 21,
     invoicePrefix: "INV",
     invoiceStartNumber: 1,
     defaultDueDays: 7,
@@ -1171,10 +1171,11 @@ export default function Settings() {
                     onChange={e => update("defaultVatRate", +e.target.value)}
                     className="w-full h-10 px-4 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value={21}>21% — Special</option>
-                    <option value={19}>19% — Standard</option>
-                    <option value={9}>9% — Redusă</option>
-                    <option value={5}>5% — Super-redusă</option>
+                    <option value={21}>21% — Standard</option>
+                    <option value={11}>11% — Redusă (din 01.08.2025)</option>
+                    <option value={19}>19% — Veche (până în 31.07.2025)</option>
+                    <option value={9}>9% — Veche redusă</option>
+                    <option value={5}>5% — Veche super-redusă</option>
                     <option value={0}>0% — Scutit</option>
                   </select>
                 </div>

@@ -19,7 +19,7 @@ export interface InvoiceLine {
   quantity: number;
   unitPrice: number;
   unit: string;
-  vatRate: number; // percentage e.g. 19
+  vatRate: number; // percentage e.g. 21
   currency: Currency;
 }
 
@@ -152,7 +152,7 @@ export const mockInvoices: Invoice[] = [
         quantity: 200,
         unitPrice: 28.5,
         unit: "sac",
-        vatRate: 19,
+        vatRate: 21,
         currency: "RON",
       },
       {
@@ -161,7 +161,7 @@ export const mockInvoices: Invoice[] = [
         quantity: 15,
         unitPrice: 185.0,
         unit: "buc",
-        vatRate: 19,
+        vatRate: 21,
         currency: "RON",
       },
       {
@@ -170,7 +170,7 @@ export const mockInvoices: Invoice[] = [
         quantity: 50,
         unitPrice: 42.0,
         unit: "buc",
-        vatRate: 19,
+        vatRate: 21,
         currency: "RON",
       },
     ],
@@ -195,7 +195,7 @@ export const mockInvoices: Invoice[] = [
         quantity: 30,
         unitPrice: 145.0,
         unit: "buc",
-        vatRate: 19,
+        vatRate: 21,
         currency: "RON",
       },
       {
@@ -204,7 +204,7 @@ export const mockInvoices: Invoice[] = [
         quantity: 120,
         unitPrice: 38.5,
         unit: "mp",
-        vatRate: 19,
+        vatRate: 21,
         currency: "RON",
       },
       {
@@ -213,7 +213,7 @@ export const mockInvoices: Invoice[] = [
         quantity: 40,
         unitPrice: 52.0,
         unit: "sac",
-        vatRate: 19,
+        vatRate: 21,
         currency: "RON",
       },
     ],
@@ -238,7 +238,7 @@ export const mockInvoices: Invoice[] = [
         quantity: 100,
         unitPrice: 18.0,
         unit: "buc",
-        vatRate: 19,
+        vatRate: 21,
         currency: "EUR",
       },
       {
@@ -247,7 +247,7 @@ export const mockInvoices: Invoice[] = [
         quantity: 200,
         unitPrice: 4.5,
         unit: "buc",
-        vatRate: 19,
+        vatRate: 21,
         currency: "EUR",
       },
       {
@@ -256,7 +256,7 @@ export const mockInvoices: Invoice[] = [
         quantity: 100,
         unitPrice: 4.2,
         unit: "buc",
-        vatRate: 19,
+        vatRate: 21,
         currency: "EUR",
       },
     ],
@@ -281,7 +281,7 @@ export const mockInvoices: Invoice[] = [
         quantity: 300,
         unitPrice: 38.5,
         unit: "buc",
-        vatRate: 19,
+        vatRate: 21,
         currency: "RON",
       },
       {
@@ -290,7 +290,7 @@ export const mockInvoices: Invoice[] = [
         quantity: 200,
         unitPrice: 42.0,
         unit: "buc",
-        vatRate: 19,
+        vatRate: 21,
         currency: "RON",
       },
     ],
@@ -315,7 +315,7 @@ export const mockInvoices: Invoice[] = [
         quantity: 80,
         unitPrice: 42.0,
         unit: "sac",
-        vatRate: 19,
+        vatRate: 21,
         currency: "RON",
       },
       {
@@ -324,7 +324,7 @@ export const mockInvoices: Invoice[] = [
         quantity: 40,
         unitPrice: 56.0,
         unit: "buc",
-        vatRate: 19,
+        vatRate: 21,
         currency: "RON",
       },
     ],
@@ -436,7 +436,7 @@ export const mockReInvoices: ReInvoice[] = [
         originalUnitPrice: 28.5,
         markupPercent: 15.79,
         unit: "sac",
-        vatRate: 19,
+        vatRate: 21,
         currency: "RON",
       },
       {
@@ -447,7 +447,7 @@ export const mockReInvoices: ReInvoice[] = [
         originalUnitPrice: 185.0,
         markupPercent: 16.22,
         unit: "buc",
-        vatRate: 19,
+        vatRate: 21,
         currency: "RON",
       },
       {
@@ -458,7 +458,7 @@ export const mockReInvoices: ReInvoice[] = [
         originalUnitPrice: 42.0,
         markupPercent: 19.05,
         unit: "buc",
-        vatRate: 19,
+        vatRate: 21,
         currency: "RON",
       },
     ],
@@ -486,7 +486,7 @@ export const mockReInvoices: ReInvoice[] = [
         originalUnitPrice: 145.0,
         markupPercent: 13.79,
         unit: "buc",
-        vatRate: 19,
+        vatRate: 21,
         currency: "RON",
       },
       {
@@ -497,7 +497,7 @@ export const mockReInvoices: ReInvoice[] = [
         originalUnitPrice: 38.5,
         markupPercent: 16.88,
         unit: "mp",
-        vatRate: 19,
+        vatRate: 21,
         currency: "RON",
       },
       {
@@ -508,7 +508,7 @@ export const mockReInvoices: ReInvoice[] = [
         originalUnitPrice: 52.0,
         markupPercent: 15.38,
         unit: "sac",
-        vatRate: 19,
+        vatRate: 21,
         currency: "RON",
       },
     ],
@@ -536,7 +536,7 @@ export const mockReInvoices: ReInvoice[] = [
         originalUnitPrice: 18.0,
         markupPercent: 16.67,
         unit: "buc",
-        vatRate: 19,
+        vatRate: 21,
         currency: "EUR",
       },
       {
@@ -547,7 +547,7 @@ export const mockReInvoices: ReInvoice[] = [
         originalUnitPrice: 4.5,
         markupPercent: 15.56,
         unit: "buc",
-        vatRate: 19,
+        vatRate: 21,
         currency: "EUR",
       },
       {
@@ -558,7 +558,7 @@ export const mockReInvoices: ReInvoice[] = [
         originalUnitPrice: 4.2,
         markupPercent: 16.67,
         unit: "buc",
-        vatRate: 19,
+        vatRate: 21,
         currency: "EUR",
       },
     ],
@@ -617,7 +617,7 @@ export const mockCompanySettings: CompanySettings = {
   bank: "",
   defaultCurrency: "RON",
   defaultLanguage: "ro",
-  defaultVatRate: 19,
+  defaultVatRate: 21,
   invoicePrefix: "RF",
   invoiceStartNumber: 1,
   defaultDueDays: 7,

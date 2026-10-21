@@ -9,6 +9,7 @@ import path from "path";
 import { generateReInvoicePDF } from "./pdf";
 import { formatCurrency } from "../client/src/lib/utils";
 import { translateProductDescription } from "./invoiceTranslator";
+import { requirePdfAccess } from "./fileAuth";
 
 const THEME_MAP: Record<string, string> = {
   blue: "#2563eb",
@@ -50,6 +51,8 @@ function parseXmlNumber(node: any, fallback = 0): number {
 
 export function registerPdfRoute(app: any) {
   const router = Router();
+  // Securitate: toate PDF-urile cer autentificare și aparțin firmei utilizatorului
+  router.use(requirePdfAccess);
 
   // GET /api/pdf/reinvoice/:id?download=1
   // Returnează PDF ca stream. download=1 → attachment, altfel inline (previzualizare)
@@ -224,24 +227,16 @@ export function registerPdfRoute(app: any) {
           const downloadId = match[1];
 
           // Get SPV access token
-          const [spvIntg] = await db
-            .select()
-            .from(integrations)
-            .where(
-              andOp(
-                eq(integrations.tenantId, inv.tenantId),
-                eq(integrations.provider, "spv"),
-                eq(integrations.status, "active")
-              )
-            );
+          const { getValidSpvToken } = await import("./anafApi");
+          const tokenData = await getValidSpvToken(inv.tenantId);
 
-          if (spvIntg?.apiKey) {
+          if (tokenData?.token) {
             try {
               const AdmZip = (await import("adm-zip")).default;
               const zipRes = await fetch(
                 `https://api.anaf.ro/prod/FCTEL/rest/descarcare?id=${downloadId}`,
                 {
-                  headers: { Authorization: `Bearer ${spvIntg.apiKey}` },
+                  headers: { Authorization: `Bearer ${tokenData.token}` },
                   signal: AbortSignal.timeout(30000),
                 }
               );
@@ -287,7 +282,7 @@ export function registerPdfRoute(app: any) {
 
       // Parse XML internally instead of calling ANAF
       const { XMLParser } = await import("fast-xml-parser");
-      const parser = new XMLParser({
+      const parser = new XMLParser({ numberParseOptions: { leadingZeros: false, hex: false, eNotation: false },
         ignoreAttributes: false,
         attributeNamePrefix: "@_",
       });
@@ -1247,7 +1242,7 @@ export function registerPdfRoute(app: any) {
         let cantDoc = parseXmlNumber(line.cantitateComanda, 0);
         let lineUnitPrice = parseXmlNumber(line.unitPrice, 0);
         let lineTotalVal = parseXmlNumber(line.total, cantRec * lineUnitPrice);
-        const lineVatRate = parseXmlNumber(line.vatRate, 19);
+        const lineVatRate = parseXmlNumber(line.vatRate, 21);
 
         // If the source document is a CreditNote (Storno), ensure quantities and values are displayed as negative
         if (isCreditNote) {
@@ -1338,8 +1333,8 @@ export function registerPdfRoute(app: any) {
       let totalTva = lines.reduce((s, l) => {
         let lineTot = parseXmlNumber(l.total) || (parseXmlNumber(l.cantitateReceptionata) * parseXmlNumber(l.unitPrice));
         if (isCreditNote && lineTot > 0) lineTot = -lineTot;
-        const rate = parseXmlNumber(l.vatRate, 19);
-        return s + (lineTot * rate) / 100;
+        const rate = parseXmlNumber(l.vatRate, 21);
+        return s + Math.round(((lineTot * rate) / 100) * 100) / 100;
       }, 0);
       let totalCuTva = totalFaraTva + totalTva;
 
@@ -1365,23 +1360,50 @@ export function registerPdfRoute(app: any) {
           }
         }
       }
+      // Valută: moneda facturii + curs BNR (NIR-urile vechi pot avea RON în câmp, deși factura e în valută)
+      const rawNirCur = String(nirRow.currency || "RON").trim().toUpperCase();
+      const invCur = String(linkedInvoice?.currency || "").trim().toUpperCase();
+      const nirCur = rawNirCur !== "RON" && rawNirCur !== "LEI" ? rawNirCur : (invCur || "RON");
+      const isForeignNir = nirCur !== "RON" && nirCur !== "LEI";
+      let nirRate = parseXmlNumber(nirRow.exchangeRate, 1);
+      if (isForeignNir && nirRate <= 1) {
+        try {
+          const { getBnrRateForDate } = await import("./bnrService");
+          const r = await getBnrRateForDate(String(linkedInvoice?.issueDate || nirRow.receiptDate || ""), nirCur);
+          if (r?.rate > 0) nirRate = r.rate;
+        } catch {}
+      }
+      const curSuffix = isForeignNir ? ` (${nirCur})` : "";
+      const fmt2 = (n: number) => n.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
       // 1. TOTAL FARA TVA
       doc.rect(40, y, W, 14).fillColor(LIGHT).strokeColor(BORDER).lineWidth(0.5).fillAndStroke();
-      doc.fontSize(6.5).font("Roboto-Bold").fillColor(GRAY).text("TOTAL FĂRĂ TVA:", 40 + 3, y + 4, { width: W - 75, align: "right" });
+      doc.fontSize(6.5).font("Roboto-Bold").fillColor(GRAY).text(`TOTAL FĂRĂ TVA${curSuffix}:`, 40 + 3, y + 4, { width: W - 75, align: "right" });
       doc.fillColor("#334155").text(`${totalFaraTva.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}`, 40 + W - 70, y + 4, { width: 68, align: "right" });
       y += 14;
       
       // 2. TOTAL TVA
       doc.rect(40, y, W, 14).fillColor(LIGHT).strokeColor(BORDER).lineWidth(0.5).fillAndStroke();
-      doc.fontSize(6.5).font("Roboto-Bold").fillColor(GRAY).text("TOTAL TVA:", 40 + 3, y + 4, { width: W - 75, align: "right" });
+      doc.fontSize(6.5).font("Roboto-Bold").fillColor(GRAY).text(`TOTAL TVA${curSuffix}:`, 40 + 3, y + 4, { width: W - 75, align: "right" });
       doc.fillColor("#334155").text(`${totalTva.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}`, 40 + W - 70, y + 4, { width: 68, align: "right" });
       y += 14;
       
       // 3. TOTAL CU TVA
       doc.rect(40, y, W, 16).fillColor(TEAL).fill();
-      doc.fontSize(7.5).font("Roboto-Bold").fillColor("white").text(isCreditNote ? "TOTAL CU TVA (STORNO):" : "TOTAL CU TVA:", 40 + 3, y + 4.5, { width: W - 75, align: "right" });
+      doc.fontSize(7.5).font("Roboto-Bold").fillColor("white").text(`${isCreditNote ? "TOTAL CU TVA (STORNO)" : "TOTAL CU TVA"}${curSuffix}:`, 40 + 3, y + 4.5, { width: W - 75, align: "right" });
       doc.fontSize(8.5).text(`${totalCuTva.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}`, 40 + W - 70, y + 4, { width: 68, align: "right" });
       y += 22;
+
+      // 4. Echivalent RON la cursul BNR (doar facturi în valută)
+      if (isForeignNir && nirRate > 0) {
+        const ronTotal = Math.round(totalCuTva * nirRate * 100) / 100;
+        doc.rect(40, y - 4, W, 14).fillColor("#f8fafc").strokeColor(BORDER).lineWidth(0.5).fillAndStroke();
+        doc.fontSize(6.5).font("Roboto-Bold").fillColor("#334155").text(
+          `Factură în valută: ${nirCur} · Curs BNR: ${nirRate.toLocaleString("ro-RO", { minimumFractionDigits: 4, maximumFractionDigits: 4 })} · Echivalent total: ${fmt2(ronTotal)} RON`,
+          40 + 3, y - 4 + 4, { width: W - 6, align: "right" }
+        );
+        y += 16;
+      }
 
       if (hasDifferences) {
         doc.rect(40, y, W, 20).fillColor("#fef3c7").fill();

@@ -15,6 +15,7 @@ import {
 import { getDb } from "./db.js";
 import * as schema from "../drizzle/schema.js";
 import { eq } from "drizzle-orm";
+import { resolveRequestTenant } from "./fileAuth.js";
 
 const router = Router();
 
@@ -28,7 +29,7 @@ const router = Router();
 router.get("/", async (req, res) => {
   try {
     const { month, year, cui, type = "zip", nirId, nirIds, invoiceIds } = req.query;
-    const tenantId = req.query.tenantId ? parseInt(String(req.query.tenantId)) : 1;
+    const tenantId = resolveRequestTenant(req, req.query.tenantId);
 
     const exportMonth = month ? parseInt(String(month)) : new Date().getMonth() + 1;
     const exportYear = year ? parseInt(String(year)) : new Date().getFullYear();
@@ -117,7 +118,7 @@ router.get("/", async (req, res) => {
 router.post("/push", async (req, res) => {
   try {
     const { month, year, tenantId = 1, sagaToken: inputToken, sagaCui: inputCui } = req.body;
-    const tId = parseInt(String(tenantId)) || 1;
+    const tId = resolveRequestTenant(req, tenantId);
 
     const company = await getTenantCompanyProfile(tId);
 
@@ -210,7 +211,7 @@ router.post("/push", async (req, res) => {
 router.post("/push-articles", async (req, res) => {
   try {
     const { tenantId = 1, sagaToken: inputToken, sagaCui: inputCui } = req.body;
-    const tId = parseInt(String(tenantId)) || 1;
+    const tId = resolveRequestTenant(req, tenantId);
 
     const company = await getTenantCompanyProfile(tId);
     let sagaToken = inputToken;

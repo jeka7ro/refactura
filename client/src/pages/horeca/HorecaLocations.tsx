@@ -73,7 +73,7 @@ export default function HorecaLocations() {
       | "hotel",
     currency: "RON",
     defaultVatFood: 9,
-    defaultVatAlcohol: 19,
+    defaultVatAlcohol: 21,
   });
 
   const [search, setSearch] = useState("");
@@ -104,7 +104,7 @@ export default function HorecaLocations() {
         type: bl.type || "fast_food",
         currency: bl.currency || "RON",
         defaultVatFood: bl.defaultVatFood || 9,
-        defaultVatAlcohol: bl.defaultVatAlcohol || 19,
+        defaultVatAlcohol: bl.defaultVatAlcohol || 21,
         brands: bl.brands || [],
         active: bl.active !== false,
       }))
@@ -181,7 +181,7 @@ export default function HorecaLocations() {
       type: "restaurant",
       currency: "RON",
       defaultVatFood: 9,
-      defaultVatAlcohol: 19,
+      defaultVatAlcohol: 21,
     });
   }
 
@@ -195,7 +195,7 @@ export default function HorecaLocations() {
       type: (loc.type as any) || "restaurant",
       currency: loc.currency || "RON",
       defaultVatFood: loc.defaultVatFood || 9,
-      defaultVatAlcohol: loc.defaultVatAlcohol || 19,
+      defaultVatAlcohol: loc.defaultVatAlcohol || 21,
     });
     setShowForm(true);
   }

@@ -1,4 +1,6 @@
+import { TRPCError } from "@trpc/server";
 import { COOKIE_NAME } from "@shared/const";
+import { tenantOf } from "./tenant";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
@@ -125,7 +127,7 @@ const apiKeysRouter = router({
         createdAt: apiKeys.createdAt,
       })
       .from(apiKeys)
-      .where(eq(apiKeys.tenantId, (ctx.user?.tenantId || 1)));
+      .where(eq(apiKeys.tenantId, (tenantOf(ctx))));
   }),
 
   create: protectedProcedure
@@ -135,7 +137,7 @@ const apiKeysRouter = router({
       const db = await getDb();
       const { raw, prefix, hash } = generateApiKey();
       await db.insert(apiKeys).values({
-        tenantId: (ctx.user?.tenantId || 1),
+        tenantId: (tenantOf(ctx)),
         name: input.name,
         keyHash: hash,
         keyPrefix: prefix,
@@ -152,7 +154,7 @@ const apiKeysRouter = router({
       const { eq, and } = await import("drizzle-orm");
       await db.update(apiKeys)
         .set({ isActive: 0 })
-        .where(and(eq(apiKeys.id, input.id), eq(apiKeys.tenantId, (ctx.user?.tenantId || 1))));
+        .where(and(eq(apiKeys.id, input.id), eq(apiKeys.tenantId, (tenantOf(ctx)))));
       return { success: true };
     }),
 
@@ -163,9 +165,30 @@ const apiKeysRouter = router({
       const db = await getDb();
       const { eq, and } = await import("drizzle-orm");
       await db.delete(apiKeys)
-        .where(and(eq(apiKeys.id, input.id), eq(apiKeys.tenantId, (ctx.user?.tenantId || 1))));
+        .where(and(eq(apiKeys.id, input.id), eq(apiKeys.tenantId, (tenantOf(ctx)))));
       return { success: true };
     }),
+});
+
+
+// QR Pontaj este un serviciu separat (altă bază de date, alte ID-uri de firmă) care nu are
+// legătură cu firmele din Smart Invoice. Accesul e permis doar firmelor autorizate explicit
+// (QR_PONTAJ_TENANT_IDS, implicit 1 și 9) sau superadmin, ca să nu poată fi văzute datele altora.
+const QR_PONTAJ_ALLOWED_TENANTS = new Set(
+  (process.env.QR_PONTAJ_TENANT_IDS || "1,9")
+    .split(",")
+    .map(x => parseInt(x.trim(), 10))
+    .filter(n => Number.isFinite(n))
+);
+const qrPontajProcedure = protectedProcedure.use(({ ctx, next }) => {
+  const tid = ctx.user.tenantId;
+  if (ctx.user.role !== "superadmin" && !(tid && QR_PONTAJ_ALLOWED_TENANTS.has(tid))) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Această firmă nu are acces la integrarea QR Pontaj.",
+    });
+  }
+  return next({ ctx });
 });
 
 export const appRouter = router({
@@ -593,7 +616,7 @@ export const appRouter = router({
         .from(invoiceArchive)
         .where(
           and(
-            eq(invoiceArchive.tenantId, (ctx.user?.tenantId || 1)),
+            eq(invoiceArchive.tenantId, (tenantOf(ctx))),
             eq(invoiceArchive.direction, "in")
           )
         )
@@ -627,7 +650,7 @@ export const appRouter = router({
         .from(invoiceArchive)
         .where(
           and(
-            eq(invoiceArchive.tenantId, (ctx.user?.tenantId || 1)),
+            eq(invoiceArchive.tenantId, (tenantOf(ctx))),
             eq(invoiceArchive.direction, "out")
           )
         )
@@ -682,7 +705,7 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new Error("DB not connected");
 
-        const tenantId = (ctx.user?.tenantId || 1);
+        const tenantId = (tenantOf(ctx));
         const insertedIds: number[] = [];
 
         for (const inv of input) {
@@ -742,19 +765,19 @@ export const appRouter = router({
     // List all re-invoices for the current tenant
     list: protectedProcedure.query(async ({ ctx }) => {
       
-      return getReInvoicesByTenant((ctx.user?.tenantId || 1));
+      return getReInvoicesByTenant((tenantOf(ctx)));
     }),
     // Get next available re-invoice number
     nextNumber: protectedProcedure.query(async ({ ctx }) => {
       
-      return getNextReInvoiceNumber((ctx.user?.tenantId || 1));
+      return getNextReInvoiceNumber((tenantOf(ctx)));
     }),
     // Get a single re-invoice with its lines
     getById: protectedProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input, ctx }) => {
         
-        return getReInvoiceById(input.id, (ctx.user?.tenantId || 1));
+        return getReInvoiceById(input.id, (tenantOf(ctx)));
       }),
     // Create (generate) a new re-invoice and save to DB
     create: protectedProcedure
@@ -800,10 +823,10 @@ export const appRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         
-        const number = await getNextReInvoiceNumber((ctx.user?.tenantId || 1));
+        const number = await getNextReInvoiceNumber((tenantOf(ctx)));
 
         const res = await createReInvoice({
-          tenantId: (ctx.user?.tenantId || 1),
+          tenantId: (tenantOf(ctx)),
           number,
           ...input,
         });
@@ -812,12 +835,12 @@ export const appRouter = router({
         const db = await getDb();
         if (db) {
           const { invoiceArchive } = await import("../drizzle/schema");
-          const { eq, inArray } = await import("drizzle-orm");
+          const { eq, inArray, and } = await import("drizzle-orm");
           if (input.sourceInvoiceId && input.sourceInvoiceId !== "multiplu") {
             await db
               .update(invoiceArchive)
               .set({ status: "refactured" })
-              .where(eq(invoiceArchive.id, parseInt(input.sourceInvoiceId)));
+              .where(and(eq(invoiceArchive.id, parseInt(input.sourceInvoiceId)), eq(invoiceArchive.tenantId, tenantOf(ctx))));
           } else if (
             input.sourceInvoiceIds &&
             input.sourceInvoiceIds.length > 0
@@ -825,7 +848,7 @@ export const appRouter = router({
             await db
               .update(invoiceArchive)
               .set({ status: "refactured" })
-              .where(inArray(invoiceArchive.id, input.sourceInvoiceIds));
+              .where(and(inArray(invoiceArchive.id, input.sourceInvoiceIds), eq(invoiceArchive.tenantId, tenantOf(ctx))));
           }
         }
 
@@ -840,7 +863,7 @@ export const appRouter = router({
         if (!db) throw new Error("No DB");
 
         // 1. Get invoice and lines
-        const invoiceData = await getReInvoiceById(input.id, (ctx.user?.tenantId || 1));
+        const invoiceData = await getReInvoiceById(input.id, (tenantOf(ctx)));
         if (!invoiceData) throw new Error("Invoice not found");
 
         // 2. Get tenant
@@ -849,28 +872,159 @@ export const appRouter = router({
         const tenantData = await db
           .select()
           .from(tenants)
-          .where(eq(tenants.id, (ctx.user?.tenantId || 1)))
+          .where(eq(tenants.id, (tenantOf(ctx))))
           .limit(1);
         if (tenantData.length === 0) throw new Error("Tenant not found");
 
         // 3. Generate XML
         const { generateUblXml } = await import("./anafXmlGenerator");
+        let ublRate: number | undefined = undefined;
+        const invCur = String((invoiceData as any).currency || "RON").toUpperCase();
+        if (invCur !== "RON") {
+          const { getBnrRateForDate } = await import("./bnrService");
+          const r = await getBnrRateForDate(
+            new Date((invoiceData as any).issueDate).toISOString().split("T")[0],
+            invCur
+          );
+          ublRate = r?.rate;
+        }
         const xmlContent = generateUblXml(
           invoiceData as any,
           invoiceData.lines as any,
-          tenantData[0]
+          tenantData[0],
+          ublRate
         );
 
         // 4. Upload to ANAF
         const { uploadInvoiceToSPV } = await import("./anafApi");
         const result = await uploadInvoiceToSPV(
-          (ctx.user?.tenantId || 1),
+          (tenantOf(ctx)),
           input.id,
           xmlContent,
           tenantData[0].cui || ""
         );
 
         return result;
+      }),
+
+    checkSpvStatus: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const tenantId = tenantOf(ctx);
+        const db = await getDb();
+        if (!db) throw new Error("No DB");
+        const { reInvoices } = await import("../drizzle/schema");
+        const { eq, and } = await import("drizzle-orm");
+        const [inv] = await db
+          .select()
+          .from(reInvoices)
+          .where(
+            and(
+              eq(reInvoices.id, input.id),
+              eq(reInvoices.tenantId, tenantId)
+            )
+          );
+        if (!inv) throw new Error("Factura nu a fost găsită");
+        if (!inv.spvIndex) throw new Error("Factura nu are index SPV. Trimite-o mai întâi.");
+
+        const { getValidSpvToken, refreshSpvToken } = await import("./anafApi");
+        const tokenData = await getValidSpvToken(tenantId);
+        if (!tokenData?.token) throw new Error("SPV nu este conectat.");
+
+        let token = tokenData.token;
+        const statusUrl = `https://api.anaf.ro/prod/FCTEL/rest/stareMesaj?id_incarcare=${inv.spvIndex}`;
+        let resp = await fetch(statusUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: AbortSignal.timeout(15000),
+        });
+        let text = await resp.text();
+
+        if (resp.status === 401 && tokenData.integration?.apiSecret) {
+          const refreshedToken = await refreshSpvToken(tokenData.integration);
+          if (refreshedToken) {
+            token = refreshedToken;
+            resp = await fetch(statusUrl, {
+              headers: { Authorization: `Bearer ${token}` },
+              signal: AbortSignal.timeout(15000),
+            });
+            text = await resp.text();
+          }
+        }
+
+        let stare = "";
+        let errors: string[] = [];
+        let idDescarcare = "";
+
+        try {
+          const json = JSON.parse(text);
+          stare = json.stare || json.Stare || "";
+          if (json.Erori && Array.isArray(json.Erori)) {
+            errors = json.Erori.map((e: any) => e.errorMessage || e.message || String(e));
+          }
+        } catch {
+          const stareAttr = text.match(/stare="([^"]+)"/i);
+          if (stareAttr) stare = stareAttr[1];
+          const idDescAttr = text.match(/id_descarcare="([^"]+)"/i);
+          if (idDescAttr && idDescAttr[1]) idDescarcare = idDescAttr[1];
+        }
+
+        if (stare.toLowerCase() === "nok" && idDescarcare) {
+          try {
+            const AdmZip = (await import("adm-zip")).default;
+            const errResp = await fetch(
+              `https://api.anaf.ro/prod/FCTEL/rest/descarcare?id=${idDescarcare}`,
+              { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(15000) }
+            );
+            const buf = Buffer.from(await errResp.arrayBuffer());
+            let errXml = "";
+            if (buf.slice(0, 4).toString("hex") === "504b0304") {
+              const zip = new AdmZip(buf);
+              const xmlEntry = zip.getEntries().find(e =>
+                e.entryName.toLowerCase().endsWith(".xml") &&
+                !e.entryName.toLowerCase().includes("semnatura")
+              );
+              if (xmlEntry) errXml = xmlEntry.getData().toString("utf8");
+            } else {
+              errXml = buf.toString("utf8");
+            }
+
+            const errMsgMatches = Array.from(errXml.matchAll(/errorMessage="([^"]+)"/gi));
+            for (const m of errMsgMatches) errors.push(m[1]);
+            const descMatches = Array.from(errXml.matchAll(/descriere="([^"]+)"/gi));
+            for (const m of descMatches) errors.push(m[1]);
+            if (!errors.length) {
+              const tagMatches = Array.from(errXml.matchAll(/<eroare[^>]*>([^<]+)<\/eroare>/gi));
+              for (const m of tagMatches) errors.push(m[1]);
+            }
+            if (!errors.length) {
+              errors.push("Factura a fost respinsă de ANAF. Intră în portalul SPV pentru detalii.");
+            }
+          } catch (e: any) {
+            console.warn("[SPV Error Details ReInvoice] Failed:", e.message);
+            errors.push("Factura a fost respinsă de ANAF. Intră în portalul SPV pentru detalii.");
+          }
+        }
+
+        const normalized = stare.toLowerCase();
+        let newStatus: string = inv.spvStatus || "in_procesare";
+        if (normalized === "ok") newStatus = "validat";
+        else if (normalized.includes("prelucrare") || normalized.includes("procesare")) newStatus = "in_procesare";
+        else if (normalized === "nok") newStatus = "eroare";
+
+        await db
+          .update(reInvoices)
+          .set({
+            spvStatus: newStatus as any,
+            spvError: errors.length > 0 ? errors.join("; ") : (newStatus === "eroare" ? stare : null),
+          })
+          .where(eq(reInvoices.id, input.id));
+
+        return {
+          status: newStatus,
+          stare,
+          errors,
+          raw: text.slice(0, 500),
+        };
       }),
 
     // Update status
@@ -883,14 +1037,14 @@ export const appRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         
-        return updateReInvoiceStatus(input.id, (ctx.user?.tenantId || 1), input.status);
+        return updateReInvoiceStatus(input.id, (tenantOf(ctx)), input.status);
       }),
     // Delete
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         
-        return deleteReInvoice(input.id, (ctx.user?.tenantId || 1));
+        return deleteReInvoice(input.id, (tenantOf(ctx)));
       }),
     // Download PDF (unchanged)
     downloadPDF: protectedProcedure
@@ -951,7 +1105,7 @@ export const appRouter = router({
   costCenters: router({
     list: protectedProcedure.query(async ({ ctx }) => {
       
-      return getCostCentersByTenant((ctx.user?.tenantId || 1));
+      return getCostCentersByTenant((tenantOf(ctx)));
     }),
     create: protectedProcedure
       .input(
@@ -969,7 +1123,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         
         return createCostCenter({
-          tenantId: (ctx.user?.tenantId || 1),
+          tenantId: (tenantOf(ctx)),
           ...input,
         });
       }),
@@ -990,19 +1144,19 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         
         const { id, ...data } = input;
-        return updateCostCenter(id, (ctx.user?.tenantId || 1), data);
+        return updateCostCenter(id, (tenantOf(ctx)), data);
       }),
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         
-        return deleteCostCenter(input.id, (ctx.user?.tenantId || 1));
+        return deleteCostCenter(input.id, (tenantOf(ctx)));
       }),
     getById: protectedProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input, ctx }) => {
         
-        return getCostCenterById(input.id, (ctx.user?.tenantId || 1));
+        return getCostCenterById(input.id, (tenantOf(ctx)));
       }),
 
     // ─── Categories Nomenclator ───────────────────────────────
@@ -1012,7 +1166,7 @@ export const appRouter = router({
       const { costCenterCategories } = await import("../drizzle/schema");
       const { eq } = await import("drizzle-orm");
       return db.select().from(costCenterCategories)
-        .where(eq(costCenterCategories.tenantId, (ctx.user?.tenantId || 1)))
+        .where(eq(costCenterCategories.tenantId, (tenantOf(ctx))))
         .orderBy(costCenterCategories.name);
     }),
     createCategory: protectedProcedure
@@ -1022,7 +1176,7 @@ export const appRouter = router({
         const db = await getDb();
         const { costCenterCategories } = await import("../drizzle/schema");
         await db.insert(costCenterCategories).values({
-          tenantId: (ctx.user?.tenantId || 1),
+          tenantId: (tenantOf(ctx)),
           name: input.name.trim(),
           color: input.color || "#6366f1",
         });
@@ -1037,7 +1191,7 @@ export const appRouter = router({
         const { eq, and } = await import("drizzle-orm");
         const { id, ...data } = input;
         await db.update(costCenterCategories).set(data)
-          .where(and(eq(costCenterCategories.id, id), eq(costCenterCategories.tenantId, (ctx.user?.tenantId || 1))));
+          .where(and(eq(costCenterCategories.id, id), eq(costCenterCategories.tenantId, (tenantOf(ctx)))));
         return { success: true };
       }),
     deleteCategory: protectedProcedure
@@ -1048,7 +1202,7 @@ export const appRouter = router({
         const { costCenterCategories } = await import("../drizzle/schema");
         const { eq, and } = await import("drizzle-orm");
         await db.delete(costCenterCategories)
-          .where(and(eq(costCenterCategories.id, input.id), eq(costCenterCategories.tenantId, (ctx.user?.tenantId || 1))));
+          .where(and(eq(costCenterCategories.id, input.id), eq(costCenterCategories.tenantId, (tenantOf(ctx)))));
         return { success: true };
       }),
     listRules: protectedProcedure.query(async ({ ctx }) => {
@@ -1056,7 +1210,7 @@ export const appRouter = router({
       const db = await getDb();
       const { costCenterRules } = await import("../drizzle/schema");
       const { eq } = await import("drizzle-orm");
-      return db.select().from(costCenterRules).where(eq(costCenterRules.tenantId, (ctx.user?.tenantId || 1)));
+      return db.select().from(costCenterRules).where(eq(costCenterRules.tenantId, (tenantOf(ctx))));
     }),
     createRule: protectedProcedure
       .input(
@@ -1073,7 +1227,7 @@ export const appRouter = router({
         const db = await getDb();
         const { costCenterRules } = await import("../drizzle/schema");
         return db.insert(costCenterRules).values({
-          tenantId: (ctx.user?.tenantId || 1),
+          tenantId: (tenantOf(ctx)),
           conditionType: "MULTI",
           conditionValue: input.conditionValue || "",
           matchName: input.matchName || null,
@@ -1091,7 +1245,7 @@ export const appRouter = router({
         const { eq, and } = await import("drizzle-orm");
         return db
           .delete(costCenterRules)
-          .where(and(eq(costCenterRules.id, input.id), eq(costCenterRules.tenantId, (ctx.user?.tenantId || 1))));
+          .where(and(eq(costCenterRules.id, input.id), eq(costCenterRules.tenantId, (tenantOf(ctx)))));
       }),
     updateRule: protectedProcedure
       .input(
@@ -1120,7 +1274,7 @@ export const appRouter = router({
             lineKeyword: data.lineKeyword || null,
             costCenterId: data.costCenterId,
           })
-          .where(and(eq(costCenterRules.id, id), eq(costCenterRules.tenantId, (ctx.user?.tenantId || 1))));
+          .where(and(eq(costCenterRules.id, id), eq(costCenterRules.tenantId, (tenantOf(ctx)))));
       }),
     getInvoicesByCostCenter: protectedProcedure
       .input(z.object({
@@ -1136,7 +1290,7 @@ export const appRouter = router({
         const { eq, and, like, gte, lte, or } = await import("drizzle-orm");
 
         const conditions: any[] = [
-          eq(invoiceArchive.tenantId, (ctx.user?.tenantId || 1)),
+          eq(invoiceArchive.tenantId, (tenantOf(ctx))),
           eq(invoiceArchive.costCenterId, input.costCenterId),
         ];
 
@@ -1182,7 +1336,7 @@ export const appRouter = router({
           supplierName: invoiceArchive.supplierName,
         })
         .from(invoiceArchive)
-        .where(eq(invoiceArchive.tenantId, (ctx.user?.tenantId || 1)))
+        .where(eq(invoiceArchive.tenantId, (tenantOf(ctx))))
         .groupBy(invoiceArchive.supplierCUI, invoiceArchive.supplierName)
         .limit(500);
 
@@ -1197,14 +1351,14 @@ export const appRouter = router({
       const rules = await db
         .select()
         .from(costCenterRules)
-        .where(and(eq(costCenterRules.tenantId, (ctx.user?.tenantId || 1)), eq(costCenterRules.isActive, 1)));
+        .where(and(eq(costCenterRules.tenantId, (tenantOf(ctx))), eq(costCenterRules.isActive, 1)));
         
       if (rules.length === 0) return { updated: 0 };
       
       const invoices = await db
         .select()
         .from(invoiceArchive)
-        .where(eq(invoiceArchive.tenantId, (ctx.user?.tenantId || 1)));
+        .where(eq(invoiceArchive.tenantId, (tenantOf(ctx))));
 
       // Pre-load all lines for this tenant's invoices (batch, not per invoice)
       const invoiceIds = invoices.map(i => i.id);
@@ -1260,12 +1414,12 @@ export const appRouter = router({
   clients: router({
     list: protectedProcedure.query(async ({ ctx }) => {
       
-      return getClientsByTenant((ctx.user?.tenantId || 1));
+      return getClientsByTenant((tenantOf(ctx)));
     }),
     searchPartners: protectedProcedure
       .input(z.object({ query: z.string().optional(), limit: z.number().optional() }).optional())
       .query(async ({ input, ctx }) => {
-        const tenantId = ctx.user?.tenantId || 1;
+        const tenantId = tenantOf(ctx);
         const q = (input?.query || "").trim().toLowerCase();
         const limit = input?.limit || 50;
 
@@ -1372,7 +1526,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         
         return createClient({
-          tenantId: (ctx.user?.tenantId || 1),
+          tenantId: (tenantOf(ctx)),
           ...input,
         });
       }),
@@ -1397,25 +1551,25 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         
         const { id, ...data } = input;
-        return updateClient(id, (ctx.user?.tenantId || 1), data);
+        return updateClient(id, (tenantOf(ctx)), data);
       }),
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         
-        return deleteClient(input.id, (ctx.user?.tenantId || 1));
+        return deleteClient(input.id, (tenantOf(ctx)));
       }),
     getById: protectedProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input, ctx }) => {
         
-        return getClientById(input.id, (ctx.user?.tenantId || 1));
+        return getClientById(input.id, (tenantOf(ctx)));
       }),
     getDetails: protectedProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input, ctx }) => {
         
-        const client = await getClientById(input.id, (ctx.user?.tenantId || 1));
+        const client = await getClientById(input.id, (tenantOf(ctx)));
         if (!client) throw new Error("Client not found");
 
         const db = await import("./db").then(m => m.getDb());
@@ -1434,7 +1588,7 @@ export const appRouter = router({
           .from(emittedInvoices)
           .where(
             and(
-              eq(emittedInvoices.tenantId, (ctx.user?.tenantId || 1)),
+              eq(emittedInvoices.tenantId, (tenantOf(ctx))),
               or(
                 eq(emittedInvoices.clientId, client.id),
                 rawCui ? eq(emittedInvoices.clientCUI, rawCui) : sql`1=0`,
@@ -1452,7 +1606,7 @@ export const appRouter = router({
           .from(reInvoices)
           .where(
             and(
-              eq(reInvoices.tenantId, (ctx.user?.tenantId || 1)),
+              eq(reInvoices.tenantId, (tenantOf(ctx))),
               or(
                 eq(reInvoices.clientId, client.id),
                 rawCui ? eq(reInvoices.clientCUI, rawCui) : sql`1=0`,
@@ -1471,7 +1625,7 @@ export const appRouter = router({
           .from(invoiceArchive)
           .where(
             and(
-              eq(invoiceArchive.tenantId, (ctx.user?.tenantId || 1)),
+              eq(invoiceArchive.tenantId, (tenantOf(ctx))),
               eq(invoiceArchive.direction, "out"),
               or(
                 rawCui ? eq(invoiceArchive.supplierCUI, rawCui) : sql`1=0`,
@@ -1532,7 +1686,7 @@ export const appRouter = router({
             .from(invoiceArchive)
             .where(
               and(
-                eq(invoiceArchive.tenantId, (ctx.user?.tenantId || 1)),
+                eq(invoiceArchive.tenantId, (tenantOf(ctx))),
                 eq(invoiceArchive.direction, "in"),
                 or(
                   rawCui ? eq(invoiceArchive.supplierCUI, rawCui) : sql`1=0`,
@@ -1585,7 +1739,7 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        const tenantId = ctx.user?.tenantId || 1;
+        const tenantId = tenantOf(ctx);
         const client = await getClientById(input.clientId, tenantId);
         if (!client) throw new Error("Clientul nu a fost găsit");
 
@@ -1952,26 +2106,26 @@ export const appRouter = router({
       )
       .query(async ({ input, ctx }) => {
         
-        return getInvoiceArchiveList((ctx.user?.tenantId || 1), input ?? {});
+        return getInvoiceArchiveList((tenantOf(ctx)), input ?? {});
       }),
 
     stats: protectedProcedure.query(async ({ ctx }) => {
       
-      return getInvoiceArchiveStats((ctx.user?.tenantId || 1));
+      return getInvoiceArchiveStats((tenantOf(ctx)));
     }),
 
     getById: protectedProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input, ctx }) => {
         
-        return getInvoiceArchiveById(input.id, (ctx.user?.tenantId || 1));
+        return getInvoiceArchiveById(input.id, (tenantOf(ctx)));
       }),
 
     getByIds: protectedProcedure
       .input(z.object({ ids: z.array(z.number()) }))
       .query(async ({ input, ctx }) => {
         
-        return getInvoiceArchiveByIds(input.ids, (ctx.user?.tenantId || 1));
+        return getInvoiceArchiveByIds(input.ids, (tenantOf(ctx)));
       }),
 
     getLines: protectedProcedure
@@ -1981,6 +2135,12 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) return [];
         const { nir, nirLines } = await import("../drizzle/schema");
+        // Doar facturi ale firmei curente
+        const [ownInv] = await db
+          .select({ id: invoiceArchive.id })
+          .from(invoiceArchive)
+          .where(and(eq(invoiceArchive.id, input.id), eq(invoiceArchive.tenantId, tenantOf(ctx))));
+        if (!ownInv) return [];
         const lines = await db
           .select()
           .from(invoiceArchiveLines)
@@ -1993,7 +2153,7 @@ export const appRouter = router({
           .where(
             and(
               eq(nir.invoiceArchiveId, input.id),
-              eq(nir.tenantId, (ctx.user?.tenantId || 1))
+              eq(nir.tenantId, (tenantOf(ctx)))
             )
           );
 
@@ -2086,7 +2246,7 @@ export const appRouter = router({
         
         return createInvoiceArchiveEntry({
           ...input,
-          tenantId: (ctx.user?.tenantId || 1),
+          tenantId: (tenantOf(ctx)),
         });
       }),
 
@@ -2112,14 +2272,14 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         
         const { id, ...data } = input;
-        return updateInvoiceArchiveEntry(id, (ctx.user?.tenantId || 1), data);
+        return updateInvoiceArchiveEntry(id, (tenantOf(ctx)), data);
       }),
 
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         
-        await deleteInvoiceArchiveEntry(input.id, (ctx.user?.tenantId || 1));
+        await deleteInvoiceArchiveEntry(input.id, (tenantOf(ctx)));
         return { success: true };
       }),
 
@@ -2141,7 +2301,7 @@ export const appRouter = router({
           .where(
             and(
               eq(invoiceArchive.id, input.id),
-              eq(invoiceArchive.tenantId, (ctx.user?.tenantId || 1))
+              eq(invoiceArchive.tenantId, (tenantOf(ctx)))
             )
           );
         return { success: true };
@@ -2159,7 +2319,7 @@ export const appRouter = router({
           .where(
             and(
               eq(invoiceArchive.id, input.id),
-              eq(invoiceArchive.tenantId, (ctx.user?.tenantId || 1))
+              eq(invoiceArchive.tenantId, (tenantOf(ctx)))
             )
           );
         return { success: true };
@@ -2177,7 +2337,7 @@ export const appRouter = router({
           .where(
             and(
               eq(invoiceArchive.id, input.id),
-              eq(invoiceArchive.tenantId, (ctx.user?.tenantId || 1))
+              eq(invoiceArchive.tenantId, (tenantOf(ctx)))
             )
           );
         return { success: true };
@@ -2188,7 +2348,7 @@ export const appRouter = router({
   integrations: router({
     list: protectedProcedure.query(async ({ ctx }) => {
       
-      return getIntegrations((ctx.user?.tenantId || 1));
+      return getIntegrations((tenantOf(ctx)));
     }),
     exportSaga: protectedProcedure
       .input(
@@ -2198,8 +2358,8 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        const { generateSagaExportXML, getTenantCompanyProfile } = await import("./sagaXmlGenerator");
-        const tenantId = ctx.user?.tenantId || 1;
+        const { generateSagaExportXML, getTenantCompanyProfile, toSagaXmlBuffer } = await import("./sagaXmlGenerator");
+        const tenantId = tenantOf(ctx);
         const xml = await generateSagaExportXML(
           tenantId,
           input.month,
@@ -2208,7 +2368,8 @@ export const appRouter = router({
         const company = await getTenantCompanyProfile(tenantId);
         const safeCui = company.cui.replace(/^RO/i, "").trim() || "EXPORT";
         const filename = `F_${safeCui}_${input.month}_${input.year}.xml`;
-        return { xml, filename };
+        const buffer = toSagaXmlBuffer(xml);
+        return { xml, filename, base64: buffer.toString("base64") };
       }),
     upsert: protectedProcedure
       .input(
@@ -2221,7 +2382,7 @@ export const appRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         
-        await upsertIntegration((ctx.user?.tenantId || 1), input.provider, {
+        await upsertIntegration((tenantOf(ctx)), input.provider, {
           apiKey: input.apiKey,
           apiSecret: input.apiSecret,
           status: input.status,
@@ -2231,7 +2392,7 @@ export const appRouter = router({
     syncOblio: protectedProcedure.mutation(async ({ ctx }) => {
       
       const { syncOblioInvoices } = await import("./oblioSync");
-      return syncOblioInvoices((ctx.user?.tenantId || 1));
+      return syncOblioInvoices((tenantOf(ctx)));
     }),
     disconnectOblio: protectedProcedure.mutation(async ({ ctx }) => {
       
@@ -2243,7 +2404,7 @@ export const appRouter = router({
         .delete(integrations)
         .where(
           and(
-            eq(integrations.tenantId, (ctx.user?.tenantId || 1)),
+            eq(integrations.tenantId, (tenantOf(ctx))),
             eq(integrations.provider, "oblio")
           )
         );
@@ -2259,7 +2420,7 @@ export const appRouter = router({
         .delete(integrations)
         .where(
           and(
-            eq(integrations.tenantId, (ctx.user?.tenantId || 1)),
+            eq(integrations.tenantId, (tenantOf(ctx))),
             eq(integrations.provider, "spv")
           )
         );
@@ -2276,7 +2437,7 @@ export const appRouter = router({
         .from(integrations)
         .where(
           and(
-            eq(integrations.tenantId, (ctx.user?.tenantId || 1)),
+            eq(integrations.tenantId, (tenantOf(ctx))),
             eq(integrations.provider, "spv")
           )
         );
@@ -2287,7 +2448,7 @@ export const appRouter = router({
         );
       }
       const { syncAllSpv } = await import("./spvCron");
-      const result = await syncAllSpv(60, (ctx.user?.tenantId || 1));
+      const result = await syncAllSpv(60, (tenantOf(ctx)));
       return {
         success: true,
         imported: result?.imported || 0,
@@ -2307,14 +2468,14 @@ export const appRouter = router({
       authUrl.searchParams.append("response_type", "code");
       authUrl.searchParams.append("client_id", clientId || "");
       authUrl.searchParams.append("redirect_uri", redirectUri);
-      authUrl.searchParams.append("state", String((ctx.user?.tenantId || 1)));
+      authUrl.searchParams.append("state", String((tenantOf(ctx))));
       // Fetch tenant CUI
       const { tenants } = await import("../drizzle/schema");
       const db = await getDb();
       const [tenant] = await db!
         .select({ cui: tenants.cui })
         .from(tenants)
-        .where(eq(tenants.id, (ctx.user?.tenantId || 1)));
+        .where(eq(tenants.id, (tenantOf(ctx))));
       return {
         url: authUrl.toString(),
         serverConfigured: !!(clientId && clientSecret),
@@ -2328,7 +2489,7 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         
         const { syncAllSpv } = await import("./spvCron");
-        const result = await syncAllSpv(input?.zile || 60, (ctx.user?.tenantId || 1));
+        const result = await syncAllSpv(input?.zile || 60, (tenantOf(ctx)));
         return {
           success: true,
           imported: result?.imported || 0,
@@ -2338,7 +2499,7 @@ export const appRouter = router({
     syncSmartBill: protectedProcedure.mutation(async ({ ctx }) => {
       
       const { syncSmartBillInvoices } = await import("./smartbillSync");
-      return syncSmartBillInvoices((ctx.user?.tenantId || 1));
+      return syncSmartBillInvoices((tenantOf(ctx)));
     }),
     // Backfill rawXml for existing SPV invoices
     repopulateXml: protectedProcedure.mutation(async ({ ctx }) => {
@@ -2356,7 +2517,7 @@ export const appRouter = router({
         .from(invoiceArchive)
         .where(
           and(
-            eq(invoiceArchive.tenantId, (ctx.user?.tenantId || 1)),
+            eq(invoiceArchive.tenantId, (tenantOf(ctx))),
             eq(invoiceArchive.source, "spv_anaf"),
             sql`rawXml IS NULL`
           )
@@ -2370,7 +2531,7 @@ export const appRouter = router({
         .from(integrations)
         .where(
           and(
-            eq(integrations.tenantId, (ctx.user?.tenantId || 1)),
+            eq(integrations.tenantId, (tenantOf(ctx))),
             eq(integrations.provider, "spv"),
             eq(integrations.status, "active")
           )
@@ -2427,7 +2588,7 @@ export const appRouter = router({
       return await db
         .select()
         .from(products)
-        .where(eq(products.tenantId, (ctx.user?.tenantId || 1)))
+        .where(eq(products.tenantId, (tenantOf(ctx))))
         .orderBy(desc(products.id));
     }),
     create: protectedProcedure
@@ -2444,7 +2605,7 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new Error("No DB");
         const result = await db.insert(products).values({
-          tenantId: (ctx.user?.tenantId || 1),
+          tenantId: (tenantOf(ctx)),
           name: input.name,
           unit: input.unit || "buc",
           defaultPrice: String(input.defaultPrice || 0),
@@ -2474,7 +2635,7 @@ export const appRouter = router({
           .from(products)
           .where(
             and(
-              eq(products.tenantId, (ctx.user?.tenantId || 1)),
+              eq(products.tenantId, (tenantOf(ctx))),
               eq(products.name, trimmedName)
             )
           )
@@ -2492,7 +2653,7 @@ export const appRouter = router({
           return { id: existing.id };
         } else {
           const result = await db.insert(products).values({
-            tenantId: (ctx.user?.tenantId || 1),
+            tenantId: (tenantOf(ctx)),
             name: trimmedName,
             unit: input.unit || "buc",
             defaultPrice: String(input.defaultPrice || 0),
@@ -2511,7 +2672,7 @@ export const appRouter = router({
       const rows = await db
         .select()
         .from(emittedInvoices)
-        .where(eq(emittedInvoices.tenantId, (ctx.user?.tenantId || 1)))
+        .where(eq(emittedInvoices.tenantId, (tenantOf(ctx))))
         .orderBy(desc(emittedInvoices.createdAt));
 
       if (rows.length === 0) return [];
@@ -2591,7 +2752,7 @@ export const appRouter = router({
           .where(
             and(
               eq(emittedInvoices.id, input.id),
-              eq(emittedInvoices.tenantId, (ctx.user?.tenantId || 1))
+              eq(emittedInvoices.tenantId, (tenantOf(ctx)))
             )
           );
         if (!inv) throw new Error("Not found");
@@ -2655,14 +2816,14 @@ export const appRouter = router({
       const emittedRows = await db
         .selectDistinct({ series: emittedInvoices.series })
         .from(emittedInvoices)
-        .where(eq(emittedInvoices.tenantId, (ctx.user?.tenantId || 1)));
+        .where(eq(emittedInvoices.tenantId, (tenantOf(ctx))));
 
       const archiveRows = await db
         .selectDistinct({ invoiceNumber: invoiceArchive.invoiceNumber })
         .from(invoiceArchive)
         .where(
           and(
-            eq(invoiceArchive.tenantId, (ctx.user?.tenantId || 1)),
+            eq(invoiceArchive.tenantId, (tenantOf(ctx))),
             eq(invoiceArchive.direction, "out")
           )
         );
@@ -2708,7 +2869,7 @@ export const appRouter = router({
           .from(emittedInvoices)
           .where(
             and(
-              eq(emittedInvoices.tenantId, (ctx.user?.tenantId || 1)),
+              eq(emittedInvoices.tenantId, (tenantOf(ctx))),
               or(
                 sql`UPPER(${emittedInvoices.series}) = ${cleanSeries}`,
                 like(emittedInvoices.number, `${cleanSeries}%`)
@@ -2722,7 +2883,7 @@ export const appRouter = router({
           .from(invoiceArchive)
           .where(
             and(
-              eq(invoiceArchive.tenantId, (ctx.user?.tenantId || 1)),
+              eq(invoiceArchive.tenantId, (tenantOf(ctx))),
               eq(invoiceArchive.direction, "out"),
               like(invoiceArchive.invoiceNumber, `${cleanSeries}%`)
             )
@@ -2833,12 +2994,29 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        if (!ctx.user?.tenantId) throw new Error("No tenant");
+        const tenantId = tenantOf(ctx);
         const db = await getDb();
         if (!db) throw new Error("No DB");
         const { emittedInvoices, emittedInvoiceLines } =
           await import("../drizzle/schema");
+        const { and, eq } = await import("drizzle-orm");
         const { lines, createDeviz, sendEmailToClient, representativeName, ...invoiceData } = input;
+
+        // Previne duplicarea numărului de factură pentru aceeași firmă
+        const [existingInvoice] = await db
+          .select({ id: emittedInvoices.id })
+          .from(emittedInvoices)
+          .where(
+            and(
+              eq(emittedInvoices.tenantId, tenantId),
+              eq(emittedInvoices.number, invoiceData.number.trim())
+            )
+          )
+          .limit(1);
+
+        if (existingInvoice) {
+          throw new Error(`O factură cu numărul "${invoiceData.number}" există deja pentru această firmă.`);
+        }
 
         let safeCountry = "RO";
         if (invoiceData.clientCountry) {
@@ -2859,7 +3037,7 @@ export const appRouter = router({
               .from(clients)
               .where(
                 and(
-                  eq(clients.tenantId, (ctx.user?.tenantId || 1)),
+                  eq(clients.tenantId, (tenantOf(ctx))),
                   invoiceData.clientCUI
                     ? eq(clients.cui, invoiceData.clientCUI.trim())
                     : eq(clients.name, invoiceData.clientName.trim())
@@ -2885,7 +3063,7 @@ export const appRouter = router({
               const [newClient] = await db
                 .insert(clients)
                 .values({
-                  tenantId: (ctx.user?.tenantId || 1),
+                  tenantId: (tenantOf(ctx)),
                   name: invoiceData.clientName.trim(),
                   cui: invoiceData.clientCUI?.trim() || null,
                   sagaCode: invoiceData.clientCode?.trim() || null,
@@ -2916,7 +3094,7 @@ export const appRouter = router({
             if (invoiceData.clientCUI) updateClientData.cui = invoiceData.clientCUI.trim();
             if (invoiceData.clientCode) updateClientData.sagaCode = invoiceData.clientCode.trim();
             if (Object.keys(updateClientData).length > 0) {
-              await db.update(clients).set(updateClientData).where(eq(clients.id, assignedClientId));
+              await db.update(clients).set(updateClientData).where(and(eq(clients.id, assignedClientId), eq(clients.tenantId, tenantOf(ctx))));
             }
           } catch (err) {
             console.error("Failed to sync client:", err);
@@ -2939,10 +3117,11 @@ export const appRouter = router({
 
         if (!safeCompanyIban) {
           try {
+            const { tenants } = await import("../drizzle/schema");
             const [t] = await db
               .select({ settings: tenants.settings })
               .from(tenants)
-              .where(eq(tenants.id, (ctx.user?.tenantId || 1)));
+              .where(eq(tenants.id, (tenantOf(ctx))));
             if (t?.settings) {
               const s = typeof t.settings === "string" ? JSON.parse(t.settings) : t.settings;
               const invCur = (invoiceData.currency || "RON").toUpperCase();
@@ -2970,7 +3149,7 @@ export const appRouter = router({
         const [result] = await db
           .insert(emittedInvoices)
           .values({
-            tenantId: (ctx.user?.tenantId || 1),
+            tenantId: (tenantOf(ctx)),
             ...invoiceData,
             companyIBAN: safeCompanyIban || null,
             companyBank: safeCompanyBank || null,
@@ -3003,7 +3182,7 @@ export const appRouter = router({
             const [dRes] = await db
               .insert(devize)
               .values({
-                tenantId: (ctx.user?.tenantId || 1),
+                tenantId: (tenantOf(ctx)),
                 number: devizNum,
                 date: new Date(),
                 invoiceId,
@@ -3046,7 +3225,7 @@ export const appRouter = router({
             const [dRes] = await db
               .insert(devize)
               .values({
-                tenantId: (ctx.user?.tenantId || 1),
+                tenantId: (tenantOf(ctx)),
                 number: devizNum,
                 date: new Date(),
                 invoiceId,
@@ -3078,7 +3257,7 @@ export const appRouter = router({
             const [bRes] = await db
               .insert(bonuriConsum)
               .values({
-                tenantId: (ctx.user?.tenantId || 1),
+                tenantId: (tenantOf(ctx)),
                 devizId: dRes.id,
                 number: `BC-${invoiceId}`,
                 date: new Date(),
@@ -3122,7 +3301,7 @@ export const appRouter = router({
               quantity: 1,
               unitPrice: sumLab,
               unit: "buc",
-              vatRate: labLines[0].vatRate || 19,
+              vatRate: labLines[0].vatRate || 21,
               total: sumLab,
               lineOrder: 9999,
               devizType: "GROUPED_LABOR",
@@ -3162,7 +3341,7 @@ export const appRouter = router({
               .from(products)
               .where(
                 and(
-                  eq(products.tenantId, (ctx.user?.tenantId || 1)),
+                  eq(products.tenantId, (tenantOf(ctx))),
                   eq(products.name, pName)
                 )
               )
@@ -3179,7 +3358,7 @@ export const appRouter = router({
                 .where(eq(products.id, existing.id));
             } else {
               await db.insert(products).values({
-                tenantId: (ctx.user?.tenantId || 1),
+                tenantId: (tenantOf(ctx)),
                 name: pName,
                 unit: l.unit || "buc",
                 defaultPrice: String(l.unitPrice || 0),
@@ -3225,7 +3404,7 @@ export const appRouter = router({
             try {
               const { emailLogs } = await import("../drizzle/schema");
               await db.insert(emailLogs).values({
-                tenantId: (ctx.user?.tenantId || 1),
+                tenantId: (tenantOf(ctx)),
                 invoiceId,
                 invoiceNumber: invoiceData.number,
                 recipientEmail: invoiceData.clientEmail,
@@ -3322,7 +3501,7 @@ export const appRouter = router({
           .where(
             and(
               eq(emittedInvoices.id, input.id),
-              eq(emittedInvoices.tenantId, (ctx.user?.tenantId || 1))
+              eq(emittedInvoices.tenantId, (tenantOf(ctx)))
             )
           );
 
@@ -3392,7 +3571,7 @@ export const appRouter = router({
             .where(
               and(
                 eq(emittedInvoices.id, id),
-                eq(emittedInvoices.tenantId, (ctx.user?.tenantId || 1))
+                eq(emittedInvoices.tenantId, (tenantOf(ctx)))
               )
             );
 
@@ -3408,7 +3587,7 @@ export const appRouter = router({
               if (data.clientRegCom !== undefined) updateClientData.regCom = data.clientRegCom.trim() || null;
               if (data.clientCUI !== undefined) updateClientData.cui = data.clientCUI.trim() || null;
               if (Object.keys(updateClientData).length > 0) {
-                await db.update(clients).set(updateClientData).where(eq(clients.id, data.clientId));
+                await db.update(clients).set(updateClientData).where(and(eq(clients.id, data.clientId), eq(clients.tenantId, tenantOf(ctx))));
               }
             } catch (e) {
               console.error("Failed to sync client on update:", e);
@@ -3468,7 +3647,7 @@ export const appRouter = router({
                 const [dRes] = await db
                   .insert(devize)
                   .values({
-                    tenantId: (ctx.user?.tenantId || 1),
+                    tenantId: (tenantOf(ctx)),
                     number: devizNum,
                     date: new Date(),
                     invoiceId: id,
@@ -3511,7 +3690,7 @@ export const appRouter = router({
                 const [dRes] = await db
                   .insert(devize)
                   .values({
-                    tenantId: (ctx.user?.tenantId || 1),
+                    tenantId: (tenantOf(ctx)),
                     number: devizNum,
                     date: new Date(),
                     invoiceId: id,
@@ -3546,7 +3725,7 @@ export const appRouter = router({
                 const [bRes] = await db
                   .insert(bonuriConsum)
                   .values({
-                    tenantId: (ctx.user?.tenantId || 1),
+                    tenantId: (tenantOf(ctx)),
                     devizId: dRes.id,
                     number: `BC-${id}`,
                     date: new Date(),
@@ -3593,7 +3772,7 @@ export const appRouter = router({
                   quantity: 1,
                   unitPrice: sumLab,
                   unit: "buc",
-                  vatRate: labLines[0].vatRate || 19,
+                  vatRate: labLines[0].vatRate || 21,
                   total: sumLab,
                   lineOrder: 9999,
                   devizType: "GROUPED_LABOR",
@@ -3642,7 +3821,7 @@ export const appRouter = router({
           .where(
             and(
               eq(emittedInvoices.id, input.id),
-              eq(emittedInvoices.tenantId, (ctx.user?.tenantId || 1))
+              eq(emittedInvoices.tenantId, (tenantOf(ctx)))
             )
           );
 
@@ -3662,7 +3841,7 @@ export const appRouter = router({
           .where(
             and(
               eq(emittedInvoices.id, input.id),
-              eq(emittedInvoices.tenantId, (ctx.user?.tenantId || 1))
+              eq(emittedInvoices.tenantId, (tenantOf(ctx)))
             )
           );
         return { success: true };
@@ -3686,7 +3865,7 @@ export const appRouter = router({
           .where(
             and(
               eq(emittedInvoices.id, input.id),
-              eq(emittedInvoices.tenantId, (ctx.user?.tenantId || 1))
+              eq(emittedInvoices.tenantId, (tenantOf(ctx)))
             )
           );
         return { success: true };
@@ -3706,7 +3885,7 @@ export const appRouter = router({
           .where(
             and(
               eq(emittedInvoices.id, input.id),
-              eq(emittedInvoices.tenantId, (ctx.user?.tenantId || 1))
+              eq(emittedInvoices.tenantId, (tenantOf(ctx)))
             )
           );
         if (!inv) throw new Error("Invoice not found");
@@ -3733,7 +3912,7 @@ export const appRouter = router({
         const [tenantData] = await db
           .select()
           .from(tenants)
-          .where(eq(tenants.id, (ctx.user?.tenantId || 1)));
+          .where(eq(tenants.id, (tenantOf(ctx))));
         if (!tenantData) throw new Error("Tenant not found");
         const { generateUblXml } = await import("./anafXmlGenerator");
         // Map emitted invoice to the same shape generateUblXml expects (ReInvoice-like)
@@ -3744,12 +3923,21 @@ export const appRouter = router({
           unitPrice: l.unitPrice,
           vatRate: l.vatRate,
         }));
-        const xmlContent = generateUblXml(invoiceLike, linesLike, tenantData);
+        let ublRate: number | undefined = undefined;
+        if (inv.currency && inv.currency.toUpperCase() !== "RON") {
+          const { getBnrRateForDate } = await import("./bnrService");
+          const r = await getBnrRateForDate(
+            new Date(inv.issueDate as any).toISOString().split("T")[0],
+            inv.currency
+          );
+          ublRate = r?.rate;
+        }
+        const xmlContent = generateUblXml(invoiceLike, linesLike, tenantData, ublRate);
         const { uploadInvoiceToSPV } = await import("./anafApi");
         // uploadInvoiceToSPV works on reInvoices; we need a version for emittedInvoices
         // We'll do the upload inline here and update emittedInvoices directly
         const { getValidSpvToken, refreshSpvToken } = await import("./anafApi");
-        const tokenData = await getValidSpvToken(ctx.user?.tenantId || 1);
+        const tokenData = await getValidSpvToken(tenantOf(ctx));
         if (!tokenData?.token)
           return {
             success: false,
@@ -3829,7 +4017,7 @@ export const appRouter = router({
     checkSpvStatus: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
-        if (!ctx.user?.tenantId) throw new Error("No tenant");
+        const tenantId = tenantOf(ctx);
         const db = await getDb();
         if (!db) throw new Error("No DB");
         const { emittedInvoices, integrations } = await import("../drizzle/schema");
@@ -3839,14 +4027,14 @@ export const appRouter = router({
           .where(
             and(
               eq(emittedInvoices.id, input.id),
-              eq(emittedInvoices.tenantId, (ctx.user?.tenantId || 1))
+              eq(emittedInvoices.tenantId, tenantId)
             )
           );
         if (!inv) throw new Error("Factura nu a fost găsită");
         if (!inv.spvIndex) throw new Error("Factura nu are index SPV. Trimite-o mai întâi.");
 
         const { getValidSpvToken, refreshSpvToken } = await import("./anafApi");
-        const tokenData = await getValidSpvToken(ctx.user?.tenantId || 1);
+        const tokenData = await getValidSpvToken(tenantId);
         if (!tokenData?.token) throw new Error("SPV nu este conectat.");
 
         let token = tokenData.token;
@@ -3920,12 +4108,12 @@ export const appRouter = router({
 
             // Extract error messages from ANAF error XML
             // Format: <Error errorMessage="..."/> or <eroare>...</eroare>
-            const errMsgMatches = [...errXml.matchAll(/errorMessage="([^"]+)"/gi)];
+            const errMsgMatches = Array.from(errXml.matchAll(/errorMessage="([^"]+)"/gi));
             for (const m of errMsgMatches) errors.push(m[1]);
-            const descMatches = [...errXml.matchAll(/descriere="([^"]+)"/gi)];
+            const descMatches = Array.from(errXml.matchAll(/descriere="([^"]+)"/gi));
             for (const m of descMatches) errors.push(m[1]);
             if (!errors.length) {
-              const tagMatches = [...errXml.matchAll(/<eroare[^>]*>([^<]+)<\/eroare>/gi)];
+              const tagMatches = Array.from(errXml.matchAll(/<eroare[^>]*>([^<]+)<\/eroare>/gi));
               for (const m of tagMatches) errors.push(m[1]);
             }
             if (!errors.length) {
@@ -3981,7 +4169,7 @@ export const appRouter = router({
         const { generateEmittedInvoicePdfBuffer, sendInvoiceEmail, extractRepresentativeName } = await import("./emailService");
         const { buffer, filename, invoice, tenant, tenantLogoBase64, representativeName: repFromInv, tenantBrevoApiKey, isForeign } = await generateEmittedInvoicePdfBuffer(input.invoiceId);
 
-        if (invoice.tenantId !== (ctx.user?.tenantId || 1)) {
+        if (invoice.tenantId !== (tenantOf(ctx))) {
           throw new Error("Nu aveți acces la această factură");
         }
 
@@ -4029,7 +4217,7 @@ export const appRouter = router({
           if (db) {
             const { emailLogs } = await import("../drizzle/schema");
             await db.insert(emailLogs).values({
-              tenantId: (ctx.user?.tenantId || 1),
+              tenantId: (tenantOf(ctx)),
               invoiceId: invoice.id,
               invoiceNumber: cleanDisplayNum,
               recipientEmail: targetEmail,
@@ -4071,7 +4259,7 @@ export const appRouter = router({
         })
         .from(emailLogs)
         .leftJoin(emittedInvoices, eq(emailLogs.invoiceId, emittedInvoices.id))
-        .where(eq(emailLogs.tenantId, (ctx.user?.tenantId || 1)))
+        .where(eq(emailLogs.tenantId, (tenantOf(ctx))))
         .orderBy(desc(emailLogs.sentAt), desc(emailLogs.id));
 
       return rows.map(({ log, invNumber }) => {
@@ -4106,7 +4294,7 @@ export const appRouter = router({
           .where(
             and(
               eq(emailLogs.invoiceId, input.invoiceId),
-              eq(emailLogs.tenantId, (ctx.user?.tenantId || 1))
+              eq(emailLogs.tenantId, (tenantOf(ctx)))
             )
           )
           .orderBy(desc(emailLogs.sentAt), desc(emailLogs.id));
@@ -4126,7 +4314,7 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new Error("No DB");
 
-        const tenantId = (ctx.user?.tenantId || 1);
+        const tenantId = (tenantOf(ctx));
         let targetInvoiceId = input.invoiceId;
         let recipientEmail = "";
         let recipientName = "";
@@ -4292,7 +4480,7 @@ export const appRouter = router({
           .where(
             and(
               eq(emailLogs.id, input.logId),
-              eq(emailLogs.tenantId, (ctx.user?.tenantId || 1))
+              eq(emailLogs.tenantId, (tenantOf(ctx)))
             )
           );
 
@@ -4339,7 +4527,7 @@ export const appRouter = router({
 
         // Insert new log entry for the resend
         await db.insert(emailLogs).values({
-          tenantId: (ctx.user?.tenantId || 1),
+          tenantId: (tenantOf(ctx)),
           invoiceId: invoice.id,
           invoiceNumber: cleanDisplayNum,
           recipientEmail: targetEmail,
@@ -4373,14 +4561,14 @@ export const appRouter = router({
       const emitted = await db
         .select()
         .from(emittedInvoices)
-        .where(eq(emittedInvoices.tenantId, (ctx.user?.tenantId || 1)))
+        .where(eq(emittedInvoices.tenantId, (tenantOf(ctx))))
         .orderBy(desc(emittedInvoices.createdAt));
 
       // 2. Fetch Re-Invoices
       const reInvs = await db
         .select()
         .from(reInvoices)
-        .where(eq(reInvoices.tenantId, (ctx.user?.tenantId || 1)))
+        .where(eq(reInvoices.tenantId, (tenantOf(ctx))))
         .orderBy(desc(reInvoices.createdAt));
 
       // 3. Fetch Received (Archive)
@@ -4389,7 +4577,7 @@ export const appRouter = router({
         .from(invoiceArchive)
         .where(
           and(
-            eq(invoiceArchive.tenantId, (ctx.user?.tenantId || 1)),
+            eq(invoiceArchive.tenantId, (tenantOf(ctx))),
             eq(invoiceArchive.direction, "in")
           )
         )
@@ -4460,9 +4648,9 @@ export const appRouter = router({
       const { emittedInvoices, clients, invoiceArchive, users } = await import("../drizzle/schema");
       const { eq } = await import("drizzle-orm");
 
-      const myInvoices = await db.select().from(emittedInvoices).where(eq(emittedInvoices.tenantId, (ctx.user?.tenantId || 1)));
-      const myClients = await db.select().from(clients).where(eq(clients.tenantId, (ctx.user?.tenantId || 1)));
-      const myArchive = await db.select().from(invoiceArchive).where(eq(invoiceArchive.tenantId, (ctx.user?.tenantId || 1)));
+      const myInvoices = await db.select().from(emittedInvoices).where(eq(emittedInvoices.tenantId, (tenantOf(ctx))));
+      const myClients = await db.select().from(clients).where(eq(clients.tenantId, (tenantOf(ctx))));
+      const myArchive = await db.select().from(invoiceArchive).where(eq(invoiceArchive.tenantId, (tenantOf(ctx))));
       const myUser = await db.select().from(users).where(eq(users.id, ctx.user.id));
 
       const exportData = {
@@ -4504,7 +4692,7 @@ export const appRouter = router({
       if (!db) throw new Error("No DB");
       const { nir, nirLines, invoiceArchive } = await import("../drizzle/schema");
       const { inArray } = await import("drizzle-orm");
-      const tenantId = ctx.user?.tenantId || 1;
+      const tenantId = tenantOf(ctx);
       const nirs = await db
         .select()
         .from(nir)
@@ -4518,19 +4706,29 @@ export const appRouter = router({
 
       const invRows = invIds.length > 0
         ? await db
-            .select({ id: invoiceArchive.id, issueDate: invoiceArchive.issueDate })
+            .select({
+              id: invoiceArchive.id,
+              issueDate: invoiceArchive.issueDate,
+              total: invoiceArchive.total,
+              totalVAT: invoiceArchive.totalVAT,
+            })
             .from(invoiceArchive)
             .where(inArray(invoiceArchive.id, invIds))
         : [];
-      const invoiceDateMap = new Map(invRows.map(r => [r.id, r.issueDate]));
+      const invoiceDataMap = new Map(invRows.map(r => [r.id, r]));
 
       const invRowsByNum = invNumbers.length > 0
         ? await db
-            .select({ invoiceNumber: invoiceArchive.invoiceNumber, issueDate: invoiceArchive.issueDate })
+            .select({
+              invoiceNumber: invoiceArchive.invoiceNumber,
+              issueDate: invoiceArchive.issueDate,
+              total: invoiceArchive.total,
+              totalVAT: invoiceArchive.totalVAT,
+            })
             .from(invoiceArchive)
             .where(and(eq(invoiceArchive.tenantId, tenantId), inArray(invoiceArchive.invoiceNumber, invNumbers)))
         : [];
-      const invoiceNumDateMap = new Map(invRowsByNum.map(r => [r.invoiceNumber, r.issueDate]));
+      const invoiceNumDataMap = new Map(invRowsByNum.map(r => [r.invoiceNumber, r]));
 
       const lines = await db
         .select({
@@ -4581,8 +4779,8 @@ export const appRouter = router({
         };
         cur.linesCount += 1;
         const lineNet = parseFloat(String(l.total || "0")) || 0;
-        const lineVatRate = parseFloat(String(l.vatRate || "19")) || 0;
-        const lineVat = (lineNet * lineVatRate) / 100;
+        const lineVatRate = parseFloat(String(l.vatRate || "21")) || 0;
+        const lineVat = Math.round(((lineNet * lineVatRate) / 100) * 100) / 100;
         cur.totalNet += lineNet;
         cur.totalVat += lineVat;
         cur.totalWithVat += (lineNet + lineVat);
@@ -4617,12 +4815,28 @@ export const appRouter = router({
           lineObservations: [],
         };
 
-        const allAccounts = Array.from(new Set([n.accountingAccount, ...stats.accounts].filter(Boolean))) as string[];
-
-        const invoiceDate =
-          (n.invoiceArchiveId ? invoiceDateMap.get(n.invoiceArchiveId) : null) ||
-          (n.invoiceNumber ? invoiceNumDateMap.get(n.invoiceNumber) : null) ||
+        const linkedInv =
+          (n.invoiceArchiveId ? invoiceDataMap.get(n.invoiceArchiveId) : null) ||
+          (n.invoiceNumber ? invoiceNumDataMap.get(n.invoiceNumber) : null) ||
           null;
+
+        const invoiceDate = linkedInv?.issueDate || null;
+
+        let totalNet = stats.totalNet;
+        let totalVat = stats.totalVat;
+        let totalWithVat = stats.totalWithVat;
+
+        // Aliniem cu totalul oficial al facturii pentru diferente de rotunjire (1-15 bani)
+        if (linkedInv && linkedInv.total !== null && linkedInv.total !== undefined) {
+          const invTot = parseFloat(String(linkedInv.total)) || 0;
+          const invVat = parseFloat(String(linkedInv.totalVAT || "0")) || 0;
+          if (invTot !== 0 && Math.abs(Math.abs(invTot) - Math.abs(totalWithVat)) <= 0.15) {
+            totalWithVat = invTot;
+            totalVat = totalWithVat < 0 ? -Math.abs(invVat) : Math.abs(invVat);
+            totalNet = Math.round((totalWithVat - totalVat) * 100) / 100;
+          }
+        }
+        const allAccounts = Array.from(new Set([n.accountingAccount, ...stats.accounts].filter(Boolean))) as string[];
 
         const searchTokens = [
           n.nirNumber,
@@ -4647,9 +4861,9 @@ export const appRouter = router({
           ...n,
           invoiceDate,
           linesCount: stats.linesCount,
-          totalNet: stats.totalNet,
-          totalVat: stats.totalVat,
-          totalWithVat: stats.totalWithVat,
+          totalNet,
+          totalVat,
+          totalWithVat,
           accounts: allAccounts,
           articleCodes: stats.articleCodes,
           lineDescriptions: stats.lineDescriptions,
@@ -4663,7 +4877,7 @@ export const appRouter = router({
       const db = await getDb();
       if (!db) throw new Error("No DB");
       const { nir, nirLines, invoiceArchive } = await import("../drizzle/schema");
-      const tenantId = (ctx.user?.tenantId || 1);
+      const tenantId = (tenantOf(ctx));
       
       const nirs = await db
         .select()
@@ -4734,7 +4948,7 @@ export const appRouter = router({
         if (!db) throw new Error("No DB");
         const { nir, nirLines, invoiceArchive } = await import("../drizzle/schema");
         const { sagaArticles } = await import("../modules/saga/schema");
-        const tenantId = (ctx.user?.tenantId || 1);
+        const tenantId = (tenantOf(ctx));
         const [nirRow] = await db
           .select()
           .from(nir)
@@ -4747,11 +4961,13 @@ export const appRouter = router({
         let invoiceDate: string | null = null;
         let inv = null;
         if (nirRow.invoiceArchiveId) {
-          const [found] = await db.select().from(invoiceArchive).where(eq(invoiceArchive.id, nirRow.invoiceArchiveId));
+          const [found] = await db.select().from(invoiceArchive).where(and(eq(invoiceArchive.id, nirRow.invoiceArchiveId), eq(invoiceArchive.tenantId, tenantId)));
           inv = found;
         } else if (nirRow.invoiceNumber) {
-          const [found] = await db.select().from(invoiceArchive).where(and(eq(invoiceArchive.tenantId, tenantId), eq(invoiceArchive.invoiceNumber, nirRow.invoiceNumber)));
-          inv = found;
+          const cands = await db.select().from(invoiceArchive).where(and(eq(invoiceArchive.tenantId, tenantId), eq(invoiceArchive.invoiceNumber, nirRow.invoiceNumber)));
+          const normCui = (x: any) => String(x || "").replace(/\D/g, "");
+          const nCui = normCui(nirRow.supplierCUI);
+          inv = (nCui ? cands.find((c: any) => normCui(c.supplierCUI) === nCui) : cands.length === 1 ? cands[0] : undefined) || null;
         }
         if (inv) {
           invoiceDate = inv.issueDate || null;
@@ -4770,12 +4986,7 @@ export const appRouter = router({
           const [si] = await db
             .select()
             .from(sagaIntrari)
-            .where(
-              and(
-                eq(sagaIntrari.tenantId, tenantId),
-                nirRow.invoiceNumber ? eq(sagaIntrari.nrDoc, nirRow.invoiceNumber) : eq(sagaIntrari.nirId, nirRow.id)
-              )
-            );
+            .where(and(eq(sagaIntrari.tenantId, tenantId), eq(sagaIntrari.nirId, nirRow.id)));
           if (si?.idSPV) spvIndex = si.idSPV;
         }
         if (!spvIndex && nirRow.notes) {
@@ -4810,23 +5021,10 @@ export const appRouter = router({
       }),
 
     getNextNumber: protectedProcedure.query(async ({ ctx }) => {
-      
       const db = await getDb();
       if (!db) throw new Error("No DB");
-      const { nir } = await import("../drizzle/schema");
-      const year = new Date().getFullYear();
-      const last = await db
-        .select({ nirNumber: nir.nirNumber })
-        .from(nir)
-        .where(eq(nir.tenantId, (ctx.user?.tenantId || 1)))
-        .orderBy(desc(nir.id))
-        .limit(1);
-      let nextNum = 1;
-      if (last[0]?.nirNumber) {
-        const match = last[0].nirNumber.match(/(\d+)$/);
-        if (match) nextNum = parseInt(match[1]) + 1;
-      }
-      return `NIR-${year}-${String(nextNum).padStart(4, "0")}`;
+      const { computeNextNirNumber } = await import("./nirNumber");
+      return computeNextNirNumber(db, tenantOf(ctx));
     }),
 
     consumeLine: protectedProcedure
@@ -4847,12 +5045,22 @@ export const appRouter = router({
         const { nirLines } = await import("../drizzle/schema");
         const { eq, sql } = await import("drizzle-orm");
 
+        const { nir } = await import("../drizzle/schema");
+        const tenantId = tenantOf(ctx);
+
         for (const line of input.lines) {
+          // Doar liniile unui NIR al tenant-ului curent
+          const [owned] = await db
+            .select({ id: nirLines.id })
+            .from(nirLines)
+            .innerJoin(nir, eq(nir.id, nirLines.nirId))
+            .where(and(eq(nirLines.id, line.nirLineId), eq(nir.tenantId, tenantId)));
+          if (!owned) continue;
           // Increment the consumedQty by the amount consumed
           await db
             .update(nirLines)
             .set({
-              consumedQty: sql`${nirLines.consumedQty} + ${line.qty.toFixed(2)}`,
+              consumedQty: sql`COALESCE(${nirLines.consumedQty}, 0) + ${line.qty.toFixed(2)}`,
             })
             .where(eq(nirLines.id, line.nirLineId));
         }
@@ -4908,7 +5116,21 @@ export const appRouter = router({
         const { nir, nirLines } = await import("../drizzle/schema");
         const { sagaIntrari, sagaIntrariLinii, sagaArticles } = await import("../modules/saga/schema");
         const { desc, eq, inArray, and } = await import("drizzle-orm");
-        const tenantId = ctx.user?.tenantId || 1;
+        const tenantId = tenantOf(ctx);
+
+        // Protecție dublu-submit: aceeași factură nu primește 2 NIR-uri la mai puțin de 60s distanță
+        // (recepțiile parțiale — mai multe NIR-uri pe aceeași factură — rămân permise)
+        if (input.invoiceArchiveId) {
+          const [dup] = await db
+            .select({ id: nir.id, nirNumber: nir.nirNumber, createdAt: nir.createdAt })
+            .from(nir)
+            .where(and(eq(nir.tenantId, tenantId), eq(nir.invoiceArchiveId, input.invoiceArchiveId)))
+            .orderBy(desc(nir.id))
+            .limit(1);
+          if (dup && dup.createdAt && Date.now() - new Date(dup.createdAt).getTime() < 60_000) {
+            throw new Error(`NIR-ul ${dup.nirNumber} pentru această factură tocmai a fost creat.`);
+          }
+        }
 
         // Auto-assign or create articles in sagaArticles if articleCode is given
         for (const l of input.lines) {
@@ -4935,7 +5157,7 @@ export const appRouter = router({
                   code: cleanCode,
                   name: l.description || `Articol ${cleanCode}`,
                   unit: l.unit || "buc",
-                  vatRate: String(l.vatRate || "19"),
+                  vatRate: String(l.vatRate || "21"),
                   category: l.accountingType || "Marfuri",
                   accountingAccount: l.accountingAccount || "371",
                   sagaCode: cleanCode,
@@ -4947,22 +5169,19 @@ export const appRouter = router({
           }
         }
 
-        // 1. Auto-assign NIR if empty
-        let finalNirNumber = input.nirNumber;
-        if (!finalNirNumber || finalNirNumber.trim() === "") {
-          const year = new Date().getFullYear();
-          const last = await db
-            .select({ nirNumber: nir.nirNumber })
+        // 1. Auto-assign NIR if empty (sau dacă numărul cerut e deja luat — ex: 2 tab-uri)
+        const { computeNextNirNumber } = await import("./nirNumber");
+        let finalNirNumber = (input.nirNumber || "").trim();
+        if (finalNirNumber) {
+          const [taken] = await db
+            .select({ id: nir.id })
             .from(nir)
-            .where(eq(nir.tenantId, tenantId))
-            .orderBy(desc(nir.id))
+            .where(and(eq(nir.tenantId, tenantId), eq(nir.nirNumber, finalNirNumber)))
             .limit(1);
-          let nextNum = 1;
-          if (last[0]?.nirNumber) {
-            const match = last[0].nirNumber.match(/(\d+)$/);
-            if (match) nextNum = parseInt(match[1]) + 1;
-          }
-          finalNirNumber = `NIR-${year}-${String(nextNum).padStart(4, "0")}`;
+          if (taken) finalNirNumber = "";
+        }
+        if (!finalNirNumber) {
+          finalNirNumber = await computeNextNirNumber(db, tenantId);
         }
 
         // Lookup invoice metadata (issueDate, SPV Index, currency)
@@ -4977,7 +5196,7 @@ export const appRouter = router({
           const [inv] = await db
             .select()
             .from(invoiceArchive)
-            .where(eq(invoiceArchive.id, input.invoiceArchiveId));
+            .where(and(eq(invoiceArchive.id, input.invoiceArchiveId), eq(invoiceArchive.tenantId, tenantId)));
           if (inv) {
             if (inv.currency && inv.currency.trim()) {
               invoiceCurrency = inv.currency.trim().toUpperCase();
@@ -5010,34 +5229,48 @@ export const appRouter = router({
           }
         }
 
-        // 2. Insert into main NIR table
-        const [result] = await db.insert(nir).values({
-          tenantId,
-          nirNumber: finalNirNumber,
-          invoiceArchiveId: input.invoiceArchiveId,
-          invoiceNumber: input.invoiceNumber,
-          avizNumber: input.avizNumber,
-          supplierName: input.supplierName,
-          supplierCUI: input.supplierCUI,
-          supplierAddress: input.supplierAddress,
-          gestiune: input.gestiune,
-          receiptDate: input.receiptDate,
-          currency: invoiceCurrency,
-          exchangeRate: exchangeRate.toFixed(4),
-          member1Name: input.member1Name,
-          member1Function: input.member1Function,
-          member2Name: input.member2Name,
-          member2Function: input.member2Function,
-          member3Name: input.member3Name,
-          member3Function: input.member3Function,
-          hasDifferences: input.hasDifferences ?? 0,
-          differenceNotes: input.differenceNotes,
-          notes: input.notes,
-          accountingType: input.accountingType,
-          accountingAccount: input.accountingAccount,
-          status: "draft",
-        });
-        const nirId = (result as any).insertId;
+        // 2. Insert into main NIR table (cu protecție la coliziuni concurente prin reîncercare automată)
+        let nirId: number | null = null;
+        let attempts = 0;
+        while (!nirId && attempts < 5) {
+          attempts++;
+          try {
+            const [result] = await db.insert(nir).values({
+              tenantId,
+              nirNumber: finalNirNumber,
+              invoiceArchiveId: input.invoiceArchiveId,
+              invoiceNumber: input.invoiceNumber,
+              avizNumber: input.avizNumber,
+              supplierName: input.supplierName,
+              supplierCUI: input.supplierCUI,
+              supplierAddress: input.supplierAddress,
+              gestiune: input.gestiune,
+              receiptDate: input.receiptDate,
+              currency: invoiceCurrency,
+              exchangeRate: exchangeRate.toFixed(4),
+              member1Name: input.member1Name,
+              member1Function: input.member1Function,
+              member2Name: input.member2Name,
+              member2Function: input.member2Function,
+              member3Name: input.member3Name,
+              member3Function: input.member3Function,
+              hasDifferences: input.hasDifferences ?? 0,
+              differenceNotes: input.differenceNotes,
+              notes: input.notes,
+              accountingType: input.accountingType,
+              accountingAccount: input.accountingAccount,
+              status: "draft",
+            });
+            nirId = (result as any).insertId;
+          } catch (err: any) {
+            if ((err?.code === "ER_DUP_ENTRY" || err?.message?.includes("Duplicate entry") || err?.message?.includes("unique_tenant_nir_number")) && attempts < 5) {
+              finalNirNumber = await computeNextNirNumber(db, tenantId);
+              continue;
+            }
+            throw err;
+          }
+        }
+        if (!nirId) throw new Error("Nu s-a putut genera un număr unic de NIR.");
 
         // 3. Insert into nirLines
         if (input.lines.length > 0) {
@@ -5065,9 +5298,19 @@ export const appRouter = router({
         let totalTvaSuma = 0;
         
         input.lines.forEach(l => {
-          totalValoare += parseFloat(l.total || "0");
-          totalTvaSuma += (parseFloat(l.total || "0") * parseFloat(l.vatRate || "19")) / 100;
+          const v = parseFloat(l.total || "0") || 0;
+          totalValoare += v;
+          totalTvaSuma += Math.round(((v * (parseFloat(l.vatRate || "21") || 0)) / 100) * 100) / 100;
         });
+        totalValoare = Math.round(totalValoare * 100) / 100;
+        totalTvaSuma = Math.round(totalTvaSuma * 100) / 100;
+
+        const { sql: sqlFn } = await import("drizzle-orm");
+        const [maxIntern] = await db
+          .select({ m: sqlFn<number>`MAX(${sagaIntrari.nrIntern})` })
+          .from(sagaIntrari)
+          .where(eq(sagaIntrari.tenantId, tenantId));
+        const nextNrIntern = (Number(maxIntern?.m) || 0) + 1;
 
         let valoareRon = totalValoare;
         let tvaRon = totalTvaSuma;
@@ -5090,6 +5333,7 @@ export const appRouter = router({
           tenantId,
           tip: isForeignCurrency ? "Factura valuta" : "Factura",
           nrDoc: input.invoiceNumber || finalNirNumber,
+          nrIntern: nextNrIntern,
           numeFurnizor: input.supplierName,
           cuiFurnizor: input.supplierCUI,
           data: invoiceDocDate,
@@ -5121,8 +5365,8 @@ export const appRouter = router({
               const acc = String(l.accountingAccount || input.accountingAccount || "371").trim();
               const isService = acc.startsWith("6") || acc.startsWith("7") || acc.startsWith("409") || l.accountingType === "Servicii" || l.accountingType === "Avans";
               const art = loadedArticles.find(a => a.id === l.sagaArticleId);
-              const val = parseFloat(l.total || "0");
-              const tva = (val * parseFloat(l.vatRate || "19")) / 100;
+              const val = parseFloat(l.total || "0") || 0;
+              const tva = Math.round(((val * (parseFloat(l.vatRate || "21") || 0)) / 100) * 100) / 100;
               return {
                 intrareId,
                 tip: l.accountingType || (isService ? "Serviciu" : "Marfa"),
@@ -5130,7 +5374,7 @@ export const appRouter = router({
                 cod: art?.code || (l as any).articleCode || undefined,
                 denumire: l.description,
                 um: l.unit || "buc",
-                tvaPercent: l.vatRate || "19",
+                tvaPercent: l.vatRate || "21",
                 cantitate: l.cantitateReceptionata,
                 pretUnitar: l.unitPrice || "0",
                 valoare: val.toString(),
@@ -5195,8 +5439,15 @@ export const appRouter = router({
         const { nir, nirLines } = await import("../drizzle/schema");
         const { sagaIntrari, sagaIntrariLinii, sagaArticles } = await import("../modules/saga/schema");
         const { inArray, and, eq } = await import("drizzle-orm");
-        const tenantId = ctx.user?.tenantId || 1;
+        const tenantId = tenantOf(ctx);
         const { id, lines, ...updateData } = input;
+
+        // Securitate: NIR-ul trebuie să aparțină tenant-ului curent
+        const [ownNir] = await db
+          .select({ id: nir.id })
+          .from(nir)
+          .where(and(eq(nir.id, id), eq(nir.tenantId, tenantId)));
+        if (!ownNir) throw new Error("NIR inexistent sau fără acces");
 
         if (lines) {
           for (const l of lines) {
@@ -5223,7 +5474,7 @@ export const appRouter = router({
                     code: cleanCode,
                     name: l.description || `Articol ${cleanCode}`,
                     unit: l.unit || "buc",
-                    vatRate: String(l.vatRate || "19"),
+                    vatRate: String(l.vatRate || "21"),
                     category: l.accountingType || "Marfuri",
                     accountingAccount: l.accountingAccount || "371",
                     sagaCode: cleanCode,
@@ -5291,7 +5542,7 @@ export const appRouter = router({
           const { sagaIntrari, sagaIntrariLinii, sagaArticles } = await import("../modules/saga/schema");
           const { inArray } = await import("drizzle-orm");
           
-          const existingSagaIntrari = await db.select().from(sagaIntrari).where(eq(sagaIntrari.nirId, id));
+          const existingSagaIntrari = await db.select().from(sagaIntrari).where(and(eq(sagaIntrari.nirId, id), eq(sagaIntrari.tenantId, tenantId)));
           if (existingSagaIntrari.length > 0) {
             const intrareId = existingSagaIntrari[0].id;
             const existingHeader = existingSagaIntrari[0];
@@ -5301,8 +5552,9 @@ export const appRouter = router({
             let totalValoare = 0;
             let totalTvaSuma = 0;
             lines.forEach(l => {
-              totalValoare += parseFloat(l.total || "0");
-              totalTvaSuma += (parseFloat(l.total || "0") * parseFloat(l.vatRate || "19")) / 100;
+              const v = parseFloat(l.total || "0") || 0;
+              totalValoare += v;
+              totalTvaSuma += Math.round(((v * (parseFloat(l.vatRate ?? "21") || 0)) / 100) * 100) / 100;
             });
 
             let valoareRon = totalValoare;
@@ -5343,8 +5595,8 @@ export const appRouter = router({
               await db.insert(sagaIntrariLinii).values(
                 lines.map((l, idx) => {
                   const art = loadedArticles.find(a => a.id === l.sagaArticleId);
-                  const val = parseFloat(l.total || "0");
-                  const tva = (val * parseFloat(l.vatRate || "19")) / 100;
+                  const val = parseFloat(l.total || "0") || 0;
+                  const tva = Math.round(((val * (parseFloat(l.vatRate ?? "21") || 0)) / 100) * 100) / 100;
                   return {
                     intrareId,
                     tip: l.accountingType || "Marfa",
@@ -5352,7 +5604,7 @@ export const appRouter = router({
                     cod: art?.code || undefined,
                     denumire: l.description,
                     um: l.unit || "buc",
-                    tvaPercent: l.vatRate || "19",
+                    tvaPercent: l.vatRate ?? "21",
                     cantitate: l.cantitateReceptionata,
                     pretUnitar: l.unitPrice || "0",
                     valoare: val.toString(),
@@ -5380,7 +5632,7 @@ export const appRouter = router({
           .update(nir)
           .set({ status: "finalizat" })
           .where(
-            and(eq(nir.id, input.id), eq(nir.tenantId, (ctx.user?.tenantId || 1)))
+            and(eq(nir.id, input.id), eq(nir.tenantId, (tenantOf(ctx))))
           );
         return { success: true };
       }),
@@ -5392,12 +5644,26 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new Error("No DB");
         const { nir, nirLines } = await import("../drizzle/schema");
+        const { sagaIntrari, sagaIntrariLinii } = await import("../modules/saga/schema");
+        const tenantId = tenantOf(ctx);
+        const [own] = await db
+          .select({ id: nir.id })
+          .from(nir)
+          .where(and(eq(nir.id, input.id), eq(nir.tenantId, tenantId)));
+        if (!own) throw new Error("NIR inexistent sau fără acces");
+        // Curăță și intrarea SAGA legată (altfel rămâne orfană în Intrări / export)
+        const linked = await db
+          .select({ id: sagaIntrari.id })
+          .from(sagaIntrari)
+          .where(and(eq(sagaIntrari.nirId, input.id), eq(sagaIntrari.tenantId, tenantId)));
+        for (const li of linked) {
+          await db.delete(sagaIntrariLinii).where(eq(sagaIntrariLinii.intrareId, li.id));
+          await db.delete(sagaIntrari).where(eq(sagaIntrari.id, li.id));
+        }
         await db.delete(nirLines).where(eq(nirLines.nirId, input.id));
         await db
           .delete(nir)
-          .where(
-            and(eq(nir.id, input.id), eq(nir.tenantId, (ctx.user?.tenantId || 1)))
-          );
+          .where(and(eq(nir.id, input.id), eq(nir.tenantId, tenantId)));
         return { success: true };
       }),
 
@@ -5408,15 +5674,28 @@ export const appRouter = router({
         if (!db) throw new Error("No DB");
         if (input.ids.length === 0) return { count: 0 };
         const { nir, nirLines } = await import("../drizzle/schema");
+        const { sagaIntrari, sagaIntrariLinii } = await import("../modules/saga/schema");
         const { inArray, and, eq } = await import("drizzle-orm");
-        const tenantId = ctx.user?.tenantId || 1;
-        await db.delete(nirLines).where(inArray(nirLines.nirId, input.ids));
-        await db
-          .delete(nir)
-          .where(
-            and(inArray(nir.id, input.ids), eq(nir.tenantId, tenantId))
-          );
-        return { count: input.ids.length };
+        const tenantId = tenantOf(ctx);
+        // Doar NIR-urile tenant-ului curent
+        const owned = await db
+          .select({ id: nir.id })
+          .from(nir)
+          .where(and(inArray(nir.id, input.ids), eq(nir.tenantId, tenantId)));
+        const ownedIds = owned.map((o: any) => o.id);
+        if (ownedIds.length === 0) return { count: 0 };
+        const linked = await db
+          .select({ id: sagaIntrari.id })
+          .from(sagaIntrari)
+          .where(and(inArray(sagaIntrari.nirId, ownedIds), eq(sagaIntrari.tenantId, tenantId)));
+        const linkedIds = linked.map((l: any) => l.id);
+        if (linkedIds.length > 0) {
+          await db.delete(sagaIntrariLinii).where(inArray(sagaIntrariLinii.intrareId, linkedIds));
+          await db.delete(sagaIntrari).where(inArray(sagaIntrari.id, linkedIds));
+        }
+        await db.delete(nirLines).where(inArray(nirLines.nirId, ownedIds));
+        await db.delete(nir).where(inArray(nir.id, ownedIds));
+        return { count: ownedIds.length };
       }),
 
     bulkUpdate: protectedProcedure
@@ -5435,7 +5714,7 @@ export const appRouter = router({
         if (input.ids.length === 0) return { count: 0 };
         const { nir } = await import("../drizzle/schema");
         const { inArray, and, eq } = await import("drizzle-orm");
-        const tenantId = ctx.user?.tenantId || 1;
+        const tenantId = tenantOf(ctx);
         const updateData: Record<string, any> = {};
         if (input.status) updateData.status = input.status;
         if (input.gestiune !== undefined && input.gestiune !== "") updateData.gestiune = input.gestiune;
@@ -5449,6 +5728,40 @@ export const appRouter = router({
             .where(
               and(inArray(nir.id, input.ids), eq(nir.tenantId, tenantId))
             );
+
+          // Propagă contul / tipul și pe liniile NIR + liniile din SAGA (exportul XML citește întâi liniile)
+          if (updateData.accountingAccount || updateData.accountingType) {
+            const owned = await db
+              .select({ id: nir.id })
+              .from(nir)
+              .where(and(inArray(nir.id, input.ids), eq(nir.tenantId, tenantId)));
+            const ownedIds = owned.map(o => o.id);
+            if (ownedIds.length > 0) {
+              const { nirLines } = await import("../drizzle/schema");
+              const { sagaIntrari, sagaIntrariLinii } = await import("../modules/saga/schema");
+              const lineSet: Record<string, any> = {};
+              const sagaSet: Record<string, any> = {};
+              if (updateData.accountingAccount) {
+                lineSet.accountingAccount = updateData.accountingAccount;
+                sagaSet.cont = updateData.accountingAccount;
+              }
+              if (updateData.accountingType) {
+                lineSet.accountingType = updateData.accountingType;
+                sagaSet.tip = updateData.accountingType;
+              }
+              await db.update(nirLines).set(lineSet).where(inArray(nirLines.nirId, ownedIds));
+              const linked = await db
+                .select({ id: sagaIntrari.id })
+                .from(sagaIntrari)
+                .where(and(inArray(sagaIntrari.nirId, ownedIds), eq(sagaIntrari.tenantId, tenantId)));
+              if (linked.length > 0) {
+                await db
+                  .update(sagaIntrariLinii)
+                  .set(sagaSet)
+                  .where(inArray(sagaIntrariLinii.intrareId, linked.map(l => l.id)));
+              }
+            }
+          }
         }
         return { count: input.ids.length };
       }),
@@ -5458,21 +5771,21 @@ export const appRouter = router({
   // INTEGRATION SMART QR PONTAJ (BILLING / DEVIZE)
   // =========================================================================
   qrPontaj: router({
-    getDeviz: protectedProcedure
+    getDeviz: qrPontajProcedure
       .input(
         z
           .object({
             tenantId: z.number().optional().default(2),
-            month: z.number().optional().default(10),
-            year: z.number().optional().default(2026),
+            month: z.number().optional().default(() => new Date().getMonth() + 1),
+            year: z.number().optional().default(() => new Date().getFullYear()),
             exchangeRate: z.number().optional(),
           })
           .optional()
       )
       .query(async ({ input }) => {
         const tenantId = input?.tenantId ?? 2;
-        const month = input?.month ?? 10;
-        const year = input?.year ?? 2026;
+        const month = input?.month ?? new Date().getMonth() + 1;
+        const year = input?.year ?? new Date().getFullYear();
         let url = `http://localhost:5001/api/billing/deviz?tenant_id=${tenantId}&month=${month}&year=${year}`;
         if (input?.exchangeRate) {
           url += `&exchange_rate=${input.exchangeRate}`;
@@ -5489,7 +5802,7 @@ export const appRouter = router({
         }
       }),
 
-    getTenants: protectedProcedure.query(async () => {
+    getTenants: qrPontajProcedure.query(async () => {
       try {
         const res = await fetch("http://localhost:5001/api/tenants");
         if (!res.ok) {
@@ -5624,7 +5937,7 @@ export const appRouter = router({
       if (!db) throw new Error("No DB");
       const { devize, emittedInvoices, reInvoices } = await import("../drizzle/schema");
       const { inArray, desc, eq, and } = await import("drizzle-orm");
-      const tenantId = ctx.user?.tenantId || 1;
+      const tenantId = tenantOf(ctx);
 
       const devizList = await db
         .select()
@@ -5703,7 +6016,7 @@ export const appRouter = router({
         if (!db) throw new Error("No DB");
         const { devize, devizeLines, emittedInvoices, reInvoices, tenants } = await import("../drizzle/schema");
         const { eq, and } = await import("drizzle-orm");
-        const tenantId = ctx.user?.tenantId || 1;
+        const tenantId = tenantOf(ctx);
 
         const [deviz] = await db
           .select()
@@ -5815,7 +6128,7 @@ export const appRouter = router({
           .where(
             and(
               eq(devize.invoiceId, input.invoiceId),
-              eq(devize.tenantId, (ctx.user?.tenantId || 1))
+              eq(devize.tenantId, (tenantOf(ctx)))
             )
           );
         if (!deviz) return null;
@@ -5866,7 +6179,7 @@ export const appRouter = router({
         }
 
         const [insertResult] = await db.insert(devize).values({
-          tenantId: (ctx.user?.tenantId || 1),
+          tenantId: (tenantOf(ctx)),
           number: input.number,
           date: new Date(input.date),
           invoiceId: input.invoiceId,
@@ -5951,7 +6264,7 @@ export const appRouter = router({
           .update(devize)
           .set(updateData)
           .where(
-            and(eq(devize.id, input.id), eq(devize.tenantId, (ctx.user?.tenantId || 1)))
+            and(eq(devize.id, input.id), eq(devize.tenantId, (tenantOf(ctx))))
           );
 
         await db.delete(devizeLines).where(eq(devizeLines.devizId, input.id));
@@ -5983,7 +6296,7 @@ export const appRouter = router({
         await db
           .delete(devize)
           .where(
-            and(eq(devize.id, input.id), eq(devize.tenantId, (ctx.user?.tenantId || 1)))
+            and(eq(devize.id, input.id), eq(devize.tenantId, (tenantOf(ctx))))
           );
         return { success: true };
       }),
@@ -6020,7 +6333,7 @@ export const appRouter = router({
         .from(nirLines)
         .innerJoin(nir, eq(nir.id, nirLines.nirId))
         .where(
-          sql`${nir.tenantId} = ${(ctx.user?.tenantId || 1)} AND ${nirLines.cantitateReceptionata} > ${nirLines.consumedQty}`
+          sql`${nir.tenantId} = ${(tenantOf(ctx))} AND ${nirLines.cantitateReceptionata} > ${nirLines.consumedQty}`
         )
         .orderBy(sql`${nir.receiptDate} DESC`);
         
@@ -6043,7 +6356,7 @@ export const appRouter = router({
       return await db
         .select()
         .from(bonuriConsum)
-        .where(eq(bonuriConsum.tenantId, (ctx.user?.tenantId || 1)))
+        .where(eq(bonuriConsum.tenantId, (tenantOf(ctx))))
         .orderBy(desc(bonuriConsum.id));
     }),
 
@@ -6062,7 +6375,7 @@ export const appRouter = router({
           .where(
             and(
               eq(bonuriConsum.id, input.id),
-              eq(bonuriConsum.tenantId, (ctx.user?.tenantId || 1))
+              eq(bonuriConsum.tenantId, (tenantOf(ctx)))
             )
           );
         if (!bon) throw new Error("Not found");
@@ -6101,7 +6414,7 @@ export const appRouter = router({
           await import("../drizzle/schema");
 
         const [insertResult] = await db.insert(bonuriConsum).values({
-          tenantId: (ctx.user?.tenantId || 1),
+          tenantId: (tenantOf(ctx)),
           number: input.number,
           date: new Date(input.date),
           devizId: input.devizId,
@@ -6143,7 +6456,7 @@ export const appRouter = router({
           .where(
             and(
               eq(bonuriConsum.id, input.id),
-              eq(bonuriConsum.tenantId, (ctx.user?.tenantId || 1))
+              eq(bonuriConsum.tenantId, (tenantOf(ctx)))
             )
           );
         return { success: true };
