@@ -907,8 +907,8 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
       cleanIban,
       (data.currency || "RON").toUpperCase() + displayTotal.toFixed(2),
       "",
-      (data.number || "").slice(0, 35).trim(),
-      `Factura ${data.number || ""}`.slice(0, 140),
+      "",
+      `Factura ${data.number || ""}`.slice(0, 140).trim(),
     ].join("\n");
 
     const qrSize = 56;
