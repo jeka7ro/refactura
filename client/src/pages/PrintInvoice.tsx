@@ -77,6 +77,7 @@ export default function PrintInvoice() {
   const epcQrPayload = useMemo(() => {
     if (!effectiveIban || !invoice) return "";
     const totalAmount = parseFloat(String(invoice.total || 0));
+    const cleanIban = effectiveIban.replace(/\s+/g, "").toUpperCase();
     return [
       "BCD",
       "002",
@@ -84,11 +85,11 @@ export default function PrintInvoice() {
       "SCT",
       "",
       (tenant?.name || "").slice(0, 70).trim(),
-      effectiveIban,
+      cleanIban,
       (invoice.currency || "RON").toUpperCase() + totalAmount.toFixed(2),
       "",
-      (invoice.number || "").slice(0, 35).trim(),
-      `Factura ${invoice.number || ""}`.slice(0, 140),
+      "",
+      `Factura ${invoice.number || ""}`.slice(0, 140).trim(),
     ].join("\n");
   }, [effectiveIban, invoice, tenant]);
 
