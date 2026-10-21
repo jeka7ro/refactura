@@ -942,19 +942,39 @@ export function registerPdfRoute(app: any) {
         if (m) spvIndex = m[1];
       }
 
-      const isCreditNote = !!(
-        (linkedInvoice?.rawXml && (
-          linkedInvoice.rawXml.includes("<CreditNote") ||
-          linkedInvoice.rawXml.includes(":CreditNote") ||
-          linkedInvoice.rawXml.includes("CreditNoteLine") ||
-          linkedInvoice.rawXml.includes("<cbc:InvoiceTypeCode>381</cbc:InvoiceTypeCode>") ||
-          linkedInvoice.rawXml.includes("<InvoiceTypeCode>381</InvoiceTypeCode>")
-        )) ||
-        (linkedInvoice?.notes && /storno|credit\s*note/i.test(linkedInvoice.notes)) ||
-        (linkedInvoice?.total && parseFloat(linkedInvoice.total) < 0) ||
-        (nirRow.notes && /storno|credit\s*note/i.test(nirRow.notes)) ||
-        linesRaw.some(l => parseFloat(String(l.cantitateReceptionata || "0")) < 0 || parseFloat(String(l.total || "0")) < 0)
-      );
+      const netLinesTotal = linesRaw.reduce((sum, l) => {
+        const q = parseFloat(String(l.cantitateReceptionata || "0"));
+        const p = parseFloat(String(l.unitPrice || "0"));
+        const t = parseFloat(String(l.total || "0"));
+        return sum + (!isNaN(t) && t !== 0 ? t : (!isNaN(q) && !isNaN(p) ? q * p : 0));
+      }, 0);
+
+      const invTotalNum = linkedInvoice?.total != null ? parseFloat(String(linkedInvoice.total)) : null;
+
+      const isCreditNote = invTotalNum !== null && !isNaN(invTotalNum)
+        ? (invTotalNum < 0 || !!(
+            (linkedInvoice?.rawXml && (
+              linkedInvoice.rawXml.includes("<CreditNote") ||
+              linkedInvoice.rawXml.includes(":CreditNote") ||
+              linkedInvoice.rawXml.includes("CreditNoteLine") ||
+              linkedInvoice.rawXml.includes("<cbc:InvoiceTypeCode>381</cbc:InvoiceTypeCode>") ||
+              linkedInvoice.rawXml.includes("<InvoiceTypeCode>381</InvoiceTypeCode>")
+            )) ||
+            (linkedInvoice?.notes && /storno|credit\s*note/i.test(linkedInvoice.notes)) ||
+            (nirRow.notes && /storno|credit\s*note/i.test(nirRow.notes))
+          )) && invTotalNum <= 0
+        : !!(
+            (linkedInvoice?.rawXml && (
+              linkedInvoice.rawXml.includes("<CreditNote") ||
+              linkedInvoice.rawXml.includes(":CreditNote") ||
+              linkedInvoice.rawXml.includes("CreditNoteLine") ||
+              linkedInvoice.rawXml.includes("<cbc:InvoiceTypeCode>381</cbc:InvoiceTypeCode>") ||
+              linkedInvoice.rawXml.includes("<InvoiceTypeCode>381</InvoiceTypeCode>")
+            )) ||
+            (linkedInvoice?.notes && /storno|credit\s*note/i.test(linkedInvoice.notes)) ||
+            (nirRow.notes && /storno|credit\s*note/i.test(nirRow.notes)) ||
+            netLinesTotal < 0
+          );
       let settings: any = {};
       try {
         settings = JSON.parse(tenant?.settings || "{}");
@@ -1308,9 +1328,7 @@ export function registerPdfRoute(app: any) {
             align: "right" as const,
           },
           {
-            val: lineUnitPrice.toLocaleString("ro-RO", {
-              minimumFractionDigits: 2,
-            }),
+            val: fmt2(lineUnitPrice),
             align: "right" as const,
           },
           {
@@ -1318,9 +1336,7 @@ export function registerPdfRoute(app: any) {
             align: "center" as const,
           },
           {
-            val: lineTotalVal.toLocaleString("ro-RO", {
-              minimumFractionDigits: 2,
-            }),
+            val: fmt2(lineTotalVal),
             align: "right" as const,
           }
         );
@@ -1402,19 +1418,19 @@ export function registerPdfRoute(app: any) {
       // 1. TOTAL FARA TVA
       doc.rect(40, y, W, 14).fillColor(LIGHT).strokeColor(BORDER).lineWidth(0.5).fillAndStroke();
       doc.fontSize(6.5).font("Roboto-Bold").fillColor(GRAY).text(`TOTAL FĂRĂ TVA${curSuffix}:`, 40 + 3, y + 4, { width: W - 75, align: "right" });
-      doc.fillColor("#334155").text(`${totalFaraTva.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}`, 40 + W - 70, y + 4, { width: 68, align: "right" });
+      doc.fillColor("#334155").text(`${fmt2(totalFaraTva)}`, 40 + W - 70, y + 4, { width: 68, align: "right" });
       y += 14;
       
       // 2. TOTAL TVA
       doc.rect(40, y, W, 14).fillColor(LIGHT).strokeColor(BORDER).lineWidth(0.5).fillAndStroke();
       doc.fontSize(6.5).font("Roboto-Bold").fillColor(GRAY).text(`TOTAL TVA${curSuffix}:`, 40 + 3, y + 4, { width: W - 75, align: "right" });
-      doc.fillColor("#334155").text(`${totalTva.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}`, 40 + W - 70, y + 4, { width: 68, align: "right" });
+      doc.fillColor("#334155").text(`${fmt2(totalTva)}`, 40 + W - 70, y + 4, { width: 68, align: "right" });
       y += 14;
       
       // 3. TOTAL CU TVA
       doc.rect(40, y, W, 16).fillColor(TEAL).fill();
       doc.fontSize(7.5).font("Roboto-Bold").fillColor("white").text(`${isCreditNote ? "TOTAL CU TVA (STORNO)" : "TOTAL CU TVA"}${curSuffix}:`, 40 + 3, y + 4.5, { width: W - 75, align: "right" });
-      doc.fontSize(8.5).text(`${totalCuTva.toLocaleString("ro-RO", { minimumFractionDigits: 2 })}`, 40 + W - 70, y + 4, { width: 68, align: "right" });
+      doc.fontSize(8.5).text(`${fmt2(totalCuTva)}`, 40 + W - 70, y + 4, { width: 68, align: "right" });
       y += 22;
 
       // 4. Echivalent RON la cursul BNR (doar facturi în valută)

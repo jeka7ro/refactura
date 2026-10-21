@@ -394,16 +394,19 @@ export default function NIRCreate() {
       setInvoiceNumber(sourceInvoice.invoiceNumber || "");
       if ((sourceInvoice as any).spvIndex) setSpvIndex((sourceInvoice as any).spvIndex);
       const archLns = archiveLines as any[];
-      const isSourceCreditNote = !!(
-        (sourceInvoice as any)?.isCreditNote ||
-        sourceInvoice?.rawXml?.includes("<CreditNote") ||
-        sourceInvoice?.rawXml?.includes(":CreditNote") ||
-        sourceInvoice?.rawXml?.includes("CreditNoteLine") ||
-        sourceInvoice?.rawXml?.includes("<cbc:InvoiceTypeCode>381</cbc:InvoiceTypeCode>") ||
-        sourceInvoice?.rawXml?.includes("<InvoiceTypeCode>381</InvoiceTypeCode>") ||
-        parseFloat(sourceInvoice?.total || "0") < 0 ||
-        ((sourceInvoice as any)?.notes || "").toLowerCase().includes("storno")
-      );
+      const srcTotalNum = parseFloat(sourceInvoice?.total || "0");
+      const isSourceCreditNote = srcTotalNum > 0
+        ? false
+        : !!(
+            (sourceInvoice as any)?.isCreditNote ||
+            sourceInvoice?.rawXml?.includes("<CreditNote") ||
+            sourceInvoice?.rawXml?.includes(":CreditNote") ||
+            sourceInvoice?.rawXml?.includes("CreditNoteLine") ||
+            sourceInvoice?.rawXml?.includes("<cbc:InvoiceTypeCode>381</cbc:InvoiceTypeCode>") ||
+            sourceInvoice?.rawXml?.includes("<InvoiceTypeCode>381</InvoiceTypeCode>") ||
+            srcTotalNum < 0 ||
+            ((sourceInvoice as any)?.notes || "").toLowerCase().includes("storno")
+          );
 
       if (archLns.length > 0) {
         const assignedByDesc = new Map<string, { code: string; id?: number }>();
@@ -737,17 +740,31 @@ export default function NIRCreate() {
   );
   const totalCuTva = totalFaraTva + totalTva;
 
+  const invTotalNum = sourceInvoice?.total != null ? parseFloat(String(sourceInvoice.total)) : null;
+
   const isCreditNote = Boolean(
-    (sourceInvoice as any)?.isCreditNote ||
-    sourceInvoice?.rawXml?.includes("<CreditNote") ||
-    sourceInvoice?.rawXml?.includes(":CreditNote") ||
-    sourceInvoice?.rawXml?.includes("CreditNoteLine") ||
-    sourceInvoice?.rawXml?.includes("<cbc:InvoiceTypeCode>381</cbc:InvoiceTypeCode>") ||
-    sourceInvoice?.rawXml?.includes("<InvoiceTypeCode>381</InvoiceTypeCode>") ||
-    parseFloat(sourceInvoice?.total || "0") < 0 ||
-    ((sourceInvoice as any)?.notes || "").toLowerCase().includes("storno") ||
-    (existingNir as any)?.notes?.toLowerCase().includes("storno") ||
-    lines.some(l => parseFloat(l.cantitateReceptionata || "0") < 0 || parseFloat(l.total || "0") < 0)
+    invTotalNum !== null && !isNaN(invTotalNum)
+      ? (invTotalNum < 0 || (
+          (sourceInvoice as any)?.isCreditNote ||
+          sourceInvoice?.rawXml?.includes("<CreditNote") ||
+          sourceInvoice?.rawXml?.includes(":CreditNote") ||
+          sourceInvoice?.rawXml?.includes("CreditNoteLine") ||
+          sourceInvoice?.rawXml?.includes("<cbc:InvoiceTypeCode>381</cbc:InvoiceTypeCode>") ||
+          sourceInvoice?.rawXml?.includes("<InvoiceTypeCode>381</InvoiceTypeCode>") ||
+          ((sourceInvoice as any)?.notes || "").toLowerCase().includes("storno") ||
+          (existingNir as any)?.notes?.toLowerCase().includes("storno")
+        )) && invTotalNum <= 0
+      : (
+          (sourceInvoice as any)?.isCreditNote ||
+          sourceInvoice?.rawXml?.includes("<CreditNote") ||
+          sourceInvoice?.rawXml?.includes(":CreditNote") ||
+          sourceInvoice?.rawXml?.includes("CreditNoteLine") ||
+          sourceInvoice?.rawXml?.includes("<cbc:InvoiceTypeCode>381</cbc:InvoiceTypeCode>") ||
+          sourceInvoice?.rawXml?.includes("<InvoiceTypeCode>381</InvoiceTypeCode>") ||
+          ((sourceInvoice as any)?.notes || "").toLowerCase().includes("storno") ||
+          (existingNir as any)?.notes?.toLowerCase().includes("storno") ||
+          totalCuTva < 0
+        )
   );
 
   return (
