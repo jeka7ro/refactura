@@ -924,7 +924,7 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     ty += 11;
 
     doc.font("Roboto").fontSize(6.5).fillColor("#64748b");
-    doc.text("Mobile Banking (RoPay / SEPA Instant)", textX, ty, { width: textW });
+    doc.text("Mobile Banking (Scan & Pay / SEPA)", textX, ty, { width: textW });
     ty += 10;
 
     doc.font("Roboto-Bold").fontSize(7).fillColor("#0f172a");

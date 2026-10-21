@@ -282,7 +282,7 @@ export default function PrintInvoice() {
                 {isForeign ? "SCANEAZĂ ȘI PLĂTEȘTE / SCAN & PAY" : "SCANEAZĂ ȘI PLĂTEȘTE"}
               </div>
               <div className="text-[10px] text-slate-500 mt-0.5">
-                Mobile Banking (RoPay / SEPA)
+                Mobile Banking (Scan & Pay / SEPA)
               </div>
               <div className="font-semibold text-slate-900 mt-1 truncate">
                 IBAN: {effectiveIban}
