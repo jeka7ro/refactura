@@ -333,6 +333,14 @@ function drawTableRows(
         height: rowH - 8,
       });
     }
+    const isZeroVatInvoice =
+      data.totalVAT === 0 ||
+      (Number.isFinite(data.subtotal) &&
+        Number.isFinite(data.total) &&
+        Math.abs(data.subtotal - data.total) < 0.02 &&
+        data.total !== 0);
+    const effectiveVatRate = isZeroVatInvoice ? 0 : (line.vatRate || 0);
+
     doc.fillColor("#1e293b").fontSize(9).font("Roboto");
     doc.text(line.quantity.toString(), leftX + colWidths.desc, y + 9, {
       width: colWidths.qty - 4,
@@ -345,7 +353,7 @@ function drawTableRows(
       { width: colWidths.price - 4, align: "right" }
     );
     doc.text(
-      `${line.vatRate}%`,
+      `${effectiveVatRate}%`,
       leftX + colWidths.desc + colWidths.qty + colWidths.price,
       y + 9,
       { width: colWidths.vat - 4, align: "right" }
@@ -378,23 +386,34 @@ function drawTotals(
   const valW = totW - labelW;
   let y = afterY + 12;
 
+  const isZeroVatInvoice =
+    data.totalVAT === 0 ||
+    (Number.isFinite(data.subtotal) &&
+      Number.isFinite(data.total) &&
+      Math.abs(data.subtotal - data.total) < 0.02 &&
+      data.total !== 0);
+
   const computedLinesSubtotal = data.lines && data.lines.length > 0
     ? data.lines.reduce((s, l) => s + (Math.round(l.quantity * l.unitPrice * 100) / 100), 0)
     : (Number.isFinite(data.subtotal) ? data.subtotal : 0);
-  const computedLinesVat = data.lines && data.lines.length > 0
-    ? data.lines.reduce((s, l) => s + (Math.round((Math.round(l.quantity * l.unitPrice * 100) / 100) * ((l.vatRate || 0) / 100) * 100) / 100), 0)
-    : (Number.isFinite(data.totalVAT) ? data.totalVAT : 0);
+  const computedLinesVat = isZeroVatInvoice
+    ? 0
+    : (data.lines && data.lines.length > 0
+      ? data.lines.reduce((s, l) => s + (Math.round((Math.round(l.quantity * l.unitPrice * 100) / 100) * ((l.vatRate || 0) / 100) * 100) / 100), 0)
+      : (Number.isFinite(data.totalVAT) ? data.totalVAT : 0));
 
   const rawSub = Number.isFinite(data.subtotal) ? data.subtotal : computedLinesSubtotal;
-  const rawVat = Number.isFinite(data.totalVAT) ? data.totalVAT : computedLinesVat;
+  const rawVat = isZeroVatInvoice ? 0 : (Number.isFinite(data.totalVAT) ? data.totalVAT : computedLinesVat);
   const rawTot = Number.isFinite(data.total) ? data.total : (rawSub + rawVat);
 
   const displaySubtotal = (data.lines && data.lines.length > 0 && Math.abs(computedLinesSubtotal - rawSub) > 0.01 && rawSub === 0)
     ? computedLinesSubtotal
     : rawSub;
-  const displayVat = (data.lines && data.lines.length > 0 && Math.abs(computedLinesVat - rawVat) > 0.01 && rawVat === 0)
-    ? computedLinesVat
-    : rawVat;
+  const displayVat = isZeroVatInvoice
+    ? 0
+    : ((data.lines && data.lines.length > 0 && Math.abs(computedLinesVat - rawVat) > 0.01 && rawVat === 0 && rawTot > rawSub + 0.01)
+      ? computedLinesVat
+      : rawVat);
   const displayTotal = (data.lines && data.lines.length > 0 && Math.abs((displaySubtotal + displayVat) - rawTot) > 0.01 && rawTot === 0)
     ? (displaySubtotal + displayVat)
     : rawTot;
@@ -755,10 +774,17 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     const textH = roHeight + (hasTranslation ? enHeight + 3 : 0);
     const rowH = Math.max(textH + 5, 18);
 
+    const isZeroVatInvoice =
+      data.totalVAT === 0 ||
+      (Number.isFinite(data.subtotal) &&
+        Number.isFinite(data.total) &&
+        Math.abs(data.subtotal - data.total) < 0.02 &&
+        data.total !== 0);
+
     const lineVal = typeof line.total === "number" && !isNaN(line.total)
       ? line.total
       : (line.quantity * line.unitPrice);
-    const lineVat = (lineVal * (line.vatRate || 0)) / 100;
+    const lineVat = isZeroVatInvoice ? 0 : (lineVal * (line.vatRate || 0)) / 100;
 
     doc.fillColor("#000000").font("Roboto").fontSize(8);
     doc.text((idx + 1).toString(), curX, y, { width: colWidths.crt });
@@ -817,23 +843,34 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   const labelW = isBilingual ? 160 : 100;
   const valW = totW - labelW;
 
+  const isZeroVatInvoice =
+    data.totalVAT === 0 ||
+    (Number.isFinite(data.subtotal) &&
+      Number.isFinite(data.total) &&
+      Math.abs(data.subtotal - data.total) < 0.02 &&
+      data.total !== 0);
+
   const computedLinesSubtotal = data.lines && data.lines.length > 0
     ? data.lines.reduce((s, l) => s + (Math.round(l.quantity * l.unitPrice * 100) / 100), 0)
     : (Number.isFinite(data.subtotal) ? data.subtotal : 0);
-  const computedLinesVat = data.lines && data.lines.length > 0
-    ? data.lines.reduce((s, l) => s + (Math.round((Math.round(l.quantity * l.unitPrice * 100) / 100) * ((l.vatRate || 0) / 100) * 100) / 100), 0)
-    : (Number.isFinite(data.totalVAT) ? data.totalVAT : 0);
+  const computedLinesVat = isZeroVatInvoice
+    ? 0
+    : (data.lines && data.lines.length > 0
+      ? data.lines.reduce((s, l) => s + (Math.round((Math.round(l.quantity * l.unitPrice * 100) / 100) * ((l.vatRate || 0) / 100) * 100) / 100), 0)
+      : (Number.isFinite(data.totalVAT) ? data.totalVAT : 0));
 
   const rawSub = Number.isFinite(data.subtotal) ? data.subtotal : computedLinesSubtotal;
-  const rawVat = Number.isFinite(data.totalVAT) ? data.totalVAT : computedLinesVat;
+  const rawVat = isZeroVatInvoice ? 0 : (Number.isFinite(data.totalVAT) ? data.totalVAT : computedLinesVat);
   const rawTot = Number.isFinite(data.total) ? data.total : (rawSub + rawVat);
 
   const displaySubtotal = (data.lines && data.lines.length > 0 && Math.abs(computedLinesSubtotal - rawSub) > 0.01 && rawSub === 0)
     ? computedLinesSubtotal
     : rawSub;
-  const displayVat = (data.lines && data.lines.length > 0 && Math.abs(computedLinesVat - rawVat) > 0.01 && rawVat === 0)
-    ? computedLinesVat
-    : rawVat;
+  const displayVat = isZeroVatInvoice
+    ? 0
+    : ((data.lines && data.lines.length > 0 && Math.abs(computedLinesVat - rawVat) > 0.01 && rawVat === 0 && rawTot > rawSub + 0.01)
+      ? computedLinesVat
+      : rawVat);
   const displayTotal = (data.lines && data.lines.length > 0 && Math.abs((displaySubtotal + displayVat) - rawTot) > 0.01 && rawTot === 0)
     ? (displaySubtotal + displayVat)
     : rawTot;
@@ -1382,10 +1419,17 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
         .fillColor("#f8fafc")
         .fill();
     }
+    const isZeroVatInvoice =
+      data.totalVAT === 0 ||
+      (Number.isFinite(data.subtotal) &&
+        Number.isFinite(data.total) &&
+        Math.abs(data.subtotal - data.total) < 0.02 &&
+        data.total !== 0);
+
     const lineVal = typeof line.total === "number" && !isNaN(line.total)
       ? line.total
       : (line.quantity * line.unitPrice);
-    const lineVat = (lineVal * (line.vatRate || 0)) / 100;
+    const lineVat = isZeroVatInvoice ? 0 : (lineVal * (line.vatRate || 0)) / 100;
     const lineTotal = lineVal + lineVat;
 
     if (hasTranslation) {
@@ -1437,23 +1481,34 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   const labelW = isBilingual ? 160 : 130;
   const valW = totW - labelW;
 
+  const isZeroVatInvoice =
+    data.totalVAT === 0 ||
+    (Number.isFinite(data.subtotal) &&
+      Number.isFinite(data.total) &&
+      Math.abs(data.subtotal - data.total) < 0.02 &&
+      data.total !== 0);
+
   const computedLinesSubtotal = data.lines && data.lines.length > 0
     ? data.lines.reduce((s, l) => s + (Math.round(l.quantity * l.unitPrice * 100) / 100), 0)
     : (Number.isFinite(data.subtotal) ? data.subtotal : 0);
-  const computedLinesVat = data.lines && data.lines.length > 0
-    ? data.lines.reduce((s, l) => s + (Math.round((Math.round(l.quantity * l.unitPrice * 100) / 100) * ((l.vatRate || 0) / 100) * 100) / 100), 0)
-    : (Number.isFinite(data.totalVAT) ? data.totalVAT : 0);
+  const computedLinesVat = isZeroVatInvoice
+    ? 0
+    : (data.lines && data.lines.length > 0
+      ? data.lines.reduce((s, l) => s + (Math.round((Math.round(l.quantity * l.unitPrice * 100) / 100) * ((l.vatRate || 0) / 100) * 100) / 100), 0)
+      : (Number.isFinite(data.totalVAT) ? data.totalVAT : 0));
 
   const rawSub = Number.isFinite(data.subtotal) ? data.subtotal : computedLinesSubtotal;
-  const rawVat = Number.isFinite(data.totalVAT) ? data.totalVAT : computedLinesVat;
+  const rawVat = isZeroVatInvoice ? 0 : (Number.isFinite(data.totalVAT) ? data.totalVAT : computedLinesVat);
   const rawTot = Number.isFinite(data.total) ? data.total : (rawSub + rawVat);
 
   const displaySubtotal = (data.lines && data.lines.length > 0 && Math.abs(computedLinesSubtotal - rawSub) > 0.01 && rawSub === 0)
     ? computedLinesSubtotal
     : rawSub;
-  const displayVat = (data.lines && data.lines.length > 0 && Math.abs(computedLinesVat - rawVat) > 0.01 && rawVat === 0)
-    ? computedLinesVat
-    : rawVat;
+  const displayVat = isZeroVatInvoice
+    ? 0
+    : ((data.lines && data.lines.length > 0 && Math.abs(computedLinesVat - rawVat) > 0.01 && rawVat === 0 && rawTot > rawSub + 0.01)
+      ? computedLinesVat
+      : rawVat);
   const displayTotal = (data.lines && data.lines.length > 0 && Math.abs((displaySubtotal + displayVat) - rawTot) > 0.01 && rawTot === 0)
     ? (displaySubtotal + displayVat)
     : rawTot;

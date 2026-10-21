@@ -422,74 +422,6 @@ export function registerPdfRoute(app: any) {
         }
       }
 
-      let xmlLines =
-        invoiceObj["cac:InvoiceLine"] ||
-        invoiceObj["cac:CreditNoteLine"] ||
-        invoiceObj["InvoiceLine"] ||
-        invoiceObj["CreditNoteLine"] ||
-        [];
-      if (!Array.isArray(xmlLines)) xmlLines = [xmlLines];
-
-      const lines = xmlLines.map((line: any) => {
-        const item = line["cac:Item"] || line["Item"];
-        const price = line["cac:Price"] || line["Price"];
-        const taxCategory = item?.["cac:ClassifiedTaxCategory"] || item?.["ClassifiedTaxCategory"];
-        const taxCategoryObj = Array.isArray(taxCategory) ? taxCategory[0] : taxCategory;
-
-        const rawQty = parseXmlNumber(
-          line["cbc:InvoicedQuantity"] ??
-            line["InvoicedQuantity"] ??
-            line["cbc:CreditedQuantity"] ??
-            line["CreditedQuantity"],
-          1
-        );
-        const rawUnitPrice = parseXmlNumber(
-          price?.["cbc:PriceAmount"] ?? price?.["PriceAmount"],
-          0
-        );
-        const rawTotal = parseXmlNumber(
-          line["cbc:LineExtensionAmount"] ?? line["LineExtensionAmount"],
-          rawQty * rawUnitPrice
-        );
-        const vatRate = parseXmlNumber(
-          taxCategoryObj?.["cbc:Percent"] ?? taxCategoryObj?.["Percent"],
-          19
-        );
-
-        // If CreditNote, ensure negative values
-        const quantity = isCreditNote && rawQty > 0 ? -rawQty : rawQty;
-        const total = isCreditNote && rawTotal > 0 ? -rawTotal : rawTotal;
-
-        const rawDesc = getXmlText(
-          item?.["cbc:Name"] ||
-            item?.["Name"] ||
-            item?.["cbc:Description"] ||
-            item?.["Description"],
-          "Articol"
-        );
-        const cleanDesc = rawDesc
-          .replace(/&amp;/g, "&")
-          .replace(/&lt;/g, "<")
-          .replace(/&gt;/g, ">")
-          .replace(/&quot;/g, '"')
-          .replace(/&#39;/g, "'");
-
-        return {
-          description: cleanDesc,
-          quantity,
-          unitPrice: rawUnitPrice,
-          unit: String(
-            line["cbc:InvoicedQuantity"]?.["@_unitCode"] ||
-              line["InvoicedQuantity"]?.["@_unitCode"] ||
-              line["cbc:CreditedQuantity"]?.["@_unitCode"] ||
-              line["CreditedQuantity"]?.["@_unitCode"] ||
-              "buc"
-          ),
-          vatRate,
-          total,
-        };
-      });
-
       const legalTotal = invoiceObj["cac:LegalMonetaryTotal"] || invoiceObj["LegalMonetaryTotal"];
       const taxTotal = invoiceObj["cac:TaxTotal"] || invoiceObj["TaxTotal"];
       const taxTotalObj = Array.isArray(taxTotal) ? taxTotal[0] : taxTotal;
@@ -519,6 +451,92 @@ export function registerPdfRoute(app: any) {
         if (totalVAT > 0) totalVAT = -totalVAT;
         if (total > 0) total = -total;
       }
+
+      const isZeroVatInvoice =
+        totalVAT === 0 ||
+        (subtotal !== 0 && Math.abs(subtotal - total) < 0.02);
+
+      let xmlLines =
+        invoiceObj["cac:InvoiceLine"] ||
+        invoiceObj["cac:CreditNoteLine"] ||
+        invoiceObj["InvoiceLine"] ||
+        invoiceObj["CreditNoteLine"] ||
+        [];
+      if (!Array.isArray(xmlLines)) xmlLines = [xmlLines];
+
+      const lines = xmlLines.map((line: any) => {
+        const item = line["cac:Item"] || line["Item"];
+        const price = line["cac:Price"] || line["Price"];
+        const taxCategory = item?.["cac:ClassifiedTaxCategory"] || item?.["ClassifiedTaxCategory"];
+        const taxCategoryObj = Array.isArray(taxCategory) ? taxCategory[0] : taxCategory;
+
+        const rawQty = parseXmlNumber(
+          line["cbc:InvoicedQuantity"] ??
+            line["InvoicedQuantity"] ??
+            line["cbc:CreditedQuantity"] ??
+            line["CreditedQuantity"],
+          1
+        );
+        const rawUnitPrice = parseXmlNumber(
+          price?.["cbc:PriceAmount"] ?? price?.["PriceAmount"],
+          0
+        );
+        const rawTotal = parseXmlNumber(
+          line["cbc:LineExtensionAmount"] ?? line["LineExtensionAmount"],
+          rawQty * rawUnitPrice
+        );
+
+        const rawPercent =
+          taxCategoryObj?.["cbc:Percent"] ?? taxCategoryObj?.["Percent"];
+        const categoryId = String(
+          taxCategoryObj?.["cbc:ID"] ?? taxCategoryObj?.["ID"] ?? ""
+        ).trim().toUpperCase();
+        const isZeroCategory = ["O", "E", "Z", "AE", "K", "G"].includes(categoryId);
+
+        let vatRate = 0;
+        if (isZeroVatInvoice || isZeroCategory) {
+          vatRate = 0;
+        } else if (rawPercent !== undefined && rawPercent !== null && rawPercent !== "") {
+          vatRate = parseXmlNumber(rawPercent, 0);
+        } else if (subtotal > 0 && totalVAT > 0) {
+          vatRate = Math.round((totalVAT / subtotal) * 100);
+        } else {
+          vatRate = 0;
+        }
+
+        // If CreditNote, ensure negative values
+        const quantity = isCreditNote && rawQty > 0 ? -rawQty : rawQty;
+        const lineTotal = isCreditNote && rawTotal > 0 ? -rawTotal : rawTotal;
+
+        const rawDesc = getXmlText(
+          item?.["cbc:Name"] ||
+            item?.["Name"] ||
+            item?.["cbc:Description"] ||
+            item?.["Description"],
+          "Articol"
+        );
+        const cleanDesc = rawDesc
+          .replace(/&amp;/g, "&")
+          .replace(/&lt;/g, "<")
+          .replace(/&gt;/g, ">")
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'");
+
+        return {
+          description: cleanDesc,
+          quantity,
+          unitPrice: rawUnitPrice,
+          unit: String(
+            line["cbc:InvoicedQuantity"]?.["@_unitCode"] ||
+              line["InvoicedQuantity"]?.["@_unitCode"] ||
+              line["cbc:CreditedQuantity"]?.["@_unitCode"] ||
+              line["CreditedQuantity"]?.["@_unitCode"] ||
+              "buc"
+          ),
+          vatRate,
+          total: lineTotal,
+        };
+      });
 
       // Extragere număr index SPV
       let spvIndex: string | null = (inv as any).spvIndex || null;
