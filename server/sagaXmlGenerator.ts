@@ -141,7 +141,7 @@ export function resolveSagaLineTip(
   if (lower.includes("produse finite")) return "Produse finite";
   if (lower.includes("semifabricate")) return "Semifabricate";
   if (lower.includes("ambalaj")) return "Ambalaje";
-  if (lower.includes("servici") || lower.includes("avans") || lower.includes("utilitati") || lower.includes("manopera") || lower.includes("transport")) return "Servicii";
+  if (lower.includes("servici") || lower.includes("avans") || lower.includes("utilitati") || lower.includes("manopera") || lower.includes("transport") || lower.includes("protocol") || lower.includes("reclama")) return "Servicii";
   if (lower.includes("alte mat") || lower.includes("alte consumabile")) return "Alte mat. consumabile";
   if (lower.includes("consumabil") || lower.includes("materiale consumabile")) return "Materiale consumabile";
   if (lower.includes("marfuri") || lower.includes("marfa")) return "Marfuri";

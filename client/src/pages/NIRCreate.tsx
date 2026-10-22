@@ -53,6 +53,8 @@ export const SAGA_NIR_TYPES = [
   { code: "624", name: "Transport", label: "624 — Transport bunuri" },
   { code: "626", name: "Telecomunicații", label: "626 — Poștă și telecomunicații" },
   { code: "628", name: "Servicii", label: "628 — Alte cheltuieli cu serviciile" },
+  { code: "6231", name: "Protocol", label: "6231 — Cheltuieli de protocol" },
+  { code: "6232", name: "Reclamă", label: "6232 — Reclamă și publicitate" },
   { code: "704", name: "Servicii prestate", label: "704 — Servicii prestate" },
 ];
 
@@ -80,6 +82,8 @@ const getAccountType = (accCode: string): string => {
   if (c.startsWith("612")) return "Chirii";
   if (c.startsWith("624")) return "Transport";
   if (c.startsWith("626")) return "Telecomunicații";
+  if (c.startsWith("6231") || c === "623") return "Protocol";
+  if (c.startsWith("6232")) return "Reclamă";
   if (c.startsWith("628")) return "Servicii";
   if (c.startsWith("6") || c.startsWith("704")) return "Servicii";
   return "Mărfuri";
@@ -152,6 +156,13 @@ const TIP_TO_CONT: Record<string, string> = {
   Transport: "624",
   "Telecomunicații": "626",
   "Servicii prestate": "704",
+  Protocol: "6231",
+  "Protocol & Recl.": "6231",
+  "Protocol & Reclama": "6231",
+  "Cheltuieli de protocol": "6231",
+  Reclamă: "6232",
+  "Reclamă & Pub.": "6232",
+  "Reclamă și publicitate": "6232",
   Avans: "4091",
   Avansuri: "4091",
 };
@@ -447,6 +458,10 @@ export default function NIRCreate() {
               (l.description || "").toLowerCase().includes("gunoi") ||
               (sourceInvoice?.supplierName || "").toLowerCase().includes("salubri") ||
               (sourceInvoice?.supplierName || "").toLowerCase().includes("salubritate");
+            const isProtocol = (l.description || "").toLowerCase().includes("protocol") ||
+              (l.description || "").toLowerCase().includes("cafea") ||
+              (l.description || "").toLowerCase().includes("apa minerala") ||
+              (l.description || "").toLowerCase().includes("apa plata");
             const isServiceText = (l.description || "").toLowerCase().includes("servici") || 
               (l.description || "").toLowerCase().includes("abonament") || 
               (l.description || "").toLowerCase().includes("manopera") ||
@@ -484,6 +499,9 @@ export default function NIRCreate() {
             } else if (isTransport) {
               defType = "Transport";
               defAccount = "624";
+            } else if (isProtocol) {
+              defType = "Protocol";
+              defAccount = "6231";
             } else if (isServiceText) {
               defType = "Servicii";
               defAccount = "628";
@@ -668,6 +686,9 @@ export default function NIRCreate() {
           } else if (lower.includes("transport")) {
             updated[idx].accountingType = "Transport";
             updated[idx].accountingAccount = "624";
+          } else if (lower.includes("protocol") || lower.includes("cafea")) {
+            updated[idx].accountingType = "Protocol";
+            updated[idx].accountingAccount = "6231";
           } else if (lower.includes("servici")) {
             updated[idx].accountingType = "Servicii";
             updated[idx].accountingAccount = "628";

@@ -31,7 +31,8 @@ export const POPULAR_NIR_ACCOUNTS: PlanContItem[] = [
   { cod: "611", denumire: "CHELTUIELI CU INTRETINEREA SI REPARATIILE", shortLabel: "Întreținere & Rep." },
   { cod: "612", denumire: "CHELTUIELI CU CHIRIILE", shortLabel: "Chirii" },
   { cod: "613", denumire: "CHELTUIELI CU ASIGURARILE", shortLabel: "Asigurări" },
-  { cod: "623", denumire: "CHELTUIELI DE PROTOCOL, RECLAMA SI PUBLICITATE", shortLabel: "Protocol & Recl." },
+  { cod: "6231", denumire: "CHELTUIELI DE PROTOCOL", shortLabel: "Protocol" },
+  { cod: "6232", denumire: "CHELTUIELI DE RECLAMA SI PUBLICITATE", shortLabel: "Reclamă & Pub." },
 ];
 
 const normalizeText = (str: string) => {
@@ -45,6 +46,8 @@ const normalizeText = (str: string) => {
 
 export const getCleanShortLabel = (account: { cod: string; denumire: string; shortLabel?: string }): string => {
   if (account.shortLabel) return account.shortLabel;
+  if (account.cod === "623" || account.cod === "6231" || account.cod.startsWith("6231")) return "Protocol";
+  if (account.cod === "6232" || account.cod.startsWith("6232")) return "Reclamă & Pub.";
   const pop = POPULAR_NIR_ACCOUNTS.find(
     (p) => p.cod === account.cod || p.cod === account.cod.split(".")[0]
   );
@@ -100,6 +103,7 @@ export default function PlanConturiCombobox({
     const popDirect = POPULAR_NIR_ACCOUNTS.find(
       (a) =>
         a.cod === clean ||
+        (clean === "623" && a.cod === "6231") ||
         a.denumire.toLowerCase() === clean.toLowerCase() ||
         a.shortLabel?.toLowerCase() === clean.toLowerCase()
     );
