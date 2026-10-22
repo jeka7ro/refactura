@@ -5273,7 +5273,17 @@ export const appRouter = router({
             });
             nirId = (result as any).insertId;
           } catch (err: any) {
-            if ((err?.code === "ER_DUP_ENTRY" || err?.message?.includes("Duplicate entry") || err?.message?.includes("unique_tenant_nir_number")) && attempts < 5) {
+            const isDup =
+              err?.code === "ER_DUP_ENTRY" ||
+              err?.cause?.code === "ER_DUP_ENTRY" ||
+              err?.cause?.errno === 1062 ||
+              err?.message?.includes("Duplicate entry") ||
+              err?.message?.includes("unique_tenant_nir_number") ||
+              err?.cause?.message?.includes("Duplicate entry") ||
+              err?.cause?.message?.includes("unique_tenant_nir_number") ||
+              err?.cause?.sqlMessage?.includes("Duplicate entry") ||
+              String(err).includes("unique_tenant_nir_number");
+            if (isDup && attempts < 5) {
               finalNirNumber = await computeNextNirNumber(db, tenantId);
               continue;
             }

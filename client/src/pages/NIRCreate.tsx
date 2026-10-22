@@ -217,8 +217,10 @@ export default function NIRCreate() {
   );
 
   // Queries
-  const { data: nextNumber } = trpc.nir.getNextNumber.useQuery(undefined, {
+  const { data: nextNumber, refetch: refetchNextNumber } = trpc.nir.getNextNumber.useQuery(undefined, {
     enabled: !isEdit,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
   const { data: existingNir } = trpc.nir.getById.useQuery(
     { id: nirId! },
@@ -243,9 +245,15 @@ export default function NIRCreate() {
     onSuccess: data => {
       toast.success(`NIR ${data.nirNumber} creat cu succes!`);
       utils.nir.list.invalidate();
+      utils.nir.getNextNumber.invalidate();
       window.history.back();
     },
-    onError: e => toast.error("Eroare: " + e.message),
+    onError: async e => {
+      toast.error("Eroare: " + e.message);
+      const fresh = await refetchNextNumber();
+      const freshVal = typeof fresh.data === "string" ? fresh.data : (fresh.data as any)?.nextNumber;
+      if (freshVal) setNirNumber(freshVal);
+    },
   });
 
   const updateNir = trpc.nir.update.useMutation({
@@ -287,12 +295,14 @@ export default function NIRCreate() {
   useEffect(() => {
     if (!isEdit) {
       setLoaded(false);
+      setNirNumber("");
       setLines([]);
       setSupplierName("");
       setSupplierCUI("");
       setSupplierAddress("");
       setInvoiceNumber("");
       setAvizNumber("");
+      refetchNextNumber();
     }
   }, [sourceInvoiceId, isEdit]);
 
