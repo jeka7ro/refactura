@@ -457,9 +457,22 @@ export function registerPdfRoute(app: any) {
         if (total > 0) total = -total;
       }
 
-      const isZeroVatInvoice =
-        totalVAT === 0 ||
-        (subtotal !== 0 && Math.abs(subtotal - total) < 0.02);
+      // Reverse charge / Tax exemption detection
+      const taxSubtotal = taxTotalObj?.["cac:TaxSubtotal"] || taxTotalObj?.["TaxSubtotal"];
+      const taxSubtotalArr = Array.isArray(taxSubtotal) ? taxSubtotal : (taxSubtotal ? [taxSubtotal] : []);
+      let isReverseCharge = false;
+      let taxExemptionReason = "";
+      for (const st of taxSubtotalArr) {
+        const cat = st?.["cac:TaxCategory"] || st?.["TaxCategory"];
+        const catId = String(cat?.["cbc:ID"] ?? cat?.["ID"] ?? "").trim().toUpperCase();
+        const reason = String(cat?.["cbc:TaxExemptionReason"] ?? cat?.["TaxExemptionReason"] ?? "").trim();
+        const reasonCode = String(cat?.["cbc:TaxExemptionReasonCode"] ?? cat?.["TaxExemptionReasonCode"] ?? "").trim().toUpperCase();
+        if (catId === "AE" || reasonCode === "VATEX-EU-AE" || /taxare\s*invers/i.test(reason)) {
+          isReverseCharge = true;
+          taxExemptionReason = reason || "Taxare inversă conform art. 331 Codul Fiscal";
+          break;
+        }
+      }
 
       let xmlLines =
         invoiceObj["cac:InvoiceLine"] ||
@@ -468,6 +481,25 @@ export function registerPdfRoute(app: any) {
         invoiceObj["CreditNoteLine"] ||
         [];
       if (!Array.isArray(xmlLines)) xmlLines = [xmlLines];
+
+      if (!isReverseCharge) {
+        for (const line of xmlLines) {
+          const item = line["cac:Item"] || line["Item"];
+          const taxCat = item?.["cac:ClassifiedTaxCategory"] || item?.["ClassifiedTaxCategory"];
+          const taxCatObj = Array.isArray(taxCat) ? taxCat[0] : taxCat;
+          const catId = String(taxCatObj?.["cbc:ID"] ?? taxCatObj?.["ID"] ?? "").trim().toUpperCase();
+          if (catId === "AE") {
+            isReverseCharge = true;
+            taxExemptionReason = "Taxare inversă conform art. 331 Codul Fiscal";
+            break;
+          }
+        }
+      }
+
+      const isZeroVatInvoice =
+        isReverseCharge ||
+        totalVAT === 0 ||
+        (subtotal !== 0 && Math.abs(subtotal - total) < 0.02);
 
       const lines = xmlLines.map((line: any) => {
         const item = line["cac:Item"] || line["Item"];
@@ -543,6 +575,56 @@ export function registerPdfRoute(app: any) {
         };
       });
 
+      // Extragere deduceri și taxe suplimentare (cac:AllowanceCharge)
+      let xmlAllowances =
+        invoiceObj["cac:AllowanceCharge"] ||
+        invoiceObj["AllowanceCharge"] ||
+        [];
+      if (!Array.isArray(xmlAllowances)) xmlAllowances = [xmlAllowances];
+
+      const allowanceLines = xmlAllowances.map((ac: any) => {
+        const isCharge = String(
+          ac["cbc:ChargeIndicator"] ?? ac["ChargeIndicator"] ?? "false"
+        ).toLowerCase() === "true";
+
+        const rawReason = getXmlText(
+          ac["cbc:AllowanceChargeReason"] || ac["AllowanceChargeReason"],
+          isCharge ? "Taxă suplimentară" : "Deducere / Rabat"
+        );
+        const reasonCode = getXmlText(
+          ac["cbc:AllowanceChargeReasonCode"] || ac["AllowanceChargeReasonCode"],
+          ""
+        );
+        const percent = ac["cbc:MultiplierFactorNumeric"] ?? ac["MultiplierFactorNumeric"];
+        const amount = parseXmlNumber(ac["cbc:Amount"] ?? ac["Amount"], 0);
+
+        let desc = rawReason;
+        if (!isCharge) {
+          desc = percent ? `Deducere / Rabat (${percent}%): ${rawReason}` : `Deducere / Rabat: ${rawReason}`;
+        } else {
+          desc = reasonCode ? `Taxă suplimentară: ${rawReason} (${reasonCode})` : `Taxă suplimentară: ${rawReason}`;
+        }
+
+        const signedAmount = isCharge ? Math.abs(amount) : -Math.abs(amount);
+
+        const acTaxCat = ac["cac:TaxCategory"] || ac["TaxCategory"];
+        const acCatId = String(acTaxCat?.["cbc:ID"] ?? acTaxCat?.["ID"] ?? "").trim().toUpperCase();
+        const acPercent = acTaxCat?.["cbc:Percent"] ?? acTaxCat?.["Percent"];
+        const isAcZero = isZeroVatInvoice || ["O", "E", "Z", "AE", "K", "G"].includes(acCatId);
+        const acVatRate = isAcZero ? 0 : (acPercent !== undefined ? parseXmlNumber(acPercent, 0) : 0);
+
+        return {
+          description: desc,
+          quantity: 1,
+          unitPrice: signedAmount,
+          unit: isCharge ? "serv" : "buc",
+          vatRate: acVatRate,
+          total: signedAmount,
+        };
+      });
+
+      const allLines = [...lines, ...allowanceLines];
+
       // Extragere număr index SPV
       let spvIndex: string | null = (inv as any).spvIndex || null;
       if (!spvIndex && inv.notes) {
@@ -604,7 +686,10 @@ export function registerPdfRoute(app: any) {
         template: "classic" as any,
         isCreditNote,
         documentTitle: isCreditNote ? "FACTURĂ STORNO" : undefined,
-        lines,
+        isReverseCharge,
+        taxExemptionReason,
+        notes: inv.notes || (taxExemptionReason ? `Taxare inversă: ${taxExemptionReason}` : undefined),
+        lines: allLines,
 
         subtotal,
         totalVAT,

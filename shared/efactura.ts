@@ -70,11 +70,11 @@ export function parseEfacturaXML(xmlText: string): ParsedEfactura {
   const lines: ParsedEfacturaLine[] = [];
   for (const el of Array.from(doc.querySelectorAll("*"))) {
     const tag = el.tagName.split(":").pop() || "";
-    if (tag === "InvoiceLine") {
+    if (tag === "InvoiceLine" || tag === "CreditNoteLine") {
       const desc =
         find(el, ["Name", "Description", "ItemName", "ItemDescription"]) ||
         "Linie";
-      const qty = parseFloat(find(el, ["InvoicedQuantity", "Quantity"]) || "1");
+      const qty = parseFloat(find(el, ["InvoicedQuantity", "CreditedQuantity", "Quantity"]) || "1");
       const price = parseFloat(find(el, ["PriceAmount", "UnitPrice"]) || "0");
       const vatRaw = parseFloat(find(el, ["Percent", "TaxPercent"]) || "");
       const vat = Number.isFinite(vatRaw) ? vatRaw : 0;
@@ -85,6 +85,39 @@ export function parseEfacturaXML(xmlText: string): ParsedEfactura {
           unitPrice: price,
           unit: "buc",
           vatRate: vat,
+        });
+      }
+    }
+  }
+
+  // Parse document-level AllowanceCharge (deduceri, rabaturi, taxe suplimentare, transport)
+  for (const el of Array.from(doc.querySelectorAll("*"))) {
+    const tag = el.tagName.split(":").pop() || "";
+    if (tag === "AllowanceCharge") {
+      const parentTag = el.parentElement?.tagName.split(":").pop() || "";
+      if (parentTag === "InvoiceLine" || parentTag === "CreditNoteLine") continue;
+
+      const isCharge = (find(el, ["ChargeIndicator"]) || "").toLowerCase() === "true";
+      const reason = find(el, ["AllowanceChargeReason", "Reason"]) || (isCharge ? "Taxă suplimentară" : "Deducere / Rabat");
+      const reasonCode = find(el, ["AllowanceChargeReasonCode", "ReasonCode"]) || "";
+      const percent = find(el, ["MultiplierFactorNumeric"]);
+      const amount = Math.abs(parseFloat(find(el, ["Amount"]) || "0"));
+
+      let desc = reason;
+      if (!isCharge) {
+        desc = percent ? `Deducere / Rabat (${percent}%): ${reason}` : `Deducere / Rabat: ${reason}`;
+      } else {
+        desc = reasonCode ? `Taxă suplimentară: ${reason} (${reasonCode})` : `Taxă suplimentară: ${reason}`;
+      }
+
+      const signedAmount = isCharge ? amount : -amount;
+      if (amount !== 0) {
+        lines.push({
+          description: desc,
+          quantity: 1,
+          unitPrice: signedAmount,
+          unit: isCharge ? "serv" : "buc",
+          vatRate: 0,
         });
       }
     }

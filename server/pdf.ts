@@ -99,6 +99,8 @@ export interface ReInvoiceData {
   spvIndex?: string | number | null;
   isCreditNote?: boolean;
   documentTitle?: string;
+  isReverseCharge?: boolean;
+  taxExemptionReason?: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -490,6 +492,15 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     .font("Roboto-Bold")
     .fillColor("#000000")
     .text(classicTitle, titleX, y + 5, { width: maxTitleW, lineBreak: false });
+
+  if (data.isReverseCharge) {
+    doc
+      .fontSize(8.5)
+      .font("Roboto-Bold")
+      .fillColor("#047857")
+      .text(isBilingual ? "TAXARE INVERSĂ / REVERSE CHARGE" : "TAXARE INVERSĂ", titleX, y + 5 + titleFontSize + 3, { width: maxTitleW, lineBreak: false });
+    doc.fillColor("#000000");
+  }
 
   // Number on the right - auto-shrink font so it NEVER wraps or collides
   const formattedNum = formatPdfNumber(data.number);
@@ -951,13 +962,28 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   y += 15;
 
   doc.font("Roboto-Bold").text(L.totalVat, totX, y, { width: labelW });
+  const vatDisplayVal = data.isReverseCharge
+    ? `0.00 ${data.currency}`
+    : `${displayVat.toFixed(2)} ${data.currency}`;
   doc
     .font("Roboto")
-    .text(`${displayVat.toFixed(2)} ${data.currency}`, totX + labelW, y, {
+    .text(vatDisplayVal, totX + labelW, y, {
       width: valW,
       align: "right",
     });
   y += 15;
+
+  if (data.isReverseCharge) {
+    doc.fontSize(7).font("Roboto-Bold").fillColor("#047857");
+    doc.text(
+      isBilingual ? "* Taxare inversă / Reverse charge" : "* Taxare inversă (TVA la beneficiar)",
+      totX,
+      y - 3,
+      { width: totW, align: "right" }
+    );
+    doc.fillColor("#000000");
+    y += 9;
+  }
 
   doc.save();
   doc.fillColor(totalDueBg);
@@ -972,16 +998,23 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   });
   doc.fillColor("#000000");
 
-  const totalsBlockHeight = 56;
+  const totalsBlockHeight = data.isReverseCharge ? 65 : 56;
   const bottomSectionHeight = Math.max(totalsBlockHeight, paymentBoxHeight);
   y = summaryStartY + bottomSectionHeight + 14;
 
-  if (data.notes) {
+  const legalExemption = data.isReverseCharge
+    ? (data.taxExemptionReason
+        ? `Taxare inversă: ${data.taxExemptionReason}`
+        : "Taxare inversă conform art. 331 din Codul Fiscal (TVA deductibil și colectat de beneficiar).")
+    : "";
+  const finalNotes = [data.notes, legalExemption].filter(Boolean).join("\n");
+
+  if (finalNotes) {
     doc
       .fontSize(8)
       .font("Roboto-Bold")
       .text(L.notes, leftX, y);
-    doc.font("Roboto").text(data.notes, leftX, y + 12, { width: pageWidth });
+    doc.font("Roboto").text(finalNotes, leftX, y + 12, { width: pageWidth });
   }
 
   const footerY = doc.page.height - 30;

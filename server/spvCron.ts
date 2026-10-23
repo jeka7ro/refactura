@@ -13,9 +13,12 @@ const ANAF_DOWNLOAD_URL = "https://api.anaf.ro/prod/FCTEL/rest/descarcare";
 // Parserul folosește removeNSPrefix, deci cheile sunt fără prefix (cbc:/cac:). Acceptam ambele variante.
 const xmlPick = (o: any, k: string) => o?.[k] ?? o?.["cbc:" + k] ?? o?.["cac:" + k];
 
-function parseLineVatPercent(item: any): number {
+function parseLineVatPercent(item: any, isZeroVatInvoice = false): number {
+  if (isZeroVatInvoice) return 0;
   let cat = xmlPick(item, "ClassifiedTaxCategory");
   if (Array.isArray(cat)) cat = cat[0];
+  const catId = String(xmlPick(cat, "ID") || "").trim().toUpperCase();
+  if (["O", "E", "Z", "AE", "K", "G"].includes(catId)) return 0;
   const p = xmlPick(cat, "Percent");
   const raw = p !== null && typeof p === "object" ? p["#text"] : p;
   const n = parseFloat(String(raw));
@@ -857,7 +860,7 @@ export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
               if (isCreditNote && lineTotal > 0) lineTotal = -lineTotal;
 
               // Extract VAT rate
-              const vatRate = parseLineVatPercent(item);
+              const vatRate = parseLineVatPercent(item, totalVAT === 0);
 
               return {
                 invoiceArchiveId: archiveId,
@@ -870,6 +873,49 @@ export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
                 currency,
               };
             });
+
+            // Extragere deduceri și taxe suplimentare (cac:AllowanceCharge)
+            let xmlAllowances =
+              invoiceObj["AllowanceCharge"] ||
+              invoiceObj["cac:AllowanceCharge"] ||
+              [];
+            if (!Array.isArray(xmlAllowances)) xmlAllowances = [xmlAllowances];
+
+            for (const ac of xmlAllowances) {
+              const indicator = String(xmlPick(ac, "ChargeIndicator") ?? "false").toLowerCase();
+              const isCharge = indicator === "true";
+              const reasonNode = xmlPick(ac, "AllowanceChargeReason");
+              const rawReason = String(
+                reasonNode?.["#text"] ?? reasonNode ?? (isCharge ? "Taxă suplimentară" : "Deducere / Rabat")
+              ).trim();
+              const codeNode = xmlPick(ac, "AllowanceChargeReasonCode");
+              const reasonCode = String(codeNode?.["#text"] ?? codeNode ?? "").trim();
+              const percentNode = xmlPick(ac, "MultiplierFactorNumeric");
+              const percent = percentNode?.["#text"] ?? percentNode;
+              const amtNode = xmlPick(ac, "Amount") ?? 0;
+              let amount = parseFloat(String(amtNode?.["#text"] ?? amtNode));
+              if (isNaN(amount)) amount = 0;
+
+              let desc = rawReason;
+              if (!isCharge) {
+                desc = percent ? `Deducere / Rabat (${percent}%): ${rawReason}` : `Deducere / Rabat: ${rawReason}`;
+              } else {
+                desc = reasonCode ? `Taxă suplimentară: ${rawReason} (${reasonCode})` : `Taxă suplimentară: ${rawReason}`;
+              }
+
+              const signedAmount = isCharge ? Math.abs(amount) : -Math.abs(amount);
+
+              linesToInsert.push({
+                invoiceArchiveId: archiveId,
+                description: String(desc),
+                quantity: "1",
+                unitPrice: String(signedAmount),
+                unit: isCharge ? "serv" : "buc",
+                vatRate: "0",
+                total: String(signedAmount),
+                currency,
+              });
+            }
 
             await db!.insert(invoiceArchiveLines).values(linesToInsert);
             console.log(

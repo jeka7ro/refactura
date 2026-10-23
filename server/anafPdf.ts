@@ -139,9 +139,68 @@ export async function convertXmlToPdf(
           };
         });
 
+        // AllowanceCharge
+        let xmlAllowances =
+          invoice["cac:AllowanceCharge"] ||
+          invoice["AllowanceCharge"] ||
+          [];
+        if (!Array.isArray(xmlAllowances)) xmlAllowances = [xmlAllowances];
+
+        const allowanceLines = xmlAllowances.map((ac: any) => {
+          const isCharge = String(
+            ac["cbc:ChargeIndicator"] ?? ac["ChargeIndicator"] ?? "false"
+          ).toLowerCase() === "true";
+
+          const rawReason = getXmlText(
+            ac["cbc:AllowanceChargeReason"] || ac["AllowanceChargeReason"],
+            isCharge ? "Taxă suplimentară" : "Deducere / Rabat"
+          );
+          const reasonCode = getXmlText(
+            ac["cbc:AllowanceChargeReasonCode"] || ac["AllowanceChargeReasonCode"],
+            ""
+          );
+          const percent = ac["cbc:MultiplierFactorNumeric"] ?? ac["MultiplierFactorNumeric"];
+          const amount = parseXmlNumber(ac["cbc:Amount"] ?? ac["Amount"], 0);
+
+          let desc = rawReason;
+          if (!isCharge) {
+            desc = percent ? `Deducere / Rabat (${percent}%): ${rawReason}` : `Deducere / Rabat: ${rawReason}`;
+          } else {
+            desc = reasonCode ? `Taxă suplimentară: ${rawReason} (${reasonCode})` : `Taxă suplimentară: ${rawReason}`;
+          }
+
+          const signedAmount = isCharge ? Math.abs(amount) : -Math.abs(amount);
+          return {
+            description: desc,
+            quantity: 1,
+            unitPrice: signedAmount,
+            unit: isCharge ? "serv" : "buc",
+            vatRate: 0,
+            total: signedAmount,
+          };
+        });
+
+        const allMappedLines = [...mappedLines, ...allowanceLines];
+
         const legalTotal = invoice["cac:LegalMonetaryTotal"] || {};
         const taxTotal = invoice["cac:TaxTotal"] || {};
         const taxTotalObj = Array.isArray(taxTotal) ? taxTotal[0] : taxTotal;
+
+        // Reverse charge detection
+        const taxSubtotal = taxTotalObj?.["cac:TaxSubtotal"] || taxTotalObj?.["TaxSubtotal"];
+        const taxSubtotalArr = Array.isArray(taxSubtotal) ? taxSubtotal : (taxSubtotal ? [taxSubtotal] : []);
+        let isReverseCharge = false;
+        let taxExemptionReason = "";
+        for (const st of taxSubtotalArr) {
+          const cat = st?.["cac:TaxCategory"] || st?.["TaxCategory"];
+          const catId = String(cat?.["cbc:ID"] ?? cat?.["ID"] ?? "").trim().toUpperCase();
+          const reason = String(cat?.["cbc:TaxExemptionReason"] ?? cat?.["TaxExemptionReason"] ?? "").trim();
+          if (catId === "AE" || /taxare\s*invers/i.test(reason)) {
+            isReverseCharge = true;
+            taxExemptionReason = reason || "Taxare inversă conform art. 331 Codul Fiscal";
+            break;
+          }
+        }
 
         const totalTaxAmt = parseXmlNumber(taxTotalObj?.["cbc:TaxAmount"], 0);
         const subTotal = parseXmlNumber(
@@ -179,7 +238,9 @@ export async function convertXmlToPdf(
           subtotal: subTotal,
           totalVAT: totalTaxAmt,
           total: payable,
-          lines: mappedLines,
+          lines: allMappedLines,
+          isReverseCharge,
+          taxExemptionReason,
           spvIndex: (fileNameBase || "").match(/SPV_(\d+)/i)?.[1] || undefined,
         };
 
