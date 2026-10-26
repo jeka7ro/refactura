@@ -529,7 +529,7 @@ export function registerPublicApi(app: Express) {
           companyBank: body.companyBank || null,
           status,
           notes,
-          spvStatus: "extern", // FĂRĂ SPV
+          spvStatus: null, // FĂRĂ SPV (factură internă curată)
           spvIndex: null,
           spvError: null,
         } as any)
@@ -621,7 +621,7 @@ export function registerPublicApi(app: Express) {
           totalVAT: Number(finalTotalVAT.toFixed(2)),
           currency,
           status,
-          spvStatus: "extern",
+          spvStatus: null,
           linesCount: processedLines.length || 1,
         },
       });
