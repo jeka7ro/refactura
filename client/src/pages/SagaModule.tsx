@@ -1031,7 +1031,7 @@ function ExportTab() {
                     Pachet Arhivă ZIP
                   </h4>
                   <p className="text-xs text-slate-500 mb-4">
-                    Conține fișierele standard recunoscute direct de SAGA C: FACTURI.XML, ARTICOLE.XML și CLIENTI.XML.
+                    Conține cele 3 fișiere standard SAGA C: F_...xml, CLI_...xml și ART_...xml.
                   </p>
                 </div>
                 <button

@@ -101,9 +101,10 @@ router.get("/", async (req, res) => {
     const xmlClienti = await generateSagaClientsXML(tenantId);
 
     const zip = new AdmZip();
-    zip.addFile(`FACTURI.XML`, toSagaXmlBuffer(xmlFacturi));
-    zip.addFile(`CLIENTI.XML`, toSagaXmlBuffer(xmlClienti));
-    zip.addFile(`ARTICOLE.XML`, toSagaXmlBuffer(xmlArticole));
+    const facturiFileName = exportMonth === 0 ? `F_${safeCui}_ALL_${exportYear}.xml` : `F_${safeCui}_${exportMonth}_${exportYear}.xml`;
+    zip.addFile(facturiFileName, toSagaXmlBuffer(xmlFacturi));
+    zip.addFile(`CLI_${dateStr}.xml`, toSagaXmlBuffer(xmlClienti));
+    zip.addFile(`ART_${dateStr}.xml`, toSagaXmlBuffer(xmlArticole));
 
     const zipBuffer = zip.toBuffer();
 
