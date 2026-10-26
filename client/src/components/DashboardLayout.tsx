@@ -423,7 +423,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const isUnlockedCurrent = checkIsUnlocked(effectiveTenantId);
 
-  if (pinStatus?.pinEnabled && (!isPinUnlocked || !isUnlockedCurrent)) {
+  // Superadmin nu este blocat de PIN-ul unui client dacă vizitează o altă firmă
+  const shouldBlockWithPin =
+    pinStatus?.pinEnabled &&
+    (!isPinUnlocked || !isUnlockedCurrent) &&
+    !(user?.role === "superadmin" && effectiveTenantId !== 1);
+
+  if (shouldBlockWithPin) {
     return (
       <CompanyPinLockModal
         companyName={pinStatus.companyName || companyName}
@@ -440,6 +446,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         userRole={pinStatus?.userRole || (user?.role === "admin" ? "Administrator" : "Manager / Utilizator")}
         defaultExplanation={pinStatus?.defaultExplanation}
         tenantId={effectiveTenantId}
+        isSuperadmin={user?.role === "superadmin"}
         onUnlocked={() => {
           try {
             sessionStorage.setItem("smart_invoice_pin_session_unlocked", String(effectiveTenantId));

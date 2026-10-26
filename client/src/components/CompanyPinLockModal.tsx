@@ -16,6 +16,7 @@ import {
   Timer,
   Droplets,
   Wind,
+  Building2,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -31,6 +32,7 @@ interface CompanyPinLockModalProps {
   userRole?: string;
   defaultExplanation?: string;
   tenantId?: number;
+  isSuperadmin?: boolean;
   onUnlocked: () => void;
 }
 
@@ -592,6 +594,7 @@ export function CompanyPinLockModal({
   userRole = "",
   defaultExplanation = "",
   tenantId,
+  isSuperadmin = false,
   onUnlocked,
 }: CompanyPinLockModalProps) {
   const [currentTime, setCurrentTime] = useState<Date>(() => new Date());
@@ -862,6 +865,24 @@ export function CompanyPinLockModal({
     localStorage.removeItem("authToken");
     sessionStorage.clear();
     window.location.href = "/login";
+  };
+
+  const switchTenantMutation = trpc.tenants.switchTenant.useMutation();
+  const [isSwitching, setIsSwitching] = useState(false);
+
+  const handleSwitchToTrade = async () => {
+    try {
+      setIsSwitching(true);
+      const res = await switchTenantMutation.mutateAsync({ tenantId: 1 });
+      if (res?.token) {
+        localStorage.setItem("authToken", res.token);
+      }
+      sessionStorage.clear();
+      window.location.reload();
+    } catch (err: any) {
+      toast.error(err?.message || "Eroare la comutarea firmei.");
+      setIsSwitching(false);
+    }
   };
 
   const effectiveThemeColor = themeColor || "#2563eb";
@@ -1135,6 +1156,37 @@ export function CompanyPinLockModal({
                 Deconectare
               </button>
             </div>
+
+            {tenantId && tenantId !== 1 && (
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleSwitchToTrade}
+                  disabled={isSwitching}
+                  className="w-full py-2.5 px-4 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/40 text-blue-200 text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                  {isSwitching ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Building2 className="w-3.5 h-3.5" />
+                  )}
+                  <span>Comută la Trade Invest Network</span>
+                </button>
+              </div>
+            )}
+
+            {isSuperadmin && (
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => onUnlocked()}
+                  className="w-full py-2 px-4 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/40 border border-emerald-500/30 text-emerald-300 text-xs font-medium flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Acces Administrator (Bypass PIN)</span>
+                </button>
+              </div>
+            )}
           </>
         ) : (
           <>

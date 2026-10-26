@@ -315,9 +315,14 @@ export const appRouter = router({
       try {
         s = JSON.parse(t.settings || "{}");
       } catch {}
+      const isSuperadmin = ctx.user?.role === "superadmin";
+      const pinEnabled = isSuperadmin && t.id !== 1 ? false : Boolean(s.accessPinEnabled && s.accessPinHash);
+
       return {
         tenantId: t.id,
-        pinEnabled: Boolean(s.accessPinEnabled && s.accessPinHash),
+        pinEnabled,
+        isSuperadmin,
+        isOwnTenant: t.id === 1,
         companyName: t.name || "",
         logoUrl: s.logoBase64 || "",
         logoBgColor: s.logoBgColor || (s.logoHasBackground ? "#0f172a" : ""),
@@ -390,6 +395,12 @@ export const appRouter = router({
           .where(eq(tenants.id, tenantId))
           .limit(1);
         if (!t) throw new Error("Compania nu a fost găsită");
+
+        // Superadminul poate debloca oricând orice firmă
+        if (ctx.user?.role === "superadmin") {
+          return { success: true, tenantId };
+        }
+
         let s: any = {};
         try {
           s = JSON.parse(t.settings || "{}");

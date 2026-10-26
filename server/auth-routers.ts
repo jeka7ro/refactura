@@ -73,11 +73,27 @@ export const authRouter = router({
       try {
         const account = await authenticateAccount(input.email, input.password);
 
+        let activeTenantId = account.tenantId;
+        if (account.role === "superadmin" || account.email === "jeka7ro@gmail.com") {
+          activeTenantId = 1;
+          try {
+            const { getDb } = await import("./db");
+            const db = await getDb();
+            if (db) {
+              const { accounts } = await import("../drizzle/schema");
+              const { eq } = await import("drizzle-orm");
+              await db.update(accounts).set({ tenantId: 1 }).where(eq(accounts.id, account.id));
+            }
+          } catch (e) {
+            console.warn("[Auth] Failed to reset superadmin tenantId to 1:", e);
+          }
+        }
+
         const token = await createSessionToken({
           accountId: account.id,
           email: account.email,
           role: account.role,
-          tenantId: account.tenantId || undefined,
+          tenantId: activeTenantId || undefined,
         });
 
         return {
@@ -87,7 +103,7 @@ export const authRouter = router({
             id: account.id,
             email: account.email,
             role: account.role,
-            tenantId: account.tenantId,
+            tenantId: activeTenantId,
           },
         };
       } catch (error) {
@@ -238,7 +254,7 @@ export const authRouter = router({
         if (!account) {
           // Create new account if it doesn't exist
           const newAccountId = await createGoogleAccount(email);
-          account = await getAccountById(newAccountId);
+          account = await getAccountById(Number(newAccountId));
         }
         
         if (!account) {
@@ -249,11 +265,27 @@ export const authRouter = router({
           throw new Error("Account is inactive");
         }
         
+        let activeTenantId = account.tenantId;
+        if (account.role === "superadmin" || account.email === "jeka7ro@gmail.com") {
+          activeTenantId = 1;
+          try {
+            const { getDb } = await import("./db");
+            const db = await getDb();
+            if (db) {
+              const { accounts } = await import("../drizzle/schema");
+              const { eq } = await import("drizzle-orm");
+              await db.update(accounts).set({ tenantId: 1 }).where(eq(accounts.id, account.id));
+            }
+          } catch (e) {
+            console.warn("[Auth] Failed to reset superadmin tenantId to 1:", e);
+          }
+        }
+
         const token = await createSessionToken({
           accountId: account.id,
           email: account.email,
           role: account.role,
-          tenantId: account.tenantId || undefined,
+          tenantId: activeTenantId || undefined,
         });
 
         return {
@@ -263,7 +295,7 @@ export const authRouter = router({
             id: account.id,
             email: account.email,
             role: account.role,
-            tenantId: account.tenantId,
+            tenantId: activeTenantId,
           },
         };
       } catch (error) {
