@@ -1,8 +1,8 @@
 import type { Express, Request, Response } from "express";
 import { createHash, randomBytes } from "crypto";
 import { getDb } from "./db";
-import { apiKeys, costCenters, invoiceArchive, emittedInvoices } from "../drizzle/schema";
-import { eq, and, gte, lte, like, or, sql } from "drizzle-orm";
+import { apiKeys, costCenters, invoiceArchive, emittedInvoices, emittedInvoiceLines, clients, devize, devizeLines } from "../drizzle/schema";
+import { eq, and, gte, lte, like, or, sql, desc } from "drizzle-orm";
 
 // ─── helpers ─────────────────────────────────────────────────
 function hashKey(raw: string): string {
@@ -336,6 +336,298 @@ export function registerPublicApi(app: Express) {
       return res.json({ data: rows[0] });
     } catch (e: any) {
       return res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── POST /api/v1/facturi-emise ───────────────────────────
+  // Salvează factura trimisă din QR Pontaj (sau alt serviciu) cu seria QRP și fără SPV
+  app.post("/api/v1/facturi-emise", async (req: Request, res: Response) => {
+    const auth = await resolveApiKey(req.headers.authorization);
+    if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
+
+    try {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+
+      const body = req.body || {};
+      const tenantId = auth.tenantId;
+
+      // Seria: specificată în body sau implicit "QRP"
+      const series = (body.series || "QRP").trim().toUpperCase();
+
+      // Numărul facturii: dacă nu este furnizat, calculăm următorul număr pentru această serie
+      let invoiceNumber = body.number ? String(body.number).trim() : "";
+      if (!invoiceNumber) {
+        const matches = await db
+          .select({ number: emittedInvoices.number })
+          .from(emittedInvoices)
+          .where(
+            and(
+              eq(emittedInvoices.tenantId, tenantId),
+              or(
+                eq(emittedInvoices.series, series),
+                like(emittedInvoices.number, `${series}%`)
+              )
+            )
+          );
+
+        let maxNum = 0;
+        for (const row of matches) {
+          const m = (row.number || "").match(/(\d+)$/);
+          if (m) {
+            const val = parseInt(m[1], 10);
+            if (val > maxNum) maxNum = val;
+          }
+        }
+        const nextNum = maxNum + 1;
+        invoiceNumber = `${series}-${String(nextNum).padStart(4, "0")}`;
+      }
+
+      // Prevenim duplicarea pe același număr și serie pentru această firmă
+      const existing = await db
+        .select({ id: emittedInvoices.id })
+        .from(emittedInvoices)
+        .where(
+          and(
+            eq(emittedInvoices.tenantId, tenantId),
+            eq(emittedInvoices.number, invoiceNumber)
+          )
+        )
+        .limit(1);
+
+      if (existing[0]) {
+        return res.status(409).json({
+          error: `O factură cu numărul "${invoiceNumber}" există deja în sistem.`,
+          existingId: existing[0].id,
+        });
+      }
+
+      // Date client
+      const clientName = (
+        body.clientName ||
+        body.customerName ||
+        body.client?.name ||
+        body.tenantName ||
+        "Client QR Pontaj"
+      ).trim();
+
+      const rawCui = body.clientCUI || body.client?.cui || body.cui || "";
+      const clientCUI = rawCui ? String(rawCui).trim() : null;
+      const clientRegCom = body.clientRegCom || body.client?.regCom || null;
+      const clientAddress = body.clientAddress || body.client?.address || null;
+      const clientCity = body.clientCity || body.client?.city || null;
+      const clientEmail = body.clientEmail || body.client?.email || null;
+      const clientPhone = body.clientPhone || body.client?.phone || null;
+
+      let clientCountry = "RO";
+      if (body.clientCountry) {
+        clientCountry = String(body.clientCountry).trim().slice(0, 2).toUpperCase();
+      } else if (clientCUI) {
+        const m = clientCUI.match(/^([A-Za-z]{2})/);
+        if (m && m[1].toUpperCase() !== "RO") {
+          clientCountry = m[1].toUpperCase();
+        }
+      }
+
+      // Asociere automată clientId dacă există în tabela clients
+      let clientId = body.clientId ? parseInt(String(body.clientId)) : null;
+      if (!clientId && (clientCUI || clientName)) {
+        const conds: any[] = [eq(clients.tenantId, tenantId)];
+        if (clientCUI) {
+          const normCui = clientCUI.replace(/^RO/i, "").trim();
+          conds.push(or(eq(clients.cui, clientCUI), like(clients.cui, `%${normCui}%`)));
+        } else {
+          conds.push(eq(clients.name, clientName));
+        }
+        const [cMatch] = await db
+          .select({ id: clients.id })
+          .from(clients)
+          .where(and(...conds))
+          .limit(1);
+        if (cMatch) clientId = cMatch.id;
+      }
+
+      // Date factură
+      const nowStr = new Date().toISOString().slice(0, 10);
+      const issueDate = body.issueDate ? String(body.issueDate).slice(0, 10) : nowStr;
+      const dueDate = body.dueDate ? String(body.dueDate).slice(0, 10) : null;
+      const currency = (body.currency || "RON").trim().toUpperCase();
+
+      // Parsare linii factură (suportă body.lines sau body.items)
+      const rawLines = Array.isArray(body.lines)
+        ? body.lines
+        : Array.isArray(body.items)
+        ? body.items
+        : [];
+
+      let calcSubtotal = 0;
+      let calcVat = 0;
+
+      const processedLines = rawLines.map((l: any, idx: number) => {
+        const qty = parseFloat(String(l.quantity ?? l.cantitate ?? 1)) || 1;
+        const price = parseFloat(String(l.unitPrice ?? l.pretUnitar ?? l.price ?? 0)) || 0;
+        const rate = parseFloat(String(l.vatRate ?? l.cotaTva ?? body.defaultVatRate ?? 19)) || 0;
+        const lineTotal = l.total !== undefined ? parseFloat(String(l.total)) : Math.round(qty * price * 100) / 100;
+        const lineVat = Math.round(lineTotal * (rate / 100) * 100) / 100;
+
+        calcSubtotal += lineTotal;
+        calcVat += lineVat;
+
+        return {
+          description: String(l.description || l.denumire || `Abonament / Servicii QR Pontaj`).trim(),
+          quantity: String(qty),
+          unitPrice: String(price),
+          unit: String(l.unit || l.um || "buc").trim(),
+          vatRate: String(rate),
+          total: String(lineTotal),
+          devizCode: l.devizCode ? String(l.devizCode) : null,
+          devizType: l.devizType ? String(l.devizType) : null,
+          lineOrder: idx,
+        };
+      });
+
+      const finalSubtotal = body.subtotal !== undefined
+        ? parseFloat(String(body.subtotal))
+        : Math.round(calcSubtotal * 100) / 100;
+
+      const finalTotalVAT = body.totalVAT !== undefined
+        ? parseFloat(String(body.totalVAT))
+        : Math.round(calcVat * 100) / 100;
+
+      const finalTotal = body.total !== undefined
+        ? parseFloat(String(body.total))
+        : Math.round((finalSubtotal + finalTotalVAT) * 100) / 100;
+
+      const notes = body.notes ? String(body.notes).trim() : "Factură generată automat din Smart QR Pontaj.";
+      const status = body.status && ["draft", "sent", "paid", "overdue", "cancelled"].includes(body.status)
+        ? body.status
+        : "sent";
+
+      // Inserare factură emisă: fără SPV (spvStatus = "extern", spvIndex = null)
+      const [insertResult] = await db
+        .insert(emittedInvoices)
+        .values({
+          tenantId,
+          number: invoiceNumber,
+          series,
+          clientId,
+          clientName,
+          clientCUI,
+          clientRegCom,
+          clientAddress,
+          clientCity,
+          clientCountry,
+          clientEmail,
+          clientPhone,
+          issueDate,
+          dueDate,
+          subtotal: String(finalSubtotal.toFixed(2)),
+          totalVAT: String(finalTotalVAT.toFixed(2)),
+          total: String(finalTotal.toFixed(2)),
+          currency,
+          companyIBAN: body.companyIBAN || null,
+          companyBank: body.companyBank || null,
+          status,
+          notes,
+          spvStatus: "extern", // FĂRĂ SPV
+          spvIndex: null,
+          spvError: null,
+        } as any)
+        .$returningId();
+
+      const invoiceId = insertResult.id;
+
+      // Inserare linii factură
+      if (processedLines.length > 0) {
+        await db.insert(emittedInvoiceLines).values(
+          processedLines.map((l: any) => ({
+            emittedInvoiceId: invoiceId,
+            ...l,
+          }))
+        );
+      } else {
+        await db.insert(emittedInvoiceLines).values({
+          emittedInvoiceId: invoiceId,
+          description: "Servicii conform raport Smart QR Pontaj",
+          quantity: "1",
+          unitPrice: String(finalSubtotal.toFixed(2)),
+          unit: "serviciu",
+          vatRate: String(finalTotalVAT > 0 ? "19.00" : "0.00"),
+          total: String(finalSubtotal.toFixed(2)),
+          lineOrder: 0,
+        });
+      }
+
+      // Deviz opțional dacă este furnizat de QR Pontaj (customDevizLines sau devizLines)
+      const devizLinesInput = body.customDevizLines || body.devizLines || body.deviz?.lines;
+      if (body.createDeviz || (Array.isArray(devizLinesInput) && devizLinesInput.length > 0)) {
+        try {
+          const devizNum = `DEV-${invoiceId}`;
+          const devizNotes = body.devizNotes || body.deviz?.notes || "Anexă deviz nominal Smart QR Pontaj";
+
+          const linesArr = Array.isArray(devizLinesInput) ? devizLinesInput : [];
+          let dTot = 0;
+          for (const dl of linesArr) {
+            dTot += parseFloat(String(dl.total || 0)) || 0;
+          }
+
+          const [dRes] = await db
+            .insert(devize)
+            .values({
+              tenantId,
+              number: devizNum,
+              date: new Date(),
+              invoiceId,
+              totalMaterials: "0",
+              totalLabor: String(dTot.toFixed(2)),
+              total: String(dTot.toFixed(2)),
+              status: "final",
+              notes: devizNotes,
+            } as any)
+            .$returningId();
+
+          if (linesArr.length > 0) {
+            await db.insert(devizeLines).values(
+              linesArr.map((dl: any, i: number) => ({
+                devizId: dRes.id,
+                type: dl.type || "MANOPERA",
+                code: dl.code || `QRP-${i + 1}`,
+                description: String(dl.description || dl.numeAngajat || "Activitate pontaj"),
+                quantity: String(dl.quantity || dl.ore || 1),
+                unitPrice: String(dl.unitPrice || dl.tarifOrar || dl.total || 0),
+                total: String(dl.total || 0),
+                lineOrder: i,
+              }))
+            );
+          }
+        } catch (devizErr: any) {
+          console.warn("[PUBLIC API] Warning la crearea devizului anexat:", devizErr.message);
+        }
+      }
+
+      return res.status(201).json({
+        success: true,
+        message: "Factura a fost salvată cu succes în Smart Invoice!",
+        data: {
+          id: invoiceId,
+          series,
+          number: invoiceNumber,
+          clientName,
+          clientCUI,
+          issueDate,
+          dueDate,
+          total: Number(finalTotal.toFixed(2)),
+          subtotal: Number(finalSubtotal.toFixed(2)),
+          totalVAT: Number(finalTotalVAT.toFixed(2)),
+          currency,
+          status,
+          spvStatus: "extern",
+          linesCount: processedLines.length || 1,
+        },
+      });
+    } catch (e: any) {
+      console.error("[PUBLIC API] Error POST /api/v1/facturi-emise:", e);
+      return res.status(500).json({ error: e.message || "Internal server error" });
     }
   });
 }
