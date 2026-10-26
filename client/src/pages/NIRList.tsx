@@ -417,9 +417,19 @@ export default function NIRList() {
 
           {/* Buton Distinct: Export SAGA (XML) */}
           <button
-            onClick={() => exportNirMut.mutate({})}
-            disabled={exportNirMut.isPending}
-            title="Exportă recepțiile în format SAGA C (FACTURI.XML)"
+            onClick={() => {
+              if (selectedIds.size > 0) {
+                exportNirMut.mutate({ nirIds: Array.from(selectedIds) });
+              } else if (filtered.length > 0) {
+                exportNirMut.mutate({ nirIds: filtered.map((n: any) => n.id) });
+              } else {
+                toast.error("Nu există NIR-uri de exportat.");
+              }
+            }}
+            disabled={exportNirMut.isPending || (selectedIds.size === 0 && filtered.length === 0)}
+            title={selectedIds.size > 0 
+              ? `Exportă cele ${selectedIds.size} recepții selectate în format SAGA C (FACTURI.XML)` 
+              : `Exportă cele ${filtered.length} recepții filtrate în format SAGA C (FACTURI.XML)`}
             className="flex items-center gap-1.5 px-3.5 h-9 rounded-lg bg-slate-700 hover:bg-slate-800 text-white text-sm font-bold transition-all shadow-sm disabled:opacity-50"
           >
             {exportNirMut.isPending ? (
@@ -427,7 +437,7 @@ export default function NIRList() {
             ) : (
               <FileCode className="w-4 h-4 text-emerald-400" />
             )}
-            Export SAGA (XML)
+            Export SAGA (XML) {selectedIds.size > 0 ? `(${selectedIds.size})` : `(${filtered.length})`}
           </button>
 
           {/* Buton Creare NIR */}

@@ -41,10 +41,22 @@ router.get("/", async (req, res) => {
     const parsedNirIds = nirIds !== undefined ? String(nirIds).split(",").map(Number).filter(n => !isNaN(n)) : undefined;
     const parsedInvoiceIds = invoiceIds !== undefined ? String(invoiceIds).split(",").map(Number).filter(n => !isNaN(n)) : undefined;
 
-    if (type === "nir" || nirId) {
-      const targetNirId = nirId ? parseInt(String(nirId)) : undefined;
-      const xmlContent = await generateSagaNirXML(tenantId, targetNirId);
-      const fileName = targetNirId ? `F_${safeCui}_NIR_${targetNirId}.xml` : `F_${safeCui}_NIR_ALL.xml`;
+    if (type === "nir" || nirId || (parsedNirIds && parsedNirIds.length > 0)) {
+      const targetNirIds = parsedNirIds && parsedNirIds.length > 0 
+        ? parsedNirIds 
+        : (nirId ? parseInt(String(nirId)) : undefined);
+      const xmlContent = await generateSagaNirXML(tenantId, targetNirIds, {
+        month: month ? exportMonth : undefined,
+        year: year ? exportYear : undefined,
+      });
+      let fileName = `F_${safeCui}_NIR_${exportMonth}_${exportYear}.xml`;
+      if (typeof targetNirIds === "number") {
+        fileName = `F_${safeCui}_NIR_${targetNirIds}.xml`;
+      } else if (Array.isArray(targetNirIds)) {
+        fileName = `F_${safeCui}_NIR_SEL_${targetNirIds.length}.xml`;
+      } else if (!month && !year) {
+        fileName = `F_${safeCui}_NIR_ALL.xml`;
+      }
       res.set("Content-Type", "application/xml; charset=windows-1250");
       res.set("Content-Disposition", `attachment; filename="${fileName}"`);
       return res.send(toSagaXmlBuffer(xmlContent));
@@ -78,6 +90,9 @@ router.get("/", async (req, res) => {
     }
 
     // Implicit: Pachet complet ZIP (conform SAGA C Diverse > Import date)
+    // SAGA C Import date citește din folder fișierele FACTURI.XML, CLIENTI.XML, ARTICOLE.XML.
+    // NU se adaugă fișiere duplicate (ex: F_...xml sau CLI_...xml) în aceeași arhivă,
+    // deoarece SAGA C scanează directorul extras și importă ambele fișiere, provocând DUBLAREA documentelor!
     const xmlFacturi = await generateSagaExportXML(tenantId, exportMonth, exportYear, {
       nirIds: parsedNirIds,
       invoiceIds: parsedInvoiceIds,
@@ -86,14 +101,9 @@ router.get("/", async (req, res) => {
     const xmlClienti = await generateSagaClientsXML(tenantId);
 
     const zip = new AdmZip();
-    // Nume standard recunoscute instant de ecranul "Import date" din SAGA C
     zip.addFile(`FACTURI.XML`, toSagaXmlBuffer(xmlFacturi));
     zip.addFile(`CLIENTI.XML`, toSagaXmlBuffer(xmlClienti));
     zip.addFile(`ARTICOLE.XML`, toSagaXmlBuffer(xmlArticole));
-    // Păstrăm și denumirile alternative cu CUI și dată
-    zip.addFile(`F_${safeCui}_${exportMonth}_${exportYear}.xml`, toSagaXmlBuffer(xmlFacturi));
-    zip.addFile(`ART_${dateStr}.xml`, toSagaXmlBuffer(xmlArticole));
-    zip.addFile(`CLI_${dateStr}.xml`, toSagaXmlBuffer(xmlClienti));
 
     const zipBuffer = zip.toBuffer();
 

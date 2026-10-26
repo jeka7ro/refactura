@@ -417,6 +417,8 @@ export const sagaRouter = router({
         .object({
           nirId: z.number().optional(),
           nirIds: z.array(z.number()).optional(),
+          month: z.number().optional(),
+          year: z.number().optional(),
         })
         .optional()
     )
@@ -427,7 +429,10 @@ export const sagaRouter = router({
       const tenantId = tenantOf(ctx);
       const targetIds =
         input?.nirIds && input.nirIds.length > 0 ? input.nirIds : input?.nirId;
-      const xml = await generateSagaNirXML(tenantId, targetIds);
+      const xml = await generateSagaNirXML(tenantId, targetIds, {
+        month: input?.month,
+        year: input?.year,
+      });
       const company = await getTenantCompanyProfile(tenantId);
       const safeCui = company.cui.replace(/^RO/i, "").trim() || "EXPORT";
       let filename = `F_${safeCui}_NIR_ALL.xml`;
@@ -435,6 +440,10 @@ export const sagaRouter = router({
         filename = `F_${safeCui}_NIR_${targetIds}.xml`;
       } else if (Array.isArray(targetIds)) {
         filename = `F_${safeCui}_NIR_SEL_${targetIds.length}.xml`;
+      } else if (input?.month && input?.year) {
+        filename = input.month === 0 
+          ? `F_${safeCui}_NIR_ALL_${input.year}.xml` 
+          : `F_${safeCui}_NIR_${input.month}_${input.year}.xml`;
       }
       return { xml, filename };
     }),

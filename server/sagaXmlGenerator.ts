@@ -102,24 +102,7 @@ export function formatSpvTags(spvIndex: string): string {
   const s = escapeXml(spvIndex.trim());
   return [
     `      <IdIncarcareSPV>${s}</IdIncarcareSPV>`,
-    `      <id_incarcare_spv>${s}</id_incarcare_spv>`,
-    `      <id_incarcare>${s}</id_incarcare>`,
-    `      <id_spv>${s}</id_spv>`,
-    `      <id_incarc>${s}</id_incarc>`,
-    `      <idspv>${s}</idspv>`,
-    `      <id_oncaroare_spv>${s}</id_oncaroare_spv>`,
-    `      <IdIncarcare>${s}</IdIncarcare>`,
-    `      <IdSPV>${s}</IdSPV>`,
-    `      <IndexSPV>${s}</IndexSPV>`,
-    `      <index_spv>${s}</index_spv>`,
-    `      <FacturaIDSPV>${s}</FacturaIDSPV>`,
-    `      <FacturaIdIncarcare>${s}</FacturaIdIncarcare>`,
-    `      <FacturaIdIncarcareSPV>${s}</FacturaIdIncarcareSPV>`,
-    `      <FacturaIndexSPV>${s}</FacturaIndexSPV>`,
-    `      <FacturaInformatiiSuplimentare>${s}</FacturaInformatiiSuplimentare>`,
-    `      <InformatiiSuplimentare>${s}</InformatiiSuplimentare>`,
     `      <Observatii>ID încărcare SPV: ${s}</Observatii>`,
-    `      <FacturaObservatii>ID încărcare SPV: ${s}</FacturaObservatii>`,
   ].join("\n") + "\n";
 }
 
@@ -470,8 +453,9 @@ export async function generateSagaExportXML(
 
   // a. Facturi Intrări din modulul NIR
   for (const n of monthNirs) {
-    const docNum = (n.invoiceNumber || n.nirNumber || "").trim();
-    const docKey = `${(n.supplierCUI || "").trim().toUpperCase()}_${docNum.toUpperCase()}`;
+    const cleanSupplierCui = (n.supplierCUI || "").replace(/^RO/i, "").trim().toUpperCase();
+    const docNum = (n.invoiceNumber || n.nirNumber || "").trim().toUpperCase();
+    const docKey = `${cleanSupplierCui}_${docNum}`;
     if (docKey && exportedDocKeys.has(docKey)) continue;
     if (docKey) exportedDocKeys.add(docKey);
 
@@ -647,7 +631,9 @@ export async function generateSagaExportXML(
     });
 
     for (const n of monthSagaIntrari) {
-      const docKey = `${(n.cuiFurnizor || "").trim().toUpperCase()}_${(n.nrDoc || "").trim().toUpperCase()}`;
+      const cleanFurnizorCui = (n.cuiFurnizor || "").replace(/^RO/i, "").trim().toUpperCase();
+      const docNum = (n.nrDoc || "").trim().toUpperCase();
+      const docKey = `${cleanFurnizorCui}_${docNum}`;
       if (docKey && exportedDocKeys.has(docKey)) continue;
       if (docKey) exportedDocKeys.add(docKey);
 
@@ -809,7 +795,11 @@ export async function generateSagaExportXML(
 /**
  * Generează XML de Facturi (<Facturi>) strict pentru recepții / NIR-uri (Intrări în SAGA C)
  */
-export async function generateSagaNirXML(tenantId: number, nirId?: number | number[]) {
+export async function generateSagaNirXML(
+  tenantId: number, 
+  nirId?: number | number[],
+  options?: { month?: number; year?: number }
+) {
   const db = await getDb();
   if (!db) throw new Error("No DB");
 
@@ -828,12 +818,29 @@ export async function generateSagaNirXML(tenantId: number, nirId?: number | numb
     } else {
       nirs = nirs.filter((n) => n.id === nirId);
     }
+  } else if (options?.month && options?.year) {
+    const isAllYear = !options.month || options.month === 0;
+    const startDateStr = isAllYear ? `${options.year}-01-01` : `${options.year}-${String(options.month).padStart(2, "0")}-01`;
+    const lastDay = isAllYear ? 31 : new Date(options.year, options.month, 0).getDate();
+    const endDateStr = isAllYear ? `${options.year}-12-31` : `${options.year}-${String(options.month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+    nirs = nirs.filter((n) => {
+      if (!n.receiptDate) return false;
+      const nDate = n.receiptDate.substring(0, 10);
+      return nDate >= startDateStr && nDate <= endDateStr;
+    });
   }
 
   let xml = `<?xml version="1.0" encoding="Windows-1250"?>\n`;
   xml += `<Facturi>\n`;
 
+  const exportedDocKeys = new Set<string>();
+
   for (const n of nirs) {
+    const cleanSupplierCui = (n.supplierCUI || "").replace(/^RO/i, "").trim().toUpperCase();
+    const docNum = (n.invoiceNumber || n.nirNumber || "").trim().toUpperCase();
+    const docKey = `${cleanSupplierCui}_${docNum}`;
+    if (docKey && exportedDocKeys.has(docKey)) continue;
+    if (docKey) exportedDocKeys.add(docKey);
     const linesData = await db
       .select({
         line: schema.nirLines,
@@ -1046,13 +1053,50 @@ export async function generateSagaClientsXML(tenantId: number) {
     .from(schema.clients)
     .where(eq(schema.clients.tenantId, tenantId));
 
+  // 1. Identificăm partenerii cărora li s-au emis facturi (inclusiv furnizori cărora li s-au facturat servicii/mărfuri)
+  const billedInvoices = await db
+    .select({ clientId: schema.emittedInvoices.clientId })
+    .from(schema.emittedInvoices)
+    .where(eq(schema.emittedInvoices.tenantId, tenantId));
+  const billedSet = new Set(billedInvoices.map((b) => b.clientId).filter(Boolean));
+
+  // 2. Selectăm strict clienții (isSupplier = 0 / falsy) sau partenerii facturați explicit ca clienți
+  const relevantClients = clientsList.filter((c) => !c.isSupplier || billedSet.has(c.id));
+
+  // 3. Deduplicare pe CUI valid și garantare unicitate <Cod> în SAGA C
+  const uniqueClients: (typeof clientsList[0] & { finalCode: string })[] = [];
+  const seenCuis = new Map<string, typeof clientsList[0]>();
+  const seenCodes = new Set<string>();
+
+  for (const client of relevantClients) {
+    const rawCui = (client.cui || "").replace(/^RO/i, "").trim().toUpperCase();
+    const isGenericCui = !rawCui || rawCui === "0000000000000" || rawCui === "PF" || rawCui === "-";
+
+    if (!isGenericCui) {
+      if (seenCuis.has(rawCui)) {
+        continue;
+      }
+      seenCuis.set(rawCui, client);
+    }
+
+    let cod = client.sagaCode && client.sagaCode !== "null" ? client.sagaCode.trim() : String(client.id);
+    if (seenCodes.has(cod)) {
+      cod = String(client.id);
+    }
+    seenCodes.add(cod);
+
+    uniqueClients.push({
+      ...client,
+      finalCode: cod,
+    });
+  }
+
   let xml = `<?xml version="1.0" encoding="Windows-1250"?>\n`;
   xml += `<Clienti>\n`;
 
-  for (const client of clientsList) {
-    const cod = client.sagaCode && client.sagaCode !== "null" ? client.sagaCode : client.id;
+  for (const client of uniqueClients) {
     xml += `  <Linie>\n`;
-    xml += `    <Cod>${escapeXml(cod)}</Cod>\n`;
+    xml += `    <Cod>${escapeXml(client.finalCode)}</Cod>\n`;
     xml += `    <Denumire>${escapeXml(client.name)}</Denumire>\n`;
     xml += `    <Cod_fiscal>${escapeXml(client.cui || "")}</Cod_fiscal>\n`;
     if (client.regCom) xml += `    <Reg_com>${escapeXml(client.regCom)}</Reg_com>\n`;
