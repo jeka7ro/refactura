@@ -1031,7 +1031,7 @@ function ExportTab() {
                     Pachet Arhivă ZIP
                   </h4>
                   <p className="text-xs text-slate-500 mb-4">
-                    Conține fișierele sincronizate: Facturi (F_), Articole (ART_) și Clienți (CLI_).
+                    Conține fișierele standard recunoscute direct de SAGA C: FACTURI.XML, ARTICOLE.XML și CLIENTI.XML.
                   </p>
                 </div>
                 <button
@@ -1424,7 +1424,7 @@ function ExportTab() {
                 <li>Deschide aplicația <strong>SAGA C</strong> pe calculator.</li>
                 <li>Mergi în meniul <strong>Diverse &gt; Import date</strong>.</li>
                 <li>Alege tabul <strong>Import date din fișiere XML</strong>.</li>
-                <li>Selectează fișierul XML sau ZIP descărcat de mai sus și apasă <strong>Validare</strong>.</li>
+                <li>Dacă ai descărcat arhiva ZIP, dezarhiveaz-o într-un folder (sau selectează direct fișierul XML descărcat), apoi alege folderul în SAGA C și apasă <strong>Validare</strong>.</li>
                 <li>SAGA C va aloca automat facturile la <strong>Ieșiri</strong> (cele emise de tine) și la <strong>Intrări</strong> (achizițiile de la furnizori).</li>
               </ol>
             </div>
