@@ -551,8 +551,8 @@ export const sagaRouter = router({
                   total: z.union([z.string(), z.number()]).optional(),
                   accountingType: z.string().optional(),
                   accountingAccount: z.string().optional(),
-                  sagaArticleId: z.number().optional(),
-                  articleCode: z.string().optional(),
+                  sagaArticleId: z.number().nullish(),
+                  articleCode: z.string().nullish(),
                 })
               ),
             })
@@ -563,7 +563,22 @@ export const sagaRouter = router({
     .mutation(async ({ input, ctx }) => {
       const { simulateSagaNirImport } = await import("../../server/sagaXmlGenerator");
       const tenantId = tenantOf(ctx);
-      return simulateSagaNirImport(tenantId, input);
+      const sanitized: any = input
+        ? {
+            ...input,
+            draftNir: input.draftNir
+              ? {
+                  ...input.draftNir,
+                  lines: input.draftNir.lines.map(l => ({
+                    ...l,
+                    sagaArticleId: l.sagaArticleId ?? undefined,
+                    articleCode: l.articleCode ?? undefined,
+                  })),
+                }
+              : undefined,
+          }
+        : input;
+      return simulateSagaNirImport(tenantId, sanitized);
     }),
 
   exportArticole: protectedProcedure.mutation(async ({ ctx }) => {

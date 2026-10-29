@@ -472,8 +472,8 @@ export default function NIRCreate() {
             total: l.total,
             accountingType: l.accountingType,
             accountingAccount: l.accountingAccount,
-            sagaArticleId: l.sagaArticleId,
-            articleCode: l.articleCode,
+            sagaArticleId: l.sagaArticleId ?? undefined,
+            articleCode: l.articleCode ?? undefined,
           })),
         },
       });

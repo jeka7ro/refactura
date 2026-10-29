@@ -5131,8 +5131,8 @@ export const appRouter = router({
               accountingType: z.string().optional(),
               accountingAccount: z.string().optional(),
               lineOrder: z.number().optional(),
-              sagaArticleId: z.number().optional(),
-              articleCode: z.string().optional(),
+              sagaArticleId: z.number().nullish(),
+              articleCode: z.string().nullish(),
             })
           ),
         })
@@ -5484,8 +5484,8 @@ export const appRouter = router({
                 accountingType: z.string().optional(),
                 accountingAccount: z.string().optional(),
                 lineOrder: z.number().optional(),
-                sagaArticleId: z.number().optional(),
-                articleCode: z.string().optional(),
+                sagaArticleId: z.number().nullish(),
+                articleCode: z.string().nullish(),
               })
             )
             .optional(),
