@@ -3,6 +3,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import fs from "node:fs";
 import path from "node:path";
+import { execSync } from "node:child_process";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
 
@@ -157,7 +158,34 @@ const plugins = [
   vitePluginManusDebugCollector(),
 ];
 
+// Număr și dată build (afișate jos în sidebar)
+function resolveBuildInfo() {
+  let number = "";
+  let sha = "";
+  try {
+    number = execSync("git rev-list --count HEAD", { stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+    sha = execSync("git rev-parse --short HEAD", { stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+  } catch {
+    /* fără .git (ex. deploy) */
+  }
+  if (!sha) sha = (process.env.RAILWAY_GIT_COMMIT_SHA || process.env.GIT_COMMIT || "").slice(0, 7);
+  const date = new Intl.DateTimeFormat("ro-RO", {
+    timeZone: "Europe/Bucharest",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date());
+  return { number, sha, date };
+}
+const BUILD_INFO = resolveBuildInfo();
+
 export default defineConfig({
+  define: {
+    __BUILD_NUMBER__: JSON.stringify(BUILD_INFO.number ? BUILD_INFO.number + (BUILD_INFO.sha ? ` (${BUILD_INFO.sha})` : "") : BUILD_INFO.sha || "dev"),
+    __BUILD_DATE__: JSON.stringify(BUILD_INFO.date),
+  },
   plugins,
   resolve: {
     alias: {

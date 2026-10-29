@@ -17,12 +17,14 @@ import {
   RefreshCw,
   Eye,
   Sparkles,
+  FileText,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import PlanConturiCombobox from "@/components/PlanConturiCombobox";
 import ArticleCombobox from "@/components/ArticleCombobox";
 import NirPreviewDialog from "@/components/NirPreviewDialog";
+import PdfViewerDialog from "@/components/PdfViewerDialog";
 import {
   SagaImportSimulatorModal,
   type SagaSimulationResult,
@@ -438,6 +440,8 @@ export default function NIRCreate() {
   const simulateNirImportMut = trpc.saga.simulateNirImport.useMutation();
   const [isSavingPdf, setIsSavingPdf] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [invoicePdfOpen, setInvoicePdfOpen] = useState(false);
+  const linkedInvoiceId: number | null = sourceInvoiceId || (existingNir as any)?.invoiceArchiveId || null;
   const [simulatorOpen, setSimulatorOpen] = useState(false);
   const [simulationData, setSimulationData] = useState<SagaSimulationResult | null>(null);
 
@@ -1312,6 +1316,17 @@ export default function NIRCreate() {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {linkedInvoiceId && (
+            <button
+              type="button"
+              onClick={() => setInvoicePdfOpen(true)}
+              title="Vezi factura furnizorului (PDF) direct în aplicație"
+              className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800 transition-colors"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              Factură
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setPreviewOpen(true)}
@@ -1636,26 +1651,26 @@ export default function NIRCreate() {
           </button>
         </div>
         <div className="overflow-x-auto pb-4">
-          <table className="w-full text-xs min-w-[1450px]">
+          <table className="w-full text-xs min-w-[980px]">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800">
-                <th className="pl-4 pr-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 w-[45px]">Nr.</th>
-                <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 min-w-[260px] w-[300px]">Denumire produs/serviciu</th>
-                <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 min-w-[190px] w-[210px]">Articol (Stoc)</th>
-                {showAccounting && <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 min-w-[155px] w-[170px]">Tip</th>}
-                <th className="px-2 py-2 text-center text-[10px] font-bold uppercase text-slate-400 w-[70px]">U/M</th>
-                <th className="px-2 py-2 text-center text-[10px] font-bold uppercase text-slate-400 w-[85px]">Cant. doc.</th>
+                <th className="pl-3 pr-1 py-2 text-left text-[10px] font-bold uppercase text-slate-400 w-[32px]">Nr.</th>
+                <th className="px-1 py-2 text-left text-[10px] font-bold uppercase text-slate-400 min-w-[150px]">Denumire produs/serviciu</th>
+                <th className="px-1 py-2 text-left text-[10px] font-bold uppercase text-slate-400 min-w-[135px] w-[150px]">Articol (Stoc)</th>
+                {showAccounting && <th className="px-1 py-2 text-left text-[10px] font-bold uppercase text-slate-400 min-w-[120px] w-[130px]">Tip</th>}
+                <th className="px-1 py-2 text-center text-[10px] font-bold uppercase text-slate-400 w-[52px]">U/M</th>
+                <th className="px-1 py-2 text-center text-[10px] font-bold uppercase text-slate-400 w-[62px]">Cant. doc.</th>
                 <th
                   style={{ backgroundColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 8%, transparent)" }}
-                  className="px-2 py-2 text-center text-[10px] font-bold uppercase text-slate-400 w-[90px]"
+                  className="px-1 py-2 text-center text-[10px] font-bold uppercase text-slate-400 w-[66px]"
                 >
                   Cant. recept.
                 </th>
-                <th className="px-2 py-2 text-right text-[10px] font-bold uppercase text-slate-400 w-[105px]">Preț unit.</th>
-                <th className="px-2 py-2 text-center text-[10px] font-bold uppercase text-slate-400 w-[70px]">TVA %</th>
-                <th className="px-2 py-2 text-right text-[10px] font-bold uppercase text-slate-400 w-[120px]">Valoare</th>
-                <th className="px-2 py-2 text-left text-[10px] font-bold uppercase text-slate-400 min-w-[130px] w-[150px]">Obs.</th>
-                <th className="pr-4 pl-1 py-2 w-[45px]"></th>
+                <th className="px-1 py-2 text-right text-[10px] font-bold uppercase text-slate-400 w-[84px]">Preț unit.</th>
+                <th className="px-1 py-2 text-center text-[10px] font-bold uppercase text-slate-400 w-[50px]">TVA %</th>
+                <th className="px-1 py-2 text-right text-[10px] font-bold uppercase text-slate-400 w-[96px]">Valoare</th>
+                <th className="px-1 py-2 text-left text-[10px] font-bold uppercase text-slate-400 min-w-[80px] w-[100px]">Obs.</th>
+                <th className="pr-2 pl-1 py-2 w-[34px]"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -1675,8 +1690,8 @@ export default function NIRCreate() {
                       key={idx}
                       className={`hover:bg-slate-50/50 dark:hover:bg-slate-800/20 ${diff ? "bg-amber-50/40 dark:bg-amber-900/10" : ""}`}
                     >
-                      <td className="pl-4 pr-2 py-1.5 text-slate-400 font-semibold">{idx + 1}</td>
-                      <td className="px-2 py-1.5 min-w-[260px]">
+                      <td className="pl-3 pr-1 py-1.5 text-slate-400 font-semibold">{idx + 1}</td>
+                      <td className="px-1 py-1.5 min-w-[150px]">
                         <input
                           value={line.description}
                           onChange={e => updateLine(idx, "description", e.target.value)}
@@ -1684,8 +1699,8 @@ export default function NIRCreate() {
                           placeholder="Denumire produs sau serviciu..."
                         />
                       </td>
-                      <td className="px-1 py-1.5 min-w-[200px]">
-                        <div className="min-w-[190px]">
+                      <td className="px-1 py-1.5 min-w-[135px]">
+                        <div className="min-w-[130px]">
                           <ArticleCombobox
                             value={line.articleSearchText ?? ""}
                             articles={articles}
@@ -1717,7 +1732,7 @@ export default function NIRCreate() {
                           />
                           {line.matchType === "words_and_price" ? (
                             <div
-                              className="mt-0.5 text-[10px] text-indigo-700 dark:text-indigo-300 flex items-center gap-1 truncate max-w-[210px]"
+                              className="mt-0.5 text-[10px] text-indigo-700 dark:text-indigo-300 flex items-center gap-1 truncate max-w-[150px]"
                               title={`Asociat inteligent cu "${line.matchedSagaName || ""}" pe baza cuvintelor (${(line.matchedWords || []).join(", ")}) și a prețului identic`}
                             >
                               <Sparkles className="w-2.5 h-2.5 shrink-0 text-indigo-600" />
@@ -1743,8 +1758,8 @@ export default function NIRCreate() {
                         </div>
                       </td>
                       {showAccounting && (
-                        <td className="px-1 py-1.5 min-w-[155px] w-[170px]">
-                          <div className="min-w-[150px]">
+                        <td className="px-1 py-1.5 min-w-[120px] w-[130px]">
+                          <div className="min-w-[115px]">
                             <PlanConturiCombobox
                               size="sm"
                               displayMode="both"
@@ -1762,14 +1777,14 @@ export default function NIRCreate() {
                           </div>
                         </td>
                       )}
-                      <td className="px-1 py-1.5 w-[70px]">
+                      <td className="px-1 py-1.5 w-[52px]">
                         <input
                           value={line.unit}
                           onChange={e => updateLine(idx, "unit", e.target.value)}
                           className="w-full h-7 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-center focus:outline-none focus:ring-1 focus:ring-teal-500 text-xs"
                         />
                       </td>
-                      <td className="px-1 py-1.5 w-[85px]">
+                      <td className="px-1 py-1.5 w-[62px]">
                         <input
                           type="number"
                           value={line.cantitateComanda}
@@ -1779,7 +1794,7 @@ export default function NIRCreate() {
                       </td>
                       <td
                         style={{ backgroundColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 6%, transparent)" }}
-                        className="px-1 py-1.5 w-[90px]"
+                        className="px-1 py-1.5 w-[66px]"
                       >
                         <input
                           type="number"
@@ -1792,7 +1807,7 @@ export default function NIRCreate() {
                           className={`w-full h-7 px-1 rounded-lg border focus:outline-none focus:ring-1 focus:ring-primary text-xs text-center font-bold ${diff ? "border-amber-300 text-amber-700 bg-amber-50" : "bg-white dark:bg-slate-800"}`}
                         />
                       </td>
-                      <td className="px-1 py-1.5 w-[105px]">
+                      <td className="px-1 py-1.5 w-[84px]">
                         <input
                           type="number"
                           value={line.unitPrice}
@@ -1800,7 +1815,7 @@ export default function NIRCreate() {
                           className="w-full h-7 px-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-primary text-xs text-right"
                         />
                       </td>
-                      <td className="px-1 py-1.5 w-[70px]">
+                      <td className="px-1 py-1.5 w-[52px]">
                         <input
                           type="number"
                           value={line.vatRate === "" || line.vatRate == null ? "21" : line.vatRate}
@@ -1808,7 +1823,7 @@ export default function NIRCreate() {
                           className="w-full h-7 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 text-slate-600 focus:outline-none text-xs text-center"
                         />
                       </td>
-                      <td className="px-1 py-1.5 w-[115px]">
+                      <td className="px-1 py-1.5 w-[96px]">
                         <input
                           type="number"
                           step="0.01"
@@ -1817,7 +1832,7 @@ export default function NIRCreate() {
                           className="w-full h-7 px-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-primary text-xs text-right font-bold text-slate-700 dark:text-slate-300"
                         />
                       </td>
-                      <td className="px-1 py-1.5 min-w-[130px]">
+                      <td className="px-1 py-1.5 min-w-[80px]">
                         <input
                           value={line.observations}
                           onChange={e => updateLine(idx, "observations", e.target.value)}
@@ -1825,7 +1840,7 @@ export default function NIRCreate() {
                           className="w-full h-7 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-primary text-xs"
                         />
                       </td>
-                      <td className="pr-4 pl-1 py-1.5 w-[45px]">
+                      <td className="pr-2 pl-1 py-1.5 w-[34px]">
                         <button
                           onClick={() => removeLine(idx)}
                           className="flex items-center justify-center w-6 h-6 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 border border-red-200 transition-colors"
@@ -2063,6 +2078,13 @@ export default function NIRCreate() {
         showAccounting={showAccounting}
         nirNumber={nirNumber}
         nirId={nirId}
+      />
+      <PdfViewerDialog
+        open={invoicePdfOpen}
+        onOpenChange={setInvoicePdfOpen}
+        url={linkedInvoiceId ? `/api/pdf/archive/${linkedInvoiceId}` : null}
+        title={`Factură ${invoiceNumber || ""}`.trim()}
+        fileName={`Factura-${String(invoiceNumber || linkedInvoiceId || "document").replace(/[\\/:*?"<>|]/g, "_")}.pdf`}
       />
       <SagaImportSimulatorModal
         open={simulatorOpen}

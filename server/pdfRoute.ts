@@ -23,6 +23,7 @@ import { getDb } from "./db";
 import { tenants } from "../drizzle/schema";
 import { eq, sql, and } from "drizzle-orm";
 
+import { unitLabel } from "../shared/unitLabels";
 function getXmlText(node: any, fallback = ""): string {
   if (node === null || node === undefined) return fallback;
   if (typeof node === "string") return node.trim() || fallback;
@@ -48,6 +49,8 @@ function parseXmlNumber(node: any, fallback = 0): number {
   const num = parseFloat(str);
   return isNaN(num) ? fallback : num;
 }
+
+
 
 export function registerPdfRoute(app: any) {
   const router = Router();
@@ -563,12 +566,14 @@ export function registerPdfRoute(app: any) {
           description: cleanDesc,
           quantity,
           unitPrice: rawUnitPrice,
-          unit: String(
-            line["cbc:InvoicedQuantity"]?.["@_unitCode"] ||
-              line["InvoicedQuantity"]?.["@_unitCode"] ||
-              line["cbc:CreditedQuantity"]?.["@_unitCode"] ||
-              line["CreditedQuantity"]?.["@_unitCode"] ||
-              "buc"
+          unit: unitLabel(
+            String(
+              line["cbc:InvoicedQuantity"]?.["@_unitCode"] ||
+                line["InvoicedQuantity"]?.["@_unitCode"] ||
+                line["cbc:CreditedQuantity"]?.["@_unitCode"] ||
+                line["CreditedQuantity"]?.["@_unitCode"] ||
+                "buc"
+            )
           ),
           vatRate,
           total: lineTotal,

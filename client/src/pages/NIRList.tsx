@@ -26,6 +26,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import * as XLSX from "xlsx";
+import NirPdfViewerDialog from "@/components/NirPdfViewerDialog";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useTableSort } from "@/hooks/useTableSort";
@@ -146,6 +147,8 @@ export default function NIRList() {
       toast.error("Eroare export SAGA XML: " + (e?.message || e));
     }
   };
+
+  const [pdfViewer, setPdfViewer] = useState<{ id: number; nirNumber?: string } | null>(null);
 
   const handleSavePdfNir = async (rowId: number, rowNirNumber?: string) => {
     try {
@@ -1089,15 +1092,14 @@ export default function NIRList() {
                         className="flex items-center gap-1.5 justify-end"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <a
-                          href={`/api/pdf/nir/${row.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
+                          type="button"
+                          onClick={() => setPdfViewer({ id: row.id, nirNumber: row.nirNumber })}
                           title="Vizualizează PDF"
                           className="w-7 h-7 rounded-full flex items-center justify-center bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 transition-colors"
                         >
                           <Eye className="w-3.5 h-3.5" />
-                        </a>
+                        </button>
                         <button
                           type="button"
                           onClick={() => handleSavePdfNir(row.id, row.nirNumber)}
@@ -1187,6 +1189,12 @@ export default function NIRList() {
           </div>
         </div>
       </div>
+
+      <NirPdfViewerDialog
+        nirId={pdfViewer?.id ?? null}
+        nirNumber={pdfViewer?.nirNumber}
+        onClose={() => setPdfViewer(null)}
+      />
 
       {/* Single Delete Dialog */}
       <AlertDialog

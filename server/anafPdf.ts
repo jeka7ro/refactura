@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { unitLabel } from "../shared/unitLabels";
 
 const UPLOAD_DIR = path.resolve(process.cwd(), "dist/public/uploads/invoices");
 
@@ -109,7 +110,7 @@ export async function convertXmlToPdf(
             getXmlText(l["cac:Item"]?.["cbc:Name"]) ||
             getXmlText(l["cac:Item"]?.["cbc:Description"]) ||
             "Produs";
-          const um = l["cbc:InvoicedQuantity"]?.["@_unitCode"] || "buc";
+          const um = unitLabel(l["cbc:InvoicedQuantity"]?.["@_unitCode"] || l["cbc:CreditedQuantity"]?.["@_unitCode"]);
           const qty = parseXmlNumber(
             l["cbc:InvoicedQuantity"] ?? l["cbc:CreditedQuantity"],
             1

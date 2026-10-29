@@ -660,6 +660,21 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           )}
         </button>
       </div>
+
+      {/* Număr și dată build */}
+      <div
+        className="px-3 pb-3 text-center text-[10px] leading-tight text-slate-400 dark:text-slate-500 select-text"
+        title={`Build ${__BUILD_NUMBER__} · ${__BUILD_DATE__}`}
+      >
+        {collapsed ? (
+          <span>#{String(__BUILD_NUMBER__).split(" ")[0]}</span>
+        ) : (
+          <>
+            <div className="font-semibold">Build #{__BUILD_NUMBER__}</div>
+            <div>{__BUILD_DATE__}</div>
+          </>
+        )}
+      </div>
     </div>
   );
 
