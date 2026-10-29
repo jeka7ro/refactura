@@ -18,6 +18,7 @@ import {
   Eye,
   Sparkles,
   FileText,
+  ChevronDown,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -441,6 +442,7 @@ export default function NIRCreate() {
   const [isSavingPdf, setIsSavingPdf] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [invoicePdfOpen, setInvoicePdfOpen] = useState(false);
+  const [commissionOpen, setCommissionOpen] = useState(false); // comisia de recepție: strânsă implicit
   const linkedInvoiceId: number | null = sourceInvoiceId || (existingNir as any)?.invoiceArchiveId || null;
   const [simulatorOpen, setSimulatorOpen] = useState(false);
   const [simulationData, setSimulationData] = useState<SagaSimulationResult | null>(null);
@@ -1944,14 +1946,39 @@ export default function NIRCreate() {
 
       {/* ─── SECȚIUNEA 5: Comisia de recepție ─── */}
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3">
-          {hasDifferences ? "V." : "IV."} Comisia de recepție
-        </p>
-        <p className="text-xs text-slate-400 mb-3">
+        <button
+          type="button"
+          onClick={() => setCommissionOpen(o => !o)}
+          aria-expanded={commissionOpen}
+          className="w-full flex items-center justify-between gap-3 text-left"
+        >
+          <span className="min-w-0">
+            <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              {hasDifferences ? "V." : "IV."} Comisia de recepție
+            </span>
+            {!commissionOpen && (
+              <span className="block text-xs text-slate-500 dark:text-slate-400 truncate mt-1">
+                {[
+                  [member1Name, member1Function],
+                  [member2Name, member2Function],
+                  [member3Name, member3Function],
+                ]
+                  .map(([n, f]) => [n, f].filter(Boolean).join(" – "))
+                  .filter(Boolean)
+                  .join("  •  ") || "Nicio persoană completată — apasă pentru a completa"}
+              </span>
+            )}
+          </span>
+          <ChevronDown
+            className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${commissionOpen ? "rotate-180" : ""}`}
+          />
+        </button>
+
+        {commissionOpen && (
+        <>
+        <p className="text-xs text-slate-400 mt-3 mb-3">
           Completați numele și funcția membrilor comisiei de recepție.
         </p>
-
-
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
@@ -2009,6 +2036,8 @@ export default function NIRCreate() {
             </div>
           ))}
         </div>
+        </>
+        )}
       </div>
 
       {/* ─── SECȚIUNEA 6: Observații ─── */}
