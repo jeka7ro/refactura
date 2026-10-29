@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { usePersistentRowsPerPage } from "@/hooks/usePersistentRowsPerPage";
 import { trpc } from "@/lib/trpc";
 import {
   Search,
@@ -11,7 +12,7 @@ import {
 export default function Catalog() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(15);
+  const [rowsPerPage, setRowsPerPage] = usePersistentRowsPerPage("catalog", 15);
 
   const { data: rawData, isLoading } = trpc.edevize.search.useQuery(
     {
@@ -200,6 +201,7 @@ export default function Catalog() {
                 <option value={25}>25</option>
                 <option value={50}>50</option>
                 <option value={100}>100</option>
+                <option value={9999}>Toți</option>
               </select>
             </span>
             <span style={{ whiteSpace: "nowrap" }}>

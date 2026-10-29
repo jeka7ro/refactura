@@ -1,5 +1,6 @@
 // DevizeList.tsx — Lista Devizelor de lucrări
 import { useState } from "react";
+import { usePersistentRowsPerPage } from "@/hooks/usePersistentRowsPerPage";
 import { useLocation, Link } from "wouter";
 import {
   Loader2,
@@ -32,7 +33,7 @@ export default function DevizeList() {
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(15);
+  const [rowsPerPage, setRowsPerPage] = usePersistentRowsPerPage("devize_list", 15);
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
   const [editDevizId, setEditDevizId] = useState<number | null>(null);
 
@@ -399,6 +400,7 @@ export default function DevizeList() {
                 <option value={15}>15</option>
                 <option value={25}>25</option>
                 <option value={50}>50</option>
+                <option value={100}>100</option>
                 <option value={9999}>Toate</option>
               </select>
             </span>

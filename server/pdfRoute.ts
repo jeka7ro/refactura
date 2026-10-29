@@ -920,146 +920,12 @@ export function registerPdfRoute(app: any) {
     }
   });
 
-  // ─── GET /api/pdf/nir/:id — PDF Nota de Intrare-Recepție ─────────────────────
-  router.get("/nir/:id", async (req: Request, res: Response) => {
+  // ─── Randare PDF NIR (folosit de GET /nir/:id și POST /nir-preview) ─────────
+  const renderNirPdf = async (req: Request, res: Response, d: any) => {
     let doc: any = null;
+    const { id, nirRow, tenant, spvIndex, linkedInvoice, isCreditNote } = d;
+    const lines: any[] = d.lines;
     try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        res.status(400).json({ error: "ID invalid" });
-        return;
-      }
-
-      const db = await getDb();
-      if (!db) {
-        res.status(500).json({ error: "DB unavailable" });
-        return;
-      }
-
-      const { nir, nirLines } = await import("../drizzle/schema");
-      const { eq: eqOp } = await import("drizzle-orm");
-
-      const [nirRow] = await db.select().from(nir).where(eqOp(nir.id, id));
-      if (!nirRow) {
-        res.status(404).json({ error: "NIR nu a fost găsit" });
-        return;
-      }
-
-      const linesRaw = await db
-        .select()
-        .from(nirLines)
-        .where(eqOp(nirLines.nirId, id))
-        .orderBy(nirLines.lineOrder);
-
-      const { sagaArticles } = await import("../modules/saga/schema");
-      const articles = await db.select().from(sagaArticles).where(eqOp(sagaArticles.tenantId, nirRow.tenantId));
-      
-      const lines = linesRaw.map(l => {
-        const article = l.sagaArticleId ? articles.find(a => a.id === l.sagaArticleId) : null;
-        return {
-          ...l,
-          articleCode: article ? article.code : "",
-        };
-      });
-
-      const [tenant] = await db
-        .select()
-        .from(tenants)
-        .where(eq(tenants.id, nirRow.tenantId));
-
-      // ── Resolve SPV Index / ID Încărcare SPV ──
-      const { invoiceArchive } = await import("../drizzle/schema");
-      const { and: andOp } = await import("drizzle-orm");
-      let spvIndex: string | null = null;
-      let linkedInvoice: any = null;
-      if (nirRow.invoiceArchiveId) {
-        const [inv] = await db
-          .select()
-          .from(invoiceArchive)
-          .where(eqOp(invoiceArchive.id, nirRow.invoiceArchiveId));
-        if (inv) {
-          linkedInvoice = inv;
-          if (inv.spvIndex) spvIndex = inv.spvIndex;
-          else if (inv.notes) {
-            const m = inv.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
-            if (m) spvIndex = m[1];
-          }
-          if (!spvIndex && inv.fileName) {
-            const m = inv.fileName.match(/(?:SPV_|_INDEX_|id_|index_)(\d{8,12})/i);
-            if (m) spvIndex = m[1];
-          }
-        }
-      }
-      if (!spvIndex && nirRow.invoiceNumber) {
-        const invs = await db
-          .select()
-          .from(invoiceArchive)
-          .where(
-            andOp(
-              eqOp(invoiceArchive.tenantId, nirRow.tenantId),
-              eqOp(invoiceArchive.invoiceNumber, nirRow.invoiceNumber)
-            )
-          );
-        for (const inv of invs) {
-          if (!linkedInvoice) linkedInvoice = inv;
-          if (inv.spvIndex) { spvIndex = inv.spvIndex; break; }
-          if (inv.notes) {
-            const m = inv.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
-            if (m) { spvIndex = m[1]; break; }
-          }
-        }
-      }
-      if (!spvIndex) {
-        const { sagaIntrari } = await import("../modules/saga/schema");
-        const [si] = await db
-          .select()
-          .from(sagaIntrari)
-          .where(
-            andOp(
-              eqOp(sagaIntrari.tenantId, nirRow.tenantId),
-              nirRow.invoiceNumber ? eqOp(sagaIntrari.nrDoc, nirRow.invoiceNumber) : eqOp(sagaIntrari.nirId, nirRow.id)
-            )
-          );
-        if (si?.idSPV) spvIndex = si.idSPV;
-      }
-      if (!spvIndex && nirRow.notes) {
-        const m = nirRow.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
-        if (m) spvIndex = m[1];
-      }
-
-      const netLinesTotal = linesRaw.reduce((sum, l) => {
-        const q = parseFloat(String(l.cantitateReceptionata || "0"));
-        const p = parseFloat(String(l.unitPrice || "0"));
-        const t = parseFloat(String(l.total || "0"));
-        return sum + (!isNaN(t) && t !== 0 ? t : (!isNaN(q) && !isNaN(p) ? q * p : 0));
-      }, 0);
-
-      const invTotalNum = linkedInvoice?.total != null ? parseFloat(String(linkedInvoice.total)) : null;
-
-      const isCreditNote = invTotalNum !== null && !isNaN(invTotalNum)
-        ? (invTotalNum < 0 || !!(
-            (linkedInvoice?.rawXml && (
-              linkedInvoice.rawXml.includes("<CreditNote") ||
-              linkedInvoice.rawXml.includes(":CreditNote") ||
-              linkedInvoice.rawXml.includes("CreditNoteLine") ||
-              linkedInvoice.rawXml.includes("<cbc:InvoiceTypeCode>381</cbc:InvoiceTypeCode>") ||
-              linkedInvoice.rawXml.includes("<InvoiceTypeCode>381</InvoiceTypeCode>")
-            )) ||
-            (linkedInvoice?.notes && /storno|credit\s*note/i.test(linkedInvoice.notes)) ||
-            (nirRow.notes && /storno|credit\s*note/i.test(nirRow.notes))
-          )) && invTotalNum <= 0
-        : !!(
-            (linkedInvoice?.rawXml && (
-              linkedInvoice.rawXml.includes("<CreditNote") ||
-              linkedInvoice.rawXml.includes(":CreditNote") ||
-              linkedInvoice.rawXml.includes("CreditNoteLine") ||
-              linkedInvoice.rawXml.includes("<cbc:InvoiceTypeCode>381</cbc:InvoiceTypeCode>") ||
-              linkedInvoice.rawXml.includes("<InvoiceTypeCode>381</InvoiceTypeCode>")
-            )) ||
-            (linkedInvoice?.notes && /storno|credit\s*note/i.test(linkedInvoice.notes)) ||
-            (nirRow.notes && /storno|credit\s*note/i.test(nirRow.notes)) ||
-            netLinesTotal < 0
-          );
       let settings: any = {};
       try {
         settings = JSON.parse(tenant?.settings || "{}");
@@ -1070,7 +936,8 @@ export function registerPdfRoute(app: any) {
       const logoBgColor: string = settings.logoBgColor || "#0f172a";
       const isDownload = req.query.download === "1";
       const showAccounting = req.query.showAccounting !== "false";
-      const filename = `NIR-${nirRow.nirNumber || id}.pdf`;
+      const rawNum = String(nirRow.nirNumber || id).trim();
+      const filename = `${/^nir/i.test(rawNum) ? rawNum : `NIR-${rawNum}`}.pdf`;
 
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
@@ -1230,9 +1097,12 @@ export function registerPdfRoute(app: any) {
       y += 14;
 
       const col = W / 4;
+      const effectiveNirDate = String(
+        linkedInvoice?.issueDate || nirRow.receiptDate || ""
+      ).split("T")[0];
       const fields: [string, string][] = [
         ["Nr. NIR:", nirRow.nirNumber],
-        ["Data recepție:", nirRow.receiptDate],
+        ["Data recepție:", effectiveNirDate],
         ["Nr. factură:", nirRow.invoiceNumber || "—"],
         ["Nr. aviz:", nirRow.avizNumber || "—"],
       ];
@@ -1667,6 +1537,250 @@ export function registerPdfRoute(app: any) {
       } else {
         res.end();
       }
+    }
+  };
+
+  // ─── GET /api/pdf/nir/:id — PDF Nota de Intrare-Recepție ─────────────────────
+  router.get("/nir/:id", async (req: Request, res: Response) => {
+    let doc: any = null;
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        res.status(400).json({ error: "ID invalid" });
+        return;
+      }
+
+      const db = await getDb();
+      if (!db) {
+        res.status(500).json({ error: "DB unavailable" });
+        return;
+      }
+
+      const { nir, nirLines } = await import("../drizzle/schema");
+      const { eq: eqOp } = await import("drizzle-orm");
+
+      const [nirRow] = await db.select().from(nir).where(eqOp(nir.id, id));
+      if (!nirRow) {
+        res.status(404).json({ error: "NIR nu a fost găsit" });
+        return;
+      }
+
+      const linesRaw = await db
+        .select()
+        .from(nirLines)
+        .where(eqOp(nirLines.nirId, id))
+        .orderBy(nirLines.lineOrder);
+
+      const { sagaArticles } = await import("../modules/saga/schema");
+      const { normalizeSagaUm } = await import("./sagaXmlGenerator");
+      const articles = await db.select().from(sagaArticles).where(eqOp(sagaArticles.tenantId, nirRow.tenantId));
+      
+      const lines = linesRaw.map(l => {
+        const article = l.sagaArticleId ? articles.find(a => a.id === l.sagaArticleId) : null;
+        return {
+          ...l,
+          unit: normalizeSagaUm(l.unit),
+          articleCode: article ? article.code : "",
+        };
+      });
+
+      const [tenant] = await db
+        .select()
+        .from(tenants)
+        .where(eq(tenants.id, nirRow.tenantId));
+
+      // ── Resolve SPV Index / ID Încărcare SPV ──
+      const { invoiceArchive } = await import("../drizzle/schema");
+      const { and: andOp } = await import("drizzle-orm");
+      let spvIndex: string | null = null;
+      let linkedInvoice: any = null;
+      if (nirRow.invoiceArchiveId) {
+        const [inv] = await db
+          .select()
+          .from(invoiceArchive)
+          .where(eqOp(invoiceArchive.id, nirRow.invoiceArchiveId));
+        if (inv) {
+          linkedInvoice = inv;
+          if (inv.spvIndex) spvIndex = inv.spvIndex;
+          else if (inv.notes) {
+            const m = inv.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
+            if (m) spvIndex = m[1];
+          }
+          if (!spvIndex && inv.fileName) {
+            const m = inv.fileName.match(/(?:SPV_|_INDEX_|id_|index_)(\d{8,12})/i);
+            if (m) spvIndex = m[1];
+          }
+        }
+      }
+      if (!spvIndex && nirRow.invoiceNumber) {
+        const invs = await db
+          .select()
+          .from(invoiceArchive)
+          .where(
+            andOp(
+              eqOp(invoiceArchive.tenantId, nirRow.tenantId),
+              eqOp(invoiceArchive.invoiceNumber, nirRow.invoiceNumber)
+            )
+          );
+        for (const inv of invs) {
+          if (!linkedInvoice) linkedInvoice = inv;
+          if (inv.spvIndex) { spvIndex = inv.spvIndex; break; }
+          if (inv.notes) {
+            const m = inv.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
+            if (m) { spvIndex = m[1]; break; }
+          }
+        }
+      }
+      if (!spvIndex) {
+        const { sagaIntrari } = await import("../modules/saga/schema");
+        const [si] = await db
+          .select()
+          .from(sagaIntrari)
+          .where(
+            andOp(
+              eqOp(sagaIntrari.tenantId, nirRow.tenantId),
+              nirRow.invoiceNumber ? eqOp(sagaIntrari.nrDoc, nirRow.invoiceNumber) : eqOp(sagaIntrari.nirId, nirRow.id)
+            )
+          );
+        if (si?.idSPV) spvIndex = si.idSPV;
+      }
+      if (!spvIndex && nirRow.notes) {
+        const m = nirRow.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i);
+        if (m) spvIndex = m[1];
+      }
+
+      const netLinesTotal = linesRaw.reduce((sum, l) => {
+        const q = parseFloat(String(l.cantitateReceptionata || "0"));
+        const p = parseFloat(String(l.unitPrice || "0"));
+        const t = parseFloat(String(l.total || "0"));
+        return sum + (!isNaN(t) && t !== 0 ? t : (!isNaN(q) && !isNaN(p) ? q * p : 0));
+      }, 0);
+
+      const invTotalNum = linkedInvoice?.total != null ? parseFloat(String(linkedInvoice.total)) : null;
+
+      const isCreditNote = invTotalNum !== null && !isNaN(invTotalNum)
+        ? (invTotalNum < 0 || !!(
+            (linkedInvoice?.rawXml && (
+              linkedInvoice.rawXml.includes("<CreditNote") ||
+              linkedInvoice.rawXml.includes(":CreditNote") ||
+              linkedInvoice.rawXml.includes("CreditNoteLine") ||
+              linkedInvoice.rawXml.includes("<cbc:InvoiceTypeCode>381</cbc:InvoiceTypeCode>") ||
+              linkedInvoice.rawXml.includes("<InvoiceTypeCode>381</InvoiceTypeCode>")
+            )) ||
+            (linkedInvoice?.notes && /storno|credit\s*note/i.test(linkedInvoice.notes)) ||
+            (nirRow.notes && /storno|credit\s*note/i.test(nirRow.notes))
+          )) && invTotalNum <= 0
+        : !!(
+            (linkedInvoice?.rawXml && (
+              linkedInvoice.rawXml.includes("<CreditNote") ||
+              linkedInvoice.rawXml.includes(":CreditNote") ||
+              linkedInvoice.rawXml.includes("CreditNoteLine") ||
+              linkedInvoice.rawXml.includes("<cbc:InvoiceTypeCode>381</cbc:InvoiceTypeCode>") ||
+              linkedInvoice.rawXml.includes("<InvoiceTypeCode>381</InvoiceTypeCode>")
+            )) ||
+            (linkedInvoice?.notes && /storno|credit\s*note/i.test(linkedInvoice.notes)) ||
+            (nirRow.notes && /storno|credit\s*note/i.test(nirRow.notes)) ||
+            netLinesTotal < 0
+          );
+      await renderNirPdf(req, res, { id, nirRow, lines, tenant, spvIndex, linkedInvoice, isCreditNote });
+      return;
+    } catch (e: any) {
+      console.error("[PDF NIR Route] Error:", e.message);
+      try {
+        if (doc) doc.end();
+      } catch {}
+      if (!res.headersSent) {
+        res.status(500).json({ error: e.message });
+      } else {
+        res.end();
+      }
+    }
+  });
+
+  // ─── POST /api/pdf/nir-preview — previzualizare NIR nesalvat (din formular) ──
+  router.post("/nir-preview", async (req: Request, res: Response) => {
+    try {
+      const auth = (req as any).fileAuth;
+      const b = req.body || {};
+      const db = await getDb();
+      if (!db) {
+        res.status(500).json({ error: "DB unavailable" });
+        return;
+      }
+      const [tenant] = await db.select().from(tenants).where(eq(tenants.id, auth.tenantId));
+      const { normalizeSagaUm } = await import("./sagaXmlGenerator");
+
+      const rawLines: any[] = Array.isArray(b.lines) ? b.lines : [];
+      const lines = rawLines.map((l: any, idx: number) => ({
+        description: String(l.description || ""),
+        unit: normalizeSagaUm(l.unit),
+        cantitateComanda: String(l.cantitateComanda ?? "0"),
+        cantitateReceptionata: String(l.cantitateReceptionata ?? "0"),
+        unitPrice: String(l.unitPrice ?? "0"),
+        vatRate: l.vatRate === undefined || l.vatRate === null || l.vatRate === "" ? "21" : String(l.vatRate),
+        total: String(l.total ?? "0"),
+        observations: l.observations || "",
+        accountingType: l.accountingType || "Marfuri",
+        accountingAccount: l.accountingAccount || "371",
+        lineOrder: idx,
+        articleCode: l.articleCode || "",
+      }));
+
+      const nirRow: any = {
+        id: 0,
+        tenantId: auth.tenantId,
+        nirNumber: b.nirNumber || "NIR (previzualizare)",
+        invoiceNumber: b.invoiceNumber || "",
+        avizNumber: b.avizNumber || "",
+        supplierName: b.supplierName || "",
+        supplierCUI: b.supplierCUI || "",
+        supplierAddress: b.supplierAddress || "",
+        gestiune: b.gestiune || "",
+        receiptDate: b.receiptDate || new Date().toISOString().split("T")[0],
+        currency: b.currency || "RON",
+        exchangeRate: b.exchangeRate || "1.0000",
+        accountingType: b.accountingType || "",
+        accountingAccount: b.accountingAccount || "",
+        member1Name: b.member1Name || "",
+        member1Function: b.member1Function || "",
+        member2Name: b.member2Name || "",
+        member2Function: b.member2Function || "",
+        member3Name: b.member3Name || "",
+        member3Function: b.member3Function || "",
+        differenceNotes: b.differenceNotes || "",
+        notes: b.notes || "",
+        status: "draft",
+      };
+
+      let linkedInvoice: any = null;
+      const archId = parseInt(String(b.invoiceArchiveId || ""), 10);
+      if (Number.isFinite(archId) && archId > 0) {
+        const { invoiceArchive } = await import("../drizzle/schema");
+        const [inv] = await db
+          .select()
+          .from(invoiceArchive)
+          .where(and(eq(invoiceArchive.id, archId), eq(invoiceArchive.tenantId, auth.tenantId)));
+        if (inv) linkedInvoice = inv;
+      }
+
+      const netTotal = lines.reduce((sum, l) => sum + (parseFloat(l.total) || 0), 0);
+      const isCreditNote =
+        netTotal < 0 || /storno|credit\s*note/i.test(String(b.notes || ""));
+      const spvIndex: string | null = b.spvIndex ? String(b.spvIndex) : linkedInvoice?.spvIndex || null;
+
+      await renderNirPdf(req, res, {
+        id: 0,
+        nirRow,
+        lines,
+        tenant,
+        spvIndex,
+        linkedInvoice,
+        isCreditNote,
+      });
+    } catch (e: any) {
+      console.error("[PDF NIR Preview] Error:", e.message);
+      if (!res.headersSent) res.status(500).json({ error: e.message });
+      else res.end();
     }
   });
 

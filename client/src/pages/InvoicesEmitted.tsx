@@ -1,6 +1,7 @@
 // InvoicesEmitted — Facturi emise proprii + import Oblio
 // UI Rules: Nr. Crt., search+counter, footer paginare, rounded-lg pe butoane actiuni
 import { useState, useMemo } from "react";
+import { usePersistentRowsPerPage } from "@/hooks/usePersistentRowsPerPage";
 import { useTableSort } from "@/hooks/useTableSort";
 import {
   Plus,
@@ -78,7 +79,7 @@ export default function InvoicesEmitted() {
   // Table state
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(15);
+  const [rowsPerPage, setRowsPerPage] = usePersistentRowsPerPage("invoices_emitted", 15);
 
   // Form state
   const [showForm, setShowForm] = useState(false);
@@ -846,6 +847,7 @@ export default function InvoicesEmitted() {
                   <option value={15}>15</option>
                   <option value={25}>25</option>
                   <option value={50}>50</option>
+                  <option value={100}>100</option>
                   <option value={9999}>Toți</option>
                 </select>
               </span>

@@ -22,39 +22,107 @@ async function assertOwned(db: any, table: any, id: number, tenantId: number) {
 export const sagaRouter = router({
   articles: router({
     list: protectedProcedure.query(async ({ ctx }) => {
-      
-      const db = await getDb();
-      if (!db) throw new Error("No DB");
-      return db
-        .select()
-        .from(sagaArticles)
-        .where(eq(sagaArticles.tenantId, (tenantOf(ctx))))
-        .orderBy(sagaArticles.name);
-    }),
-
-    nextCode: protectedProcedure.query(async ({ ctx }) => {
-      
       const db = await getDb();
       if (!db) throw new Error("No DB");
       const tenantId = tenantOf(ctx);
-      const [maxRow] = await db
+      const { nir, nirLines } = await import("../../drizzle/schema");
+      const { normalizeArticleText } = await import("../../shared/articleMatcher");
+
+      const [arts, nirPriceRows, sagaPriceRows] = await Promise.all([
+        db
+          .select()
+          .from(sagaArticles)
+          .where(eq(sagaArticles.tenantId, tenantId))
+          .orderBy(sagaArticles.name),
+        db
+          .select({
+            sagaArticleId: nirLines.sagaArticleId,
+            description: nirLines.description,
+            unitPrice: nirLines.unitPrice,
+          })
+          .from(nirLines)
+          .innerJoin(nir, eq(nirLines.nirId, nir.id))
+          .where(eq(nir.tenantId, tenantId)),
+        db
+          .select({
+            articolId: sagaIntrariLinii.articolId,
+            cod: sagaIntrariLinii.cod,
+            denumire: sagaIntrariLinii.denumire,
+            pretUnitar: sagaIntrariLinii.pretUnitar,
+          })
+          .from(sagaIntrariLinii)
+          .innerJoin(sagaIntrari, eq(sagaIntrariLinii.intrareId, sagaIntrari.id))
+          .where(eq(sagaIntrari.tenantId, tenantId)),
+      ]);
+
+      const pricesById = new Map<number, number[]>();
+      const pricesByCode = new Map<string, number[]>();
+      const pricesByName = new Map<string, number[]>();
+
+      const pushPrice = <K>(map: Map<K, number[]>, key: K, p: number) => {
+        if (!key || !(p > 0)) return;
+        const arr = map.get(key) || [];
+        if (!arr.some(existing => Math.abs(existing - p) < 0.0005)) {
+          arr.push(p);
+          map.set(key, arr);
+        }
+      };
+
+      for (const r of nirPriceRows) {
+        const p = Math.abs(parseFloat(String(r.unitPrice || "0")) || 0);
+        if (!(p > 0)) continue;
+        if (r.sagaArticleId) pushPrice(pricesById, r.sagaArticleId, p);
+        if (r.description) pushPrice(pricesByName, normalizeArticleText(r.description), p);
+      }
+
+      for (const r of sagaPriceRows) {
+        const p = Math.abs(parseFloat(String(r.pretUnitar || "0")) || 0);
+        if (!(p > 0)) continue;
+        if (r.articolId) pushPrice(pricesById, r.articolId, p);
+        if (r.cod) pushPrice(pricesByCode, r.cod.trim(), p);
+        if (r.denumire) pushPrice(pricesByName, normalizeArticleText(r.denumire), p);
+      }
+
+      return arts.map(a => {
+        const collected: number[] = [];
+        const addAll = (list?: number[]) => {
+          if (!list) return;
+          for (const p of list) {
+            if (!collected.some(x => Math.abs(x - p) < 0.0005)) {
+              collected.push(p);
+            }
+          }
+        };
+        addAll(pricesById.get(a.id));
+        if (a.code) addAll(pricesByCode.get(a.code.trim()));
+        if (a.name) addAll(pricesByName.get(normalizeArticleText(a.name)));
+
+        return {
+          ...a,
+          knownPrices: collected,
+          lastPrice: collected.length > 0 ? collected[collected.length - 1] : null,
+        };
+      });
+    }),
+
+    nextCode: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("No DB");
+      const tenantId = tenantOf(ctx);
+      const { computeNext088Seq, formatAppArticleCode } = await import(
+        "../../shared/articleMatcher"
+      );
+      const rows = await db
         .select({ code: sagaArticles.code })
         .from(sagaArticles)
         .where(
           and(
             eq(sagaArticles.tenantId, tenantId),
-            sql`${sagaArticles.code} REGEXP '^[0-9]+$'`
+            like(sagaArticles.code, "088%")
           )
-        )
-        .orderBy(sql`CAST(${sagaArticles.code} AS UNSIGNED) DESC`)
-        .limit(1);
-
-      let maxNum = 0;
-      if (maxRow?.code) {
-        maxNum = parseInt(maxRow.code, 10) || 0;
-      }
-      const next = maxNum + 1;
-      return String(next).padStart(8, "0");
+        );
+      const nextSeq = computeNext088Seq(rows.map(r => r.code));
+      return formatAppArticleCode(nextSeq);
     }),
 
     create: protectedProcedure
@@ -446,6 +514,56 @@ export const sagaRouter = router({
           : `F_${safeCui}_NIR_${input.month}_${input.year}.xml`;
       }
       return { xml, filename };
+    }),
+
+  simulateNirImport: protectedProcedure
+    .input(
+      z
+        .object({
+          nirId: z.number().optional(),
+          nirIds: z.array(z.number()).optional(),
+          month: z.number().optional(),
+          year: z.number().optional(),
+          draftNir: z
+            .object({
+              id: z.number().optional(),
+              invoiceArchiveId: z.number().optional(),
+              nirNumber: z.string().optional(),
+              receiptDate: z.string(),
+              invoiceNumber: z.string().optional(),
+              avizNumber: z.string().optional(),
+              gestiune: z.string().optional(),
+              supplierName: z.string(),
+              supplierCUI: z.string().optional(),
+              supplierAddress: z.string().optional(),
+              accountingType: z.string().optional(),
+              accountingAccount: z.string().optional(),
+              currency: z.string().optional(),
+              exchangeRate: z.string().optional(),
+              spvIndex: z.string().optional(),
+              lines: z.array(
+                z.object({
+                  description: z.string(),
+                  unit: z.string().optional(),
+                  cantitateReceptionata: z.union([z.string(), z.number()]),
+                  unitPrice: z.union([z.string(), z.number()]).optional(),
+                  vatRate: z.union([z.string(), z.number()]).optional(),
+                  total: z.union([z.string(), z.number()]).optional(),
+                  accountingType: z.string().optional(),
+                  accountingAccount: z.string().optional(),
+                  sagaArticleId: z.number().optional(),
+                  articleCode: z.string().optional(),
+                })
+              ),
+            })
+            .optional(),
+        })
+        .optional()
+    )
+    .mutation(async ({ input, ctx }) => {
+      const { simulateSagaNirImport } = await import("../../server/sagaXmlGenerator");
+      const tenantId = tenantOf(ctx);
+      return simulateSagaNirImport(tenantId, input);
     }),
 
   exportArticole: protectedProcedure.mutation(async ({ ctx }) => {

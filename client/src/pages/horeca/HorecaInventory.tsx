@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { usePersistentRowsPerPage } from "@/hooks/usePersistentRowsPerPage";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Loader2, Plus, Box, ArrowDownToLine, Search, ChevronDown } from "lucide-react";
@@ -103,7 +104,7 @@ function InventoryDashboard({ locationId }: { locationId: number }) {
   const [isAddingStock, setIsAddingStock] = useState<any>(null);
 
   const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(15);
+  const [rowsPerPage, setRowsPerPage] = usePersistentRowsPerPage("horeca_inventory", 15);
 
   const upsertMut = trpc.horeca.inventory.upsertIngredient.useMutation({
     onSuccess: () => {

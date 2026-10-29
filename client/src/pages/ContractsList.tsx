@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef } from "react";
+import { usePersistentRowsPerPage } from "@/hooks/usePersistentRowsPerPage";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import {
@@ -42,6 +43,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 export default function ContractsList() {
   const [, setLocation] = useLocation();
@@ -52,7 +54,7 @@ export default function ContractsList() {
   const [filterPartnerType, setFilterPartnerType] = useState<string>("toate"); // 'toate' | 'client' | 'supplier'
   const [filterStatus, setFilterStatus] = useState<string>("toate");
   const [page, setPage] = useState<number>(1);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(15);
+  const [rowsPerPage, setRowsPerPage] = usePersistentRowsPerPage("contracts_list", 15);
 
   // Queries
   const { data: stats, isLoading: loadingStats } = trpc.contracts.getStats.useQuery();
@@ -115,6 +117,7 @@ export default function ContractsList() {
   // Bulk Import Modal state
   const [showImportModal, setShowImportModal] = useState(false);
   const [importingFiles, setImportingFiles] = useState(false);
+  const [isDraggingImport, setIsDraggingImport] = useState(false);
   const [uploadedQueue, setUploadedQueue] = useState<any[]>([]);
   const [globalExplanation, setGlobalExplanation] = useState("Preluare și arhivare contracte existente");
   const [importError, setImportError] = useState("");
@@ -125,16 +128,17 @@ export default function ContractsList() {
       setImportingFiles(false);
       setShowImportModal(false);
       setUploadedQueue([]);
+      toast.success(`${res.count} contract(e) importate cu succes în bibliotecă!`);
       refetch();
     },
     onError: (err) => {
       setImportingFiles(false);
       setImportError("Eroare la import: " + err.message);
+      toast.error("Eroare la import: " + err.message);
     },
   });
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
+  const processImportFiles = async (files: FileList | File[]) => {
     if (!files || files.length === 0) return;
 
     setImportingFiles(true);
@@ -146,11 +150,19 @@ export default function ContractsList() {
     }
 
     try {
+      const token = localStorage.getItem("authToken");
       const res = await fetch("/api/upload-contract", {
         method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         body: formData,
       });
-      const data = await res.json();
+
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error(`Eroare server (${res.status}) la încărcarea documentului`);
+      }
 
       if (!res.ok) {
         throw new Error(data.error || "Eroare la încărcare pe server");
@@ -167,36 +179,69 @@ export default function ContractsList() {
       const items = (data.files || []).map((f: any) => {
         let matchedPartnerId = null;
         if (f.detectedCui) {
-          const match = partners.find((p: any) => cleanCui(p.cui) === cleanCui(f.detectedCui));
+          const match = partners.find(
+            (p: any) => cleanCui(p.cui) && cleanCui(p.cui) === cleanCui(f.detectedCui)
+          );
+          if (match) matchedPartnerId = match.id;
+        }
+        if (!matchedPartnerId && f.detectedPartnerName) {
+          const normDetected = f.detectedPartnerName.toLowerCase().trim();
+          const match = partners.find(
+            (p: any) =>
+              p.name &&
+              (p.name.toLowerCase().includes(normDetected) ||
+                normDetected.includes(p.name.toLowerCase()))
+          );
           if (match) matchedPartnerId = match.id;
         }
         if (!matchedPartnerId) {
           // Fuzzy match on filename
           const normFile = f.fileName.toLowerCase();
           const match = partners.find(
-            (p: any) => p.name && normFile.includes(p.name.toLowerCase().slice(0, 8))
+            (p: any) => p.name && p.name.length >= 4 && normFile.includes(p.name.toLowerCase().slice(0, 8))
           );
           if (match) matchedPartnerId = match.id;
         }
+
+        const extractedNum = f.detectedNumber || `CTR-${Date.now().toString().slice(-5)}`;
+        const partnerLabel =
+          partners.find((p: any) => p.id === matchedPartnerId)?.name ||
+          f.detectedPartnerName ||
+          "";
 
         return {
           fileName: f.fileName,
           fileUrl: f.fileUrl,
           fileSize: f.fileSize,
           partnerId: matchedPartnerId,
-          number: f.detectedNumber || `CTR-${Date.now().toString().slice(-5)}`,
-          date: new Date().toISOString().split("T")[0],
+          partnerName: f.detectedPartnerName || null,
+          cui: f.detectedCui || null,
+          number: extractedNum,
+          date: f.detectedDate || new Date().toISOString().split("T")[0],
+          value: f.detectedValue || "0.00",
+          currency: f.detectedCurrency || "EUR",
+          contentHtml: f.extractedHtml || null,
           type: "contract",
-          title: `Contract ${f.fileName.replace(/\.pdf$/i, "")}`,
+          title: partnerLabel
+            ? `Contract Nr. ${extractedNum} — ${partnerLabel}`
+            : `Contract ${f.fileName.replace(/\.(pdf|docx|doc)$/i, "")}`,
         };
       });
 
       setUploadedQueue((prev) => [...prev, ...items]);
+      toast.success(`${items.length} document(e) analizate și pregătite pentru import`);
     } catch (err: any) {
       setImportError(err.message || "Eroare upload fișiere");
+      toast.error(err.message || "Eroare upload fișiere");
     } finally {
       setImportingFiles(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      await processImportFiles(e.target.files);
     }
   };
 
@@ -758,6 +803,7 @@ export default function ContractsList() {
                 <option value={15}>15</option>
                 <option value={25}>25</option>
                 <option value={50}>50</option>
+                <option value={100}>100</option>
                 <option value={9999}>Toți</option>
               </select>
               &nbsp;rânduri
@@ -933,7 +979,23 @@ export default function ContractsList() {
           {/* Upload Zone */}
           <div
             onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-primary rounded-lg p-8 text-center cursor-pointer transition-colors bg-slate-50/50 dark:bg-slate-900/30"
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDraggingImport(true);
+            }}
+            onDragLeave={() => setIsDraggingImport(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDraggingImport(false);
+              if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                processImportFiles(e.dataTransfer.files);
+              }
+            }}
+            className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+              isDraggingImport
+                ? "border-primary bg-primary/5"
+                : "border-slate-300 dark:border-slate-700 hover:border-primary bg-slate-50/50 dark:bg-slate-900/30"
+            }`}
           >
             <input
               type="file"
@@ -956,7 +1018,7 @@ export default function ContractsList() {
                   <Upload className="h-6 w-6" />
                 </div>
                 <span className="text-base font-bold text-slate-900 dark:text-white">
-                  Apasă pentru a alege fișiere sau trage folderul aici
+                  Apasă pentru a alege fișiere sau trage fișierele PDF / Word aici
                 </span>
                 <span className="text-xs text-slate-500 mt-1">
                   Format acceptat: PDF sau Word (până la 100 fișiere dintr-o dată)
@@ -987,8 +1049,9 @@ export default function ContractsList() {
                   <thead className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold sticky top-0">
                     <tr>
                       <th className="p-2.5">Fișier</th>
-                      <th className="p-2.5">Număr Extras</th>
-                      <th className="p-2.5">Partener Asociat Automat</th>
+                      <th className="p-2.5">Nr. / Dată</th>
+                      <th className="p-2.5">Valoare Extrasă</th>
+                      <th className="p-2.5">Partener Extras / Asociat</th>
                       <th className="p-2.5 text-right">Șterge</th>
                     </tr>
                   </thead>
@@ -997,15 +1060,30 @@ export default function ContractsList() {
                       const partner = partners.find((p: any) => p.id === item.partnerId);
                       return (
                         <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-900/40">
-                          <td className="p-2.5 font-medium truncate max-w-[200px]">
+                          <td className="p-2.5 font-medium truncate max-w-[180px]" title={item.fileName}>
                             {item.fileName}
                           </td>
-                          <td className="p-2.5 font-mono">{item.number}</td>
+                          <td className="p-2.5 font-mono">
+                            <div className="font-bold text-slate-900 dark:text-white">{item.number}</div>
+                            <div className="text-[10px] text-slate-500">{item.date}</div>
+                          </td>
+                          <td className="p-2.5 font-mono font-semibold text-slate-800 dark:text-slate-200">
+                            {Number(item.value || 0) > 0
+                              ? `${Number(item.value).toLocaleString("ro-RO", { minimumFractionDigits: 2 })} ${item.currency}`
+                              : "-"}
+                          </td>
                           <td className="p-2.5">
                             {partner ? (
                               <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                                <CheckCircle2 className="h-3 w-3" />
-                                {partner.name}
+                                <CheckCircle2 className="h-3 w-3 shrink-0" />
+                                <span className="truncate max-w-[180px]">{partner.name}</span>
+                              </span>
+                            ) : item.partnerName ? (
+                              <span className="text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-1">
+                                <CheckCircle2 className="h-3 w-3 shrink-0" />
+                                <span className="truncate max-w-[180px]">
+                                  {item.partnerName} (se creează automat)
+                                </span>
                               </span>
                             ) : (
                               <span className="text-amber-600 dark:text-amber-400">

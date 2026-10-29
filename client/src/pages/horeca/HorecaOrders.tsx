@@ -3,6 +3,7 @@
 // Proper Light/Dark mode styling (Premium UI)
 
 import { useState, useMemo } from "react";
+import { usePersistentRowsPerPage } from "@/hooks/usePersistentRowsPerPage";
 import { Link } from "wouter";
 import {
   Search,
@@ -71,7 +72,7 @@ export default function HorecaOrders() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [rowsPerPage, setRowsPerPage] = usePersistentRowsPerPage("horeca_orders", 25);
 
   const { data: locations = [] } = trpc.horeca.locations.list.useQuery();
   const locationId = selectedLocationId ?? locations[0]?.id ?? 0;

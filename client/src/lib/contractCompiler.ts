@@ -32,6 +32,15 @@ export interface CompileTemplateParams {
   totalDurationMonths?: number;
   autoRenewalMonths?: number;
   docLanguage?: ContractLanguage;
+  // Wood Glass specific parameters
+  woodEssence?: string;
+  offerNumber?: string;
+  offerDate?: string;
+  warrantyYears?: string;
+  paymentTranches?: "50-40-10" | "50-50";
+  wgTransportIncluded?: "da" | "nu";
+  wgMarketType?: "intern" | "extern";
+  wgBeneficiaryType?: "pf" | "pj";
 }
 
 export function compileContractTemplate({
@@ -61,6 +70,14 @@ export function compileContractTemplate({
   totalDurationMonths = 15,
   autoRenewalMonths = 12,
   docLanguage = "ro",
+  woodEssence = "Tâmplărie lemn stratificat, esență meranti, 68 mm",
+  offerNumber = "",
+  offerDate = "",
+  warrantyYears = "3",
+  paymentTranches,
+  wgTransportIncluded = "da",
+  wgMarketType = "extern",
+  wgBeneficiaryType = "pj",
 }: CompileTemplateParams): string {
   let raw = rawHtml || "";
 
@@ -68,29 +85,67 @@ export function compileContractTemplate({
   const isBilingual = docLanguage === "ro_en";
 
   const activeTenantName = tenant?.name || "Compania Ta";
+  const isTradeInvest =
+    tenant?.id === 1 ||
+    String(tenant?.cui || tenantSettings?.cui || "").includes("42322117") ||
+    activeTenantName.toUpperCase().includes("TRADE INVEST");
+  const isWoodGlass =
+    tenant?.id === 4 ||
+    String(tenant?.cui || tenantSettings?.cui || "").includes("28396216") ||
+    activeTenantName.toUpperCase().includes("WOOD GLASS");
+
   const activeTenantCui =
     tenant?.cui ||
     tenantSettings?.cui ||
     tenantSettings?.fiscalCode ||
-    (activeTenantName.includes("TRADE INVEST") ? "RO42322117" : "-");
+    (isTradeInvest ? "RO42322117" : isWoodGlass ? "RO28396216" : "-");
   const activeTenantRegCom =
     tenantSettings?.regCom ||
-    (activeTenantName.includes("TRADE INVEST") || activeTenantCui.includes("42322117")
-      ? "J2020002825409"
-      : "-");
-  const activeTenantCity = tenantSettings?.city || "București";
-  const activeTenantAddress = tenant?.address || tenantSettings?.address || "-";
+    (isTradeInvest ? "J2020002825409" : isWoodGlass ? "J2011000729084" : "-");
+  const activeTenantCity =
+    tenantSettings?.city || (isWoodGlass ? "Brașov" : isTradeInvest ? "București" : "-");
+  const activeTenantAddress =
+    tenant?.address ||
+    tenantSettings?.address ||
+    (isWoodGlass ? "Str. Zizinului nr. 625" : "-");
   const activeTenantIban =
     tenantSettings?.iban ||
-    (activeTenantName.includes("TRADE INVEST") ? "RO31BACX0000001999343001" : "-");
+    (isTradeInvest
+      ? "RO31BACX0000001999343001"
+      : isWoodGlass
+      ? "RO43INGB0000999915654676"
+      : "-");
+  const activeTenantIbanEur =
+    tenantSettings?.ibanEur ||
+    (isTradeInvest
+      ? "RO04BACX0000001999343002"
+      : isWoodGlass
+      ? "RO59INGB0000999915654679"
+      : activeTenantIban);
   const activeTenantBank =
     tenantSettings?.bank ||
-    (activeTenantName.includes("TRADE INVEST") ? "Unicredit" : "-");
+    (isTradeInvest ? "Unicredit" : isWoodGlass ? "ING Brașov" : "-");
+  const activeTenantDelegat =
+    tenantSettings?.representative ||
+    tenantSettings?.delegat ||
+    (isWoodGlass
+      ? "dl. Șaran Vitalie, Administrator"
+      : isTradeInvest
+      ? "Elena Cazmal, Administrator"
+      : "Administrator");
+  const activeTenantPhone =
+    tenant?.phone ||
+    tenantSettings?.phone ||
+    (isWoodGlass ? "0742258807" : isTradeInvest ? "+40 757 77 77 12" : "-");
+  const activeTenantEmail =
+    tenant?.email ||
+    tenantSettings?.email ||
+    (isWoodGlass ? "rowoodbv@gmail.com" : isTradeInvest ? "contact@getapp.ro" : "-");
 
   // Inlocuire date Furnizor (Tenant)
   raw = raw
     .replace(/{{tenant\.name}}/g, activeTenantName)
-    .replace(/{{tenant\.cui}}/g, activeTenantCui)
+    .replace(/{{tenant\.cui}}/g, activeTenantCui.startsWith("RO") || activeTenantCui === "-" ? activeTenantCui : `RO${activeTenantCui}`)
     .replace(/{{tenant\.regCom}}/g, activeTenantRegCom)
     .replace(/{{tenant\.j}}/g, activeTenantRegCom)
     .replace(/{{tenant\.rc}}/g, activeTenantRegCom)
@@ -98,10 +153,11 @@ export function compileContractTemplate({
     .replace(/{{tenant\.city}}/g, activeTenantCity)
     .replace(/{{tenant\.address}}/g, activeTenantAddress)
     .replace(/{{tenant\.iban}}/g, activeTenantIban)
+    .replace(/{{tenant\.ibanEur}}/g, activeTenantIbanEur)
     .replace(/{{tenant\.bank}}/g, activeTenantBank)
-    .replace(/{{tenant\.delegat}}/g, "Elena Cazmal, Administrator")
-    .replace(/{{tenant\.phone}}/g, "+40 757 77 77 12")
-    .replace(/{{tenant\.email}}/g, "contact@getapp.ro");
+    .replace(/{{tenant\.delegat}}/g, activeTenantDelegat)
+    .replace(/{{tenant\.phone}}/g, activeTenantPhone)
+    .replace(/{{tenant\.email}}/g, activeTenantEmail);
 
   // Inlocuire date Beneficiar (Partener SAGA / Client)
   const clientRep =
@@ -426,20 +482,656 @@ export function compileContractTemplate({
     finalArt4Signage = art4SigRo;
   }
 
+  // Formatare data in format romanesc DD.MM.YYYY pentru afisare in contractele Wood Glass daca este YYYY-MM-DD
+  const formatRoDate = (dStr: string) => {
+    if (!dStr) return dStr;
+    const m = dStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return m ? `${m[3]}.${m[2]}.${m[1]}` : dStr;
+  };
+
+  const rawOfferNum = offerNumber?.trim() || docNumber.replace(/\D/g, "") || "4089";
+  const resolvedOfferNumber = /^OFR\b/i.test(rawOfferNum) ? rawOfferNum : `OFR ${rawOfferNum}`;
+  const resolvedOfferDate = formatRoDate(offerDate?.trim() || docDate);
+  const resolvedWarrantyYears =
+    warrantyYears?.trim() ||
+    (warrantyMonths ? String(Math.max(1, Math.round(Number(warrantyMonths) / 12))) : "3");
+
+  // Clauze dinamice pentru Contract Tip Wood Glass (Modelele Oficiale 393 Intern PF/PJ, 324 Extern PF, 392/364 Extern PJ)
+  const wgCurrencyLabel =
+    docCurrency?.toUpperCase() === "RON" || docCurrency?.toUpperCase() === "LEI" ? "LEI" : "EUR";
+
+  const wgSupplierBankClause =
+    wgCurrencyLabel === "EUR"
+      ? `cont EURO: ${activeTenantIbanEur}`
+      : `cont RON: ${activeTenantIban}`;
+
+  const bName = partnerName || "[Selectați Beneficiarul]";
+  const bAddress =
+    partnerAddress && partnerAddress !== "-"
+      ? partnerAddress
+      : partnerCity && partnerCity !== "-"
+      ? partnerCity
+      : "________________________";
+  const bCity =
+    partnerCity &&
+    partnerCity !== "-" &&
+    !bAddress.toLowerCase().includes(partnerCity.toLowerCase())
+      ? `, ${partnerCity}`
+      : "";
+  const bCui = partnerCui && partnerCui !== "-" ? partnerCui : "____________";
+  const bRegCom = partnerRegCom && partnerRegCom !== "-" ? partnerRegCom : "";
+  const bRep =
+    partnerContactName?.trim() ||
+    (partner ? partner.contactPerson || partner.delegat || "" : "");
+
+  const cleanOfferNumOnly = rawOfferNum.replace(/^OFR\s*/i, "");
+  const effectiveTranches = paymentTranches || (wgMarketType === "intern" ? "50-40-10" : "50-50");
+
+  let wgContractBody = "";
+
+  if (wgMarketType === "intern") {
+    // MODELUL OFICIAL 393 — INTERN (Persoană Fizică sau Persoană Juridică, 27 clauze, PV predare-primire, inclusiv TVA)
+    const internParty2 =
+      wgBeneficiaryType === "pf"
+        ? `2. <strong>${bName}</strong>, cu domiciliu în ${bAddress}${bCity}, identificat(ă) cu ${
+            bCui !== "____________" ? (bCui.toUpperCase().includes("CI") ? bCui : `CI / CNP ${bCui}`) : "CI seria ____, Nr. ________"
+          }, în calitate de Beneficiar, au convenit să încheie prezentul contract de vânzare-cumpărare cu respectarea următoarelor clauze:`
+        : `2. <strong>${bName}</strong>, cu sediul în ${bAddress}${bCity},${
+            bRegCom ? ` înregistrată la Oficiul Comerțului sub nr. ${bRegCom},` : ""
+          } CUI ${bCui}, reprezentată prin ${
+            bRep || "dl./dna. ________________"
+          }, în calitate de Beneficiar, au convenit să încheie prezentul contract de vânzare-cumpărare cu respectarea următoarelor clauze:`;
+
+    const internVerb1 =
+      wgTransportIncluded === "da"
+        ? "Furnizorul se obligă să producă și să transporte"
+        : "Furnizorul se obligă să producă";
+
+    const internClause2 =
+      wgTransportIncluded === "da"
+        ? "Mărfurile care fac obiectul prezentului contract vor fi executate și livrate la adresa stabilită de Beneficiar."
+        : "Mărfurile care fac obiectul prezentului contract vor fi executate și predate la sediul Furnizorului din Brașov, Str. Zizinului nr. 625, transportul fiind în sarcina Beneficiarului.";
+
+    const internClause8 =
+      wgCurrencyLabel === "EUR"
+        ? `Valoarea lucrării ce face obiectul prezentului contract este de <strong>${docValue} EUR</strong>, inclusiv TVA. Valoarea contractului este exprimată în EURO, iar plata se va efectua în lei, la cursul BNR din ziua facturării.`
+        : `Valoarea lucrării ce face obiectul prezentului contract este de <strong>${docValue} LEI</strong>, inclusiv TVA.`;
+
+    const internClause10 =
+      effectiveTranches === "50-50"
+        ? `10. Plățile se vor efectua astfel, pe baza facturii emise de Furnizor pentru fiecare tranșă:<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;-50% se va achita la data semnării prezentului contract;<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;-50% se va achita cu cinci zile înainte de livrare.`
+        : `10. Plățile se vor efectua astfel, pe baza facturii emise de Furnizor pentru fiecare tranșă:<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;-50% se va achita la data semnării prezentului contract;<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;-40% se va achita cu cinci zile înainte de livrare;<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;-10% se va achita la recepția lucrării.`;
+
+    const internClause11 =
+      wgCurrencyLabel === "EUR"
+        ? "11. Prețul se va achita în lei, la cursul EURO afișat de către BNR în ziua facturării, prin ordin de plată vizat de bancă."
+        : "11. Prețul se va achita în lei, prin ordin de plată vizat de bancă.";
+
+    const internSigBeneficiar =
+      wgBeneficiaryType === "pf"
+        ? `BENEFICIAR<br/>${bName}`
+        : `BENEFICIAR<br/>${bName}<br/>Reprezentant: ${bRep || "________________"}`;
+
+    wgContractBody = `
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    PĂRȚILE CONTRACTANTE
+  </h3>
+  <p style="margin: 6px 0; text-align: justify;">
+    1. S.C. WOOD GLASS S.R.L., cu sediul în Brașov, Str. Zizinului nr. 625, înregistrată la Oficiul Comerțului sub nr. J2011000729084, CUI RO28396216, cont RON: ${activeTenantIban}, cont EURO: ${activeTenantIbanEur}, deschis la ING Brașov, reprezentată prin dl. Șaran Vitalie, în calitate de Furnizor,<br/>și
+  </p>
+  <p style="margin: 6px 0 16px 0; text-align: justify;">
+    ${internParty2}
+  </p>
+
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    A. OBIECTUL CONTRACTULUI
+  </h3>
+  <p style="margin: 5px 0; text-align: justify;">
+    1. ${internVerb1}, iar Beneficiarul acceptă să cumpere <strong>${woodEssence}</strong>, conform Ofertei de preț nr. ${cleanOfferNumOnly}/${resolvedOfferDate} care face parte integrantă din prezentul contract.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    2. ${internClause2}
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    3. Specificațiile tehnice detaliate (dimensiuni, finisaje, accesorii și alte detalii relevante) sunt incluse în anexele contractului.
+  </p>
+
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    B. GARANȚII ȘI RISCURI
+  </h3>
+  <p style="margin: 5px 0; text-align: justify;">
+    4. Furnizorul garantează bunurile vândute împotriva evicțiunii și contra viciilor ascunse.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    5. La recepția lucrării și achitarea integrală a prețului, Beneficiarul va primi certificatul de garanție corespunzător lucrării prestate de Furnizor. Garanția oferită este de ${resolvedWarrantyYears} ani.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    6. Riscurile asupra mărfii trec de la Furnizor la Beneficiar în momentul recepției acesteia. Pe durata transportului, răspunderea pentru marfă aparține transportatorului până la recepția de către Beneficiar.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    7. Proprietatea asupra mărfii trece de la Furnizor la Beneficiar în momentul achitării integrale a produselor livrate.
+  </p>
+
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    C. VALOAREA CONTRACTULUI
+  </h3>
+  <p style="margin: 5px 0; text-align: justify;">
+    8. ${internClause8}
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    9. Pentru modificări ulterioare sau pentru lucrări suplimentare, diferite de cele stabilite prin prezentul contract, se vor întocmi documente separate, care vor modifica valoarea contractului, cu acordul ambelor părți.
+  </p>
+
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    D. MODALITĂȚI DE PLATĂ
+  </h3>
+  <p style="margin: 5px 0; text-align: justify;" data-clause="woodglass-payment-tranches">
+    ${internClause10}
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    ${internClause11}
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    12. Plata se va efectua în contul Furnizorului ${activeTenantIban} deschis la ING Brașov.
+  </p>
+
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    E. TERMEN DE LIVRARE
+  </h3>
+  <p style="margin: 5px 0; text-align: justify;">
+    13. Furnizorul se obligă să producă mărfurile ce fac obiectul prezentului contract, în termen de ${deliveryDays} zile calendaristice de la încasarea avansului de 50%.
+  </p>
+
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    F. RECEPȚIA LUCRĂRILOR
+  </h3>
+  <p style="margin: 5px 0; text-align: justify;">
+    14. Recepția lucrărilor se va efectua la predarea mărfurilor, pe bază de proces-verbal semnat de ambele părți.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    15. Dacă Beneficiarul nu se prezintă la recepție din motive imputabile acestuia și după notificarea transmisă potrivit prezentului contract, recepția se consideră a fi efectuată, iar în acest caz Beneficiarul este de acord cu lucrările efectuate și calitatea acestora.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    16. Notificarea se va transmite prin e-mail sau scrisoare cu confirmare de primire.
+  </p>
+
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    G. RĂSPUNDEREA CONTRACTUALĂ
+  </h3>
+  <p style="margin: 5px 0; text-align: justify;">
+    17. Niciuna dintre părți nu poate modifica unilateral prezentul contract. Modificarea poate interveni numai prin acordul de voință, exprimat în scris, al ambelor părți.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    18. Dacă Beneficiarul întârzie plata produselor, va plăti penalități de 0,1% din suma datorată, pentru fiecare zi de întârziere.<br/>
+    Dacă Furnizorul întârzie livrarea produselor față de termenul contractual, va plăti penalități de 0,1% din valoarea produselor nelivrate, pentru fiecare zi de întârziere, calculată de la data scadentă.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    19. În cazul nerespectării clauzelor contractuale de către una dintre părți, cealaltă parte poate rezoluționa unilateral contractul prin transmiterea unei notificări scrise.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    20. Contractul se consideră încheiat prin acordul scris al părților.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    21. Beneficiarul este de drept în întârziere la data la care trebuia efectuată plata, fără a mai fi necesară notificarea prevăzută de art. 1522 și art. 1523 Cod civil.
+  </p>
+
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    H. FORȚA MAJORĂ
+  </h3>
+  <p style="margin: 5px 0; text-align: justify;">
+    22. Forța majoră, așa cum este definită de lege, exonerează de răspundere partea care o invocă, în condițiile legii, cu condiția notificării scrise, în termen de 3 zile de la apariția cazului respectiv. Partea interesată este obligată să producă dovada cu certificat eliberat de autoritatea competentă.
+  </p>
+
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    I. CLAUZE FINALE. LITIGII
+  </h3>
+  <p style="margin: 5px 0; text-align: justify;">
+    23. Furnizorul își rezervă dreptul de a sista unilateral livrările în cazul în care Beneficiarul întârzie plata față de termenul convenit.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    24. Rezilierea prezentului contract nu va avea niciun efect asupra obligațiilor deja scadente între părți.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    25. În cazul în care părțile își încalcă obligațiile, neexercitarea de către partea prejudiciată a dreptului de a cere executarea întocmai sau prin echivalent bănesc a obligației nu echivalează cu renunțarea la acest drept.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    26. Părțile declară că au studiat toate clauzele și au acceptat necondiționat drepturile și obligațiile conferite de prezentul contract.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    27. Eventualele litigii care s-ar putea ivi în legătură cu interpretarea și derularea prezentului contract vor fi soluționate pe cale amiabilă. Dacă acest lucru nu este posibil, litigiile vor fi soluționate de instanțele de judecată competente de la sediul Furnizorului.
+  </p>
+
+  <p style="text-align: center; margin: 32px 0 10px 0;">Semnătura și ștampila</p>
+  <table style="width: 100%; border-collapse: collapse; font-size: 12.5px; border: 1px solid #334155;">
+    <tr>
+      <td style="width: 50%; vertical-align: top; padding: 10px 12px; border: 1px solid #334155;">
+        FURNIZOR<br/>
+        S.C. WOOD GLASS S.R.L.<br/>
+        Reprezentant: ȘARAN VITALIE
+      </td>
+      <td style="width: 50%; vertical-align: top; padding: 10px 12px; border: 1px solid #334155;">
+        ${internSigBeneficiar}
+      </td>
+    </tr>
+    <tr>
+      <td style="width: 50%; vertical-align: top; padding: 12px; border: 1px solid #334155;">
+        Semnătură<br/><br/>
+        ______________
+      </td>
+      <td style="width: 50%; vertical-align: top; padding: 12px; border: 1px solid #334155;">
+        Semnătură<br/><br/>
+        ______________
+      </td>
+    </tr>
+  </table>`;
+  } else if (wgBeneficiaryType === "pf") {
+    // MODELUL OFICIAL 324 — EXTERN PERSOANĂ FIZICĂ (ROXANA LESOVICI, CMR, cu TVA adăugat conform cerinței)
+    const extPfVerb1 =
+      wgTransportIncluded === "da"
+        ? "Furnizorul se obligă să producă și să transporte"
+        : "Furnizorul se obligă să producă";
+
+    const extPfClause2 =
+      wgTransportIncluded === "da"
+        ? "Mărfurile care fac obiectul prezentului contract vor fi executate și livrate la adresa stabilită de Beneficiar."
+        : "Mărfurile care fac obiectul prezentului contract vor fi executate și predate la sediul Furnizorului din Brașov, Str. Zizinului nr. 625, transportul fiind în sarcina Beneficiarului.";
+
+    const extPfClause10 =
+      effectiveTranches === "50-40-10"
+        ? `10. Plățile se vor efectua astfel, pe baza facturii emise de Furnizor pentru fiecare tranșă:<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;-50% se va achita la data semnării prezentului contract;<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;-40% se va achita cu cinci zile înainte de livrare;<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;-10% se va achita la recepția lucrării.`
+        : `10. Plățile se vor efectua astfel, pe baza facturii emise de Furnizor pentru fiecare tranșă:<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;-50% se va achita la data semnării prezentului contract;<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;-50% se va achita cu cinci zile înainte de livrare.`;
+
+    wgContractBody = `
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    PĂRȚILE CONTRACTANTE
+  </h3>
+  <p style="margin: 6px 0; text-align: justify;">
+    1. S.C. WOOD GLASS S.R.L., cu sediul în Brașov, Str. Zizinului nr. 625, înregistrată la Oficiul Comerțului sub nr. J2011000729084, CUI RO28396216, ${wgSupplierBankClause}, deschis la ING Brașov, reprezentată prin dl. Șaran Vitalie, în calitate de Furnizor,<br/>și
+  </p>
+  <p style="margin: 6px 0 16px 0; text-align: justify;">
+    2. <strong>${bName}</strong>, cu domiciliul în ${bAddress}${bCity}, în calitate de Beneficiar, au convenit să încheie prezentul contract de vânzare-cumpărare cu respectarea următoarelor clauze:
+  </p>
+
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    A. OBIECTUL CONTRACTULUI
+  </h3>
+  <p style="margin: 5px 0; text-align: justify;">
+    1. ${extPfVerb1}, Beneficiarul acceptă să cumpere <strong>${woodEssence}</strong>, conform Ofertei de preț ${resolvedOfferNumber}/${resolvedOfferDate}, care face parte integrantă din prezentul contract.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    2. ${extPfClause2}
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    3. Specificațiile tehnice detaliate (dimensiuni, finisaje, accesorii, caracteristici de montaj și alte detalii relevante) sunt incluse în anexele contractului.
+  </p>
+
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    B. GARANȚII ȘI RISCURI
+  </h3>
+  <p style="margin: 5px 0; text-align: justify;">
+    4. Furnizorul garantează bunurile vândute împotriva evicțiunii și contra viciilor ascunse.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    5. La recepția lucrării și achitarea integrală a prețului, Beneficiarul va primi certificatul de garanție corespunzător lucrării prestate de Furnizor. Garanția oferită este de ${resolvedWarrantyYears} ani.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    6. Riscurile asupra mărfii trec de la Furnizor la Beneficiar în momentul recepției acesteia. Pe durata transportului, riscul este preluat de transportator.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    7. Proprietatea asupra mărfii trece de la Furnizor la Beneficiar în momentul achitării integrale a produselor livrate.
+  </p>
+
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    C. VALOAREA CONTRACTULUI
+  </h3>
+  <p style="margin: 5px 0; text-align: justify;">
+    8. Valoarea lucrării ce face obiectul prezentului contract este de <strong>${docValue} ${wgCurrencyLabel === "EUR" ? "Euro" : "LEI"}</strong>, inclusiv TVA.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    9. Pentru modificări ulterioare sau pentru lucrări suplimentare, diferite de cele stabilite prin prezentul contract, se vor întocmi documente separate, care vor modifica valoarea contractului, cu acordul ambelor părți.
+  </p>
+
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    D. MODALITĂȚI DE PLATĂ
+  </h3>
+  <p style="margin: 5px 0; text-align: justify;" data-clause="woodglass-payment-tranches">
+    ${extPfClause10}
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    11. Plata se va efectua în ${wgCurrencyLabel === "EUR" ? "EURO" : "LEI"} în contul Furnizorului ${
+      wgCurrencyLabel === "EUR" ? activeTenantIbanEur : activeTenantIban
+    } deschis la ING Brașov.
+  </p>
+
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    E. TERMEN DE LIVRARE
+  </h3>
+  <p style="margin: 5px 0; text-align: justify;">
+    12. Furnizorul se obligă să producă mărfurile ce fac obiectul prezentului contract, în termen de ${deliveryDays} de zile de la plata avansului.
+  </p>
+
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    F. RECEPȚIA LUCRĂRILOR
+  </h3>
+  <p style="margin: 5px 0; text-align: justify;">
+    13. Recepția mărfurilor se consideră efectuată în momentul livrării la adresa indicată de Beneficiar, conform documentului de transport (CMR) semnat de acesta sau de reprezentantul său.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    14. Eventualele neconformități vizibile (deteriorări, lipsuri cantitative etc.) trebuie menționate pe documentul de transport la momentul recepției și comunicate în scris Furnizorului, în termen de <strong>5 zile lucrătoare</strong> de la primirea mărfii.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    15. În lipsa unei astfel de notificări scrise, marfa se consideră acceptată definitiv de către Beneficiar, fără rezerve, iar recepția este considerată realizată integral.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    16. Pentru livrările internaționale, documentul CMR semnat de Beneficiar ține loc de proces-verbal de recepție.
+  </p>
+
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    G. RĂSPUNDEREA CONTRACTUALĂ
+  </h3>
+  <p style="margin: 5px 0; text-align: justify;">
+    17. Niciuna dintre părți nu poate modifica unilateral prezentul contract. Modificarea poate interveni numai prin acordul de voință, exprimat în scris, al ambelor părți.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    18. Dacă Beneficiarul întârzie plata produselor, va plăti penalități de 0,1% din suma datorată, pentru fiecare zi de întârziere.<br/>
+    Dacă Furnizorul întârzie livrarea sau montajul produselor față de termenul contractual, va plăti penalități de 0,1% din valoarea produselor nelivrate sau nemontate, pentru fiecare zi de întârziere, calculată de la data scadentă.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    19. În cazul nerespectării clauzelor contractuale de către una dintre părți, cealaltă parte poate rezoluționa unilateral contractul prin transmiterea unei notificări scrise.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    20. Contractul se consideră încheiat prin acordul scris al părților.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    21. Cumpărătorul este de drept în întârziere la data la care trebuia efectuată plata, fără a mai fi necesară notificarea prevăzută de art. 1522 și art. 1523 Cod civil.
+  </p>
+
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    H. FORȚA MAJORĂ
+  </h3>
+  <p style="margin: 5px 0; text-align: justify;">
+    22. Forța majoră, așa cum este definită de lege, exonerează de răspundere partea care o invocă, în condițiile legii, cu condiția notificării scrise, în termen de 3 zile de la apariția cazului respectiv. Partea interesată este obligată să producă dovada cu certificat eliberat de autoritatea competentă.
+  </p>
+
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    I. CLAUZE FINALE. LITIGII
+  </h3>
+  <p style="margin: 5px 0; text-align: justify;">
+    23. Vânzătorul își rezervă dreptul de a sista unilateral livrările în cazul în care Cumpărătorul întârzie plata față de termenul convenit.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    24. Rezilierea prezentului contract nu va avea niciun efect asupra obligațiilor deja scadente între părți.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    25. Cumpărătorul este de drept pus în întârziere la data scadenței facturilor și se obligă să acorde preferință creanței Vânzătorului înaintea altor creditori, indiferent de situația juridică în care se va afla.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    26. Neexercitarea imediată de către una dintre părți a drepturilor conferite prin prezentul contract nu constituie renunțare la aceste drepturi, care pot fi exercitate ulterior în limitele legii.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    27. Părțile declară că au studiat toate clauzele și au acceptat necondiționat drepturile și obligațiile conferite de prezentul contract.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    28. Eventualele litigii care s-ar putea ivi în legătură cu interpretarea și derularea prezentului contract vor fi soluționate pe cale amiabilă. Dacă acest lucru nu este posibil, litigiile vor fi soluționate de instanțele competente din România, respectiv Tribunalul Brașov.<br/>
+    Prezentul contract este guvernat de legea română, iar limba de referință pentru interpretarea sa este limba română.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    29. Reprezentantul legal al Cumpărătorului declară pe propria răspundere că durata pentru care s-a constituit persoana juridică pe care o reprezintă nu se va împlini în anul în curs sau în anul următor, aceasta nu este supusă reorganizării ori lichidării judiciare sau voluntare și nu este în curs de divizare.
+  </p>
+
+  <p style="text-align: center; margin: 32px 0 10px 0;">Semnătura și ștampila</p>
+  <table style="width: 100%; border-collapse: collapse; font-size: 12.5px; border: 1px solid #334155;">
+    <tr>
+      <td style="width: 50%; vertical-align: top; padding: 10px 12px; border: 1px solid #334155;">
+        FURNIZOR<br/>
+        S.C. WOOD GLASS S.R.L.<br/>
+        Reprezentant: SARAN VITALIE
+      </td>
+      <td style="width: 50%; vertical-align: top; padding: 10px 12px; border: 1px solid #334155;">
+        BENEFICIAR<br/>
+        ${bName}<br/>
+        Reprezentant: ${bRep}
+      </td>
+    </tr>
+    <tr>
+      <td style="width: 50%; vertical-align: top; padding: 12px; border: 1px solid #334155;">
+        Semnătură<br/><br/>
+        ______________
+      </td>
+      <td style="width: 50%; vertical-align: top; padding: 12px; border: 1px solid #334155;">
+        Semnătură<br/><br/>
+        ______________
+      </td>
+    </tr>
+  </table>`;
+  } else {
+    // MODELUL OFICIAL 392 BV DELVAC & 364 MDVIP — EXTERN PERSOANĂ JURIDICĂ (30 clauze, CMR, fără TVA / scutit de TVA)
+    const extPjVerb1 =
+      wgTransportIncluded === "da"
+        ? "Furnizorul se obligă să producă și să transporte"
+        : "Furnizorul se obligă să producă";
+
+    const extPjDeliverySentence =
+      wgTransportIncluded === "da"
+        ? "Mărfurile care fac obiectul prezentului contract vor fi executate și livrate la adresa stabilită de Beneficiar."
+        : "Mărfurile care fac obiectul prezentului contract vor fi executate și predate la sediul Furnizorului din Brașov, Str. Zizinului nr. 625, transportul fiind în sarcina Beneficiarului.";
+
+    const extPjTransportPriceSentence =
+      wgTransportIncluded === "da"
+        ? "Prețul contractului include ambalajul și transportul produselor la adresa comunicată în scris de Beneficiar."
+        : "Prețul contractului include ambalajul produselor, fără transport inclus.";
+
+    const extPjClause10 =
+      effectiveTranches === "50-40-10"
+        ? `10. Plățile se vor efectua astfel, pe baza facturii emise de Furnizor pentru fiecare tranșă:<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;-50% se va achita la data semnării prezentului contract;<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;-40% se va achita cu cinci zile înainte de livrare;<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;-10% se va achita la recepția lucrării.`
+        : `10. Plățile se vor efectua astfel, pe baza facturii emise de Furnizor pentru fiecare tranșă:<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;-50% se va achita la data semnării prezentului contract;<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;-50% se va achita cu cinci zile înainte de livrare.`;
+
+    wgContractBody = `
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    PĂRȚILE CONTRACTANTE
+  </h3>
+  <p style="margin: 6px 0; text-align: justify;">
+    1. S.C. WOOD GLASS S.R.L., cu sediul în Brașov, Str. Zizinului nr. 625, înregistrată la Oficiul Comerțului sub nr. J2011000729084, CUI RO28396216, ${wgSupplierBankClause}, deschis la ING Brașov, reprezentată prin dl. Șaran Vitalie, în calitate de Furnizor,<br/>și
+  </p>
+  <p style="margin: 6px 0 16px 0; text-align: justify;">
+    2. <strong>${bName}</strong>, cu sediul în ${bAddress}${bCity}, identificat(ă) prin VAT no. ${bCui}, reprezentată prin ${
+      bRep || "dl./dna. ________________"
+    }, în calitate de Beneficiar, au convenit să încheie prezentul contract de vânzare-cumpărare cu respectarea următoarelor clauze:
+  </p>
+
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    A. OBIECTUL CONTRACTULUI
+  </h3>
+  <p style="margin: 5px 0; text-align: justify;">
+    ${extPjVerb1}, iar Beneficiarul se obligă să cumpere <strong>${woodEssence}</strong>, conform Ofertei de preț nr. ${cleanOfferNumOnly}/${resolvedOfferDate}, care face parte integrantă din prezentul contract. ${extPjDeliverySentence}
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    1. Specificațiile tehnice detaliate (dimensiuni, finisaje, accesorii, caracteristici de montaj și alte detalii relevante) sunt incluse în anexele contractului.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    2. Beneficiarul răspunde pentru exactitatea dimensiunilor, măsurătorilor, desenelor, schițelor și a tuturor informațiilor tehnice furnizate Furnizorului. Furnizorul nu răspunde pentru neconformitățile rezultate din date eronate, incomplete sau incorect comunicate de Beneficiar.
+  </p>
+
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    B. GARANȚII ȘI RISCURI
+  </h3>
+  <p style="margin: 5px 0; text-align: justify;">
+    3. Furnizorul garantează bunurile vândute împotriva evicțiunii și contra viciilor ascunse.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    4. La recepția lucrării și achitarea integrală a prețului, Beneficiarul va primi certificatul de garanție corespunzător lucrării prestate de Furnizor. Garanția oferită este de ${resolvedWarrantyYears} ani.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    5. Riscurile asupra mărfii trec de la Furnizor la Beneficiar în momentul recepției acesteia. Pe durata transportului, riscul este preluat de transportator.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    6. Proprietatea asupra mărfii trece de la Furnizor la Beneficiar în momentul achitării integrale a produselor livrate.
+  </p>
+
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    C. VALOAREA CONTRACTULUI
+  </h3>
+  <p style="margin: 5px 0; text-align: justify;">
+    7. Valoarea lucrărilor ce fac obiectul prezentului contract este de <strong>${docValue} ${wgCurrencyLabel}</strong>. Operațiunea reprezintă o livrare intracomunitară de bunuri, scutită de TVA în condițiile legislației fiscale aplicabile. ${extPjTransportPriceSentence}
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    8. Montajul nu este inclus în preț și nu face obiectul prezentului contract.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    9. Pentru modificări ulterioare sau pentru lucrări suplimentare, diferite de cele stabilite prin prezentul contract, se vor întocmi documente separate, care vor modifica valoarea contractului, cu acordul ambelor părți.
+  </p>
+
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    D. MODALITĂȚI DE PLATĂ
+  </h3>
+  <p style="margin: 5px 0; text-align: justify;" data-clause="woodglass-payment-tranches">
+    ${extPjClause10}
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    11. Livrarea produselor este condiționată de achitarea integrală a prețului contractului.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    12. În lipsa achitării integrale, Furnizorul are dreptul de a suspenda livrarea fără a fi considerat în întârziere și fără aplicarea de penalități în sarcina sa.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    13. Plata se va efectua în ${wgCurrencyLabel === "EUR" ? "EURO" : "LEI"} în contul Furnizorului ${
+      wgCurrencyLabel === "EUR" ? activeTenantIbanEur : activeTenantIban
+    } deschis la ING Brașov.
+  </p>
+
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    E. TERMEN DE LIVRARE
+  </h3>
+  <p style="margin: 5px 0; text-align: justify;">
+    14. Furnizorul se obligă să producă mărfurile ce fac obiectul prezentului contract, în termen de ${deliveryDays} de zile calendaristice de la plata avansului. Termenul de livrare începe să curgă de la data încasării avansului și a confirmării tuturor detaliilor tehnice necesare execuției.
+  </p>
+
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    F. RECEPȚIA LUCRĂRILOR
+  </h3>
+  <p style="margin: 5px 0; text-align: justify;">
+    15. Recepția mărfurilor se consideră efectuată în momentul livrării la adresa indicată de Beneficiar, conform documentului de transport (CMR) semnat de acesta sau de reprezentantul său.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    16. Eventualele neconformități vizibile (deteriorări, lipsuri cantitative etc.) trebuie menționate pe documentul de transport la momentul recepției și comunicate în scris Furnizorului, în termen de <strong>5 zile lucrătoare</strong> de la primirea mărfii.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    17. În lipsa unei astfel de notificări scrise, marfa se consideră acceptată definitiv de către Beneficiar, fără rezerve, iar recepția este considerată realizată integral.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    18. Pentru livrările internaționale, documentul CMR semnat de Beneficiar ține loc de proces-verbal de recepție.
+  </p>
+
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    G. RĂSPUNDEREA CONTRACTUALĂ
+  </h3>
+  <p style="margin: 5px 0; text-align: justify;">
+    19. Niciuna dintre părți nu poate modifica unilateral prezentul contract. Modificarea poate interveni numai prin acordul de voință, exprimat în scris, al ambelor părți.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    20. Dacă Beneficiarul întârzie plata produselor, va plăti penalități de 0,1% din suma datorată, pentru fiecare zi de întârziere.<br/>
+    Dacă Furnizorul întârzie livrarea produselor față de termenul contractual, va plăti penalități de 0,1% din valoarea produselor nelivrate, pentru fiecare zi de întârziere, calculată de la data scadentă. Penalitățile datorate de Furnizor pentru întârzierea livrării nu pot depăși 5% din valoarea produselor nelivrate.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    21. În cazul nerespectării clauzelor contractuale de către una dintre părți, cealaltă parte poate rezoluționa unilateral contractul prin transmiterea unei notificări scrise.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    22. Contractul se consideră încheiat prin acordul scris al părților.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    23. Cumpărătorul este de drept în întârziere la data la care trebuia efectuată plata, fără a mai fi necesară notificarea prevăzută de art. 1522 și art. 1523 Cod civil.
+  </p>
+
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    H. FORȚA MAJORĂ
+  </h3>
+  <p style="margin: 5px 0; text-align: justify;">
+    24. Forța majoră, așa cum este definită de lege, exonerează de răspundere partea care o invocă, în condițiile legii, cu condiția notificării scrise, în termen de 3 zile de la apariția cazului respectiv. Partea interesată este obligată să producă dovada cu certificat eliberat de autoritatea competentă.
+  </p>
+
+  <h3 style="color: #2563eb; font-size: 12.5px; margin: 18px 0 8px 0; text-transform: uppercase; font-weight: bold;">
+    I. CLAUZE FINALE. LITIGII
+  </h3>
+  <p style="margin: 5px 0; text-align: justify;">
+    25. Vânzătorul își rezervă dreptul de a sista unilateral livrările în cazul în care Cumpărătorul întârzie plata față de termenul convenit.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    26. Rezilierea prezentului contract nu va avea niciun efect asupra obligațiilor deja scadente între părți.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    27. Neexercitarea imediată de către una dintre părți a drepturilor conferite prin prezentul contract nu constituie renunțare la aceste drepturi, care pot fi exercitate ulterior în limitele legii.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    28. Părțile declară că au studiat toate clauzele și au acceptat necondiționat drepturile și obligațiile conferite de prezentul contract.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    29. Eventualele litigii care s-ar putea ivi în legătură cu interpretarea și derularea prezentului contract vor fi soluționate pe cale amiabilă. Dacă acest lucru nu este posibil, litigiile vor fi soluționate de instanțele competente din România, respectiv Tribunalul Brașov.<br/>
+    Prezentul contract este guvernat de legea română, iar limba de referință pentru interpretarea sa este limba română.
+  </p>
+  <p style="margin: 5px 0; text-align: justify;">
+    30. Reprezentantul legal al Cumpărătorului declară pe propria răspundere că durata pentru care s-a constituit persoana juridică pe care o reprezintă nu se va împlini în anul în curs sau în anul următor, aceasta nu este supusă reorganizării ori lichidării judiciare sau voluntare și nu este în curs de divizare.
+  </p>
+
+  <p style="text-align: center; margin: 32px 0 10px 0;">Semnătura și ștampila</p>
+  <table style="width: 100%; border-collapse: collapse; font-size: 12.5px; border: 1px solid #334155;">
+    <tr>
+      <td style="width: 50%; vertical-align: top; padding: 10px 12px; border: 1px solid #334155;">
+        FURNIZOR<br/>
+        SC WOOD GLASS SRL<br/>
+        Reprezentant: SARAN VITALIE
+      </td>
+      <td style="width: 50%; vertical-align: top; padding: 10px 12px; border: 1px solid #334155;">
+        BENEFICIAR<br/>
+        ${bName}<br/>
+        Reprezentant: ${bRep || "________________"}
+      </td>
+    </tr>
+    <tr>
+      <td style="width: 50%; vertical-align: top; padding: 12px; border: 1px solid #334155;">
+        Semnătură<br/><br/>
+        ______________
+      </td>
+      <td style="width: 50%; vertical-align: top; padding: 12px; border: 1px solid #334155;">
+        Semnătură<br/><br/>
+        ______________
+      </td>
+    </tr>
+  </table>`;
+  }
+
+  raw = raw.replace(/{{wg\.contractBody}}/g, wgContractBody);
+
   // Inlocuire variabile comerciale contract
   raw = raw
     .replace(/{{contract\.number}}/g, docNumber)
-    .replace(/{{contract\.date}}/g, docDate)
+    .replace(/{{contract\.date}}/g, isWoodGlass ? formatRoDate(docDate) : docDate)
     .replace(/{{contract\.value}}/g, docValue)
-    .replace(/{{contract\.currency}}/g, docCurrency)
+    .replace(/{{contract\.currency}}/g, isWoodGlass ? wgCurrencyLabel : docCurrency)
     .replace(/{{contract\.paymentTerm}}/g, paymentTermDays)
     .replace(/{{contract\.deliveryDays}}/g, deliveryDays)
     .replace(/{{contract\.warrantyMonths}}/g, warrantyMonths)
+    .replace(/{{contract\.warrantyYears}}/g, resolvedWarrantyYears)
+    .replace(/{{contract\.woodEssence}}/g, woodEssence || "Tâmplărie lemn stratificat, esență meranti, 68 mm")
     .replace(/{{contract\.glassWarrantyMonths}}/g, "36")
     .replace(/{{contract\.explanation}}/g, explanation || (isEn ? "Agreed by mutual consent" : "Convenit de comun acord"))
     .replace(/{{contract\.notes}}/g, contractObject || (isEn ? "Services performed according to annex." : "Lucrările se execută conform anexei."))
-    .replace(/{{contract\.offerNumber}}/g, "OFR-" + docNumber.replace(/\D/g, ""))
-    .replace(/{{contract\.offerDate}}/g, docDate)
+    .replace(/{{contract\.offerNumber}}/g, resolvedOfferNumber)
+    .replace(/{{contract\.offerDate}}/g, resolvedOfferDate)
     .replace(/{{contract\.durationMonths}}/g, String(totMonths))
     .replace(/{{contract\.renewalMonths}}/g, String(renMonths))
     .replace(/{{contract\.basePrice}}/g, basePriceStr)

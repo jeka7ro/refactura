@@ -6,10 +6,12 @@ export interface SagaArticleItem {
   id?: number;
   code: string;
   name: string;
-  unit?: string;
+  unit?: string | null;
   vatRate?: string | number | null;
-  category?: string;
-  accountingAccount?: string;
+  category?: string | null;
+  accountingAccount?: string | null;
+  knownPrices?: number[];
+  lastPrice?: number | null;
 }
 
 interface ArticleComboboxProps {

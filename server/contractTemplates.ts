@@ -767,6 +767,48 @@ function getDigitalSignageTemplate(lang: ContractLanguage): ContractTemplate {
 }
 
 /**
+ * 3. Șablon Oficial Contract Tip Wood Glass (Modele Oficiale 393 Intern PF/PJ, 324 Extern PF, 392/364 Extern PJ)
+ */
+function getWoodGlassTipTemplate(lang: ContractLanguage): ContractTemplate {
+  const isEn = lang === "en";
+  const isBilingual = lang === "ro_en";
+
+  let name = "Contract Tip Vânzare-Cumpărare Tâmplărie — S.C. WOOD GLASS S.R.L. (Intern 393 / Extern 324 & 392)";
+  let description =
+    "Modelele oficiale S.C. WOOD GLASS S.R.L.: Intern PF/PJ (Model 393, PV predare-primire, inclusiv TVA), Extern PF (Model 324, CMR, cu TVA) și Extern PJ (Model 392/364, CMR, fără TVA).";
+
+  if (isEn) {
+    name = "Standard Sale-Purchase Agreement for Joinery — S.C. WOOD GLASS S.R.L. (Official Models 393 / 324 / 392)";
+    description =
+      "Official S.C. WOOD GLASS S.R.L. contracts: Domestic Individual/Company (393), International Individual (324) & International Company (392/364).";
+  } else if (isBilingual) {
+    name = "Contract Tip Bilingv Vânzare-Cumpărare Tâmplărie — S.C. WOOD GLASS S.R.L. (RO - EN)";
+  }
+
+  const contentHtml = `
+<div style="font-family: Cambria, Georgia, 'Times New Roman', serif; line-height: 1.55; color: #0f172a; max-width: 820px; margin: 0 auto; font-size: 12.5px;">
+  <div style="border-bottom: 1.5px solid #0284c7; padding-bottom: 6px; margin-bottom: 10px;">
+    <h2 style="color: #334155; font-size: 15.5px; margin: 0; font-weight: normal; letter-spacing: 0.3px;">
+      CONTRACT Nr. {{contract.number}}
+    </h2>
+  </div>
+  <p style="margin: 0 0 18px 0; font-size: 13px; color: #0f172a;">
+    din data de {{contract.date}}
+  </p>
+  {{wg.contractBody}}
+</div>`;
+
+  return {
+    id: "contract-woodglass-tip",
+    name,
+    type: "contract",
+    description,
+    language: lang,
+    contentHtml,
+  };
+}
+
+/**
  * 3. Șablon Cadru General / Software / Vânzări
  */
 function getCadruGeneralTemplate(lang: ContractLanguage, isTradeInvest: boolean, isWoodGlass: boolean): ContractTemplate {
@@ -800,7 +842,7 @@ function getCadruGeneralTemplate(lang: ContractLanguage, isTradeInvest: boolean,
   }
 
   <h2 style="text-align: center; color: #0f172a; font-size: 16px; margin: 15px 0 4px 0; text-transform: uppercase; font-weight: 800;">
-    ${isEn ? "COMMERCIAL FRAMEWORK AGREEMENT" : isBilingual ? "CONTRACT CADRU COMERCIAL / COMMERCIAL FRAMEWORK AGREEMENT" : "CONTRACT CADRU DE FURNIZARE ȘI SERVICII"}
+    ${isEn ? "COMMERCIAL FRAMEWORK AGREEMENT" : isBilingual ? "CONTRACT CADRU COMERCIAL / COMMERCIAL FRAMEWORK AGREEMENT" : isWoodGlass ? "CONTRACT CADRU DE FURNIZARE ȘI MONTAJ TÂMPLĂRIE" : "CONTRACT CADRU DE FURNIZARE ȘI SERVICII"}
   </h2>
   <p style="text-align: center; font-weight: bold; color: #475569; font-size: 13px; margin: 0 0 20px 0;">
     ${isEn ? "No. {{contract.number}} dated {{contract.date}}" : "Nr. {{contract.number}} din data de {{contract.date}}"}
@@ -817,8 +859,8 @@ function getCadruGeneralTemplate(lang: ContractLanguage, isTradeInvest: boolean,
         Sediu: {{tenant.city}}, {{tenant.address}}<br/>
         CUI: {{tenant.cui}} • Reg. Com.: {{tenant.regCom}}<br/>
         IBAN: {{tenant.iban}} ({{tenant.bank}})<br/>
-        Reprezentant: Elena Cazmal, Administrator<br/>
-        Tel: +40 757 77 77 12 • Email: contact@getapp.ro
+        Reprezentant: {{tenant.delegat}}<br/>
+        Tel: {{tenant.phone}} • Email: {{tenant.email}}
       </td>
       <td style="width: 50%; vertical-align: top; padding: 10px; background-color: #f8fafc; border: 1px solid #e2e8f0;">
         <strong style="color: #1e3a8a;">${isEn ? "BENEFICIARY / CUSTOMER" : "BENEFICIAR / CLIENT"}:</strong><br/>
@@ -836,15 +878,19 @@ function getCadruGeneralTemplate(lang: ContractLanguage, isTradeInvest: boolean,
     ${isEn ? "2. SCOPE OF AGREEMENT" : isBilingual ? "2. OBIECTUL CONTRACTULUI / SCOPE OF AGREEMENT" : "2. OBIECTUL CONTRACTULUI"}
   </h3>
   <p>2.1. ${
-    isEn
+    isWoodGlass
+      ? isEn
+        ? "Production, delivery, and installation of laminated wood joinery, insulated glass units, and related accessories according to the agreed technical offers and specifications."
+        : "Producția, livrarea și, după caz, montajul elementelor de tâmplărie din lemn stratificat, sticlă termoizolantă și accesorii conexe, conform ofertelor de preț și anexelor tehnice agreate de ambele părți."
+      : isEn
       ? "Provision of software services, digital cloud solutions, and technical support as agreed in subsequent purchase orders."
-      : "Prestarea de servicii software, soluții digitale cloud și asistență tehnică de specialitate conform comenzilor agreate."
+      : "Prestarea de servicii și livrarea de produse conform comenzilor și specificațiilor tehnice agreate."
   }</p>
 
   <h3 style="color: #1e3a8a; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; font-size: 12px; text-transform: uppercase;">
     ${isEn ? "3. VALUE AND PAYMENT TERMS" : isBilingual ? "3. VALOARE ȘI PLĂȚI / VALUE AND PAYMENT" : "3. VALOAREA CONTRACTULUI ȘI MODALITĂȚI DE PLATĂ"}
   </h3>
-  <p>3.1. ${isEn ? "Estimated total value: <strong>{{contract.value}} {{contract.currency}}</strong> (+ VAT)." : "Valoarea totală estimată: <strong>{{contract.value}} {{contract.currency}}</strong> (+ TVA)."}</p>
+  <p>3.1. ${isEn ? "Estimated total value: <strong>{{contract.value}} {{contract.currency}}</strong>." : "Valoarea totală estimată: <strong>{{contract.value}} {{contract.currency}}</strong>."}</p>
   <p>3.2. ${isEn ? "Payment term: <strong>{{contract.paymentTerm}} calendar days</strong> from invoice date." : "Termen de plată: <strong>{{contract.paymentTerm}} zile</strong> de la data emiterii facturii."}</p>
 
   <table style="width: 100%; margin-top: 40px; font-size: 11px;">
@@ -852,8 +898,8 @@ function getCadruGeneralTemplate(lang: ContractLanguage, isTradeInvest: boolean,
       <td style="width: 50%; vertical-align: top;">
         <strong>${isEn ? "FOR PROVIDER" : "FURNIZOR / PRESTATOR"}</strong><br/>
         {{tenant.name}}<br/>
-        Elena Cazmal, Administrator<br/>
-        Tel: +40 757 77 77 12 • Email: contact@getapp.ro<br/>
+        Reprezentant: {{tenant.delegat}}<br/>
+        Tel: {{tenant.phone}} • Email: {{tenant.email}}<br/>
         __________________________
       </td>
       <td style="width: 50%; vertical-align: top;">
@@ -871,9 +917,11 @@ function getCadruGeneralTemplate(lang: ContractLanguage, isTradeInvest: boolean,
     id: "contract-cadru-general",
     name,
     type: "contract",
-    description: isEn
-      ? "Framework agreement for digital and software services based on specific orders."
-      : "Șablon cadru pentru servicii software și digitale pe bază de comenzi sau proiecte punctuale.",
+    description: isWoodGlass
+      ? "Șablon cadru pentru comenzi periodice de tâmplărie lemn stratificat și montaj."
+      : isEn
+      ? "Framework agreement for services and supply based on specific orders."
+      : "Șablon cadru comercial pe bază de comenzi sau proiecte punctuale.",
     language: lang,
     contentHtml,
   };
@@ -882,15 +930,19 @@ function getCadruGeneralTemplate(lang: ContractLanguage, isTradeInvest: boolean,
 /**
  * 4. Șablon Act Adițional
  */
-function getActAditionalTemplate(lang: ContractLanguage): ContractTemplate {
+function getActAditionalTemplate(lang: ContractLanguage, isTradeInvest: boolean = false, isWoodGlass: boolean = false): ContractTemplate {
   const isEn = lang === "en";
   const isBilingual = lang === "ro_en";
 
-  let name = isEn
-    ? "Addendum / Amendment — Terms / Prices / Licenses"
+  let name = isWoodGlass
+    ? isEn
+      ? "Addendum — Modification of Technical Offer / Joinery Specifications / Value"
+      : "Act Adițional — Modificare Ofertă Tehnică / Dimensiuni Tâmplărie / Valoare"
+    : isEn
+    ? "Addendum / Amendment — Terms / Prices / Scope"
     : isBilingual
     ? "Act Adițional Bilingv (Română - Engleză / Addendum Amendment)"
-    : "Act Adițional — Modificare Termene / Prețuri / Licențe";
+    : "Act Adițional — Modificare Termene / Prețuri / Obiect";
 
   const contentHtml = `
 <div style="font-family: Arial, Helvetica, sans-serif; line-height: 1.5; color: #1e293b; max-width: 820px; margin: 0 auto; font-size: 12px;">
@@ -908,7 +960,7 @@ function getActAditionalTemplate(lang: ContractLanguage): ContractTemplate {
     ${isEn ? "ADDENDUM NO. {{contract.number}}" : isBilingual ? "ACT ADIȚIONAL / ADDENDUM NO. {{contract.number}}" : "ACT ADIȚIONAL Nr. {{contract.number}}"}
   </h2>
   <p style="text-align: center; font-weight: bold; color: #475569; font-size: 12px; margin: 0 0 20px 0;">
-    ${isEn ? "To Framework Agreement No. {{parentContract.number}} dated {{parentContract.date}}" : "La Contractul Cadru Nr. {{parentContract.number}} din data de {{parentContract.date}}"}
+    ${isEn ? "To Contract No. {{parentContract.number}} dated {{parentContract.date}}" : "La Contractul Nr. {{parentContract.number}} din data de {{parentContract.date}}"}
   </p>
 
   <h3 style="color: #1e3a8a; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; font-size: 12px; text-transform: uppercase;">
@@ -916,8 +968,8 @@ function getActAditionalTemplate(lang: ContractLanguage): ContractTemplate {
   </h3>
   <p>${
     isEn
-      ? "Between <strong>{{tenant.name}}</strong> (Provider, represented by Elena Cazmal, Administrator, Tel: +40 757 77 77 12, Email: contact@getapp.ro) and <strong>{{partner.name}}</strong> (Customer, represented by {{partner.delegat}}, Tel: {{partner.phone}}, Email: {{partner.email}})."
-      : "Între <strong>{{tenant.name}}</strong> (Furnizor/Prestator, reprezentată prin Elena Cazmal, Administrator, Tel: +40 757 77 77 12, Email: contact@getapp.ro) și <strong>{{partner.name}}</strong> (Beneficiar/Client, reprezentată prin {{partner.delegat}}, Tel: {{partner.phone}}, Email: {{partner.email}})."
+      ? "Between <strong>{{tenant.name}}</strong> (Provider, CUI {{tenant.cui}}, Reg. Com. {{tenant.regCom}}, represented by {{tenant.delegat}}, Tel: {{tenant.phone}}, Email: {{tenant.email}}) and <strong>{{partner.name}}</strong> (Customer, CUI {{partner.cui}}, represented by {{partner.delegat}}, Tel: {{partner.phone}}, Email: {{partner.email}})."
+      : "Între <strong>{{tenant.name}}</strong> (Furnizor, CUI {{tenant.cui}}, Reg. Com. {{tenant.regCom}}, reprezentată prin {{tenant.delegat}}, Tel: {{tenant.phone}}, Email: {{tenant.email}}) și <strong>{{partner.name}}</strong> (Beneficiar, CUI {{partner.cui}}, reprezentată prin {{partner.delegat}}, Tel: {{partner.phone}}, Email: {{partner.email}})."
   }</p>
 
   <h3 style="color: #1e3a8a; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; font-size: 12px; text-transform: uppercase;">
@@ -929,16 +981,28 @@ function getActAditionalTemplate(lang: ContractLanguage): ContractTemplate {
   <h3 style="color: #1e3a8a; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; font-size: 12px; text-transform: uppercase;">
     ${isEn ? "ARTICLE 2. MODIFIED CLAUSES" : isBilingual ? "ARTICOLUL 2. CLAUZE MODIFICATE / MODIFIED CLAUSES" : "ARTICOLUL 2. CLAUZE MODIFICATE"}
   </h3>
-  <p>2.1. ${isEn ? "Payment term becomes: <strong>{{contract.paymentTerm}} calendar days</strong>." : "Termenul de plată agreat devine <strong>{{contract.paymentTerm}} zile</strong> de la emiterea facturii."}</p>
-  <p>2.2. ${isEn ? "Additional order value: <strong>{{contract.value}} {{contract.currency}}</strong>." : "Valoarea adițională este de <strong>{{contract.value}} {{contract.currency}}</strong>."}</p>
+  <p>2.1. ${
+    isWoodGlass
+      ? "Valoarea actualizată / suplimentară a lucrărilor conform prezentului act adițional este de <strong>{{contract.value}} {{contract.currency}}</strong>."
+      : isEn
+      ? "Payment term becomes: <strong>{{contract.paymentTerm}} calendar days</strong>."
+      : "Termenul de plată agreat devine <strong>{{contract.paymentTerm}} zile</strong> de la emiterea facturii."
+  }</p>
+  <p>2.2. ${
+    isWoodGlass
+      ? "Celelalte clauze ale Contractului de Vânzare-Cumpărare Nr. {{parentContract.number}} rămân neschimbate și pe deplin valabile."
+      : isEn
+      ? "Additional order value: <strong>{{contract.value}} {{contract.currency}}</strong>."
+      : "Valoarea adițională este de <strong>{{contract.value}} {{contract.currency}}</strong>."
+  }</p>
 
   <table style="width: 100%; margin-top: 40px; font-size: 11px;">
     <tr>
       <td style="width: 50%; vertical-align: top;">
         <strong>${isEn ? "PROVIDER" : "FURNIZOR"}</strong><br/>
         {{tenant.name}}<br/>
-        Elena Cazmal, Administrator<br/>
-        Tel: +40 757 77 77 12 • Email: contact@getapp.ro<br/>
+        Reprezentant: {{tenant.delegat}}<br/>
+        Tel: {{tenant.phone}} • Email: {{tenant.email}}<br/>
         __________________________
       </td>
       <td style="width: 50%; vertical-align: top;">
@@ -956,28 +1020,35 @@ function getActAditionalTemplate(lang: ContractLanguage): ContractTemplate {
     id: "act-aditional-modificare",
     name,
     type: "act_aditional",
-    description: isEn
-      ? "For amending licenses/screens count, monthly rates, or terms."
-      : "Pentru modificarea numărului de licențe/ecrane, ajustarea tarifelor lunare sau a clauzelor contractuale.",
+    description: isWoodGlass
+      ? "Pentru lucrări suplimentare, modificarea ofertei tehnice, dimensiunilor tâmplăriei, valorii sau termenului de livrare."
+      : isEn
+      ? "For amending contractual scope, rates, or terms."
+      : "Pentru modificarea clauzelor, tarifelor sau termenelor contractuale.",
     language: lang,
     contentHtml,
   };
 }
 
 /**
- * Funcția centrală de obținere a tuturor șabloanelor în limba dorită
+ * Funcția centrală de obținere a tuturor șabloanelor în limba dorită, strict izolate pe tenant
  */
 export function getAllContractTemplates(options: TemplateOptions): ContractTemplate[] {
   const { isTradeInvest, isWoodGlass, language } = options;
 
-  const smartQr = getSmartQrTemplate(language);
-  const signage = getDigitalSignageTemplate(language);
   const cadruGeneral = getCadruGeneralTemplate(language, isTradeInvest, isWoodGlass);
-  const actAditional = getActAditionalTemplate(language);
+  const actAditional = getActAditionalTemplate(language, isTradeInvest, isWoodGlass);
+
+  if (isWoodGlass) {
+    const wgTip = getWoodGlassTipTemplate(language);
+    return [wgTip, actAditional, cadruGeneral];
+  }
 
   if (isTradeInvest) {
+    const smartQr = getSmartQrTemplate(language);
+    const signage = getDigitalSignageTemplate(language);
     return [smartQr, signage, actAditional, cadruGeneral];
   }
 
-  return [cadruGeneral, actAditional, smartQr, signage];
+  return [cadruGeneral, actAditional];
 }

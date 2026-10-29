@@ -15,11 +15,31 @@ import {
   FileDown,
   FileCode,
   RefreshCw,
+  Eye,
+  Sparkles,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import PlanConturiCombobox from "@/components/PlanConturiCombobox";
 import ArticleCombobox from "@/components/ArticleCombobox";
+import NirPreviewDialog from "@/components/NirPreviewDialog";
+import {
+  SagaImportSimulatorModal,
+  type SagaSimulationResult,
+} from "@/components/SagaImportSimulatorModal";
+import {
+  saveWithFilePicker,
+  getNirPdfFilename,
+  getNirXmlFilename,
+  encodeWindows1250Blob,
+} from "@/lib/fileSave";
+import {
+  type CandidateArticle,
+  computeNext088Seq,
+  findBestArticleMatch,
+  formatAppArticleCode,
+  isAppGeneratedArticleCode,
+} from "@shared/articleMatcher";
 
 const normalizeName = (name: string) => {
   if (!name) return "";
@@ -93,6 +113,9 @@ interface NirLineForm {
   id?: number;
   sagaArticleId?: number;
   articleSearchText?: string;
+  matchType?: "exact" | "words_and_price" | "new_088" | "none";
+  matchedWords?: string[];
+  matchedSagaName?: string;
   description: string;
   unit: string;
   cantitateComanda: string;
@@ -167,6 +190,130 @@ const TIP_TO_CONT: Record<string, string> = {
   Avansuri: "4091",
 };
 
+// Mapare automată Cont → Unitate de măsură (U/M) implicită
+// (poate fi extinsă cu lista completă pe conturi)
+export const CONT_TO_DEFAULT_UM: Record<string, string> = {
+  "3028": "buc", // Consumabile / Alte materiale consumabile
+  "301": "l",    // Materii prime
+  "3022": "l",   // Combustibili
+  "371": "buc",  // Mărfuri
+  "3021": "buc", // Materiale auxiliare
+  "3024": "buc", // Piese de schimb
+  "303": "buc",  // Obiecte de inventar
+  "381": "buc",  // Ambalaje
+  "345": "buc",  // Produse finite
+  "341": "buc",  // Semifabricate
+};
+
+// Coduri UN/ECE (e-Factura XML) → Unități de măsură uzuale în română
+const UN_ECE_UNIT_MAP: Record<string, string> = {
+  H87: "buc",
+  C62: "buc",
+  EA: "buc",
+  PCE: "buc",
+  NMP: "buc",
+  XPP: "buc",
+  NAR: "buc",
+  BUC: "buc",
+  "BUC.": "buc",
+  BUCATA: "buc",
+  BUCATI: "buc",
+  "BUCĂȚI": "buc",
+  KGM: "kg",
+  KG: "kg",
+  "KG.": "kg",
+  GRM: "g",
+  TNE: "t",
+  LTR: "l",
+  L: "l",
+  LITRU: "l",
+  LITRI: "l",
+  MLT: "ml",
+  MTR: "m",
+  M: "m",
+  LM: "m",
+  CMT: "cm",
+  MMT: "mm",
+  MTK: "mp",
+  MP: "mp",
+  M2: "mp",
+  MTQ: "mc",
+  MC: "mc",
+  M3: "mc",
+  SET: "set",
+  HUR: "oră",
+  ORA: "oră",
+  "ORĂ": "oră",
+  ORE: "oră",
+  BX: "cutie",
+  XBX: "cutie",
+  CUTIE: "cutie",
+  CUT: "cutie",
+  RO: "rolă",
+  XRO: "rolă",
+  ROLA: "rolă",
+  "ROLĂ": "rolă",
+  PK: "pachet",
+  XPK: "pachet",
+  PA: "pachet",
+  PACHET: "pachet",
+  PAC: "pachet",
+  PR: "per",
+  PER: "per",
+  BG: "sac",
+  XBG: "sac",
+};
+
+export const getDefaultUnitForAccount = (
+  accCode?: string | null,
+  typeName?: string | null,
+  fallback = "buc"
+): string => {
+  const c = (accCode || "").trim();
+  if (c && CONT_TO_DEFAULT_UM[c]) return CONT_TO_DEFAULT_UM[c];
+  if (c.startsWith("3028") || c.startsWith("302")) {
+    return c.startsWith("3022") ? (CONT_TO_DEFAULT_UM["3022"] || "l") : (CONT_TO_DEFAULT_UM["3028"] || "buc");
+  }
+  if (c.startsWith("301") || c.startsWith("321")) return CONT_TO_DEFAULT_UM["301"] || "l";
+  if (c.startsWith("371") || c.startsWith("327")) return CONT_TO_DEFAULT_UM["371"] || "buc";
+  if (c.startsWith("303")) return CONT_TO_DEFAULT_UM["303"] || "buc";
+  if (c.startsWith("381")) return CONT_TO_DEFAULT_UM["381"] || "buc";
+  if (c.startsWith("345")) return CONT_TO_DEFAULT_UM["345"] || "buc";
+  if (c.startsWith("341")) return CONT_TO_DEFAULT_UM["341"] || "buc";
+
+  const tLower = (typeName || "").trim().toLowerCase();
+  if (tLower.includes("consumabil")) return CONT_TO_DEFAULT_UM["3028"] || "buc";
+  if (tLower.includes("materii prime")) return CONT_TO_DEFAULT_UM["301"] || "l";
+  if (tLower.includes("combustibil")) return CONT_TO_DEFAULT_UM["3022"] || "l";
+
+  return fallback;
+};
+
+export const normalizeUnit = (
+  rawUnit?: string | null,
+  accCode?: string | null,
+  typeName?: string | null
+): string => {
+  const trimmed = (rawUnit || "").trim();
+  const upper = trimmed.toUpperCase();
+  const isGenericXmlCode =
+    !trimmed ||
+    upper === "H87" ||
+    upper === "C62" ||
+    upper === "EA" ||
+    upper === "PCE" ||
+    upper === "NMP" ||
+    upper === "XPP";
+
+  if (isGenericXmlCode) {
+    return getDefaultUnitForAccount(accCode, typeName, "buc");
+  }
+  if (UN_ECE_UNIT_MAP[upper]) {
+    return UN_ECE_UNIT_MAP[upper];
+  }
+  return trimmed;
+};
+
 export default function NIRCreate() {
   const { id, invoiceId } = useParams<{ id?: string; invoiceId?: string }>();
   const nirId = id ? parseInt(id) : null;
@@ -230,13 +377,24 @@ export default function NIRCreate() {
     { id: sourceInvoiceId! },
     { enabled: !!sourceInvoiceId, staleTime: 0 }
   );
+  // Factură cu TAXARE INVERSĂ (UBL "AE") și TVA 0 → liniile NIR nu au voie să primească TVA din articole
+  const sourceReverseCharge =
+    !!sourceInvoice &&
+    /<(?:cbc:)?ID>\s*AE\s*<\/(?:cbc:)?ID>/.test(String((sourceInvoice as any).rawXml || "")) &&
+    Math.abs(parseFloat(String((sourceInvoice as any).totalVAT || "0"))) < 0.0001;
   const { data: archiveLines = [], isFetched: archiveLinesFetched } =
     trpc.invoiceArchive.getLines.useQuery(
       { id: sourceInvoiceId!, excludeNirId: isEdit ? nirId : undefined },
       { enabled: !!sourceInvoiceId, staleTime: 0 }
     );
-  const { data: articles = [], isFetched: articlesFetched } = trpc.saga.articles.list.useQuery();
-  const { data: nextArticleCodeData } = trpc.saga.articles.nextCode.useQuery();
+  const { data: articles = [], isFetched: articlesFetched } = trpc.saga.articles.list.useQuery(undefined, {
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
+  const { data: nextArticleCodeData } = trpc.saga.articles.nextCode.useQuery(undefined, {
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
   const { data: planConturiList = [] } = trpc.saga.planConturi.useQuery();
 
   const utils = trpc.useContext();
@@ -275,21 +433,121 @@ export default function NIRCreate() {
     onError: e => toast.error("Eroare: " + e.message),
   });
 
-  const exportNirMut = trpc.saga.exportNir.useMutation({
-    onSuccess: (data) => {
-      const blob = new Blob([data.xml], { type: "text/xml;charset=windows-1250" });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = data.filename || "FACTURI.XML";
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      toast.success(`Fișierul ${data.filename} a fost descărcat pentru import în SAGA C!`);
-    },
-    onError: (e) => toast.error("Eroare export SAGA: " + e.message),
-  });
+  const { data: currentTenant } = trpc.tenants.current.useQuery();
+  const exportNirMut = trpc.saga.exportNir.useMutation();
+  const simulateNirImportMut = trpc.saga.simulateNirImport.useMutation();
+  const [isSavingPdf, setIsSavingPdf] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [simulatorOpen, setSimulatorOpen] = useState(false);
+  const [simulationData, setSimulationData] = useState<SagaSimulationResult | null>(null);
+
+  const handleOpenSagaSimulator = async () => {
+    setSimulatorOpen(true);
+    setSimulationData(null);
+    try {
+      const payload = buildPayload();
+      const res = await simulateNirImportMut.mutateAsync({
+        draftNir: {
+          id: nirId || undefined,
+          invoiceArchiveId: payload.invoiceArchiveId,
+          nirNumber: payload.nirNumber || nirNumber || "NIR-NOU",
+          receiptDate: payload.receiptDate || receiptDate,
+          invoiceNumber: payload.invoiceNumber,
+          avizNumber: payload.avizNumber,
+          gestiune: payload.gestiune,
+          supplierName: payload.supplierName || "Furnizor",
+          supplierCUI: payload.supplierCUI,
+          supplierAddress: payload.supplierAddress,
+          accountingType: payload.accountingType,
+          accountingAccount: payload.accountingAccount,
+          currency: payload.currency,
+          exchangeRate: payload.exchangeRate,
+          spvIndex: spvIndex || undefined,
+          lines: payload.lines.map((l) => ({
+            description: l.description,
+            unit: l.unit,
+            cantitateReceptionata: l.cantitateReceptionata,
+            unitPrice: l.unitPrice,
+            vatRate: l.vatRate,
+            total: l.total,
+            accountingType: l.accountingType,
+            accountingAccount: l.accountingAccount,
+            sagaArticleId: l.sagaArticleId,
+            articleCode: l.articleCode,
+          })),
+        },
+      });
+      setSimulationData(res as SagaSimulationResult);
+    } catch (e: any) {
+      toast.error("Eroare la simularea importului SAGA: " + (e?.message || e));
+      setSimulatorOpen(false);
+    }
+  };
+
+  const handleSaveSagaXml = async () => {
+    if (!nirId) return;
+    try {
+      const suggestedName = getNirXmlFilename(
+        currentTenant?.cui || (currentTenant as any)?.tenants?.cui,
+        nirNumber,
+        nirId
+      );
+      const savedName = await saveWithFilePicker(
+        {
+          suggestedName,
+          acceptMimeType: "text/xml",
+          description: "Fișier XML SAGA C (.xml)",
+          extensions: [".xml"],
+          pickerId: "nir_saga_xml",
+        },
+        async () => {
+          const data = await exportNirMut.mutateAsync({ nirId });
+          return encodeWindows1250Blob(data.xml);
+        }
+      );
+      if (savedName) {
+        toast.success(
+          `Fișierul ${savedName} a fost salvat cu succes pentru import în SAGA C!`
+        );
+      }
+    } catch (e: any) {
+      toast.error("Eroare export SAGA XML: " + (e?.message || e));
+    }
+  };
+
+  const handleSavePdfNir = async () => {
+    if (!nirId) return;
+    try {
+      setIsSavingPdf(true);
+      const suggestedName = getNirPdfFilename(nirNumber, nirId);
+      const savedName = await saveWithFilePicker(
+        {
+          suggestedName,
+          acceptMimeType: "application/pdf",
+          description: "Document PDF NIR (.pdf)",
+          extensions: [".pdf"],
+          pickerId: "nir_pdf",
+        },
+        async () => {
+          const res = await fetch(
+            `/api/pdf/nir/${nirId}?download=1&showAccounting=${showAccounting}`,
+            { credentials: "include" }
+          );
+          if (!res.ok) {
+            throw new Error(`Eroare la generarea PDF-ului (${res.status})`);
+          }
+          return await res.blob();
+        }
+      );
+      if (savedName) {
+        toast.success(`Documentul ${savedName} a fost salvat cu succes!`);
+      }
+    } catch (e: any) {
+      toast.error("Eroare salvare PDF NIR: " + (e?.message || e));
+    } finally {
+      setIsSavingPdf(false);
+    }
+  };
 
   // Reset when invoice changes
   useEffect(() => {
@@ -320,12 +578,25 @@ export default function NIRCreate() {
   useEffect(() => {
     if (isEdit && existingNir && !loaded && articlesFetched) {
       setNirNumber(existingNir.nirNumber);
-      setReceiptDate(existingNir.receiptDate);
+      const existingInvDate = (existingNir as any).invoiceDate
+        ? String((existingNir as any).invoiceDate).split("T")[0]
+        : "";
+      setReceiptDate(
+        existingInvDate ||
+          (existingNir.receiptDate ? String(existingNir.receiptDate).split("T")[0] : "")
+      );
       setAvizNumber(existingNir.avizNumber || "");
       setGestiune(existingNir.gestiune || "");
-      setAccountingType(existingNir.accountingType || "Marfuri");
-      setAccountingAccount(existingNir.accountingAccount || "371");
-      setGeneralUnit("buc"); // default when loaded, as line units might differ
+      const headerAcc =
+        existingNir.accountingAccount ||
+        existingNir.lines?.[0]?.accountingAccount ||
+        "371";
+      const headerType =
+        existingNir.accountingType ||
+        existingNir.lines?.[0]?.accountingType ||
+        getAccountType(headerAcc);
+      setAccountingType(headerType);
+      setAccountingAccount(headerAcc);
       const existingVat = (existingNir.lines && existingNir.lines[0]?.vatRate)
         ? String(parseFloat(String(existingNir.lines[0].vatRate)))
         : "21";
@@ -347,65 +618,103 @@ export default function NIRCreate() {
       if ((existingNir as any).exchangeRate) setExchangeRate(String((existingNir as any).exchangeRate));
       setStatus((existingNir.status as any) || "draft");
 
-      // Calculate highest numeric code in articles
-      let maxCode = 0;
-      articles.forEach((a: any) => {
-        if (a.code && /^\d+$/.test(a.code.trim())) {
-          const n = parseInt(a.code.trim(), 10);
-          if (n > maxCode) maxCode = n;
+      const candidatePool: CandidateArticle[] = (articles as any[]).map((a: any) => ({
+        id: a.id,
+        code: String(a.code || "").trim(),
+        name: String(a.name || "").trim(),
+        unit: a.unit,
+        accountingAccount: a.accountingAccount,
+        category: a.category,
+        vatRate: a.vatRate,
+        knownPrices: a.knownPrices || [],
+        lastPrice: a.lastPrice ?? null,
+      }));
+      let next088Seq = computeNext088Seq(candidatePool.map((a) => a.code));
+
+      const mappedExistingLines = (existingNir.lines || []).map((l: any) => {
+        let code = String(l.articleCode || "").trim();
+        let artId = l.sagaArticleId;
+        let matchType: NirLineForm["matchType"] = "none";
+        let matchedWords: string[] | undefined = undefined;
+        let matchedSagaName: string | undefined = undefined;
+
+        const lineAcc = l.accountingAccount || headerAcc || "371";
+        const lineType = l.accountingType || getAccountType(lineAcc);
+        const isServiceOrAdvance =
+          String(lineAcc).startsWith("6") ||
+          String(lineAcc).startsWith("7") ||
+          String(lineAcc).startsWith("409") ||
+          lineType === "Servicii" ||
+          lineType === "Avans";
+
+        if (!code && artId) {
+          const a = candidatePool.find((art) => art.id === artId);
+          if (a) {
+            code = a.code || "";
+            matchType = isAppGeneratedArticleCode(code) ? "new_088" : "exact";
+            matchedSagaName = a.name;
+          }
         }
-      });
-      if (nextArticleCodeData && /^\d+$/.test(nextArticleCodeData.trim())) {
-        const n = parseInt(nextArticleCodeData.trim(), 10);
-        if (n - 1 > maxCode) maxCode = n - 1;
-      }
-      let nextAvailableNum = maxCode + 1;
 
-      setLines(
-        (existingNir.lines || []).map((l: any) => {
-          let code = l.articleCode || "";
-          let artId = l.sagaArticleId;
-
-          if (!code && artId) {
-            const a = articles.find((art: any) => art.id === artId);
-            if (a) code = a.code || a.name || "";
-          }
-
-          if (!code && l.description) {
-            const descNorm = normalizeName(l.description);
-            const matched = articles.find((a: any) => {
-              const aNorm = normalizeName(a.name);
-              if (!aNorm) return false;
-              if (aNorm === descNorm) return true;
-              if (aNorm.length >= 6 && descNorm.startsWith(aNorm)) return true;
-              if (descNorm.length >= 6 && aNorm.startsWith(descNorm)) return true;
-              return false;
+        if (!code && !isServiceOrAdvance && l.description) {
+          const smartMatch = findBestArticleMatch(
+            l.description,
+            l.unitPrice,
+            candidatePool
+          );
+          if (smartMatch) {
+            code = smartMatch.article.code;
+            artId = smartMatch.article.id > 0 ? smartMatch.article.id : undefined;
+            matchType = isAppGeneratedArticleCode(code)
+              ? "new_088"
+              : smartMatch.matchType;
+            matchedWords = smartMatch.matchedWords;
+            matchedSagaName = smartMatch.article.name;
+          } else {
+            code = formatAppArticleCode(next088Seq++);
+            artId = undefined;
+            matchType = "new_088";
+            const parsedPrice = parseFloat(String(l.unitPrice || "0"));
+            candidatePool.push({
+              id: -next088Seq,
+              code,
+              name: l.description,
+              unit: l.unit,
+              accountingAccount: lineAcc,
+              category: lineType,
+              vatRate: l.vatRate,
+              knownPrices: !isNaN(parsedPrice) && parsedPrice > 0 ? [parsedPrice] : [],
+              lastPrice: !isNaN(parsedPrice) && parsedPrice > 0 ? parsedPrice : null,
             });
-            if (matched) {
-              code = matched.code || "";
-              artId = matched.id;
-            } else {
-              code = "";
-              artId = undefined;
-            }
           }
+        }
 
-          return {
-            id: l.id,
-            sagaArticleId: artId,
-            articleSearchText: code,
-            description: l.description,
-            unit: l.unit || "buc",
-            cantitateComanda: String(l.cantitateComanda || "0"),
-            cantitateReceptionata: String(l.cantitateReceptionata || "0"),
-            unitPrice: String(l.unitPrice || "0"),
-            vatRate: (l.vatRate !== undefined && l.vatRate !== null && l.vatRate !== "") ? String(parseFloat(String(l.vatRate))) : "21",
-            total: String(l.total || ""),
-            observations: l.observations || "",
-            accountingType: l.accountingType || "Marfuri",
-            accountingAccount: l.accountingAccount || "371",
-          };
-        })
+        const lineUnit = normalizeUnit(l.unit, lineAcc, lineType);
+
+        return {
+          id: l.id,
+          sagaArticleId: artId,
+          articleSearchText: code,
+          matchType,
+          matchedWords,
+          matchedSagaName,
+          description: l.description,
+          unit: lineUnit,
+          cantitateComanda: String(l.cantitateComanda || "0"),
+          cantitateReceptionata: String(l.cantitateReceptionata || "0"),
+          unitPrice: String(l.unitPrice || "0"),
+          vatRate: (l.vatRate !== undefined && l.vatRate !== null && l.vatRate !== "") ? String(parseFloat(String(l.vatRate))) : "21",
+          total: String(l.total || ""),
+          observations: l.observations || "",
+          accountingType: lineType,
+          accountingAccount: lineAcc,
+        };
+      });
+
+      setLines(mappedExistingLines);
+      setGeneralUnit(
+        mappedExistingLines[0]?.unit ||
+          getDefaultUnitForAccount(headerAcc, headerType, "buc")
       );
       setLoaded(true);
     }
@@ -417,6 +726,9 @@ export default function NIRCreate() {
       setSupplierName(sourceInvoice.supplierName || "");
       setSupplierCUI(sourceInvoice.supplierCUI || "");
       setInvoiceNumber(sourceInvoice.invoiceNumber || "");
+      if (sourceInvoice.issueDate) {
+        setReceiptDate(String(sourceInvoice.issueDate).split("T")[0]);
+      }
       if (sourceInvoice.currency && sourceInvoice.currency.trim()) {
         setCurrency(sourceInvoice.currency.trim().toUpperCase());
       }
@@ -439,9 +751,20 @@ export default function NIRCreate() {
             ((sourceInvoice as any)?.notes || "").toLowerCase().includes("storno")
           );
 
-      if (archLns.length > 0) {
-        const assignedByDesc = new Map<string, { code: string; id?: number }>();
+      const candidatePool: CandidateArticle[] = (articles as any[]).map((a: any) => ({
+        id: a.id,
+        code: String(a.code || "").trim(),
+        name: String(a.name || "").trim(),
+        unit: a.unit,
+        accountingAccount: a.accountingAccount,
+        category: a.category,
+        vatRate: a.vatRate,
+        knownPrices: a.knownPrices || [],
+        lastPrice: a.lastPrice ?? null,
+      }));
+      let next088Seq = computeNext088Seq(candidatePool.map((a) => a.code));
 
+      if (archLns.length > 0) {
         const newLines = archLns
           .map((l: any) => {
             let qty = parseFloat(String(l.quantity || "1"));
@@ -457,7 +780,6 @@ export default function NIRCreate() {
               remaining = Math.max(0, qty - received);
             }
             const unitPrice = parseFloat(String(l.unitPrice || "0"));
-            const descNorm = normalizeName(l.description);
 
             const isAvans = (l.description || "").toLowerCase().includes("avans") || qty < 0;
             const isTransport = (l.description || "").toLowerCase().includes("transport");
@@ -482,15 +804,13 @@ export default function NIRCreate() {
               (l.description || "").toLowerCase().includes("energie") ||
               (l.description || "").toLowerCase().includes("curent");
 
-            // 1. Caută în cele existente conform denumirii produsului (exact sau prefix)
-            const matchedArticle = articles.find((a: any) => {
-              const aNorm = normalizeName(a.name);
-              if (!aNorm) return false;
-              if (aNorm === descNorm) return true;
-              if (aNorm.length >= 6 && descNorm.startsWith(aNorm)) return true;
-              if (descNorm.length >= 6 && aNorm.startsWith(descNorm)) return true;
-              return false;
-            });
+            // 1. Căutare inteligentă: denumire exactă SAU minimum 2 cuvinte semnificative + același preț unitar
+            const smartMatch = findBestArticleMatch(
+              l.description || "",
+              unitPrice,
+              candidatePool
+            );
+            const matchedArticle = smartMatch?.article;
 
             let defType = "Marfuri";
             let defAccount = "371";
@@ -517,20 +837,43 @@ export default function NIRCreate() {
               defAccount = "628";
             }
 
+            const isServiceOrAdvance =
+              defAccount.startsWith("6") ||
+              defAccount.startsWith("7") ||
+              defAccount.startsWith("409") ||
+              defType === "Servicii" ||
+              defType === "Avans";
+
             let assignedCode = "";
             let matchedId: number | undefined = undefined;
+            let matchType: NirLineForm["matchType"] = "none";
+            let matchedWords: string[] | undefined = undefined;
+            let matchedSagaName: string | undefined = undefined;
 
-            if (matchedArticle) {
-              matchedId = matchedArticle.id;
+            if (matchedArticle && !isServiceOrAdvance) {
+              matchedId = matchedArticle.id > 0 ? matchedArticle.id : undefined;
               assignedCode = matchedArticle.code || "";
-            } else if (assignedByDesc.has(descNorm)) {
-              const prev = assignedByDesc.get(descNorm)!;
-              assignedCode = prev.code;
-              matchedId = prev.id;
-            } else {
-              // Articol nou: lăsăm gol, astfel încât SAGA să-i aloce codul ei real la import fără coliziuni
-              assignedCode = "";
+              matchType = isAppGeneratedArticleCode(assignedCode)
+                ? "new_088"
+                : smartMatch.matchType;
+              matchedWords = smartMatch.matchedWords;
+              matchedSagaName = matchedArticle.name;
+            } else if (!isServiceOrAdvance) {
+              // Articol nou de stoc: alocăm cod din plaja noastră 088xxxxx (fără suprapunere cu 000xxxxx din SAGA)
+              assignedCode = formatAppArticleCode(next088Seq++);
               matchedId = undefined;
+              matchType = "new_088";
+              candidatePool.push({
+                id: -next088Seq,
+                code: assignedCode,
+                name: l.description || "",
+                unit: l.unit || "buc",
+                accountingAccount: defAccount,
+                category: defType,
+                vatRate: String(l.vatRate || "21"),
+                knownPrices: !isNaN(unitPrice) && unitPrice > 0 ? [unitPrice] : [],
+                lastPrice: !isNaN(unitPrice) && unitPrice > 0 ? unitPrice : null,
+              });
             }
 
             let calcTotal = (remaining * unitPrice).toFixed(2);
@@ -545,17 +888,33 @@ export default function NIRCreate() {
               ? parsedLTotal.toFixed(2)
               : calcTotal;
 
+            const rawLineUnit = matchedArticle
+              ? matchedArticle.unit || l.unit || "buc"
+              : l.unit || "buc";
+            const normalizedLineUnit = normalizeUnit(
+              rawLineUnit,
+              defAccount,
+              defType
+            );
+
             return {
               sagaArticleId: matchedId,
               articleSearchText: assignedCode,
+              matchType,
+              matchedWords,
+              matchedSagaName,
               description: l.description || "",
-              unit: matchedArticle ? (matchedArticle.unit || l.unit || "buc") : (l.unit || "buc"),
+              unit: normalizedLineUnit,
               cantitateComanda: String(remaining),
               cantitateReceptionata: String(remaining),
               unitPrice: String(unitPrice),
-              vatRate: matchedArticle && matchedArticle.vatRate !== null 
-                ? String(matchedArticle.vatRate) 
-                : ((l.vatRate !== undefined && l.vatRate !== null && l.vatRate !== "") ? String(parseFloat(String(l.vatRate))) : "21"),
+              vatRate: sourceReverseCharge
+                ? "0" // taxare inversă (AE): NIR fără TVA, indiferent de articol/linie
+                : (l.vatRate !== undefined && l.vatRate !== null && l.vatRate !== "" && !isNaN(parseFloat(String(l.vatRate))))
+                ? String(parseFloat(String(l.vatRate))) // cota de pe FACTURĂ are prioritate față de cota din nomenclatorul de articole
+                : matchedArticle && matchedArticle.vatRate !== null && matchedArticle.vatRate !== undefined
+                ? String(matchedArticle.vatRate)
+                : "21",
               total: finalTotal,
               observations: "",
               accountingType: defType,
@@ -566,6 +925,15 @@ export default function NIRCreate() {
 
         if (newLines.length > 0) {
           setLines(newLines);
+          if (newLines[0]?.accountingAccount) {
+            setAccountingAccount(newLines[0].accountingAccount);
+          }
+          if (newLines[0]?.accountingType) {
+            setAccountingType(newLines[0].accountingType);
+          }
+          if (newLines[0]?.unit) {
+            setGeneralUnit(newLines[0].unit);
+          }
           const dominantVat = newLines.find(l => l.vatRate && parseFloat(l.vatRate) > 0)?.vatRate || newLines[0]?.vatRate;
           if (dominantVat) {
             setGeneralVat(String(parseFloat(String(dominantVat))));
@@ -578,10 +946,12 @@ export default function NIRCreate() {
         let srcTotal = parseFloat(sourceInvoice.total || "0");
         let srcQty = isSourceCreditNote ? "-1" : "1";
         if (isSourceCreditNote && srcTotal > 0) srcTotal = -srcTotal;
+        const fallbackCode = formatAppArticleCode(next088Seq++);
 
         setLines([
           {
-            articleSearchText: "",
+            articleSearchText: fallbackCode,
+            matchType: "new_088",
             description: `Marfă conform factură ${sourceInvoice.invoiceNumber || ""}`,
             unit: "buc",
             cantitateComanda: srcQty,
@@ -600,22 +970,34 @@ export default function NIRCreate() {
   }, [sourceInvoice, archiveLines, archiveLinesFetched, isEdit, loaded, articles, articlesFetched, nextArticleCodeData]);
 
   const addLine = () => {
-    setLines(prev => [
-      ...prev,
-      {
-        description: "",
-        articleSearchText: "",
-        unit: generalUnit || "buc",
-        cantitateComanda: "1",
-        cantitateReceptionata: "1",
-        unitPrice: "0",
-        vatRate: generalVat || "21",
-        total: "0",
-        observations: "",
-        accountingType: accountingType || "Marfuri",
-        accountingAccount: accountingAccount || "371",
-      },
-    ]);
+    setLines(prev => {
+      const next088 = computeNext088Seq([
+        ...(articles as any[]).map((a: any) => a.code),
+        ...prev.map((l) => l.articleSearchText),
+        ...(nextArticleCodeData ? [nextArticleCodeData] : []),
+      ]);
+      const acc = accountingAccount || "371";
+      const isSrv = acc.startsWith("6") || acc.startsWith("7") || acc.startsWith("409");
+      return [
+        ...prev,
+        {
+          description: "",
+          articleSearchText: isSrv ? "" : formatAppArticleCode(next088),
+          matchType: isSrv ? "none" : "new_088",
+          unit:
+            generalUnit ||
+            getDefaultUnitForAccount(accountingAccount, accountingType, "buc"),
+          cantitateComanda: "1",
+          cantitateReceptionata: "1",
+          unitPrice: "0",
+          vatRate: generalVat || "21",
+          total: "0",
+          observations: "",
+          accountingType: accountingType || "Marfuri",
+          accountingAccount: acc,
+        },
+      ];
+    });
   };
 
   const removeLine = (idx: number) =>
@@ -634,6 +1016,16 @@ export default function NIRCreate() {
           const t = getAccountType(fieldOrPatch.accountingAccount);
           if (t) updated[idx].accountingType = t;
         }
+        if (
+          (fieldOrPatch.accountingAccount || fieldOrPatch.accountingType) &&
+          !("unit" in fieldOrPatch)
+        ) {
+          updated[idx].unit = getDefaultUnitForAccount(
+            updated[idx].accountingAccount,
+            updated[idx].accountingType,
+            normalizeUnit(updated[idx].unit)
+          );
+        }
       } else {
         const field = fieldOrPatch as keyof NirLineForm;
         updated[idx] = { ...updated[idx], [field]: value };
@@ -641,10 +1033,20 @@ export default function NIRCreate() {
           if (TIP_TO_CONT[value]) {
             updated[idx].accountingAccount = TIP_TO_CONT[value];
           }
+          updated[idx].unit = getDefaultUnitForAccount(
+            updated[idx].accountingAccount,
+            value,
+            normalizeUnit(updated[idx].unit)
+          );
         }
         if (field === "accountingAccount" && value) {
           const t = getAccountType(value);
           if (t) updated[idx].accountingType = t;
+          updated[idx].unit = getDefaultUnitForAccount(
+            value,
+            updated[idx].accountingType,
+            normalizeUnit(updated[idx].unit)
+          );
         }
       }
 
@@ -671,37 +1073,74 @@ export default function NIRCreate() {
         }
       }
       
-      // Auto-link article if description matches perfectly
-      if (fieldOrPatch === "description") {
-        const descNorm = normalizeName(value);
-        const matched = articles.find((a: any) => {
-          const aNorm = normalizeName(a.name);
-          if (!aNorm) return false;
-          if (aNorm === descNorm) return true;
-          if (aNorm.length >= 6 && descNorm.startsWith(aNorm)) return true;
-          return false;
-        });
-        if (matched) {
-          updated[idx].sagaArticleId = matched.id;
+      // Auto-link article if description or unitPrice matches (exact or >= 2 words + same price)
+      if (fieldOrPatch === "description" || fieldOrPatch === "unitPrice") {
+        const descText = String(updated[idx].description || "");
+        const priceVal = updated[idx].unitPrice;
+        const candidatePool: CandidateArticle[] = (articles as any[]).map((a: any) => ({
+          id: a.id,
+          code: String(a.code || "").trim(),
+          name: String(a.name || "").trim(),
+          unit: a.unit,
+          accountingAccount: a.accountingAccount,
+          category: a.category,
+          vatRate: a.vatRate,
+          knownPrices: a.knownPrices || [],
+          lastPrice: a.lastPrice ?? null,
+        }));
+        const smartMatch = findBestArticleMatch(descText, priceVal, candidatePool);
+        if (smartMatch) {
+          const matched = smartMatch.article;
+          updated[idx].sagaArticleId = matched.id > 0 ? matched.id : undefined;
           updated[idx].articleSearchText = matched.code || matched.name;
-          updated[idx].unit = matched.unit || updated[idx].unit;
-          if (matched.vatRate !== null && matched.vatRate !== undefined) updated[idx].vatRate = String(matched.vatRate);
+          updated[idx].matchType = isAppGeneratedArticleCode(matched.code)
+            ? "new_088"
+            : smartMatch.matchType;
+          updated[idx].matchedWords = smartMatch.matchedWords;
+          updated[idx].matchedSagaName = matched.name;
           updated[idx].accountingType = matched.category || updated[idx].accountingType;
           updated[idx].accountingAccount = matched.accountingAccount || updated[idx].accountingAccount;
-        } else {
-          const lower = String(value || "").toLowerCase();
+          updated[idx].unit = normalizeUnit(
+            matched.unit || updated[idx].unit,
+            updated[idx].accountingAccount,
+            updated[idx].accountingType
+          );
+          if (matched.vatRate !== null && matched.vatRate !== undefined && !sourceReverseCharge) {
+            updated[idx].vatRate = String(matched.vatRate);
+          }
+        } else if (fieldOrPatch === "description") {
+          const lower = descText.toLowerCase();
           if (lower.includes("avans")) {
             updated[idx].accountingType = "Avans";
             updated[idx].accountingAccount = "4091";
+            updated[idx].articleSearchText = "";
+            updated[idx].matchType = "none";
           } else if (lower.includes("transport")) {
             updated[idx].accountingType = "Transport";
             updated[idx].accountingAccount = "624";
+            updated[idx].articleSearchText = "";
+            updated[idx].matchType = "none";
           } else if (lower.includes("protocol") || lower.includes("cafea")) {
             updated[idx].accountingType = "Protocol";
             updated[idx].accountingAccount = "6231";
+            updated[idx].articleSearchText = "";
+            updated[idx].matchType = "none";
           } else if (lower.includes("servici")) {
             updated[idx].accountingType = "Servicii";
             updated[idx].accountingAccount = "628";
+            updated[idx].articleSearchText = "";
+            updated[idx].matchType = "none";
+          } else if (!updated[idx].articleSearchText || updated[idx].sagaArticleId) {
+            const next088 = computeNext088Seq([
+              ...(articles as any[]).map((a: any) => a.code),
+              ...updated.map((l, i) => (i === idx ? "" : l.articleSearchText)),
+              ...(nextArticleCodeData ? [nextArticleCodeData] : []),
+            ]);
+            updated[idx].sagaArticleId = undefined;
+            updated[idx].articleSearchText = formatAppArticleCode(next088);
+            updated[idx].matchType = "new_088";
+            updated[idx].matchedWords = undefined;
+            updated[idx].matchedSagaName = undefined;
           }
         }
       }
@@ -720,10 +1159,14 @@ export default function NIRCreate() {
         if (matched) {
           updated[idx].sagaArticleId = matched.id;
           updated[idx].articleSearchText = matched.code || matched.name;
-          updated[idx].unit = matched.unit || updated[idx].unit;
-          if (matched.vatRate !== null && matched.vatRate !== undefined) updated[idx].vatRate = String(matched.vatRate);
           updated[idx].accountingType = matched.category || updated[idx].accountingType;
           updated[idx].accountingAccount = matched.accountingAccount || updated[idx].accountingAccount;
+          updated[idx].unit = normalizeUnit(
+            matched.unit || updated[idx].unit,
+            updated[idx].accountingAccount,
+            updated[idx].accountingType
+          );
+          if (matched.vatRate !== null && matched.vatRate !== undefined && !sourceReverseCharge) updated[idx].vatRate = String(matched.vatRate);
         } else {
           updated[idx].sagaArticleId = undefined;
           updated[idx].articleSearchText = value;
@@ -869,13 +1312,36 @@ export default function NIRCreate() {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setPreviewOpen(true)}
+            title="Vezi documentul NIR direct în aplicație, fără descărcare"
+            className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-xs font-bold border border-indigo-200 dark:border-indigo-800 transition-colors"
+          >
+            <Eye className="w-3.5 h-3.5" />
+            Previzualizare
+          </button>
+          <button
+            type="button"
+            onClick={handleOpenSagaSimulator}
+            disabled={simulateNirImportMut.isPending}
+            title="Simulează și verifică cum va apărea acest NIR la importul în SAGA C (Intrări)"
+            className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/40 dark:hover:bg-sky-950/60 text-sky-800 dark:text-sky-300 text-xs font-bold border border-sky-200 dark:border-sky-800 transition-colors disabled:opacity-50"
+          >
+            {simulateNirImportMut.isPending ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="w-3.5 h-3.5 text-sky-600" />
+            )}
+            Simulează SAGA
+          </button>
           {isEdit && (
             <>
               <button
                 type="button"
-                onClick={() => exportNirMut.mutate({ nirId })}
+                onClick={handleSaveSagaXml}
                 disabled={exportNirMut.isPending}
-                title="Descarcă fișier XML pentru SAGA C (FACTURI.XML)"
+                title="Salvează fișier XML pentru SAGA C (alege calea de salvare)"
                 style={{
                   backgroundColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 10%, transparent)",
                   borderColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 25%, transparent)",
@@ -890,16 +1356,20 @@ export default function NIRCreate() {
                 )}
                 SAGA XML
               </button>
-              <a
-                href={`/api/pdf/nir/${nirId}?download=1&showAccounting=${showAccounting}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Descarcă PDF NIR"
-                className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-200 transition-colors"
+              <button
+                type="button"
+                onClick={handleSavePdfNir}
+                disabled={isSavingPdf}
+                title="Salvează PDF NIR (alege calea de salvare)"
+                className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold border border-slate-200 dark:border-slate-700 transition-colors disabled:opacity-50"
               >
-                <FileDown className="w-3.5 h-3.5" />
+                {isSavingPdf ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <FileDown className="w-3.5 h-3.5" />
+                )}
                 PDF NIR
-              </a>
+              </button>
             </>
           )}
           {status !== "finalizat" && isEdit && (
@@ -1022,7 +1492,20 @@ export default function NIRCreate() {
                   setAccountingAccount(cont);
                   const t = denumire || getAccountType(cont);
                   setAccountingType(t);
-                  setLines(prev => prev.map(l => ({ ...l, accountingType: t, accountingAccount: cont })));
+                  const defaultUm = getDefaultUnitForAccount(
+                    cont,
+                    t,
+                    generalUnit || "buc"
+                  );
+                  setGeneralUnit(defaultUm);
+                  setLines(prev =>
+                    prev.map(l => ({
+                      ...l,
+                      accountingType: t,
+                      accountingAccount: cont,
+                      unit: defaultUm,
+                    }))
+                  );
                 }}
                 placeholder="Tip (ex: Mărfuri)"
               />
@@ -1032,26 +1515,36 @@ export default function NIRCreate() {
             <label className={LABEL_CLS}>U/M (General)</label>
             <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
               <select
-                value={generalUnit}
+                value={
+                  lines.length > 0 && !lines.every(l => l.unit === generalUnit)
+                    ? ""
+                    : generalUnit
+                }
                 onChange={e => {
                   const u = e.target.value;
+                  if (!u) return;
                   setGeneralUnit(u);
                   setLines(prev => prev.map(l => ({ ...l, unit: u })));
                 }}
                 style={SELECT_STYLE}
                 className="w-full h-8 px-2.5 pr-7 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none border-none"
               >
+                <option value="" disabled>
+                  — Mixt (alege) —
+                </option>
                 <option value="buc">buc</option>
                 <option value="kg">kg</option>
                 <option value="l">l</option>
                 <option value="m">m</option>
                 <option value="mp">mp</option>
+                <option value="mc">mc</option>
                 <option value="set">set</option>
                 <option value="cutie">cutie</option>
                 <option value="rolă">rolă</option>
                 <option value="oră">oră</option>
                 <option value="pachet">pachet</option>
-                <option value="EA">EA</option>
+                <option value="per">per</option>
+                <option value="sac">sac</option>
               </select>
             </div>
           </div>
@@ -1197,18 +1690,56 @@ export default function NIRCreate() {
                             value={line.articleSearchText ?? ""}
                             articles={articles}
                             onChange={(code, art) => {
-                              const patch: Partial<NirLineForm> = { articleSearchText: code };
+                              const patch: Partial<NirLineForm> = {
+                                articleSearchText: code,
+                                matchType: isAppGeneratedArticleCode(code)
+                                  ? "new_088"
+                                  : art
+                                  ? "exact"
+                                  : "none",
+                                matchedWords: undefined,
+                                matchedSagaName: art?.name,
+                              };
                               if (art) {
                                 if (art.id) patch.sagaArticleId = art.id;
-                                if (art.unit) patch.unit = art.unit;
-                                if (art.vatRate !== null && art.vatRate !== undefined) patch.vatRate = String(art.vatRate);
+                                if (art.vatRate !== null && art.vatRate !== undefined && !sourceReverseCharge) patch.vatRate = String(art.vatRate);
                                 if (art.category) patch.accountingType = art.category;
                                 if (art.accountingAccount) patch.accountingAccount = art.accountingAccount;
+                                patch.unit = normalizeUnit(
+                                  art.unit || line.unit,
+                                  art.accountingAccount || line.accountingAccount,
+                                  art.category || line.accountingType
+                                );
                               }
                               updateLine(idx, patch);
                             }}
                             placeholder="Articol SAGA (lasă gol pt nou)"
                           />
+                          {line.matchType === "words_and_price" ? (
+                            <div
+                              className="mt-0.5 text-[10px] text-indigo-700 dark:text-indigo-300 flex items-center gap-1 truncate max-w-[210px]"
+                              title={`Asociat inteligent cu "${line.matchedSagaName || ""}" pe baza cuvintelor (${(line.matchedWords || []).join(", ")}) și a prețului identic`}
+                            >
+                              <Sparkles className="w-2.5 h-2.5 shrink-0 text-indigo-600" />
+                              <span className="truncate">
+                                Asociat (2+ cuv &amp; preț): <strong>{line.matchedSagaName}</strong>
+                              </span>
+                            </div>
+                          ) : isAppGeneratedArticleCode(line.articleSearchText) ? (
+                            <div
+                              className="mt-0.5 text-[10px] text-violet-700 dark:text-violet-300 font-medium truncate"
+                              title="Cod 088xxxxx generat automat de aplicație pentru articol nou (nu se suprapune cu SAGA 000xxxxx)"
+                            >
+                              Cod nou aplicație ({line.articleSearchText})
+                            </div>
+                          ) : line.articleSearchText && /^000\d+$/.test(line.articleSearchText.trim()) ? (
+                            <div
+                              className="mt-0.5 text-[10px] text-sky-700 dark:text-sky-300 font-medium truncate"
+                              title={line.matchedSagaName || "Articol existent în SAGA C"}
+                            >
+                              Articol SAGA ({line.articleSearchText})
+                            </div>
+                          ) : null}
                         </div>
                       </td>
                       {showAccounting && (
@@ -1525,6 +2056,20 @@ export default function NIRCreate() {
           </button>
         </div>
       </div>
+      <NirPreviewDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        getPayload={() => ({ ...buildPayload(), spvIndex, status })}
+        showAccounting={showAccounting}
+        nirNumber={nirNumber}
+        nirId={nirId}
+      />
+      <SagaImportSimulatorModal
+        open={simulatorOpen}
+        onOpenChange={setSimulatorOpen}
+        loading={simulateNirImportMut.isPending}
+        data={simulationData}
+      />
     </div>
   );
 }

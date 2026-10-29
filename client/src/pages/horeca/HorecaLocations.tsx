@@ -2,6 +2,7 @@
 // Proper Light/Dark mode styling (Premium UI)
 
 import { useState, useMemo } from "react";
+import { usePersistentRowsPerPage } from "@/hooks/usePersistentRowsPerPage";
 import {
   MapPin,
   Plus,
@@ -78,7 +79,7 @@ export default function HorecaLocations() {
 
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = usePersistentRowsPerPage("horeca_locations", 10);
 
   const utils = trpc.useUtils();
   const { data: localLocations = [], isLoading } =

@@ -917,6 +917,9 @@ export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
               });
             }
 
+            // Idempotent: createInvoiceArchiveEntry a inserat deja liniile din XML; înlocuim cu setul complet
+            // (inclusiv rabaturi/taxe suplimentare) ca să nu rămână linii DUBLATE care ar dubla valoarea NIR/SAGA.
+            await db!.delete(invoiceArchiveLines).where(eq(invoiceArchiveLines.invoiceArchiveId, archiveId));
             await db!.insert(invoiceArchiveLines).values(linesToInsert);
             console.log(
               `[SPV Cron] Saved ${linesToInsert.length} lines for invoice ${invoiceNumber}`

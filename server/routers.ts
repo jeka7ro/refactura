@@ -4762,7 +4762,7 @@ export const appRouter = router({
         ? await db
             .select({ id: sagaArticles.id, code: sagaArticles.code, name: sagaArticles.name })
             .from(sagaArticles)
-            .where(inArray(sagaArticles.id, artIds))
+            .where(and(eq(sagaArticles.tenantId, tenantId), inArray(sagaArticles.id, artIds)))
         : [];
       const artMap = new Map(articles.map(a => [a.id, a]));
 
@@ -4832,7 +4832,8 @@ export const appRouter = router({
           (n.invoiceNumber ? invoiceNumDataMap.get(n.invoiceNumber) : null) ||
           null;
 
-        const invoiceDate = linkedInv?.issueDate || null;
+        const invoiceDate = linkedInv?.issueDate ? String(linkedInv.issueDate).split("T")[0] : null;
+        const effectiveReceiptDate = invoiceDate || (n.receiptDate ? String(n.receiptDate).split("T")[0] : n.receiptDate);
 
         let totalNet = stats.totalNet;
         let totalVat = stats.totalVat;
@@ -4871,6 +4872,7 @@ export const appRouter = router({
 
         return {
           ...n,
+          receiptDate: effectiveReceiptDate,
           invoiceDate,
           linesCount: stats.linesCount,
           totalNet,
@@ -4943,9 +4945,11 @@ export const appRouter = router({
           if (m) spvIndex = m[1];
         }
 
+        const invDateClean = inv?.issueDate ? String(inv.issueDate).split("T")[0] : null;
         return {
           ...n,
-          invoiceDate: inv?.issueDate || null,
+          receiptDate: invDateClean || n.receiptDate,
+          invoiceDate: invDateClean,
           spvIndex,
           lines: linesByNirId[n.id] || []
         };
@@ -5026,10 +5030,20 @@ export const appRouter = router({
             articleCode: sagaArticles.code,
           })
           .from(nirLines)
-          .leftJoin(sagaArticles, eq(nirLines.sagaArticleId, sagaArticles.id))
+          .leftJoin(
+            sagaArticles,
+            and(eq(nirLines.sagaArticleId, sagaArticles.id), eq(sagaArticles.tenantId, tenantId))
+          )
           .where(eq(nirLines.nirId, input.id))
           .orderBy(nirLines.lineOrder);
-        return { ...nirRow, invoiceDate, spvIndex, lines };
+        const cleanInvoiceDate = invoiceDate ? String(invoiceDate).split("T")[0] : null;
+        return {
+          ...nirRow,
+          receiptDate: cleanInvoiceDate || nirRow.receiptDate,
+          invoiceDate: cleanInvoiceDate,
+          spvIndex,
+          lines,
+        };
       }),
 
     getNextNumber: protectedProcedure.query(async ({ ctx }) => {
@@ -5146,40 +5160,33 @@ export const appRouter = router({
           }
         }
 
-        // Auto-assign or create articles in sagaArticles if articleCode is given
+        // Auto-assign or create articles in sagaArticles (smart match or 088xxxxx for new stock items)
+        const { loadEnrichedSagaArticles, resolveOrCreateArticleForLine, normalizeSagaUm } = await import("./sagaXmlGenerator");
+        const articleState = await loadEnrichedSagaArticles(db, tenantId);
         for (const l of input.lines) {
+          l.unit = normalizeSagaUm(l.unit);
           const acc = String(l.accountingAccount || input.accountingAccount || "371").trim();
-
-          if (!l.sagaArticleId && (l as any).articleCode) {
-            const cleanCode = String((l as any).articleCode).trim();
-            if (cleanCode) {
-              const [existingArt] = await db
-                .select({ id: sagaArticles.id })
-                .from(sagaArticles)
-                .where(
-                  and(
-                    eq(sagaArticles.tenantId, tenantId),
-                    eq(sagaArticles.code, cleanCode)
-                  )
-                )
-                .limit(1);
-              if (existingArt) {
-                l.sagaArticleId = existingArt.id;
-              } else {
-                const [ins] = await db.insert(sagaArticles).values({
-                  tenantId,
-                  code: cleanCode,
-                  name: l.description || `Articol ${cleanCode}`,
-                  unit: l.unit || "buc",
-                  vatRate: String(l.vatRate || "21"),
-                  category: l.accountingType || "Marfuri",
-                  accountingAccount: l.accountingAccount || "371",
-                  sagaCode: cleanCode,
-                  isActive: 1,
-                });
-                l.sagaArticleId = (ins as any).insertId;
-              }
-            }
+          const resolved = await resolveOrCreateArticleForLine(
+            db,
+            tenantId,
+            {
+              description: l.description,
+              unit: l.unit,
+              unitPrice: l.unitPrice,
+              vatRate: l.vatRate,
+              accountingType: l.accountingType || input.accountingType,
+              accountingAccount: acc,
+              sagaArticleId: l.sagaArticleId,
+              articleCode: (l as any).articleCode,
+            },
+            articleState,
+            { persistToDb: true }
+          );
+          if (resolved.sagaArticleId) {
+            l.sagaArticleId = resolved.sagaArticleId;
+          }
+          if (resolved.articleCode) {
+            (l as any).articleCode = resolved.articleCode;
           }
         }
 
@@ -5215,8 +5222,8 @@ export const appRouter = router({
             if (inv.currency && inv.currency.trim()) {
               invoiceCurrency = inv.currency.trim().toUpperCase();
             }
-            if (inv.issueDate) invoiceDocDate = inv.issueDate;
-            if (inv.dueDate) invoiceDueDate = inv.dueDate;
+            if (inv.issueDate) invoiceDocDate = String(inv.issueDate).split("T")[0];
+            if (inv.dueDate) invoiceDueDate = String(inv.dueDate).split("T")[0];
             if (inv.spvIndex) {
               spvIndexToSave = inv.spvIndex;
             } else if (inv.notes) {
@@ -5228,6 +5235,17 @@ export const appRouter = router({
               if (m) spvIndexToSave = m[1];
             }
           }
+        } else if (input.invoiceNumber) {
+          const { invoiceArchive } = await import("../drizzle/schema");
+          const [inv] = await db
+            .select()
+            .from(invoiceArchive)
+            .where(and(eq(invoiceArchive.invoiceNumber, input.invoiceNumber), eq(invoiceArchive.tenantId, tenantId)))
+            .limit(1);
+          if (inv) {
+            if (inv.issueDate) invoiceDocDate = String(inv.issueDate).split("T")[0];
+            if (inv.dueDate) invoiceDueDate = String(inv.dueDate).split("T")[0];
+          }
         }
 
         if (input.currency && input.currency.trim()) {
@@ -5235,6 +5253,14 @@ export const appRouter = router({
         }
         if (input.exchangeRate && parseFloat(input.exchangeRate) > 0) {
           exchangeRate = parseFloat(input.exchangeRate);
+        }
+
+        // Factură cu TAXARE INVERSĂ (AE, TVA 0): NIR-ul nu are voie să calculeze TVA
+        {
+          const { isReverseChargeArchiveId } = await import("./nirVat");
+          if (await isReverseChargeArchiveId(db, tenantId, input.invoiceArchiveId)) {
+            input.lines = input.lines.map(l => ({ ...l, vatRate: "0" }));
+          }
         }
 
         const isForeignCurrency = invoiceCurrency !== "RON" && invoiceCurrency !== "LEI";
@@ -5266,7 +5292,7 @@ export const appRouter = router({
               supplierCUI: input.supplierCUI,
               supplierAddress: input.supplierAddress,
               gestiune: input.gestiune,
-              receiptDate: input.receiptDate,
+              receiptDate: invoiceDocDate || input.receiptDate,
               currency: invoiceCurrency,
               exchangeRate: exchangeRate.toFixed(4),
               member1Name: input.member1Name,
@@ -5388,7 +5414,7 @@ export const appRouter = router({
           // Preload articles to get codes
           const articleIds = input.lines.map(l => l.sagaArticleId).filter(Boolean) as number[];
           const loadedArticles = articleIds.length > 0 
-            ? await db.select().from(sagaArticles).where(inArray(sagaArticles.id, articleIds))
+            ? await db.select().from(sagaArticles).where(and(eq(sagaArticles.tenantId, tenantId), inArray(sagaArticles.id, articleIds)))
             : [];
 
           await db.insert(sagaIntrariLinii).values(
@@ -5477,45 +5503,43 @@ export const appRouter = router({
 
         // Securitate: NIR-ul trebuie să aparțină tenant-ului curent
         const [ownNir] = await db
-          .select({ id: nir.id })
+          .select({ id: nir.id, invoiceArchiveId: nir.invoiceArchiveId })
           .from(nir)
           .where(and(eq(nir.id, id), eq(nir.tenantId, tenantId)));
         if (!ownNir) throw new Error("NIR inexistent sau fără acces");
 
         if (lines) {
+          // Factură cu TAXARE INVERSĂ (AE, TVA 0): NIR-ul nu are voie să calculeze TVA
+          const { isReverseChargeArchiveId } = await import("./nirVat");
+          if (await isReverseChargeArchiveId(db, tenantId, ownNir.invoiceArchiveId)) {
+            for (const l of lines) l.vatRate = "0";
+          }
+          const { loadEnrichedSagaArticles, resolveOrCreateArticleForLine, normalizeSagaUm } = await import("./sagaXmlGenerator");
+          const articleState = await loadEnrichedSagaArticles(db, tenantId);
           for (const l of lines) {
-            const acc = String(l.accountingAccount || "371").trim();
-
-            if (!l.sagaArticleId && (l as any).articleCode) {
-              const cleanCode = String((l as any).articleCode).trim();
-              if (cleanCode) {
-                const [existingArt] = await db
-                  .select({ id: sagaArticles.id })
-                  .from(sagaArticles)
-                  .where(
-                    and(
-                      eq(sagaArticles.tenantId, tenantId),
-                      eq(sagaArticles.code, cleanCode)
-                    )
-                  )
-                  .limit(1);
-                if (existingArt) {
-                  l.sagaArticleId = existingArt.id;
-                } else {
-                  const [ins] = await db.insert(sagaArticles).values({
-                    tenantId,
-                    code: cleanCode,
-                    name: l.description || `Articol ${cleanCode}`,
-                    unit: l.unit || "buc",
-                    vatRate: String(l.vatRate || "21"),
-                    category: l.accountingType || "Marfuri",
-                    accountingAccount: l.accountingAccount || "371",
-                    sagaCode: cleanCode,
-                    isActive: 1,
-                  });
-                  l.sagaArticleId = (ins as any).insertId;
-                }
-              }
+            l.unit = normalizeSagaUm(l.unit);
+            const acc = String(l.accountingAccount || updateData.accountingAccount || "371").trim();
+            const resolved = await resolveOrCreateArticleForLine(
+              db,
+              tenantId,
+              {
+                description: l.description,
+                unit: l.unit,
+                unitPrice: l.unitPrice,
+                vatRate: l.vatRate,
+                accountingType: l.accountingType || updateData.accountingType,
+                accountingAccount: acc,
+                sagaArticleId: l.sagaArticleId,
+                articleCode: (l as any).articleCode,
+              },
+              articleState,
+              { persistToDb: true }
+            );
+            if (resolved.sagaArticleId) {
+              l.sagaArticleId = resolved.sagaArticleId;
+            }
+            if (resolved.articleCode) {
+              (l as any).articleCode = resolved.articleCode;
             }
           }
         }
@@ -5624,7 +5648,7 @@ export const appRouter = router({
             if (lines.length > 0) {
               const articleIds = lines.map(l => l.sagaArticleId).filter(Boolean) as number[];
               const loadedArticles = articleIds.length > 0 
-                ? await db.select().from(sagaArticles).where(inArray(sagaArticles.id, articleIds))
+                ? await db.select().from(sagaArticles).where(and(eq(sagaArticles.tenantId, tenantId), inArray(sagaArticles.id, articleIds)))
                 : [];
                 
               await db.insert(sagaIntrariLinii).values(

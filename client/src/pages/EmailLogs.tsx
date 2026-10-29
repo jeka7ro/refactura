@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { usePersistentRowsPerPage } from "@/hooks/usePersistentRowsPerPage";
 import { trpc } from "@/lib/trpc";
 import { Link } from "wouter";
 import {
@@ -41,7 +42,7 @@ export default function EmailLogs() {
 
   // Pagination (SmartDevize Table Rules)
   const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(15);
+  const [rowsPerPage, setRowsPerPage] = usePersistentRowsPerPage("email_logs", 15);
 
   // Preview modal state
   const [previewLogId, setPreviewLogId] = useState<number | null>(null);
@@ -484,6 +485,7 @@ export default function EmailLogs() {
                   <option value={15}>15</option>
                   <option value={25}>25</option>
                   <option value={50}>50</option>
+                  <option value={100}>100</option>
                   <option value={9999}>Toți</option>
                 </select>
                 &nbsp;rânduri

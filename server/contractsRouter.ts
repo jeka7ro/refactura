@@ -248,6 +248,8 @@ export const contractsRouter = router({
     .input(
       z.object({
         partnerId: z.number().optional().nullable(),
+        partnerName: z.string().optional().nullable(),
+        partnerCui: z.string().optional().nullable(),
         parentContractId: z.number().optional().nullable(),
         type: z.string().default("contract"),
         title: z.string().min(1, "Titlul este obligatoriu"),
@@ -277,9 +279,51 @@ export const contractsRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Baza de date indisponibilă");
 
+      let resolvedPartnerId = input.partnerId || null;
+      if (!resolvedPartnerId && (input.partnerName || input.partnerCui)) {
+        const allPartners = await db
+          .select({ id: clients.id, name: clients.name, cui: clients.cui })
+          .from(clients)
+          .where(eq(clients.tenantId, tenantId));
+
+        const cleanCui = (v: any) =>
+          String(v || "")
+            .toUpperCase()
+            .replace(/\s+/g, "")
+            .replace(/^RO/i, "")
+            .trim();
+
+        if (input.partnerCui) {
+          const m = allPartners.find((p) => cleanCui(p.cui) && cleanCui(p.cui) === cleanCui(input.partnerCui));
+          if (m) resolvedPartnerId = m.id;
+        }
+        if (!resolvedPartnerId && input.partnerName) {
+          const searchNorm = input.partnerName.toLowerCase().trim();
+          const m = allPartners.find(
+            (p) =>
+              p.name.toLowerCase().includes(searchNorm) || searchNorm.includes(p.name.toLowerCase())
+          );
+          if (m) resolvedPartnerId = m.id;
+        }
+        if (!resolvedPartnerId && input.partnerName) {
+          const [ins] = await db.insert(clients).values({
+            tenantId,
+            name: input.partnerName.trim(),
+            cui: input.partnerCui || null,
+            country: input.partnerCui && /^[A-Z]{2}/i.test(input.partnerCui) && !/^RO/i.test(input.partnerCui)
+              ? input.partnerCui.slice(0, 2).toUpperCase()
+              : "RO",
+            currency: input.currency || "EUR",
+            isSupplier: 0,
+            isActive: 1,
+          });
+          resolvedPartnerId = (ins as any).insertId || null;
+        }
+      }
+
       const [result] = await db.insert(contracts).values({
         tenantId,
-        partnerId: input.partnerId || null,
+        partnerId: resolvedPartnerId,
         parentContractId: input.parentContractId || null,
         type: input.type,
         title: input.title,
@@ -548,6 +592,9 @@ export const contractsRouter = router({
             partnerName: z.string().optional().nullable(),
             number: z.string().optional().nullable(),
             date: z.string().optional().nullable(),
+            value: z.string().optional().nullable(),
+            currency: z.string().optional().nullable(),
+            contentHtml: z.string().optional().nullable(),
             title: z.string().optional().nullable(),
             type: z.string().default("contract"),
             notes: z.string().optional().nullable(),
@@ -601,16 +648,40 @@ export const contractsRouter = router({
           if (match) assignedPartnerId = match.id;
         }
 
+        // Daca avem nume partener extras din PDF/Word dar nu exista inca in clienti, il cream automat
+        if (!assignedPartnerId && f.partnerName) {
+          const [ins] = await db.insert(clients).values({
+            tenantId,
+            name: f.partnerName.trim(),
+            cui: f.cui || null,
+            country: f.cui && /^[A-Z]{2}/i.test(f.cui) && !/^RO/i.test(f.cui)
+              ? f.cui.slice(0, 2).toUpperCase()
+              : "RO",
+            currency: f.currency || "EUR",
+            isSupplier: 0,
+            isActive: 1,
+          });
+          const createdPartnerId = (ins as any).insertId || null;
+          if (createdPartnerId) {
+            assignedPartnerId = createdPartnerId;
+            allPartners.push({ id: createdPartnerId, name: f.partnerName.trim(), cui: f.cui || null });
+            if (f.cui) partnerByCui.set(cleanCui(f.cui), createdPartnerId);
+          }
+        }
+
         const fallbackNum =
           f.number ||
-          f.fileName.replace(/\.pdf$/i, "").replace(/[^a-zA-Z0-9_-]/g, " ").trim().split(" ")[0] ||
+          f.fileName.replace(/\.(pdf|docx|doc)$/i, "").replace(/[^a-zA-Z0-9_-]/g, " ").trim().split(" ")[0] ||
           `CTR-${Date.now().toString().slice(-6)}`;
+
+        const resolvedPartnerName =
+          allPartners.find(p => p.id === assignedPartnerId)?.name || f.partnerName || "";
 
         const docTitle =
           f.title ||
-          (assignedPartnerId
-            ? `Contract ${allPartners.find(p => p.id === assignedPartnerId)?.name || ""}`
-            : `Contract ${f.fileName}`);
+          (resolvedPartnerName
+            ? `Contract Nr. ${fallbackNum} — ${resolvedPartnerName}`
+            : `Contract ${f.fileName.replace(/\.(pdf|docx|doc)$/i, "")}`);
 
         const todayStr = new Date().toISOString().split("T")[0];
 
@@ -621,6 +692,10 @@ export const contractsRouter = router({
           title: docTitle,
           number: fallbackNum,
           date: f.date || todayStr,
+          validFrom: f.date || todayStr,
+          value: f.value || "0.00",
+          currency: f.currency || "EUR",
+          contentHtml: f.contentHtml || null,
           status: "activ",
           fileUrl: f.fileUrl,
           fileName: f.fileName,

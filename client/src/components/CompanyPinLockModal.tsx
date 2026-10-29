@@ -44,6 +44,7 @@ interface DayForecast {
   condition: string;
   tempMax: number;
   tempMin: number;
+  precipProb?: number;
 }
 
 interface WeatherData {
@@ -624,7 +625,7 @@ export function CompanyPinLockModal({
     async function fetchWeather(lat: number, lon: number, cityName?: string) {
       try {
         const res = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=6`
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=6`
         );
         const data = await res.json();
         if (isMounted && data.current) {
@@ -642,6 +643,7 @@ export function CompanyPinLockModal({
                 condition: getWeatherLabel(code),
                 tempMax: Math.round(data.daily.temperature_2m_max?.[i] ?? data.current.temperature_2m),
                 tempMin: Math.round(data.daily.temperature_2m_min?.[i] ?? data.current.temperature_2m),
+                precipProb: data.daily.precipitation_probability_max?.[i] != null ? Math.round(data.daily.precipitation_probability_max[i]) : undefined,
               });
             }
           }
@@ -1368,90 +1370,149 @@ export function CompanyPinLockModal({
         )}
       </div>
 
-      {/* Widget Compact Vreme în Partea Dreaptă-Sus (același fundal cu cardul de logare, fără contur, Iconiță 3D ieșită din card) */}
-      {weather && (
-        <div className="fixed top-4 right-4 sm:top-5 sm:right-6 z-50 w-[180px] sm:w-[190px] bg-black/40 dark:bg-black/55 backdrop-blur-3xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.6)] p-2.5 text-white transition-all animate-in fade-in slide-in-from-top-2 duration-300 select-none overflow-visible">
-          {/* Iconita 3D IESITA DIN CARD: pluteste peste marginea din dreapta-sus a cardului, depasind limitele */}
-          <div className="absolute -top-6 -right-5 z-20 pointer-events-none transform -rotate-2 hover:rotate-0 transition-transform duration-300">
-            <Weather3DIcon
-              code={weather.weatherCode}
-              className="w-16 h-16 drop-shadow-[0_14px_28px_rgba(0,0,0,0.7)]"
-            />
-          </div>
+      {/* Widget Vreme stil Apple Weather: fundal animat în funcție de vreme, temperatură mare subțire, listă prognoză cu bare de interval */}
+      {weather && (() => {
+        const c = weather.weatherCode;
+        const kind: "clear" | "cloud" | "rain" | "snow" | "storm" =
+          c === 0 || c === 1 ? "clear"
+          : c === 2 || c === 3 || c === 45 || c === 48 ? "cloud"
+          : (c >= 71 && c <= 77) || c === 85 || c === 86 ? "snow"
+          : c >= 95 ? "storm"
+          : "rain";
+        const bg: Record<string, string> = {
+          clear: "linear-gradient(180deg,#2b6fb8 0%,#5aa3dc 100%)",
+          cloud: "linear-gradient(180deg,#4a5666 0%,#6f7b8b 100%)",
+          rain: "linear-gradient(180deg,#2f3947 0%,#4a5666 100%)",
+          storm: "linear-gradient(180deg,#232a36 0%,#3b4453 100%)",
+          snow: "linear-gradient(180deg,#5b6b80 0%,#8fa0b5 100%)",
+        };
+        const days = weather.forecast || [];
+        const allMin = Math.min(weather.tempMin ?? weather.temp, ...days.map(d => d.tempMin));
+        const allMax = Math.max(weather.tempMax ?? weather.temp, ...days.map(d => d.tempMax));
+        const span = Math.max(1, allMax - allMin);
+        const fmt = (n: number) => `${n}°`;
+        const rows = [
+          ...(weather.tempMin !== undefined && weather.tempMax !== undefined
+            ? [{ key: "today", name: "Azi", code: c, min: weather.tempMin, max: weather.tempMax, prob: undefined as number | undefined }]
+            : []),
+          ...days.map((d, i) => ({ key: d.date || String(i), name: (d.dayName || "").slice(0, 3), code: d.weatherCode, min: d.tempMin, max: d.tempMax, prob: d.precipProb })),
+        ];
+        return (
+          <div className="fixed top-6 right-5 sm:top-7 sm:right-7 z-50 w-[232px] select-none animate-in fade-in slide-in-from-top-2 duration-300">
+            <style>{`
+              @keyframes wxDrift { 0% { transform: translateX(-30%); } 100% { transform: translateX(30%); } }
+              @keyframes wxFall { 0% { transform: translateY(-20px); opacity: 0; } 15% { opacity: .8; } 100% { transform: translateY(300px); opacity: 0; } }
+              @keyframes wxSnow { 0% { transform: translate(0,-10px); opacity: 0; } 15% { opacity: .9; } 100% { transform: translate(14px,300px); opacity: 0; } }
+              @keyframes wxPulse { 0%,100% { opacity: .55; transform: scale(1); } 50% { opacity: .9; transform: scale(1.08); } }
+              @keyframes wxFlash { 0%,92%,100% { opacity: 0; } 94% { opacity: .5; } 96% { opacity: 0; } 98% { opacity: .35; } }
+            `}</style>
 
-          {/* Header Locație & Live Badge */}
-          <div className="flex items-center justify-between pb-1 pr-11 border-b border-white/[0.04]">
-            <div className="flex items-center gap-1 min-w-0">
-              <MapPin className="w-3 h-3 text-rose-400 shrink-0" />
-              <span className="text-[11px] font-bold tracking-wide text-white truncate max-w-[90px]">
-                {weather.city}
-              </span>
+            {/* Iconița 3D iese din card (colț dreapta-sus) */}
+            <div className="absolute -top-6 -right-4 z-30 pointer-events-none -rotate-3">
+              <Weather3DIcon code={c} className="w-14 h-14 drop-shadow-[0_10px_14px_rgba(0,0,0,0.55)]" />
             </div>
-            <span className="px-1.5 py-0.5 rounded text-[8px] font-extrabold tracking-wider uppercase bg-white/10 text-white/80">
-              Live
-            </span>
-          </div>
 
-          {/* Vreme Actuală cu Temperatură */}
-          <div className="py-1 pr-11">
-            <div className="text-2xl font-black tracking-tight text-white leading-none">
-              {weather.temp > 0 ? `+${weather.temp}` : weather.temp}°C
-            </div>
-            <p className="text-[10px] font-medium text-white/85 mt-1 leading-tight truncate max-w-[95px]">
-              {weather.condition}
-            </p>
-            {(weather.tempMax !== undefined && weather.tempMin !== undefined) && (
-              <p className="text-[9px] text-white/50 mt-0.5">
-                Max: {weather.tempMax > 0 ? `+${weather.tempMax}` : weather.tempMax}° · Min: {weather.tempMin > 0 ? `+${weather.tempMin}` : weather.tempMin}°
-              </p>
-            )}
-          </div>
+            <div
+              className="relative rounded-[28px] overflow-hidden shadow-[0_18px_44px_rgba(0,0,0,0.5)] text-white"
+              style={{ background: bg[kind] }}
+            >
+              {/* Fundal animat */}
+              <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                {kind === "clear" && (
+                  <div className="absolute -top-10 -left-10 w-44 h-44 rounded-full bg-yellow-200/60 blur-2xl" style={{ animation: "wxPulse 5s ease-in-out infinite" }} />
+                )}
+                {(kind === "cloud" || kind === "rain" || kind === "storm" || kind === "snow") && (
+                  <>
+                    <div className="absolute top-2 left-0 w-56 h-14 rounded-full bg-white/25 blur-xl" style={{ animation: "wxDrift 14s ease-in-out infinite alternate" }} />
+                    <div className="absolute top-14 -left-6 w-48 h-12 rounded-full bg-white/15 blur-xl" style={{ animation: "wxDrift 19s ease-in-out infinite alternate-reverse" }} />
+                    <div className="absolute top-24 left-4 w-52 h-12 rounded-full bg-white/10 blur-xl" style={{ animation: "wxDrift 24s ease-in-out infinite alternate" }} />
+                  </>
+                )}
+                {(kind === "rain" || kind === "storm") &&
+                  Array.from({ length: 16 }).map((_, i) => (
+                    <span
+                      key={i}
+                      className="absolute top-0 w-px h-3 bg-sky-100/70 rounded-full"
+                      style={{ left: `${(i * 37) % 100}%`, animation: `wxFall ${0.9 + (i % 5) * 0.25}s linear ${(i % 7) * 0.2}s infinite` }}
+                    />
+                  ))}
+                {kind === "snow" &&
+                  Array.from({ length: 14 }).map((_, i) => (
+                    <span
+                      key={i}
+                      className="absolute top-0 w-1 h-1 bg-white rounded-full"
+                      style={{ left: `${(i * 41) % 100}%`, animation: `wxSnow ${3 + (i % 5) * 0.7}s linear ${(i % 6) * 0.5}s infinite` }}
+                    />
+                  ))}
+                {kind === "storm" && <div className="absolute inset-0 bg-white" style={{ animation: "wxFlash 7s linear infinite" }} />}
+              </div>
 
-          {/* Umiditate & Vânt */}
-          {(weather.humidity !== undefined || weather.windSpeed !== undefined) && (
-            <div className="flex items-center justify-between text-[9px] text-white/70 py-1 border-t border-white/[0.04]">
-              {weather.humidity !== undefined && (
-                <span className="flex items-center gap-1">
-                  <Droplets className="w-2.5 h-2.5 text-sky-400" />
-                  {weather.humidity}%
-                </span>
-              )}
-              {weather.windSpeed !== undefined && (
-                <span className="flex items-center gap-1">
-                  <Wind className="w-2.5 h-2.5 text-teal-300" />
-                  {weather.windSpeed} km/h
-                </span>
-              )}
-            </div>
-          )}
+              <div className="relative z-10 px-4 pt-4 pb-3">
+                {/* Antet central, ca în Apple Weather */}
+                <div className="text-center">
+                  <p className="text-[9px] font-semibold tracking-[0.14em] uppercase text-white/70 leading-none">
+                    Live
+                  </p>
+                  <h3 className="text-[17px] font-medium leading-tight mt-1 [text-shadow:0_1px_6px_rgba(0,0,0,0.25)] truncate">
+                    {weather.city}
+                  </h3>
+                  <div className="text-[64px] font-extralight leading-[1] tracking-tight mt-0.5 [text-shadow:0_2px_10px_rgba(0,0,0,0.2)]">
+                    {weather.temp}°
+                  </div>
+                  <p className="text-[13px] font-medium text-white/90 leading-tight mt-0.5">{weather.condition}</p>
+                  {weather.tempMax !== undefined && weather.tempMin !== undefined && (
+                    <p className="text-[12px] font-medium text-white/85 leading-tight mt-0.5">
+                      H:{weather.tempMax}° &nbsp;L:{weather.tempMin}°
+                    </p>
+                  )}
+                </div>
 
-          {/* Prognoză Următoarele 5 Zile: Bară Orizontală Compactă cu Iconițe 3D */}
-          {weather.forecast && weather.forecast.length > 0 && (
-            <div className="pt-1 border-t border-white/[0.04]">
-              <div className="grid grid-cols-5 gap-1 text-center">
-                {weather.forecast.map((day, idx) => {
-                  const shortDay = day.dayName ? day.dayName.slice(0, 2).toUpperCase() : "";
-                  return (
-                    <div
-                      key={day.date || idx}
-                      className="flex flex-col items-center py-0.5 px-0.5 rounded-lg hover:bg-white/[0.06] transition-colors"
-                      title={`${day.dayName}: ${day.condition} (Max: ${day.tempMax}°, Min: ${day.tempMin}°)`}
-                    >
-                      <span className="text-[8px] font-semibold text-white/60 leading-none">
-                        {shortDay}
-                      </span>
-                      <Weather3DIcon code={day.weatherCode} className="w-4 h-4 my-0.5 shrink-0 drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]" />
-                      <span className="text-[9px] font-bold text-white leading-none">
-                        {day.tempMax > 0 ? `+${day.tempMax}` : day.tempMax}°
-                      </span>
-                    </div>
-                  );
-                })}
+                {/* Umiditate & vânt */}
+                {(weather.humidity !== undefined || weather.windSpeed !== undefined) && (
+                  <div className="flex items-center justify-center gap-4 text-[10px] text-white/80 mt-2">
+                    {weather.humidity !== undefined && (
+                      <span className="flex items-center gap-1"><Droplets className="w-3 h-3 text-sky-200" />{weather.humidity}%</span>
+                    )}
+                    {weather.windSpeed !== undefined && (
+                      <span className="flex items-center gap-1"><Wind className="w-3 h-3 text-teal-200" />{weather.windSpeed} km/h</span>
+                    )}
+                  </div>
+                )}
+
+                {/* Card sticlă: prognoză cu bare de interval */}
+                {rows.length > 0 && (
+                  <div className="mt-3 rounded-2xl bg-white/15 backdrop-blur-xl border border-white/10 px-2.5 py-1">
+                    <p className="text-[9px] font-semibold uppercase tracking-wider text-white/60 py-1">Prognoză</p>
+                    {rows.map((r, idx) => {
+                      const left = ((r.min - allMin) / span) * 100;
+                      const width = Math.max(8, ((r.max - r.min) / span) * 100);
+                      return (
+                        <div key={r.key} className={`flex items-center gap-1.5 py-1 ${idx > 0 ? "border-t border-white/10" : "border-t border-white/10"}`}>
+                          <span className="w-8 text-[11px] font-medium text-white shrink-0">{r.name}</span>
+                          <div className="w-7 flex flex-col items-center shrink-0">
+                            <Weather3DIcon code={r.code} className="w-4 h-4" />
+                            {r.prob !== undefined && r.prob >= 15 && (
+                              <span className="text-[8px] font-semibold text-sky-300 leading-none mt-px">{r.prob}%</span>
+                            )}
+                          </div>
+                          <span className="w-6 text-right text-[11px] text-white/55 shrink-0">{fmt(r.min)}</span>
+                          <div className="relative flex-1 h-1 rounded-full bg-black/20 min-w-0">
+                            <div
+                              className="absolute top-0 h-1 rounded-full bg-gradient-to-r from-cyan-300 to-teal-300"
+                              style={{ left: `${left}%`, width: `${Math.min(width, 100 - left)}%` }}
+                            />
+                          </div>
+                          <span className="w-6 text-[11px] font-medium text-white shrink-0">{fmt(r.max)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        );
+      })()}
 
       {/* Branding GetApp jos de tot pe mijloc, la nivelul locatiei pozei */}
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-20 select-none animate-in fade-in duration-300">

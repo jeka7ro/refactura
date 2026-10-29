@@ -2,6 +2,7 @@
 // UI Rules: Nr. Crt., search+counter, footer paginare, rounded-lg butoane
 
 import { useState, useMemo, useEffect } from "react";
+import { usePersistentRowsPerPage } from "@/hooks/usePersistentRowsPerPage";
 import JSZip from "jszip";
 import { Link, useLocation } from "wouter";
 import {
@@ -188,7 +189,7 @@ export default function AllInvoices() {
     }
   };
   const [page, setPage] = useState(() => parseInt(sessionStorage.getItem("allInvoices_page") || "1", 10));
-  const [rowsPerPage, setRowsPerPage] = useState(15);
+  const [rowsPerPage, setRowsPerPage] = usePersistentRowsPerPage("all_invoices", 15);
   const [typeFilter, setTypeFilter] = useState<InvoiceTypeFilter>(() => (sessionStorage.getItem("allInvoices_type") as any) || "all");
   const [nirFilter, setNirFilter] = useState<NirFilterType>(() => (sessionStorage.getItem("allInvoices_nir") as any) || "all");
   const [readFilter, setReadFilter] = useState<ReadFilterType>(() => (sessionStorage.getItem("allInvoices_read") as any) || "all");
@@ -1967,6 +1968,7 @@ export default function AllInvoices() {
                   <SelectItem value="15">15</SelectItem>
                   <SelectItem value="25">25</SelectItem>
                   <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
                   <SelectItem value="9999">Toți</SelectItem>
                 </SelectContent>
               </Select>

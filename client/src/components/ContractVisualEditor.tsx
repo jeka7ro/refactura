@@ -49,6 +49,7 @@ interface ContractVisualEditorProps {
   tenantRegCom?: string;
   tenantIban: string;
   tenantBank: string;
+  tenantRepresentative?: string;
   partnerName: string;
   partnerCui: string;
   partnerRegCom?: string;
@@ -81,6 +82,7 @@ export default function ContractVisualEditor({
   tenantRegCom,
   tenantIban,
   tenantBank,
+  tenantRepresentative,
   partnerName,
   partnerCui,
   partnerRegCom,
@@ -701,7 +703,9 @@ export default function ContractVisualEditor({
                   <div className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
                     {tenantName}
                   </div>
-                  <div className="text-[10px] text-slate-400">Reprezentant Legal</div>
+                  <div className="text-[10px] text-slate-400">
+                    Reprezentant: {tenantRepresentative || (tenantName.toUpperCase().includes("WOOD GLASS") ? "Șaran Vitalie" : tenantName.toUpperCase().includes("TRADE INVEST") ? "Elena Cazmal" : "Reprezentant Legal")}
+                  </div>
                 </div>
 
                 <div className="my-2 py-1 flex items-center justify-center min-h-[70px]">
@@ -818,7 +822,16 @@ export default function ContractVisualEditor({
         onOpenChange={setSigModalOpen}
         role={sigModalRole}
         partyName={sigModalRole === "supplier" ? tenantName : partnerName || "Beneficiar"}
-        defaultSignatoryName={sigModalRole === "supplier" ? "Elena Cazmal" : partnerContactName}
+        defaultSignatoryName={
+          sigModalRole === "supplier"
+            ? tenantRepresentative ||
+              (tenantName.toUpperCase().includes("WOOD GLASS")
+                ? "Șaran Vitalie"
+                : tenantName.toUpperCase().includes("TRADE INVEST")
+                ? "Elena Cazmal"
+                : "Administrator")
+            : partnerContactName
+        }
         contractNumber={docNumber}
         onSaveSignature={handleSaveSignature}
       />

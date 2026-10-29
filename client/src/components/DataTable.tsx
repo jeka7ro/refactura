@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { usePersistentRowsPerPage } from "@/hooks/usePersistentRowsPerPage";
 import { ChevronLeft, ChevronRight, Search, Loader2 } from "lucide-react";
 import {
   Select,
@@ -50,7 +51,10 @@ export function DataTable<T extends Record<string, any>>({
   filterFn,
 }: DataTableProps<T>) {
   const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(15);
+  const [rowsPerPage, setRowsPerPage] = usePersistentRowsPerPage(
+    tableId ? `datatable_${tableId}` : "datatable_default",
+    15
+  );
   const [selectedRows, setSelectedRows] = useState<Set<any>>(new Set());
   const [search, setSearch] = useState("");
 
@@ -323,6 +327,7 @@ export function DataTable<T extends Record<string, any>>({
                   <SelectItem value="15">15</SelectItem>
                   <SelectItem value="25">25</SelectItem>
                   <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
                   <SelectItem value="9999">Toți</SelectItem>
                 </SelectContent>
               </Select>

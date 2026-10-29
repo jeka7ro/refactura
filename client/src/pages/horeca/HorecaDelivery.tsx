@@ -2,6 +2,7 @@
 // search + counter, Nr.Crt. paginat, footer paginare complet, rounded-lg, tabel mereu vizibil
 
 import { useState, useMemo } from "react";
+import { usePersistentRowsPerPage } from "@/hooks/usePersistentRowsPerPage";
 import {
   Truck,
   Plus,
@@ -67,7 +68,7 @@ export default function HorecaDelivery() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(15);
+  const [rowsPerPage, setRowsPerPage] = usePersistentRowsPerPage("horeca_delivery", 15);
 
   const [form, setForm] = useState({
     platform: "manual" as "glovo" | "wolt" | "bolt_food" | "tazz" | "manual",

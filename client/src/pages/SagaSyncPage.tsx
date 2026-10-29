@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef } from "react";
+import { usePersistentRowsPerPage } from "@/hooks/usePersistentRowsPerPage";
 import { Link } from "wouter";
 import {
   RefreshCw,
@@ -34,7 +35,7 @@ export default function SagaSyncPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [searchFilter, setSearchFilter] = useState("");
   const [page, setPage] = useState(1);
-  const pageSize = 15;
+  const [pageSize, setPageSize] = usePersistentRowsPerPage("saga_sync", 15);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [lastSyncResult, setLastSyncResult] = useState<{
@@ -181,8 +182,10 @@ export default function SagaSyncPage() {
       if (activeTab === "furnizori") endpoint = "/api/saga/import-furnizori";
       if (activeTab === "clienti") endpoint = "/api/saga/import-clienti";
 
+      const token = localStorage.getItem("authToken");
       const res = await fetch(endpoint, {
         method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         body: formData,
       });
 
@@ -759,12 +762,32 @@ export default function SagaSyncPage() {
         </div>
 
         {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between text-xs text-slate-500 pt-2">
-            <div>
-              Afișare {(page - 1) * pageSize + 1} -{" "}
-              {Math.min(page * pageSize, filteredDataset.length)} din {filteredDataset.length}{" "}
-              înregistrări
+        {filteredDataset.length > 0 && (
+          <div className="flex items-center justify-between text-xs text-slate-500 pt-2 flex-wrap gap-2">
+            <div className="flex items-center gap-3">
+              <span>
+                Afișează{" "}
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setPage(1);
+                  }}
+                  className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-2 py-0.5 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none"
+                >
+                  <option value={10}>10</option>
+                  <option value={15}>15</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                  <option value={9999}>Toți</option>
+                </select>
+              </span>
+              <span>
+                Afișare {(page - 1) * pageSize + 1} -{" "}
+                {Math.min(page * pageSize, filteredDataset.length)} din {filteredDataset.length}{" "}
+                înregistrări
+              </span>
             </div>
             <div className="flex items-center gap-1">
               <button

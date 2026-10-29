@@ -2,6 +2,7 @@
 // UI Rules: Nr. Crt., total records, pagination, rounded-full filters & buttons, select-all & bulk operations
 
 import { useState, useMemo } from "react";
+import { usePersistentRowsPerPage } from "@/hooks/usePersistentRowsPerPage";
 import { useLocation } from "wouter";
 import {
   Loader2,
@@ -22,12 +23,23 @@ import {
   Building2,
   X,
   RotateCcw,
+  Sparkles,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useTableSort } from "@/hooks/useTableSort";
 import { formatDate } from "@/lib/store";
+import {
+  saveWithFilePicker,
+  getNirPdfFilename,
+  getNirXmlFilename,
+  encodeWindows1250Blob,
+} from "@/lib/fileSave";
+import {
+  SagaImportSimulatorModal,
+  type SagaSimulationResult,
+} from "@/components/SagaImportSimulatorModal";
 import {
   Select,
   SelectContent,
@@ -57,7 +69,7 @@ export default function NIRList() {
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(15);
+  const [rowsPerPage, setRowsPerPage] = usePersistentRowsPerPage("nir_list", 15);
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
   // Filtre afarente (ca în AllInvoices / Screenshot 2)
@@ -75,22 +87,94 @@ export default function NIRList() {
   const [bulkAccount, setBulkAccount] = useState<string>("");
 
   const { data: nirList = [], isLoading, refetch } = trpc.nir.list.useQuery();
+  const { data: currentTenant } = trpc.tenants.current.useQuery();
 
-  const exportNirMut = trpc.saga.exportNir.useMutation({
-    onSuccess: (data) => {
-      const blob = new Blob([data.xml], { type: "text/xml;charset=windows-1250" });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = data.filename || "FACTURI.XML";
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      toast.success(`Fișierul ${data.filename} a fost descărcat pentru import în SAGA C!`);
-    },
-    onError: (e) => toast.error("Eroare export: " + e.message),
-  });
+  const exportNirMut = trpc.saga.exportNir.useMutation();
+  const simulateNirImportMut = trpc.saga.simulateNirImport.useMutation();
+  const [simulatorOpen, setSimulatorOpen] = useState(false);
+  const [simulationData, setSimulationData] = useState<SagaSimulationResult | null>(null);
+
+  const handleSimulateSaga = async (params: {
+    nirId?: number;
+    nirIds?: number[];
+  }) => {
+    setSimulatorOpen(true);
+    setSimulationData(null);
+    try {
+      const res = await simulateNirImportMut.mutateAsync(params);
+      setSimulationData(res as SagaSimulationResult);
+    } catch (e: any) {
+      toast.error("Eroare la simularea importului SAGA: " + (e?.message || e));
+      setSimulatorOpen(false);
+    }
+  };
+
+  const handleSaveSagaXml = async (params: {
+    nirId?: number;
+    nirNumber?: string;
+    nirIds?: number[];
+  }) => {
+    try {
+      const rawCui =
+        currentTenant?.cui || (currentTenant as any)?.tenants?.cui || "";
+      const safeCui = rawCui.replace(/^RO/i, "").trim() || "EXPORT";
+      const suggestedName = params.nirId
+        ? getNirXmlFilename(safeCui, params.nirNumber, params.nirId)
+        : `F_${safeCui}_NIR_SEL_${params.nirIds?.length || "ALL"}.xml`;
+
+      const savedName = await saveWithFilePicker(
+        {
+          suggestedName,
+          acceptMimeType: "text/xml",
+          description: "Fișier XML SAGA C (.xml)",
+          extensions: [".xml"],
+          pickerId: "nir_saga_xml",
+        },
+        async () => {
+          const data = await exportNirMut.mutateAsync(
+            params.nirId ? { nirId: params.nirId } : { nirIds: params.nirIds }
+          );
+          return encodeWindows1250Blob(data.xml);
+        }
+      );
+      if (savedName) {
+        toast.success(
+          `Fișierul ${savedName} a fost salvat cu succes pentru import în SAGA C!`
+        );
+      }
+    } catch (e: any) {
+      toast.error("Eroare export SAGA XML: " + (e?.message || e));
+    }
+  };
+
+  const handleSavePdfNir = async (rowId: number, rowNirNumber?: string) => {
+    try {
+      const suggestedName = getNirPdfFilename(rowNirNumber, rowId);
+      const savedName = await saveWithFilePicker(
+        {
+          suggestedName,
+          acceptMimeType: "application/pdf",
+          description: "Document PDF NIR (.pdf)",
+          extensions: [".pdf"],
+          pickerId: "nir_pdf",
+        },
+        async () => {
+          const res = await fetch(`/api/pdf/nir/${rowId}?download=1`, {
+            credentials: "include",
+          });
+          if (!res.ok) {
+            throw new Error(`Eroare la generarea PDF-ului (${res.status})`);
+          }
+          return await res.blob();
+        }
+      );
+      if (savedName) {
+        toast.success(`Documentul ${savedName} a fost salvat cu succes!`);
+      }
+    } catch (e: any) {
+      toast.error("Eroare salvare PDF NIR: " + (e?.message || e));
+    }
+  };
 
   const deleteNir = trpc.nir.delete.useMutation({
     onSuccess: () => {
@@ -312,7 +396,7 @@ export default function NIRList() {
   };
 
   // Funcție export Excel (.xlsx)
-  const handleExportExcel = (items = filtered) => {
+  const handleExportExcel = async (items = filtered) => {
     if (!items || items.length === 0) {
       toast.error("Nu există înregistrări de exportat.");
       return;
@@ -368,22 +452,32 @@ export default function NIRList() {
     XLSX.utils.book_append_sheet(wb, ws, "Recepții NIR");
 
     try {
-      const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-      const blob = new Blob([excelBuffer], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
       const dateStr = new Date().toISOString().split("T")[0];
-      a.download = `Receptii_NIR_${dateStr}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      toast.success(
-        `Fișierul Excel (.xlsx) cu ${rows.length} NIR-uri a fost generat și descărcat cu succes!`
+      const suggestedName = `Receptii_NIR_${dateStr}.xlsx`;
+      const savedName = await saveWithFilePicker(
+        {
+          suggestedName,
+          acceptMimeType:
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          description: "Fișier Microsoft Excel (.xlsx)",
+          extensions: [".xlsx"],
+          pickerId: "nir_excel",
+        },
+        async () => {
+          const excelBuffer = XLSX.write(wb, {
+            bookType: "xlsx",
+            type: "array",
+          });
+          return new Blob([excelBuffer], {
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          });
+        }
       );
+      if (savedName) {
+        toast.success(
+          `Fișierul ${savedName} cu ${rows.length} NIR-uri a fost salvat cu succes!`
+        );
+      }
     } catch (err: any) {
       toast.error(
         "Eroare la generarea fișierului Excel: " + (err?.message || err)
@@ -415,13 +509,40 @@ export default function NIRList() {
             Export Excel (.xlsx)
           </button>
 
+          {/* Buton Distinct: Simulează Import SAGA C */}
+          <button
+            onClick={() => {
+              if (selectedIds.size > 0) {
+                handleSimulateSaga({ nirIds: Array.from(selectedIds) });
+              } else if (filtered.length > 0) {
+                handleSimulateSaga({ nirIds: filtered.map((n: any) => n.id) });
+              } else {
+                toast.error("Nu există NIR-uri de simulat.");
+              }
+            }}
+            disabled={simulateNirImportMut.isPending || (selectedIds.size === 0 && filtered.length === 0)}
+            title={
+              selectedIds.size > 0
+                ? `Simulează și verifică importul în SAGA C pentru cele ${selectedIds.size} NIR-uri selectate`
+                : `Simulează și verifică importul în SAGA C pentru cele ${filtered.length} NIR-uri filtrate`
+            }
+            className="flex items-center gap-1.5 px-3.5 h-9 rounded-lg bg-[#0e5a8a] hover:bg-[#0b476e] text-white text-sm font-bold transition-all shadow-sm disabled:opacity-50"
+          >
+            {simulateNirImportMut.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4 text-sky-200" />
+            )}
+            Simulează SAGA {selectedIds.size > 0 ? `(${selectedIds.size})` : `(${filtered.length})`}
+          </button>
+
           {/* Buton Distinct: Export SAGA (XML) */}
           <button
             onClick={() => {
               if (selectedIds.size > 0) {
-                exportNirMut.mutate({ nirIds: Array.from(selectedIds) });
+                handleSaveSagaXml({ nirIds: Array.from(selectedIds) });
               } else if (filtered.length > 0) {
-                exportNirMut.mutate({ nirIds: filtered.map((n: any) => n.id) });
+                handleSaveSagaXml({ nirIds: filtered.map((n: any) => n.id) });
               } else {
                 toast.error("Nu există NIR-uri de exportat.");
               }
@@ -525,7 +646,7 @@ export default function NIRList() {
             </button>
             <button
               onClick={() =>
-                exportNirMut.mutate({ nirIds: Array.from(selectedIds) })
+                handleSaveSagaXml({ nirIds: Array.from(selectedIds) })
               }
               disabled={exportNirMut.isPending}
               className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold transition-colors shadow-sm disabled:opacity-50"
@@ -977,18 +1098,31 @@ export default function NIRList() {
                         >
                           <Eye className="w-3.5 h-3.5" />
                         </a>
-                        <a
-                          href={`/api/pdf/nir/${row.id}?download=1`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="Descarcă PDF NIR"
+                        <button
+                          type="button"
+                          onClick={() => handleSavePdfNir(row.id, row.nirNumber)}
+                          title="Salvează PDF NIR (alege calea de salvare)"
                           className="w-7 h-7 rounded-full flex items-center justify-center bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 transition-colors"
                         >
                           <FileDown className="w-3.5 h-3.5" />
-                        </a>
+                        </button>
                         <button
-                          onClick={() => exportNirMut.mutate({ nirId: row.id })}
-                          title={`Exportă NIR ${row.nirNumber} în SAGA C (FACTURI.XML)`}
+                          type="button"
+                          onClick={() => handleSimulateSaga({ nirId: row.id })}
+                          title={`Simulează și verifică NIR ${row.nirNumber} pentru SAGA C`}
+                          className="w-7 h-7 rounded-full flex items-center justify-center bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 transition-colors"
+                        >
+                          <Sparkles className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleSaveSagaXml({
+                              nirId: row.id,
+                              nirNumber: row.nirNumber,
+                            })
+                          }
+                          title={`Salvează NIR ${row.nirNumber} în SAGA C (.xml)`}
                           className="w-7 h-7 rounded-full flex items-center justify-center bg-teal-50 hover:bg-teal-100 text-teal-600 border border-teal-200 transition-colors"
                         >
                           <FileCode className="w-3.5 h-3.5" />
@@ -1021,11 +1155,12 @@ export default function NIRList() {
               }}
               className="rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 text-xs font-bold outline-none cursor-pointer"
             >
-              {[10, 15, 25, 50].map((n) => (
+              {[10, 15, 25, 50, 100].map((n) => (
                 <option key={n} value={n}>
                   {n}
                 </option>
               ))}
+              <option value={9999}>Toți</option>
             </select>
             <span>
               Total înregistrări: <strong>{filtered.length}</strong>
@@ -1185,6 +1320,13 @@ export default function NIRList() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <SagaImportSimulatorModal
+        open={simulatorOpen}
+        onOpenChange={setSimulatorOpen}
+        loading={simulateNirImportMut.isPending}
+        data={simulationData}
+      />
     </div>
   );
 }

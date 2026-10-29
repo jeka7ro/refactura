@@ -626,9 +626,9 @@ export default function InvoiceArchive() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-center gap-1">
-                          {item.fileUrl && (
+                          {(item.fileUrl || item.source === "spv_anaf") && (
                             <a
-                              href={item.fileUrl}
+                              href={item.source === "spv_anaf" || item.fileUrl === "spv_import" ? `/api/pdf/archive/${item.id}` : item.fileUrl}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-slate-500 dark:text-slate-400"

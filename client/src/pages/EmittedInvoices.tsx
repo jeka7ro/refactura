@@ -1,5 +1,6 @@
 // EmittedInvoices.tsx — Lista Facturilor Emise Direct din Platformă
 import { useState, useMemo } from "react";
+import { usePersistentRowsPerPage } from "@/hooks/usePersistentRowsPerPage";
 import { Link, useLocation } from "wouter";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -110,7 +111,7 @@ export default function EmittedInvoices() {
     number: string;
   } | null>(null);
   const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(15);
+  const [rowsPerPage, setRowsPerPage] = usePersistentRowsPerPage("emitted_invoices", 15);
 
   const { data = [], isLoading, refetch } = trpc.emittedInvoice.list.useQuery();
   const { data: archiveRaw = [], refetch: refetchArchive } = trpc.invoiceArchive.list.useQuery({ limit: 5000 });
@@ -1037,6 +1038,7 @@ export default function EmittedInvoices() {
                   <SelectItem value="15">15</SelectItem>
                   <SelectItem value="25">25</SelectItem>
                   <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
                   <SelectItem value="9999">Toți</SelectItem>
                 </SelectContent>
               </Select>

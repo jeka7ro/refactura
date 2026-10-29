@@ -1,5 +1,6 @@
 // BonuriConsumList.tsx — Lista Bonurilor de consum
 import { useState } from "react";
+import { usePersistentRowsPerPage } from "@/hooks/usePersistentRowsPerPage";
 import { useLocation } from "wouter";
 import {
   Loader2,
@@ -30,7 +31,7 @@ export default function BonuriConsumList() {
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(15);
+  const [rowsPerPage, setRowsPerPage] = usePersistentRowsPerPage("bonuri_consum_list", 15);
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
   const {
@@ -303,9 +304,12 @@ export default function BonuriConsumList() {
               }}
               className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 dark:border-slate-700"
             >
+              <option value={10}>10</option>
               <option value={15}>15</option>
+              <option value={25}>25</option>
               <option value={50}>50</option>
               <option value={100}>100</option>
+              <option value={9999}>Toți</option>
             </select>
           </div>
           <div className="flex gap-1">

@@ -96,6 +96,12 @@ export async function requirePdfAccess(
     }
     (req as any).fileAuth = auth;
 
+    // Previzualizare NIR nesalvat: doar autentificare (documentul nu există încă în DB)
+    if (req.method === "POST" && req.path === "/nir-preview") {
+      next();
+      return;
+    }
+
     const m = req.path.match(/^\/([a-z-]+)\/(\d+)/i);
     if (!m) {
       res.status(404).json({ error: "Resursă inexistentă" });

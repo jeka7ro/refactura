@@ -65,10 +65,12 @@ export default function ContractSignaturePadModal({
   // Digital certificate state - prefer a person's name over company legal entity name
   const getInitialSignatory = () => {
     if (defaultSignatoryName?.trim()) return defaultSignatoryName;
+    if (partyName?.toUpperCase().includes("WOOD GLASS")) return "Șaran Vitalie";
+    if (partyName?.toUpperCase().includes("TRADE INVEST")) return "Elena Cazmal";
     if (partyName && !partyName.includes("SRL") && !partyName.includes("S.R.L.") && !partyName.includes("SA")) {
       return partyName;
     }
-    return role === "supplier" ? "Elena Cazmal" : "";
+    return role === "supplier" ? "Administrator" : "";
   };
 
   const [signatoryName, setSignatoryName] = useState(getInitialSignatory());
@@ -85,10 +87,14 @@ export default function ContractSignaturePadModal({
     if (open) {
       if (defaultSignatoryName?.trim()) {
         setSignatoryName(defaultSignatoryName);
+      } else if (partyName?.toUpperCase().includes("WOOD GLASS")) {
+        setSignatoryName("Șaran Vitalie");
+      } else if (partyName?.toUpperCase().includes("TRADE INVEST")) {
+        setSignatoryName("Elena Cazmal");
       } else if (partyName && !partyName.includes("SRL") && !partyName.includes("S.R.L.")) {
         setSignatoryName(partyName);
       } else if (role === "supplier") {
-        setSignatoryName("Elena Cazmal");
+        setSignatoryName("Administrator");
       }
     }
   }, [open, defaultSignatoryName, partyName, role]);

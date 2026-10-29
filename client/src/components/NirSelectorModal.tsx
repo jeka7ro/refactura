@@ -1,5 +1,6 @@
 // NirSelectorModal.tsx — Modal selecție produse din NIR
 import { useState, useMemo } from "react";
+import { usePersistentRowsPerPage } from "@/hooks/usePersistentRowsPerPage";
 import {
   Search,
   X,
@@ -34,7 +35,7 @@ export default function NirSelectorModal({ onClose, onAdd }: Props) {
   const [search, setSearch] = useState("");
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(15);
+  const [rowsPerPage, setRowsPerPage] = usePersistentRowsPerPage("nir_selector_modal", 15);
   const [expandedNir, setExpandedNir] = useState<number | null>(null);
 
   // Flatten all lines with NIR info for search
@@ -489,6 +490,7 @@ export default function NirSelectorModal({ onClose, onAdd }: Props) {
                 <option value={15}>15</option>
                 <option value={25}>25</option>
                 <option value={50}>50</option>
+                <option value={100}>100</option>
                 <option value={9999}>Toți</option>
               </select>
             </span>

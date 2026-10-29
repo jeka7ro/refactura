@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect, Fragment } from "react";
+import { usePersistentRowsPerPage } from "@/hooks/usePersistentRowsPerPage";
 import { Link } from "wouter";
 import {
   Database,
@@ -273,7 +274,7 @@ function NomenclatorTab() {
   const [showImport, setShowImport] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50);
+  const [pageSize, setPageSize] = usePersistentRowsPerPage("saga_nomenclator", 50);
 
   const { data: me } = trpc.auth.me.useQuery();
   const { data: articles = [], refetch, isLoading } = trpc.saga.articles.list.useQuery();
@@ -533,11 +534,14 @@ function NomenclatorTab() {
                   }}
                   className="ml-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs px-2 py-1 outline-none focus:ring-1 focus:ring-blue-500"
                 >
+                  <option value={10}>10</option>
+                  <option value={15}>15</option>
                   <option value={25}>25</option>
                   <option value={50}>50</option>
                   <option value={100}>100</option>
                   <option value={200}>200</option>
                   <option value={500}>500</option>
+                  <option value={9999}>Toți</option>
                 </select>
               </div>
               <span>
