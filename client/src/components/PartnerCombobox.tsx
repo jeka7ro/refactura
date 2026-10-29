@@ -19,6 +19,17 @@ export interface PartnerItem {
   delegat?: string | null;
 }
 
+/**
+ * Tipul clientului: PF (persoană fizică) dacă nu are CUI sau are CNP (13 cifre), altfel PJ (persoană juridică).
+ */
+export function inferClientType(p?: { cui?: string | null } | null): "pf" | "pj" {
+  const raw = String(p?.cui || "").replace(/\s+/g, "");
+  if (!raw) return "pf";
+  const digitsOnly = raw.replace(/^RO/i, "");
+  if (/^\d{13}$/.test(digitsOnly)) return "pf";
+  return "pj";
+}
+
 interface PartnerComboboxProps {
   value: number | null;
   onChange: (id: number | null, partner?: PartnerItem) => void;
@@ -27,6 +38,8 @@ interface PartnerComboboxProps {
   className?: string;
   filterType?: "all" | "client" | "supplier";
   disabled?: boolean;
+  /** Afișează tipul clientului (PF / PJ) în loc de eticheta Client / Furnizor. */
+  showClientType?: boolean;
 }
 
 const normalizeText = (str: string) => {
@@ -46,7 +59,35 @@ export default function PartnerCombobox({
   className = "",
   filterType = "all",
   disabled = false,
+  showClientType = false,
 }: PartnerComboboxProps) {
+  const renderTypeBadge = (p: PartnerItem, small: boolean) => {
+    const size = small ? "px-1.5 py-0.5 text-[9px]" : "px-1.5 py-0.5 text-[10px]";
+    if (showClientType) {
+      const t = inferClientType(p);
+      return (
+        <span
+          title={t === "pf" ? "Persoană fizică" : "Persoană juridică"}
+          className={`${size} rounded font-bold shrink-0 border ${
+            t === "pf"
+              ? "bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800"
+              : "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800"
+          }`}
+        >
+          {t === "pf" ? "PF" : "PJ"}
+        </span>
+      );
+    }
+    return p.isSupplier === 1 ? (
+      <span className={`${size} rounded font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shrink-0`}>
+        Furnizor
+      </span>
+    ) : (
+      <span className={`${size} rounded font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 shrink-0`}>
+        Client
+      </span>
+    );
+  };
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
@@ -172,15 +213,7 @@ export default function PartnerCombobox({
                     ({selectedPartner.cui})
                   </span>
                 )}
-                {selectedPartner.isSupplier === 1 ? (
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shrink-0">
-                    Furnizor
-                  </span>
-                ) : (
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 shrink-0">
-                    Client
-                  </span>
-                )}
+                {renderTypeBadge(selectedPartner, false)}
               </div>
             ) : (
               <span className="text-xs text-slate-400 dark:text-slate-500 truncate">
@@ -262,15 +295,7 @@ export default function PartnerCombobox({
                         <span className="font-bold text-slate-900 dark:text-white truncate">
                           {p.name}
                         </span>
-                        {p.isSupplier === 1 ? (
-                          <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shrink-0">
-                            Furnizor
-                          </span>
-                        ) : (
-                          <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 shrink-0">
-                            Client
-                          </span>
-                        )}
+                        {renderTypeBadge(p, true)}
                       </div>
 
                       <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 font-mono">

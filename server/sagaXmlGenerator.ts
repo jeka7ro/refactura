@@ -447,10 +447,38 @@ export async function getTenantCompanyProfile(tenantId: number): Promise<TenantC
   };
 }
 
+/**
+ * Rotunjirea TVA: când antetul documentului este aliniat la factura furnizorului (ex. TVA 637,27), dar suma TVA
+ * calculată pe fiecare linie este diferită (637,26), diferența de câțiva bani se pune pe ultima linie cu TVA,
+ * astfel încât liniile să se adune exact la totalul din antet (și SAGA importă același total ca în factură).
+ */
+function reconcileLineVat<T>(
+  items: T[],
+  getVat: (i: T) => number,
+  setVat: (i: T, v: number) => void,
+  getRate: (i: T) => number,
+  targetTva: number
+): void {
+  const sum = Math.round(items.reduce((s, i) => s + getVat(i), 0) * 100) / 100;
+  const diff = Math.round((targetTva - sum) * 100) / 100;
+  if (Math.abs(diff) < 0.005 || Math.abs(diff) > 0.15) return;
+  let idx = -1;
+  for (let k = items.length - 1; k >= 0; k--) {
+    if (getRate(items[k]) > 0) {
+      idx = k;
+      break;
+    }
+  }
+  if (idx < 0) return;
+  setVat(items[idx], Math.round((getVat(items[idx]) + diff) * 100) / 100);
+}
+
 export function formatSpvTags(spvIndex: string): string {
   if (!spvIndex || !spvIndex.trim()) return "";
   const s = escapeXml(spvIndex.trim());
   return [
+    // Eticheta recunoscută de SAGA C pentru ID-ul de încărcare SPV al facturii (apare în coloana „Index SPV”)
+    `      <FacturaIndexSPV>${s}</FacturaIndexSPV>`,
     `      <IdIncarcareSPV>${s}</IdIncarcareSPV>`,
     `      <Observatii>ID încărcare SPV: ${s}</Observatii>`,
   ].join("\n") + "\n";
@@ -912,6 +940,16 @@ export async function generateSagaExportXML(
         totalValoare = Math.round((totalFactura - totalTva) * 100) / 100;
       }
     }
+    reconcileLineVat(
+      processedLines as any[],
+      (i: any) => i.lineVat,
+      (i: any, v: number) => {
+        i.lineVat = v;
+        i.lineTotal = Math.round((i.lineVal + v) * 100) / 100;
+      },
+      (i: any) => i.rate,
+      totalTva
+    );
 
     xml += `  <Factura>\n`;
     xml += `    <Antet>\n`;
@@ -1315,6 +1353,16 @@ export async function generateSagaNirXML(
         totalValoare = Math.round((totalFactura - totalTva) * 100) / 100;
       }
     }
+    reconcileLineVat(
+      processedLines as any[],
+      (i: any) => i.lineVat,
+      (i: any, v: number) => {
+        i.lineVat = v;
+        i.lineTotal = Math.round((i.lineVal + v) * 100) / 100;
+      },
+      (i: any) => i.rate,
+      totalTva
+    );
 
     xml += `  <Factura>\n`;
     xml += `    <Antet>\n`;
@@ -2082,6 +2130,17 @@ export async function simulateSagaNirImport(
         message: `Totalul NIR (${totalFactura.toFixed(2)} ${currency}) diferă de totalul facturii originale din SPV (${archiveTotal.toFixed(2)} ${currency}) cu ${(totalFactura - archiveTotal).toFixed(2)} ${currency}.`,
       });
     }
+
+    reconcileLineVat(
+      simulatedLines,
+      i => i.tvaSuma,
+      (i, v) => {
+        i.tvaSuma = v;
+        i.total = Math.round((i.valoare + v) * 100) / 100;
+      },
+      i => i.tvaPercent,
+      totalTva
+    );
 
     // Build XML block for this document so the simulator XML matches 100%
     const supplierCountry = detectCountryFromCui(n.supplierCUI);

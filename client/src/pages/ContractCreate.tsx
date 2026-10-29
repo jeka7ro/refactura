@@ -31,7 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import PartnerCombobox from "@/components/PartnerCombobox";
+import PartnerCombobox, { inferClientType } from "@/components/PartnerCombobox";
 import ContractVisualEditor from "@/components/ContractVisualEditor";
 import { toast } from "sonner";
 import { compileContractTemplate, ContractLanguage } from "@/lib/contractCompiler";
@@ -736,6 +736,10 @@ export default function ContractCreate() {
     setPartnerPhone(phoneVal);
     setPartnerEmail(emailVal);
 
+    // Wood Glass: tipul beneficiarului (PF / PJ) se stabilește automat din datele clientului
+    const inferredType = p ? inferClientType(p) : wgBeneficiaryType;
+    if (isWoodGlassTenant && p) setWgBeneficiaryType(inferredType);
+
     if (selectedTemplateId) {
       handleApplyTemplate(
         selectedTemplateId,
@@ -756,7 +760,7 @@ export default function ContractCreate() {
           paymentTranches,
           wgTransportIncluded,
           wgMarketType,
-          wgBeneficiaryType,
+          wgBeneficiaryType: inferredType,
           deliveryDays,
           docValue,
           docCurrency,
@@ -1102,7 +1106,7 @@ export default function ContractCreate() {
       {/* 2. Panou Principal de Configurare (Curat, Modern, Aerisit) */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 shadow-xs space-y-3">
         {/* Rândul 1: Cele 2 alegeri primare - Model Contract & Client */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start [&>div]:min-w-0">
           {/* Col 1: Model Contract / Șablon */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
@@ -1155,8 +1159,8 @@ export default function ContractCreate() {
               value={selectedTemplateId}
               onValueChange={(val) => handleApplyTemplate(val)}
             >
-              <SelectTrigger className="h-9 rounded-xl text-xs font-semibold border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/70 overflow-hidden text-left">
-                <span className="truncate block font-semibold text-slate-900 dark:text-white">
+              <SelectTrigger className="w-full min-w-0 max-w-full h-9 rounded-xl text-xs font-semibold border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/70 overflow-hidden text-left">
+                <span className="truncate block min-w-0 flex-1 font-semibold text-slate-900 dark:text-white">
                   {templates.find((t) => t.id === selectedTemplateId)?.name ||
                     (selectedTemplateId === "empty"
                       ? "Document Liber (Pagină albă / Ciornă)"
@@ -1201,6 +1205,8 @@ export default function ContractCreate() {
               value={selectedPartnerId}
               onChange={(id, p) => handleSelectPartner(id, p)}
               partners={partners as any[]}
+              filterType="client"
+              showClientType
               placeholder="Caută client sau furnizor după nume, CUI sau cod SAGA..."
             />
 
@@ -1479,22 +1485,22 @@ export default function ContractCreate() {
                         handleCommercialChange({ woodEssence: customVal });
                       }
                     }}
-                    className="h-7 rounded-lg text-xs font-semibold px-2 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 text-slate-900 dark:text-white"
+                    className="h-8 leading-normal rounded-lg text-xs font-semibold px-2 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 text-slate-900 dark:text-white"
                   >
                     <optgroup label="A. Meranti">
-                      <option value="meranti_68">A. Meranti 68 (Tâmplărie lemn stratificat, esență meranti, 68 mm)</option>
-                      <option value="meranti_92">A. Meranti 92 (Tâmplărie lemn stratificat, esență meranti, 92 mm)</option>
+                      <option value="meranti_68">A. Meranti 68</option>
+                      <option value="meranti_92">A. Meranti 92</option>
                     </optgroup>
                     <optgroup label="B. Stejar">
-                      <option value="stejar_68">B. Stejar 68 (Tâmplărie lemn stratificat, esență stejar, 68 mm)</option>
-                      <option value="stejar_92">B. Stejar 92 (Tâmplărie lemn stratificat, esență stejar, 92 mm)</option>
+                      <option value="stejar_68">B. Stejar 68</option>
+                      <option value="stejar_92">B. Stejar 92</option>
                     </optgroup>
                     <optgroup label="C. Pin">
-                      <option value="pin_68">C. Pin 68 (Tâmplărie lemn stratificat, esență pin, 68 mm)</option>
-                      <option value="pin_92">C. Pin 92 (Tâmplărie lemn stratificat, esență pin, 92 mm)</option>
+                      <option value="pin_68">C. Pin 68</option>
+                      <option value="pin_92">C. Pin 92</option>
                     </optgroup>
                     <optgroup label="D. Opțiune de text">
-                      <option value="custom">D. Opțiune de text (Personalizat)</option>
+                      <option value="custom">D. Opțiune de text</option>
                     </optgroup>
                   </select>
                 )}
