@@ -86,7 +86,7 @@ export default function NirPdfViewerDialog({ nirId, nirNumber, onClose }: NirPdf
       <DialogContent className="sm:max-w-5xl w-[95vw] h-[92vh] flex flex-col gap-3 p-4">
         <DialogHeader className="flex-shrink-0">
           <div className="flex items-center justify-between gap-3 pr-8 flex-wrap">
-            <DialogTitle>NIR {nirNumber || ""}</DialogTitle>
+            <DialogTitle>{/^nir/i.test((nirNumber || "").trim()) ? (nirNumber || "").trim() : `NIR ${nirNumber || ""}`.trim()}</DialogTitle>
             <button
               type="button"
               onClick={handleSave}

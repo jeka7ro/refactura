@@ -19,6 +19,7 @@ import {
   Sparkles,
   FileText,
   ChevronDown,
+  XCircle,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -444,6 +445,10 @@ export default function NIRCreate() {
   const [invoicePdfOpen, setInvoicePdfOpen] = useState(false);
   const [commissionOpen, setCommissionOpen] = useState(false); // comisia de recepție: strânsă implicit
   const linkedInvoiceId: number | null = sourceInvoiceId || (existingNir as any)?.invoiceArchiveId || null;
+  const { data: invoiceRef } = trpc.invoiceArchive.getById.useQuery(
+    { id: linkedInvoiceId! },
+    { enabled: !!linkedInvoiceId, staleTime: 0 }
+  );
   const [simulatorOpen, setSimulatorOpen] = useState(false);
   const [simulationData, setSimulationData] = useState<SagaSimulationResult | null>(null);
 
@@ -1184,7 +1189,7 @@ export default function NIRCreate() {
 
   const buildPayload = () => ({
     nirNumber,
-    invoiceArchiveId: sourceInvoiceId || undefined,
+    invoiceArchiveId: linkedInvoiceId || undefined,
     invoiceNumber,
     avizNumber: avizNumber || undefined,
     supplierName,
@@ -1233,11 +1238,11 @@ export default function NIRCreate() {
     else createNir.mutate(payload);
   };
 
-  const totalFaraTva = lines.reduce(
+  const rawFaraTva = lines.reduce(
     (s, l) => s + (parseFloat(l.total) || 0),
     0
   );
-  const totalTva = lines.reduce(
+  const rawTva = lines.reduce(
     (s, l) => {
       const r = parseFloat(l.vatRate);
       const rate = isNaN(r) ? 21 : r; // 0% este valid
@@ -1245,7 +1250,35 @@ export default function NIRCreate() {
     },
     0
   );
-  const totalCuTva = totalFaraTva + totalTva;
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+  const rawCuTva = rawFaraTva + rawTva;
+
+  // Totaluri oficiale din factură (referință pentru verificare)
+  const invRefTotal = invoiceRef?.total != null ? parseFloat(String(invoiceRef.total)) : NaN;
+  const invRefVat = invoiceRef?.totalVAT != null ? parseFloat(String(invoiceRef.totalVAT)) : NaN;
+  const hasInvRef = !isNaN(invRefTotal) && !isNaN(invRefVat) && invRefTotal !== 0;
+  const hasQtyDiff = lines.some(
+    l => (parseFloat(l.cantitateReceptionata || "0") || 0) !== (parseFloat(l.cantitateComanda || "0") || 0)
+  );
+  // Doar diferențe de rotunjire (≤ 0,15) și fără diferențe de cantitate → NIR identic cu factura (la fel ca în PDF și SAGA)
+  const alignToInvoice =
+    hasInvRef && !hasQtyDiff && Math.abs(Math.abs(rawCuTva) - Math.abs(invRefTotal)) <= 0.15;
+  const sgn = rawCuTva < 0 ? -1 : 1;
+  const totalCuTva = alignToInvoice ? sgn * Math.abs(invRefTotal) : rawCuTva;
+  const totalTva = alignToInvoice ? sgn * Math.abs(invRefVat) : rawTva;
+  const totalFaraTva = alignToInvoice ? r2(totalCuTva - totalTva) : rawFaraTva;
+  const roundingAdjusted =
+    alignToInvoice &&
+    (Math.abs(rawCuTva - totalCuTva) > 0.001 || Math.abs(rawTva - totalTva) > 0.001);
+
+  // Verificare NIR față de factură (bifă verde = identic, X roșu = diferit)
+  const verifyRows = hasInvRef
+    ? [
+        { label: "Total fără TVA", nir: totalFaraTva, inv: sgn * Math.abs(invRefTotal - invRefVat) },
+        { label: "TVA", nir: totalTva, inv: sgn * Math.abs(invRefVat) },
+        { label: "Total cu TVA", nir: totalCuTva, inv: sgn * Math.abs(invRefTotal) },
+      ].map(r => ({ ...r, ok: Math.abs(r2(r.nir) - r2(r.inv)) < 0.005 }))
+    : [];
 
   const invTotalNum = sourceInvoice?.total != null ? parseFloat(String(sourceInvoice.total)) : null;
 
@@ -1429,8 +1462,8 @@ export default function NIRCreate() {
         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3">
           I. Date NIR
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3">
-          <div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-3 items-end">
+          <div className="md:col-span-2">
             <label className={LABEL_CLS}>Nr. NIR *</label>
             <input
               type="text"
@@ -1440,7 +1473,7 @@ export default function NIRCreate() {
               placeholder="ex: NIR-2026-0001"
             />
           </div>
-          <div>
+          <div className="md:col-span-2">
             <label className={LABEL_CLS}>Dată recepție *</label>
             <input
               type="date"
@@ -1449,7 +1482,7 @@ export default function NIRCreate() {
               className={INPUT_CLS}
             />
           </div>
-          <div>
+          <div className="md:col-span-2">
             <label className={LABEL_CLS}>Nr. Factură furnizor</label>
             <input
               value={invoiceNumber}
@@ -1458,16 +1491,7 @@ export default function NIRCreate() {
               placeholder="Nr. factură"
             />
           </div>
-          <div>
-            <label className={LABEL_CLS}>Nr. Aviz de însoțire</label>
-            <input
-              value={avizNumber}
-              onChange={e => setAvizNumber(e.target.value)}
-              className={INPUT_CLS}
-              placeholder="opțional"
-            />
-          </div>
-          <div className="md:col-span-1">
+          <div className="md:col-span-2">
             <label className={LABEL_CLS}>Gestiunea destinatară</label>
             <input
               value={gestiune}
@@ -1476,7 +1500,7 @@ export default function NIRCreate() {
               placeholder="Gestiune"
             />
           </div>
-          <div>
+          <div className="md:col-span-2">
             <label className={LABEL_CLS}>ID Încărcare SPV</label>
             <input
               type="text"
@@ -1487,7 +1511,7 @@ export default function NIRCreate() {
               title="Identificatorul de încărcare din Spațiul Privat Virtual ANAF"
             />
           </div>
-          <div className="md:col-span-1 flex items-center gap-2">
+          <div className="md:col-span-2 flex items-center gap-2 h-8">
             <label className="text-[10px] font-bold uppercase text-slate-400 whitespace-nowrap">Afișare Conturi</label>
             <button
               type="button"
@@ -1499,7 +1523,7 @@ export default function NIRCreate() {
             </button>
           </div>
           {showAccounting && (
-            <div className="md:col-span-1">
+            <div className="md:col-span-4">
               <label className={LABEL_CLS}>Tip / Cont (General)</label>
               <PlanConturiCombobox
                 displayMode="name"
@@ -1529,7 +1553,7 @@ export default function NIRCreate() {
             </div>
           )}
           <div className="md:col-span-1">
-            <label className={LABEL_CLS}>U/M (General)</label>
+            <label className={LABEL_CLS}>U/M</label>
             <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
               <select
                 value={
@@ -1547,7 +1571,7 @@ export default function NIRCreate() {
                 className="w-full h-8 px-2.5 pr-7 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none border-none"
               >
                 <option value="" disabled>
-                  — Mixt (alege) —
+                  Mixt
                 </option>
                 <option value="buc">buc</option>
                 <option value="kg">kg</option>
@@ -1565,8 +1589,8 @@ export default function NIRCreate() {
               </select>
             </div>
           </div>
-          <div className="md:col-span-1">
-            <label className={LABEL_CLS}>TVA (General) %</label>
+          <div className="md:col-span-1 min-w-[64px]">
+            <label className={LABEL_CLS}>TVA %</label>
             <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
               <select
                 value={generalVat}
@@ -1576,7 +1600,7 @@ export default function NIRCreate() {
                   setLines(prev => prev.map(l => ({ ...l, vatRate: v })));
                 }}
                 style={SELECT_STYLE}
-                className="w-full h-8 px-2.5 pr-7 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none border-none"
+                className="w-full h-8 pl-2 pr-5 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none border-none"
               >
                 <option value="21">21</option>
                 <option value="11">11</option>
@@ -1587,6 +1611,40 @@ export default function NIRCreate() {
               </select>
             </div>
           </div>
+
+          {verifyRows.length > 0 && (
+            <div className="md:col-span-6 flex flex-wrap items-center gap-1.5 min-h-8">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400" title="Verificare NIR față de factura furnizorului">
+                Factură:
+              </span>
+              {verifyRows.map(r => (
+                <span
+                  key={r.label}
+                  title={
+                    r.ok
+                      ? `${r.label}: NIR și factură sunt identice${roundingAdjusted ? " (aliniat la factură — rotunjire)" : ""}`
+                      : `${r.label}: NIR ${r.nir.toFixed(2)} ≠ factură ${r.inv.toFixed(2)} (diferență ${(r.nir - r.inv).toFixed(2)})`
+                  }
+                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg border text-[11px] font-semibold whitespace-nowrap ${
+                    r.ok
+                      ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300"
+                      : "bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-950/30 dark:border-rose-800 dark:text-rose-300"
+                  }`}
+                >
+                  {r.ok ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                  {r.label.replace("Total fără TVA", "Fără TVA").replace("Total cu TVA", "Total")}{" "}
+                  <span className="tabular-nums">
+                    {r.nir.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                  {!r.ok && (
+                    <span className="tabular-nums font-bold">
+                      {" "}≠ {r.inv.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  )}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

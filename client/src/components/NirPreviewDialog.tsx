@@ -117,7 +117,7 @@ export default function NirPreviewDialog({
         <DialogHeader className="flex-shrink-0">
           <div className="flex items-center justify-between gap-3 pr-8 flex-wrap">
             <div>
-              <DialogTitle>Previzualizare NIR {nirNumber || ""}</DialogTitle>
+              <DialogTitle>{/^nir/i.test((nirNumber || "").trim()) ? `Previzualizare ${(nirNumber || "").trim()}` : `Previzualizare NIR ${nirNumber || ""}`.trim()}</DialogTitle>
               <DialogDescription className="text-xs">
                 Documentul reflectă datele curente din formular, inclusiv modificările nesalvate.
               </DialogDescription>

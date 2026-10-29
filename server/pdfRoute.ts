@@ -1109,10 +1109,9 @@ export function registerPdfRoute(app: any) {
         ["Nr. NIR:", nirRow.nirNumber],
         ["Data recepție:", effectiveNirDate],
         ["Nr. factură:", nirRow.invoiceNumber || "—"],
-        ["Nr. aviz:", nirRow.avizNumber || "—"],
       ];
       fields.forEach(([label, val], i) => {
-        const x = 50 + i * col;
+        const x = 50 + i * (W / 3);
         doc.fontSize(6.5).font("Roboto").fillColor(GRAY).text(label, x, y);
         doc
           .fontSize(7.5)

@@ -236,6 +236,8 @@ export default function PlanConturiCombobox({
   };
 
   const isSmall = size === "sm";
+  // Mod "both" închis: codul pe rândul de sus, denumirea dedesubt (pe 2 rânduri, ușor de citit)
+  const stacked = displayMode === "both" && !isOpen && !!selectedAccount;
 
   return (
     <PopoverPrimitive.Root open={isOpen} onOpenChange={setIsOpen}>
@@ -245,9 +247,10 @@ export default function PlanConturiCombobox({
             isOpen
               ? "border-[var(--tenant-theme-color,#16a34a)] ring-2 ring-[var(--tenant-theme-color,#16a34a)]/20 shadow-xs"
               : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
-          } ${isSmall ? "h-7 px-2" : "h-8 px-2.5"} ${className}`}
+          } ${stacked ? "min-h-[36px] py-0.5 px-2" : isSmall ? "h-7 px-2" : "h-8 px-2.5"} ${className}`}
           title={title || (selectedAccount ? `${selectedAccount.cod} — ${selectedAccount.denumire}` : value)}
         >
+          <div className="relative flex-1 min-w-0">
           <input
             ref={inputRef}
             type="text"
@@ -317,12 +320,23 @@ export default function PlanConturiCombobox({
                 }
               }
             }}
-            className={`w-full bg-transparent text-slate-900 dark:text-white focus:outline-none truncate ${
+            className={`${stacked ? "absolute inset-0 opacity-0 cursor-pointer " : ""}w-full bg-transparent text-slate-900 dark:text-white focus:outline-none truncate ${
               displayMode === "name"
                 ? `font-medium ${isSmall ? "text-xs text-left" : "text-sm text-left"}`
                 : `font-bold font-mono ${isSmall ? "text-xs text-left pl-1" : "text-sm text-left pl-1"}`
             }`}
           />
+          {stacked && selectedAccount && (
+            <div className="pointer-events-none leading-tight py-0.5">
+              <div className="font-mono font-bold text-xs text-slate-900 dark:text-white truncate">
+                {selectedAccount.cod}
+              </div>
+              <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate">
+                {selectedAccount.shortLabel || getCleanShortLabel(selectedAccount) || selectedAccount.denumire}
+              </div>
+            </div>
+          )}
+          </div>
 
           {/* Selected account badge description in md size for code mode */}
           {displayMode === "code" && !isSmall && selectedAccount && !isOpen && (
