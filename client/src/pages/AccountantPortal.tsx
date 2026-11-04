@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect } from "react";
 import { useRoute } from "wouter";
 import {
   FileText,
-  Download,
   Calendar,
   Search,
   Filter,
@@ -10,7 +9,6 @@ import {
   AlertCircle,
   FileSpreadsheet,
   Package,
-  Layers,
   Building2,
   Lock,
   ShieldCheck,
@@ -18,13 +16,14 @@ import {
   ChevronRight,
   Copy,
   Check,
-  ExternalLink,
   Loader2,
   Coins,
   Receipt,
   Percent,
   RefreshCw,
   FileCode,
+  Tag,
+  ClipboardCheck,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -74,7 +73,7 @@ export default function AccountantPortal() {
 
   // Filtre
   const [search, setSearch] = useState("");
-  const [period, setPeriod] = useState<"current_month" | "last_month" | "last_3_months" | "current_year" | "all" | "custom">("current_month");
+  const [period, setPeriod] = useState<"current_month" | "last_month" | "last_3_months" | "current_year" | "all" | "custom">("all");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
   const [nirFilter, setNirFilter] = useState<"all" | "cu_nir" | "fara_nir">("all");
@@ -451,9 +450,9 @@ export default function AccountantPortal() {
   // 1. Ecran de încărcare inițială
   if (isLoadingPublic || (Boolean(sessionToken) && isCheckingSession)) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white">
-        <Loader2 className="w-8 h-8 animate-spin text-emerald-500 mb-3" />
-        <p className="text-sm text-slate-300">Se încarcă portalul de contabilitate...</p>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center text-slate-700 dark:text-slate-300">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-3" />
+        <p className="text-sm font-medium">Se încarcă portalul contabil...</p>
       </div>
     );
   }
@@ -461,13 +460,13 @@ export default function AccountantPortal() {
   // 2. Portal negăsit sau dezactivat
   if (!publicInfo?.found || !publicInfo.isEnabled) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center text-white shadow-2xl">
-          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 mx-auto flex items-center justify-center mb-4">
-            <AlertCircle className="w-8 h-8" />
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 text-center text-slate-800 dark:text-white shadow-sm">
+          <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 text-amber-600 mx-auto flex items-center justify-center mb-4">
+            <AlertCircle className="w-7 h-7" />
           </div>
-          <h2 className="text-xl font-bold mb-2">Portal Contabil Indisponibil</h2>
-          <p className="text-sm text-slate-400 mb-6 leading-relaxed">
+          <h2 className="text-lg font-bold mb-2">Portal Contabil Indisponibil</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
             Acest portal nu este activ sau link-ul accesat este invalid. Vă rugăm să contactați
             administratorul firmei pentru a primi link-ul corect sau pentru a activa accesul.
           </p>
@@ -476,7 +475,7 @@ export default function AccountantPortal() {
     );
   }
 
-  // 3. Ecran de blocare PIN
+  // 3. Ecran de blocare PIN (Lock Screen)
   if (!isUnlocked) {
     return (
       <AccountantPinLock
@@ -492,17 +491,17 @@ export default function AccountantPortal() {
     );
   }
 
-  // 4. Spațiul de lucru principal (Portalul Contabilului)
+  // 4. Spațiul de lucru principal — DESIGN SYSTEM IDENTIC CU APLICAȚIA
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      {/* Header Superior Navigație */}
-      <header className="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b border-slate-800/80 px-4 sm:px-8 py-3.5">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans">
+      {/* Header Superior Navigație — Clean White / Dark Slate */}
+      <header className="sticky top-0 z-30 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-8 py-3 shadow-xs">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           {/* Informații Firmă */}
           <div className="flex items-center gap-3">
             {publicInfo.logoUrl ? (
               <div
-                className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center p-1 border border-white/10 shrink-0"
+                className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center p-1 border border-slate-200 dark:border-slate-700 bg-white shrink-0 shadow-2xs"
                 style={{
                   backgroundColor: publicInfo.logoBgColor || (publicInfo.logoHasBackground ? "#0f172a" : "#ffffff"),
                 }}
@@ -514,22 +513,22 @@ export default function AccountantPortal() {
                 />
               </div>
             ) : (
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 text-blue-600 flex items-center justify-center shrink-0">
                 <Building2 className="w-5 h-5" />
               </div>
             )}
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-base font-bold text-white tracking-tight leading-none">
+                <h1 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tracking-tight leading-none">
                   {publicInfo.companyName}
                 </h1>
-                <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  <ShieldCheck className="w-3 h-3" />
+                <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800">
+                  <ShieldCheck className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                   Portal Contabil
                 </span>
               </div>
               {publicInfo.cui && (
-                <p className="text-xs text-slate-400 font-mono mt-0.5">
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
                   CUI: {publicInfo.cui}
                 </p>
               )}
@@ -542,14 +541,14 @@ export default function AccountantPortal() {
               onClick={() => refetchData()}
               disabled={isFetching}
               title="Reîmprospătează datele"
-              className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white transition border border-slate-700/60 disabled:opacity-50"
+              className="h-8 w-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition disabled:opacity-50 shadow-2xs"
             >
-              <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin text-blue-600" : ""}`} />
             </button>
             <button
               onClick={handleLockPortal}
               title="Blochează ecranul / Închide sesiunea"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-rose-500/10 hover:text-rose-400 text-slate-300 transition border border-slate-700/60 hover:border-rose-500/30 text-xs font-medium"
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 hover:border-rose-200 text-slate-700 dark:text-slate-300 transition text-xs font-semibold shadow-2xs"
             >
               <Lock className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Închide sesiunea</span>
@@ -559,95 +558,108 @@ export default function AccountantPortal() {
       </header>
 
       {/* Corpul Principal */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-8 py-6 space-y-6">
-        {/* Dashboard Top: Carduri Sintetice KPI */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-8 py-6 space-y-5">
+        {/* Dashboard Top: 5 Carduri Sintetice KPI — Stil identic cu AllInvoices / Dashboard */}
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-3.5">
           {/* Card 1: Total Facturi */}
-          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 shadow-sm">
-            <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-medium">Facturi Primite</span>
-              <FileText className="w-4 h-4 text-sky-400" />
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+            <div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Facturi Primite
+              </span>
+              <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1 leading-tight">
+                {currentKpis.totalCount}
+              </div>
+              <div className="text-[11px] text-slate-400 mt-0.5">în selecția activă</div>
             </div>
-            <div className="text-2xl font-bold text-white tracking-tight">
-              {currentKpis.totalCount}
+            <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-900/40 text-blue-600 flex items-center justify-center shrink-0">
+              <FileText className="w-4 h-4" />
             </div>
-            <div className="text-[11px] text-slate-400 mt-1">în perioada selectată</div>
           </div>
 
-          {/* Card 2: Bază fără TVA */}
-          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 shadow-sm">
-            <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-medium">Bază Impozabilă</span>
-              <Coins className="w-4 h-4 text-emerald-400" />
+          {/* Card 2: Bază Impozabilă */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+            <div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Bază Impozabilă
+              </span>
+              <div className="text-lg sm:text-xl font-black text-slate-900 dark:text-white mt-1 leading-tight">
+                {formatCurrency(currentKpis.totalBase)}
+              </div>
+              <div className="text-[11px] text-slate-400 mt-0.5">valoare fără TVA</div>
             </div>
-            <div className="text-2xl font-bold text-emerald-400 tracking-tight">
-              {formatCurrency(currentKpis.totalBase)}
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-900/40 text-emerald-600 flex items-center justify-center shrink-0">
+              <Coins className="w-4 h-4" />
             </div>
-            <div className="text-[11px] text-slate-400 mt-1">valoare fără TVA</div>
           </div>
 
-          {/* Card 3: TVA Total */}
-          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 shadow-sm">
-            <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-medium">TVA Deductibil</span>
-              <Percent className="w-4 h-4 text-amber-400" />
+          {/* Card 3: Total TVA */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+            <div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                TVA Deductibil
+              </span>
+              <div className="text-lg sm:text-xl font-black text-amber-600 dark:text-amber-400 mt-1 leading-tight">
+                {formatCurrency(currentKpis.totalVat)}
+              </div>
+              <div className="text-[11px] text-slate-400 mt-0.5">sumă totală TVA</div>
             </div>
-            <div className="text-2xl font-bold text-amber-400 tracking-tight">
-              {formatCurrency(currentKpis.totalVat)}
+            <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-900/40 text-amber-600 flex items-center justify-center shrink-0">
+              <Percent className="w-4 h-4" />
             </div>
-            <div className="text-[11px] text-slate-400 mt-1">sumă totală TVA</div>
           </div>
 
-          {/* Card 4: Total General */}
-          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 shadow-sm">
-            <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-medium">Total de Plată</span>
-              <Receipt className="w-4 h-4 text-violet-400" />
+          {/* Card 4: Total de Plată */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+            <div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Total de Plată
+              </span>
+              <div className="text-lg sm:text-xl font-black text-slate-900 dark:text-white mt-1 leading-tight">
+                {formatCurrency(currentKpis.totalGross)}
+              </div>
+              <div className="text-[11px] text-slate-400 mt-0.5">valoare brută cu TVA</div>
             </div>
-            <div className="text-2xl font-bold text-violet-300 tracking-tight">
-              {formatCurrency(currentKpis.totalGross)}
+            <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-900/40 text-indigo-600 flex items-center justify-center shrink-0">
+              <Receipt className="w-4 h-4" />
             </div>
-            <div className="text-[11px] text-slate-400 mt-1">valoare brută cu TVA</div>
           </div>
 
           {/* Card 5: Acoperire NIR */}
-          <div className="col-span-2 lg:col-span-1 bg-slate-900/70 border border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between text-slate-400 mb-2">
-                <span className="text-xs font-medium">Recepții NIR</span>
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              </div>
-              <div className="flex items-baseline gap-2">
-                <div className="text-2xl font-bold text-white tracking-tight">
+          <div className="col-span-2 lg:col-span-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+            <div className="flex-1 mr-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Recepții NIR
+              </span>
+              <div className="flex items-baseline gap-1.5 mt-1">
+                <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-tight">
                   {currentKpis.withNirCount}
-                </div>
-                <span className="text-xs text-slate-400">din {currentKpis.totalCount}</span>
-              </div>
-            </div>
-            <div className="mt-2.5">
-              <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1">
-                <span>Rată recepție</span>
-                <span className="font-semibold text-emerald-400">
+                </span>
+                <span className="text-xs text-slate-500">/ {currentKpis.totalCount}</span>
+                <span className="text-xs font-bold text-teal-600 ml-auto">
                   {currentKpis.nirCoveragePercent}%
                 </span>
               </div>
-              <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+              <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mt-1.5">
                 <div
-                  className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                  className="bg-teal-500 h-full rounded-full transition-all duration-300"
                   style={{ width: `${currentKpis.nirCoveragePercent}%` }}
                 />
               </div>
             </div>
+            <div className="w-9 h-9 rounded-xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200/60 dark:border-teal-900/40 text-teal-600 flex items-center justify-center shrink-0">
+              <ClipboardCheck className="w-4 h-4" />
+            </div>
           </div>
         </div>
 
-        {/* Bara de Filtre, Căutare și Instrumente Export */}
-        <div className="bg-slate-900/80 border border-slate-800/90 rounded-2xl p-4 space-y-3.5 shadow-sm">
+        {/* Card Filtre, Căutare & Exporturi — Stil identic cu AllInvoices */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs p-3.5 space-y-3">
           {/* Rândul 1: Căutare + Perioadă + Filtre */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="flex items-center gap-2.5 w-full flex-wrap xl:flex-nowrap">
             {/* Căutare */}
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 value={search}
@@ -655,58 +667,58 @@ export default function AccountantPortal() {
                   setSearch(e.target.value);
                   setPage(1);
                 }}
-                placeholder="Caută furnizor, CUI, nr. factură..."
-                className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-slate-950/70 border border-slate-800 focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/40 text-xs text-white placeholder-slate-500 transition outline-none"
+                placeholder="Caută furnizor, CUI, număr factură..."
+                className="w-full h-8 pl-9 pr-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
               />
             </div>
 
             {/* Perioadă */}
-            <div className="relative">
-              <Calendar className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <div className="w-[160px] sm:w-[180px] flex-shrink-0 relative">
+              <Calendar className="w-3.5 h-3.5 text-blue-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <select
                 value={period}
                 onChange={(e: any) => {
                   setPeriod(e.target.value);
                   setPage(1);
                 }}
-                className="w-full pl-9 pr-8 py-2 rounded-xl bg-slate-950/70 border border-slate-800 focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/40 text-xs text-white appearance-none cursor-pointer transition outline-none"
+                className="w-full h-8 pl-8 pr-4 rounded-full border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
               >
+                <option value="all">Perioadă: Toate</option>
                 <option value="current_month">Luna curentă</option>
                 <option value="last_month">Luna anterioară</option>
                 <option value="last_3_months">Ultimele 3 luni</option>
                 <option value="current_year">Anul curent</option>
-                <option value="all">Toate facturile</option>
-                <option value="custom">Interval personalizat...</option>
+                <option value="custom">Personalizat...</option>
               </select>
             </div>
 
             {/* Filtru NIR */}
-            <div className="relative">
-              <Filter className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <div className="w-[145px] sm:w-[165px] flex-shrink-0 relative">
+              <ClipboardCheck className="w-3.5 h-3.5 text-teal-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <select
                 value={nirFilter}
                 onChange={(e: any) => {
                   setNirFilter(e.target.value);
                   setPage(1);
                 }}
-                className="w-full pl-9 pr-8 py-2 rounded-xl bg-slate-950/70 border border-slate-800 focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/40 text-xs text-white appearance-none cursor-pointer transition outline-none"
+                className="w-full h-8 pl-8 pr-4 rounded-full border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
               >
-                <option value="all">Status NIR: Toate</option>
-                <option value="cu_nir">Doar cu NIR generat</option>
-                <option value="fara_nir">Doar fără NIR</option>
+                <option value="all">NIR: Toate</option>
+                <option value="cu_nir">✓ Cu NIR generat</option>
+                <option value="fara_nir">○ Fără NIR</option>
               </select>
             </div>
 
             {/* Filtru Furnizor */}
-            <div className="relative">
-              <Building2 className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <div className="w-[150px] sm:w-[180px] flex-shrink-0 relative">
+              <Building2 className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <select
                 value={supplierFilter}
                 onChange={(e) => {
                   setSupplierFilter(e.target.value);
                   setPage(1);
                 }}
-                className="w-full pl-9 pr-8 py-2 rounded-xl bg-slate-950/70 border border-slate-800 focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/40 text-xs text-white appearance-none cursor-pointer transition outline-none"
+                className="w-full h-8 pl-8 pr-4 rounded-full border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer truncate"
               >
                 <option value="all">Furnizor: Toți ({allSuppliers.length})</option>
                 {allSuppliers.map((supp) => (
@@ -720,32 +732,32 @@ export default function AccountantPortal() {
 
           {/* Rândul opțional: Interval Personalizat */}
           {period === "custom" && (
-            <div className="flex flex-wrap items-center gap-3 pt-1 border-t border-slate-800/60">
-              <span className="text-xs text-slate-400">De la:</span>
+            <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <span className="text-xs font-medium text-slate-500">De la:</span>
               <input
                 type="date"
                 value={customStartDate}
                 onChange={(e) => setCustomStartDate(e.target.value)}
-                className="px-3 py-1.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-white outline-none focus:border-emerald-500"
+                className="h-8 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <span className="text-xs text-slate-400">Până la:</span>
+              <span className="text-xs font-medium text-slate-500">Până la:</span>
               <input
                 type="date"
                 value={customEndDate}
                 onChange={(e) => setCustomEndDate(e.target.value)}
-                className="px-3 py-1.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-white outline-none focus:border-emerald-500"
+                className="h-8 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           )}
 
           {/* Rândul 2: Contor Rezultate + Butoane Export */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800/60">
-            <div className="text-xs text-slate-400">
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <div className="text-xs text-slate-500">
               Afișare{" "}
-              <span className="font-semibold text-white">{filteredInvoices.length}</span>{" "}
+              <span className="font-bold text-slate-900 dark:text-white">{filteredInvoices.length}</span>{" "}
               facturi găsite
               {selectedIds.size > 0 && (
-                <span className="ml-2 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
+                <span className="ml-2 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 font-bold border border-blue-200 dark:border-blue-800">
                   {selectedIds.size} selectate
                 </span>
               )}
@@ -756,7 +768,7 @@ export default function AccountantPortal() {
               <button
                 onClick={handleExportExcel}
                 disabled={filteredInvoices.length === 0}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition disabled:opacity-40"
+                className="h-8 px-3.5 rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 transition-colors shadow-2xs disabled:opacity-50"
               >
                 <FileSpreadsheet className="w-3.5 h-3.5" />
                 <span>Export Excel (.xlsx)</span>
@@ -766,7 +778,7 @@ export default function AccountantPortal() {
               <button
                 onClick={handleDownloadZipBundle}
                 disabled={filteredInvoices.length === 0 || isDownloadingZip}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 text-xs font-semibold transition disabled:opacity-40"
+                className="h-8 px-3.5 rounded-full text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-1.5 transition-colors shadow-2xs disabled:opacity-50"
               >
                 {isDownloadingZip ? (
                   <>
@@ -785,7 +797,7 @@ export default function AccountantPortal() {
               <button
                 onClick={handleDownloadSagaXml}
                 disabled={downloadSagaXmlMutation.isPending}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 border border-violet-500/30 text-xs font-semibold transition disabled:opacity-40"
+                className="h-8 px-3.5 rounded-full text-xs font-semibold bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 flex items-center gap-1.5 transition-colors shadow-2xs disabled:opacity-50"
               >
                 {downloadSagaXmlMutation.isPending ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -798,13 +810,13 @@ export default function AccountantPortal() {
           </div>
         </div>
 
-        {/* Tabel Documente Contabile */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+        {/* Tabel Documente Contabile — Stil identic cu AllInvoices */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-slate-800 bg-slate-950/60 text-slate-400 uppercase text-[11px] tracking-wider select-none font-semibold">
-                  <th className="p-3 w-10 text-center">
+                <tr className="bg-slate-50/80 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide select-none">
+                  <th className="px-4 py-3 w-10 text-center">
                     <input
                       type="checkbox"
                       checked={
@@ -812,24 +824,33 @@ export default function AccountantPortal() {
                         filteredInvoices.length > 0
                       }
                       onChange={handleToggleSelectAll}
-                      className="rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-emerald-500/30 cursor-pointer"
+                      className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
                     />
                   </th>
-                  <th className="p-3 w-12 text-center">Nr.</th>
-                  <th className="p-3">Dată / Scadență</th>
-                  <th className="p-3">Furnizor & CUI</th>
-                  <th className="p-3">Nr. Factură</th>
-                  <th className="p-3 text-right">Bază (fără TVA)</th>
-                  <th className="p-3 text-right">TVA</th>
-                  <th className="p-3 text-right">Total Factură</th>
-                  <th className="p-3">Status NIR</th>
-                  <th className="p-3 text-right">Documente</th>
+                  <th className="px-3 py-3 w-12 text-center">Nr.</th>
+                  <th className="px-4 py-3">Dată / Scadență</th>
+                  <th className="px-4 py-3">Furnizor & CUI</th>
+                  <th className="px-4 py-3">Nr. Factură</th>
+                  <th className="px-4 py-3 text-right">Bază (fără TVA)</th>
+                  <th className="px-4 py-3 text-right">TVA</th>
+                  <th className="px-4 py-3 text-right">Total Factură</th>
+                  <th className="px-4 py-3">Status NIR</th>
+                  <th className="px-4 py-3 text-right">Documente</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {paginatedInvoices.length === 0 ? (
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {isLoadingData ? (
                   <tr>
-                    <td colSpan={10} className="p-10 text-center text-slate-500">
+                    <td colSpan={10} className="py-12 text-center">
+                      <Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto" />
+                    </td>
+                  </tr>
+                ) : paginatedInvoices.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={10}
+                      className="py-10 text-center text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-slate-800/20"
+                    >
                       Nu a fost găsită nicio factură conform filtrelor selectate.
                     </td>
                   </tr>
@@ -841,57 +862,57 @@ export default function AccountantPortal() {
                     return (
                       <tr
                         key={inv.id}
-                        className={`transition hover:bg-slate-800/40 ${
-                          isSelected ? "bg-emerald-950/20" : ""
+                        className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors ${
+                          isSelected ? "bg-blue-50/50 dark:bg-blue-950/20" : ""
                         }`}
                       >
                         {/* Checkbox */}
-                        <td className="p-3 text-center">
+                        <td className="px-4 py-2.5 text-center">
                           <input
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => handleToggleSelect(inv.id)}
-                            className="rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-emerald-500/30 cursor-pointer"
+                            className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
                           />
                         </td>
 
                         {/* Nr. Crt */}
-                        <td className="p-3 text-center text-slate-500 font-mono">
+                        <td className="px-3 py-2.5 text-center font-bold text-xs text-slate-500">
                           {rowNumber}
                         </td>
 
                         {/* Dată & Scadență */}
-                        <td className="p-3">
-                          <div className="font-medium text-slate-200">
+                        <td className="px-4 py-2.5 whitespace-nowrap">
+                          <div className="font-semibold text-slate-900 dark:text-white">
                             {formatDate(inv.issueDate)}
                           </div>
                           {inv.dueDate && (
-                            <div className="text-[10px] text-slate-500">
+                            <div className="text-[10px] text-slate-400">
                               Scadent: {formatDate(inv.dueDate)}
                             </div>
                           )}
                         </td>
 
                         {/* Furnizor & CUI */}
-                        <td className="p-3 max-w-[200px]">
+                        <td className="px-4 py-2.5 max-w-[220px]">
                           <div
-                            className="font-semibold text-white truncate"
+                            className="font-bold text-slate-900 dark:text-white truncate"
                             title={inv.supplierName}
                           >
                             {inv.supplierName}
                           </div>
                           {inv.supplierCUI && (
                             <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className="text-[10px] font-mono text-slate-400">
+                              <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
                                 {inv.supplierCUI}
                               </span>
                               <button
                                 onClick={(e) => handleCopyCui(inv.supplierCUI, e)}
                                 title="Copiază CUI"
-                                className="text-slate-500 hover:text-emerald-400 transition"
+                                className="text-slate-400 hover:text-blue-600 transition"
                               >
                                 {copiedCui === inv.supplierCUI ? (
-                                  <Check className="w-3 h-3 text-emerald-400" />
+                                  <Check className="w-3 h-3 text-emerald-500" />
                                 ) : (
                                   <Copy className="w-3 h-3" />
                                 )}
@@ -901,55 +922,55 @@ export default function AccountantPortal() {
                         </td>
 
                         {/* Număr Factură */}
-                        <td className="p-3">
-                          <span className="font-mono font-medium text-slate-200 px-2 py-0.5 rounded bg-slate-800/80 border border-slate-700/60">
+                        <td className="px-4 py-2.5 whitespace-nowrap">
+                          <span className="font-semibold text-blue-600 dark:text-blue-400">
                             {inv.invoiceNumber}
                           </span>
                         </td>
 
                         {/* Bază fără TVA */}
-                        <td className="p-3 text-right font-mono text-slate-300">
+                        <td className="px-4 py-2.5 text-right font-mono text-slate-700 dark:text-slate-300">
                           {formatCurrency(inv.totalBase, inv.currency)}
                         </td>
 
                         {/* TVA */}
-                        <td className="p-3 text-right font-mono text-amber-400/90">
+                        <td className="px-4 py-2.5 text-right font-mono text-slate-500 dark:text-slate-400">
                           {formatCurrency(inv.totalVAT, inv.currency)}
                         </td>
 
                         {/* Total Factură */}
-                        <td className="p-3 text-right font-mono font-bold text-white">
+                        <td className="px-4 py-2.5 text-right font-mono font-bold text-slate-900 dark:text-white">
                           {formatCurrency(inv.total, inv.currency)}
                         </td>
 
                         {/* Status NIR */}
-                        <td className="p-3">
+                        <td className="px-4 py-2.5 whitespace-nowrap">
                           {inv.hasNir ? (
-                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-medium text-[11px]">
-                              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-teal-50 text-teal-700 border border-teal-200 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800">
+                              <ClipboardCheck className="w-3 h-3 text-teal-600 shrink-0" />
                               <span>
                                 {inv.nirNumber ? `NIR #${inv.nirNumber}` : "Recepționat"}
                               </span>
-                            </div>
+                            </span>
                           ) : (
-                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 border border-slate-700/60 text-[11px]">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700">
                               <span>Fără NIR</span>
-                            </div>
+                            </span>
                           )}
                         </td>
 
                         {/* Acțiuni Documente */}
-                        <td className="p-3 text-right">
+                        <td className="px-4 py-2.5 text-right whitespace-nowrap">
                           <div className="flex items-center justify-end gap-1.5">
                             {/* Buton Factură PDF */}
                             <a
                               href={inv.pdfUrl}
                               target="_blank"
                               rel="noreferrer"
-                              title="Vizualizează factura PDF originală"
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-600 transition text-[11px] font-medium"
+                              title="Vizualizează factura PDF"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800 transition-colors"
                             >
-                              <FileText className="w-3.5 h-3.5 text-sky-400" />
+                              <FileText className="w-3.5 h-3.5" />
                               <span>Factură</span>
                             </a>
 
@@ -960,9 +981,9 @@ export default function AccountantPortal() {
                                 target="_blank"
                                 rel="noreferrer"
                                 title="Vizualizează fișa de recepție NIR"
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-950/60 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/30 hover:border-emerald-500/50 transition text-[11px] font-medium"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200 dark:bg-teal-950/40 dark:text-teal-400 dark:border-teal-800 transition-colors"
                               >
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                <ClipboardCheck className="w-3.5 h-3.5" />
                                 <span>NIR</span>
                               </a>
                             ) : null}
@@ -976,8 +997,8 @@ export default function AccountantPortal() {
             </table>
           </div>
 
-          {/* Footer Paginare */}
-          <div className="flex flex-wrap items-center justify-between gap-4 p-4 border-t border-slate-800 bg-slate-950/40 text-xs text-slate-400">
+          {/* Footer Paginare — Identic cu AllInvoices */}
+          <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 bg-white dark:bg-slate-900">
             <div className="flex items-center gap-2">
               <span>Rânduri pe pagină:</span>
               <select
@@ -986,15 +1007,15 @@ export default function AccountantPortal() {
                   setPageSize(Number(e.target.value));
                   setPage(1);
                 }}
-                className="px-2 py-1 rounded-lg bg-slate-900 border border-slate-800 text-white outline-none cursor-pointer"
+                className="h-7 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none cursor-pointer text-xs"
               >
                 <option value={10}>10</option>
                 <option value={25}>25</option>
                 <option value={50}>50</option>
                 <option value={100}>100</option>
               </select>
-              <span className="text-slate-500 ml-2">
-                Afișare {(page - 1) * pageSize + 1}-
+              <span className="text-slate-400 ml-2">
+                Afișare {filteredInvoices.length > 0 ? (page - 1) * pageSize + 1 : 0}-
                 {Math.min(page * pageSize, filteredInvoices.length)} din{" "}
                 {filteredInvoices.length}
               </span>
@@ -1004,19 +1025,19 @@ export default function AccountantPortal() {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 disabled:opacity-40 transition"
+                className="h-7 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 disabled:opacity-40 transition font-medium"
               >
-                <ChevronLeft className="w-4 h-4" />
+                Anterior
               </button>
-              <span className="font-medium text-slate-300 px-2">
-                Pagina {page} din {totalPages}
+              <span className="font-bold text-slate-700 dark:text-slate-300 px-1">
+                {page} / {totalPages}
               </span>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
-                className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 disabled:opacity-40 transition"
+                className="h-7 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 disabled:opacity-40 transition font-medium"
               >
-                <ChevronRight className="w-4 h-4" />
+                Următor
               </button>
             </div>
           </div>
@@ -1025,4 +1046,3 @@ export default function AccountantPortal() {
     </div>
   );
 }
-
