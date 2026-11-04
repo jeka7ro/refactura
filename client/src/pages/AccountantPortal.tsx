@@ -653,7 +653,7 @@ export default function AccountantPortal() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex font-sans">
       {/* SIDEBAR DEDICAT PENTRU CONTABIL */}
-      <aside className="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0 min-h-screen sticky top-0 h-screen z-20">
+      <aside className="w-56 xl:w-60 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0 min-h-screen sticky top-0 h-screen z-20">
         {/* Antet Sidebar */}
         <div className="p-4 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
@@ -789,7 +789,7 @@ export default function AccountantPortal() {
           </div>
         </header>
 
-        <main className="p-6 space-y-5 flex-1">
+        <main className="p-3.5 sm:p-4 lg:p-5 space-y-4 flex-1 min-w-0">
           {/* TAB 1: FACTURI PRIMITE */}
           {activeTab === "received" && (
             <>
@@ -990,7 +990,7 @@ export default function AccountantPortal() {
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="bg-slate-50/80 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-500 uppercase tracking-wide select-none">
-                        <th className="px-4 py-3 w-10 text-center">
+                        <th className="px-2.5 py-2.5 w-8 text-center">
                           <input
                             type="checkbox"
                             checked={selectedIds.size === filteredInvoices.length && filteredInvoices.length > 0}
@@ -998,15 +998,15 @@ export default function AccountantPortal() {
                             className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
                           />
                         </th>
-                        <th className="px-3 py-3 w-12 text-center">Nr.</th>
-                        <th className="px-4 py-3">Dată / Scadență</th>
-                        <th className="px-4 py-3">Furnizor & CUI</th>
-                        <th className="px-4 py-3">Nr. Factură</th>
-                        <th className="px-4 py-3 text-right">Bază (fără TVA)</th>
-                        <th className="px-4 py-3 text-right">TVA</th>
-                        <th className="px-4 py-3 text-right">Total Factură</th>
-                        <th className="px-4 py-3">Status NIR</th>
-                        <th className="px-4 py-3 text-right">Documente (În fereastră)</th>
+                        <th className="px-1.5 py-2.5 w-8 text-center text-slate-400">#</th>
+                        <th className="px-2.5 py-2.5 whitespace-nowrap">Dată / Scad.</th>
+                        <th className="px-2.5 py-2.5">Furnizor & CUI</th>
+                        <th className="px-2.5 py-2.5 whitespace-nowrap">Nr. Factură</th>
+                        <th className="px-2 py-2.5 text-right whitespace-nowrap">Bază</th>
+                        <th className="px-2 py-2.5 text-right whitespace-nowrap">TVA</th>
+                        <th className="px-2.5 py-2.5 text-right whitespace-nowrap">Total</th>
+                        <th className="px-2 py-2.5 text-center whitespace-nowrap">Status NIR</th>
+                        <th className="px-2 py-2.5 text-center w-16 whitespace-nowrap">Doc</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -1032,7 +1032,7 @@ export default function AccountantPortal() {
                               key={inv.id}
                               className={`hover:bg-slate-50/80 transition-colors ${isSelected ? "bg-blue-50/50" : ""}`}
                             >
-                              <td className="px-4 py-2.5 text-center">
+                              <td className="px-2.5 py-2 text-center">
                                 <input
                                   type="checkbox"
                                   checked={isSelected}
@@ -1040,52 +1040,78 @@ export default function AccountantPortal() {
                                   className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                                 />
                               </td>
-                              <td className="px-3 py-2.5 text-center font-bold text-xs text-slate-500">{rowNumber}</td>
-                              <td className="px-4 py-2.5 whitespace-nowrap">
-                                <div className="font-semibold text-slate-900 dark:text-white">{formatDate(inv.issueDate)}</div>
-                                {inv.dueDate && <div className="text-[10px] text-slate-400">Scadent: {formatDate(inv.dueDate)}</div>}
+                              <td className="px-1.5 py-2 text-center font-bold text-xs text-slate-400">{rowNumber}</td>
+                              <td className="px-2.5 py-2 whitespace-nowrap">
+                                <div className="font-semibold text-slate-900 dark:text-white leading-tight">{formatDate(inv.issueDate)}</div>
+                                {inv.dueDate && <div className="text-[10px] text-slate-400 mt-0.5">Scad: {formatDate(inv.dueDate)}</div>}
                               </td>
-                              <td className="px-4 py-2.5 max-w-[220px]">
+                              <td className="px-2.5 py-2 max-w-[170px] xl:max-w-[220px]">
                                 <div className="font-bold text-slate-900 dark:text-white truncate" title={inv.supplierName}>{inv.supplierName}</div>
                                 {inv.supplierCUI && (
-                                  <div className="flex items-center gap-1.5 mt-0.5">
+                                  <div className="flex items-center gap-1 mt-0.5">
                                     <span className="text-[10px] font-mono text-slate-500">{inv.supplierCUI}</span>
                                     <button onClick={(e) => handleCopyCui(inv.supplierCUI, e)} title="Copiază CUI" className="text-slate-400 hover:text-blue-600 transition">
-                                      {copiedCui === inv.supplierCUI ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                                      {copiedCui === inv.supplierCUI ? <Check className="w-2.5 h-2.5 text-emerald-500" /> : <Copy className="w-2.5 h-2.5" />}
                                     </button>
                                   </div>
                                 )}
                               </td>
-                              <td className="px-4 py-2.5 whitespace-nowrap">
-                                <span className="font-semibold text-blue-600 dark:text-blue-400">{inv.invoiceNumber}</span>
+                              <td className="px-2.5 py-2 whitespace-nowrap">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setPreviewDoc({
+                                      isOpen: true,
+                                      title: `Factură ${inv.invoiceNumber} — ${inv.supplierName}`,
+                                      pdfUrl: getAuthenticatedPdfUrl(inv.pdfUrl),
+                                      filename: `Factura_${inv.invoiceNumber}.pdf`,
+                                      type: "invoice",
+                                    })
+                                  }
+                                  title="Deschide factura în fereastră"
+                                  className="font-semibold text-blue-600 dark:text-blue-400 hover:underline text-left block"
+                                >
+                                  {inv.invoiceNumber}
+                                </button>
                                 {inv.spvIndex ? (
                                   <div
-                                    className="text-[11px] font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5"
+                                    className="text-[10px] font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5"
                                     title={`Index încărcare SPV: ${inv.spvIndex}`}
                                   >
-                                    <span className="text-[10px] uppercase font-bold text-slate-400">SPV:</span>
+                                    <span className="text-[9px] uppercase font-bold text-slate-400">SPV:</span>
                                     <span>{inv.spvIndex}</span>
                                   </div>
                                 ) : null}
                               </td>
-                              <td className="px-4 py-2.5 text-right font-mono text-slate-700 dark:text-slate-300">{formatCurrency(inv.totalBase, inv.currency)}</td>
-                              <td className="px-4 py-2.5 text-right font-mono text-slate-500">{formatCurrency(inv.totalVAT, inv.currency)}</td>
-                              <td className="px-4 py-2.5 text-right font-mono font-bold text-slate-900 dark:text-white">{formatCurrency(inv.total, inv.currency)}</td>
-                              <td className="px-4 py-2.5 whitespace-nowrap">
+                              <td className="px-2 py-2 text-right font-mono text-slate-700 dark:text-slate-300 whitespace-nowrap">{formatCurrency(inv.totalBase, inv.currency)}</td>
+                              <td className="px-2 py-2 text-right font-mono text-slate-500 whitespace-nowrap">{formatCurrency(inv.totalVAT, inv.currency)}</td>
+                              <td className="px-2.5 py-2 text-right font-mono font-bold text-slate-900 dark:text-white whitespace-nowrap">{formatCurrency(inv.total, inv.currency)}</td>
+                              <td className="px-2 py-2 text-center whitespace-nowrap">
                                 {inv.hasNir ? (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-teal-50 text-teal-700 border border-teal-200">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setPreviewDoc({
+                                        isOpen: true,
+                                        title: `NIR #${inv.nirNumber || inv.nirId} — ${inv.supplierName}`,
+                                        pdfUrl: getAuthenticatedPdfUrl(`/api/pdf/nir/${inv.nirId}`),
+                                        filename: `NIR_${inv.nirNumber || inv.nirId}.pdf`,
+                                        type: "nir",
+                                      })
+                                    }
+                                    title="Deschide NIR în fereastră"
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200 transition-colors cursor-pointer"
+                                  >
                                     <ClipboardCheck className="w-3 h-3 text-teal-600 shrink-0" />
-                                    <span>{inv.nirNumber ? `NIR #${inv.nirNumber}` : "Recepționat"}</span>
-                                  </span>
+                                    <span>{inv.nirNumber ? `NIR #${inv.nirNumber}` : "Recepție"}</span>
+                                  </button>
                                 ) : (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
-                                    <span>Fără NIR</span>
-                                  </span>
+                                  <span className="text-slate-400 text-xs">Fără NIR</span>
                                 )}
                               </td>
-                              {/* Butoane Documente — DESCHID ÎN FEREASTRĂ (MODAL) */}
-                              <td className="px-4 py-2.5 text-right whitespace-nowrap">
-                                <div className="flex items-center justify-end gap-1.5">
+                              {/* Butoane Documente — Iconițe compacte */}
+                              <td className="px-2 py-2 text-center whitespace-nowrap">
+                                <div className="flex items-center justify-center gap-1">
                                   <button
                                     type="button"
                                     onClick={() =>
@@ -1098,10 +1124,9 @@ export default function AccountantPortal() {
                                       })
                                     }
                                     title="Deschide factura în fereastră"
-                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors"
+                                    className="w-7 h-7 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 flex items-center justify-center transition-colors shadow-2xs"
                                   >
                                     <FileText className="w-3.5 h-3.5" />
-                                    <span>Factură</span>
                                   </button>
 
                                   {inv.hasNir && inv.nirId ? (
@@ -1117,10 +1142,9 @@ export default function AccountantPortal() {
                                         })
                                       }
                                       title="Deschide NIR în fereastră"
-                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200 transition-colors"
+                                      className="w-7 h-7 rounded-lg bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200 flex items-center justify-center transition-colors shadow-2xs"
                                     >
                                       <ClipboardCheck className="w-3.5 h-3.5" />
-                                      <span>NIR</span>
                                     </button>
                                   ) : null}
                                 </div>
@@ -1279,15 +1303,15 @@ export default function AccountantPortal() {
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="bg-slate-50/80 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-500 uppercase tracking-wide select-none">
-                        <th className="px-3 py-3 w-12 text-center">Nr.</th>
-                        <th className="px-4 py-3">Dată / Scadență</th>
-                        <th className="px-4 py-3">Client & CUI</th>
-                        <th className="px-4 py-3">Nr. Factură</th>
-                        <th className="px-4 py-3 text-right">Bază (fără TVA)</th>
-                        <th className="px-4 py-3 text-right">TVA</th>
-                        <th className="px-4 py-3 text-right">Total Factură</th>
-                        <th className="px-4 py-3">Stare</th>
-                        <th className="px-4 py-3 text-right">Document (În fereastră)</th>
+                        <th className="px-1.5 py-2.5 w-8 text-center text-slate-400">#</th>
+                        <th className="px-2.5 py-2.5 whitespace-nowrap">Dată / Scad.</th>
+                        <th className="px-2.5 py-2.5">Client & CUI</th>
+                        <th className="px-2.5 py-2.5 whitespace-nowrap">Nr. Factură</th>
+                        <th className="px-2 py-2.5 text-right whitespace-nowrap">Bază</th>
+                        <th className="px-2 py-2.5 text-right whitespace-nowrap">TVA</th>
+                        <th className="px-2.5 py-2.5 text-right whitespace-nowrap">Total</th>
+                        <th className="px-2.5 py-2.5 text-center whitespace-nowrap">Stare</th>
+                        <th className="px-2 py-2.5 text-center w-14 whitespace-nowrap">Doc</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -1309,43 +1333,23 @@ export default function AccountantPortal() {
 
                           return (
                             <tr key={`${inv.source}-${inv.id}`} className="hover:bg-slate-50/80 transition-colors">
-                              <td className="px-3 py-2.5 text-center font-bold text-xs text-slate-500">{rowNumber}</td>
-                              <td className="px-4 py-2.5 whitespace-nowrap">
-                                <div className="font-semibold text-slate-900 dark:text-white">{formatDate(inv.issueDate)}</div>
-                                {inv.dueDate && <div className="text-[10px] text-slate-400">Scadent: {formatDate(inv.dueDate)}</div>}
+                              <td className="px-1.5 py-2 text-center font-bold text-xs text-slate-400">{rowNumber}</td>
+                              <td className="px-2.5 py-2 whitespace-nowrap">
+                                <div className="font-semibold text-slate-900 dark:text-white leading-tight">{formatDate(inv.issueDate)}</div>
+                                {inv.dueDate && <div className="text-[10px] text-slate-400 mt-0.5">Scad: {formatDate(inv.dueDate)}</div>}
                               </td>
-                              <td className="px-4 py-2.5 max-w-[220px]">
+                              <td className="px-2.5 py-2 max-w-[170px] xl:max-w-[220px]">
                                 <div className="font-bold text-slate-900 dark:text-white truncate" title={inv.clientName}>{inv.clientName}</div>
                                 {inv.clientCUI && (
-                                  <div className="flex items-center gap-1.5 mt-0.5">
+                                  <div className="flex items-center gap-1 mt-0.5">
                                     <span className="text-[10px] font-mono text-slate-500">{inv.clientCUI}</span>
                                     <button onClick={(e) => handleCopyCui(inv.clientCUI, e)} title="Copiază CUI" className="text-slate-400 hover:text-blue-600 transition">
-                                      {copiedCui === inv.clientCUI ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                                      {copiedCui === inv.clientCUI ? <Check className="w-2.5 h-2.5 text-emerald-500" /> : <Copy className="w-2.5 h-2.5" />}
                                     </button>
                                   </div>
                                 )}
                               </td>
-                              <td className="px-4 py-2.5 whitespace-nowrap">
-                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">{inv.invoiceNumber}</span>
-                                {inv.spvIndex ? (
-                                  <div
-                                    className="text-[11px] font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5"
-                                    title={`Index încărcare SPV: ${inv.spvIndex}`}
-                                  >
-                                    <span className="text-[10px] uppercase font-bold text-slate-400">SPV:</span>
-                                    <span>{inv.spvIndex}</span>
-                                  </div>
-                                ) : null}
-                              </td>
-                              <td className="px-4 py-2.5 text-right font-mono text-slate-700 dark:text-slate-300">{formatCurrency(inv.totalBase, inv.currency)}</td>
-                              <td className="px-4 py-2.5 text-right font-mono text-slate-500">{formatCurrency(inv.totalVAT, inv.currency)}</td>
-                              <td className="px-4 py-2.5 text-right font-mono font-bold text-slate-900 dark:text-white">{formatCurrency(inv.total, inv.currency)}</td>
-                              <td className="px-4 py-2.5 whitespace-nowrap">
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                  {inv.status || "emis"}
-                                </span>
-                              </td>
-                              <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                              <td className="px-2.5 py-2 whitespace-nowrap">
                                 <button
                                   type="button"
                                   onClick={() =>
@@ -1358,10 +1362,44 @@ export default function AccountantPortal() {
                                     })
                                   }
                                   title="Deschide factura în fereastră"
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors"
+                                  className="font-semibold text-emerald-600 dark:text-emerald-400 hover:underline text-left block"
+                                >
+                                  {inv.invoiceNumber}
+                                </button>
+                                {inv.spvIndex ? (
+                                  <div
+                                    className="text-[10px] font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5"
+                                    title={`Index încărcare SPV: ${inv.spvIndex}`}
+                                  >
+                                    <span className="text-[9px] uppercase font-bold text-slate-400">SPV:</span>
+                                    <span>{inv.spvIndex}</span>
+                                  </div>
+                                ) : null}
+                              </td>
+                              <td className="px-2 py-2 text-right font-mono text-slate-700 dark:text-slate-300 whitespace-nowrap">{formatCurrency(inv.totalBase, inv.currency)}</td>
+                              <td className="px-2 py-2 text-right font-mono text-slate-500 whitespace-nowrap">{formatCurrency(inv.totalVAT, inv.currency)}</td>
+                              <td className="px-2.5 py-2 text-right font-mono font-bold text-slate-900 dark:text-white whitespace-nowrap">{formatCurrency(inv.total, inv.currency)}</td>
+                              <td className="px-2.5 py-2 text-center whitespace-nowrap">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  {inv.status || "emis"}
+                                </span>
+                              </td>
+                              <td className="px-2 py-2 text-center whitespace-nowrap">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setPreviewDoc({
+                                      isOpen: true,
+                                      title: `Factură Emisă ${inv.invoiceNumber} — ${inv.clientName}`,
+                                      pdfUrl: getAuthenticatedPdfUrl(inv.pdfUrl),
+                                      filename: `Factura_Emisa_${inv.invoiceNumber}.pdf`,
+                                      type: "emitted",
+                                    })
+                                  }
+                                  title="Deschide factura în fereastră"
+                                  className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 inline-flex items-center justify-center transition-colors shadow-2xs"
                                 >
                                   <FileText className="w-3.5 h-3.5" />
-                                  <span>Factură</span>
                                 </button>
                               </td>
                             </tr>
