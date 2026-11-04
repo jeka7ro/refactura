@@ -23,7 +23,7 @@ function createAccountantSessionToken(tenantId: number): string {
 /**
  * Validează un session token semnat HMAC și verifică apartenența la tenantId
  */
-function verifyAccountantSessionToken(tenantId: number, tokenStr: string): boolean {
+export function verifyAccountantSessionToken(tenantId: number, tokenStr: string): boolean {
   try {
     const [payload, signature] = tokenStr.split(".");
     if (!payload || !signature) return false;
@@ -41,6 +41,31 @@ function verifyAccountantSessionToken(tenantId: number, tokenStr: string): boole
     return true;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Validează un session token contabil și extrage tenantId-ul garantat
+ */
+export function verifyAndExtractAccountantSession(tokenStr: string): { tenantId: number } | null {
+  try {
+    if (!tokenStr) return null;
+    const [payload, signature] = tokenStr.split(".");
+    if (!payload || !signature) return null;
+
+    const expectedSig = crypto.createHmac("sha256", HMAC_SECRET).update(payload).digest("hex");
+    if (signature !== expectedSig) return null;
+
+    const [tIdStr, expStr] = payload.split(":");
+    const tokenTenantId = parseInt(tIdStr, 10);
+    const expiresAt = parseInt(expStr, 10);
+
+    if (isNaN(tokenTenantId) || tokenTenantId <= 0) return null;
+    if (Date.now() > expiresAt) return null;
+
+    return { tenantId: tokenTenantId };
+  } catch {
+    return null;
   }
 }
 
@@ -298,7 +323,64 @@ export const accountantPortalRouter = router({
         };
       });
 
-      // 4. Calculăm sumarul statistic (Dashboard KPIs) pentru toate facturile
+      // 3. Preluăm facturile emise (emittedInvoices + reInvoices)
+      const emittedRows = await db
+        .select()
+        .from(schema.emittedInvoices)
+        .where(eq(schema.emittedInvoices.tenantId, tenant.id))
+        .orderBy(desc(schema.emittedInvoices.createdAt));
+
+      const reInvoiceRows = await db
+        .select()
+        .from(schema.reInvoices)
+        .where(eq(schema.reInvoices.tenantId, tenant.id))
+        .orderBy(desc(schema.reInvoices.createdAt));
+
+      const combinedEmitted = [
+        ...emittedRows.map((inv) => ({
+          id: inv.id,
+          source: "emitted",
+          invoiceNumber: `${inv.series || ""}${inv.number || ""}`.trim() || `FACT-${inv.id}`,
+          clientName: inv.clientName || "Client necunoscut",
+          clientCUI: inv.clientCUI || "",
+          issueDate: inv.issueDate || "",
+          dueDate: inv.dueDate || "",
+          totalBase: parseFloat(String(inv.subtotal || 0)),
+          totalVAT: parseFloat(String(inv.totalVAT || 0)),
+          total: parseFloat(String(inv.total || 0)),
+          currency: inv.currency || "RON",
+          status: inv.status || "draft",
+          pdfUrl: `/api/pdf/emitted/${inv.id}`,
+          spvIndex: inv.spvIndex || "",
+        })),
+        ...reInvoiceRows.map((inv) => ({
+          id: inv.id,
+          source: "reinvoice",
+          invoiceNumber: inv.number || `REF-${inv.id}`,
+          clientName: inv.clientName || "Client necunoscut",
+          clientCUI: inv.clientCUI || "",
+          issueDate: inv.issueDate || "",
+          dueDate: inv.dueDate || "",
+          totalBase: parseFloat(String(inv.subtotal || 0)),
+          totalVAT: parseFloat(String(inv.totalVAT || 0)),
+          total: parseFloat(String(inv.total || 0)),
+          currency: inv.currency || "RON",
+          status: inv.status || "draft",
+          pdfUrl: `/api/pdf/reinvoice/${inv.id}`,
+          spvIndex: "",
+        })),
+      ].sort((a, b) => (b.issueDate || "").localeCompare(a.issueDate || ""));
+
+      let emittedTotalBase = 0;
+      let emittedTotalVat = 0;
+      let emittedTotalGross = 0;
+      for (const e of combinedEmitted) {
+        emittedTotalBase += e.totalBase;
+        emittedTotalVat += e.totalVAT;
+        emittedTotalGross += e.total;
+      }
+
+      // 4. Calculăm sumarul statistic (Dashboard KPIs) pentru facturile primite
       let totalCount = enrichedInvoices.length;
       let totalBase = 0;
       let totalVat = 0;
@@ -326,6 +408,7 @@ export const accountantPortalRouter = router({
           themeColor: settings.themeColor || "#16a34a",
         },
         invoices: enrichedInvoices,
+        emittedInvoices: combinedEmitted,
         kpis: {
           totalCount,
           totalBase: Math.round(totalBase * 100) / 100,
@@ -334,6 +417,12 @@ export const accountantPortalRouter = router({
           withNirCount,
           withoutNirCount,
           nirCoveragePercent: totalCount > 0 ? Math.round((withNirCount / totalCount) * 100) : 0,
+        },
+        emittedKpis: {
+          totalCount: combinedEmitted.length,
+          totalBase: Math.round(emittedTotalBase * 100) / 100,
+          totalVat: Math.round(emittedTotalVat * 100) / 100,
+          totalGross: Math.round(emittedTotalGross * 100) / 100,
         },
       };
     }),

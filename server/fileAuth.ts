@@ -9,6 +9,7 @@ import { eq } from "drizzle-orm";
 import { verifySessionToken, extractTokenFromHeader } from "./session";
 import { getAccountById } from "./auth";
 import { getDb, getDefaultTenantForUser } from "./db";
+import { verifyAndExtractAccountantSession } from "./accountantPortalRouter";
 
 export interface FileAuthInfo {
   accountId: number;
@@ -39,25 +40,46 @@ export async function authenticateFileRequest(
   const token =
     extractTokenFromHeader(req.headers.authorization) ||
     readCookie(req, "authToken");
-  if (!token) return null;
 
-  const payload = await verifySessionToken(token);
-  if (!payload?.accountId) return null;
-
-  const account: any = await getAccountById(payload.accountId);
-  if (!account) return null;
-
-  let tenantId: number | undefined = account.tenantId || undefined;
-  if (!tenantId) {
-    try {
-      const t = await getDefaultTenantForUser(account.id);
-      if (t) tenantId = t;
-    } catch {
-      /* ignore */
+  if (token) {
+    const payload = await verifySessionToken(token);
+    if (payload?.accountId) {
+      const account: any = await getAccountById(payload.accountId);
+      if (account) {
+        let tenantId: number | undefined = account.tenantId || undefined;
+        if (!tenantId) {
+          try {
+            const t = await getDefaultTenantForUser(account.id);
+            if (t) tenantId = t;
+          } catch {
+            /* ignore */
+          }
+        }
+        if (tenantId) {
+          return { accountId: account.id, tenantId, role: String(account.role || "user") };
+        }
+      }
     }
   }
-  if (!tenantId) return null;
-  return { accountId: account.id, tenantId, role: String(account.role || "user") };
+
+  // Suport autentificare pentru Portalul Contabil (token de sesiune semnat HMAC)
+  const accountantToken =
+    (req.query.accountantToken as string) ||
+    (req.headers["x-accountant-token"] as string) ||
+    readCookie(req, "accountantSession");
+
+  if (accountantToken) {
+    const accountantAuth = verifyAndExtractAccountantSession(accountantToken);
+    if (accountantAuth?.tenantId) {
+      return {
+        accountId: 0,
+        tenantId: accountantAuth.tenantId,
+        role: "accountant",
+      };
+    }
+  }
+
+  return null;
 }
 
 /** Cere doar autentificare (fără verificare de proprietar) — pentru fișiere statice. */
