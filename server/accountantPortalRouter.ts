@@ -301,6 +301,12 @@ export const accountantPortalRouter = router({
         const vatNum = parseFloat(String(inv.totalVAT || 0));
         const baseNum = Math.round((totalNum - vatNum) * 100) / 100;
 
+        const spvIdx =
+          (inv.spvIndex || "").trim() ||
+          (inv.fileName ? inv.fileName.match(/SPV_(\d+)/i)?.[1] : null) ||
+          (inv.notes ? inv.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i)?.[1] : null) ||
+          "";
+
         return {
           id: inv.id,
           invoiceNumber: inv.invoiceNumber || "Fără număr",
@@ -319,7 +325,7 @@ export const accountantPortalRouter = router({
           nirNumber: matchedNir ? matchedNir.nirNumber : null,
           nirDate: matchedNir ? matchedNir.receiptDate : null,
           gestiune: matchedNir ? matchedNir.gestiune : null,
-          spvIndex: (inv as any).spvIndex || "",
+          spvIndex: spvIdx,
         };
       });
 

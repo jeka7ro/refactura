@@ -296,6 +296,7 @@ export default function AccountantPortal() {
           inv.supplierName.toLowerCase().includes(q) ||
           inv.supplierCUI.toLowerCase().includes(q) ||
           inv.invoiceNumber.toLowerCase().includes(q) ||
+          (inv.spvIndex && inv.spvIndex.toLowerCase().includes(q)) ||
           (inv.nirNumber && inv.nirNumber.toLowerCase().includes(q))
         );
       });
@@ -326,7 +327,8 @@ export default function AccountantPortal() {
         return (
           inv.clientName.toLowerCase().includes(q) ||
           inv.clientCUI.toLowerCase().includes(q) ||
-          inv.invoiceNumber.toLowerCase().includes(q)
+          inv.invoiceNumber.toLowerCase().includes(q) ||
+          (inv.spvIndex && inv.spvIndex.toLowerCase().includes(q))
         );
       });
     }
@@ -1056,6 +1058,15 @@ export default function AccountantPortal() {
                               </td>
                               <td className="px-4 py-2.5 whitespace-nowrap">
                                 <span className="font-semibold text-blue-600 dark:text-blue-400">{inv.invoiceNumber}</span>
+                                {inv.spvIndex ? (
+                                  <div
+                                    className="text-[11px] font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5"
+                                    title={`Index încărcare SPV: ${inv.spvIndex}`}
+                                  >
+                                    <span className="text-[10px] uppercase font-bold text-slate-400">SPV:</span>
+                                    <span>{inv.spvIndex}</span>
+                                  </div>
+                                ) : null}
                               </td>
                               <td className="px-4 py-2.5 text-right font-mono text-slate-700 dark:text-slate-300">{formatCurrency(inv.totalBase, inv.currency)}</td>
                               <td className="px-4 py-2.5 text-right font-mono text-slate-500">{formatCurrency(inv.totalVAT, inv.currency)}</td>
@@ -1316,6 +1327,15 @@ export default function AccountantPortal() {
                               </td>
                               <td className="px-4 py-2.5 whitespace-nowrap">
                                 <span className="font-semibold text-emerald-600 dark:text-emerald-400">{inv.invoiceNumber}</span>
+                                {inv.spvIndex ? (
+                                  <div
+                                    className="text-[11px] font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5"
+                                    title={`Index încărcare SPV: ${inv.spvIndex}`}
+                                  >
+                                    <span className="text-[10px] uppercase font-bold text-slate-400">SPV:</span>
+                                    <span>{inv.spvIndex}</span>
+                                  </div>
+                                ) : null}
                               </td>
                               <td className="px-4 py-2.5 text-right font-mono text-slate-700 dark:text-slate-300">{formatCurrency(inv.totalBase, inv.currency)}</td>
                               <td className="px-4 py-2.5 text-right font-mono text-slate-500">{formatCurrency(inv.totalVAT, inv.currency)}</td>
