@@ -7,6 +7,7 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { horecaRouter } from "../modules/horeca";
 import { sagaRouter } from "../modules/saga";
 import { contractsRouter } from "./contractsRouter";
+import { accountantPortalRouter } from "./accountantPortalRouter";
 import { z } from "zod";
 import { generateReInvoicePDF } from "./pdf";
 import {
@@ -614,6 +615,97 @@ export const appRouter = router({
         });
 
         return { success: true, tenantId: input.tenantId, token: newToken };
+      }),
+    getAccountantPortalConfig: protectedProcedure.query(async ({ ctx }) => {
+      const tenantId = tenantOf(ctx);
+      const db = await getDb();
+      if (!db) throw new Error("DB indisponibil");
+      const { tenants } = await import("../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      const [t] = await db.select().from(tenants).where(eq(tenants.id, tenantId)).limit(1);
+      if (!t) throw new Error("Firma nu a fost găsită");
+
+      let s: any = {};
+      try {
+        s = JSON.parse(t.settings || "{}");
+      } catch {}
+
+      let portal = s.accountantPortal || {};
+      if (!portal.token) {
+        const crypto = await import("crypto");
+        const cleanCui = (t.cui || "").replace(/^RO/i, "").trim().toLowerCase();
+        portal.token = cleanCui || crypto.randomBytes(8).toString("hex");
+        portal.enabled = portal.enabled ?? false;
+        s.accountantPortal = portal;
+        await db.update(tenants).set({ settings: JSON.stringify(s) }).where(eq(tenants.id, tenantId));
+      }
+
+      return {
+        enabled: Boolean(portal.enabled),
+        token: portal.token,
+        hasPin: Boolean(portal.pinHash || s.accessPinHash),
+        customSlug: portal.customSlug || "",
+      };
+    }),
+    updateAccountantPortalConfig: protectedProcedure
+      .input(
+        z.object({
+          enabled: z.boolean(),
+          pin: z.string().optional(),
+          clearPin: z.boolean().optional(),
+          customSlug: z.string().optional(),
+          regenerateToken: z.boolean().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const tenantId = tenantOf(ctx);
+        const db = await getDb();
+        if (!db) throw new Error("DB indisponibil");
+        const { tenants } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const [t] = await db.select().from(tenants).where(eq(tenants.id, tenantId)).limit(1);
+        if (!t) throw new Error("Firma nu a fost găsită");
+
+        let s: any = {};
+        try {
+          s = JSON.parse(t.settings || "{}");
+        } catch {}
+
+        const crypto = await import("crypto");
+        let portal = s.accountantPortal || {};
+
+        portal.enabled = input.enabled;
+
+        if (input.regenerateToken) {
+          portal.token = crypto.randomBytes(8).toString("hex");
+        } else if (!portal.token) {
+          const cleanCui = (t.cui || "").replace(/^RO/i, "").trim().toLowerCase();
+          portal.token = cleanCui || crypto.randomBytes(8).toString("hex");
+        }
+
+        if (input.customSlug !== undefined) {
+          portal.customSlug = input.customSlug.trim().toLowerCase().replace(/[^a-z0-9-_]/g, "");
+        }
+
+        if (input.clearPin) {
+          delete portal.pinHash;
+        } else if (input.pin && input.pin.trim().length >= 4) {
+          portal.pinHash = crypto
+            .createHash("sha256")
+            .update(input.pin.trim() + "_accountant_portal_salt_smart_invoice")
+            .digest("hex");
+        }
+
+        s.accountantPortal = portal;
+        await db.update(tenants).set({ settings: JSON.stringify(s) }).where(eq(tenants.id, tenantId));
+
+        return {
+          success: true,
+          enabled: Boolean(portal.enabled),
+          token: portal.token,
+          hasPin: Boolean(portal.pinHash),
+          customSlug: portal.customSlug || "",
+        };
       }),
   }),
 
@@ -6522,6 +6614,8 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+
+  accountantPortal: accountantPortalRouter,
 
 });
 

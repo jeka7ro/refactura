@@ -149,6 +149,7 @@ const navItems: NavItem[] = [
   { href: "/integrari", label: "Integrări", icon: Plug, section: "gestiune" },
   { href: "/saga", label: "SAGA", icon: Database, section: "gestiune" },
   { href: "/saga-sync", label: "Sincronizare SAGA", icon: RefreshCcw, section: "gestiune" },
+  { href: "/setari?tab=accountant", label: "Portal Contabil", icon: ShieldCheck, section: "gestiune" },
   { href: "/api-keys", label: "API Keys", icon: Key, section: "gestiune" },
   {
     href: "/centre-cost",

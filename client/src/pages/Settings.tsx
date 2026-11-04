@@ -2,6 +2,7 @@
 // Company profile, multi-currency, multi-language, multi-country, invoice defaults
 
 import { useState, useEffect, useRef, useMemo } from "react";
+import { useLocation } from "wouter";
 import {
   Building2,
   Globe,
@@ -44,11 +45,28 @@ const tabs = [
   { id: "localization", label: "Localizare", icon: Globe },
   { id: "notifications", label: "Notificări", icon: Bell },
   { id: "security", label: "Securitate", icon: Shield },
+  { id: "accountant", label: "Portal Contabil", icon: ShieldCheck },
   { id: "gdpr", label: "GDPR & Date", icon: Shield },
 ];
 
 export default function Settings() {
-  const [activeTab, setActiveTab] = useState("company");
+  const [location] = useLocation();
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      const qTab = new URLSearchParams(window.location.search).get("tab");
+      if (qTab && tabs.some((t) => t.id === qTab)) return qTab;
+    } catch {}
+    return "company";
+  });
+
+  useEffect(() => {
+    try {
+      const qTab = new URLSearchParams(window.location.search).get("tab");
+      if (qTab && tabs.some((t) => t.id === qTab)) {
+        setActiveTab(qTab);
+      }
+    } catch {}
+  }, [location]);
   const { data: currentTenantData, isLoading: isLoadingTenants } =
     trpc.tenants.current.useQuery();
   const { data: userTenants = [] } = trpc.tenants.list.useQuery();
@@ -547,6 +565,54 @@ export default function Settings() {
       toast.success("Protecția cu cod PIN a fost dezactivată.");
     } catch (err: any) {
       setPinError(err.message || "Cod PIN incorect. Dezactivarea a eșuat.");
+    }
+  };
+
+  // Portal Contabil
+  const { data: accountantPortalConfig, refetch: refetchAccountantConfig } =
+    trpc.tenants.getAccountantPortalConfig.useQuery();
+  const updateAccountantConfigMutation =
+    trpc.tenants.updateAccountantPortalConfig.useMutation();
+
+  const [portalEnabled, setPortalEnabled] = useState(false);
+  const [portalPin, setPortalPin] = useState("");
+  const [portalSlug, setPortalSlug] = useState("");
+  const [isCopiedPortalLink, setIsCopiedPortalLink] = useState(false);
+
+  useEffect(() => {
+    if (accountantPortalConfig) {
+      setPortalEnabled(accountantPortalConfig.enabled);
+      setPortalSlug(accountantPortalConfig.customSlug || "");
+    }
+  }, [accountantPortalConfig]);
+
+  const portalShareUrl = useMemo(() => {
+    const slug = (portalSlug || accountantPortalConfig?.customSlug || accountantPortalConfig?.token || "").trim();
+    if (!slug) return "";
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://facturaspv.ro";
+    return `${origin}/contabil/${slug}`;
+  }, [portalSlug, accountantPortalConfig?.customSlug, accountantPortalConfig?.token]);
+
+  const handleSavePortalConfig = async (regenerate: boolean = false, clearPin: boolean = false) => {
+    try {
+      await updateAccountantConfigMutation.mutateAsync({
+        enabled: portalEnabled,
+        pin: portalPin ? portalPin.trim() : undefined,
+        clearPin,
+        customSlug: portalSlug ? portalSlug.trim() : undefined,
+        regenerateToken: regenerate,
+      });
+      await refetchAccountantConfig();
+      setPortalPin("");
+      toast.success(
+        regenerate
+          ? "Link-ul a fost regenerat!"
+          : clearPin
+          ? "Codul PIN a fost eliminat!"
+          : "Setările portalului contabil au fost salvate!"
+      );
+    } catch (err: any) {
+      toast.error(err?.message || "Eroare la salvarea setărilor portalului.");
     }
   };
 
@@ -1694,6 +1760,202 @@ export default function Settings() {
                   </button>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Portal Contabil tab */}
+          {activeTab === "accountant" && (
+            <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-6">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Portalul Contabilului
+                  </h2>
+                  <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                    Vizualizare Securizată
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Oferă contabilului un link securizat protejat prin cod PIN. Contabilul poate vizualiza facturile primite, descărca fișele NIR, fișierele PDF și XML-ul pentru SAGA C, fără acces la restul aplicației.
+                </p>
+              </div>
+
+              {/* Activare Portal */}
+              <div className="flex items-center justify-between py-4 border-b border-slate-100 dark:border-slate-800">
+                <div className="pr-4">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Stare Portal
+                  </div>
+                  <div className="text-xs text-slate-500 mt-0.5">
+                    Activează sau dezactivează accesul contabilului pe baza link-ului.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPortalEnabled(!portalEnabled)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                    portalEnabled ? "bg-emerald-600" : "bg-slate-200 dark:bg-slate-700"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      portalEnabled ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Link de acces */}
+              <div className="space-y-3 py-3 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-900 dark:text-white">
+                    Link de Acces Contabil
+                  </label>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Trimiteți acest link contabilului pe WhatsApp sau Email.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 font-mono text-xs text-slate-700 dark:text-slate-200 select-all truncate">
+                    {portalShareUrl || "Se generează link-ul..."}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!portalShareUrl) return;
+                      navigator.clipboard.writeText(portalShareUrl);
+                      setIsCopiedPortalLink(true);
+                      toast.success("Link-ul portalului a fost copiat în clipboard!");
+                      setTimeout(() => setIsCopiedPortalLink(false), 2000);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition shrink-0"
+                  >
+                    {isCopiedPortalLink ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-500" />
+                        <span>Copiat</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copiază</span>
+                      </>
+                    )}
+                  </button>
+                  <a
+                    href={portalShareUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:hover:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold transition shrink-0"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>Deschide</span>
+                  </a>
+                </div>
+              </div>
+
+              {/* Cod / Identificator URL Personalizat */}
+              <div className="space-y-2 py-3 border-b border-slate-100 dark:border-slate-800">
+                <label className="block text-xs font-semibold text-slate-900 dark:text-white">
+                  Identificator URL Personalizat (Codul din link)
+                </label>
+                <p className="text-[11px] text-slate-500">
+                  Puteți personaliza codul din link cu denumirea firmei sau orice text doriți (ex: <code>wood-glass</code>, <code>contabilitate-wood</code>).
+                </p>
+                <div className="flex items-center gap-2 max-w-md">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-mono select-none px-3 py-2 rounded-l-lg bg-slate-100 dark:bg-slate-800 border border-r-0 border-slate-200 dark:border-slate-700">
+                    facturaspv.ro/contabil/
+                  </span>
+                  <input
+                    type="text"
+                    value={portalSlug}
+                    onChange={(e) =>
+                      setPortalSlug(
+                        e.target.value
+                          .toLowerCase()
+                          .replace(/\s+/g, "-")
+                          .replace(/[^a-z0-9-_]/g, "")
+                      )
+                    }
+                    placeholder="cod-firma"
+                    className="flex-1 -ml-2 px-3 py-2 rounded-r-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-xs text-slate-900 dark:text-white outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div className="text-[11px] text-slate-400">
+                  Sau puteți{" "}
+                  <button
+                    type="button"
+                    onClick={() => handleSavePortalConfig(true)}
+                    disabled={updateAccountantConfigMutation.isPending}
+                    className="text-emerald-600 dark:text-emerald-400 hover:underline"
+                  >
+                    genera automat un cod aleator nou
+                  </button>
+                  .
+                </div>
+              </div>
+
+              {/* Cod PIN Securitate */}
+              <div className="space-y-3 py-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-900 dark:text-white">
+                      Cod PIN Acces Contabil (4 cifre)
+                    </label>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      {accountantPortalConfig?.hasPin
+                        ? "Protecția prin cod PIN este activată. Pentru a schimba codul, introduceți un PIN nou de 4 cifre și salvați."
+                        : "Setați un cod PIN de 4 cifre pentru a bloca accesul neautorizat la documente."}
+                    </p>
+                  </div>
+                  {accountantPortalConfig?.hasPin && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                      <Lock className="w-3 h-3" />
+                      PIN Activ
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3 max-w-sm">
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={4}
+                    value={portalPin}
+                    onChange={(e) => setPortalPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    placeholder="ex: 1234"
+                    className="w-36 px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center font-mono font-bold tracking-widest text-slate-900 dark:text-white text-base outline-none focus:border-emerald-500"
+                  />
+                  <span className="text-[11px] text-slate-400">
+                    {portalPin.length === 4 ? "Gata de actualizare" : "Maxim 4 cifre"}
+                  </span>
+                  {accountantPortalConfig?.hasPin && (
+                    <button
+                      type="button"
+                      onClick={() => handleSavePortalConfig(false, true)}
+                      disabled={updateAccountantConfigMutation.isPending}
+                      className="text-xs text-rose-500 hover:text-rose-600 underline ml-2"
+                    >
+                      Elimină PIN-ul
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Buton Salvare */}
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => handleSavePortalConfig(false)}
+                  disabled={updateAccountantConfigMutation.isPending}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-sm transition disabled:opacity-50"
+                >
+                  {updateAccountantConfigMutation.isPending && (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  )}
+                  <span>Salvează Modificările</span>
+                </button>
+              </div>
             </div>
           )}
 

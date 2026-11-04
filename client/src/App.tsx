@@ -32,6 +32,7 @@ import Register from "./pages/Register";
 import ResetPassword from "./pages/ResetPassword";
 import AdminDashboard from "./pages/AdminDashboard";
 import Landing from "./pages/Landing";
+import AccountantPortal from "./pages/AccountantPortal";
 import SuperAdmin from "./pages/SuperAdmin";
 import InvoiceArchive from "./pages/InvoiceArchive";
 import ClientDetails from "./pages/ClientDetails";
@@ -89,6 +90,8 @@ function Router() {
       <Route path="/dpa" component={DPA} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/super-admin" component={SuperAdmin} />
+      <Route path="/portal-contabil/:token" component={AccountantPortal} />
+      <Route path="/contabil/:token" component={AccountantPortal} />
 
       {/* Dashboard pages - with layout */}
       <Route path="/dashboard">
