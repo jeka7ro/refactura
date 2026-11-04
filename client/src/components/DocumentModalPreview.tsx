@@ -104,14 +104,14 @@ export default function DocumentModalPreview({
         className="max-w-5xl w-[95vw] h-[92vh] flex flex-col p-0 gap-0 overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl"
       >
         {/* Header Modal */}
-        <DialogHeader className="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900 flex flex-row items-center justify-between space-y-0">
-          <div className="flex items-center gap-2.5 truncate mr-4">
+        <DialogHeader className="px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900 flex flex-row items-center justify-between space-y-0 gap-3">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
             {type === "nir" ? (
-              <div className="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 flex items-center justify-center text-teal-600 shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 flex items-center justify-center text-teal-600 shrink-0">
                 <CheckCircle2 className="w-4 h-4" />
               </div>
             ) : (
-              <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 flex items-center justify-center text-blue-600 shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 flex items-center justify-center text-blue-600 shrink-0">
                 <FileText className="w-4 h-4" />
               </div>
             )}
@@ -120,12 +120,12 @@ export default function DocumentModalPreview({
             </DialogTitle>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={handleDownload}
               disabled={loading || Boolean(error)}
-              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition shadow-2xs disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-full text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition shadow-2xs disabled:opacity-50 shrink-0 cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Descarcă PDF</span>
@@ -133,9 +133,10 @@ export default function DocumentModalPreview({
             <button
               type="button"
               onClick={onClose}
-              className="h-8 w-8 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              aria-label="Închide fereastra"
+              className="w-8 h-8 rounded-full shrink-0 aspect-square border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white flex items-center justify-center transition shadow-2xs cursor-pointer"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4 shrink-0" />
             </button>
           </div>
         </DialogHeader>
