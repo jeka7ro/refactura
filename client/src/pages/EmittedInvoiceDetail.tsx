@@ -498,14 +498,28 @@ export default function EmittedInvoiceDetail() {
                     <span className="break-all font-mono text-[10px]">{latestEmailLog.error}</span>
                   </div>
                 )}
-                {invoiceEmailLogs && invoiceEmailLogs.length > 1 && (
-                  <div className="flex justify-between text-[11px] text-slate-500">
-                    <span>Istoric expedieri:</span>
-                    <span className="font-semibold text-blue-600 dark:text-blue-400">
-                      {invoiceEmailLogs.length} trimiteri
-                    </span>
-                  </div>
-                )}
+                {invoiceEmailLogs && invoiceEmailLogs.length > 1 && (() => {
+                  const successCount = invoiceEmailLogs.filter(l => l.status === "trimis").length;
+                  const errorCount = invoiceEmailLogs.filter(l => l.status === "eroare").length;
+                  return (
+                    <div className="flex justify-between text-[11px] text-slate-500">
+                      <span>Istoric:</span>
+                      {successCount > 0 && errorCount > 0 ? (
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">
+                          <span className="text-emerald-600">{successCount} trimise</span> / <span className="text-rose-600">{errorCount} eșuate</span>
+                        </span>
+                      ) : successCount > 0 ? (
+                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                          {successCount} trimiteri reușite
+                        </span>
+                      ) : (
+                        <span className="font-semibold text-rose-600 dark:text-rose-400">
+                          {errorCount} încercări eșuate
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
                 {latestEmailLog.messageId && (
                   <div className="flex justify-between items-center text-[11px] text-slate-400">
                     <span>Message ID:</span>
