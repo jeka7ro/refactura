@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Lock,
   Loader2,
@@ -111,7 +111,6 @@ export default function AccountantPinLock({
   const [errorMsg, setErrorMsg] = useState("");
   const [isShaking, setIsShaking] = useState(false);
   const [logoFailed, setLogoFailed] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const lockoutStorageKey = `smart_invoice_accountant_lockout_${token}`;
   const attemptsStorageKey = `smart_invoice_accountant_attempts_${token}`;
@@ -152,7 +151,6 @@ export default function AccountantPinLock({
             localStorage.removeItem(attemptsStorageKey);
           } catch {}
           setErrorMsg("");
-          setTimeout(() => inputRef.current?.focus(), 100);
           return 0;
         }
         return prev - 1;
@@ -160,12 +158,6 @@ export default function AccountantPinLock({
     }, 1000);
     return () => clearInterval(timer);
   }, [lockoutRemaining, lockoutStorageKey, attemptsStorageKey]);
-
-  useEffect(() => {
-    if (lockoutRemaining <= 0) {
-      inputRef.current?.focus();
-    }
-  }, [lockoutRemaining]);
 
   const verifyPinMutation = trpc.accountantPortal.verifyPin.useMutation();
 
@@ -218,7 +210,6 @@ export default function AccountantPinLock({
             remainingAttempts === 1 ? "încercare" : "încercări"
           } înainte de blocare.`
         );
-        setTimeout(() => inputRef.current?.focus(), 100);
       }
     }
   };
@@ -233,11 +224,12 @@ export default function AccountantPinLock({
     if (lockoutRemaining > 0 || verifyPinMutation.isPending) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignorăm doar dacă utilizatorul se află într-un alt input activ
+      // Ignorăm doar dacă utilizatorul se află într-un câmp activ
       if (
         document.activeElement &&
-        (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") &&
-        document.activeElement !== inputRef.current
+        (document.activeElement.tagName === "INPUT" ||
+          document.activeElement.tagName === "TEXTAREA" ||
+          (document.activeElement as HTMLElement).isContentEditable)
       ) {
         return;
       }
@@ -276,11 +268,15 @@ export default function AccountantPinLock({
         return;
       }
 
-      // Enter (trimite dacă sunt 4 cifre)
+      // Enter (trimite dacă sunt 4 cifre sau afișează eroare)
       if (e.key === "Enter") {
         e.preventDefault();
         if (pin.length === 4) {
           submitPin(pin);
+        } else {
+          setErrorMsg("Codul PIN trebuie să conțină exact 4 cifre.");
+          setIsShaking(true);
+          setTimeout(() => setIsShaking(false), 550);
         }
       }
     };
@@ -289,16 +285,35 @@ export default function AccountantPinLock({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [lockoutRemaining, verifyPinMutation.isPending, pin]);
 
-  const handleUnlock = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (pin.length === 4) {
-      submitPin(pin);
-    } else {
-      setErrorMsg("Codul PIN trebuie să conțină exact 4 cifre.");
-      setIsShaking(true);
-      setTimeout(() => setIsShaking(false), 550);
-    }
-  };
+  // Suport lipire cod PIN din clipboard (Ctrl+V / Cmd+V)
+  useEffect(() => {
+    if (lockoutRemaining > 0 || verifyPinMutation.isPending) return;
+
+    const handlePaste = (e: ClipboardEvent) => {
+      if (
+        document.activeElement &&
+        (document.activeElement.tagName === "INPUT" ||
+          document.activeElement.tagName === "TEXTAREA" ||
+          (document.activeElement as HTMLElement).isContentEditable)
+      ) {
+        return;
+      }
+
+      const text = e.clipboardData?.getData("text") || "";
+      const digits = text.replace(/\D/g, "").slice(0, 4);
+      if (digits.length > 0) {
+        e.preventDefault();
+        setPin(digits);
+        setErrorMsg("");
+        if (digits.length === 4) {
+          submitPin(digits);
+        }
+      }
+    };
+
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+  }, [lockoutRemaining, verifyPinMutation.isPending]);
 
   const currentWallpaper = CHROMECAST_WALLPAPERS[bgIndex] || CHROMECAST_WALLPAPERS[0];
   const effectiveThemeColor = themeColor || "#16a34a";
@@ -450,34 +465,10 @@ export default function AccountantPinLock({
           </div>
         ) : null}
 
-        {/* Formular PIN */}
-        <form onSubmit={handleUnlock} className="space-y-4" autoComplete="off">
-          {/* Câmp ascuns pentru tastatură */}
-          <input
-            ref={inputRef}
-            type="password"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            maxLength={4}
-            value={pin}
-            onChange={(e) => {
-              const val = e.target.value.replace(/\D/g, "").slice(0, 4);
-              setPin(val);
-              setErrorMsg("");
-              if (val.length === 4) {
-                submitPin(val);
-              }
-            }}
-            disabled={lockoutRemaining > 0 || verifyPinMutation.isPending}
-            className="sr-only"
-            autoFocus
-          />
-
+        {/* Container PIN fără elemente de tip formular sau input password, pentru a împiedica popup-ul de autofill parole din Google Chrome */}
+        <div className="space-y-4">
           {/* Indicator vizual 4 buline/cercuri PIN */}
-          <div
-            onClick={() => inputRef.current?.focus()}
-            className="flex flex-col items-center justify-center gap-2 py-1 cursor-pointer select-none"
-          >
+          <div className="flex flex-col items-center justify-center gap-2 py-1 select-none">
             <div className="flex items-center justify-center gap-4 py-1">
               {[0, 1, 2, 3].map((idx) => {
                 const isFilled = pin.length > idx;
@@ -533,7 +524,6 @@ export default function AccountantPinLock({
                 triggerKeyEffect("Delete");
                 setPin("");
                 setErrorMsg("");
-                inputRef.current?.focus();
               }}
               disabled={lockoutRemaining > 0 || verifyPinMutation.isPending || !pin}
               className={`h-12 rounded-2xl text-white/70 font-medium text-sm transition-all border border-white/10 flex items-center justify-center disabled:opacity-40 cursor-pointer ${
@@ -572,7 +562,6 @@ export default function AccountantPinLock({
                 if (pin.length > 0) {
                   setPin(pin.slice(0, -1));
                   setErrorMsg("");
-                  inputRef.current?.focus();
                 }
               }}
               disabled={lockoutRemaining > 0 || verifyPinMutation.isPending || !pin}
@@ -592,7 +581,7 @@ export default function AccountantPinLock({
               <span>Se verifică codul PIN...</span>
             </div>
           )}
-        </form>
+        </div>
       </div>
     </div>
   );
