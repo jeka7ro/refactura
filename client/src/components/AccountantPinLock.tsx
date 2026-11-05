@@ -107,6 +107,7 @@ export default function AccountantPinLock({
   const [currentTime, setCurrentTime] = useState<Date>(() => new Date());
   const [bgIndex, setBgIndex] = useState(0);
   const [pin, setPin] = useState("");
+  const [activeKey, setActiveKey] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [isShaking, setIsShaking] = useState(false);
   const [logoFailed, setLogoFailed] = useState(false);
@@ -165,6 +166,72 @@ export default function AccountantPinLock({
       inputRef.current?.focus();
     }
   }, [lockoutRemaining]);
+
+  const triggerKeyEffect = (keyName: string) => {
+    setActiveKey(keyName);
+    setTimeout(() => setActiveKey(null), 140);
+  };
+
+  // Suport tastatură fizică (PC / Mac / laptop): 0-9, NumPad 0-9, Backspace, Delete, Escape, Enter
+  useEffect(() => {
+    if (lockoutRemaining > 0 || verifyPinMutation.isPending) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignorăm doar dacă utilizatorul se află într-un alt input activ
+      if (
+        document.activeElement &&
+        (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") &&
+        document.activeElement !== inputRef.current
+      ) {
+        return;
+      }
+
+      // Cifre 0-9 de la tastatură normală sau NumPad
+      if (/^[0-9]$/.test(e.key)) {
+        e.preventDefault();
+        triggerKeyEffect(e.key);
+        setPin((prev) => {
+          if (prev.length >= 4) return prev;
+          const next = prev + e.key;
+          setErrorMsg("");
+          if (next.length === 4) {
+            submitPin(next);
+          }
+          return next;
+        });
+        return;
+      }
+
+      // Backspace (șterge ultima cifră)
+      if (e.key === "Backspace") {
+        e.preventDefault();
+        triggerKeyEffect("Backspace");
+        setPin((prev) => prev.slice(0, -1));
+        setErrorMsg("");
+        return;
+      }
+
+      // Delete sau Escape (șterge tot PIN-ul)
+      if (e.key === "Delete" || e.key === "Escape") {
+        e.preventDefault();
+        triggerKeyEffect("Delete");
+        setPin("");
+        setErrorMsg("");
+        return;
+      }
+
+      // Enter (trimite dacă sunt 4 cifre)
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (pin.length === 4) {
+          submitPin(pin);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [lockoutRemaining, verifyPinMutation.isPending, pin]);
 
   const verifyPinMutation = trpc.accountantPortal.verifyPin.useMutation();
 
@@ -409,53 +476,71 @@ export default function AccountantPinLock({
           {/* Indicator vizual 4 buline/cercuri PIN */}
           <div
             onClick={() => inputRef.current?.focus()}
-            className="flex items-center justify-center gap-4 py-2 cursor-pointer"
+            className="flex flex-col items-center justify-center gap-2 py-1 cursor-pointer select-none"
           >
-            {[0, 1, 2, 3].map((idx) => {
-              const isFilled = pin.length > idx;
-              return (
-                <div
-                  key={idx}
-                  className={`w-4 h-4 rounded-full transition-all duration-200 ${
-                    isFilled
-                      ? "bg-white scale-125 shadow-[0_0_12px_rgba(255,255,255,0.8)]"
-                      : "bg-white/20 border border-white/30"
-                  }`}
-                />
-              );
-            })}
+            <div className="flex items-center justify-center gap-4 py-1">
+              {[0, 1, 2, 3].map((idx) => {
+                const isFilled = pin.length > idx;
+                return (
+                  <div
+                    key={idx}
+                    className={`w-4 h-4 rounded-full transition-all duration-200 ${
+                      isFilled
+                        ? "bg-white scale-125 shadow-[0_0_12px_rgba(255,255,255,0.8)]"
+                        : "bg-white/20 border border-white/30"
+                    }`}
+                  />
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-white/50 text-center tracking-wide">
+              Tastați direct din tastatură (0-9) sau folosiți ecranul
+            </p>
           </div>
 
           {/* Tastatură numerică tactilă (1-9, C, 0, Backspace) */}
-          <div className="grid grid-cols-3 gap-2.5 pt-2 max-w-xs mx-auto">
-            {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((digit) => (
-              <button
-                key={digit}
-                type="button"
-                onClick={() => {
-                  if (lockoutRemaining > 0 || verifyPinMutation.isPending) return;
-                  if (pin.length < 4) {
-                    const next = pin + digit;
-                    setPin(next);
-                    setErrorMsg("");
-                    if (next.length === 4) submitPin(next);
-                  }
-                }}
-                disabled={lockoutRemaining > 0 || verifyPinMutation.isPending}
-                className="h-12 rounded-2xl bg-white/10 hover:bg-white/20 active:bg-white/30 text-white font-semibold text-lg transition border border-white/10 flex items-center justify-center disabled:opacity-40"
-              >
-                {digit}
-              </button>
-            ))}
+          <div className="grid grid-cols-3 gap-2.5 pt-1 max-w-xs mx-auto">
+            {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((digit) => {
+              const isKeyPressed = activeKey === digit;
+              return (
+                <button
+                  key={digit}
+                  type="button"
+                  onClick={() => {
+                    if (lockoutRemaining > 0 || verifyPinMutation.isPending) return;
+                    triggerKeyEffect(digit);
+                    if (pin.length < 4) {
+                      const next = pin + digit;
+                      setPin(next);
+                      setErrorMsg("");
+                      if (next.length === 4) submitPin(next);
+                    }
+                  }}
+                  disabled={lockoutRemaining > 0 || verifyPinMutation.isPending}
+                  className={`h-12 rounded-2xl text-white font-semibold text-lg transition-all border border-white/10 flex items-center justify-center disabled:opacity-40 cursor-pointer ${
+                    isKeyPressed
+                      ? "bg-white/40 scale-95 ring-2 ring-white/60 shadow-[0_0_15px_rgba(255,255,255,0.4)]"
+                      : "bg-white/10 hover:bg-white/20 active:bg-white/30"
+                  }`}
+                >
+                  {digit}
+                </button>
+              );
+            })}
             <button
               type="button"
               onClick={() => {
+                triggerKeyEffect("Delete");
                 setPin("");
                 setErrorMsg("");
                 inputRef.current?.focus();
               }}
               disabled={lockoutRemaining > 0 || verifyPinMutation.isPending || !pin}
-              className="h-12 rounded-2xl bg-white/5 hover:bg-white/10 active:bg-white/20 text-white/70 font-medium text-sm transition border border-white/10 flex items-center justify-center disabled:opacity-40"
+              className={`h-12 rounded-2xl text-white/70 font-medium text-sm transition-all border border-white/10 flex items-center justify-center disabled:opacity-40 cursor-pointer ${
+                activeKey === "Delete"
+                  ? "bg-white/30 scale-95 ring-2 ring-white/40"
+                  : "bg-white/5 hover:bg-white/10 active:bg-white/20"
+              }`}
             >
               Șterge
             </button>
@@ -463,6 +548,7 @@ export default function AccountantPinLock({
               type="button"
               onClick={() => {
                 if (lockoutRemaining > 0 || verifyPinMutation.isPending) return;
+                triggerKeyEffect("0");
                 if (pin.length < 4) {
                   const next = pin + "0";
                   setPin(next);
@@ -471,13 +557,18 @@ export default function AccountantPinLock({
                 }
               }}
               disabled={lockoutRemaining > 0 || verifyPinMutation.isPending}
-              className="h-12 rounded-2xl bg-white/10 hover:bg-white/20 active:bg-white/30 text-white font-semibold text-lg transition border border-white/10 flex items-center justify-center disabled:opacity-40"
+              className={`h-12 rounded-2xl text-white font-semibold text-lg transition-all border border-white/10 flex items-center justify-center disabled:opacity-40 cursor-pointer ${
+                activeKey === "0"
+                  ? "bg-white/40 scale-95 ring-2 ring-white/60 shadow-[0_0_15px_rgba(255,255,255,0.4)]"
+                  : "bg-white/10 hover:bg-white/20 active:bg-white/30"
+              }`}
             >
               0
             </button>
             <button
               type="button"
               onClick={() => {
+                triggerKeyEffect("Backspace");
                 if (pin.length > 0) {
                   setPin(pin.slice(0, -1));
                   setErrorMsg("");
@@ -485,7 +576,11 @@ export default function AccountantPinLock({
                 }
               }}
               disabled={lockoutRemaining > 0 || verifyPinMutation.isPending || !pin}
-              className="h-12 rounded-2xl bg-white/5 hover:bg-white/10 active:bg-white/20 text-white/70 font-medium text-sm transition border border-white/10 flex items-center justify-center disabled:opacity-40"
+              className={`h-12 rounded-2xl text-white/70 font-medium text-sm transition-all border border-white/10 flex items-center justify-center disabled:opacity-40 cursor-pointer ${
+                activeKey === "Backspace"
+                  ? "bg-white/30 scale-95 ring-2 ring-white/40"
+                  : "bg-white/5 hover:bg-white/10 active:bg-white/20"
+              }`}
             >
               ←
             </button>
