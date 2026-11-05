@@ -332,7 +332,7 @@ export const accountantPortalRouter = router({
         };
       });
 
-      // 3. Preluăm facturile emise (emittedInvoices + reInvoices)
+      // 3. Preluăm facturile emise (emittedInvoices + reInvoices + invoiceArchive direction='out')
       const emittedRows = await db
         .select()
         .from(schema.emittedInvoices)
@@ -345,11 +345,28 @@ export const accountantPortalRouter = router({
         .where(eq(schema.reInvoices.tenantId, tenant.id))
         .orderBy(desc(schema.reInvoices.createdAt));
 
-      const combinedEmitted = [
-        ...emittedRows.map((inv) => ({
+      const outArchiveRows = await db
+        .select()
+        .from(schema.invoiceArchive)
+        .where(
+          and(
+            eq(schema.invoiceArchive.tenantId, tenant.id),
+            eq(schema.invoiceArchive.direction, "out")
+          )
+        )
+        .orderBy(desc(schema.invoiceArchive.createdAt));
+
+      const seenEmittedNums = new Set<string>();
+
+      const combinedEmitted: any[] = [];
+
+      for (const inv of emittedRows) {
+        const num = `${inv.series || ""}${inv.number || ""}`.trim() || `FACT-${inv.id}`;
+        seenEmittedNums.add(num.toLowerCase());
+        combinedEmitted.push({
           id: inv.id,
           source: "emitted",
-          invoiceNumber: `${inv.series || ""}${inv.number || ""}`.trim() || `FACT-${inv.id}`,
+          invoiceNumber: num,
           clientName: inv.clientName || "Client necunoscut",
           clientCUI: inv.clientCUI || "",
           issueDate: inv.issueDate || "",
@@ -361,24 +378,59 @@ export const accountantPortalRouter = router({
           status: inv.status || "draft",
           pdfUrl: `/api/pdf/emitted/${inv.id}`,
           spvIndex: inv.spvIndex || "",
-        })),
-        ...reInvoiceRows.map((inv) => ({
-          id: inv.id,
-          source: "reinvoice",
-          invoiceNumber: inv.number || `REF-${inv.id}`,
-          clientName: inv.clientName || "Client necunoscut",
-          clientCUI: inv.clientCUI || "",
-          issueDate: inv.issueDate || "",
-          dueDate: inv.dueDate || "",
-          totalBase: parseFloat(String(inv.subtotal || 0)),
-          totalVAT: parseFloat(String(inv.totalVAT || 0)),
-          total: parseFloat(String(inv.total || 0)),
-          currency: inv.currency || "RON",
-          status: inv.status || "draft",
-          pdfUrl: `/api/pdf/reinvoice/${inv.id}`,
-          spvIndex: "",
-        })),
-      ].sort((a, b) => (b.issueDate || "").localeCompare(a.issueDate || ""));
+        });
+      }
+
+      for (const inv of reInvoiceRows) {
+        const num = inv.number || `REF-${inv.id}`;
+        if (!seenEmittedNums.has(num.toLowerCase())) {
+          seenEmittedNums.add(num.toLowerCase());
+          combinedEmitted.push({
+            id: inv.id,
+            source: "reinvoice",
+            invoiceNumber: num,
+            clientName: inv.clientName || "Client necunoscut",
+            clientCUI: inv.clientCUI || "",
+            issueDate: inv.issueDate || "",
+            dueDate: inv.dueDate || "",
+            totalBase: parseFloat(String(inv.subtotal || 0)),
+            totalVAT: parseFloat(String(inv.totalVAT || 0)),
+            total: parseFloat(String(inv.total || 0)),
+            currency: inv.currency || "RON",
+            status: inv.status || "draft",
+            pdfUrl: `/api/pdf/reinvoice/${inv.id}`,
+            spvIndex: "",
+          });
+        }
+      }
+
+      for (const inv of outArchiveRows) {
+        const num = inv.invoiceNumber || `FACT-SPV-${inv.id}`;
+        if (!seenEmittedNums.has(num.toLowerCase())) {
+          seenEmittedNums.add(num.toLowerCase());
+          const totalNum = parseFloat(String(inv.total || 0));
+          const vatNum = parseFloat(String(inv.totalVAT || 0));
+          const baseNum = totalNum - vatNum;
+          combinedEmitted.push({
+            id: inv.id,
+            source: "spv_out",
+            invoiceNumber: num,
+            clientName: inv.supplierName || "Client necunoscut",
+            clientCUI: inv.supplierCUI || "",
+            issueDate: inv.issueDate || "",
+            dueDate: inv.dueDate || "",
+            totalBase: Math.round(baseNum * 100) / 100,
+            totalVAT: vatNum,
+            total: totalNum,
+            currency: inv.currency || "RON",
+            status: inv.status || "emisa",
+            pdfUrl: inv.source === "spv_anaf" || inv.fileUrl === "spv_import" ? `/api/pdf/archive/${inv.id}` : inv.fileUrl || `/api/pdf/archive/${inv.id}`,
+            spvIndex: inv.spvIndex || "",
+          });
+        }
+      }
+
+      combinedEmitted.sort((a, b) => (b.issueDate || "").localeCompare(a.issueDate || ""));
 
       let emittedTotalBase = 0;
       let emittedTotalVat = 0;
