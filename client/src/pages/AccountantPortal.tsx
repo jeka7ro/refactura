@@ -133,6 +133,19 @@ export default function AccountantPortal() {
       (!publicInfo.requiresPin || (sessionToken && sessionStatus?.valid))
   );
 
+  // Dacă portalul nu necesită PIN, setăm automat tokenul de sesiune primit din server
+  useEffect(() => {
+    if (publicInfo?.found && !publicInfo.requiresPin && publicInfo.autoSessionToken) {
+      if (sessionToken !== publicInfo.autoSessionToken) {
+        try {
+          sessionStorage.setItem(storageKey, publicInfo.autoSessionToken);
+          document.cookie = `accountantSession=${encodeURIComponent(publicInfo.autoSessionToken)}; path=/; max-age=604800; SameSite=Lax`;
+        } catch {}
+        setSessionToken(publicInfo.autoSessionToken);
+      }
+    }
+  }, [publicInfo, sessionToken, storageKey]);
+
   // Preluare date facturi & NIR
   const {
     data: portalData,

@@ -125,7 +125,7 @@ export const accountantPortalRouter = router({
       const { tenant, settings, portal } = match;
       const isEnabled = portal.enabled !== false; // activ implicit dacă există token configurat
 
-      const hasPin = Boolean(portal.pinHash || settings.accessPinHash);
+      const hasPin = Boolean(portal.pinHash);
 
       return {
         found: true,
@@ -139,6 +139,7 @@ export const accountantPortalRouter = router({
         logoHasBackground: Boolean(settings.logoHasBackground),
         themeColor: settings.themeColor || "#16a34a",
         requiresPin: hasPin,
+        autoSessionToken: !hasPin ? createAccountantSessionToken(tenant.id) : undefined,
       };
     }),
 
@@ -170,16 +171,8 @@ export const accountantPortalRouter = router({
       if (portal.pinHash) {
         const computed = crypto.createHash("sha256").update(candidatePin + PIN_SALT).digest("hex");
         if (computed === portal.pinHash) pinOk = true;
-      }
-
-      // Fallback: dacă nu a fost setat un PIN dedicat portalului, verificăm PIN-ul general al firmei
-      if (!pinOk && settings.accessPinHash) {
-        const computed = crypto.createHash("sha256").update(candidatePin + ACCESS_PIN_SALT).digest("hex");
-        if (computed === settings.accessPinHash) pinOk = true;
-      }
-
-      // Dacă firma nu are setat niciun PIN, accesul e permis direct
-      if (!portal.pinHash && !settings.accessPinHash) {
+      } else {
+        // Dacă portalul nu are PIN setat, accesul este permis direct
         pinOk = true;
       }
 
@@ -248,7 +241,7 @@ export const accountantPortalRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "Portalul contabil este dezactivat." });
       }
 
-      const hasPin = Boolean(portal.pinHash || settings.accessPinHash);
+      const hasPin = Boolean(portal.pinHash);
       if (hasPin && !verifyAccountantSessionToken(tenant.id, input.sessionToken)) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Sesiune expirată sau neautorizată." });
       }
@@ -453,7 +446,7 @@ export const accountantPortalRouter = router({
       }
 
       const { tenant, settings, portal } = match;
-      const hasPin = Boolean(portal.pinHash || settings.accessPinHash);
+      const hasPin = Boolean(portal.pinHash);
       if (hasPin && !verifyAccountantSessionToken(tenant.id, input.sessionToken)) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Sesiune expirată sau neautorizată." });
       }

@@ -643,7 +643,7 @@ export const appRouter = router({
       return {
         enabled: Boolean(portal.enabled),
         token: portal.token,
-        hasPin: Boolean(portal.pinHash || s.accessPinHash),
+        hasPin: Boolean(portal.pinHash),
         customSlug: portal.customSlug || "",
       };
     }),
