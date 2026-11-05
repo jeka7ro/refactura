@@ -120,7 +120,7 @@ export default function EmittedInvoiceDetail() {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailRecipient, setEmailRecipient] = useState("");
   const [representativeName, setRepresentativeName] = useState("");
-  const [showEmailPreview, setShowEmailPreview] = useState(false);
+  const [showEmailPreview, setShowEmailPreview] = useState(true);
   const [selectedLanguages, setSelectedLanguages] = useState<SupportedLanguage[]>(["ro"]);
 
   // Set default languages when invoice loads
@@ -722,201 +722,276 @@ export default function EmittedInvoiceDetail() {
 
       {/* Modal Trimite pe Email */}
       {showEmailModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl w-full max-w-md p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                <Mail className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                    Trimite Factura pe Email
-                  </h3>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                    selectedLanguages.length > 1
-                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
-                      : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                  }`}>
-                    {selectedLanguages.length > 1
-                      ? `Bilingv (${selectedLanguages.map(c => c.toUpperCase()).join(" + ")})`
-                      : selectedLanguages[0].toUpperCase()}
-                  </span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 lg:p-6 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-150">
+          <div
+            className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full ${
+              showEmailPreview ? "max-w-5xl" : "max-w-xl"
+            } max-h-[92vh] flex flex-col overflow-hidden transition-all duration-200`}
+          >
+            {/* Header Modal */}
+            <div className="px-5 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-slate-900/80 shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                  <Mail className="w-5 h-5" />
                 </div>
-                <p className="text-xs text-slate-500">
-                  {formatInvoiceNumber(invoice.series, invoice.number)} • {invoice.clientName}
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Adresă Email Destinatar
-              </label>
-              <input
-                type="email"
-                value={emailRecipient}
-                onChange={e => setEmailRecipient(e.target.value)}
-                placeholder="client@exemplu.ro"
-                className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Nume Reprezentant (opțional)
-              </label>
-              <input
-                type="text"
-                value={representativeName}
-                onChange={e => setRepresentativeName(e.target.value)}
-                placeholder={
-                  selectedLanguages.includes("en")
-                    ? "ex: John Doe (lăsați gol pentru 'Bună ziua / Dear Sir or Madam,')"
-                    : selectedLanguages.includes("fr")
-                    ? "ex: Jean Dupont (lăsați gol pentru 'Bună ziua / Madame, Monsieur,')"
-                    : selectedLanguages.includes("de")
-                    ? "ex: Hans Schmidt (lăsați gol pentru 'Bună ziua / Sehr geehrte Damen und Herren,')"
-                    : selectedLanguages.includes("nl")
-                    ? "ex: Jan Jansen (lăsați gol pentru 'Bună ziua / Geachte heer,')"
-                    : selectedLanguages.includes("hu")
-                    ? "ex: Kovács János (lăsați gol pentru 'Bună ziua / Tisztelt Hölgyem / Uram,')"
-                    : "ex: Ion Popescu (lăsați gol pentru 'Bună ziua,')"
-                }
-                className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-              <p className="text-[11px] text-slate-500">
-                {selectedLanguages.length > 1
-                  ? `Email bilingv (${selectedLanguages.map(c => c.toUpperCase()).join(" + ")}). Dacă specificați numele, va fi adresat nominal în ambele limbi.`
-                  : "Dacă este specificat, emailul va începe cu formula de adresare nominală a persoanei."}
-              </p>
-            </div>
-
-            {/* Selector Limbi Email (maxim 2 limbi) */}
-            <div className="space-y-1.5 p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                  <span>Limbi email</span>
-                  <span className="text-[10px] font-normal text-slate-500">
-                    (alege 1 sau maxim 2)
-                  </span>
-                </label>
-                <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/40 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
-                  {selectedLanguages.length === 1
-                    ? `1 limbă: ${AVAILABLE_LANGUAGES.find(l => l.code === selectedLanguages[0])?.name}`
-                    : `Bilingv: ${selectedLanguages.map(c => AVAILABLE_LANGUAGES.find(l => l.code === c)?.name).join(" + ")}`}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-6 gap-1 pt-0.5">
-                {AVAILABLE_LANGUAGES.map(lang => {
-                  const isSelected = selectedLanguages.includes(lang.code);
-                  const order = isSelected ? selectedLanguages.indexOf(lang.code) + 1 : null;
-                  return (
-                    <button
-                      key={lang.code}
-                      type="button"
-                      onClick={() => toggleLanguage(lang.code)}
-                      title={`${lang.name} (${lang.code.toUpperCase()})`}
-                      className={`relative flex flex-col items-center justify-center py-1.5 px-1 rounded-lg border text-xs transition-all cursor-pointer ${
-                        isSelected
-                          ? "bg-blue-600 text-white border-blue-600 shadow-sm ring-2 ring-blue-500/30 font-bold scale-[1.02]"
-                          : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/80 font-medium"
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white truncate">
+                      Trimite Factura pe Email
+                    </h3>
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                        selectedLanguages.length > 1
+                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                          : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
                       }`}
                     >
-                      {isSelected && (
-                        <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-slate-900 text-white text-[8px] flex items-center justify-center font-extrabold border border-white">
-                          {order}
-                        </span>
-                      )}
-                      <span className="text-sm leading-none mb-0.5">{lang.flag}</span>
-                      <span className="text-[10.5px] uppercase tracking-wider font-bold">{lang.code}</span>
-                      <span className={`text-[8px] truncate max-w-full ${isSelected ? "text-blue-100" : "text-slate-400"}`}>
-                        {lang.name}
-                      </span>
-                    </button>
-                  );
-                })}
+                      {selectedLanguages.length > 1
+                        ? `Bilingv (${selectedLanguages.map(c => c.toUpperCase()).join(" + ")})`
+                        : selectedLanguages[0].toUpperCase()}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 truncate">
+                    {formatInvoiceNumber(invoice.series, invoice.number)} • {invoice.clientName}
+                  </p>
+                </div>
               </div>
 
-              <p className="text-[10px] text-slate-500 pt-0.5">
-                {selectedLanguages.length === 1
-                  ? "Emailul va fi expediat exclusiv în limba selectată."
-                  : "Emailul va fi expediat bilingv (în ambele limbi selectate, cu toate detaliile traduse)."}
-              </p>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowEmailPreview(!showEmailPreview)}
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3 h-8 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  title={showEmailPreview ? "Ascunde panoul de previzualizare" : "Afișează previzualizarea emailului"}
+                >
+                  <Eye className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                  <span>{showEmailPreview ? "Ascunde previzualizarea" : "Previzualizează email"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowEmailModal(false)}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  title="Închide fereastra"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
-            <div className="pt-0.5">
-              <button
-                type="button"
-                onClick={() => setShowEmailPreview(!showEmailPreview)}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+            {/* Modal Body */}
+            <div className="flex-1 overflow-hidden flex flex-col lg:flex-row min-h-0">
+              {/* Panou Stânga: Formular Configurare */}
+              <div
+                className={`w-full ${
+                  showEmailPreview ? "lg:w-[410px] xl:w-[440px] shrink-0 border-b lg:border-b-0 lg:border-r border-slate-100 dark:border-slate-800" : ""
+                } p-5 sm:p-6 overflow-y-auto space-y-4 bg-white dark:bg-slate-900`}
               >
-                <Eye className="w-3.5 h-3.5" />
-                {showEmailPreview ? "Ascunde previzualizarea emailului" : "Previzualizează cum va arăta emailul clientului (cu logo și detalii)"}
-              </button>
-            </div>
-
-            {showEmailPreview && (
-              <div className="p-2 sm:p-3 bg-slate-100/80 dark:bg-slate-950/80 rounded-xl border border-slate-200 dark:border-slate-800 max-h-[360px] overflow-y-auto flex justify-center">
-                {isEmailPreviewLoading ? (
-                  <div className="py-12 flex items-center justify-center gap-2 text-xs text-slate-500">
-                    <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-                    Se generează previzualizarea emailului...
-                  </div>
-                ) : emailPreviewData?.html ? (
-                  <iframe
-                    srcDoc={emailPreviewData.html}
-                    title="Previzualizare Email"
-                    className="w-full max-w-[540px] h-[340px] bg-white rounded-lg shadow-sm border border-slate-200 dark:border-slate-800"
-                    sandbox="allow-same-origin"
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                    <span>Adresă Email Destinatar</span>
+                    {invoice.clientEmail && invoice.clientEmail !== emailRecipient && (
+                      <button
+                        type="button"
+                        onClick={() => setEmailRecipient(invoice.clientEmail || "")}
+                        className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                      >
+                        Folosește email client
+                      </button>
+                    )}
+                  </label>
+                  <input
+                    type="email"
+                    value={emailRecipient}
+                    onChange={e => setEmailRecipient(e.target.value)}
+                    placeholder="client@exemplu.ro"
+                    className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                ) : (
-                  <div className="py-8 text-center text-xs text-slate-500">
-                    Previzualizarea nu a putut fi încărcată.
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Nume Reprezentant (opțional)
+                  </label>
+                  <input
+                    type="text"
+                    value={representativeName}
+                    onChange={e => setRepresentativeName(e.target.value)}
+                    placeholder={
+                      selectedLanguages.includes("en")
+                        ? "ex: John Doe (lăsați gol pentru 'Bună ziua / Dear Sir or Madam,')"
+                        : selectedLanguages.includes("fr")
+                        ? "ex: Jean Dupont (lăsați gol pentru 'Bună ziua / Madame, Monsieur,')"
+                        : selectedLanguages.includes("de")
+                        ? "ex: Hans Schmidt (lăsați gol pentru 'Bună ziua / Sehr geehrte Damen und Herren,')"
+                        : selectedLanguages.includes("nl")
+                        ? "ex: Jan Jansen (lăsați gol pentru 'Bună ziua / Geachte heer,')"
+                        : selectedLanguages.includes("hu")
+                        ? "ex: Kovács János (lăsați gol pentru 'Bună ziua / Tisztelt Hölgyem / Uram,')"
+                        : "ex: Ion Popescu (lăsați gol pentru 'Bună ziua,')"
+                    }
+                    className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <p className="text-[11px] text-slate-500 leading-normal">
+                    {selectedLanguages.length > 1
+                      ? `Email bilingv (${selectedLanguages.map(c => c.toUpperCase()).join(" + ")}). Va începe cu formula de adresare nominală în ambele limbi.`
+                      : "Dacă este specificat, emailul va începe cu formula de adresare nominală a persoanei."}
+                  </p>
+                </div>
+
+                {/* Selector Limbi Email (maxim 2 limbi) */}
+                <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                      <span>Limbi email</span>
+                      <span className="text-[10px] font-normal text-slate-500">
+                        (alege 1 sau maxim 2)
+                      </span>
+                    </label>
+                    <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/40 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
+                      {selectedLanguages.length === 1
+                        ? `1 limbă: ${AVAILABLE_LANGUAGES.find(l => l.code === selectedLanguages[0])?.name}`
+                        : `Bilingv: ${selectedLanguages.map(c => AVAILABLE_LANGUAGES.find(l => l.code === c)?.name).join(" + ")}`}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-6 gap-1 pt-0.5">
+                    {AVAILABLE_LANGUAGES.map(lang => {
+                      const isSelected = selectedLanguages.includes(lang.code);
+                      const order = isSelected ? selectedLanguages.indexOf(lang.code) + 1 : null;
+                      return (
+                        <button
+                          key={lang.code}
+                          type="button"
+                          onClick={() => toggleLanguage(lang.code)}
+                          title={`${lang.name} (${lang.code.toUpperCase()})`}
+                          className={`relative flex flex-col items-center justify-center py-2 px-1 rounded-lg border text-xs transition-all cursor-pointer ${
+                            isSelected
+                              ? "bg-blue-600 text-white border-blue-600 shadow-sm ring-2 ring-blue-500/30 font-bold scale-[1.02]"
+                              : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/80 font-medium"
+                          }`}
+                        >
+                          {isSelected && (
+                            <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-slate-900 text-white text-[8px] flex items-center justify-center font-extrabold border border-white">
+                              {order}
+                            </span>
+                          )}
+                          <span className="text-base leading-none mb-0.5">{lang.flag}</span>
+                          <span className="text-[10.5px] uppercase tracking-wider font-bold">{lang.code}</span>
+                          <span className={`text-[8px] truncate max-w-full ${isSelected ? "text-blue-100" : "text-slate-400"}`}>
+                            {lang.name}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <p className="text-[10.5px] text-slate-500 pt-0.5">
+                    {selectedLanguages.length === 1
+                      ? "Emailul va fi expediat exclusiv în limba selectată."
+                      : "Emailul va fi expediat bilingv (în ambele limbi selectate, cu toate detaliile traduse)."}
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-lg bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-[11px] text-emerald-800 dark:text-emerald-300 leading-relaxed">
+                  Factura fiscală în format PDF cu siglă, QR SPV și detalii de plată este generată automat și atașată la mesaj.
+                </div>
+
+                {!showEmailPreview && (
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowEmailPreview(true)}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      Previzualizează cum va arăta emailul clientului (cu logo și detalii)
+                    </button>
                   </div>
                 )}
               </div>
-            )}
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-              <button
-                type="button"
-                onClick={() => setShowEmailModal(false)}
-                disabled={sendEmailMutation.isPending}
-                className="px-4 h-9 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-              >
-                Anulează
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!emailRecipient || !emailRecipient.includes("@")) {
-                    toast.error("Vă rugăm să introduceți o adresă de email validă");
-                    return;
-                  }
-                  sendEmailMutation.mutate({
-                    invoiceId: invoice.id,
-                    recipientEmail: emailRecipient.trim(),
-                    representativeName: representativeName.trim() || undefined,
-                    languages: selectedLanguages,
-                  });
-                }}
-                disabled={sendEmailMutation.isPending}
-                className="flex items-center gap-1.5 px-4 h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all disabled:opacity-60"
-              >
-                {sendEmailMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    Se trimite...
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-3.5 h-3.5" />
-                    Trimite Factura
-                  </>
-                )}
-              </button>
+              {/* Panou Dreapta: Previzualizare Live Email */}
+              {showEmailPreview && (
+                <div className="flex-1 p-4 sm:p-5 bg-slate-100/70 dark:bg-slate-950/80 flex flex-col min-h-0 overflow-hidden">
+                  <div className="flex items-center justify-between mb-2.5 shrink-0 px-1">
+                    <div className="flex items-center gap-2">
+                      <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                        Previzualizare Email Live
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-slate-500">
+                      Aspectul recepționat în inbox de client
+                    </span>
+                  </div>
+
+                  <div className="flex-1 w-full bg-slate-200/50 dark:bg-slate-900/50 rounded-xl border border-slate-200/80 dark:border-slate-800 p-2 sm:p-4 flex justify-center items-start overflow-y-auto min-h-[460px]">
+                    {isEmailPreviewLoading ? (
+                      <div className="py-24 flex flex-col items-center justify-center gap-3 text-slate-400">
+                        <Loader2 className="w-7 h-7 animate-spin text-blue-600" />
+                        <span className="text-xs font-medium">Se generează previzualizarea emailului...</span>
+                      </div>
+                    ) : emailPreviewData?.html ? (
+                      <iframe
+                        srcDoc={emailPreviewData.html}
+                        title="Previzualizare Email"
+                        className="w-full max-w-[620px] min-h-[520px] bg-white rounded-xl shadow-md border border-slate-200 dark:border-slate-800"
+                        sandbox="allow-same-origin"
+                      />
+                    ) : (
+                      <div className="py-20 text-center text-xs text-slate-500">
+                        Previzualizarea nu a putut fi încărcată.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer Modal */}
+            <div className="px-5 sm:px-6 py-3.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-slate-900/80 shrink-0">
+              <span className="text-[11px] text-slate-500 hidden sm:inline truncate max-w-[280px]">
+                Expediere către: <strong className="text-slate-700 dark:text-slate-300">{emailRecipient || "fără destinatar"}</strong>
+              </span>
+              <div className="flex items-center gap-2 ml-auto">
+                <button
+                  type="button"
+                  onClick={() => setShowEmailModal(false)}
+                  disabled={sendEmailMutation.isPending}
+                  className="px-4 h-9 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  Anulează
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!emailRecipient || !emailRecipient.includes("@")) {
+                      toast.error("Vă rugăm să introduceți o adresă de email validă");
+                      return;
+                    }
+                    sendEmailMutation.mutate({
+                      invoiceId: invoice.id,
+                      recipientEmail: emailRecipient.trim(),
+                      representativeName: representativeName.trim() || undefined,
+                      languages: selectedLanguages,
+                    });
+                  }}
+                  disabled={sendEmailMutation.isPending}
+                  className="flex items-center gap-1.5 px-5 h-9 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all disabled:opacity-60 cursor-pointer"
+                >
+                  {sendEmailMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Se trimite...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-3.5 h-3.5" />
+                      Trimite Factura
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
