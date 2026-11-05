@@ -167,6 +167,62 @@ export default function AccountantPinLock({
     }
   }, [lockoutRemaining]);
 
+  const verifyPinMutation = trpc.accountantPortal.verifyPin.useMutation();
+
+  const submitPin = async (candidatePin: string) => {
+    if (lockoutRemaining > 0) {
+      setErrorMsg(`Accesul este blocat temporar. Reîncercați în ${lockoutRemaining} secunde.`);
+      return;
+    }
+    if (candidatePin.length !== 4) return;
+    if (verifyPinMutation.isPending) return;
+
+    setErrorMsg("");
+
+    try {
+      const res = await verifyPinMutation.mutateAsync({
+        token,
+        pin: candidatePin,
+      });
+
+      if (res?.sessionToken) {
+        try {
+          localStorage.removeItem(lockoutStorageKey);
+          localStorage.removeItem(attemptsStorageKey);
+        } catch {}
+        onUnlocked(res.sessionToken);
+      }
+    } catch (err: any) {
+      let currentAttempts = 1;
+      try {
+        const stored = parseInt(localStorage.getItem(attemptsStorageKey) || "0", 10);
+        currentAttempts = isNaN(stored) ? 1 : stored + 1;
+        localStorage.setItem(attemptsStorageKey, String(currentAttempts));
+      } catch {}
+
+      setPin("");
+      setIsShaking(true);
+      setTimeout(() => setIsShaking(false), 550);
+
+      if (currentAttempts >= 3) {
+        const lockoutUntil = Date.now() + 60 * 1000;
+        try {
+          localStorage.setItem(lockoutStorageKey, String(lockoutUntil));
+        } catch {}
+        setLockoutRemaining(60);
+        setErrorMsg("Cod PIN greșit de 3 ori. Introducerea este blocată pentru 1 minut.");
+      } else {
+        const remainingAttempts = 3 - currentAttempts;
+        setErrorMsg(
+          `Cod PIN incorect. Mai aveți ${remainingAttempts} ${
+            remainingAttempts === 1 ? "încercare" : "încercări"
+          } înainte de blocare.`
+        );
+        setTimeout(() => inputRef.current?.focus(), 100);
+      }
+    }
+  };
+
   const triggerKeyEffect = (keyName: string) => {
     setActiveKey(keyName);
     setTimeout(() => setActiveKey(null), 140);
@@ -232,62 +288,6 @@ export default function AccountantPinLock({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [lockoutRemaining, verifyPinMutation.isPending, pin]);
-
-  const verifyPinMutation = trpc.accountantPortal.verifyPin.useMutation();
-
-  const submitPin = async (candidatePin: string) => {
-    if (lockoutRemaining > 0) {
-      setErrorMsg(`Accesul este blocat temporar. Reîncercați în ${lockoutRemaining} secunde.`);
-      return;
-    }
-    if (candidatePin.length !== 4) return;
-    if (verifyPinMutation.isPending) return;
-
-    setErrorMsg("");
-
-    try {
-      const res = await verifyPinMutation.mutateAsync({
-        token,
-        pin: candidatePin,
-      });
-
-      if (res?.sessionToken) {
-        try {
-          localStorage.removeItem(lockoutStorageKey);
-          localStorage.removeItem(attemptsStorageKey);
-        } catch {}
-        onUnlocked(res.sessionToken);
-      }
-    } catch (err: any) {
-      let currentAttempts = 1;
-      try {
-        const stored = parseInt(localStorage.getItem(attemptsStorageKey) || "0", 10);
-        currentAttempts = isNaN(stored) ? 1 : stored + 1;
-        localStorage.setItem(attemptsStorageKey, String(currentAttempts));
-      } catch {}
-
-      setPin("");
-      setIsShaking(true);
-      setTimeout(() => setIsShaking(false), 550);
-
-      if (currentAttempts >= 3) {
-        const lockoutUntil = Date.now() + 60 * 1000;
-        try {
-          localStorage.setItem(lockoutStorageKey, String(lockoutUntil));
-        } catch {}
-        setLockoutRemaining(60);
-        setErrorMsg("Cod PIN greșit de 3 ori. Introducerea este blocată pentru 1 minut.");
-      } else {
-        const remainingAttempts = 3 - currentAttempts;
-        setErrorMsg(
-          `Cod PIN incorect. Mai aveți ${remainingAttempts} ${
-            remainingAttempts === 1 ? "încercare" : "încercări"
-          } înainte de blocare.`
-        );
-        setTimeout(() => inputRef.current?.focus(), 100);
-      }
-    }
-  };
 
   const handleUnlock = (e: React.FormEvent) => {
     e.preventDefault();
