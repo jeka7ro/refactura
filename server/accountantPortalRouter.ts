@@ -166,13 +166,23 @@ export const accountantPortalRouter = router({
 
       const candidatePin = input.pin.trim();
 
-      // Verificăm PIN-ul specific portalului contabil
+      // Verificăm PIN-ul: merg ambele PIN-uri (cel separat al contabilei și cel general al firmei)
       let pinOk = false;
+
+      // 1. PIN-ul dedicat al contabilei (setat în Setări -> Portal Contabilitate)
       if (portal.pinHash) {
         const computed = crypto.createHash("sha256").update(candidatePin + PIN_SALT).digest("hex");
         if (computed === portal.pinHash) pinOk = true;
-      } else {
-        // Dacă portalul nu are PIN setat, accesul este permis direct
+      }
+
+      // 2. PIN-ul general al firmei (dacă e configurat pe firmă, merge și acesta)
+      if (!pinOk && settings.accessPinHash) {
+        const computedGeneral = crypto.createHash("sha256").update(candidatePin + ACCESS_PIN_SALT).digest("hex");
+        if (computedGeneral === settings.accessPinHash) pinOk = true;
+      }
+
+      // 3. Dacă nu este setat niciun PIN pe portal și nici pe firmă, accesul este permis
+      if (!portal.pinHash && !settings.accessPinHash) {
         pinOk = true;
       }
 
