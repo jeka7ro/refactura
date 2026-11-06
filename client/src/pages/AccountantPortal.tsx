@@ -75,12 +75,14 @@ export default function AccountantPortal() {
   // Navigare Sidebar: "received" (Facturi Primite) sau "emitted" (Facturi Emise)
   const [activeTab, setActiveTab] = useState<"received" | "emitted">("received");
 
-  // Mod afișare: "modern" sau "saga" (memorat în localStorage pentru contabil)
+  // Mod afișare: "modern" sau "saga" (implicit SAGA C Clasic pentru contabili)
   const [viewMode, setViewMode] = useState<"modern" | "saga">(() => {
     try {
-      return (localStorage.getItem("smart_invoice_accountant_view_mode") as "modern" | "saga") || "modern";
+      const saved = localStorage.getItem("smart_invoice_accountant_view_mode");
+      if (saved === "modern" || saved === "saga") return saved;
+      return "saga";
     } catch {
-      return "modern";
+      return "saga";
     }
   });
 
@@ -738,7 +740,7 @@ export default function AccountantPortal() {
           onSwitchToModern={handleToggleViewMode}
         />
 
-        {/* Modal Universal Previzualizare PDF în fereastră */}
+        {/* Modal Universal Previzualizare PDF în fereastră SAGA */}
         <DocumentModalPreview
           isOpen={previewDoc.isOpen}
           onClose={() => setPreviewDoc((prev) => ({ ...prev, isOpen: false, pdfUrl: null }))}
@@ -746,6 +748,7 @@ export default function AccountantPortal() {
           pdfUrl={previewDoc.pdfUrl}
           filename={previewDoc.filename}
           type={previewDoc.type}
+          theme="saga"
         />
       </>
     );

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { X, Download, Loader2, FileText, CheckCircle2, AlertTriangle, RefreshCw } from "lucide-react";
+import { X, Download, Loader2, FileText, CheckCircle2, AlertTriangle, RefreshCw, Printer, ExternalLink } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface DocumentModalPreviewProps {
@@ -9,6 +9,7 @@ interface DocumentModalPreviewProps {
   pdfUrl: string | null;
   filename?: string;
   type?: "invoice" | "nir" | "emitted";
+  theme?: "modern" | "saga";
 }
 
 export default function DocumentModalPreview({
@@ -18,6 +19,7 @@ export default function DocumentModalPreview({
   pdfUrl,
   filename,
   type = "invoice",
+  theme = "modern",
 }: DocumentModalPreviewProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -96,6 +98,115 @@ export default function DocumentModalPreview({
       window.open(pdfUrl, "_blank");
     }
   };
+
+  if (theme === "saga") {
+    return (
+      <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+        <DialogContent
+          showCloseButton={false}
+          className="w-[96vw] max-w-6xl xl:max-w-7xl h-[94vh] flex flex-col p-0 gap-0 overflow-hidden bg-[#ECE9D8] text-slate-900 border-2 border-[#1F4E79] rounded-none shadow-2xl font-sans"
+        >
+          {/* Header Fereastră Clasică SAGA C */}
+          <div className="bg-[#1F4E79] text-white px-3 py-1.5 flex items-center justify-between select-none">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="bg-[#E59866] text-black font-extrabold px-1 rounded-xs text-[10px] tracking-tight shrink-0 shadow-2xs">
+                SC
+              </span>
+              <span className="font-bold text-xs truncate">
+                SAGA C 3.0 — [Vizualizare {type === "nir" ? "NIR" : "Factură"}] — {title}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Închide fereastra"
+                className="w-5 h-5 bg-[#C0C0C0] hover:bg-red-600 hover:text-white text-black border border-[#808080] flex items-center justify-center font-bold text-xs cursor-pointer leading-none transition-colors"
+                title="Închide fereastra (Esc)"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+
+          {/* Bara de unelte / Acțiuni SAGA */}
+          <div className="bg-[#F0F4F8] border-b border-[#BDC7D1] px-3 py-1.5 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleDownload}
+                disabled={loading || Boolean(error)}
+                className="flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-slate-50 border border-[#BDC7D1] text-slate-800 font-semibold rounded text-xs shadow-2xs cursor-pointer disabled:opacity-50"
+                title="Descarcă fișierul PDF pe calculator"
+              >
+                <Download className="w-3.5 h-3.5 text-blue-700" />
+                <span>Descarcă PDF</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (blobUrl) {
+                    window.open(blobUrl, "_blank");
+                  } else if (pdfUrl) {
+                    window.open(pdfUrl, "_blank");
+                  }
+                }}
+                disabled={loading || Boolean(error)}
+                className="flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-slate-50 border border-[#BDC7D1] text-slate-800 font-semibold rounded text-xs shadow-2xs cursor-pointer disabled:opacity-50"
+                title="Deschide documentul într-o filă nouă pentru listare/tipărire"
+              >
+                <ExternalLink className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Tipărire / Tab Nou</span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3 py-1 bg-white hover:bg-slate-100 border border-[#BDC7D1] text-slate-700 font-medium rounded text-xs cursor-pointer shadow-2xs"
+            >
+              Închide [Esc]
+            </button>
+          </div>
+
+          {/* Canvas Document */}
+          <div className="flex-1 w-full h-full relative bg-[#7F7F7F]">
+            {loading && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 z-10 text-slate-700">
+                <Loader2 className="w-8 h-8 animate-spin text-[#1F4E79] mb-2" />
+                <p className="text-xs font-semibold">Se încarcă documentul SAGA...</p>
+              </div>
+            )}
+
+            {error && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center bg-white">
+                <AlertTriangle className="w-9 h-9 text-amber-500" />
+                <p className="text-sm font-bold text-slate-800">Nu s-a putut deschide documentul</p>
+                <p className="text-xs text-slate-500 max-w-md">{error}</p>
+                <button
+                  type="button"
+                  onClick={fetchPdf}
+                  className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold border border-slate-300"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Reîncearcă</span>
+                </button>
+              </div>
+            )}
+
+            {blobUrl && !error && (
+              <iframe
+                src={blobUrl}
+                title={title}
+                className="w-full h-full border-none bg-white"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
