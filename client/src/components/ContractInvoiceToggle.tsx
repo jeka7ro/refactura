@@ -220,3 +220,4 @@ export function ContractInvoiceToggle({
 }
 
 export default ContractInvoiceToggle;
+

@@ -407,6 +407,20 @@ export default function EmittedInvoiceDetail() {
                 Factură externă ({invoice.clientCountry || "UE"}). Conform legislației fiscale, operațiunile externe nu se transmit în RO e-Factura, ci se raportează în <strong>Declarația 390 VIES</strong> și se transmit clientului în format PDF pe e-mail.
               </div>
             )}
+            {invoice.spvStatus === "eroare" && invoice.spvError && (
+              <div className="mt-2.5 p-3 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-800 dark:text-rose-200">
+                <div className="font-bold flex items-center gap-1.5 mb-1 text-rose-700 dark:text-rose-300">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>Mesaj eroare de la ANAF (RO e-Factura):</span>
+                </div>
+                <p className="font-mono text-[11px] leading-relaxed bg-white/80 dark:bg-slate-900/60 p-2 rounded border border-rose-100 dark:border-rose-900 break-words">
+                  {invoice.spvError}
+                </p>
+                <p className="mt-2 text-[11px] text-slate-600 dark:text-slate-400">
+                  Structura XML a fost corectată conform regulilor CIUS-RO ANAF. Puteți retransmite factura apăsând pe <strong>Trimite SPV</strong>.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

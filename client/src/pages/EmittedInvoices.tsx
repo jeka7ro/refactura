@@ -19,6 +19,8 @@ import {
   Calendar,
   Tag,
   X,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 
 import { trpc } from "@/lib/trpc";
@@ -110,6 +112,7 @@ export default function EmittedInvoices() {
     id: number;
     number: string;
   } | null>(null);
+  const [spvErrorInvoice, setSpvErrorInvoice] = useState<any | null>(null);
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = usePersistentRowsPerPage("emitted_invoices", 15);
 
@@ -832,11 +835,26 @@ export default function EmittedInvoices() {
                             }
                             return (
                               <div className="flex items-center gap-1 leading-none">
-                                <span
-                                  className={`text-[11px] font-normal ${SPV_COLORS[row.spvStatus || "nesincronizat"]}`}
-                                >
-                                  {SPV_LABELS[row.spvStatus || "nesincronizat"]}
-                                </span>
+                                {row.spvStatus === "eroare" ? (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSpvErrorInvoice(row);
+                                    }}
+                                    className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-500 hover:text-rose-600 underline cursor-pointer"
+                                    title={row.spvError ? `Eroare ANAF: ${row.spvError} (Click pentru detalii)` : "Eroare validare ANAF (Click pentru detalii)"}
+                                  >
+                                    <span>Eroare</span>
+                                    <AlertCircle className="w-3 h-3 text-rose-500 shrink-0" />
+                                  </button>
+                                ) : (
+                                  <span
+                                    className={`text-[11px] font-normal ${SPV_COLORS[row.spvStatus || "nesincronizat"]}`}
+                                  >
+                                    {SPV_LABELS[row.spvStatus || "nesincronizat"]}
+                                  </span>
+                                )}
                                 <SpvDeadlineBadge
                                   issueDate={row.issueDate}
                                   spvStatus={row.spvStatus}
@@ -1222,6 +1240,91 @@ export default function EmittedInvoices() {
                     Importă Facturile Externe
                   </>
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal Detalii Eroare ANAF SPV */}
+      {spvErrorInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-lg w-full p-6 space-y-4">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-600 flex items-center justify-center shrink-0">
+                  <AlertCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    Eroare Validare ANAF (RO e-Factura)
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Factura {spvErrorInvoice.number} · {spvErrorInvoice.clientName}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSpvErrorInvoice(null)}
+                className="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              {spvErrorInvoice.spvIndex && (
+                <div className="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800">
+                  <span className="text-slate-500 font-medium">Index Încărcare ANAF:</span>
+                  <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                    {spvErrorInvoice.spvIndex}
+                  </span>
+                </div>
+              )}
+              {spvErrorInvoice.spvSentAt && (
+                <div className="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800">
+                  <span className="text-slate-500 font-medium">Data trimiterii:</span>
+                  <span className="text-slate-700 dark:text-slate-300 font-medium">
+                    {formatDate(spvErrorInvoice.spvSentAt)}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-xs space-y-1.5">
+              <span className="font-bold text-rose-900 dark:text-rose-200 block">
+                Mesaj returnat de serverul ANAF:
+              </span>
+              <p className="font-mono text-[11px] text-rose-800 dark:text-rose-300 bg-white/80 dark:bg-slate-900/60 p-2.5 rounded-lg border border-rose-200/60 dark:border-rose-900/60 break-words leading-relaxed max-h-48 overflow-y-auto">
+                {spvErrorInvoice.spvError || "Eroare de validare la procesarea fișierului XML de către serverul ANAF."}
+              </p>
+            </div>
+
+            <div className="p-3 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 text-xs text-blue-900 dark:text-blue-200">
+              <p className="leading-relaxed">
+                Generatorul XML a fost corectat conform specificației CIUS-RO ANAF. Puteți retrimite factura direct apăsând butonul de mai jos.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setSpvErrorInvoice(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              >
+                Închide
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  sendToSpv.mutate({ id: spvErrorInvoice.id });
+                  setSpvErrorInvoice(null);
+                }}
+                disabled={sendToSpv.isPending}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition disabled:opacity-50"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>Retrimite în SPV</span>
               </button>
             </div>
           </div>

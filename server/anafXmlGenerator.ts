@@ -336,16 +336,7 @@ export function generateUblXml(
         <cbc:PaymentMeansCode>42</cbc:PaymentMeansCode>
         <cbc:PaymentID>${escapeXml(invoice.number)}</cbc:PaymentID>
         <cac:PayeeFinancialAccount>
-            <cbc:ID>${escapeXml(supplierIban)}</cbc:ID>${
-              supplierBank
-                ? `
-            <cac:FinancialInstitutionBranch>
-                <cac:FinancialInstitution>
-                    <cbc:Name>${escapeXml(supplierBank)}</cbc:Name>
-                </cac:FinancialInstitution>
-            </cac:FinancialInstitutionBranch>`
-                : ""
-            }
+            <cbc:ID>${escapeXml(supplierIban)}</cbc:ID>
         </cac:PayeeFinancialAccount>
     </cac:PaymentMeans>
     <cac:PaymentTerms>
