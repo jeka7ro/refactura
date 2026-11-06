@@ -569,24 +569,33 @@ export const accountantPortalRouter = router({
 
       // Mesajele reale din SPV
       const spvMessages = [
-        ...spvArchiveList.map((a) => ({
-          id: `spv-in-${a.id}`,
-          originalId: a.id,
-          direction: "in" as const,
-          typeLabel: "Factură primită (Furnizor)",
-          invoiceNumber: a.invoiceNumber || "—",
-          partnerName: a.supplierName || "—",
-          partnerCui: a.supplierCUI || "",
-          issueDate: a.issueDate || "",
-          total: parseFloat(String(a.total || 0)),
-          spvIndex: a.spvIndex || "",
-          status: "validat" as const,
-          isRead: Boolean(a.isRead),
-          pdfUrl:
-            a.source === "spv_anaf" || a.fileUrl === "spv_import"
-              ? `/api/pdf/archive/${a.id}`
-              : a.fileUrl || `/api/pdf/archive/${a.id}`,
-        })),
+        ...spvArchiveList.map((a) => {
+          const cleanInvNum = (a.invoiceNumber || "").trim().toLowerCase();
+          const matchedNir =
+            nirByArchiveId.get(Number(a.id)) ||
+            (cleanInvNum ? nirByInvoiceNumber.get(cleanInvNum) : null);
+          return {
+            id: `spv-in-${a.id}`,
+            originalId: a.id,
+            direction: "in" as const,
+            typeLabel: "Factură primită (Furnizor)",
+            invoiceNumber: a.invoiceNumber || "—",
+            partnerName: a.supplierName || "—",
+            partnerCui: a.supplierCUI || "",
+            issueDate: a.issueDate || "",
+            total: parseFloat(String(a.total || 0)),
+            spvIndex: a.spvIndex || "",
+            status: "validat" as const,
+            isRead: Boolean(a.isRead),
+            hasNir: Boolean(matchedNir),
+            nirId: matchedNir ? matchedNir.id : null,
+            nirNumber: matchedNir ? matchedNir.nirNumber : null,
+            pdfUrl:
+              a.source === "spv_anaf" || a.fileUrl === "spv_import"
+                ? `/api/pdf/archive/${a.id}`
+                : a.fileUrl || `/api/pdf/archive/${a.id}`,
+          };
+        }),
         ...spvEmittedList.map((e) => ({
           id: `spv-out-${e.id}`,
           originalId: e.id,
@@ -600,6 +609,9 @@ export const accountantPortalRouter = router({
           spvIndex: e.spvIndex || "",
           status: (e.spvStatus || "validat") as any,
           isRead: true,
+          hasNir: false,
+          nirId: null,
+          nirNumber: null,
           pdfUrl: `/api/pdf/emitted/${e.id}`,
         })),
       ].sort((a, b) => (b.issueDate || "").localeCompare(a.issueDate || ""));

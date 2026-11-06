@@ -662,13 +662,14 @@ export default function SagaClassicPortalView({
                   <th className="py-0.5 px-2 text-right border-r border-[#B0B0B0] w-20 font-normal">Neachitat</th>
                   <th className="py-0.5 px-1.5 text-center border-r border-[#B0B0B0] w-24 font-normal">Data document</th>
                   <th className="py-0.5 px-2 text-left border-r border-[#B0B0B0] w-48 font-normal">Informatii suplimentare</th>
-                  <th className="py-0.5 px-1.5 text-center w-28 font-normal">ID incarcare SPV</th>
+                  <th className="py-0.5 px-1.5 text-center border-r border-[#B0B0B0] w-28 font-normal">ID incarcare SPV</th>
+                  <th className="py-0.5 px-1.5 text-center w-20 font-normal">Acțiuni</th>
                 </tr>
               </thead>
               <tbody>
                 {activeInvoices.length === 0 ? (
                   <tr>
-                    <td colSpan={16} className="py-10 text-center text-slate-500 italic bg-white">
+                    <td colSpan={17} className="py-10 text-center text-slate-500 italic bg-white">
                       Nu există documente pentru filtrele selectate.
                     </td>
                   </tr>
@@ -804,7 +805,7 @@ export default function SagaClassicPortalView({
                         </td>
 
                         {/* ID incarcare SPV */}
-                        <td className="py-0.5 px-1.5 text-center font-mono text-[10.5px]">
+                        <td className="py-0.5 px-1.5 text-center font-mono text-[10.5px] border-r border-[#D3D3D3]">
                           {inv.spvIndex ? (
                             <button
                               type="button"
@@ -823,6 +824,47 @@ export default function SagaClassicPortalView({
                           ) : (
                             <span className="opacity-40">—</span>
                           )}
+                        </td>
+
+                        {/* Acțiuni: 2 iconițe (Factură PDF albastră + NIR PDF verde) */}
+                        <td className="py-0.5 px-1.5 text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            {/* Icon 1: Factură PDF (albastru) */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onViewInvoicePdf(inv);
+                              }}
+                              className={`p-0.5 rounded transition-colors ${
+                                isSelected
+                                  ? "bg-white/20 hover:bg-white/30 text-white"
+                                  : "bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200"
+                              }`}
+                              title="Vizualizează factura PDF"
+                            >
+                              <FileText className="w-3 h-3" />
+                            </button>
+
+                            {/* Icon 2: NIR PDF (verde, la fel ca la document doar că verde!) */}
+                            {inv.hasNir && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onViewNirPdf(inv);
+                                }}
+                                className={`p-0.5 rounded transition-colors ${
+                                  isSelected
+                                    ? "bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold"
+                                    : "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300"
+                                }`}
+                                title={`Vizualizează Nota de Recepție (NIR: ${inv.nirNumber})`}
+                              >
+                                <FileText className="w-3 h-3 text-emerald-700" />
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -866,16 +908,32 @@ export default function SagaClassicPortalView({
               className="flex-1 max-w-[380px] bg-white border border-[#7F9DB9] px-1.5 py-0.5 text-[10.5px] text-slate-900 rounded-none shadow-inner focus:outline-none truncate"
             />
 
-            {selectedInvoice?.hasNir && (
-              <button
-                type="button"
-                onClick={() => onViewNirPdf(selectedInvoice)}
-                className="ml-auto flex items-center gap-1 px-2 py-0.5 bg-[#E8F5E9] hover:bg-[#C8E6C9] border border-[#81C784] text-[#1B5E20] font-bold text-[10.5px] cursor-pointer"
-                title="Deschide fișa NIR atașată (tasta N)"
-              >
-                <CheckCircle2 className="w-3 h-3 text-emerald-700" />
-                <span>NIR: {selectedInvoice.nirNumber}</span>
-              </button>
+            {selectedInvoice && (
+              <div className="ml-auto flex items-center gap-1.5 shrink-0">
+                {/* 1. Iconiță Factură PDF (albastru) */}
+                <button
+                  type="button"
+                  onClick={() => onViewInvoicePdf(selectedInvoice)}
+                  className="flex items-center gap-1 px-2 py-0.5 bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-900 font-bold text-[10.5px] rounded-xs cursor-pointer shadow-2xs"
+                  title="Deschide factura fiscală PDF (Enter)"
+                >
+                  <FileText className="w-3.5 h-3.5 text-blue-700" />
+                  <span>Factură PDF</span>
+                </button>
+
+                {/* 2. Iconiță NIR PDF (verde, la fel ca la document doar că verde!) */}
+                {selectedInvoice.hasNir && (
+                  <button
+                    type="button"
+                    onClick={() => onViewNirPdf(selectedInvoice)}
+                    className="flex items-center gap-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-900 font-bold text-[10.5px] rounded-xs cursor-pointer shadow-2xs"
+                    title={`Deschide fișa NIR atașată (${selectedInvoice.nirNumber}) (tasta N)`}
+                  >
+                    <FileText className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>NIR: {selectedInvoice.nirNumber}</span>
+                  </button>
+                )}
+              </div>
             )}
           </div>
 
@@ -1451,7 +1509,8 @@ export default function SagaClassicPortalView({
                           </td>
 
                           <td className="py-1 px-2 text-center">
-                            <div className="flex items-center justify-center gap-1">
+                            <div className="flex items-center justify-center gap-1.5">
+                              {/* 1. Iconiță Factură PDF (albastru) */}
                               {msg.pdfUrl && (
                                 <button
                                   type="button"
@@ -1465,10 +1524,30 @@ export default function SagaClassicPortalView({
                                       pdfUrl: msg.pdfUrl,
                                     });
                                   }}
-                                  className="px-2 py-0.5 bg-[#ECE9D8] hover:bg-blue-100 border border-[#808080] text-blue-900 font-bold text-[10px] rounded-xs cursor-pointer"
-                                  title="Vizualizează factura PDF"
+                                  className="p-1 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 transition-colors shadow-2xs cursor-pointer"
+                                  title="Vizualizează factura fiscală PDF"
                                 >
-                                  PDF
+                                  <FileText className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+
+                              {/* 2. Iconiță NIR PDF (verde, la fel ca la document doar că verde!) */}
+                              {msg.hasNir && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setShowSpvModal(false);
+                                    onViewNirPdf({
+                                      id: msg.originalId,
+                                      nirId: msg.nirId,
+                                      nirNumber: msg.nirNumber,
+                                      supplierName: msg.partnerName,
+                                    });
+                                  }}
+                                  className="p-1 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 transition-colors shadow-2xs cursor-pointer"
+                                  title={`Vizualizează Nota de Recepție (NIR: ${msg.nirNumber})`}
+                                >
+                                  <FileText className="w-3.5 h-3.5 text-emerald-700" />
                                 </button>
                               )}
                             </div>
