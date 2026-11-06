@@ -37,7 +37,15 @@ export default function DocumentModalPreview({
     blobRef.current = null;
 
     try {
-      const res = await fetch(pdfUrl, { credentials: "include" });
+      const headers: Record<string, string> = {};
+      try {
+        const authToken = localStorage.getItem("authToken");
+        if (authToken) {
+          headers["Authorization"] = `Bearer ${authToken}`;
+        }
+      } catch {}
+
+      const res = await fetch(pdfUrl, { credentials: "include", headers });
       if (!res.ok) {
         let msg = `Documentul nu a putut fi descărcat (Cod ${res.status})`;
         try {
