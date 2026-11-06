@@ -1032,15 +1032,33 @@ export default function EmitInvoice() {
     []
   );
 
-  const matchingProducts = useMemo(() => {
+  const [productPage, setProductPage] = useState(1);
+  const PRODUCTS_PER_PAGE = 10;
+
+  const filteredSavedProducts = useMemo(() => {
     const q = (catalogQuery || "").trim().toLowerCase();
-    if (!q) return products.slice(0, 10);
+    if (!q) return products;
     return products.filter(
       p =>
-        p.name.toLowerCase().includes(q) ||
-        (p.unit && p.unit.toLowerCase().includes(q))
-    ).slice(0, 15);
+        (p.name && p.name.toLowerCase().includes(q)) ||
+        (p.unit && p.unit.toLowerCase().includes(q)) ||
+        (p.category && p.category.toLowerCase().includes(q))
+    );
   }, [products, catalogQuery]);
+
+  const totalProductPages = Math.ceil(filteredSavedProducts.length / PRODUCTS_PER_PAGE) || 1;
+
+  const paginatedProducts = useMemo(() => {
+    const start = (productPage - 1) * PRODUCTS_PER_PAGE;
+    return filteredSavedProducts.slice(start, start + PRODUCTS_PER_PAGE);
+  }, [filteredSavedProducts, productPage]);
+
+  // Resetare la prima pagină când se schimbă căutarea sau linia selectată
+  useEffect(() => {
+    setProductPage(1);
+  }, [catalogQuery, focusedLineId]);
+
+  const matchingProducts = filteredSavedProducts;
 
   const handleSelectProduct = (lineId: string, p: any) => {
     setLines(prev =>
@@ -1727,7 +1745,7 @@ export default function EmitInvoice() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xs overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xs overflow-visible">
         <div className="p-3 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
           <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
             Linii Factură
@@ -1824,7 +1842,10 @@ export default function EmitInvoice() {
           {lines.map((line, idx) => (
             <div
               key={line.id}
-              className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-12 gap-3 md:gap-0 items-start md:items-center hover:bg-slate-50 dark:hover:bg-slate-800/30 p-4 md:p-0 border-b border-slate-200 dark:border-slate-800 md:border-b-0"
+              className={cn(
+                "grid grid-cols-2 sm:grid-cols-4 md:grid-cols-12 gap-3 md:gap-0 items-start md:items-center hover:bg-slate-50 dark:hover:bg-slate-800/30 p-4 md:p-0 border-b border-slate-200 dark:border-slate-800 md:border-b-0",
+                focusedLineId === line.id ? "relative z-30" : "relative z-0"
+              )}
             >
               {showCodes && (
                 <div className="col-span-2 sm:col-span-4 md:col-span-1 px-0 md:px-3 py-1 md:py-2 h-full flex flex-col md:flex-row md:items-center">
@@ -1843,6 +1864,7 @@ export default function EmitInvoice() {
               <div
                 className={cn(
                   "px-0 md:px-3 py-1 md:py-2 relative h-full flex flex-col justify-center col-span-2 sm:col-span-4",
+                  focusedLineId === line.id ? "z-40" : "z-0",
                   showCodes
                     ? "md:col-span-3 md:border-l border-slate-100 dark:border-slate-800"
                     : "md:col-span-4"
@@ -1894,77 +1916,142 @@ export default function EmitInvoice() {
                   className="w-full h-8 px-2 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
                 {focusedLineId === line.id && (
-                  <div className="absolute top-11 left-0 right-0 md:left-3 md:right-3 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl max-h-72 overflow-y-auto rounded-md">
-                    {matchingProducts.length > 0 && (
-                      <div>
-                        <div className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center justify-between border-b border-slate-200 dark:border-slate-700">
-                          <span>Produsele Tale Salvate ({matchingProducts.length})</span>
-                          <span className="text-[9px] text-blue-600 dark:text-blue-400 font-normal lowercase">completează automat U.M. și prețul</span>
+                  <div
+                    onMouseDown={e => {
+                      e.stopPropagation();
+                    }}
+                    className="absolute top-11 left-0 z-50 w-[580px] max-w-[92vw] sm:min-w-[480px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl rounded-lg overflow-hidden flex flex-col"
+                  >
+                    {filteredSavedProducts.length > 0 && (
+                      <div className="flex flex-col">
+                        <div className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 flex items-center justify-between border-b border-slate-200 dark:border-slate-700 select-none">
+                          <span className="flex items-center gap-1.5">
+                            <span>Produsele Tale Salvate ({filteredSavedProducts.length})</span>
+                            {totalProductPages > 1 && (
+                              <span className="text-slate-500 font-normal lowercase text-[10px]">
+                                (pag. {productPage}/{totalProductPages})
+                              </span>
+                            )}
+                          </span>
+                          <span className="text-[10px] text-blue-600 dark:text-blue-400 font-normal lowercase">
+                            completează automat U.M. și prețul
+                          </span>
                         </div>
-                        {matchingProducts.map((p: any) => (
-                          <button
-                            key={`prod-${p.id}`}
-                            type="button"
-                            onMouseDown={e => {
-                              e.preventDefault();
-                              handleSelectProduct(line.id, p);
-                            }}
-                            className="w-full text-left px-3 py-2 border-b border-slate-100 dark:border-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between gap-2"
-                          >
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                                {p.name}
+
+                        {/* Lista de produse (câte 10 pe pagină), cu text întreg fără trunchiere */}
+                        <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-80 overflow-y-auto">
+                          {paginatedProducts.map((p: any) => (
+                            <button
+                              key={`prod-${p.id}`}
+                              type="button"
+                              onMouseDown={e => {
+                                e.preventDefault();
+                                handleSelectProduct(line.id, p);
+                              }}
+                              className="w-full text-left px-3.5 py-2.5 hover:bg-blue-50/80 dark:hover:bg-blue-900/30 transition-colors flex items-center justify-between gap-3 group cursor-pointer"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-semibold text-slate-900 dark:text-white whitespace-normal break-words leading-snug">
+                                  {p.name}
+                                </div>
+                                <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                    U.M: {p.unit || "buc"}
+                                  </span>
+                                  <span className="font-medium text-slate-700 dark:text-slate-200">
+                                    Preț: {p.defaultPrice} {currency}
+                                  </span>
+                                  {p.defaultVatRate !== undefined && (
+                                    <span className="text-slate-500">
+                                      TVA: {p.defaultVatRate}%
+                                    </span>
+                                  )}
+                                  {p.category && (
+                                    <span className="text-[10px] text-slate-400">
+                                      [{p.category}]
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                              <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                                  U.M: {p.unit || "buc"}
-                                </span>
-                                <span>Preț: {p.defaultPrice} {currency}</span>
-                                {p.defaultVatRate !== undefined && (
-                                  <span>TVA: {p.defaultVatRate}%</span>
-                                )}
-                              </div>
-                            </div>
-                            <span className="text-xs text-blue-600 dark:text-blue-400 font-medium whitespace-nowrap">
-                              Selectează &rarr;
+                              <span className="text-xs text-blue-600 dark:text-blue-400 font-semibold whitespace-nowrap px-2 py-1 rounded bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 group-hover:bg-blue-600 group-hover:text-white transition-colors shrink-0">
+                                Selectează &rarr;
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Bara de paginare câte 10 cu Precedenta și Următoarea */}
+                        {filteredSavedProducts.length > PRODUCTS_PER_PAGE && (
+                          <div className="px-3.5 py-2 bg-slate-50 dark:bg-slate-800/90 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs text-slate-700 dark:text-slate-200 select-none">
+                            <span className="font-medium text-[11px] text-slate-500 dark:text-slate-400">
+                              Afișare {(productPage - 1) * PRODUCTS_PER_PAGE + 1} - {Math.min(productPage * PRODUCTS_PER_PAGE, filteredSavedProducts.length)} din {filteredSavedProducts.length}
                             </span>
-                          </button>
-                        ))}
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                disabled={productPage <= 1}
+                                onMouseDown={e => {
+                                  e.preventDefault();
+                                  setProductPage(p => Math.max(1, p - 1));
+                                }}
+                                className="px-2.5 py-1 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 font-semibold text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs transition-colors cursor-pointer"
+                              >
+                                ← Precedenta
+                              </button>
+                              <span className="px-1.5 text-xs font-bold text-slate-800 dark:text-slate-100">
+                                {productPage} / {totalProductPages}
+                              </span>
+                              <button
+                                type="button"
+                                disabled={productPage >= totalProductPages}
+                                onMouseDown={e => {
+                                  e.preventDefault();
+                                  setProductPage(p => Math.min(totalProductPages, p + 1));
+                                }}
+                                className="px-2.5 py-1 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 font-semibold text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs transition-colors cursor-pointer"
+                              >
+                                Următoarea →
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
                     {catalogData?.items && catalogData.items.length > 0 && (
-                      <div>
-                        <div className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
+                      <div className="border-t border-slate-200 dark:border-slate-700">
+                        <div className="px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
                           Catalog Devize & Norme
                         </div>
-                        {catalogData.items.map((item: any, i: number) => (
-                          <button
-                            key={`cat-${i}`}
-                            type="button"
-                            onMouseDown={e => {
-                              e.preventDefault();
-                              handleSelectFromCatalog(line.id, item);
-                            }}
-                            className="w-full text-left px-3 py-2 border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                          >
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <span className="text-[9px] font-bold px-1.5 py-0.5 uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                                {item.tip}
-                              </span>
-                              <span className="text-xs font-medium text-slate-500">
-                                {item.cod}
-                              </span>
-                            </div>
-                            <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                              {item.denumire}
-                            </div>
-                          </button>
-                        ))}
+                        <div className="max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                          {catalogData.items.map((item: any, i: number) => (
+                            <button
+                              key={`cat-${i}`}
+                              type="button"
+                              onMouseDown={e => {
+                                e.preventDefault();
+                                handleSelectFromCatalog(line.id, item);
+                              }}
+                              className="w-full text-left px-3.5 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                            >
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                  {item.tip}
+                                </span>
+                                <span className="text-xs font-medium text-slate-500">
+                                  {item.cod}
+                                </span>
+                              </div>
+                              <div className="text-sm font-medium text-slate-900 dark:text-slate-100 whitespace-normal break-words leading-tight">
+                                {item.denumire}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
 
-                    {matchingProducts.length === 0 &&
+                    {filteredSavedProducts.length === 0 &&
                       (!catalogData?.items || catalogData.items.length === 0) &&
                       catalogQuery.trim().length > 0 && (
                         <div className="p-3 text-xs text-slate-500 text-center">
