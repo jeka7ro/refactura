@@ -329,6 +329,7 @@ export const accountantPortalRouter = router({
           nirDate: matchedNir ? matchedNir.receiptDate : null,
           gestiune: matchedNir ? matchedNir.gestiune : null,
           spvIndex: spvIdx,
+          notes: inv.notes || "",
         };
       });
 
@@ -378,6 +379,7 @@ export const accountantPortalRouter = router({
           status: inv.status || "draft",
           pdfUrl: `/api/pdf/emitted/${inv.id}`,
           spvIndex: inv.spvIndex || "",
+          notes: inv.notes || "",
         });
       }
 
@@ -400,6 +402,7 @@ export const accountantPortalRouter = router({
             status: inv.status || "draft",
             pdfUrl: `/api/pdf/reinvoice/${inv.id}`,
             spvIndex: "",
+            notes: inv.notes || "",
           });
         }
       }
@@ -426,6 +429,7 @@ export const accountantPortalRouter = router({
             status: inv.status || "emisa",
             pdfUrl: inv.source === "spv_anaf" || inv.fileUrl === "spv_import" ? `/api/pdf/archive/${inv.id}` : inv.fileUrl || `/api/pdf/archive/${inv.id}`,
             spvIndex: inv.spvIndex || "",
+            notes: inv.notes || "",
           });
         }
       }
@@ -571,6 +575,16 @@ export const accountantPortalRouter = router({
       if (input.docType === "received") {
         // 1. Dacă are NIR atașat, preluăm liniile din NIR (cu conturi contabile și tip contabil SAGA)
         if (input.nirId) {
+          let gestiuneNir = "Depozit";
+          try {
+            const [nirRec] = await db
+              .select()
+              .from(schema.nir)
+              .where(eq(schema.nir.id, input.nirId))
+              .limit(1);
+            if (nirRec?.gestiune) gestiuneNir = nirRec.gestiune;
+          } catch {}
+
           const nLines = await db
             .select()
             .from(schema.nirLines)
@@ -578,17 +592,34 @@ export const accountantPortalRouter = router({
             .orderBy(schema.nirLines.lineOrder, schema.nirLines.id);
 
           if (nLines.length > 0) {
-            return nLines.map((l, idx) => ({
-              lineOrder: idx + 1,
-              type: l.accountingType || "Mărfuri",
-              description: l.description,
-              unit: l.unit || "buc",
-              quantity: parseFloat(String(l.cantitateReceptionata || l.cantitateComanda || 0)),
-              unitPrice: parseFloat(String(l.unitPrice || 0)),
-              vatRate: parseFloat(String(l.vatRate || 21)),
-              total: parseFloat(String(l.total || 0)),
-              account: l.accountingAccount || "371",
-            }));
+            return nLines.map((l, idx) => {
+              const qty = parseFloat(String(l.cantitateReceptionata || l.cantitateComanda || 0));
+              const price = parseFloat(String(l.unitPrice || 0));
+              const tot = parseFloat(String(l.total || (qty * price)));
+              const vat = parseFloat(String(l.vatRate || 21));
+              const val = Math.round(qty * price * 100) / 100;
+              const tvaSum = Math.round((tot - val) * 100) / 100;
+              return {
+                lineOrder: idx + 1,
+                type: l.accountingType || "Materiale auxiliare",
+                gestiune: gestiuneNir,
+                description: l.description,
+                code: String(l.sagaArticleId || (idx + 1)).padStart(8, "0"),
+                unit: (l.unit || "buc").toUpperCase(),
+                quantity: qty,
+                unitPrice: price,
+                valoare: val,
+                vatRate: vat,
+                total: tot,
+                tva: tvaSum,
+                nedeductibil: 0,
+                account: l.accountingAccount || "3028",
+                pretVanzare: 0,
+                adaosUnitar: 0,
+                adaosProcent: 0,
+                infoSuplimentare: l.observations || "",
+              };
+            });
           }
         }
 
@@ -604,16 +635,27 @@ export const accountantPortalRouter = router({
             const price = parseFloat(String(l.unitPrice || 0));
             const tot = parseFloat(String(l.total || (qty * price)));
             const vat = parseFloat(String(l.vatRate || 21));
+            const val = Math.round(qty * price * 100) / 100;
+            const tvaSum = Math.round((tot - val) * 100) / 100;
             return {
               lineOrder: idx + 1,
               type: "Mărfuri",
+              gestiune: "Depozit",
               description: l.description,
-              unit: l.unit || "buc",
+              code: String(idx + 1).padStart(8, "0"),
+              unit: (l.unit || "buc").toUpperCase(),
               quantity: qty,
               unitPrice: price,
+              valoare: val,
               vatRate: vat,
               total: tot,
+              tva: tvaSum,
+              nedeductibil: 0,
               account: "371",
+              pretVanzare: 0,
+              adaosUnitar: 0,
+              adaosProcent: 0,
+              infoSuplimentare: "",
             };
           });
         }
@@ -633,16 +675,27 @@ export const accountantPortalRouter = router({
             const price = parseFloat(String(l.unitPrice || 0));
             const tot = parseFloat(String(l.total || (qty * price)));
             const vat = parseFloat(String(l.vatRate || 21));
+            const val = Math.round(qty * price * 100) / 100;
+            const tvaSum = Math.round((tot - val) * 100) / 100;
             return {
               lineOrder: idx + 1,
-              type: l.devizType === "MANOPERA" ? "Servicii" : "Produse",
+              type: l.devizType === "MANOPERA" ? "Servicii" : "Marfuri",
+              gestiune: "—",
               description: l.description,
-              unit: l.unit || "buc",
+              code: String(idx + 1).padStart(8, "0"),
+              unit: (l.unit || "buc").toUpperCase(),
               quantity: qty,
               unitPrice: price,
+              valoare: val,
               vatRate: vat,
               total: tot,
+              tva: tvaSum,
+              nedeductibil: 0,
               account: l.devizType === "MANOPERA" ? "704" : "707",
+              pretVanzare: price,
+              adaosUnitar: 0,
+              adaosProcent: 0,
+              infoSuplimentare: "",
             };
           });
         }
@@ -659,16 +712,27 @@ export const accountantPortalRouter = router({
             const price = parseFloat(String(l.unitPrice || 0));
             const tot = parseFloat(String(l.total || (qty * price)));
             const vat = parseFloat(String(l.vatRate || 21));
+            const val = Math.round(qty * price * 100) / 100;
+            const tvaSum = Math.round((tot - val) * 100) / 100;
             return {
               lineOrder: idx + 1,
-              type: "Servicii / Refacturare",
+              type: "Servicii",
+              gestiune: "—",
               description: l.description,
-              unit: l.unit || "buc",
+              code: String(idx + 1).padStart(8, "0"),
+              unit: (l.unit || "buc").toUpperCase(),
               quantity: qty,
               unitPrice: price,
+              valoare: val,
               vatRate: vat,
               total: tot,
+              tva: tvaSum,
+              nedeductibil: 0,
               account: "704",
+              pretVanzare: price,
+              adaosUnitar: 0,
+              adaosProcent: 0,
+              infoSuplimentare: "",
             };
           });
         }
@@ -685,16 +749,27 @@ export const accountantPortalRouter = router({
             const price = parseFloat(String(l.unitPrice || 0));
             const tot = parseFloat(String(l.total || (qty * price)));
             const vat = parseFloat(String(l.vatRate || 21));
+            const val = Math.round(qty * price * 100) / 100;
+            const tvaSum = Math.round((tot - val) * 100) / 100;
             return {
               lineOrder: idx + 1,
-              type: "Produse / Servicii",
+              type: "Marfuri",
+              gestiune: "—",
               description: l.description,
-              unit: l.unit || "buc",
+              code: String(idx + 1).padStart(8, "0"),
+              unit: (l.unit || "buc").toUpperCase(),
               quantity: qty,
               unitPrice: price,
+              valoare: val,
               vatRate: vat,
               total: tot,
+              tva: tvaSum,
+              nedeductibil: 0,
               account: "707",
+              pretVanzare: price,
+              adaosUnitar: 0,
+              adaosProcent: 0,
+              infoSuplimentare: "",
             };
           });
         }
