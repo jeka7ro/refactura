@@ -1563,7 +1563,14 @@ export function registerPdfRoute(app: any) {
       const { nir, nirLines } = await import("../drizzle/schema");
       const { eq: eqOp } = await import("drizzle-orm");
 
-      const [nirRow] = await db.select().from(nir).where(eqOp(nir.id, id));
+      let [nirRow] = await db.select().from(nir).where(eqOp(nir.id, id));
+      if (!nirRow) {
+        // Fallback: căutare după invoiceArchiveId dacă clientul a trimis ID-ul arhivei
+        const [byArchive] = await db.select().from(nir).where(eqOp(nir.invoiceArchiveId, id));
+        if (byArchive) {
+          nirRow = byArchive;
+        }
+      }
       if (!nirRow) {
         res.status(404).json({ error: "NIR nu a fost găsit" });
         return;
@@ -1572,7 +1579,7 @@ export function registerPdfRoute(app: any) {
       const linesRaw = await db
         .select()
         .from(nirLines)
-        .where(eqOp(nirLines.nirId, id))
+        .where(eqOp(nirLines.nirId, nirRow.id))
         .orderBy(nirLines.lineOrder);
 
       const { sagaArticles } = await import("../modules/saga/schema");

@@ -190,8 +190,13 @@ export default function AccountantPortal() {
 
   const getAuthenticatedPdfUrl = (url: string | null) => {
     if (!url) return null;
+    const effectiveToken =
+      sessionToken ||
+      (publicInfo && !publicInfo.requiresPin ? publicInfo.autoSessionToken : "");
     const sep = url.includes("?") ? "&" : "?";
-    return sessionToken ? `${url}${sep}accountantToken=${encodeURIComponent(sessionToken)}` : url;
+    return effectiveToken
+      ? `${url}${sep}accountantToken=${encodeURIComponent(effectiveToken)}`
+      : url;
   };
 
   const handleUnlockSuccess = (newToken: string) => {
@@ -718,20 +723,22 @@ export default function AccountantPortal() {
             setPreviewDoc({
               isOpen: true,
               title: `Factura ${inv.invoiceNumber} - ${activeTab === "received" ? inv.supplierName : inv.clientName}`,
-              pdfUrl: inv.pdfUrl,
+              pdfUrl: getAuthenticatedPdfUrl(inv.pdfUrl),
               filename: `Factura_${inv.invoiceNumber}.pdf`,
               type: activeTab === "received" ? "invoice" : "emitted",
             })
           }
-          onViewNirPdf={(inv) =>
+          onViewNirPdf={(inv) => {
+            const targetNirId = inv.nirId || inv.id;
+            const targetNirNum = inv.nirNumber || targetNirId;
             setPreviewDoc({
               isOpen: true,
-              title: `NIR ${inv.nirNumber} - ${inv.supplierName}`,
-              pdfUrl: `/api/pdf/nir/${inv.nirId}`,
-              filename: `NIR_${inv.nirNumber}.pdf`,
+              title: `NIR ${targetNirNum} - ${inv.supplierName || ""}`.trim(),
+              pdfUrl: getAuthenticatedPdfUrl(`/api/pdf/nir/${targetNirId}`),
+              filename: `NIR_${targetNirNum}.pdf`,
               type: "nir",
-            })
-          }
+            });
+          }}
           onDownloadSagaXml={handleDownloadSagaXml}
           onExportExcel={handleExportExcel}
           onExportEmittedExcel={handleExportEmittedExcel}
