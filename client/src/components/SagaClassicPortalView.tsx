@@ -663,7 +663,7 @@ export default function SagaClassicPortalView({
                   <th className="py-0.5 px-1.5 text-center border-r border-[#B0B0B0] w-24 font-normal">Data document</th>
                   <th className="py-0.5 px-2 text-left border-r border-[#B0B0B0] w-48 font-normal">Informatii suplimentare</th>
                   <th className="py-0.5 px-1.5 text-center border-r border-[#B0B0B0] w-28 font-normal">ID incarcare SPV</th>
-                  <th className="py-0.5 px-1.5 text-center w-20 font-normal">Acțiuni</th>
+                  <th className="py-0.5 px-1.5 text-center w-24 font-normal" title="Documente atașate (Factură fiscală PDF și Recepție NIR)">Doc. atașat</th>
                 </tr>
               </thead>
               <tbody>
@@ -1433,7 +1433,7 @@ export default function SagaClassicPortalView({
                     <th className="py-1 px-2 text-center border-r border-[#B0B0B0] w-20 font-normal">Dată</th>
                     <th className="py-1 px-2 text-right border-r border-[#B0B0B0] w-24 font-normal">Valoare</th>
                     <th className="py-1 px-2 text-center border-r border-[#B0B0B0] w-24 font-normal">Stare ANAF</th>
-                    <th className="py-1 px-2 text-center w-24 font-normal">Acțiuni</th>
+                    <th className="py-1 px-2 text-center w-24 font-normal" title="Documente atașate (Factură fiscală PDF și Recepție NIR)">Doc. atașat</th>
                   </tr>
                 </thead>
                 <tbody>
