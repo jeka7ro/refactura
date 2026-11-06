@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { InvoiceCurrencyCalculator } from "@/components/InvoiceCurrencyCalculator";
 import { BnrInvoiceRateToggle } from "@/components/BnrInvoiceRateToggle";
+import { ContractInvoiceToggle } from "@/components/ContractInvoiceToggle";
 
 const EU_COUNTRIES = new Set([
   "AT", "BE", "BG", "CY", "CZ", "DE", "DK", "EE", "ES", "FI",
@@ -166,6 +167,7 @@ export default function EmitInvoice() {
   const [punctLucru, setPunctLucru] = useState("");
   const [numarComanda, setNumarComanda] = useState("");
   const [numarContract, setNumarContract] = useState("");
+  const [dataContract, setDataContract] = useState("");
   const [mentiuni, setMentiuni] = useState("");
   const [createDeviz, setCreateDeviz] = useState(false);
   const [sendEmailToClient, setSendEmailToClient] = useState(false);
@@ -1157,7 +1159,9 @@ export default function EmitInvoice() {
       ? `Curs ${currency} = ${effectiveInvoiceBnrRate.toFixed(4)} Lei (din ${effectiveBnrRateDate || issueDate})`
       : "",
     numarComanda ? `Comanda: ${numarComanda}` : "",
-    numarContract ? `Contract: ${numarContract}` : "",
+    numarContract && !mentiuni.toLowerCase().includes("contract")
+      ? (dataContract ? `Contract: ${numarContract} din ${dataContract}` : `Contract: ${numarContract}`)
+      : "",
     intocmitDe ? `Întocmit de: ${intocmitDe}` : "",
     delegat
       ? `Delegat: ${delegat} ${carteIdentitate ? `(CI: ${carteIdentitate})` : ""}`
@@ -2349,6 +2353,16 @@ export default function EmitInvoice() {
                   value={numarContract}
                   onChange={e => setNumarContract(e.target.value)}
                   className={inputCls}
+                  placeholder="ex: 392"
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Data Contract</label>
+                <input
+                  type="date"
+                  value={dataContract}
+                  onChange={e => setDataContract(e.target.value)}
+                  className={inputCls}
                 />
               </div>
             </div>
@@ -2381,6 +2395,20 @@ export default function EmitInvoice() {
               notes={mentiuni}
               onNotesChange={setMentiuni}
               onRateChange={(rate) => setInvoiceBnrRate(rate)}
+            />
+
+            <span className="hidden sm:inline-block w-px h-4 bg-slate-200 dark:bg-slate-700" />
+
+            {/* Toggle Contract (Nr. și Dată) */}
+            <ContractInvoiceToggle
+              clientId={selectedClientId ? parseInt(selectedClientId, 10) : undefined}
+              clientName={clientName}
+              notes={mentiuni}
+              onNotesChange={setMentiuni}
+              contractNumber={numarContract}
+              onContractNumberChange={setNumarContract}
+              contractDate={dataContract}
+              onContractDateChange={setDataContract}
             />
 
             <span className="hidden sm:inline-block w-px h-4 bg-slate-200 dark:bg-slate-700" />
