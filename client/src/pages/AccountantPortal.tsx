@@ -636,6 +636,8 @@ export default function AccountantPortal() {
     }
   };
 
+  const handleDownloadZip = handleDownloadZipBundle;
+
   // 1. Ecran de încărcare inițială
   if (isLoadingPublic || (Boolean(sessionToken) && isCheckingSession)) {
     return (
@@ -669,7 +671,7 @@ export default function AccountantPortal() {
     return (
       <AccountantPinLock
         token={token}
-        companyName={publicInfo.companyName}
+        companyName={publicInfo?.companyName || "Companie"}
         cui={publicInfo.cui}
         companyLogo={publicInfo.logoUrl}
         logoBgColor={publicInfo.logoBgColor}
