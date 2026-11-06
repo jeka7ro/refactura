@@ -25,6 +25,13 @@ import {
   LogOut,
   SlidersHorizontal,
   Calculator,
+  Globe,
+  AlertTriangle,
+  RefreshCw,
+  XCircle,
+  CheckCircle,
+  ShieldCheck,
+  ExternalLink,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -173,7 +180,27 @@ export default function SagaClassicPortalView({
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
   const [selectedLineIdx, setSelectedLineIdx] = useState<number>(0);
   const [copiedCui, setCopiedCui] = useState<string | null>(null);
-  const [showSearchModal, setShowSearchModal] = useState(false);
+
+  // Modale SPV & Alerte (Date 100% reale, fără mock)
+  const [showSpvModal, setShowSpvModal] = useState(false);
+  const [showAlertsModal, setShowAlertsModal] = useState(false);
+  const [spvTabFilter, setSpvTabFilter] = useState<"all" | "in" | "out">("all");
+  const [spvSearchQuery, setSpvSearchQuery] = useState("");
+
+  const trpcUtils = trpc.useUtils ? trpc.useUtils() : (trpc as any).useContext();
+
+  // Mutație sincronizare live SPV ANAF
+  const syncSpvMutation = trpc.accountantPortal.syncSpv.useMutation({
+    onSuccess: (res) => {
+      toast.success(
+        `Sincronizare SPV ANAF finalizată cu succes! S-au descărcat ${res.imported} facturi noi.`
+      );
+      trpcUtils.accountantPortal.getPortalData.invalidate();
+    },
+    onError: (err) => {
+      toast.error(`Eroare comunicare SPV ANAF: ${err.message}`);
+    },
+  });
 
   const activeInvoices = activeTab === "received" ? filteredInvoices : filteredEmittedInvoices;
 
@@ -256,6 +283,34 @@ export default function SagaClassicPortalView({
   const company = portalData?.company || {};
   const currentKpiData = activeTab === "received" ? currentKpis : currentEmittedKpis;
 
+  // Date REALE din SPV ANAF preluate direct din backend (fără niciun mock)
+  const spvStats = portalData?.spvStats;
+  const realSpvCount =
+    spvStats?.totalReceived ??
+    portalData?.invoices?.filter((i: any) => i.source === "spv_anaf" || Boolean(i.spvIndex)).length ??
+    0;
+  const realAlertsCount = spvStats?.alertsCount ?? (spvStats?.errorsCount || 0);
+  const realAlerts = spvStats?.alerts || [];
+  const spvMessages = spvStats?.messages || [];
+
+  // Filtrare mesaje SPV în modal
+  const filteredSpvMessages = useMemo(() => {
+    return spvMessages.filter((m: any) => {
+      if (spvTabFilter === "in" && m.direction !== "in") return false;
+      if (spvTabFilter === "out" && m.direction !== "out") return false;
+      if (spvSearchQuery.trim()) {
+        const q = spvSearchQuery.toLowerCase();
+        return (
+          m.invoiceNumber?.toLowerCase().includes(q) ||
+          m.partnerName?.toLowerCase().includes(q) ||
+          m.partnerCui?.toLowerCase().includes(q) ||
+          m.spvIndex?.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [spvMessages, spvTabFilter, spvSearchQuery]);
+
   // Câmpuri document selectat pentru banda intermediară SAGA
   const selectedNrInt = selectedInvoice ? getSagaInternalNumber(selectedInvoice) : "";
   const selectedNrDoc = selectedInvoice?.invoiceNumber || "";
@@ -301,14 +356,29 @@ export default function SagaClassicPortalView({
           </span>
         </div>
 
-        {/* Zona Dreapta: Alerte SAGA, Comutator Mod Modern și Ieșire */}
+        {/* Zona Dreapta: e-Facturi și Alerte REALE DIN SPV ANAF (FĂRĂ MOCK) */}
         <div className="flex items-center gap-2 shrink-0">
-          <span className="hidden sm:inline text-blue-800 underline text-[11px] cursor-pointer hover:text-blue-950 font-medium">
-            e-Facturi ({activeInvoices.length})
-          </span>
-          <span className="hidden sm:inline text-blue-800 underline text-[11px] cursor-pointer hover:text-blue-950 font-medium">
-            Alerte ({activeInvoices.filter((i) => !i.hasNir && activeTab === "received").length})
-          </span>
+          <button
+            type="button"
+            onClick={() => setShowSpvModal(true)}
+            className="hidden sm:inline-flex items-center gap-1 text-blue-800 underline text-[11px] cursor-pointer hover:text-blue-950 font-medium bg-transparent border-0 p-0"
+            title="Deschide ecranul e-Factura SPV ANAF cu mesajele descărcate și sincronizare live"
+          >
+            <span>e-Facturi ({realSpvCount})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowAlertsModal(true)}
+            className={`hidden sm:inline-flex items-center gap-1 underline text-[11px] cursor-pointer font-medium bg-transparent border-0 p-0 ${
+              (spvStats?.errorsCount || 0) > 0
+                ? "text-red-700 font-bold hover:text-red-900"
+                : "text-blue-800 hover:text-blue-950"
+            }`}
+            title="Deschide ecranul cu alerte contabile și erori reale de validare din SPV ANAF"
+          >
+            <span>Alerte ({realAlertsCount})</span>
+          </button>
 
           <span className="w-px h-3.5 bg-[#B0B0B0]" />
 
@@ -521,15 +591,26 @@ export default function SagaClassicPortalView({
                 <RotateCcw className="w-3 h-3" />
               </button>
 
-              {/* Buton e-Factura SPV */}
+              {/* Buton e-Factura SPV — Deschide Ecranul SPV Real */}
+              <button
+                type="button"
+                onClick={() => setShowSpvModal(true)}
+                className="flex items-center gap-1 px-2 py-0.5 bg-[#E4EBF2] hover:bg-[#D4E0EC] border-t border-l border-white border-b border-r border-[#808080] text-blue-900 font-bold cursor-pointer shadow-2xs text-[11px]"
+                title="Deschide ecranul e-Factura SPV ANAF cu mesajele descărcate și sincronizare live"
+              >
+                <Globe className="w-3 h-3 text-[#1F4E79]" />
+                <span>e-Factura SPV ({realSpvCount})</span>
+              </button>
+
+              {/* Buton Export XML SAGA */}
               <button
                 type="button"
                 onClick={onDownloadSagaXml}
-                className="flex items-center gap-1 px-2 py-0.5 bg-[#E4EBF2] hover:bg-[#D4E0EC] border-t border-l border-white border-b border-r border-[#808080] text-blue-900 font-bold cursor-pointer shadow-2xs text-[11px]"
+                className="flex items-center gap-1 px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] active:bg-[#DFDAC6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
                 title="Descarcă fișier XML 100% conform importului SAGA C"
               >
                 <Download className="w-3 h-3 text-[#1F4E79]" />
-                <span>e-Factura XML</span>
+                <span className="hidden sm:inline">Export XML</span>
               </button>
 
               {/* Buton Pachet ZIP */}
@@ -725,12 +806,20 @@ export default function SagaClassicPortalView({
                         {/* ID incarcare SPV */}
                         <td className="py-0.5 px-1.5 text-center font-mono text-[10.5px]">
                           {inv.spvIndex ? (
-                            <span
-                              className={`underline ${isSelected ? "text-amber-200" : "text-blue-900"}`}
-                              title={`Index încărcare ANAF e-Factura: ${inv.spvIndex}`}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowSpvModal(true);
+                                setSpvSearchQuery(inv.spvIndex);
+                              }}
+                              className={`underline cursor-pointer bg-transparent border-0 p-0 font-mono text-[10.5px] ${
+                                isSelected ? "text-amber-200" : "text-blue-900"
+                              }`}
+                              title={`Click pentru detalii SPV ANAF: ${inv.spvIndex}`}
                             >
                               {inv.spvIndex}
-                            </span>
+                            </button>
                           ) : (
                             <span className="opacity-40">—</span>
                           )}
@@ -914,7 +1003,7 @@ export default function SagaClassicPortalView({
                     <th className="py-0.5 px-1 text-right border-r border-[#B0B0B0] w-16 font-normal">Nedeductibil</th>
                     <th className="py-0.5 px-1.5 text-center border-r border-[#B0B0B0] w-14 font-normal">Cont</th>
                     <th className="py-0.5 px-1.5 text-right border-r border-[#B0B0B0] w-20 font-normal">Pret vanzare</th>
-                    <th className="py-0.5 px-1 text-right border-r border-[#B0B0B0] w-16 font-normal">Adaos unitar</th>
+                    <th className="py-0.5 px-1.5 text-right border-r border-[#B0B0B0] w-16 font-normal">Adaos unitar</th>
                     <th className="py-0.5 px-1 text-center border-r border-[#B0B0B0] w-10 font-normal">%</th>
                     <th className="py-0.5 px-2 text-left w-32 font-normal">Informatii suplimentare</th>
                   </tr>
@@ -1011,7 +1100,7 @@ export default function SagaClassicPortalView({
                         </td>
 
                         {/* Adaos unitar */}
-                        <td className="py-0.5 px-1 text-right font-mono border-r border-[#D3D3D3]">
+                        <td className="py-0.5 px-1.5 text-right font-mono border-r border-[#D3D3D3]">
                           0.00
                         </td>
 
@@ -1142,6 +1231,379 @@ export default function SagaClassicPortalView({
           </div>
         </div>
       </div>
+
+      {/* ═════════════════════════════════════════════════════════════════════════
+          9. MODAL DEDICAT SAGA C: e-FACTURA SPV ANAF (DATE REALE, FĂRĂ MOCK)
+      ═════════════════════════════════════════════════════════════════════════ */}
+      {showSpvModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3 backdrop-blur-xs">
+          <div className="bg-[#ECE9D8] border-2 border-[#0055EA] shadow-2xl rounded-t-sm w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden text-black font-sans text-xs">
+            {/* Header Fereastră SPV */}
+            <div className="bg-gradient-to-r from-[#0055EA] via-[#103869] to-[#2B609E] text-white px-3 py-1.5 flex items-center justify-between border-b border-[#003B99] shrink-0">
+              <div className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-cyan-300" />
+                <span className="font-bold text-xs tracking-wide">
+                  e-Factura SPV — Preluare și Management Mesaje ANAF ({company.name || "Societate"})
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSpvModal(false)}
+                className="w-5 h-4 flex items-center justify-center bg-[#E81123] hover:bg-red-700 text-white rounded-xs text-[10px]"
+                title="Închide fereastra"
+              >
+                <CloseIcon className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Bara de status conexiune SPV & Buton Sincronizare Live */}
+            <div className="bg-[#FFFFEB] border-b border-[#BDC7D1] px-3 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 text-xs">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="font-bold text-emerald-900">
+                    Conexiune SPV ANAF Activă
+                  </span>
+                  {spvStats?.tokenExpiresAt && (
+                    <span className="text-[11px] text-slate-600">
+                      (Token autorizat până la {formatSagaDate(spvStats.tokenExpiresAt)})
+                    </span>
+                  )}
+                </div>
+
+                <span className="w-px h-4 bg-[#BDC7D1]" />
+
+                <div className="flex items-center gap-2 text-[11px] text-slate-700">
+                  <span>
+                    Facturi Primite din SPV:{" "}
+                    <strong className="font-mono text-blue-900">{spvStats?.totalReceived || 0}</strong>
+                  </span>
+                  <span>·</span>
+                  <span>
+                    Validate la ANAF:{" "}
+                    <strong className="font-mono text-emerald-800">{spvStats?.validatedEmitted || 0}</strong>
+                  </span>
+                  {(spvStats?.errorsCount || 0) > 0 && (
+                    <>
+                      <span>·</span>
+                      <span className="text-red-700 font-bold">
+                        Erori ANAF: <strong className="font-mono">{spvStats?.errorsCount}</strong>
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Buton Sincronizează cu SPV ANAF */}
+              <button
+                type="button"
+                disabled={syncSpvMutation.isPending}
+                onClick={() => syncSpvMutation.mutate({ token, sessionToken, zile: 60 })}
+                className="flex items-center gap-1.5 px-3 py-1 bg-[#1F4E79] hover:bg-[#102A43] text-white rounded-xs font-bold text-xs shadow-xs cursor-pointer disabled:opacity-50 transition-colors"
+                title="Descarcă ultimele mesaje și facturi noi direct de la ANAF"
+              >
+                <RefreshCw
+                  className={`w-3.5 h-3.5 ${syncSpvMutation.isPending ? "animate-spin" : ""}`}
+                />
+                <span>
+                  {syncSpvMutation.isPending ? "Se descarcă din SPV..." : "Sincronizează cu SPV ANAF acum"}
+                </span>
+              </button>
+            </div>
+
+            {/* Filtre și căutare în mesajele SPV */}
+            <div className="bg-[#ECE9D8] px-3 py-1.5 flex flex-wrap items-center justify-between gap-2 border-b border-[#999999] shrink-0">
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setSpvTabFilter("all")}
+                  className={`px-2.5 py-0.5 text-xs font-semibold rounded-xs border cursor-pointer ${
+                    spvTabFilter === "all"
+                      ? "bg-white border-[#7F9DB9] text-black shadow-xs font-bold"
+                      : "bg-[#ECE9D8] border-transparent text-slate-700 hover:bg-white/50"
+                  }`}
+                >
+                  Toate Mesajele ({spvMessages.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSpvTabFilter("in")}
+                  className={`px-2.5 py-0.5 text-xs font-semibold rounded-xs border cursor-pointer ${
+                    spvTabFilter === "in"
+                      ? "bg-white border-[#7F9DB9] text-black shadow-xs font-bold"
+                      : "bg-[#ECE9D8] border-transparent text-slate-700 hover:bg-white/50"
+                  }`}
+                >
+                  Primite din SPV ({spvStats?.totalReceived || 0})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSpvTabFilter("out")}
+                  className={`px-2.5 py-0.5 text-xs font-semibold rounded-xs border cursor-pointer ${
+                    spvTabFilter === "out"
+                      ? "bg-white border-[#7F9DB9] text-black shadow-xs font-bold"
+                      : "bg-[#ECE9D8] border-transparent text-slate-700 hover:bg-white/50"
+                  }`}
+                >
+                  Emise în SPV ({spvStats?.totalEmitted || 0})
+                </button>
+              </div>
+
+              {/* Căutare rapidă */}
+              <div className="relative">
+                <Search className="w-3 h-3 text-slate-500 absolute left-2 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={spvSearchQuery}
+                  onChange={(e) => setSpvSearchQuery(e.target.value)}
+                  placeholder="Caută index, CUI, partener, număr..."
+                  className="pl-6 pr-2 py-0.5 w-60 bg-white border border-[#7F9DB9] text-xs rounded-none shadow-inner focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Tabelul de Mesaje SPV */}
+            <div className="flex-1 overflow-auto bg-[#FFFFEB] min-h-[300px]">
+              <table className="w-full border-collapse text-[11px] font-sans">
+                <thead className="sticky top-0 bg-[#ECE9D8] text-black border-b border-[#808080] font-normal z-10 select-none shadow-xs">
+                  <tr>
+                    <th className="py-1 px-1.5 text-center border-r border-[#B0B0B0] w-12 font-normal">Tip</th>
+                    <th className="py-1 px-2 text-center border-r border-[#B0B0B0] w-28 font-normal">ID Încărcare SPV</th>
+                    <th className="py-1 px-2 text-left border-r border-[#B0B0B0] w-36 font-normal">Număr Document</th>
+                    <th className="py-1 px-2 text-left border-r border-[#B0B0B0] font-normal">Partener</th>
+                    <th className="py-1 px-2 text-left border-r border-[#B0B0B0] w-24 font-normal">CUI / CIF</th>
+                    <th className="py-1 px-2 text-center border-r border-[#B0B0B0] w-20 font-normal">Dată</th>
+                    <th className="py-1 px-2 text-right border-r border-[#B0B0B0] w-24 font-normal">Valoare</th>
+                    <th className="py-1 px-2 text-center border-r border-[#B0B0B0] w-24 font-normal">Stare ANAF</th>
+                    <th className="py-1 px-2 text-center w-24 font-normal">Acțiuni</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredSpvMessages.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="py-12 text-center text-slate-500 italic bg-white">
+                        Nu s-au găsit mesaje SPV conform criteriilor selectate.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredSpvMessages.map((msg: any, idx: number) => {
+                      const isEven = idx % 2 === 0;
+                      return (
+                        <tr
+                          key={msg.id}
+                          className={`border-b border-[#D5DCE2] hover:bg-[#EBF3FB] leading-tight select-none ${
+                            isEven ? "bg-[#FFFFEB]" : "bg-white"
+                          }`}
+                          style={{ height: "22px" }}
+                        >
+                          <td className="py-1 px-1.5 text-center border-r border-[#D3D3D3]">
+                            <span
+                              className={`px-1 py-0.2 text-[9.5px] font-bold rounded-xs ${
+                                msg.direction === "in"
+                                  ? "bg-blue-100 text-blue-900 border border-blue-200"
+                                  : "bg-emerald-100 text-emerald-900 border border-emerald-200"
+                              }`}
+                            >
+                              {msg.direction === "in" ? "INTRARE" : "IEȘIRE"}
+                            </span>
+                          </td>
+
+                          <td className="py-1 px-2 text-center font-mono font-bold border-r border-[#D3D3D3] text-blue-950">
+                            {msg.spvIndex || "—"}
+                          </td>
+
+                          <td className="py-1 px-2 font-mono font-semibold border-r border-[#D3D3D3] truncate max-w-[140px]">
+                            {msg.invoiceNumber}
+                          </td>
+
+                          <td className="py-1 px-2 border-r border-[#D3D3D3] truncate max-w-[260px]" title={msg.partnerName}>
+                            {msg.partnerName}
+                          </td>
+
+                          <td className="py-1 px-2 font-mono border-r border-[#D3D3D3]">
+                            {msg.partnerCui || "—"}
+                          </td>
+
+                          <td className="py-1 px-2 text-center font-mono border-r border-[#D3D3D3]">
+                            {formatSagaDate(msg.issueDate)}
+                          </td>
+
+                          <td className="py-1 px-2 text-right font-mono font-bold border-r border-[#D3D3D3]">
+                            {formatSagaCurrency(msg.total)}
+                          </td>
+
+                          <td className="py-1 px-2 text-center border-r border-[#D3D3D3]">
+                            {msg.status === "eroare" ? (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-xs bg-red-100 text-red-800 border border-red-300 font-bold text-[10px]">
+                                <XCircle className="w-3 h-3 text-red-600" />
+                                <span>Eroare</span>
+                              </span>
+                            ) : msg.status === "in_procesare" ? (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-xs bg-amber-100 text-amber-800 border border-amber-300 font-bold text-[10px]">
+                                <span>În procesare</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-xs bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-[10px]">
+                                <CheckCircle className="w-3 h-3 text-emerald-600" />
+                                <span>Validat</span>
+                              </span>
+                            )}
+                          </td>
+
+                          <td className="py-1 px-2 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              {msg.pdfUrl && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setShowSpvModal(false);
+                                    onViewInvoicePdf({
+                                      id: msg.originalId,
+                                      invoiceNumber: msg.invoiceNumber,
+                                      supplierName: msg.partnerName,
+                                      clientName: msg.partnerName,
+                                      pdfUrl: msg.pdfUrl,
+                                    });
+                                  }}
+                                  className="px-2 py-0.5 bg-[#ECE9D8] hover:bg-blue-100 border border-[#808080] text-blue-900 font-bold text-[10px] rounded-xs cursor-pointer"
+                                  title="Vizualizează factura PDF"
+                                >
+                                  PDF
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Footer Modal SPV */}
+            <div className="bg-[#ECE9D8] px-3 py-2 flex items-center justify-between border-t border-[#999999] shrink-0">
+              <button
+                type="button"
+                onClick={onDownloadSagaXml}
+                className="flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-slate-100 border border-[#808080] text-black font-semibold text-xs rounded-xs shadow-2xs cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5 text-blue-700" />
+                <span>Exportă fișierul XML compatibil SAGA C v3.0</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowSpvModal(false)}
+                className="px-4 py-1 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-bold text-xs rounded-xs shadow-2xs cursor-pointer"
+              >
+                Închide
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═════════════════════════════════════════════════════════════════════════
+          10. MODAL DEDICAT SAGA C: ALERTE ACTIVE SPV ANAF & CONTABILITATE
+      ═════════════════════════════════════════════════════════════════════════ */}
+      {showAlertsModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3 backdrop-blur-xs">
+          <div className="bg-[#ECE9D8] border-2 border-[#0055EA] shadow-2xl rounded-t-sm w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden text-black font-sans text-xs">
+            {/* Header Fereastră Alerte */}
+            <div className="bg-gradient-to-r from-[#0055EA] via-[#103869] to-[#2B609E] text-white px-3 py-1.5 flex items-center justify-between border-b border-[#003B99] shrink-0">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-300" />
+                <span className="font-bold text-xs tracking-wide">
+                  Alerte Active — SPV ANAF & Contabilitate ({realAlerts.length})
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAlertsModal(false)}
+                className="w-5 h-4 flex items-center justify-center bg-[#E81123] hover:bg-red-700 text-white rounded-xs text-[10px]"
+                title="Închide fereastra"
+              >
+                <CloseIcon className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Conținut Alerte Reale */}
+            <div className="p-3 bg-[#FFFFEB] flex-1 overflow-y-auto space-y-2.5">
+              {realAlerts.length === 0 ? (
+                <div className="p-6 text-center text-slate-500 bg-white border border-[#D5DCE2]">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
+                  <div className="font-bold text-sm text-slate-800">Nu există erori sau alerte active</div>
+                  <div className="text-xs text-slate-500 mt-1">
+                    Toate facturile transmise sunt validate în SPV ANAF, iar recepțiile NIR sunt conforme.
+                  </div>
+                </div>
+              ) : (
+                realAlerts.map((alert: any) => (
+                  <div
+                    key={alert.id}
+                    className={`p-3 rounded-xs border text-xs leading-relaxed ${
+                      alert.severity === "error"
+                        ? "bg-red-50 border-red-300 text-red-950"
+                        : "bg-amber-50 border-amber-300 text-amber-950"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2">
+                        {alert.severity === "error" ? (
+                          <XCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                        ) : (
+                          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        )}
+                        <div>
+                          <div className="font-bold text-[12px]">{alert.title}</div>
+                          <div className="mt-1 text-slate-700 whitespace-pre-wrap font-sans text-[11px]">
+                            {alert.description}
+                          </div>
+
+                          <div className="mt-2 flex items-center gap-3 font-mono text-[10.5px] text-slate-600">
+                            <span>Document: <strong>{alert.docNumber}</strong></span>
+                            {alert.spvIndex && (
+                              <span>Index SPV: <strong>{alert.spvIndex}</strong></span>
+                            )}
+                            {alert.amount !== undefined && (
+                              <span>Valoare: <strong>{formatSagaCurrency(alert.amount)} RON</strong></span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {alert.type === "spv_error" && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowAlertsModal(false);
+                            setShowSpvModal(true);
+                          }}
+                          className="px-2.5 py-1 bg-red-700 hover:bg-red-800 text-white rounded-xs font-bold text-[10.5px] shrink-0 cursor-pointer shadow-xs"
+                        >
+                          Verifică în SPV
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Footer Modal Alerte */}
+            <div className="bg-[#ECE9D8] px-3 py-2 flex items-center justify-end border-t border-[#999999] shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowAlertsModal(false)}
+                className="px-4 py-1 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-bold text-xs rounded-xs shadow-2xs cursor-pointer"
+              >
+                Închide
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

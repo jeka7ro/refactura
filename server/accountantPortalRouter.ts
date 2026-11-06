@@ -3,7 +3,7 @@ import * as crypto from "crypto";
 import { publicProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "./db";
-import { eq, and, desc, inArray } from "drizzle-orm";
+import { eq, and, desc, inArray, or, isNotNull, ne, isNull } from "drizzle-orm";
 import * as schema from "../drizzle/schema";
 
 const HMAC_SECRET = process.env.JWT_SECRET || "smart_invoice_accountant_portal_secret_2026";
@@ -461,6 +461,149 @@ export const accountantPortalRouter = router({
         else withoutNirCount++;
       }
 
+      // 5. Statistici și Alerte REALE direct din SPV ANAF (Fără mock)
+      const [spvIntg] = await db
+        .select()
+        .from(schema.integrations)
+        .where(
+          and(
+            eq(schema.integrations.tenantId, tenant.id),
+            eq(schema.integrations.provider, "spv")
+          )
+        )
+        .limit(1);
+
+      const isSpvConnected = spvIntg?.status === "active";
+      const spvTokenExpiresAt = spvIntg?.tokenExpiresAt || null;
+
+      // Toate facturile din arhivă provenite din SPV ANAF
+      const spvArchiveList = await db
+        .select()
+        .from(schema.invoiceArchive)
+        .where(
+          and(
+            eq(schema.invoiceArchive.tenantId, tenant.id),
+            or(
+              eq(schema.invoiceArchive.source, "spv_anaf"),
+              isNotNull(schema.invoiceArchive.spvIndex)
+            )
+          )
+        )
+        .orderBy(desc(schema.invoiceArchive.id));
+
+      const spvTotalReceived = spvArchiveList.length;
+      const spvUnreadReceived = spvArchiveList.filter(
+        (i) => !i.isRead || i.status === "pending"
+      ).length;
+
+      // Facturi emise transmise în SPV
+      const spvEmittedList = await db
+        .select()
+        .from(schema.emittedInvoices)
+        .where(
+          and(
+            eq(schema.emittedInvoices.tenantId, tenant.id),
+            or(
+              isNotNull(schema.emittedInvoices.spvIndex),
+              ne(schema.emittedInvoices.spvStatus, "nesincronizat")
+            )
+          )
+        )
+        .orderBy(desc(schema.emittedInvoices.id));
+
+      const spvValidatedCount = spvEmittedList.filter(
+        (i) => i.spvStatus === "validat"
+      ).length;
+      const spvErrorsList = spvEmittedList.filter(
+        (i) => i.spvStatus === "eroare"
+      );
+
+      // Alerte reale (erori de validare ANAF, facturi fără NIR, termene depășite)
+      const alerts: Array<{
+        id: string;
+        type: "spv_error" | "spv_pending" | "missing_nir" | "overdue";
+        severity: "error" | "warning" | "info";
+        title: string;
+        description: string;
+        docNumber: string;
+        partnerName: string;
+        spvIndex?: string | null;
+        date?: string | null;
+        amount?: number;
+      }> = [];
+
+      // Erori reale din SPV ANAF
+      for (const errInv of spvErrorsList) {
+        alerts.push({
+          id: `spv-err-${errInv.id}`,
+          type: "spv_error",
+          severity: "error",
+          title: `Eroare validare SPV ANAF (${errInv.series || ""}${errInv.number || ""})`,
+          description:
+            errInv.spvError ||
+            `Factura a fost respinsă de ANAF (Index încărcare: ${errInv.spvIndex || "—"})`,
+          docNumber: `${errInv.series || ""}${errInv.number || ""}`,
+          partnerName: errInv.clientName || "Client",
+          spvIndex: errInv.spvIndex,
+          date: errInv.issueDate,
+          amount: parseFloat(String(errInv.total || 0)),
+        });
+      }
+
+      // Facturi primite fără recepție NIR efectuată (alertă contabilă)
+      const missingNirInvoices = enrichedInvoices.filter((i) => !i.hasNir);
+      for (const noNir of missingNirInvoices.slice(0, 5)) {
+        alerts.push({
+          id: `no-nir-${noNir.id}`,
+          type: "missing_nir",
+          severity: "warning",
+          title: `Factură fără recepție NIR (${noNir.invoiceNumber})`,
+          description: `Documentul de la ${noNir.supplierName} în valoare de ${noNir.total} RON nu are NIR întocmit.`,
+          docNumber: noNir.invoiceNumber,
+          partnerName: noNir.supplierName,
+          spvIndex: noNir.spvIndex,
+          date: noNir.issueDate,
+          amount: noNir.total,
+        });
+      }
+
+      // Mesajele reale din SPV
+      const spvMessages = [
+        ...spvArchiveList.map((a) => ({
+          id: `spv-in-${a.id}`,
+          originalId: a.id,
+          direction: "in" as const,
+          typeLabel: "Factură primită (Furnizor)",
+          invoiceNumber: a.invoiceNumber || "—",
+          partnerName: a.supplierName || "—",
+          partnerCui: a.supplierCUI || "",
+          issueDate: a.issueDate || "",
+          total: parseFloat(String(a.total || 0)),
+          spvIndex: a.spvIndex || "",
+          status: "validat" as const,
+          isRead: Boolean(a.isRead),
+          pdfUrl:
+            a.source === "spv_anaf" || a.fileUrl === "spv_import"
+              ? `/api/pdf/archive/${a.id}`
+              : a.fileUrl || `/api/pdf/archive/${a.id}`,
+        })),
+        ...spvEmittedList.map((e) => ({
+          id: `spv-out-${e.id}`,
+          originalId: e.id,
+          direction: "out" as const,
+          typeLabel: "Factură emisă (Client)",
+          invoiceNumber: `${e.series || ""}${e.number || ""}`,
+          partnerName: e.clientName || "—",
+          partnerCui: e.clientCUI || "",
+          issueDate: e.issueDate || "",
+          total: parseFloat(String(e.total || 0)),
+          spvIndex: e.spvIndex || "",
+          status: (e.spvStatus || "validat") as any,
+          isRead: true,
+          pdfUrl: `/api/pdf/emitted/${e.id}`,
+        })),
+      ].sort((a, b) => (b.issueDate || "").localeCompare(a.issueDate || ""));
+
       return {
         company: {
           id: tenant.id,
@@ -474,6 +617,18 @@ export const accountantPortalRouter = router({
         },
         invoices: enrichedInvoices,
         emittedInvoices: combinedEmitted,
+        spvStats: {
+          isConnected: isSpvConnected,
+          tokenExpiresAt: spvTokenExpiresAt,
+          totalReceived: spvTotalReceived,
+          unreadReceived: spvUnreadReceived,
+          totalEmitted: spvEmittedList.length,
+          validatedEmitted: spvValidatedCount,
+          errorsCount: spvErrorsList.length,
+          alertsCount: alerts.length,
+          alerts,
+          messages: spvMessages,
+        },
         kpis: {
           totalCount,
           totalBase: Math.round(totalBase * 100) / 100,
@@ -489,6 +644,38 @@ export const accountantPortalRouter = router({
           totalVat: Math.round(emittedTotalVat * 100) / 100,
           totalGross: Math.round(emittedTotalGross * 100) / 100,
         },
+      };
+    }),
+
+  /**
+   * Sincronizare live cu SPV ANAF direct din modulul contabil
+   */
+  syncSpv: publicProcedure
+    .input(
+      z.object({
+        token: z.string().trim(),
+        sessionToken: z.string().trim(),
+        zile: z.number().min(1).max(365).optional().default(60),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const match = await findTenantByPortalToken(input.token);
+      if (!match) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Portalul nu a fost găsit." });
+      }
+
+      const { tenant, portal } = match;
+      const hasPin = Boolean(portal.pinHash);
+      if (hasPin && !verifyAccountantSessionToken(tenant.id, input.sessionToken)) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Sesiune neautorizată." });
+      }
+
+      const { syncAllSpv } = await import("./spvCron");
+      const result = await syncAllSpv(input.zile || 60, tenant.id);
+      return {
+        success: true,
+        imported: result?.imported || 0,
+        limitHit: result?.limitHit || 0,
       };
     }),
 
