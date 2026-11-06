@@ -535,4 +535,171 @@ export const accountantPortalRouter = router({
         base64: buffer.toString("base64"),
       };
     }),
+
+  /**
+   * Returnează pozițiile/liniile unui document (pentru afișarea în grila de jos din modulul SAGA)
+   */
+  getDocumentLines: publicProcedure
+    .input(
+      z.object({
+        token: z.string().trim(),
+        sessionToken: z.string().trim(),
+        docType: z.enum(["received", "emitted"]),
+        docId: z.number(),
+        nirId: z.number().optional().nullable(),
+      })
+    )
+    .query(async ({ input }) => {
+      const match = await findTenantByPortalToken(input.token);
+      if (!match) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Portalul nu a fost găsit." });
+      }
+
+      const { tenant, portal } = match;
+      if (portal.enabled === false) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Portalul contabil este dezactivat." });
+      }
+
+      const hasPin = Boolean(portal.pinHash);
+      if (hasPin && !verifyAccountantSessionToken(tenant.id, input.sessionToken)) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Sesiune expirată sau neautorizată." });
+      }
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB indisponibil" });
+
+      if (input.docType === "received") {
+        // 1. Dacă are NIR atașat, preluăm liniile din NIR (cu conturi contabile și tip contabil SAGA)
+        if (input.nirId) {
+          const nLines = await db
+            .select()
+            .from(schema.nirLines)
+            .where(eq(schema.nirLines.nirId, input.nirId))
+            .orderBy(schema.nirLines.lineOrder, schema.nirLines.id);
+
+          if (nLines.length > 0) {
+            return nLines.map((l, idx) => ({
+              lineOrder: idx + 1,
+              type: l.accountingType || "Mărfuri",
+              description: l.description,
+              unit: l.unit || "buc",
+              quantity: parseFloat(String(l.cantitateReceptionata || l.cantitateComanda || 0)),
+              unitPrice: parseFloat(String(l.unitPrice || 0)),
+              vatRate: parseFloat(String(l.vatRate || 21)),
+              total: parseFloat(String(l.total || 0)),
+              account: l.accountingAccount || "371",
+            }));
+          }
+        }
+
+        // 2. Altfel, căutăm în liniile salvate din XML/arhivă
+        const aLines = await db
+          .select()
+          .from(schema.invoiceArchiveLines)
+          .where(eq(schema.invoiceArchiveLines.invoiceArchiveId, input.docId));
+
+        if (aLines.length > 0) {
+          return aLines.map((l, idx) => {
+            const qty = parseFloat(String(l.quantity || 0));
+            const price = parseFloat(String(l.unitPrice || 0));
+            const tot = parseFloat(String(l.total || (qty * price)));
+            const vat = parseFloat(String(l.vatRate || 21));
+            return {
+              lineOrder: idx + 1,
+              type: "Mărfuri",
+              description: l.description,
+              unit: l.unit || "buc",
+              quantity: qty,
+              unitPrice: price,
+              vatRate: vat,
+              total: tot,
+              account: "371",
+            };
+          });
+        }
+
+        return [];
+      } else {
+        // Facturi emise: verificăm emittedInvoiceLines, reInvoiceLines sau invoiceArchiveLines (pentru facturi din arhivă SPV)
+        const eLines = await db
+          .select()
+          .from(schema.emittedInvoiceLines)
+          .where(eq(schema.emittedInvoiceLines.emittedInvoiceId, input.docId))
+          .orderBy(schema.emittedInvoiceLines.lineOrder, schema.emittedInvoiceLines.id);
+
+        if (eLines.length > 0) {
+          return eLines.map((l, idx) => {
+            const qty = parseFloat(String(l.quantity || 0));
+            const price = parseFloat(String(l.unitPrice || 0));
+            const tot = parseFloat(String(l.total || (qty * price)));
+            const vat = parseFloat(String(l.vatRate || 21));
+            return {
+              lineOrder: idx + 1,
+              type: l.devizType === "MANOPERA" ? "Servicii" : "Produse",
+              description: l.description,
+              unit: l.unit || "buc",
+              quantity: qty,
+              unitPrice: price,
+              vatRate: vat,
+              total: tot,
+              account: l.devizType === "MANOPERA" ? "704" : "707",
+            };
+          });
+        }
+
+        // Verificăm în reInvoiceLines
+        const rLines = await db
+          .select()
+          .from(schema.reInvoiceLines)
+          .where(eq(schema.reInvoiceLines.reInvoiceId, input.docId));
+
+        if (rLines.length > 0) {
+          return rLines.map((l, idx) => {
+            const qty = parseFloat(String(l.quantity || 0));
+            const price = parseFloat(String(l.unitPrice || 0));
+            const tot = parseFloat(String(l.total || (qty * price)));
+            const vat = parseFloat(String(l.vatRate || 21));
+            return {
+              lineOrder: idx + 1,
+              type: "Servicii / Refacturare",
+              description: l.description,
+              unit: l.unit || "buc",
+              quantity: qty,
+              unitPrice: price,
+              vatRate: vat,
+              total: tot,
+              account: "704",
+            };
+          });
+        }
+
+        // Verificăm în invoiceArchiveLines (facturi emise descărcate din SPV ANAF)
+        const aLines = await db
+          .select()
+          .from(schema.invoiceArchiveLines)
+          .where(eq(schema.invoiceArchiveLines.invoiceArchiveId, input.docId));
+
+        if (aLines.length > 0) {
+          return aLines.map((l, idx) => {
+            const qty = parseFloat(String(l.quantity || 0));
+            const price = parseFloat(String(l.unitPrice || 0));
+            const tot = parseFloat(String(l.total || (qty * price)));
+            const vat = parseFloat(String(l.vatRate || 21));
+            return {
+              lineOrder: idx + 1,
+              type: "Produse / Servicii",
+              description: l.description,
+              unit: l.unit || "buc",
+              quantity: qty,
+              unitPrice: price,
+              vatRate: vat,
+              total: tot,
+              account: "707",
+            };
+          });
+        }
+
+        return [];
+      }
+    }),
 });

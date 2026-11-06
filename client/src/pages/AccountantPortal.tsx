@@ -23,6 +23,8 @@ import {
   RefreshCw,
   FileCode,
   ClipboardCheck,
+  Layers,
+  Sparkles,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -30,6 +32,7 @@ import * as XLSX from "xlsx";
 import JSZip from "jszip";
 import AccountantPinLock from "@/components/AccountantPinLock";
 import DocumentModalPreview from "@/components/DocumentModalPreview";
+import SagaClassicPortalView from "@/components/SagaClassicPortalView";
 
 function formatCurrency(amount: number, currency: string = "RON"): string {
   return new Intl.NumberFormat("ro-RO", {
@@ -71,6 +74,24 @@ export default function AccountantPortal() {
 
   // Navigare Sidebar: "received" (Facturi Primite) sau "emitted" (Facturi Emise)
   const [activeTab, setActiveTab] = useState<"received" | "emitted">("received");
+
+  // Mod afișare: "modern" sau "saga" (memorat în localStorage pentru contabil)
+  const [viewMode, setViewMode] = useState<"modern" | "saga">(() => {
+    try {
+      return (localStorage.getItem("smart_invoice_accountant_view_mode") as "modern" | "saga") || "modern";
+    } catch {
+      return "modern";
+    }
+  });
+
+  const handleToggleViewMode = () => {
+    const next = viewMode === "modern" ? "saga" : "modern";
+    setViewMode(next);
+    try {
+      localStorage.setItem("smart_invoice_accountant_view_mode", next);
+    } catch {}
+    toast.success(`Ați comutat pe ${next === "saga" ? "Modul SAGA C Clasic" : "Modul Modern"}`);
+  };
 
   const [copiedCui, setCopiedCui] = useState<string | null>(null);
 
@@ -662,7 +683,73 @@ export default function AccountantPortal() {
   const incomingCount = portalData?.invoices?.length || 0;
   const emittedCount = portalData?.emittedInvoices?.length || 0;
 
-  // 4. Spațiul de lucru principal cu SIDEBAR și PREVIZUALIZARE ÎN MODAL (fără tab nou)
+  // 4. Randare Mod SAGA C Clasic (Split-screen 2 grile identic cu SAGA C)
+  if (viewMode === "saga") {
+    return (
+      <>
+        <SagaClassicPortalView
+          portalData={portalData}
+          token={token}
+          sessionToken={sessionToken}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          search={search}
+          setSearch={setSearch}
+          period={period}
+          setPeriod={setPeriod}
+          nirFilter={nirFilter}
+          setNirFilter={setNirFilter}
+          supplierFilter={supplierFilter}
+          setSupplierFilter={setSupplierFilter}
+          allSuppliers={allSuppliers}
+          filteredInvoices={filteredInvoices}
+          currentKpis={currentKpis}
+          searchEmitted={searchEmitted}
+          setSearchEmitted={setSearchEmitted}
+          periodEmitted={periodEmitted}
+          setPeriodEmitted={setPeriodEmitted}
+          filteredEmittedInvoices={filteredEmittedInvoices}
+          currentEmittedKpis={currentEmittedKpis}
+          onViewInvoicePdf={(inv) =>
+            setPreviewDoc({
+              isOpen: true,
+              title: `Factura ${inv.invoiceNumber} - ${activeTab === "received" ? inv.supplierName : inv.clientName}`,
+              pdfUrl: inv.pdfUrl,
+              filename: `Factura_${inv.invoiceNumber}.pdf`,
+              type: activeTab === "received" ? "invoice" : "emitted",
+            })
+          }
+          onViewNirPdf={(inv) =>
+            setPreviewDoc({
+              isOpen: true,
+              title: `NIR ${inv.nirNumber} - ${inv.supplierName}`,
+              pdfUrl: `/api/pdf/nir/${inv.nirId}`,
+              filename: `NIR_${inv.nirNumber}.pdf`,
+              type: "nir",
+            })
+          }
+          onDownloadSagaXml={handleDownloadSagaXml}
+          onExportExcel={handleExportExcel}
+          onExportEmittedExcel={handleExportEmittedExcel}
+          onDownloadZip={handleDownloadZip}
+          onLockSession={handleLockPortal}
+          onSwitchToModern={handleToggleViewMode}
+        />
+
+        {/* Modal Universal Previzualizare PDF în fereastră */}
+        <DocumentModalPreview
+          isOpen={previewDoc.isOpen}
+          onClose={() => setPreviewDoc((prev) => ({ ...prev, isOpen: false, pdfUrl: null }))}
+          title={previewDoc.title}
+          pdfUrl={previewDoc.pdfUrl}
+          filename={previewDoc.filename}
+          type={previewDoc.type}
+        />
+      </>
+    );
+  }
+
+  // 5. Spațiul de lucru principal MOD MODERN cu SIDEBAR și PREVIZUALIZARE ÎN MODAL
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex font-sans">
       {/* SIDEBAR DEDICAT PENTRU CONTABIL */}
@@ -790,6 +877,17 @@ export default function AccountantPortal() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Buton Comutator la Mod SAGA C Clasic */}
+            <button
+              type="button"
+              onClick={handleToggleViewMode}
+              className="h-8 px-3 rounded-full border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 text-[#1F4E79] dark:text-blue-300 text-xs font-bold flex items-center gap-1.5 transition shadow-2xs cursor-pointer"
+              title="Comută la vederea clasică de lucru SAGA C (ecran împărțit pe 2 tabele dense)"
+            >
+              <Layers className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <span>Mod SAGA Clasic</span>
+            </button>
+
             <button
               onClick={() => refetchData()}
               disabled={isFetching}
