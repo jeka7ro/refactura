@@ -32,6 +32,11 @@ import {
   CheckCircle,
   ShieldCheck,
   ExternalLink,
+  Building2,
+  Users,
+  ArrowLeft,
+  ChevronRight,
+  Filter,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -202,7 +207,187 @@ export default function SagaClassicPortalView({
     },
   });
 
-  const activeInvoices = activeTab === "received" ? filteredInvoices : filteredEmittedInvoices;
+  // ─── NAVIGARE SEPARATĂ PE FURNIZORI ȘI CLIENȚI (SITUAȚIE PARTENERI) ───
+  // Mod sub-vizualizare: "all_invoices" | "partners_list"
+  const [subView, setSubView] = useState<"all_invoices" | "partners_list">("all_invoices");
+  // Partener selectat curent pentru dosar/fișă (null = toți partenerii)
+  const [selectedPartnerKey, setSelectedPartnerKey] = useState<string | null>(null);
+  // Partener evidențiat în tabelul director de parteneri
+  const [selectedPartnerIdInList, setSelectedPartnerIdInList] = useState<string | null>(null);
+  // Căutare în lista de parteneri
+  const [partnerSearch, setPartnerSearch] = useState<string>("");
+  // Sortare în lista de parteneri: "count_desc" | "total_desc" | "name_asc"
+  const [partnerSort, setPartnerSort] = useState<"count_desc" | "total_desc" | "name_asc">("count_desc");
+
+  // Resetare selecție la comutarea tab-ului (Furnizori/Intrări <-> Clienți/Ieșiri)
+  useEffect(() => {
+    setSelectedPartnerKey(null);
+    setSelectedPartnerIdInList(null);
+    setPartnerSearch("");
+  }, [activeTab]);
+
+  // Agregare Furnizori din facturile primite
+  const suppliersSummary = useMemo(() => {
+    const rawList = portalData?.invoices || [];
+    const map = new Map<
+      string,
+      {
+        key: string;
+        name: string;
+        cui: string;
+        code: string;
+        invoiceCount: number;
+        totalBase: number;
+        totalVat: number;
+        totalGross: number;
+        nirCount: number;
+        latestInvoiceDate: string;
+        invoices: any[];
+      }
+    >();
+
+    rawList.forEach((inv: any) => {
+      const name = (inv.supplierName || "Furnizor necunoscut").trim();
+      const cui = (inv.supplierCUI || "").trim();
+      const key = cui || name.toLowerCase();
+
+      let existing = map.get(key);
+      if (!existing) {
+        existing = {
+          key,
+          name,
+          cui,
+          code: getSagaPartnerCode(cui, inv.id),
+          invoiceCount: 0,
+          totalBase: 0,
+          totalVat: 0,
+          totalGross: 0,
+          nirCount: 0,
+          latestInvoiceDate: "",
+          invoices: [],
+        };
+        map.set(key, existing);
+      }
+
+      existing.invoiceCount += 1;
+      existing.totalBase += Number(inv.totalBase || 0);
+      existing.totalVat += Number(inv.totalVAT || 0);
+      existing.totalGross += Number(inv.total || 0);
+      if (inv.hasNir) existing.nirCount += 1;
+      if (inv.issueDate && (!existing.latestInvoiceDate || inv.issueDate > existing.latestInvoiceDate)) {
+        existing.latestInvoiceDate = inv.issueDate;
+      }
+      existing.invoices.push(inv);
+    });
+
+    const list = Array.from(map.values());
+    list.sort((a, b) => b.invoiceCount - a.invoiceCount || b.totalGross - a.totalGross);
+    return list;
+  }, [portalData?.invoices]);
+
+  // Agregare Clienți din facturile emise
+  const clientsSummary = useMemo(() => {
+    const rawList = portalData?.emittedInvoices || [];
+    const map = new Map<
+      string,
+      {
+        key: string;
+        name: string;
+        cui: string;
+        code: string;
+        invoiceCount: number;
+        totalBase: number;
+        totalVat: number;
+        totalGross: number;
+        nirCount: number;
+        latestInvoiceDate: string;
+        invoices: any[];
+      }
+    >();
+
+    rawList.forEach((inv: any) => {
+      const name = (inv.clientName || "Client necunoscut").trim();
+      const cui = (inv.clientCUI || "").trim();
+      const key = cui || name.toLowerCase();
+
+      let existing = map.get(key);
+      if (!existing) {
+        existing = {
+          key,
+          name,
+          cui,
+          code: getSagaPartnerCode(cui, inv.id),
+          invoiceCount: 0,
+          totalBase: 0,
+          totalVat: 0,
+          totalGross: 0,
+          nirCount: 0,
+          latestInvoiceDate: "",
+          invoices: [],
+        };
+        map.set(key, existing);
+      }
+
+      existing.invoiceCount += 1;
+      existing.totalBase += Number(inv.totalBase || 0);
+      existing.totalVat += Number(inv.totalVAT || 0);
+      existing.totalGross += Number(inv.total || 0);
+      if (inv.issueDate && (!existing.latestInvoiceDate || inv.issueDate > existing.latestInvoiceDate)) {
+        existing.latestInvoiceDate = inv.issueDate;
+      }
+      existing.invoices.push(inv);
+    });
+
+    const list = Array.from(map.values());
+    list.sort((a, b) => b.invoiceCount - a.invoiceCount || b.totalGross - a.totalGross);
+    return list;
+  }, [portalData?.emittedInvoices]);
+
+  // Parteneri afișați în tabelul director (după căutare și sortare)
+  const displayedPartners = useMemo(() => {
+    const baseList = activeTab === "received" ? suppliersSummary : clientsSummary;
+    let list = baseList;
+
+    if (partnerSearch.trim()) {
+      const q = partnerSearch.trim().toLowerCase();
+      list = list.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.cui.toLowerCase().includes(q) ||
+          p.code.toLowerCase().includes(q)
+      );
+    }
+
+    const sorted = [...list];
+    if (partnerSort === "count_desc") {
+      sorted.sort((a, b) => b.invoiceCount - a.invoiceCount || b.totalGross - a.totalGross);
+    } else if (partnerSort === "total_desc") {
+      sorted.sort((a, b) => b.totalGross - a.totalGross || b.invoiceCount - a.invoiceCount);
+    } else if (partnerSort === "name_asc") {
+      sorted.sort((a, b) => a.name.localeCompare(b.name, "ro"));
+    }
+    return sorted;
+  }, [activeTab, suppliersSummary, clientsSummary, partnerSearch, partnerSort]);
+
+  // Obiectul complet al partenerului selectat
+  const selectedPartnerObj = useMemo(() => {
+    if (!selectedPartnerKey) return null;
+    const list = activeTab === "received" ? suppliersSummary : clientsSummary;
+    return list.find((p) => p.key === selectedPartnerKey) || null;
+  }, [activeTab, suppliersSummary, clientsSummary, selectedPartnerKey]);
+
+  // Facturile active în tabel — filtrate după partener dacă s-a intrat pe un furnizor/client anume
+  const activeInvoices = useMemo(() => {
+    const base = activeTab === "received" ? filteredInvoices : filteredEmittedInvoices;
+    if (!selectedPartnerKey) return base;
+
+    return base.filter((inv) => {
+      const cui = (activeTab === "received" ? inv.supplierCUI : inv.clientCUI) || "";
+      const name = (activeTab === "received" ? inv.supplierName : inv.clientName) || "";
+      const key = cui.trim() || name.trim().toLowerCase();
+      return key === selectedPartnerKey;
+    });
+  }, [activeTab, filteredInvoices, filteredEmittedInvoices, selectedPartnerKey]);
 
   // Asigurăm că avem mereu o factură selectată
   useEffect(() => {
@@ -220,6 +405,23 @@ export default function SagaClassicPortalView({
     if (!selectedInvoiceId) return activeInvoices[0] || null;
     return activeInvoices.find((i) => i.id === selectedInvoiceId) || activeInvoices[0] || null;
   }, [activeInvoices, selectedInvoiceId]);
+
+  // Menținem partenerul selectat în tabelul de situație
+  useEffect(() => {
+    if (displayedPartners.length > 0) {
+      if (!selectedPartnerIdInList || !displayedPartners.some((p) => p.key === selectedPartnerIdInList)) {
+        setSelectedPartnerIdInList(displayedPartners[0].key);
+      }
+    } else {
+      setSelectedPartnerIdInList(null);
+    }
+  }, [displayedPartners, selectedPartnerIdInList]);
+
+  // Partenerul evidențiat în modul Situație
+  const highlightedPartnerInList = useMemo(() => {
+    if (!selectedPartnerIdInList) return displayedPartners[0] || null;
+    return displayedPartners.find((p) => p.key === selectedPartnerIdInList) || displayedPartners[0] || null;
+  }, [displayedPartners, selectedPartnerIdInList]);
 
   // Query pentru liniile/pozițiile facturii selectate
   const { data: documentLines = [], isLoading: isLinesLoading } =
@@ -246,13 +448,50 @@ export default function SagaClassicPortalView({
     setTimeout(() => setCopiedCui(null), 2000);
   };
 
-  // Navigare prin tastatură (Săgeți Sus/Jos pentru facturi, Enter pentru PDF, N pentru NIR)
+  // Navigare prin tastatură (Săgeți Sus/Jos pentru facturi/parteneri, Enter pentru deschidere, Esc pentru revenire, N pentru NIR)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (["INPUT", "SELECT", "TEXTAREA"].includes((e.target as HTMLElement)?.tagName)) {
         return;
       }
 
+      // Tasta Escape: ieșire din dosar partener sau din situația de parteneri
+      if (e.key === "Escape") {
+        if (selectedPartnerKey) {
+          e.preventDefault();
+          setSelectedPartnerKey(null);
+          return;
+        }
+        if (subView === "partners_list") {
+          e.preventDefault();
+          setSubView("all_invoices");
+          return;
+        }
+      }
+
+      // Navigare în lista de parteneri
+      if (subView === "partners_list") {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          const idx = displayedPartners.findIndex((p) => p.key === selectedPartnerIdInList);
+          if (idx >= 0 && idx < displayedPartners.length - 1) {
+            setSelectedPartnerIdInList(displayedPartners[idx + 1].key);
+          }
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          const idx = displayedPartners.findIndex((p) => p.key === selectedPartnerIdInList);
+          if (idx > 0) {
+            setSelectedPartnerIdInList(displayedPartners[idx - 1].key);
+          }
+        } else if (e.key === "Enter" && selectedPartnerIdInList) {
+          e.preventDefault();
+          setSelectedPartnerKey(selectedPartnerIdInList);
+          setSubView("all_invoices");
+        }
+        return;
+      }
+
+      // Navigare în lista de facturi
       if (e.key === "ArrowDown") {
         e.preventDefault();
         const idx = activeInvoices.findIndex((i) => i.id === selectedInvoiceId);
@@ -278,7 +517,17 @@ export default function SagaClassicPortalView({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeInvoices, selectedInvoiceId, selectedInvoice, onViewInvoicePdf, onViewNirPdf]);
+  }, [
+    subView,
+    displayedPartners,
+    selectedPartnerIdInList,
+    selectedPartnerKey,
+    activeInvoices,
+    selectedInvoiceId,
+    selectedInvoice,
+    onViewInvoicePdf,
+    onViewNirPdf,
+  ]);
 
   const company = portalData?.company || {};
   const currentKpiData = activeTab === "received" ? currentKpis : currentEmittedKpis;
@@ -342,13 +591,61 @@ export default function SagaClassicPortalView({
           <span className="w-px h-3.5 bg-[#B0B0B0]" />
 
           {/* Meniuri clasice SAGA */}
-          <div className="hidden md:flex items-center gap-2.5 text-[11px] text-slate-800">
-            <span className="cursor-pointer hover:bg-[#316AC5] hover:text-white px-1.5 py-0.5 rounded-xs">Fișiere</span>
-            <span className="cursor-pointer hover:bg-[#316AC5] hover:text-white px-1.5 py-0.5 rounded-xs">Operații</span>
-            <span className="cursor-pointer hover:bg-[#316AC5] hover:text-white px-1.5 py-0.5 rounded-xs">Situații - Listări</span>
-            <span className="cursor-pointer hover:bg-[#316AC5] hover:text-white px-1.5 py-0.5 rounded-xs">Diverse</span>
-            <span className="cursor-pointer hover:bg-[#316AC5] hover:text-white px-1.5 py-0.5 rounded-xs">Administrare</span>
-            <span className="cursor-pointer hover:bg-[#316AC5] hover:text-white px-1.5 py-0.5 rounded-xs">Ajutor</span>
+          <div className="hidden md:flex items-center gap-1.5 text-[11px] text-slate-800">
+            <span
+              onClick={() => {
+                setActiveTab("received");
+                setSubView("partners_list");
+                setSelectedPartnerKey(null);
+              }}
+              className="cursor-pointer hover:bg-[#316AC5] hover:text-white px-1.5 py-0.5 rounded-xs transition-colors"
+              title="Deschide lista și situația centralizată a furnizorilor"
+            >
+              Fișiere: Furnizori
+            </span>
+            <span
+              onClick={() => {
+                setActiveTab("emitted");
+                setSubView("partners_list");
+                setSelectedPartnerKey(null);
+              }}
+              className="cursor-pointer hover:bg-[#316AC5] hover:text-white px-1.5 py-0.5 rounded-xs transition-colors"
+              title="Deschide lista și situația centralizată a clienților"
+            >
+              Fișiere: Clienți
+            </span>
+            <span
+              onClick={() => {
+                setActiveTab("received");
+                setSubView("all_invoices");
+                setSelectedPartnerKey(null);
+              }}
+              className="cursor-pointer hover:bg-[#316AC5] hover:text-white px-1.5 py-0.5 rounded-xs transition-colors"
+              title="Deschide ecranul clasic de Intrări (facturi & recepții NIR)"
+            >
+              Operații: Intrări
+            </span>
+            <span
+              onClick={() => {
+                setActiveTab("emitted");
+                setSubView("all_invoices");
+                setSelectedPartnerKey(null);
+              }}
+              className="cursor-pointer hover:bg-[#316AC5] hover:text-white px-1.5 py-0.5 rounded-xs transition-colors"
+              title="Deschide ecranul clasic de Ieșiri (facturi emise către clienți)"
+            >
+              Operații: Ieșiri
+            </span>
+            <span
+              onClick={() => {
+                setSubView("partners_list");
+                setSelectedPartnerKey(null);
+              }}
+              className="cursor-pointer hover:bg-[#316AC5] hover:text-white px-1.5 py-0.5 rounded-xs transition-colors font-semibold text-blue-900"
+              title="Deschide Situația pe parteneri"
+            >
+              Situații: {activeTab === "received" ? "Furnizori" : "Clienți"}
+            </span>
           </div>
 
           <span className="hidden lg:inline text-[10.5px] text-slate-600 font-mono">
@@ -416,36 +713,87 @@ export default function SagaClassicPortalView({
             <div className="flex items-center gap-2">
               <Folder className="w-4 h-4 text-cyan-300 fill-cyan-400" />
               <span className="font-bold text-[11.5px] tracking-wide">
-                {activeTab === "received"
-                  ? "Intrari (facturi & bonuri de casa & avize)"
-                  : "Iesiri (facturi & bonuri de casa & avize)"}
+                {subView === "partners_list"
+                  ? (activeTab === "received" ? "Situatie Furnizori (Lista parteneri)" : "Situatie Clienti (Lista parteneri)")
+                  : selectedPartnerKey
+                  ? `${activeTab === "received" ? "Intrari Furnizor" : "Iesiri Client"}: ${selectedPartnerObj?.name || selectedPartnerKey}`
+                  : (activeTab === "received" ? "Intrari (facturi & bonuri de casa & avize)" : "Iesiri (facturi & bonuri de casa & avize)")}
               </span>
             </div>
 
-            {/* Butoane comutare Intrări / Ieșiri + Window Controls */}
+            {/* Butoane comutare Furnizori / Clienți + Mod Situație */}
             <div className="flex items-center gap-2">
-              <div className="flex items-center bg-black/20 p-0.5 rounded border border-white/20">
+              {/* Secțiune: Furnizori (Intrări) vs Clienți (Ieșiri) */}
+              <div className="flex items-center bg-black/25 p-0.5 rounded border border-white/20">
                 <button
                   type="button"
-                  onClick={() => setActiveTab("received")}
+                  onClick={() => {
+                    setActiveTab("received");
+                    setSelectedPartnerKey(null);
+                  }}
                   className={`px-2 py-0.5 text-[10.5px] font-bold rounded-xs transition-all cursor-pointer ${
                     activeTab === "received"
                       ? "bg-[#FFFFEB] text-slate-950 shadow-xs"
                       : "text-white/80 hover:text-white"
                   }`}
+                  title="Facturi primite de la furnizori și recepții NIR"
                 >
-                  Intrări ({portalData?.invoices?.length || 0})
+                  Furnizori (Intrări) ({portalData?.invoices?.length || 0})
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveTab("emitted")}
+                  onClick={() => {
+                    setActiveTab("emitted");
+                    setSelectedPartnerKey(null);
+                  }}
                   className={`px-2 py-0.5 text-[10.5px] font-bold rounded-xs transition-all cursor-pointer ${
                     activeTab === "emitted"
                       ? "bg-[#FFFFEB] text-slate-950 shadow-xs"
                       : "text-white/80 hover:text-white"
                   }`}
+                  title="Facturi emise către clienți"
                 >
-                  Ieșiri ({portalData?.emittedInvoices?.length || 0})
+                  Clienți (Ieșiri) ({portalData?.emittedInvoices?.length || 0})
+                </button>
+              </div>
+
+              {/* Sub-mod: Toate Facturile vs Situație pe Furnizori/Clienți */}
+              <div className="flex items-center bg-black/25 p-0.5 rounded border border-white/20">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSubView("all_invoices");
+                    setSelectedPartnerKey(null);
+                  }}
+                  className={`px-2 py-0.5 text-[10.5px] font-semibold rounded-xs transition-all cursor-pointer ${
+                    subView === "all_invoices" && !selectedPartnerKey
+                      ? "bg-[#FFFFEB] text-slate-950 shadow-xs font-bold"
+                      : "text-white/80 hover:text-white"
+                  }`}
+                  title="Vezi lista tabelară a tuturor facturilor"
+                >
+                  Toate Facturile
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSubView("partners_list");
+                    setSelectedPartnerKey(null);
+                  }}
+                  className={`px-2 py-0.5 text-[10.5px] font-semibold rounded-xs transition-all cursor-pointer ${
+                    subView === "partners_list" || Boolean(selectedPartnerKey)
+                      ? "bg-[#E8F5E9] text-emerald-950 shadow-xs font-bold"
+                      : "text-white/80 hover:text-white"
+                  }`}
+                  title={
+                    activeTab === "received"
+                      ? "Vezi situația grupată pe fiecare furnizor"
+                      : "Vezi situația grupată pe fiecare client"
+                  }
+                >
+                  {activeTab === "received"
+                    ? `Situație pe Furnizori (${suppliersSummary.length})`
+                    : `Situație pe Clienți (${clientsSummary.length})`}
                 </button>
               </div>
 
@@ -477,157 +825,319 @@ export default function SagaClassicPortalView({
 
           {/* ── BARA DE INSTRUMENTE A FERESTREI (TOOLBAR IDENTIC SAGA C) ── */}
           <div className="bg-[#ECE9D8] px-2 py-1 flex flex-wrap items-center justify-between gap-1 border-b border-[#999999] shrink-0 text-[11px]">
-            {/* Butoane acțiune antet SAGA C */}
-            <div className="flex items-center gap-1 flex-wrap">
-              <button
-                type="button"
-                className="px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] active:bg-[#DFDAC6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
-                title="Adăugare înregistrare nouă"
-              >
-                Adaug
-              </button>
-              <button
-                type="button"
-                className="px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] active:bg-[#DFDAC6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
-                title="Modificare înregistrare"
-              >
-                Modific
-              </button>
-              <button
-                type="button"
-                className="px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] active:bg-[#DFDAC6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
-                title="Ștergere înregistrare"
-              >
-                Sterg
-              </button>
-
-              <span className="w-px h-4 bg-[#B0B0B0] mx-0.5" />
-
-              {/* Căutare rapidă SAGA C */}
-              <div className="relative flex items-center">
-                <Search className="w-3 h-3 text-slate-500 absolute left-1.5 pointer-events-none" />
-                <input
-                  type="text"
-                  value={activeTab === "received" ? search : searchEmitted}
-                  onChange={(e) =>
-                    activeTab === "received" ? setSearch(e.target.value) : setSearchEmitted(e.target.value)
-                  }
-                  placeholder="Caută în tabel..."
-                  className="pl-5 pr-1 py-0.5 w-36 md:w-44 bg-white border border-[#7F9DB9] text-[10.5px] rounded-none focus:outline-none focus:border-[#316AC5] shadow-inner font-sans"
-                />
-              </div>
-
-              {/* Filtru Perioadă */}
-              <select
-                value={activeTab === "received" ? period : periodEmitted}
-                onChange={(e) =>
-                  activeTab === "received"
-                    ? setPeriod(e.target.value as any)
-                    : setPeriodEmitted(e.target.value as any)
-                }
-                className="px-1 py-0.5 bg-white border border-[#7F9DB9] text-[10.5px] rounded-none font-sans focus:outline-none focus:border-[#316AC5] shadow-inner"
-              >
-                <option value="all">Toate</option>
-                <option value="current_month">Luna curentă</option>
-                <option value="last_month">Luna trecută</option>
-                <option value="last_3_months">Ultimele 3 luni</option>
-                <option value="current_year">Anul 2026</option>
-              </select>
-
-              {/* Filtru NIR */}
-              {activeTab === "received" && (
-                <select
-                  value={nirFilter}
-                  onChange={(e) => setNirFilter(e.target.value as any)}
-                  className="px-1 py-0.5 bg-white border border-[#7F9DB9] text-[10.5px] rounded-none font-sans focus:outline-none focus:border-[#316AC5] shadow-inner"
-                >
-                  <option value="all">NIR: Toate</option>
-                  <option value="cu_nir">Doar Cu NIR</option>
-                  <option value="fara_nir">Fără NIR</option>
-                </select>
-              )}
-
-              <span className="w-px h-4 bg-[#B0B0B0] mx-0.5" />
-
-              {/* Buton Excel */}
-              <button
-                type="button"
-                onClick={activeTab === "received" ? onExportExcel : onExportEmittedExcel}
-                className="flex items-center gap-1 px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] active:bg-[#DFDAC6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
-                title="Export Excel (.xlsx)"
-              >
-                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" />
-                <span className="hidden sm:inline">Excel</span>
-              </button>
-
-              {/* Buton Tipărire PDF */}
-              {selectedInvoice && (
+            {subView === "partners_list" ? (
+              /* Toolbar Mod Situație Parteneri (Furnizori sau Clienți) */
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {/* Butoane clasice SAGA */}
                 <button
                   type="button"
-                  onClick={() => onViewInvoicePdf(selectedInvoice)}
-                  className="flex items-center gap-1 px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] active:bg-[#DFDAC6] border-t border-l border-white border-b border-r border-[#808080] text-black font-bold cursor-pointer shadow-2xs text-[11px]"
-                  title="Tipărește factura PDF (sau apăsați Enter)"
+                  className="px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] active:bg-[#DFDAC6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
                 >
-                  <Printer className="w-3.5 h-3.5 text-blue-700" />
-                  <span>Tipărire</span>
+                  Adaug
                 </button>
-              )}
+                <button
+                  type="button"
+                  className="px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] active:bg-[#DFDAC6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
+                >
+                  Modific
+                </button>
+                <button
+                  type="button"
+                  className="px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] active:bg-[#DFDAC6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
+                >
+                  Sterg
+                </button>
 
-              {/* Buton Salvare */}
-              <button
-                type="button"
-                className="px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-slate-500 font-normal cursor-default shadow-2xs text-[11px]"
-                disabled
-              >
-                Salvare
-              </button>
+                <span className="w-px h-4 bg-[#B0B0B0] mx-0.5" />
 
-              {/* Buton Undo */}
-              <button
-                type="button"
-                className="px-1.5 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-slate-500 font-normal cursor-default shadow-2xs text-[11px]"
-                disabled
-              >
-                <RotateCcw className="w-3 h-3" />
-              </button>
+                {/* Căutare partener */}
+                <div className="relative flex items-center">
+                  <Search className="w-3 h-3 text-slate-500 absolute left-1.5 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={partnerSearch}
+                    onChange={(e) => setPartnerSearch(e.target.value)}
+                    placeholder={`Caută ${activeTab === "received" ? "furnizor" : "client"} (nume, CUI, cod)...`}
+                    className="pl-5 pr-1 py-0.5 w-52 md:w-64 bg-white border border-[#7F9DB9] text-[10.5px] rounded-none focus:outline-none focus:border-[#316AC5] shadow-inner font-sans"
+                  />
+                  {partnerSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setPartnerSearch("")}
+                      className="absolute right-1 text-slate-400 hover:text-slate-700 text-xs px-1"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
 
-              {/* Buton e-Factura SPV — Deschide Ecranul SPV Real */}
-              <button
-                type="button"
-                onClick={() => setShowSpvModal(true)}
-                className="flex items-center gap-1 px-2 py-0.5 bg-[#E4EBF2] hover:bg-[#D4E0EC] border-t border-l border-white border-b border-r border-[#808080] text-blue-900 font-bold cursor-pointer shadow-2xs text-[11px]"
-                title="Deschide ecranul e-Factura SPV ANAF cu mesajele descărcate și sincronizare live"
-              >
-                <Globe className="w-3 h-3 text-[#1F4E79]" />
-                <span>e-Factura SPV ({realSpvCount})</span>
-              </button>
+                {/* Sortare Parteneri */}
+                <select
+                  value={partnerSort}
+                  onChange={(e) => setPartnerSort(e.target.value as any)}
+                  className="px-1.5 py-0.5 bg-white border border-[#7F9DB9] text-[10.5px] rounded-none font-sans focus:outline-none focus:border-[#316AC5] shadow-inner"
+                  title="Criteriu sortare parteneri"
+                >
+                  <option value="count_desc">Sortare: Cele mai multe facturi</option>
+                  <option value="total_desc">Sortare: Total sumă descrescător</option>
+                  <option value="name_asc">Sortare: Denumire partener (A-Z)</option>
+                </select>
 
-              {/* Buton Export XML SAGA */}
-              <button
-                type="button"
-                onClick={onDownloadSagaXml}
-                className="flex items-center gap-1 px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] active:bg-[#DFDAC6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
-                title="Descarcă fișier XML 100% conform importului SAGA C"
-              >
-                <Download className="w-3 h-3 text-[#1F4E79]" />
-                <span className="hidden sm:inline">Export XML</span>
-              </button>
+                <span className="w-px h-4 bg-[#B0B0B0] mx-0.5" />
 
-              {/* Buton Pachet ZIP */}
-              <button
-                type="button"
-                onClick={onDownloadZip}
-                className="flex items-center gap-1 px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] active:bg-[#DFDAC6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
-                title="Descarcă toate documentele selectate într-o arhivă ZIP"
-              >
-                <FolderArchive className="w-3.5 h-3.5 text-amber-700" />
-                <span className="hidden sm:inline">Pachet ZIP</span>
-              </button>
-            </div>
+                {/* Buton Înapoi la Toate Facturile */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSubView("all_invoices");
+                    setSelectedPartnerKey(null);
+                  }}
+                  className="flex items-center gap-1 px-2.5 py-0.5 bg-[#E4EBF2] hover:bg-[#D4E0EC] border-t border-l border-white border-b border-r border-[#808080] text-[#000080] font-bold cursor-pointer shadow-2xs text-[10.5px]"
+                  title="Comută la vizualizarea tabelară cu toate facturile"
+                >
+                  <FileText className="w-3 h-3 text-[#1F4E79]" />
+                  <span>Vezi Toate Facturile</span>
+                </button>
 
-            <div className="flex items-center gap-1.5">
+                {/* Buton Excel Parteneri */}
+                <button
+                  type="button"
+                  onClick={activeTab === "received" ? onExportExcel : onExportEmittedExcel}
+                  className="flex items-center gap-1 px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] active:bg-[#DFDAC6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
+                  title="Export Excel (.xlsx)"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" />
+                  <span className="hidden sm:inline">Excel</span>
+                </button>
+
+                {/* Buton SPV */}
+                <button
+                  type="button"
+                  onClick={() => setShowSpvModal(true)}
+                  className="flex items-center gap-1 px-2 py-0.5 bg-[#E4EBF2] hover:bg-[#D4E0EC] border-t border-l border-white border-b border-r border-[#808080] text-blue-900 font-bold cursor-pointer shadow-2xs text-[11px]"
+                >
+                  <Globe className="w-3 h-3 text-[#1F4E79]" />
+                  <span>e-Factura SPV ({realSpvCount})</span>
+                </button>
+              </div>
+            ) : (
+              /* Toolbar normal All Invoices */
+              <div className="flex items-center gap-1 flex-wrap">
+                <button
+                  type="button"
+                  className="px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] active:bg-[#DFDAC6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
+                  title="Adăugare înregistrare nouă"
+                >
+                  Adaug
+                </button>
+                <button
+                  type="button"
+                  className="px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] active:bg-[#DFDAC6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
+                  title="Modificare înregistrare"
+                >
+                  Modific
+                </button>
+                <button
+                  type="button"
+                  className="px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] active:bg-[#DFDAC6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
+                  title="Ștergere înregistrare"
+                >
+                  Sterg
+                </button>
+
+                <span className="w-px h-4 bg-[#B0B0B0] mx-0.5" />
+
+                {/* Căutare rapidă SAGA C */}
+                <div className="relative flex items-center">
+                  <Search className="w-3 h-3 text-slate-500 absolute left-1.5 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={activeTab === "received" ? search : searchEmitted}
+                    onChange={(e) =>
+                      activeTab === "received" ? setSearch(e.target.value) : setSearchEmitted(e.target.value)
+                    }
+                    placeholder="Caută în tabel..."
+                    className="pl-5 pr-1 py-0.5 w-32 md:w-36 bg-white border border-[#7F9DB9] text-[10.5px] rounded-none focus:outline-none focus:border-[#316AC5] shadow-inner font-sans"
+                  />
+                </div>
+
+                {/* Filtru Perioadă */}
+                <select
+                  value={activeTab === "received" ? period : periodEmitted}
+                  onChange={(e) =>
+                    activeTab === "received"
+                      ? setPeriod(e.target.value as any)
+                      : setPeriodEmitted(e.target.value as any)
+                  }
+                  className="px-1 py-0.5 bg-white border border-[#7F9DB9] text-[10.5px] rounded-none font-sans focus:outline-none focus:border-[#316AC5] shadow-inner"
+                >
+                  <option value="all">Toate</option>
+                  <option value="current_month">Luna curentă</option>
+                  <option value="last_month">Luna trecută</option>
+                  <option value="last_3_months">Ultimele 3 luni</option>
+                  <option value="current_year">Anul 2026</option>
+                </select>
+
+                {/* Filtru NIR */}
+                {activeTab === "received" && (
+                  <select
+                    value={nirFilter}
+                    onChange={(e) => setNirFilter(e.target.value as any)}
+                    className="px-1 py-0.5 bg-white border border-[#7F9DB9] text-[10.5px] rounded-none font-sans focus:outline-none focus:border-[#316AC5] shadow-inner"
+                  >
+                    <option value="all">NIR: Toate</option>
+                    <option value="cu_nir">Doar Cu NIR</option>
+                    <option value="fara_nir">Fără NIR</option>
+                  </select>
+                )}
+
+                <span className="w-px h-4 bg-[#B0B0B0] mx-0.5" />
+
+                {/* Selector rapid Partener (Furnizor sau Client) */}
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] text-slate-600 font-medium hidden xl:inline">
+                    {activeTab === "received" ? "Furnizor:" : "Client:"}
+                  </span>
+                  <select
+                    value={selectedPartnerKey || "all"}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSelectedPartnerKey(val === "all" ? null : val);
+                      setSubView("all_invoices");
+                    }}
+                    className={`px-1.5 py-0.5 text-[10.5px] rounded-none font-sans focus:outline-none focus:border-[#316AC5] shadow-inner max-w-[210px] ${
+                      selectedPartnerKey
+                        ? "bg-amber-50 border-[#C5A028] font-bold text-slate-900"
+                        : "bg-white border-[#7F9DB9] text-slate-800"
+                    }`}
+                    title={
+                      activeTab === "received"
+                        ? "Filtrează facturile după un anumit furnizor"
+                        : "Filtrează facturile după un anumit client"
+                    }
+                  >
+                    <option value="all">
+                      {activeTab === "received"
+                        ? `[Toți Furnizorii (${suppliersSummary.length})]`
+                        : `[Toți Clienții (${clientsSummary.length})]`}
+                    </option>
+                    {(activeTab === "received" ? suppliersSummary : clientsSummary).map((p) => (
+                      <option key={p.key} value={p.key}>
+                        {p.code ? `${p.code} - ` : ""}
+                        {p.name} ({p.invoiceCount})
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Buton Situație Furnizori/Clienți */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSubView("partners_list");
+                      setSelectedPartnerKey(null);
+                    }}
+                    className="flex items-center gap-1 px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-semibold text-[10.5px] cursor-pointer shadow-2xs"
+                    title={
+                      activeTab === "received"
+                        ? "Deschide tabelul situației centralizate pe fiecare furnizor"
+                        : "Deschide tabelul situației centralizate pe fiecare client"
+                    }
+                  >
+                    {activeTab === "received" ? (
+                      <Building2 className="w-3.5 h-3.5 text-[#1F4E79]" />
+                    ) : (
+                      <Users className="w-3.5 h-3.5 text-[#1F4E79]" />
+                    )}
+                    <span className="hidden sm:inline">
+                      {activeTab === "received" ? "Situație Furnizori" : "Situație Clienți"}
+                    </span>
+                  </button>
+                </div>
+
+                <span className="w-px h-4 bg-[#B0B0B0] mx-0.5" />
+
+                {/* Buton Excel */}
+                <button
+                  type="button"
+                  onClick={activeTab === "received" ? onExportExcel : onExportEmittedExcel}
+                  className="flex items-center gap-1 px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] active:bg-[#DFDAC6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
+                  title="Export Excel (.xlsx)"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" />
+                  <span className="hidden sm:inline">Excel</span>
+                </button>
+
+                {/* Buton Tipărire PDF */}
+                {selectedInvoice && (
+                  <button
+                    type="button"
+                    onClick={() => onViewInvoicePdf(selectedInvoice)}
+                    className="flex items-center gap-1 px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] active:bg-[#DFDAC6] border-t border-l border-white border-b border-r border-[#808080] text-black font-bold cursor-pointer shadow-2xs text-[11px]"
+                    title="Tipărește factura PDF (sau apăsați Enter)"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-blue-700" />
+                    <span>Tipărire</span>
+                  </button>
+                )}
+
+                {/* Buton Salvare */}
+                <button
+                  type="button"
+                  className="px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-slate-500 font-normal cursor-default shadow-2xs text-[11px]"
+                  disabled
+                >
+                  Salvare
+                </button>
+
+                {/* Buton Undo */}
+                <button
+                  type="button"
+                  className="px-1.5 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-slate-500 font-normal cursor-default shadow-2xs text-[11px]"
+                  disabled
+                >
+                  <RotateCcw className="w-3 h-3" />
+                </button>
+
+                {/* Buton e-Factura SPV — Deschide Ecranul SPV Real */}
+                <button
+                  type="button"
+                  onClick={() => setShowSpvModal(true)}
+                  className="flex items-center gap-1 px-2 py-0.5 bg-[#E4EBF2] hover:bg-[#D4E0EC] border-t border-l border-white border-b border-r border-[#808080] text-blue-900 font-bold cursor-pointer shadow-2xs text-[11px]"
+                  title="Deschide ecranul e-Factura SPV ANAF cu mesajele descărcate și sincronizare live"
+                >
+                  <Globe className="w-3 h-3 text-[#1F4E79]" />
+                  <span>e-Factura SPV ({realSpvCount})</span>
+                </button>
+
+                {/* Buton Export XML SAGA */}
+                <button
+                  type="button"
+                  onClick={onDownloadSagaXml}
+                  className="flex items-center gap-1 px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] active:bg-[#DFDAC6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
+                  title="Descarcă fișier XML 100% conform importului SAGA C"
+                >
+                  <Download className="w-3 h-3 text-[#1F4E79]" />
+                  <span className="hidden sm:inline">Export XML</span>
+                </button>
+
+                {/* Buton Pachet ZIP */}
+                <button
+                  type="button"
+                  onClick={onDownloadZip}
+                  className="flex items-center gap-1 px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] active:bg-[#DFDAC6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
+                  title="Descarcă toate documentele selectate într-o arhivă ZIP"
+                >
+                  <FolderArchive className="w-3.5 h-3.5 text-amber-700" />
+                  <span className="hidden sm:inline">Pachet ZIP</span>
+                </button>
+              </div>
+            )}
+
+            <div className="flex items-center gap-1.5 ml-auto">
               <span className="text-[10px] text-slate-600 font-mono hidden md:inline">
-                {activeInvoices.length} doc. găsite
+                {subView === "partners_list"
+                  ? `${displayedPartners.length} parteneri`
+                  : `${activeInvoices.length} doc. găsite`}
               </span>
               <button
                 type="button"
@@ -639,611 +1149,1113 @@ export default function SagaClassicPortalView({
           </div>
 
           {/* ═════════════════════════════════════════════════════════════════════
-              3. ZONA SUPERIOARĂ: GRILA ANTET DOCUMENT (IDENTICĂ SAGA C 3.0.605)
+              3. ZONA DE CONȚINUT MDI: SITUAȚIE PARTENERI sau FACTURI DETALIATE
           ═════════════════════════════════════════════════════════════════════ */}
-          <div className="flex-1 min-h-[160px] max-h-[46vh] bg-[#FFFFEB] overflow-auto border-b border-[#808080] relative">
-            <table className="w-full border-collapse text-[11px] font-sans">
-              <thead className="sticky top-0 bg-[#ECE9D8] text-black font-normal text-[11px] border-b border-[#808080] shadow-xs z-10 select-none">
-                <tr className="border-b border-[#808080]">
-                  <th className="py-0.5 px-1 text-center border-r border-[#B0B0B0] w-8 font-normal">Tip</th>
-                  <th className="py-0.5 px-1.5 text-center border-r border-[#B0B0B0] w-20 font-normal">Nr. int.</th>
-                  <th className="py-0.5 px-1.5 text-left border-r border-[#B0B0B0] w-32 font-normal">Nr. doc.</th>
-                  <th className="py-0.5 px-1 text-center border-r border-[#B0B0B0] w-14 font-normal">Cod</th>
-                  <th className="py-0.5 px-2 text-left border-r border-[#B0B0B0] font-normal">
-                    {activeTab === "received" ? "Furnizor" : "Client"}
-                  </th>
-                  <th className="py-0.5 px-1 text-center border-r border-[#B0B0B0] w-12 font-normal">TVA I</th>
-                  <th className="py-0.5 px-1.5 text-center border-r border-[#B0B0B0] w-20 font-normal">Data</th>
-                  <th className="py-0.5 px-1.5 text-center border-r border-[#B0B0B0] w-20 font-normal">Scadent</th>
-                  <th className="py-0.5 px-2 text-right border-r border-[#B0B0B0] w-24 font-normal">Valoare</th>
-                  <th className="py-0.5 px-1.5 text-right border-r border-[#B0B0B0] w-16 font-normal">Repartizat</th>
-                  <th className="py-0.5 px-2 text-right border-r border-[#B0B0B0] w-20 font-normal">TVA</th>
-                  <th className="py-0.5 px-2 text-right border-r border-[#B0B0B0] w-24 font-normal">Total</th>
-                  <th className="py-0.5 px-2 text-right border-r border-[#B0B0B0] w-20 font-normal">Neachitat</th>
-                  <th className="py-0.5 px-1.5 text-center border-r border-[#B0B0B0] w-24 font-normal">Data document</th>
-                  <th className="py-0.5 px-2 text-left border-r border-[#B0B0B0] w-48 font-normal">Informatii suplimentare</th>
-                  <th className="py-0.5 px-1.5 text-center border-r border-[#B0B0B0] w-28 font-normal">ID incarcare SPV</th>
-                  <th className="py-0.5 px-1.5 text-center w-24 font-normal" title="Documente atașate (Factură fiscală PDF și Recepție NIR)">Doc. atașat</th>
-                </tr>
-              </thead>
-              <tbody>
-                {activeInvoices.length === 0 ? (
-                  <tr>
-                    <td colSpan={17} className="py-10 text-center text-slate-500 italic bg-white">
-                      Nu există documente pentru filtrele selectate.
-                    </td>
-                  </tr>
-                ) : (
-                  activeInvoices.map((inv, idx) => {
-                    const isSelected = selectedInvoice?.id === inv.id;
-                    const partnerName = activeTab === "received" ? inv.supplierName : inv.clientName;
-                    const partnerCui = activeTab === "received" ? inv.supplierCUI : inv.clientCUI;
-                    const internalNr = getSagaInternalNumber(inv);
-                    const partnerCode = getSagaPartnerCode(partnerCui, inv.id);
-                    const isEven = idx % 2 === 0;
-
-                    return (
-                      <tr
-                        key={inv.id}
-                        onClick={() => {
-                          setSelectedInvoiceId(inv.id);
-                          setSelectedLineIdx(0);
-                        }}
-                        onDoubleClick={() => onViewInvoicePdf(inv)}
-                        className={`cursor-pointer border-b border-[#D5DCE2] leading-tight select-none ${
-                          isSelected
-                            ? "bg-[#000080] text-white font-medium"
-                            : isEven
-                            ? "bg-[#FFFFEB] hover:bg-[#EBF3FB] text-black"
-                            : "bg-white hover:bg-[#EBF3FB] text-black"
-                        }`}
-                        style={{ height: "20px" }}
-                      >
-                        {/* Tip: Iconiță lacăt SAGA (blocat/validat) */}
-                        <td className="py-0.5 px-1 text-center border-r border-[#D3D3D3]">
-                          <span
-                            className={`inline-block text-[11px] ${
-                              isSelected ? "text-amber-300" : "text-amber-800"
-                            }`}
-                            title="Document recepționat și validat în contabilitate"
-                          >
-                            🔒
-                          </span>
-                        </td>
-
-                        {/* Nr. int. (Număr intern SAGA) */}
-                        <td className="py-0.5 px-1.5 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
-                          {internalNr}
-                        </td>
-
-                        {/* Nr. doc. (Număr factură furnizor) */}
-                        <td className="py-0.5 px-1.5 font-mono font-bold border-r border-[#D3D3D3] truncate max-w-[140px]">
-                          {inv.invoiceNumber}
-                        </td>
-
-                        {/* Cod (Cod partener SAGA) */}
-                        <td className="py-0.5 px-1 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
-                          {partnerCode}
-                        </td>
-
-                        {/* Furnizor / Client */}
-                        <td
-                          className="py-0.5 px-2 border-r border-[#D3D3D3] truncate max-w-[240px]"
-                          title={`${partnerName} (${partnerCui || "fără CUI"})`}
-                        >
-                          <div className="flex items-center justify-between gap-1">
-                            <span className="truncate">{partnerName}</span>
-                            {partnerCui && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleCopyCui(partnerCui);
-                                }}
-                                className={`text-[9px] px-1 rounded opacity-70 hover:opacity-100 ${
-                                  isSelected ? "bg-white/20 text-white" : "bg-slate-200 text-slate-800"
-                                }`}
-                                title={`Copiază CUI: ${partnerCui}`}
-                              >
-                                {copiedCui === partnerCui ? "✓" : "CUI"}
-                              </button>
-                            )}
-                          </div>
-                        </td>
-
-                        {/* TVA I (TVA la încasare: căsuță bifată) */}
-                        <td className="py-0.5 px-1 text-center border-r border-[#D3D3D3]">
-                          <span className="font-mono text-xs opacity-70">☐</span>
-                        </td>
-
-                        {/* Data */}
-                        <td className="py-0.5 px-1.5 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
-                          {formatSagaDate(inv.issueDate)}
-                        </td>
-
-                        {/* Scadent */}
-                        <td className="py-0.5 px-1.5 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
-                          {formatSagaDate(inv.dueDate || inv.issueDate)}
-                        </td>
-
-                        {/* Valoare (bază fără TVA) */}
-                        <td className="py-0.5 px-2 text-right font-mono border-r border-[#D3D3D3]">
-                          {formatSagaCurrency(inv.totalBase)}
-                        </td>
-
-                        {/* Repartizat */}
-                        <td className="py-0.5 px-1.5 text-right font-mono border-r border-[#D3D3D3]">
-                          0.00
-                        </td>
-
-                        {/* TVA */}
-                        <td className="py-0.5 px-2 text-right font-mono border-r border-[#D3D3D3]">
-                          {formatSagaCurrency(inv.totalVAT)}
-                        </td>
-
-                        {/* Total Factură */}
-                        <td className="py-0.5 px-2 text-right font-mono font-bold border-r border-[#D3D3D3]">
-                          {formatSagaCurrency(inv.total)}
-                        </td>
-
-                        {/* Neachitat */}
-                        <td className="py-0.5 px-2 text-right font-mono border-r border-[#D3D3D3]">
-                          0.00
-                        </td>
-
-                        {/* Data document */}
-                        <td className="py-0.5 px-1.5 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
-                          {formatSagaDate(inv.issueDate)}
-                        </td>
-
-                        {/* Informatii suplimentare */}
-                        <td
-                          className="py-0.5 px-2 border-r border-[#D3D3D3] truncate max-w-[200px] text-[10.5px]"
-                          title={inv.notes || (inv.hasNir ? `NIR: ${inv.nirNumber}` : "")}
-                        >
-                          {inv.notes || (inv.hasNir ? `NIR recepție: ${inv.nirNumber}` : "Se va achita cu OP")}
-                        </td>
-
-                        {/* ID incarcare SPV */}
-                        <td className="py-0.5 px-1.5 text-center font-mono text-[10.5px] border-r border-[#D3D3D3]">
-                          {inv.spvIndex ? (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setShowSpvModal(true);
-                                setSpvSearchQuery(inv.spvIndex);
-                              }}
-                              className={`underline cursor-pointer bg-transparent border-0 p-0 font-mono text-[10.5px] ${
-                                isSelected ? "text-amber-200" : "text-blue-900"
-                              }`}
-                              title={`Click pentru detalii SPV ANAF: ${inv.spvIndex}`}
-                            >
-                              {inv.spvIndex}
-                            </button>
-                          ) : (
-                            <span className="opacity-40">—</span>
-                          )}
-                        </td>
-
-                        {/* Acțiuni: 2 iconițe (Factură PDF albastră + NIR PDF verde) */}
-                        <td className="py-0.5 px-1.5 text-center">
-                          <div className="flex items-center justify-center gap-1">
-                            {/* Icon 1: Factură PDF (albastru) */}
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onViewInvoicePdf(inv);
-                              }}
-                              className={`p-0.5 rounded transition-colors ${
-                                isSelected
-                                  ? "bg-white/20 hover:bg-white/30 text-white"
-                                  : "bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200"
-                              }`}
-                              title="Vizualizează factura PDF"
-                            >
-                              <FileText className="w-3 h-3" />
-                            </button>
-
-                            {/* Icon 2: NIR PDF (verde, la fel ca la document doar că verde!) */}
-                            {inv.hasNir && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onViewNirPdf(inv);
-                                }}
-                                className={`p-0.5 rounded transition-colors ${
-                                  isSelected
-                                    ? "bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold"
-                                    : "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300"
-                                }`}
-                                title={`Vizualizează Nota de Recepție (NIR: ${inv.nirNumber})`}
-                              >
-                                <FileText className="w-3 h-3 text-emerald-700" />
-                              </button>
-                            )}
-                          </div>
+          {subView === "partners_list" ? (
+            /* ─────────────────────────────────────────────────────────────────
+               MODALITATE A: SITUAȚIE CENTRALIZATĂ PE FURNIZORI / CLIENȚI
+               (SAGA C - FIȘIERE / SITUAȚII PARTENERI CU DOUĂ GRILE MDI)
+            ───────────────────────────────────────────────────────────────── */
+            <>
+              {/* 1. GRILA SUPERIOARĂ: DIRECTORUL CENTRALIZAT AL PARTENERILOR */}
+              <div className="flex-1 min-h-[170px] max-h-[48vh] bg-[#FFFFEB] overflow-auto border-b border-[#808080] relative">
+                <table className="w-full border-collapse text-[11px] font-sans">
+                  <thead className="sticky top-0 bg-[#ECE9D8] text-black font-normal text-[11px] border-b border-[#808080] shadow-xs z-10 select-none">
+                    <tr className="border-b border-[#808080]">
+                      <th className="py-0.5 px-1 text-center border-r border-[#B0B0B0] w-8 font-normal">Tip</th>
+                      <th className="py-0.5 px-1.5 text-center border-r border-[#B0B0B0] w-16 font-normal">Cod</th>
+                      <th className="py-0.5 px-2 text-left border-r border-[#B0B0B0] font-normal">
+                        {activeTab === "received" ? "Denumire Furnizor" : "Denumire Client"}
+                      </th>
+                      <th className="py-0.5 px-2 text-left border-r border-[#B0B0B0] w-28 font-normal">Cod Fiscal / CUI</th>
+                      <th className="py-0.5 px-2 text-center border-r border-[#B0B0B0] w-20 font-normal">Nr. Facturi</th>
+                      <th className="py-0.5 px-2 text-right border-r border-[#B0B0B0] w-28 font-normal">Valoare fără TVA</th>
+                      <th className="py-0.5 px-2 text-right border-r border-[#B0B0B0] w-24 font-normal">TVA</th>
+                      <th className="py-0.5 px-2 text-right border-r border-[#B0B0B0] w-28 font-normal">Total Rulaj</th>
+                      {activeTab === "received" && (
+                        <th className="py-0.5 px-2 text-center border-r border-[#B0B0B0] w-24 font-normal" title="Număr NIR-uri întocmite din total facturi">
+                          NIR-uri
+                        </th>
+                      )}
+                      <th className="py-0.5 px-2 text-center border-r border-[#B0B0B0] w-24 font-normal">Ultima factură</th>
+                      <th className="py-0.5 px-2 text-center w-36 font-normal">Acțiune</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {displayedPartners.length === 0 ? (
+                      <tr>
+                        <td colSpan={activeTab === "received" ? 11 : 10} className="py-10 text-center text-slate-500 italic bg-white">
+                          Nu s-au găsit parteneri conform criteriilor de căutare.
                         </td>
                       </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                    ) : (
+                      displayedPartners.map((partner, idx) => {
+                        const isSelected = selectedPartnerIdInList === partner.key;
+                        const isEven = idx % 2 === 0;
 
-          {/* ═════════════════════════════════════════════════════════════════════
-              4. BANDA INTERMEDIARĂ SAGA C: DOCUMENT SELECTAT (RECAPITULARE)
-              (Bara orizontală cu căsuțe de input ce afișează linia activă)
-          ═════════════════════════════════════════════════════════════════════ */}
-          <div className="bg-[#ECE9D8] px-2 py-1 flex items-center gap-1.5 border-b border-[#999999] shrink-0 text-[11px] shadow-2xs">
-            <input
-              type="text"
-              readOnly
-              value={selectedNrInt}
-              title="Număr intern"
-              className="w-20 bg-white border border-[#7F9DB9] px-1.5 py-0.5 text-[10.5px] font-mono text-slate-900 rounded-none shadow-inner focus:outline-none"
-            />
-            <input
-              type="text"
-              readOnly
-              value={selectedNrDoc}
-              title="Număr document furnizor"
-              className="w-36 bg-white border border-[#7F9DB9] px-1.5 py-0.5 text-[10.5px] font-mono font-bold text-slate-900 rounded-none shadow-inner focus:outline-none"
-            />
-            <input
-              type="text"
-              readOnly
-              value={selectedCod}
-              title="Cod partener SAGA"
-              className="w-16 bg-white border border-[#7F9DB9] px-1.5 py-0.5 text-[10.5px] font-mono text-center text-slate-900 rounded-none shadow-inner focus:outline-none"
-            />
-            <input
-              type="text"
-              readOnly
-              value={selectedPartner}
-              title="Denumire partener"
-              className="flex-1 max-w-[380px] bg-white border border-[#7F9DB9] px-1.5 py-0.5 text-[10.5px] text-slate-900 rounded-none shadow-inner focus:outline-none truncate"
-            />
+                        return (
+                          <tr
+                            key={partner.key}
+                            onClick={() => setSelectedPartnerIdInList(partner.key)}
+                            onDoubleClick={() => {
+                              setSelectedPartnerKey(partner.key);
+                              setSubView("all_invoices");
+                            }}
+                            className={`cursor-pointer border-b border-[#D5DCE2] leading-tight select-none ${
+                              isSelected
+                                ? "bg-[#000080] text-white font-medium"
+                                : isEven
+                                ? "bg-[#FFFFEB] hover:bg-[#EBF3FB] text-black"
+                                : "bg-white hover:bg-[#EBF3FB] text-black"
+                            }`}
+                            style={{ height: "22px" }}
+                          >
+                            {/* Tip: Icon partener */}
+                            <td className="py-0.5 px-1 text-center border-r border-[#D3D3D3]">
+                              <span className="text-[11px]">
+                                {activeTab === "received" ? "🏢" : "👥"}
+                              </span>
+                            </td>
 
-            {selectedInvoice && (
-              <div className="ml-auto flex items-center gap-1.5 shrink-0">
-                {/* 1. Iconiță Factură PDF (albastru) */}
-                <button
-                  type="button"
-                  onClick={() => onViewInvoicePdf(selectedInvoice)}
-                  className="flex items-center gap-1 px-2 py-0.5 bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-900 font-bold text-[10.5px] rounded-xs cursor-pointer shadow-2xs"
-                  title="Deschide factura fiscală PDF (Enter)"
-                >
-                  <FileText className="w-3.5 h-3.5 text-blue-700" />
-                  <span>Factură PDF</span>
-                </button>
+                            {/* Cod SAGA */}
+                            <td className="py-0.5 px-1.5 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
+                              {partner.code}
+                            </td>
 
-                {/* 2. Iconiță NIR PDF (verde, la fel ca la document doar că verde!) */}
-                {selectedInvoice.hasNir && (
+                            {/* Denumire partener */}
+                            <td
+                              className="py-0.5 px-2 border-r border-[#D3D3D3] truncate max-w-[280px] font-semibold"
+                              title={partner.name}
+                            >
+                              {partner.name}
+                            </td>
+
+                            {/* CUI / CIF */}
+                            <td className="py-0.5 px-2 font-mono border-r border-[#D3D3D3] text-[10.5px]">
+                              <div className="flex items-center justify-between gap-1">
+                                <span>{partner.cui || "—"}</span>
+                                {partner.cui && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCopyCui(partner.cui);
+                                    }}
+                                    className={`text-[9px] px-1 rounded opacity-70 hover:opacity-100 ${
+                                      isSelected ? "bg-white/20 text-white" : "bg-slate-200 text-slate-800"
+                                    }`}
+                                    title={`Copiază CUI: ${partner.cui}`}
+                                  >
+                                    {copiedCui === partner.cui ? "✓" : "CUI"}
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+
+                            {/* Nr. Facturi */}
+                            <td className="py-0.5 px-2 text-center font-mono font-bold border-r border-[#D3D3D3]">
+                              <span
+                                className={`px-1.5 py-0.2 rounded-xs text-[10px] ${
+                                  isSelected
+                                    ? "bg-white/25 text-white"
+                                    : "bg-blue-100 text-blue-900 border border-blue-200"
+                                }`}
+                              >
+                                {partner.invoiceCount}
+                              </span>
+                            </td>
+
+                            {/* Valoare fără TVA */}
+                            <td className="py-0.5 px-2 text-right font-mono border-r border-[#D3D3D3]">
+                              {formatSagaCurrency(partner.totalBase)}
+                            </td>
+
+                            {/* TVA */}
+                            <td className="py-0.5 px-2 text-right font-mono border-r border-[#D3D3D3]">
+                              {formatSagaCurrency(partner.totalVat)}
+                            </td>
+
+                            {/* Total General */}
+                            <td className="py-0.5 px-2 text-right font-mono font-bold border-r border-[#D3D3D3]">
+                              {formatSagaCurrency(partner.totalGross)}
+                            </td>
+
+                            {/* NIR-uri (doar pentru furnizori) */}
+                            {activeTab === "received" && (
+                              <td className="py-0.5 px-2 text-center border-r border-[#D3D3D3]">
+                                <span
+                                  className={`px-1.5 py-0.2 rounded-xs font-mono text-[10px] ${
+                                    isSelected
+                                      ? "bg-emerald-400 text-slate-950 font-bold"
+                                      : partner.nirCount > 0
+                                      ? "bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold"
+                                      : "text-slate-400"
+                                  }`}
+                                >
+                                  {partner.nirCount} / {partner.invoiceCount}
+                                </span>
+                              </td>
+                            )}
+
+                            {/* Ultima factură */}
+                            <td className="py-0.5 px-2 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
+                              {partner.latestInvoiceDate ? formatSagaDate(partner.latestInvoiceDate) : "—"}
+                            </td>
+
+                            {/* Acțiuni: Buton SAGA intră în facturi */}
+                            <td className="py-0.5 px-2 text-center">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedPartnerKey(partner.key);
+                                  setSubView("all_invoices");
+                                }}
+                                className={`px-2 py-0.5 text-[10.5px] rounded-xs font-bold cursor-pointer transition-colors ${
+                                  isSelected
+                                    ? "bg-amber-300 hover:bg-amber-200 text-slate-950 shadow-xs"
+                                    : "bg-[#1F4E79] hover:bg-[#102A43] text-white shadow-2xs"
+                                }`}
+                                title={`Vezi toate cele ${partner.invoiceCount} facturi ale ${partner.name}`}
+                              >
+                                Vezi Facturi ({partner.invoiceCount}) ➔
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* 2. BANDA INTERMEDIARĂ: PARTENER EVIDENȚIAT */}
+              <div className="bg-[#ECE9D8] px-2 py-1 flex items-center justify-between gap-1.5 border-b border-[#999999] shrink-0 text-[11px] shadow-2xs">
+                <div className="flex items-center gap-2 truncate">
+                  <span className="text-slate-700 font-semibold hidden sm:inline">
+                    {activeTab === "received" ? "Furnizor selectat:" : "Client selectat:"}
+                  </span>
+                  <input
+                    type="text"
+                    readOnly
+                    value={highlightedPartnerInList?.code || ""}
+                    title="Cod partener"
+                    className="w-16 bg-white border border-[#7F9DB9] px-1.5 py-0.5 text-[10.5px] font-mono text-center text-slate-900 rounded-none shadow-inner focus:outline-none"
+                  />
+                  <input
+                    type="text"
+                    readOnly
+                    value={highlightedPartnerInList?.name || "Niciun partener selectat"}
+                    title="Denumire partener"
+                    className="w-56 md:w-80 bg-white border border-[#7F9DB9] px-1.5 py-0.5 text-[10.5px] font-bold text-slate-900 rounded-none shadow-inner focus:outline-none truncate"
+                  />
+                  {highlightedPartnerInList?.cui && (
+                    <span className="font-mono text-slate-600 bg-white px-1.5 py-0.5 border border-[#7F9DB9] text-[10.5px] rounded-none">
+                      CUI: {highlightedPartnerInList.cui}
+                    </span>
+                  )}
+                  {highlightedPartnerInList && (
+                    <span className="text-[10.5px] text-slate-700 font-mono hidden md:inline">
+                      {highlightedPartnerInList.invoiceCount} facturi · Total:{" "}
+                      <strong>{formatSagaCurrency(highlightedPartnerInList.totalGross)} RON</strong>
+                    </span>
+                  )}
+                </div>
+
+                {highlightedPartnerInList && (
                   <button
                     type="button"
-                    onClick={() => onViewNirPdf(selectedInvoice)}
-                    className="flex items-center gap-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-900 font-bold text-[10.5px] rounded-xs cursor-pointer shadow-2xs"
-                    title={`Deschide fișa NIR atașată (${selectedInvoice.nirNumber}) (tasta N)`}
+                    onClick={() => {
+                      setSelectedPartnerKey(highlightedPartnerInList.key);
+                      setSubView("all_invoices");
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-[#0055EA] to-[#103869] hover:from-[#0043BA] hover:to-[#0B2545] text-white font-bold text-[11px] rounded-xs cursor-pointer shadow-xs shrink-0"
+                    title={`Deschide dosarul complet cu facturi și linii articole pentru ${highlightedPartnerInList.name}`}
                   >
-                    <FileText className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>NIR: {selectedInvoice.nirNumber}</span>
+                    <span>Deschide Dosar Facturi & Detalii Linii</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
-            )}
-          </div>
 
-          {/* ═════════════════════════════════════════════════════════════════════
-              5. BARA DE INSTRUMENTE POZIȚII (TOOLBAR LINII ARTICOLE SAGA C)
-          ═════════════════════════════════════════════════════════════════════ */}
-          <div className="bg-[#ECE9D8] px-2 py-1 flex items-center justify-between border-b border-[#999999] shrink-0 text-[11px]">
-            <div className="flex items-center gap-1 flex-wrap">
-              <button
-                type="button"
-                className="px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
-              >
-                Adaug
-              </button>
-              <button
-                type="button"
-                className="px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
-              >
-                Modific
-              </button>
-              <button
-                type="button"
-                className="px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
-              >
-                Sterg
-              </button>
-
-              <span className="w-px h-4 bg-[#B0B0B0] mx-0.5" />
-
-              <button
-                type="button"
-                className="px-1.5 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black cursor-pointer shadow-2xs"
-                title="Caută în poziții"
-              >
-                <Search className="w-3 h-3 text-slate-700" />
-              </button>
-              <button
-                type="button"
-                className="px-1.5 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black cursor-pointer shadow-2xs"
-                title="Filtru linii"
-              >
-                <SlidersHorizontal className="w-3 h-3 text-slate-700" />
-              </button>
-              <button
-                type="button"
-                className="px-1.5 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-mono font-bold cursor-pointer shadow-2xs text-[11px]"
-                title="Calculator"
-              >
-                fx
-              </button>
-
-              <button
-                type="button"
-                className="px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
-              >
-                Serii &gt;&gt;
-              </button>
-              <button
-                type="button"
-                className="px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
-              >
-                Preturi vanzare &gt;&gt;
-              </button>
-
-              {selectedInvoice?.hasNir && (
-                <button
-                  type="button"
-                  onClick={() => onViewNirPdf(selectedInvoice)}
-                  className="px-2 py-0.5 bg-[#E8F5E9] hover:bg-[#C8E6C9] border-t border-l border-white border-b border-r border-[#808080] text-[#1B5E20] font-bold cursor-pointer shadow-2xs text-[11px]"
-                >
-                  Bon de consum...
-                </button>
-              )}
-
-              <button
-                type="button"
-                className="px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
-              >
-                Facturi asociate (transport)...
-              </button>
-            </div>
-
-            <div>
-              <button
-                type="button"
-                className="px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
-              >
-                Detalii
-              </button>
-            </div>
-          </div>
-
-          {/* ═════════════════════════════════════════════════════════════════════
-              6. ZONA INFERIOARĂ: GRILA POZIȚII / LINII ARTICOLE (IDENTICĂ SAGA C)
-          ═════════════════════════════════════════════════════════════════════ */}
-          <div className="h-[210px] xl:h-[240px] bg-[#FFFFEB] overflow-auto shrink-0 border-b border-[#808080] relative">
-            {isLinesLoading ? (
-              <div className="h-full flex items-center justify-center gap-2 text-slate-500 text-xs py-8 bg-[#FFFFEB]">
-                <Loader2 className="w-4 h-4 animate-spin text-[#000080]" />
-                <span>Se încarcă articolele facturii din SAGA...</span>
-              </div>
-            ) : documentLines.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-slate-500 text-xs py-6 bg-[#FFFFEB]">
-                <BookOpen className="w-5 h-5 mb-1 text-slate-400" />
-                <span className="font-semibold">Factura este centralizată la nivel de antet fiscal.</span>
-                <span className="text-[10.5px] text-slate-500 mt-0.5">
-                  Liniile detaliate sunt disponibile în fișierul PDF oficial (apăsați Tipărire / Enter) sau exportați XML SAGA.
-                </span>
-              </div>
-            ) : (
-              <table className="w-full border-collapse text-[11px] font-sans">
-                <thead className="sticky top-0 bg-[#ECE9D8] text-black font-normal text-[10.5px] border-b border-[#808080] shadow-xs z-10 select-none">
-                  <tr>
-                    <th className="py-0.5 px-2 text-left border-r border-[#B0B0B0] w-28 font-normal">Tip</th>
-                    <th className="py-0.5 px-2 text-left border-r border-[#B0B0B0] w-36 font-normal">Gestiune</th>
-                    <th className="py-0.5 px-2 text-left border-r border-[#B0B0B0] font-normal">Denumire articol / serviciu</th>
-                    <th className="py-0.5 px-1.5 text-center border-r border-[#B0B0B0] w-20 font-normal">Cod</th>
-                    <th className="py-0.5 px-1 text-center border-r border-[#B0B0B0] w-12 font-normal">UM</th>
-                    <th className="py-0.5 px-1 text-center border-r border-[#B0B0B0] w-10 font-normal">TVA</th>
-                    <th className="py-0.5 px-1.5 text-right border-r border-[#B0B0B0] w-16 font-normal">Cantitate</th>
-                    <th className="py-0.5 px-1.5 text-right border-r border-[#B0B0B0] w-20 font-normal">Pret unitar</th>
-                    <th className="py-0.5 px-2 text-right border-r border-[#B0B0B0] w-20 font-normal">Valoare</th>
-                    <th className="py-0.5 px-2 text-right border-r border-[#B0B0B0] w-20 font-normal">Total</th>
-                    <th className="py-0.5 px-1.5 text-right border-r border-[#B0B0B0] w-16 font-normal">TVA</th>
-                    <th className="py-0.5 px-1 text-right border-r border-[#B0B0B0] w-16 font-normal">Nedeductibil</th>
-                    <th className="py-0.5 px-1.5 text-center border-r border-[#B0B0B0] w-14 font-normal">Cont</th>
-                    <th className="py-0.5 px-1.5 text-right border-r border-[#B0B0B0] w-20 font-normal">Pret vanzare</th>
-                    <th className="py-0.5 px-1.5 text-right border-r border-[#B0B0B0] w-16 font-normal">Adaos unitar</th>
-                    <th className="py-0.5 px-1 text-center border-r border-[#B0B0B0] w-10 font-normal">%</th>
-                    <th className="py-0.5 px-2 text-left w-32 font-normal">Informatii suplimentare</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {documentLines.map((line: any, idx: number) => {
-                    const isSelectedLine = selectedLineIdx === idx;
-                    const isEven = idx % 2 === 0;
-
-                    return (
-                      <tr
-                        key={idx}
-                        onClick={() => setSelectedLineIdx(idx)}
-                        className={`cursor-pointer border-b border-[#D5DCE2] leading-tight select-none ${
-                          isSelectedLine
-                            ? "bg-[#000080] text-white font-medium"
-                            : isEven
-                            ? "bg-[#FFFFEB] hover:bg-[#EBF3FB] text-black"
-                            : "bg-white hover:bg-[#EBF3FB] text-black"
-                        }`}
-                        style={{ height: "20px" }}
-                      >
-                        {/* Tip articol */}
-                        <td className="py-0.5 px-2 border-r border-[#D3D3D3] truncate max-w-[120px]">
-                          {line.type || "Materiale auxiliare"}
-                        </td>
-
-                        {/* Gestiune */}
-                        <td className="py-0.5 px-2 border-r border-[#D3D3D3] truncate max-w-[150px]">
-                          {line.gestiune || "ATELIER TAMPLARIE"}
-                        </td>
-
-                        {/* Denumire articol / serviciu */}
-                        <td
-                          className="py-0.5 px-2 border-r border-[#D3D3D3] truncate max-w-[320px] font-medium"
-                          title={line.description}
-                        >
-                          {line.description}
-                        </td>
-
-                        {/* Cod articol */}
-                        <td className="py-0.5 px-1.5 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
-                          {line.code || String(idx + 1).padStart(8, "0")}
-                        </td>
-
-                        {/* UM */}
-                        <td className="py-0.5 px-1 text-center font-mono border-r border-[#D3D3D3] uppercase text-[10.5px]">
-                          {line.unit || "BUC"}
-                        </td>
-
-                        {/* TVA (%) */}
-                        <td className="py-0.5 px-1 text-center font-mono border-r border-[#D3D3D3]">
-                          {line.vatRate ? Math.round(line.vatRate) : "21"}
-                        </td>
-
-                        {/* Cantitate */}
-                        <td className="py-0.5 px-1.5 text-right font-mono border-r border-[#D3D3D3]">
-                          {formatSagaQty(line.quantity)}
-                        </td>
-
-                        {/* Pret unitar */}
-                        <td className="py-0.5 px-1.5 text-right font-mono border-r border-[#D3D3D3]">
-                          {formatSagaUnitPrice(line.unitPrice)}
-                        </td>
-
-                        {/* Valoare */}
-                        <td className="py-0.5 px-2 text-right font-mono border-r border-[#D3D3D3]">
-                          {formatSagaCurrency(line.valoare ?? line.quantity * line.unitPrice)}
-                        </td>
-
-                        {/* Total */}
-                        <td className="py-0.5 px-2 text-right font-mono font-bold border-r border-[#D3D3D3]">
-                          {formatSagaCurrency(line.total)}
-                        </td>
-
-                        {/* TVA */}
-                        <td className="py-0.5 px-1.5 text-right font-mono border-r border-[#D3D3D3]">
-                          {formatSagaCurrency(line.tva ?? line.total - line.quantity * line.unitPrice)}
-                        </td>
-
-                        {/* Nedeductibil */}
-                        <td className="py-0.5 px-1 text-right font-mono border-r border-[#D3D3D3]">
-                          0.00
-                        </td>
-
-                        {/* Cont */}
-                        <td className="py-0.5 px-1.5 text-center font-mono font-bold border-r border-[#D3D3D3]">
-                          {line.account || "3028"}
-                        </td>
-
-                        {/* Pret vanzare */}
-                        <td className="py-0.5 px-1.5 text-right font-mono border-r border-[#D3D3D3]">
-                          0.0000
-                        </td>
-
-                        {/* Adaos unitar */}
-                        <td className="py-0.5 px-1.5 text-right font-mono border-r border-[#D3D3D3]">
-                          0.00
-                        </td>
-
-                        {/* % Adaos */}
-                        <td className="py-0.5 px-1 text-center font-mono border-r border-[#D3D3D3]">
-                          0
-                        </td>
-
-                        {/* Informatii suplimentare */}
-                        <td className="py-0.5 px-2 truncate max-w-[140px] text-[10.5px]">
-                          {line.infoSuplimentare || ""}
+              {/* 3. GRILA INFERIOARĂ: FACTURILE PARTENERULUI EVIDENȚIAT */}
+              <div className="h-[210px] xl:h-[240px] bg-[#FFFFEB] overflow-auto shrink-0 border-b border-[#808080] relative">
+                <table className="w-full border-collapse text-[11px] font-sans">
+                  <thead className="sticky top-0 bg-[#ECE9D8] text-black font-normal text-[10.5px] border-b border-[#808080] shadow-xs z-10 select-none">
+                    <tr>
+                      <th className="py-0.5 px-1 text-center border-r border-[#B0B0B0] w-8 font-normal">Tip</th>
+                      <th className="py-0.5 px-1.5 text-center border-r border-[#B0B0B0] w-20 font-normal">Nr. int.</th>
+                      <th className="py-0.5 px-1.5 text-left border-r border-[#B0B0B0] w-32 font-normal">Nr. doc.</th>
+                      <th className="py-0.5 px-1.5 text-center border-r border-[#B0B0B0] w-20 font-normal">Data</th>
+                      <th className="py-0.5 px-1.5 text-center border-r border-[#B0B0B0] w-20 font-normal">Scadent</th>
+                      <th className="py-0.5 px-2 text-right border-r border-[#B0B0B0] w-24 font-normal">Valoare</th>
+                      <th className="py-0.5 px-2 text-right border-r border-[#B0B0B0] w-20 font-normal">TVA</th>
+                      <th className="py-0.5 px-2 text-right border-r border-[#B0B0B0] w-24 font-normal">Total</th>
+                      <th className="py-0.5 px-1.5 text-center border-r border-[#B0B0B0] w-28 font-normal">ID incarcare SPV</th>
+                      <th className="py-0.5 px-2 text-left border-r border-[#B0B0B0] font-normal">Note / NIR</th>
+                      <th className="py-0.5 px-1.5 text-center w-24 font-normal" title="Documente atașate (Factură PDF și Recepție NIR)">Doc. atașat</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {!highlightedPartnerInList || highlightedPartnerInList.invoices.length === 0 ? (
+                      <tr>
+                        <td colSpan={11} className="py-10 text-center text-slate-500 italic bg-white">
+                          Selectați un partener din tabelul de mai sus pentru a-i vedea facturile.
                         </td>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
+                    ) : (
+                      highlightedPartnerInList.invoices.map((inv: any, idx: number) => {
+                        const isEven = idx % 2 === 0;
+                        const internalNr = getSagaInternalNumber(inv);
+                        return (
+                          <tr
+                            key={inv.id}
+                            onDoubleClick={() => onViewInvoicePdf(inv)}
+                            className={`border-b border-[#D5DCE2] hover:bg-[#EBF3FB] leading-tight select-none ${
+                              isEven ? "bg-[#FFFFEB]" : "bg-white"
+                            }`}
+                            style={{ height: "20px" }}
+                          >
+                            <td className="py-0.5 px-1 text-center border-r border-[#D3D3D3]">
+                              <span className="text-[11px] text-amber-800">🔒</span>
+                            </td>
+                            <td className="py-0.5 px-1.5 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
+                              {internalNr}
+                            </td>
+                            <td className="py-0.5 px-1.5 font-mono font-bold border-r border-[#D3D3D3] truncate max-w-[140px]">
+                              {inv.invoiceNumber}
+                            </td>
+                            <td className="py-0.5 px-1.5 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
+                              {formatSagaDate(inv.issueDate)}
+                            </td>
+                            <td className="py-0.5 px-1.5 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
+                              {formatSagaDate(inv.dueDate || inv.issueDate)}
+                            </td>
+                            <td className="py-0.5 px-2 text-right font-mono border-r border-[#D3D3D3]">
+                              {formatSagaCurrency(inv.totalBase)}
+                            </td>
+                            <td className="py-0.5 px-2 text-right font-mono border-r border-[#D3D3D3]">
+                              {formatSagaCurrency(inv.totalVAT)}
+                            </td>
+                            <td className="py-0.5 px-2 text-right font-mono font-bold border-r border-[#D3D3D3]">
+                              {formatSagaCurrency(inv.total)}
+                            </td>
+                            <td className="py-0.5 px-1.5 text-center font-mono text-[10.5px] border-r border-[#D3D3D3]">
+                              {inv.spvIndex ? (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowSpvModal(true);
+                                    setSpvSearchQuery(inv.spvIndex);
+                                  }}
+                                  className="underline cursor-pointer bg-transparent border-0 p-0 font-mono text-[10.5px] text-blue-900"
+                                >
+                                  {inv.spvIndex}
+                                </button>
+                              ) : (
+                                <span className="opacity-40">—</span>
+                              )}
+                            </td>
+                            <td className="py-0.5 px-2 border-r border-[#D3D3D3] truncate max-w-[220px] text-[10.5px]">
+                              {inv.notes || (inv.hasNir ? `NIR: ${inv.nirNumber}` : "Factură validată")}
+                            </td>
+                            <td className="py-0.5 px-1.5 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onViewInvoicePdf(inv);
+                                  }}
+                                  className="p-0.5 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-colors"
+                                  title="Vizualizează factura PDF"
+                                >
+                                  <FileText className="w-3 h-3" />
+                                </button>
+                                {inv.hasNir && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onViewNirPdf(inv);
+                                    }}
+                                    className="p-0.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 transition-colors"
+                                    title={`Vizualizează Nota de Recepție (NIR: ${inv.nirNumber})`}
+                                  >
+                                    <FileText className="w-3 h-3 text-emerald-700" />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
 
-          {/* ═════════════════════════════════════════════════════════════════════
-              7. BARA DE ACȚIUNI DIN SUBSOLUL FERESTREI (BOTTOM ACTION BAR SAGA C)
-          ═════════════════════════════════════════════════════════════════════ */}
-          <div className="bg-[#ECE9D8] px-2 py-1 flex items-center justify-between border-t border-[#999999] shrink-0 text-[11px]">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <button
-                type="button"
-                className="flex items-center gap-1 px-3 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
-              >
-                <span>🔒</span>
-                <span>Validez</span>
-              </button>
+              {/* 4. BARA DE ACȚIUNI PENTRU MOD SITUAȚIE PARTENERI */}
+              <div className="bg-[#ECE9D8] px-2 py-1 flex items-center justify-between border-t border-[#999999] shrink-0 text-[11px]">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSubView("all_invoices");
+                      setSelectedPartnerKey(null);
+                    }}
+                    className="flex items-center gap-1 px-3 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-semibold cursor-pointer shadow-2xs text-[11px]"
+                  >
+                    <span>◄</span>
+                    <span>Toate Facturile</span>
+                  </button>
 
-              <button
-                type="button"
-                className="px-3 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
-              >
-                Plata...
-              </button>
+                  {highlightedPartnerInList && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedPartnerKey(highlightedPartnerInList.key);
+                        setSubView("all_invoices");
+                      }}
+                      className="flex items-center gap-1 px-3 py-0.5 bg-[#E8F5E9] hover:bg-[#C8E6C9] border-t border-l border-white border-b border-r border-[#808080] text-emerald-950 font-bold cursor-pointer shadow-2xs text-[11px]"
+                    >
+                      <span>Intră în Dosar: {highlightedPartnerInList.name}</span>
+                      <span>➔</span>
+                    </button>
+                  )}
 
-              <button
-                type="button"
-                className="px-3 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
-              >
-                Stornez
-              </button>
+                  <button
+                    type="button"
+                    onClick={activeTab === "received" ? onExportExcel : onExportEmittedExcel}
+                    className="flex items-center gap-1 px-3 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Export Excel Parteneri</span>
+                  </button>
+                </div>
 
-              <button
-                type="button"
-                className="px-3 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
-              >
-                N.C...
-              </button>
+                <div>
+                  <button
+                    type="button"
+                    onClick={onLockSession}
+                    className="flex items-center gap-1.5 px-3 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-red-700 font-bold cursor-pointer shadow-2xs text-[11px]"
+                    title="Ieșire din ecran"
+                  >
+                    <span>🚪</span>
+                    <span>Iesire</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            /* ─────────────────────────────────────────────────────────────────
+               MODALITATE B: VEDERE FACTURI (TOATE sau FILTRATE PE UN PARTENER)
+               (CU FIȘĂ PARTENER SAGA, POZIȚII ARTICOLE ȘI BUTOANE PDF / NIR)
+            ───────────────────────────────────────────────────────────────── */
+            <>
+              {/* ── BARA FIȘĂ PARTENER SAGA (CÂND S-A INTRAT PE UN FURNIZOR / CLIENT ANUME) ── */}
+              {selectedPartnerKey && selectedPartnerObj && (
+                <div className="bg-[#EBF3FB] border-b border-[#7F9DB9] px-2.5 py-1 flex flex-wrap items-center justify-between gap-1.5 shrink-0 text-[11px] shadow-2xs select-none">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedPartnerKey(null);
+                        setSubView("partners_list");
+                      }}
+                      className="flex items-center gap-1 px-2 py-0.5 bg-white hover:bg-slate-100 border border-[#7F9DB9] text-blue-900 font-bold rounded-xs cursor-pointer shadow-2xs text-[10.5px]"
+                      title="Revenire la lista centralizată de parteneri (tasta Esc)"
+                    >
+                      <ArrowLeft className="w-3 h-3 text-blue-700" />
+                      <span>◄ Înapoi la Listă (Esc)</span>
+                    </button>
 
-              {selectedInvoice && (
-                <button
-                  type="button"
-                  onClick={() => onViewInvoicePdf(selectedInvoice)}
-                  className="px-3 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-bold cursor-pointer shadow-2xs text-[11px]"
-                  title="Tipărire document"
-                >
-                  Tiparire...
-                </button>
+                    <span className="w-px h-4 bg-[#B0C4DE]" />
+
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono font-bold text-[#000080] bg-white px-1.5 py-0.2 border border-[#B0C4DE] rounded-xs text-[10.5px]">
+                        {selectedPartnerObj.code}
+                      </span>
+                      <span className="font-bold text-slate-900 text-[11.5px]">
+                        {selectedPartnerObj.name}
+                      </span>
+                      {selectedPartnerObj.cui && (
+                        <span className="font-mono text-slate-600 bg-white/80 px-1 py-0.2 border border-[#B0C4DE] rounded-xs text-[10.5px]">
+                          CUI: {selectedPartnerObj.cui}
+                        </span>
+                      )}
+                    </div>
+
+                    <span className="w-px h-4 bg-[#B0C4DE]" />
+
+                    <div className="flex items-center gap-2 text-[10.5px]">
+                      <span className="bg-blue-100 text-blue-900 px-1.5 py-0.2 rounded-xs font-bold border border-blue-200">
+                        {activeInvoices.length} factur{activeInvoices.length === 1 ? "ă" : "i"}
+                      </span>
+                      <span>
+                        Bază: <strong className="font-mono text-slate-900">{formatSagaCurrency(selectedPartnerObj.totalBase)}</strong> lei
+                      </span>
+                      <span>
+                        TVA: <strong className="font-mono text-slate-900">{formatSagaCurrency(selectedPartnerObj.totalVat)}</strong> lei
+                      </span>
+                      <span className="text-[#000080] font-bold">
+                        Total: <strong className="font-mono">{formatSagaCurrency(selectedPartnerObj.totalGross)}</strong> lei
+                      </span>
+
+                      {activeTab === "received" && selectedPartnerObj.nirCount > 0 && (
+                        <span className="bg-emerald-100 text-emerald-900 px-1.5 py-0.2 rounded-xs font-bold border border-emerald-300">
+                          ✓ {selectedPartnerObj.nirCount} NIR-uri recepționate
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 ml-auto">
+                    <span className="text-[10px] text-slate-500 hidden sm:inline">Comută la:</span>
+                    <select
+                      value={selectedPartnerKey}
+                      onChange={(e) => {
+                        if (e.target.value === "all") {
+                          setSelectedPartnerKey(null);
+                        } else {
+                          setSelectedPartnerKey(e.target.value);
+                        }
+                      }}
+                      className="px-1.5 py-0.5 bg-white border border-[#7F9DB9] text-[10.5px] rounded-none font-sans focus:outline-none focus:border-[#316AC5] shadow-inner max-w-[200px]"
+                    >
+                      {(activeTab === "received" ? suppliersSummary : clientsSummary).map((p) => (
+                        <option key={p.key} value={p.key}>
+                          {p.name} ({p.invoiceCount})
+                        </option>
+                      ))}
+                    </select>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPartnerKey(null)}
+                      className="px-2 py-0.5 bg-white hover:bg-slate-100 border border-[#7F9DB9] text-slate-700 font-semibold rounded-xs cursor-pointer shadow-2xs text-[10.5px]"
+                      title="Arată facturile tuturor partenerilor"
+                    >
+                      ✕ Toate facturile
+                    </button>
+                  </div>
+                </div>
               )}
 
-              <button
-                type="button"
-                className="px-3 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
-              >
-                Devalidez
-              </button>
-            </div>
+              {/* 1. GRILA SUPERIOARĂ: ANTET FACTURI */}
+              <div className="flex-1 min-h-[160px] max-h-[46vh] bg-[#FFFFEB] overflow-auto border-b border-[#808080] relative">
+                <table className="w-full border-collapse text-[11px] font-sans">
+                  <thead className="sticky top-0 bg-[#ECE9D8] text-black font-normal text-[11px] border-b border-[#808080] shadow-xs z-10 select-none">
+                    <tr className="border-b border-[#808080]">
+                      <th className="py-0.5 px-1 text-center border-r border-[#B0B0B0] w-8 font-normal">Tip</th>
+                      <th className="py-0.5 px-1.5 text-center border-r border-[#B0B0B0] w-20 font-normal">Nr. int.</th>
+                      <th className="py-0.5 px-1.5 text-left border-r border-[#B0B0B0] w-32 font-normal">Nr. doc.</th>
+                      <th className="py-0.5 px-1 text-center border-r border-[#B0B0B0] w-14 font-normal">Cod</th>
+                      <th className="py-0.5 px-2 text-left border-r border-[#B0B0B0] font-normal">
+                        {activeTab === "received" ? "Furnizor" : "Client"}
+                      </th>
+                      <th className="py-0.5 px-1 text-center border-r border-[#B0B0B0] w-12 font-normal">TVA I</th>
+                      <th className="py-0.5 px-1.5 text-center border-r border-[#B0B0B0] w-20 font-normal">Data</th>
+                      <th className="py-0.5 px-1.5 text-center border-r border-[#B0B0B0] w-20 font-normal">Scadent</th>
+                      <th className="py-0.5 px-2 text-right border-r border-[#B0B0B0] w-24 font-normal">Valoare</th>
+                      <th className="py-0.5 px-1.5 text-right border-r border-[#B0B0B0] w-16 font-normal">Repartizat</th>
+                      <th className="py-0.5 px-2 text-right border-r border-[#B0B0B0] w-20 font-normal">TVA</th>
+                      <th className="py-0.5 px-2 text-right border-r border-[#B0B0B0] w-24 font-normal">Total</th>
+                      <th className="py-0.5 px-2 text-right border-r border-[#B0B0B0] w-20 font-normal">Neachitat</th>
+                      <th className="py-0.5 px-1.5 text-center border-r border-[#B0B0B0] w-24 font-normal">Data document</th>
+                      <th className="py-0.5 px-2 text-left border-r border-[#B0B0B0] w-48 font-normal">Informatii suplimentare</th>
+                      <th className="py-0.5 px-1.5 text-center border-r border-[#B0B0B0] w-28 font-normal">ID incarcare SPV</th>
+                      <th className="py-0.5 px-1.5 text-center w-24 font-normal" title="Documente atașate (Factură fiscală PDF și Recepție NIR)">Doc. atașat</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activeInvoices.length === 0 ? (
+                      <tr>
+                        <td colSpan={17} className="py-10 text-center text-slate-500 italic bg-white">
+                          Nu există documente pentru filtrele selectate.
+                        </td>
+                      </tr>
+                    ) : (
+                      activeInvoices.map((inv, idx) => {
+                        const isSelected = selectedInvoice?.id === inv.id;
+                        const partnerName = activeTab === "received" ? inv.supplierName : inv.clientName;
+                        const partnerCui = activeTab === "received" ? inv.supplierCUI : inv.clientCUI;
+                        const internalNr = getSagaInternalNumber(inv);
+                        const partnerCode = getSagaPartnerCode(partnerCui, inv.id);
+                        const isEven = idx % 2 === 0;
 
-            <div>
-              <button
-                type="button"
-                onClick={onLockSession}
-                className="flex items-center gap-1.5 px-3 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-red-700 font-bold cursor-pointer shadow-2xs text-[11px]"
-                title="Ieșire din ecran"
-              >
-                <span>🚪</span>
-                <span>Iesire</span>
-              </button>
-            </div>
-          </div>
+                        return (
+                          <tr
+                            key={inv.id}
+                            onClick={() => {
+                              setSelectedInvoiceId(inv.id);
+                              setSelectedLineIdx(0);
+                            }}
+                            onDoubleClick={() => onViewInvoicePdf(inv)}
+                            className={`cursor-pointer border-b border-[#D5DCE2] leading-tight select-none ${
+                              isSelected
+                                ? "bg-[#000080] text-white font-medium"
+                                : isEven
+                                ? "bg-[#FFFFEB] hover:bg-[#EBF3FB] text-black"
+                                : "bg-white hover:bg-[#EBF3FB] text-black"
+                            }`}
+                            style={{ height: "20px" }}
+                          >
+                            {/* Tip: Iconiță lacăt SAGA (blocat/validat) */}
+                            <td className="py-0.5 px-1 text-center border-r border-[#D3D3D3]">
+                              <span
+                                className={`inline-block text-[11px] ${
+                                  isSelected ? "text-amber-300" : "text-amber-800"
+                                }`}
+                                title="Document recepționat și validat în contabilitate"
+                              >
+                                🔒
+                              </span>
+                            </td>
+
+                            {/* Nr. int. (Număr intern SAGA) */}
+                            <td className="py-0.5 px-1.5 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
+                              {internalNr}
+                            </td>
+
+                            {/* Nr. doc. (Număr factură furnizor) */}
+                            <td className="py-0.5 px-1.5 font-mono font-bold border-r border-[#D3D3D3] truncate max-w-[140px]">
+                              {inv.invoiceNumber}
+                            </td>
+
+                            {/* Cod (Cod partener SAGA) */}
+                            <td className="py-0.5 px-1 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
+                              {partnerCode}
+                            </td>
+
+                            {/* Furnizor / Client — Click pe partener deschide direct dosarul */}
+                            <td
+                              className="py-0.5 px-2 border-r border-[#D3D3D3] truncate max-w-[240px]"
+                              title={`Click pentru a deschide dosarul partenerului: ${partnerName}`}
+                            >
+                              <div className="flex items-center justify-between gap-1">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const cui = partnerCui || "";
+                                    const name = partnerName || "";
+                                    const key = cui.trim() || name.trim().toLowerCase();
+                                    setSelectedPartnerKey(key);
+                                    setSubView("all_invoices");
+                                  }}
+                                  className={`truncate text-left font-semibold hover:underline cursor-pointer bg-transparent border-0 p-0 text-[11px] ${
+                                    isSelected ? "text-amber-200" : "text-[#000080]"
+                                  }`}
+                                  title={`Click pentru a intra pe fișa completă a partenerului: ${partnerName}`}
+                                >
+                                  {partnerName}
+                                </button>
+                                {partnerCui && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCopyCui(partnerCui);
+                                    }}
+                                    className={`text-[9px] px-1 rounded opacity-70 hover:opacity-100 shrink-0 ${
+                                      isSelected ? "bg-white/20 text-white" : "bg-slate-200 text-slate-800"
+                                    }`}
+                                    title={`Copiază CUI: ${partnerCui}`}
+                                  >
+                                    {copiedCui === partnerCui ? "✓" : "CUI"}
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+
+                            {/* TVA I (TVA la încasare: căsuță bifată) */}
+                            <td className="py-0.5 px-1 text-center border-r border-[#D3D3D3]">
+                              <span className="font-mono text-xs opacity-70">☐</span>
+                            </td>
+
+                            {/* Data */}
+                            <td className="py-0.5 px-1.5 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
+                              {formatSagaDate(inv.issueDate)}
+                            </td>
+
+                            {/* Scadent */}
+                            <td className="py-0.5 px-1.5 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
+                              {formatSagaDate(inv.dueDate || inv.issueDate)}
+                            </td>
+
+                            {/* Valoare (bază fără TVA) */}
+                            <td className="py-0.5 px-2 text-right font-mono border-r border-[#D3D3D3]">
+                              {formatSagaCurrency(inv.totalBase)}
+                            </td>
+
+                            {/* Repartizat */}
+                            <td className="py-0.5 px-1.5 text-right font-mono border-r border-[#D3D3D3]">
+                              0.00
+                            </td>
+
+                            {/* TVA */}
+                            <td className="py-0.5 px-2 text-right font-mono border-r border-[#D3D3D3]">
+                              {formatSagaCurrency(inv.totalVAT)}
+                            </td>
+
+                            {/* Total Factură */}
+                            <td className="py-0.5 px-2 text-right font-mono font-bold border-r border-[#D3D3D3]">
+                              {formatSagaCurrency(inv.total)}
+                            </td>
+
+                            {/* Neachitat */}
+                            <td className="py-0.5 px-2 text-right font-mono border-r border-[#D3D3D3]">
+                              0.00
+                            </td>
+
+                            {/* Data document */}
+                            <td className="py-0.5 px-1.5 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
+                              {formatSagaDate(inv.issueDate)}
+                            </td>
+
+                            {/* Informatii suplimentare */}
+                            <td
+                              className="py-0.5 px-2 border-r border-[#D3D3D3] truncate max-w-[200px] text-[10.5px]"
+                              title={inv.notes || (inv.hasNir ? `NIR: ${inv.nirNumber}` : "")}
+                            >
+                              {inv.notes || (inv.hasNir ? `NIR recepție: ${inv.nirNumber}` : "Se va achita cu OP")}
+                            </td>
+
+                            {/* ID incarcare SPV */}
+                            <td className="py-0.5 px-1.5 text-center font-mono text-[10.5px] border-r border-[#D3D3D3]">
+                              {inv.spvIndex ? (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowSpvModal(true);
+                                    setSpvSearchQuery(inv.spvIndex);
+                                  }}
+                                  className={`underline cursor-pointer bg-transparent border-0 p-0 font-mono text-[10.5px] ${
+                                    isSelected ? "text-amber-200" : "text-blue-900"
+                                  }`}
+                                  title={`Click pentru detalii SPV ANAF: ${inv.spvIndex}`}
+                                >
+                                  {inv.spvIndex}
+                                </button>
+                              ) : (
+                                <span className="opacity-40">—</span>
+                              )}
+                            </td>
+
+                            {/* Acțiuni: 2 iconițe (Factură PDF albastră + NIR PDF verde) */}
+                            <td className="py-0.5 px-1.5 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                {/* Icon 1: Factură PDF (albastru) */}
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onViewInvoicePdf(inv);
+                                  }}
+                                  className={`p-0.5 rounded transition-colors ${
+                                    isSelected
+                                      ? "bg-white/20 hover:bg-white/30 text-white"
+                                      : "bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200"
+                                  }`}
+                                  title="Vizualizează factura PDF"
+                                >
+                                  <FileText className="w-3 h-3" />
+                                </button>
+
+                                {/* Icon 2: NIR PDF (verde, la fel ca la document doar că verde!) */}
+                                {inv.hasNir && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onViewNirPdf(inv);
+                                    }}
+                                    className={`p-0.5 rounded transition-colors ${
+                                      isSelected
+                                        ? "bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold"
+                                        : "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300"
+                                    }`}
+                                    title={`Vizualizează Nota de Recepție (NIR: ${inv.nirNumber})`}
+                                  >
+                                    <FileText className="w-3 h-3 text-emerald-700" />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* 2. BANDA INTERMEDIARĂ SAGA C: DOCUMENT SELECTAT (RECAPITULARE) */}
+              <div className="bg-[#ECE9D8] px-2 py-1 flex items-center gap-1.5 border-b border-[#999999] shrink-0 text-[11px] shadow-2xs">
+                <input
+                  type="text"
+                  readOnly
+                  value={selectedNrInt}
+                  title="Număr intern"
+                  className="w-20 bg-white border border-[#7F9DB9] px-1.5 py-0.5 text-[10.5px] font-mono text-slate-900 rounded-none shadow-inner focus:outline-none"
+                />
+                <input
+                  type="text"
+                  readOnly
+                  value={selectedNrDoc}
+                  title="Număr document furnizor"
+                  className="w-36 bg-white border border-[#7F9DB9] px-1.5 py-0.5 text-[10.5px] font-mono font-bold text-slate-900 rounded-none shadow-inner focus:outline-none"
+                />
+                <input
+                  type="text"
+                  readOnly
+                  value={selectedCod}
+                  title="Cod partener SAGA"
+                  className="w-16 bg-white border border-[#7F9DB9] px-1.5 py-0.5 text-[10.5px] font-mono text-center text-slate-900 rounded-none shadow-inner focus:outline-none"
+                />
+                <input
+                  type="text"
+                  readOnly
+                  value={selectedPartner}
+                  title="Denumire partener"
+                  className="flex-1 max-w-[380px] bg-white border border-[#7F9DB9] px-1.5 py-0.5 text-[10.5px] text-slate-900 rounded-none shadow-inner focus:outline-none truncate"
+                />
+
+                {selectedInvoice && (
+                  <div className="ml-auto flex items-center gap-1.5 shrink-0">
+                    {/* 1. Iconiță Factură PDF (albastru) */}
+                    <button
+                      type="button"
+                      onClick={() => onViewInvoicePdf(selectedInvoice)}
+                      className="flex items-center gap-1 px-2 py-0.5 bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-900 font-bold text-[10.5px] rounded-xs cursor-pointer shadow-2xs"
+                      title="Deschide factura fiscală PDF (Enter)"
+                    >
+                      <FileText className="w-3.5 h-3.5 text-blue-700" />
+                      <span>Factură PDF</span>
+                    </button>
+
+                    {/* 2. Iconiță NIR PDF (verde, la fel ca la document doar că verde!) */}
+                    {selectedInvoice.hasNir && (
+                      <button
+                        type="button"
+                        onClick={() => onViewNirPdf(selectedInvoice)}
+                        className="flex items-center gap-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-900 font-bold text-[10.5px] rounded-xs cursor-pointer shadow-2xs"
+                        title={`Deschide fișa NIR atașată (${selectedInvoice.nirNumber}) (tasta N)`}
+                      >
+                        <FileText className="w-3.5 h-3.5 text-emerald-700" />
+                        <span>NIR: {selectedInvoice.nirNumber}</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* 3. BARA DE INSTRUMENTE POZIȚII (TOOLBAR LINII ARTICOLE SAGA C) */}
+              <div className="bg-[#ECE9D8] px-2 py-1 flex items-center justify-between border-b border-[#999999] shrink-0 text-[11px]">
+                <div className="flex items-center gap-1 flex-wrap">
+                  <button
+                    type="button"
+                    className="px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
+                  >
+                    Adaug
+                  </button>
+                  <button
+                    type="button"
+                    className="px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
+                  >
+                    Modific
+                  </button>
+                  <button
+                    type="button"
+                    className="px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
+                  >
+                    Sterg
+                  </button>
+
+                  <span className="w-px h-4 bg-[#B0B0B0] mx-0.5" />
+
+                  <button
+                    type="button"
+                    className="px-1.5 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black cursor-pointer shadow-2xs"
+                    title="Caută în poziții"
+                  >
+                    <Search className="w-3 h-3 text-slate-700" />
+                  </button>
+                  <button
+                    type="button"
+                    className="px-1.5 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black cursor-pointer shadow-2xs"
+                    title="Filtru linii"
+                  >
+                    <SlidersHorizontal className="w-3 h-3 text-slate-700" />
+                  </button>
+                  <button
+                    type="button"
+                    className="px-1.5 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-mono font-bold cursor-pointer shadow-2xs text-[11px]"
+                    title="Calculator"
+                  >
+                    fx
+                  </button>
+
+                  <button
+                    type="button"
+                    className="px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
+                  >
+                    Serii &gt;&gt;
+                  </button>
+                  <button
+                    type="button"
+                    className="px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
+                  >
+                    Preturi vanzare &gt;&gt;
+                  </button>
+
+                  {selectedInvoice?.hasNir && (
+                    <button
+                      type="button"
+                      onClick={() => onViewNirPdf(selectedInvoice)}
+                      className="px-2 py-0.5 bg-[#E8F5E9] hover:bg-[#C8E6C9] border-t border-l border-white border-b border-r border-[#808080] text-[#1B5E20] font-bold cursor-pointer shadow-2xs text-[11px]"
+                    >
+                      Bon de consum...
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    className="px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
+                  >
+                    Facturi asociate (transport)...
+                  </button>
+                </div>
+
+                <div>
+                  <button
+                    type="button"
+                    className="px-2 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
+                  >
+                    Detalii
+                  </button>
+                </div>
+              </div>
+
+              {/* 4. GRILA INFERIOARĂ: POZIȚII / LINII ARTICOLE (IDENTICĂ SAGA C) */}
+              <div className="h-[210px] xl:h-[240px] bg-[#FFFFEB] overflow-auto shrink-0 border-b border-[#808080] relative">
+                {isLinesLoading ? (
+                  <div className="h-full flex items-center justify-center gap-2 text-slate-500 text-xs py-8 bg-[#FFFFEB]">
+                    <Loader2 className="w-4 h-4 animate-spin text-[#000080]" />
+                    <span>Se încarcă articolele facturii din SAGA...</span>
+                  </div>
+                ) : documentLines.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-500 text-xs py-6 bg-[#FFFFEB]">
+                    <BookOpen className="w-5 h-5 mb-1 text-slate-400" />
+                    <span className="font-semibold">Factura este centralizată la nivel de antet fiscal.</span>
+                    <span className="text-[10.5px] text-slate-500 mt-0.5">
+                      Liniile detaliate sunt disponibile în fișierul PDF oficial (apăsați Tipărire / Enter) sau exportați XML SAGA.
+                    </span>
+                  </div>
+                ) : (
+                  <table className="w-full border-collapse text-[11px] font-sans">
+                    <thead className="sticky top-0 bg-[#ECE9D8] text-black font-normal text-[10.5px] border-b border-[#808080] shadow-xs z-10 select-none">
+                      <tr>
+                        <th className="py-0.5 px-2 text-left border-r border-[#B0B0B0] w-28 font-normal">Tip</th>
+                        <th className="py-0.5 px-2 text-left border-r border-[#B0B0B0] w-36 font-normal">Gestiune</th>
+                        <th className="py-0.5 px-2 text-left border-r border-[#B0B0B0] font-normal">Denumire articol / serviciu</th>
+                        <th className="py-0.5 px-1.5 text-center border-r border-[#B0B0B0] w-20 font-normal">Cod</th>
+                        <th className="py-0.5 px-1 text-center border-r border-[#B0B0B0] w-12 font-normal">UM</th>
+                        <th className="py-0.5 px-1 text-center border-r border-[#B0B0B0] w-10 font-normal">TVA</th>
+                        <th className="py-0.5 px-1.5 text-right border-r border-[#B0B0B0] w-16 font-normal">Cantitate</th>
+                        <th className="py-0.5 px-1.5 text-right border-r border-[#B0B0B0] w-20 font-normal">Pret unitar</th>
+                        <th className="py-0.5 px-2 text-right border-r border-[#B0B0B0] w-20 font-normal">Valoare</th>
+                        <th className="py-0.5 px-2 text-right border-r border-[#B0B0B0] w-20 font-normal">Total</th>
+                        <th className="py-0.5 px-1.5 text-right border-r border-[#B0B0B0] w-16 font-normal">TVA</th>
+                        <th className="py-0.5 px-1 text-right border-r border-[#B0B0B0] w-16 font-normal">Nedeductibil</th>
+                        <th className="py-0.5 px-1.5 text-center border-r border-[#B0B0B0] w-14 font-normal">Cont</th>
+                        <th className="py-0.5 px-1.5 text-right border-r border-[#B0B0B0] w-20 font-normal">Pret vanzare</th>
+                        <th className="py-0.5 px-1.5 text-right border-r border-[#B0B0B0] w-16 font-normal">Adaos unitar</th>
+                        <th className="py-0.5 px-1 text-center border-r border-[#B0B0B0] w-10 font-normal">%</th>
+                        <th className="py-0.5 px-2 text-left w-32 font-normal">Informatii suplimentare</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {documentLines.map((line: any, idx: number) => {
+                        const isSelectedLine = selectedLineIdx === idx;
+                        const isEven = idx % 2 === 0;
+
+                        return (
+                          <tr
+                            key={idx}
+                            onClick={() => setSelectedLineIdx(idx)}
+                            className={`cursor-pointer border-b border-[#D5DCE2] leading-tight select-none ${
+                              isSelectedLine
+                                ? "bg-[#000080] text-white font-medium"
+                                : isEven
+                                ? "bg-[#FFFFEB] hover:bg-[#EBF3FB] text-black"
+                                : "bg-white hover:bg-[#EBF3FB] text-black"
+                            }`}
+                            style={{ height: "20px" }}
+                          >
+                            {/* Tip articol */}
+                            <td className="py-0.5 px-2 border-r border-[#D3D3D3] truncate max-w-[120px]">
+                              {line.type || "Materiale auxiliare"}
+                            </td>
+
+                            {/* Gestiune */}
+                            <td className="py-0.5 px-2 border-r border-[#D3D3D3] truncate max-w-[150px]">
+                              {line.gestiune || "ATELIER TAMPLARIE"}
+                            </td>
+
+                            {/* Denumire articol / serviciu */}
+                            <td
+                              className="py-0.5 px-2 border-r border-[#D3D3D3] truncate max-w-[320px] font-medium"
+                              title={line.description}
+                            >
+                              {line.description}
+                            </td>
+
+                            {/* Cod articol */}
+                            <td className="py-0.5 px-1.5 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
+                              {line.code || String(idx + 1).padStart(8, "0")}
+                            </td>
+
+                            {/* UM */}
+                            <td className="py-0.5 px-1 text-center font-mono border-r border-[#D3D3D3] uppercase text-[10.5px]">
+                              {line.unit || "BUC"}
+                            </td>
+
+                            {/* TVA (%) */}
+                            <td className="py-0.5 px-1 text-center font-mono border-r border-[#D3D3D3]">
+                              {line.vatRate ? Math.round(line.vatRate) : "21"}
+                            </td>
+
+                            {/* Cantitate */}
+                            <td className="py-0.5 px-1.5 text-right font-mono border-r border-[#D3D3D3]">
+                              {formatSagaQty(line.quantity)}
+                            </td>
+
+                            {/* Pret unitar */}
+                            <td className="py-0.5 px-1.5 text-right font-mono border-r border-[#D3D3D3]">
+                              {formatSagaUnitPrice(line.unitPrice)}
+                            </td>
+
+                            {/* Valoare */}
+                            <td className="py-0.5 px-2 text-right font-mono border-r border-[#D3D3D3]">
+                              {formatSagaCurrency(line.valoare ?? line.quantity * line.unitPrice)}
+                            </td>
+
+                            {/* Total */}
+                            <td className="py-0.5 px-2 text-right font-mono font-bold border-r border-[#D3D3D3]">
+                              {formatSagaCurrency(line.total)}
+                            </td>
+
+                            {/* TVA */}
+                            <td className="py-0.5 px-1.5 text-right font-mono border-r border-[#D3D3D3]">
+                              {formatSagaCurrency(line.tva ?? line.total - line.quantity * line.unitPrice)}
+                            </td>
+
+                            {/* Nedeductibil */}
+                            <td className="py-0.5 px-1 text-right font-mono border-r border-[#D3D3D3]">
+                              0.00
+                            </td>
+
+                            {/* Cont */}
+                            <td className="py-0.5 px-1.5 text-center font-mono font-bold border-r border-[#D3D3D3]">
+                              {line.account || "3028"}
+                            </td>
+
+                            {/* Pret vanzare */}
+                            <td className="py-0.5 px-1.5 text-right font-mono border-r border-[#D3D3D3]">
+                              0.0000
+                            </td>
+
+                            {/* Adaos unitar */}
+                            <td className="py-0.5 px-1.5 text-right font-mono border-r border-[#D3D3D3]">
+                              0.00
+                            </td>
+
+                            {/* % Adaos */}
+                            <td className="py-0.5 px-1 text-center font-mono border-r border-[#D3D3D3]">
+                              0
+                            </td>
+
+                            {/* Informatii suplimentare */}
+                            <td className="py-0.5 px-2 truncate max-w-[140px] text-[10.5px]">
+                              {line.infoSuplimentare || ""}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              {/* 5. BARA DE ACȚIUNI DIN SUBSOLUL FERESTREI (BOTTOM ACTION BAR SAGA C) */}
+              <div className="bg-[#ECE9D8] px-2 py-1 flex items-center justify-between border-t border-[#999999] shrink-0 text-[11px]">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    className="flex items-center gap-1 px-3 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
+                  >
+                    <span>🔒</span>
+                    <span>Validez</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="px-3 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
+                  >
+                    Plata...
+                  </button>
+
+                  <button
+                    type="button"
+                    className="px-3 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
+                  >
+                    Stornez
+                  </button>
+
+                  <button
+                    type="button"
+                    className="px-3 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
+                  >
+                    N.C...
+                  </button>
+
+                  {selectedInvoice && (
+                    <button
+                      type="button"
+                      onClick={() => onViewInvoicePdf(selectedInvoice)}
+                      className="px-3 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-bold cursor-pointer shadow-2xs text-[11px]"
+                      title="Tipărire document"
+                    >
+                      Tiparire...
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    className="px-3 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
+                  >
+                    Devalidez
+                  </button>
+                </div>
+
+                <div>
+                  <button
+                    type="button"
+                    onClick={onLockSession}
+                    className="flex items-center gap-1.5 px-3 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-red-700 font-bold cursor-pointer shadow-2xs text-[11px]"
+                    title="Ieșire din ecran"
+                  >
+                    <span>🚪</span>
+                    <span>Iesire</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* ═════════════════════════════════════════════════════════════════════
@@ -1251,40 +2263,94 @@ export default function SagaClassicPortalView({
         ═════════════════════════════════════════════════════════════════════ */}
         <div className="mt-1 flex items-center justify-between text-[11px] text-white/90 select-none">
           <div className="flex items-center gap-3">
-            <span>
-              Total documente: <strong className="font-mono text-white">{currentKpiData.totalCount}</strong>
-            </span>
-            <span>·</span>
-            <span>
-              Valoare Bază: <strong className="font-mono text-white">{formatSagaCurrency(currentKpiData.totalBase)} RON</strong>
-            </span>
-            <span>·</span>
-            <span>
-              TVA: <strong className="font-mono text-white">{formatSagaCurrency(currentKpiData.totalVat)} RON</strong>
-            </span>
-            <span>·</span>
-            <span>
-              Total General:{" "}
-              <strong className="font-mono text-amber-300">
-                {formatSagaCurrency(currentKpiData.totalGross)} RON
-              </strong>
-            </span>
-
-            {activeTab === "received" && (
+            {subView === "partners_list" ? (
               <>
+                <span>
+                  Total {activeTab === "received" ? "Furnizori" : "Clienți"}:{" "}
+                  <strong className="font-mono text-white">{displayedPartners.length}</strong>
+                </span>
                 <span>·</span>
-                <span className="text-emerald-200">
-                  NIR-uri:{" "}
-                  <strong className="font-mono">
-                    {currentKpis.withNirCount} / {currentKpis.totalCount} ({currentKpis.nirCoveragePercent}%)
+                <span>
+                  Valoare Bază: <strong className="font-mono text-white">{formatSagaCurrency(currentKpiData.totalBase)} RON</strong>
+                </span>
+                <span>·</span>
+                <span>
+                  TVA: <strong className="font-mono text-white">{formatSagaCurrency(currentKpiData.totalVat)} RON</strong>
+                </span>
+                <span>·</span>
+                <span>
+                  Total Rulaj General:{" "}
+                  <strong className="font-mono text-amber-300">
+                    {formatSagaCurrency(currentKpiData.totalGross)} RON
                   </strong>
                 </span>
+              </>
+            ) : selectedPartnerKey && selectedPartnerObj ? (
+              <>
+                <span className="text-amber-200 font-bold">
+                  Dosar {activeTab === "received" ? "Furnizor" : "Client"}: {selectedPartnerObj.name}
+                </span>
+                <span>·</span>
+                <span>
+                  Documente: <strong className="font-mono text-white">{activeInvoices.length}</strong>
+                </span>
+                <span>·</span>
+                <span>
+                  Bază: <strong className="font-mono text-white">{formatSagaCurrency(selectedPartnerObj.totalBase)} RON</strong>
+                </span>
+                <span>·</span>
+                <span>
+                  TVA: <strong className="font-mono text-white">{formatSagaCurrency(selectedPartnerObj.totalVat)} RON</strong>
+                </span>
+                <span>·</span>
+                <span>
+                  Total: <strong className="font-mono text-amber-300">{formatSagaCurrency(selectedPartnerObj.totalGross)} RON</strong>
+                </span>
+              </>
+            ) : (
+              <>
+                <span>
+                  Total documente: <strong className="font-mono text-white">{currentKpiData.totalCount}</strong>
+                </span>
+                <span>·</span>
+                <span>
+                  Valoare Bază: <strong className="font-mono text-white">{formatSagaCurrency(currentKpiData.totalBase)} RON</strong>
+                </span>
+                <span>·</span>
+                <span>
+                  TVA: <strong className="font-mono text-white">{formatSagaCurrency(currentKpiData.totalVat)} RON</strong>
+                </span>
+                <span>·</span>
+                <span>
+                  Total General:{" "}
+                  <strong className="font-mono text-amber-300">
+                    {formatSagaCurrency(currentKpiData.totalGross)} RON
+                  </strong>
+                </span>
+
+                {activeTab === "received" && (
+                  <>
+                    <span>·</span>
+                    <span className="text-emerald-200">
+                      NIR-uri:{" "}
+                      <strong className="font-mono">
+                        {currentKpis.withNirCount} / {currentKpis.totalCount} ({currentKpis.nirCoveragePercent}%)
+                      </strong>
+                    </span>
+                  </>
+                )}
               </>
             )}
           </div>
 
           <div className="flex items-center gap-3 text-[10.5px]">
-            <span className="text-white/70">Navigați cu tastele [↑] / [↓] · [Enter] deschide factura · [N] deschide NIR</span>
+            <span className="text-white/70">
+              {subView === "partners_list"
+                ? "Navigați cu tastele [↑] / [↓] · [Enter] intră în dosarul partenerului · [Esc] revine la facturi"
+                : selectedPartnerKey
+                ? "Fișă partener activă · [Esc] revine la lista de parteneri · [Enter] deschide factura · [N] NIR"
+                : "Navigați cu tastele [↑] / [↓] · [Enter] deschide factura · [N] deschide NIR"}
+            </span>
             <span className="text-cyan-200/60 font-mono tracking-wide">www.sagasoft.ro</span>
           </div>
         </div>
