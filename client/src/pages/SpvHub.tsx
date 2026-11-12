@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import DashboardLayout from "@/components/DashboardLayout";
 import { trpc } from "@/lib/trpc";
 import {
   Table,
@@ -215,7 +214,7 @@ export default function SpvHub() {
     : null;
 
   return (
-    <DashboardLayout>
+    <>
       <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-4">
         {/* Antet Pagina SPV ANAF */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
@@ -910,6 +909,6 @@ export default function SpvHub() {
           documentType={previewDoc.type}
         />
       )}
-    </DashboardLayout>
+    </>
   );
 }
