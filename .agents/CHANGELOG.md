@@ -1,5 +1,15 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-12 19:39 — Eliminare completă fonturi monospace din SPV Hub și aliniere la fontul standard
+- **Autor:** Antigravity
+- **Ce s-a făcut:** 
+  1. Eliminat toate clasele `font-mono` din `client/src/pages/SpvHub.tsx` pentru CUI-uri, indexuri SPV, ID-uri și numere de facturi.
+  2. Toate textele și numerele folosesc acum exclusiv fontul standard al aplicației (Inter / font-sans), eliminând aspectul de font tehnic / robotizat.
+  3. Păstrată interfața fără emoji-uri în cod sau elemente decorative stridente.
+- **Fișiere:** `client/src/pages/SpvHub.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` / `62682fb style(spv): eliminare completa fonturi monospace si aliniere la fontul standard al aplicatiei`
+- **Build / Teste:** `npm run build` trecut cu succes (0 erori).
+
 ### 2026-11-12 19:37 — Afișare mesaje reale din SPV ANAF (listaMesajeFactura) și eliminare module generale
 - **Autor:** Antigravity
 - **Ce s-a făcut:** 
