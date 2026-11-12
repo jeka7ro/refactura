@@ -319,12 +319,12 @@ export default function SpvHub() {
                   {testResult.connected ? "Conexiune SPV ANAF Activă" : "Conexiune Eșuată"}
                 </span>
                 {testResult.latencyMs != null && (
-                  <span className="px-2 py-0.5 rounded font-mono font-semibold bg-white/80 dark:bg-slate-900/80 border">
+                  <span className="px-2 py-0.5 rounded font-semibold bg-white/80 dark:bg-slate-900/80 border">
                     Latență: {testResult.latencyMs} ms
                   </span>
                 )}
                 {testResult.cui && (
-                  <span className="px-2 py-0.5 rounded font-mono font-semibold bg-white/80 dark:bg-slate-900/80 border">
+                  <span className="px-2 py-0.5 rounded font-semibold bg-white/80 dark:bg-slate-900/80 border">
                     CUI: {testResult.cui}
                   </span>
                 )}
@@ -519,7 +519,7 @@ export default function SpvHub() {
                               <TableCell className="py-2.5">
                                 {msg.cifEmitent ? (
                                   <div className="flex items-center gap-1">
-                                    <span className="font-mono text-[11px] font-semibold">{msg.cifEmitent}</span>
+                                    <span className="text-[11px] font-semibold">{msg.cifEmitent}</span>
                                     <button
                                       type="button"
                                       onClick={(e) => handleCopyCuiText(msg.cifEmitent, e)}
@@ -530,7 +530,7 @@ export default function SpvHub() {
                                     </button>
                                   </div>
                                 ) : (
-                                  <span className="text-slate-400 font-mono text-xs">-</span>
+                                  <span className="text-slate-400 text-xs">-</span>
                                 )}
                               </TableCell>
 
@@ -538,7 +538,7 @@ export default function SpvHub() {
                               <TableCell className="py-2.5">
                                 {msg.cifBeneficiar ? (
                                   <div className="flex items-center gap-1">
-                                    <span className="font-mono text-[11px]">{msg.cifBeneficiar}</span>
+                                    <span className="text-[11px]">{msg.cifBeneficiar}</span>
                                     <button
                                       type="button"
                                       onClick={(e) => handleCopyCuiText(msg.cifBeneficiar, e)}
@@ -549,7 +549,7 @@ export default function SpvHub() {
                                     </button>
                                   </div>
                                 ) : (
-                                  <span className="text-slate-400 font-mono text-xs">-</span>
+                                  <span className="text-slate-400 text-xs">-</span>
                                 )}
                               </TableCell>
 
@@ -557,7 +557,7 @@ export default function SpvHub() {
                               <TableCell className="py-2.5">
                                 {msg.idSolicitare ? (
                                   <div className="flex items-center gap-1">
-                                    <Badge variant="outline" className="font-mono text-[10.5px]">
+                                    <Badge variant="outline" className="text-[10.5px]">
                                       {msg.idSolicitare}
                                     </Badge>
                                     <button
@@ -577,7 +577,7 @@ export default function SpvHub() {
                               {/* ID Descărcare ANAF */}
                               <TableCell className="py-2.5">
                                 <div className="flex items-center gap-1">
-                                  <span className="font-mono text-[11px] text-slate-600 dark:text-slate-400">{msg.id}</span>
+                                  <span className="text-[11px] text-slate-600 dark:text-slate-400">{msg.id}</span>
                                   <button
                                     type="button"
                                     onClick={(e) => handleCopy(msg.id, e)}
@@ -625,7 +625,7 @@ export default function SpvHub() {
                                     <Eye className="w-3.5 h-3.5" />
                                   </button>
                                 ) : (
-                                  <span className="text-[10px] text-slate-400 font-mono">Înregistrat</span>
+                                  <span className="text-[10px] text-slate-400">Înregistrat</span>
                                 )}
                               </TableCell>
                             </TableRow>
@@ -817,7 +817,7 @@ export default function SpvHub() {
                               <TableCell className="py-2.5">
                                 {log.spvIndex ? (
                                   <div className="flex items-center gap-1">
-                                    <Badge variant="outline" className="tabular-nums font-mono text-[10.5px]">
+                                    <Badge variant="outline" className="tabular-nums text-[10.5px]">
                                       {log.spvIndex}
                                     </Badge>
                                     <button
@@ -843,7 +843,7 @@ export default function SpvHub() {
                                   <span className="font-medium text-slate-900 dark:text-white truncate">{log.partnerName}</span>
                                   {partnerCui && (
                                     <div className="flex items-center gap-1">
-                                      <span className="text-[10px] text-slate-500 tabular-nums font-mono">CUI: {partnerCui}</span>
+                                      <span className="text-[10px] text-slate-500 tabular-nums">CUI: {partnerCui}</span>
                                       <button
                                         type="button"
                                         onClick={(e) => handleCopyCuiText(partnerCui, e)}
