@@ -151,6 +151,16 @@ function Router() {
           <EmittedInvoiceDetail />
         </DashboardLayout>
       </Route>
+      <Route path="/spv">
+        <DashboardLayout>
+          <SpvLogs />
+        </DashboardLayout>
+      </Route>
+      <Route path="/spv-anaf">
+        <DashboardLayout>
+          <SpvLogs />
+        </DashboardLayout>
+      </Route>
       <Route path="/jurnal-spv">
         <DashboardLayout>
           <SpvLogs />

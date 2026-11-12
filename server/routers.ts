@@ -4697,6 +4697,7 @@ export const appRouter = router({
           type: "trimisa" as const,
           invoiceNumber: i.number,
           partnerName: i.clientName,
+          partnerCui: i.clientCUI || "",
           total: i.total,
           currency: i.currency,
           date: i.spvSentAt || i.updatedAt || i.createdAt,
@@ -4705,13 +4706,15 @@ export const appRouter = router({
           spvStatus: i.spvStatus,
           spvError: i.spvError,
           originalId: i.id,
-          sourceType: "emittedInvoice"
+          sourceType: "emittedInvoice",
+          pdfUrl: `/api/pdf/emitted/${i.id}`,
         })),
         ...reInvs.filter(i => i.spvIndex).map(i => ({
           id: `reinv-${i.id}`,
           type: "trimisa" as const,
           invoiceNumber: i.number,
           partnerName: i.clientName,
+          partnerCui: i.clientCUI || "",
           total: i.total,
           currency: i.currency,
           date: i.spvSentAt || i.updatedAt || i.createdAt,
@@ -4720,27 +4723,32 @@ export const appRouter = router({
           spvStatus: i.spvStatus,
           spvError: i.spvError,
           originalId: i.id,
-          sourceType: "reInvoice"
+          sourceType: "reInvoice",
+          pdfUrl: `/api/pdf/reinvoice/${i.id}`,
         })),
-        ...archive.filter(i => i.fileName && i.fileName.startsWith("SPV_")).map(i => {
-          const match = i.fileName?.match(/SPV_(\d+)/);
-          const spvIdx = match ? match[1] : null;
-          return {
-            id: `archive-${i.id}`,
-            type: "primita" as const,
-            invoiceNumber: i.invoiceNumber || "-",
-            partnerName: i.supplierName || "Necunoscut",
-            total: i.total ? String(i.total) : "0",
-            currency: i.currency || "RON",
-            date: i.createdAt,
-            issueDate: i.issueDate,
-            spvIndex: spvIdx,
-            spvStatus: "validat" as const, // primite sunt mereu validate
-            spvError: null,
-            originalId: i.id,
-            sourceType: "invoiceArchive"
-          };
-        })
+        ...archive
+          .filter(i => i.source === "spv_anaf" || (i.fileName && i.fileName.startsWith("SPV_")) || Boolean(i.spvIndex))
+          .map(i => {
+            const match = i.fileName?.match(/SPV_(\d+)/);
+            const spvIdx = i.spvIndex || (match ? match[1] : null);
+            return {
+              id: `archive-${i.id}`,
+              type: "primita" as const,
+              invoiceNumber: i.invoiceNumber || "-",
+              partnerName: i.supplierName || "Necunoscut",
+              partnerCui: i.supplierCUI || "",
+              total: i.total ? String(i.total) : "0",
+              currency: i.currency || "RON",
+              date: i.createdAt,
+              issueDate: i.issueDate,
+              spvIndex: spvIdx,
+              spvStatus: "validat" as const, // primite sunt mereu validate
+              spvError: null,
+              originalId: i.id,
+              sourceType: "invoiceArchive",
+              pdfUrl: `/api/pdf/archive/${i.id}`,
+            };
+          })
       ];
 
       return logs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
