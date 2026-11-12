@@ -684,7 +684,7 @@ export default function ContractSignaturePadModal({
                 <div className="text-[11px] text-slate-600 dark:text-slate-400">
                   Calitate: {signatoryRole} | Emitent: {certIssuer}
                 </div>
-                <div className="text-[10px] font-mono text-emerald-700 pt-1 border-t border-slate-100 dark:border-slate-800">
+                <div className="text-[10px] tabular-nums text-emerald-700 pt-1 border-t border-slate-100 dark:border-slate-800">
                   Timestamp: {new Date().toLocaleString("ro-RO")} • Verificare integritate SHA-256
                 </div>
               </div>

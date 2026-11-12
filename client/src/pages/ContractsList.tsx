@@ -684,7 +684,7 @@ export default function ContractsList() {
                       <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5">
                         {c.partnerCui && <span>CUI: {c.partnerCui}</span>}
                         {c.partnerSagaCode && (
-                          <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-600 dark:text-slate-300 font-mono">
+                          <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1 rounded text-slate-600 dark:text-slate-300 tabular-nums">
                             SAGA: {c.partnerSagaCode}
                           </span>
                         )}
@@ -929,7 +929,7 @@ export default function ContractsList() {
                         <Badge variant="outline" className="text-[11px] font-semibold py-0.5 px-2 rounded-full border-slate-300 text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800">
                           {l.actionType.replace("_", " ").toUpperCase()}
                         </Badge>
-                        <span className="text-xs text-slate-400 flex items-center gap-1 font-mono">
+                        <span className="text-xs text-slate-400 flex items-center gap-1 tabular-nums">
                           <Clock className="h-3 w-3" />
                           {new Date(l.createdAt).toLocaleString("ro-RO", {
                             day: "2-digit",
@@ -1063,11 +1063,11 @@ export default function ContractsList() {
                           <td className="p-2.5 font-medium truncate max-w-[180px]" title={item.fileName}>
                             {item.fileName}
                           </td>
-                          <td className="p-2.5 font-mono">
+                          <td className="p-2.5 tabular-nums">
                             <div className="font-bold text-slate-900 dark:text-white">{item.number}</div>
                             <div className="text-[10px] text-slate-500">{item.date}</div>
                           </td>
-                          <td className="p-2.5 font-mono font-semibold text-slate-800 dark:text-slate-200">
+                          <td className="p-2.5 tabular-nums font-semibold text-slate-800 dark:text-slate-200">
                             {Number(item.value || 0) > 0
                               ? `${Number(item.value).toLocaleString("ro-RO", { minimumFractionDigits: 2 })} ${item.currency}`
                               : "-"}

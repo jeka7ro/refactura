@@ -205,7 +205,7 @@ export default function ProductCard({
         )}
       </div>
 
-      {/* Footer: [ ♡ ] [ Vreau / - N buc. + ] */}
+      {/* Footer: [ ] [ Vreau / - N buc. + ] */}
       <div style={{ display: "flex", gap: 12, marginTop: "auto" }}>
         <button
           style={{
@@ -229,7 +229,7 @@ export default function ProductCard({
           }}
           title={isFavorited ? "Scoate din favorite" : "Salvează"}
         >
-          {isFavorited ? "❤️" : "♡"}
+          {isFavorited ? "" : ""}
         </button>
 
         {cartQty === 0 ? (

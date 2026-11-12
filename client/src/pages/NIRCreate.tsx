@@ -1329,7 +1329,7 @@ export default function NIRCreate() {
               )}
               {spvIndex && (
                 <span
-                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 ml-1"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs tabular-nums font-semibold bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 ml-1"
                   title={`Index încărcare ANAF SPV: ${spvIndex}`}
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
@@ -1338,7 +1338,7 @@ export default function NIRCreate() {
               )}
               {currency && currency !== "RON" && currency !== "LEI" && (
                 <span
-                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 ml-1"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs tabular-nums font-semibold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 ml-1"
                   title={`Factură în valută (${currency}) la cursul de ${parseFloat(exchangeRate || "1").toFixed(4)} RON`}
                 >
                   Valută: {currency} (Curs: {parseFloat(exchangeRate || "1").toFixed(4)})
@@ -1469,7 +1469,7 @@ export default function NIRCreate() {
               type="text"
               value={nirNumber}
               onChange={e => setNirNumber(e.target.value)}
-              className="w-full h-8 px-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800 text-sm font-mono font-bold text-slate-900 dark:text-white shadow-xs focus:outline-none focus:ring-2 focus:ring-teal-500"
+              className="w-full h-8 px-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800 text-sm tabular-nums font-bold text-slate-900 dark:text-white shadow-xs focus:outline-none focus:ring-2 focus:ring-teal-500"
               placeholder="ex: NIR-2026-0001"
             />
           </div>
@@ -1506,7 +1506,7 @@ export default function NIRCreate() {
               type="text"
               value={spvIndex}
               onChange={e => setSpvIndex(e.target.value)}
-              className="w-full h-8 px-2.5 rounded-lg border border-teal-200 dark:border-teal-800 bg-teal-50/50 dark:bg-teal-950/30 text-xs font-mono font-bold text-teal-800 dark:text-teal-300 shadow-xs focus:outline-none focus:ring-2 focus:ring-teal-500"
+              className="w-full h-8 px-2.5 rounded-lg border border-teal-200 dark:border-teal-800 bg-teal-50/50 dark:bg-teal-950/30 text-xs tabular-nums font-bold text-teal-800 dark:text-teal-300 shadow-xs focus:outline-none focus:ring-2 focus:ring-teal-500"
               placeholder="Index ANAF SPV"
               title="Identificatorul de încărcare din Spațiul Privat Virtual ANAF"
             />

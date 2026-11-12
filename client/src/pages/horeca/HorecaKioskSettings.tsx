@@ -452,7 +452,7 @@ export default function HorecaKioskSettings() {
                             type="text"
                             value={bottomBannerBg}
                             onChange={e => setBottomBannerBg(e.target.value)}
-                            className="font-mono text-xs"
+                            className="tabular-nums text-xs"
                           />
                         </div>
                       </div>
@@ -577,7 +577,7 @@ export default function HorecaKioskSettings() {
                         placeholder="Ex: 1234"
                         value={kioskPin}
                         onChange={e => setKioskPin(e.target.value)}
-                        className="font-mono text-lg tracking-widest"
+                        className="tabular-nums text-lg tracking-widest"
                       />
                       <p className="text-xs text-muted-foreground">
                         Lasă gol pentru a dezactiva protecția.
@@ -610,7 +610,7 @@ export default function HorecaKioskSettings() {
                             onChange={() => toggleLang(lang)}
                           />
                           <span className="uppercase font-semibold text-sm">
-                            {lang === "ro" ? "🇷🇴 Română" : "🇬🇧 English"}
+                            {lang === "ro" ? "Română" : "English"}
                           </span>
                         </label>
                       ))}
@@ -642,7 +642,7 @@ export default function HorecaKioskSettings() {
                           <Input
                             value={langButtonColor}
                             onChange={e => setLangButtonColor(e.target.value)}
-                            className="font-mono text-xs"
+                            className="tabular-nums text-xs"
                           />
                         </div>
                       </div>
@@ -697,7 +697,7 @@ export default function HorecaKioskSettings() {
                           onChange={e =>
                             setOrgIds({ ...orgIds, [bId]: e.target.value })
                           }
-                          className="font-mono text-xs"
+                          className="tabular-nums text-xs"
                         />
                       </div>
                     ))

@@ -396,7 +396,7 @@ export default function NirSelectorModal({ onClose, onAdd }: Props) {
                           )}
                         </td>
                         <td style={{ padding: "8px" }}>
-                          <div className="text-sky-700 dark:text-sky-400 font-mono font-bold text-[10px]">
+                          <div className="text-sky-700 dark:text-sky-400 tabular-nums font-bold text-[10px]">
                             {l.nirNumber}
                           </div>
                           <div className="text-slate-400 text-[10px]">

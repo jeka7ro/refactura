@@ -272,7 +272,7 @@ export function EditDevizModal({
                       const rowTotal = (Number(line.quantity) || 0) * (Number(line.unitPrice) || 0);
                       return (
                         <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                          <td className="px-2.5 py-2 text-center text-slate-400 font-mono text-[11px]">
+                          <td className="px-2.5 py-2 text-center text-slate-400 tabular-nums text-[11px]">
                             {idx + 1}
                           </td>
                           <td className="px-2.5 py-2">
@@ -324,7 +324,7 @@ export function EditDevizModal({
                                   parseFloat(e.target.value) || 0
                                 )
                               }
-                              className="w-full h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono text-right text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500 outline-none"
+                              className="w-full h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs tabular-nums text-right text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500 outline-none"
                             />
                           </td>
                           <td className="px-2.5 py-2">
@@ -340,10 +340,10 @@ export function EditDevizModal({
                                   parseFloat(e.target.value) || 0
                                 )
                               }
-                              className="w-full h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono text-right text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500 outline-none"
+                              className="w-full h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs tabular-nums text-right text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500 outline-none"
                             />
                           </td>
-                          <td className="px-2.5 py-2 text-right font-mono font-bold text-slate-900 dark:text-white">
+                          <td className="px-2.5 py-2 text-right tabular-nums font-bold text-slate-900 dark:text-white">
                             {rowTotal.toFixed(2)}
                           </td>
                           <td className="px-2 py-2 text-center">
@@ -394,7 +394,7 @@ export function EditDevizModal({
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                   Materiale
                 </span>
-                <span className="font-mono text-sm font-bold text-slate-700 dark:text-slate-200">
+                <span className="tabular-nums text-sm font-bold text-slate-700 dark:text-slate-200">
                   {totalMaterials.toFixed(2)} RON
                 </span>
               </div>
@@ -402,7 +402,7 @@ export function EditDevizModal({
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                   Manoperă / Utilaje
                 </span>
-                <span className="font-mono text-sm font-bold text-slate-700 dark:text-slate-200">
+                <span className="tabular-nums text-sm font-bold text-slate-700 dark:text-slate-200">
                   {totalLabor.toFixed(2)} RON
                 </span>
               </div>
@@ -410,7 +410,7 @@ export function EditDevizModal({
                 <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 block">
                   TOTAL DEVIZ
                 </span>
-                <span className="font-mono text-base font-black text-sky-700 dark:text-sky-300">
+                <span className="tabular-nums text-base font-black text-sky-700 dark:text-sky-300">
                   {totalDeviz.toFixed(2)} RON
                 </span>
               </div>

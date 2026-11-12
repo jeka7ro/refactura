@@ -179,7 +179,7 @@ export default function BonConsumCreate() {
                           />
                           <div className="text-[9px] text-slate-400 mt-0.5">max: {l.maxQuantity}</div>
                         </td>
-                        <td className="px-4 py-3 text-right font-mono text-slate-600 dark:text-slate-400">
+                        <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-400">
                           {formatNumber(l.unitPrice)}
                         </td>
                         <td className="px-4 py-3 text-right">

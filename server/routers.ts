@@ -2559,6 +2559,10 @@ export const appRouter = router({
         limitHit: result?.limitHit || 0,
       };
     }),
+    testSpvConnection: protectedProcedure.mutation(async ({ ctx }) => {
+      const { testSpvConnection } = await import("./spvDiagnostic");
+      return await testSpvConnection(tenantOf(ctx));
+    }),
     getSpvOAuthUrl: protectedProcedure.query(async ({ ctx }) => {
       
       const clientId = process.env.SPV_CLIENT_ID;

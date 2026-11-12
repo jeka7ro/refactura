@@ -546,7 +546,7 @@ export default function CostCenters() {
                         onClick={() => setShowCatPanel(p => !p)}
                         className={`px-3 py-2 rounded-lg border text-xs font-medium transition-colors ${showCatPanel ? "border-indigo-300 bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300" : "border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"}`}
                       >
-                        {showCatPanel ? "✕ Închide" : "+ Gestionează"}
+                        {showCatPanel ? "Închide" : "+ Gestionează"}
                       </button>
                     </div>
 

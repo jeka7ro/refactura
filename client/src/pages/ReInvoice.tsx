@@ -989,7 +989,7 @@ export default function ReInvoice() {
                               e.target.value
                             )
                           }
-                          className="w-full h-8 px-2 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                          className="w-full h-8 px-2 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 tabular-nums"
                         />
                       </div>
                     )}
@@ -1044,7 +1044,7 @@ export default function ReInvoice() {
                                       <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                                         {item.tip}
                                       </span>
-                                      <span className="text-xs font-mono text-slate-500">
+                                      <span className="text-xs tabular-nums text-slate-500">
                                         {item.cod}
                                       </span>
                                     </div>
@@ -1154,7 +1154,7 @@ export default function ReInvoice() {
 
             {bnrNoteMatch && (
               <div className="mt-3 p-2.5 rounded-lg bg-slate-50/80 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 text-xs max-w-xl">
-                <p className="font-mono text-slate-800 dark:text-slate-200 leading-relaxed font-semibold text-xs">
+                <p className="tabular-nums text-slate-800 dark:text-slate-200 leading-relaxed font-semibold text-xs">
                   {bnrNoteMatch}
                 </p>
               </div>

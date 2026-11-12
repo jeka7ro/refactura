@@ -132,7 +132,7 @@ export default function DevizDetail() {
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">
               {issuer?.name || "Companie Emitentă"}
             </h3>
-            <p className="text-xs font-mono font-semibold text-slate-600 dark:text-slate-300 mt-0.5">
+            <p className="text-xs tabular-nums font-semibold text-slate-600 dark:text-slate-300 mt-0.5">
               CUI / CIF: {issuer?.cui || "—"}
             </p>
             {issuer?.regCom && (
@@ -142,7 +142,7 @@ export default function DevizDetail() {
               <p className="text-xs text-slate-500 mt-1">{issuer.address}</p>
             )}
             {issuer?.iban && (
-              <p className="text-xs font-mono text-slate-600 dark:text-slate-400 mt-1">
+              <p className="text-xs tabular-nums text-slate-600 dark:text-slate-400 mt-1">
                 IBAN: {issuer.iban} {issuer.bank ? `(${issuer.bank})` : ""}
               </p>
             )}
@@ -165,7 +165,7 @@ export default function DevizDetail() {
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">
               {invoice?.clientName || deviz?.clientName || "—"}
             </h3>
-            <p className="text-xs font-mono font-semibold text-slate-600 dark:text-slate-300 mt-0.5">
+            <p className="text-xs tabular-nums font-semibold text-slate-600 dark:text-slate-300 mt-0.5">
               CUI / CIF: {invoice?.clientCUI || deviz?.clientCUI || "—"}
             </p>
             {invoice?.clientRegCom && (
@@ -240,7 +240,7 @@ export default function DevizDetail() {
                       key={l.id}
                       className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                     >
-                      <td className="px-3 py-2.5 text-slate-400 font-mono">{i + 1}</td>
+                      <td className="px-3 py-2.5 text-slate-400 tabular-nums">{i + 1}</td>
                       <td className="px-3 py-2.5 font-medium text-slate-900 dark:text-white">
                         {l.type !== "MANOPERA" && Number(deviz.totalMaterials) > 0 && (
                           <span className="text-[10px] font-bold text-slate-400 mr-2 uppercase tracking-wider">
@@ -250,23 +250,23 @@ export default function DevizDetail() {
                         {(l.description || "").replace(/^\[MANOPERA\]\s*/i, "")}
                       </td>
                       {showCodes && (
-                        <td className="px-3 py-2.5 text-slate-500 font-mono text-[11px]">
+                        <td className="px-3 py-2.5 text-slate-500 tabular-nums text-[11px]">
                           {l.code || "—"}
                         </td>
                       )}
-                      <td className="px-3 py-2.5 text-right font-mono text-slate-600 dark:text-slate-300">
+                      <td className="px-3 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300">
                         {Number(l.quantity).toFixed(2)}
                       </td>
-                      <td className="px-3 py-2.5 text-right font-mono text-slate-600 dark:text-slate-300">
+                      <td className="px-3 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300">
                         {Number(l.unitPrice).toFixed(2)}
                       </td>
-                      <td className="px-3 py-2.5 text-right font-mono font-medium text-slate-900 dark:text-white">
+                      <td className="px-3 py-2.5 text-right tabular-nums font-medium text-slate-900 dark:text-white">
                         {lineNet.toFixed(2)}
                       </td>
-                      <td className="px-3 py-2.5 text-right font-mono text-slate-500">
+                      <td className="px-3 py-2.5 text-right tabular-nums text-slate-500">
                         {lineVat.toFixed(2)}
                       </td>
-                      <td className="px-3 py-2.5 text-right font-mono font-bold text-slate-900 dark:text-white">
+                      <td className="px-3 py-2.5 text-right tabular-nums font-bold text-slate-900 dark:text-white">
                         {lineGross.toFixed(2)} {currency}
                       </td>
                     </tr>
@@ -284,7 +284,7 @@ export default function DevizDetail() {
                     >
                       Total Materiale fără TVA:
                     </td>
-                    <td className="px-3 py-2 text-right font-mono font-bold text-slate-700 dark:text-slate-300">
+                    <td className="px-3 py-2 text-right tabular-nums font-bold text-slate-700 dark:text-slate-300">
                       {Number(deviz.totalMaterials).toFixed(2)} {currency}
                     </td>
                     <td colSpan={2}></td>
@@ -296,7 +296,7 @@ export default function DevizDetail() {
                     >
                       Total Manoperă / Servicii fără TVA:
                     </td>
-                    <td className="px-3 py-2 text-right font-mono font-bold text-slate-700 dark:text-slate-300">
+                    <td className="px-3 py-2 text-right tabular-nums font-bold text-slate-700 dark:text-slate-300">
                       {Number(deviz.totalLabor).toFixed(2)} {currency}
                     </td>
                     <td colSpan={2}></td>
@@ -310,7 +310,7 @@ export default function DevizDetail() {
                 >
                   TOTAL FĂRĂ TVA:
                 </td>
-                <td className="px-3 py-2 text-right font-mono font-bold text-slate-900 dark:text-white">
+                <td className="px-3 py-2 text-right tabular-nums font-bold text-slate-900 dark:text-white">
                   {Number(deviz.total).toFixed(2)} {currency}
                 </td>
                 <td colSpan={2}></td>
@@ -322,7 +322,7 @@ export default function DevizDetail() {
                 >
                   TOTAL TVA ({vatRate}%):
                 </td>
-                <td colSpan={2} className="px-3 py-2 text-right font-mono font-bold text-amber-600 dark:text-amber-400">
+                <td colSpan={2} className="px-3 py-2 text-right tabular-nums font-bold text-amber-600 dark:text-amber-400">
                   {Number(deviz.totalVAT).toFixed(2)} {currency}
                 </td>
                 <td></td>
@@ -336,7 +336,7 @@ export default function DevizDetail() {
                 </td>
                 <td
                   colSpan={3}
-                  className="px-3 py-3 text-right font-black text-sky-800 dark:text-sky-300 text-base font-mono"
+                  className="px-3 py-3 text-right font-black text-sky-800 dark:text-sky-300 text-base tabular-nums"
                 >
                   {Number(deviz.totalWithVAT).toFixed(2)} {currency}
                 </td>

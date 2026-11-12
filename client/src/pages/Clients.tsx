@@ -318,7 +318,7 @@ export default function Clients() {
       sortable: true,
       render: (val: string) =>
         val ? (
-          <span className="font-mono text-slate-700 dark:text-slate-300 font-medium">
+          <span className="tabular-nums text-slate-700 dark:text-slate-300 font-medium">
             {val}
           </span>
         ) : (
@@ -331,7 +331,7 @@ export default function Clients() {
       sortable: true,
       render: (val: string) =>
         val ? (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[10px] font-mono font-bold">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[10px] tabular-nums font-bold">
             {val}
           </span>
         ) : (
@@ -369,7 +369,7 @@ export default function Clients() {
               />
             </div>
             <span
-              className={`inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full text-[10px] font-bold font-mono border ${
+              className={`inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full text-[10px] font-bold tabular-nums border ${
                 isEur
                   ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800"
                   : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
@@ -922,7 +922,7 @@ function ClientForm({
           <label className={lbl}>CUI / CIF</label>
           <div className="flex gap-2">
             <input
-              className={inp + " flex-1 font-mono"}
+              className={inp + " flex-1 tabular-nums"}
               placeholder="CIF / CUI"
               value={data.cui}
               onChange={e => {
@@ -976,7 +976,7 @@ function ClientForm({
         <div>
           <label className={lbl}>Cod SAGA (Partener)</label>
           <input
-            className={inp + " font-mono"}
+            className={inp + " tabular-nums"}
             placeholder="ex: 00001 sau 01209"
             value={data.sagaCode || ""}
             onChange={e => set("sagaCode", e.target.value)}

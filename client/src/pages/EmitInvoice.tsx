@@ -1462,7 +1462,7 @@ export default function EmitInvoice() {
                   Curs BNR ({currency})
                 </label>
                 {effectiveBnrRateDate && (
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono" title="Data oficială a cursului BNR">
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 tabular-nums" title="Data oficială a cursului BNR">
                     {effectiveBnrRateDate.split("-").reverse().join(".")}
                   </span>
                 )}
@@ -1524,7 +1524,7 @@ export default function EmitInvoice() {
             </span>
             {clientCode && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-[11px] font-medium border border-amber-200 dark:border-amber-800">
-                Cod SAGA: <strong className="font-mono font-bold">{clientCode}</strong>
+                Cod SAGA: <strong className="tabular-nums font-bold">{clientCode}</strong>
               </span>
             )}
           </div>
@@ -1598,7 +1598,7 @@ export default function EmitInvoice() {
                               {c.name}
                             </span>
                             {(c.sagaCode || c.code) && (
-                              <span className="shrink-0 px-1.5 py-0.5 text-[10px] font-mono font-semibold rounded bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                              <span className="shrink-0 px-1.5 py-0.5 text-[10px] tabular-nums font-semibold rounded bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                                 Cod: {c.sagaCode || c.code}
                               </span>
                             )}
@@ -2179,7 +2179,7 @@ export default function EmitInvoice() {
 
             {bnrNoteMatch && (
               <div className="mt-3 p-2.5 rounded-lg bg-slate-50/80 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 text-xs">
-                <p className="font-mono text-slate-800 dark:text-slate-200 leading-relaxed font-semibold text-xs">
+                <p className="tabular-nums text-slate-800 dark:text-slate-200 leading-relaxed font-semibold text-xs">
                   {bnrNoteMatch}
                 </p>
               </div>
@@ -2191,7 +2191,7 @@ export default function EmitInvoice() {
                   <ShieldCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                   <span>Taxare Inversă / VAT Reverse Charge (Art. 196):</span>
                 </div>
-                <p className="font-mono text-slate-800 dark:text-slate-200 leading-relaxed text-[11px]">
+                <p className="tabular-nums text-slate-800 dark:text-slate-200 leading-relaxed text-[11px]">
                   {REVERSE_CHARGE_LEGAL_TEXT}
                 </p>
               </div>
@@ -2584,7 +2584,7 @@ export default function EmitInvoice() {
         {/* Butoane Salvare & Emitere Factură */}
         <div className="flex items-center justify-between flex-wrap gap-4 pt-1">
           <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-            Factură în <strong className="text-slate-800 dark:text-slate-200">{currency}</strong> · Serie & Număr: <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{fullInvoiceNumber || series}</span>
+            Factură în <strong className="text-slate-800 dark:text-slate-200">{currency}</strong> · Serie & Număr: <span className="tabular-nums font-bold text-slate-800 dark:text-slate-200">{fullInvoiceNumber || series}</span>
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">

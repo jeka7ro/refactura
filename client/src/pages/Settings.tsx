@@ -839,7 +839,7 @@ export default function Settings() {
                             value={acc.iban}
                             onChange={e => updateBankAccount(idx, "iban", e.target.value.toUpperCase())}
                             placeholder="RO49AAAA..."
-                            className="w-full h-8 px-2.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500"
+                            className="w-full h-8 px-2.5 text-xs tabular-nums rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500"
                           />
                         </div>
                         <div className="sm:col-span-4">
@@ -983,7 +983,7 @@ export default function Settings() {
                               value={logoBgColor}
                               onChange={e => setLogoBgColor(e.target.value)}
                               placeholder="#0f172a"
-                              className="w-20 text-xs font-mono uppercase bg-transparent outline-none text-slate-800 dark:text-slate-200"
+                              className="w-20 text-xs tabular-nums uppercase bg-transparent outline-none text-slate-800 dark:text-slate-200"
                             />
                           </div>
 
@@ -1097,7 +1097,7 @@ export default function Settings() {
                           value={themeColor}
                           onChange={e => saveAppearance("custom", e.target.value, activeTemplate)}
                           placeholder="#16A34A"
-                          className="w-20 text-xs font-mono uppercase bg-transparent outline-none text-slate-800 dark:text-slate-200 font-bold"
+                          className="w-20 text-xs tabular-nums uppercase bg-transparent outline-none text-slate-800 dark:text-slate-200 font-bold"
                         />
                       </div>
                     </div>
@@ -1326,7 +1326,7 @@ export default function Settings() {
                           : "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
                       }`}
                     >
-                      {c} {c === settings.defaultCurrency && "✓"}
+                      {c} {c === settings.defaultCurrency && ""}
                     </div>
                   ))}
                 </div>
@@ -1365,7 +1365,7 @@ export default function Settings() {
                           : "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
                       }`}
                     >
-                      {l.label} {l.code === settings.defaultLanguage && "✓"}
+                      {l.label} {l.code === settings.defaultLanguage && ""}
                     </div>
                   ))}
                 </div>
@@ -1550,7 +1550,7 @@ export default function Settings() {
                               }}
                               required
                               placeholder="••••"
-                              className="w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-900 outline-none font-mono"
+                              className="w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-900 outline-none tabular-nums"
                             />
                           </div>
                         )}
@@ -1573,7 +1573,7 @@ export default function Settings() {
                               }}
                               required
                               placeholder="••••"
-                              className="w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-900 outline-none font-mono"
+                              className="w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-900 outline-none tabular-nums"
                             />
                           </div>
                           <div>
@@ -1593,7 +1593,7 @@ export default function Settings() {
                               }}
                               required
                               placeholder="••••"
-                              className="w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-900 outline-none font-mono"
+                              className="w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-900 outline-none tabular-nums"
                             />
                           </div>
                         </div>
@@ -1645,7 +1645,7 @@ export default function Settings() {
                             }}
                             required
                             placeholder="••••"
-                            className="w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-rose-500 bg-white dark:bg-slate-900 outline-none font-mono"
+                            className="w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-rose-500 bg-white dark:bg-slate-900 outline-none tabular-nums"
                           />
                         </div>
 
@@ -1818,7 +1818,7 @@ export default function Settings() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 font-mono text-xs text-slate-700 dark:text-slate-200 select-all truncate">
+                  <div className="flex-1 px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 tabular-nums text-xs text-slate-700 dark:text-slate-200 select-all truncate">
                     {portalShareUrl || "Se generează link-ul..."}
                   </div>
                   <button
@@ -1865,7 +1865,7 @@ export default function Settings() {
                   Puteți personaliza codul din link cu denumirea firmei sau orice text doriți (ex: <code>wood-glass</code>, <code>contabilitate-wood</code>).
                 </p>
                 <div className="flex items-center gap-2 max-w-md">
-                  <span className="text-xs text-slate-500 dark:text-slate-400 font-mono select-none px-3 py-2 rounded-l-lg bg-slate-100 dark:bg-slate-800 border border-r-0 border-slate-200 dark:border-slate-700">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums select-none px-3 py-2 rounded-l-lg bg-slate-100 dark:bg-slate-800 border border-r-0 border-slate-200 dark:border-slate-700">
                     facturaspv.ro/contabil/
                   </span>
                   <input
@@ -1880,7 +1880,7 @@ export default function Settings() {
                       )
                     }
                     placeholder="cod-firma"
-                    className="flex-1 -ml-2 px-3 py-2 rounded-r-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-xs text-slate-900 dark:text-white outline-none focus:border-emerald-500"
+                    className="flex-1 -ml-2 px-3 py-2 rounded-r-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 tabular-nums text-xs text-slate-900 dark:text-white outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div className="text-[11px] text-slate-400">
@@ -1926,7 +1926,7 @@ export default function Settings() {
                     value={portalPin}
                     onChange={(e) => setPortalPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
                     placeholder="ex: 1234"
-                    className="w-36 px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center font-mono font-bold tracking-widest text-slate-900 dark:text-white text-base outline-none focus:border-emerald-500"
+                    className="w-36 px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center tabular-nums font-bold tracking-widest text-slate-900 dark:text-white text-base outline-none focus:border-emerald-500"
                   />
                   <span className="text-[11px] text-slate-400">
                     {portalPin.length === 4 ? "Gata de actualizare" : "Maxim 4 cifre"}
@@ -2064,7 +2064,7 @@ function SettingField({
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         autoComplete={autocomplete || "on"}
-        className={`w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none text-slate-900 dark:text-white transition-all${mono ? " font-mono" : ""}`}
+        className={`w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none text-slate-900 dark:text-white transition-all${mono ? " tabular-nums" : ""}`}
       />
     </div>
   );

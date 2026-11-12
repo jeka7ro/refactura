@@ -555,7 +555,7 @@ export default function App() {
                   useKioskStore.getState().addToCart(
                     {
                       id: prize.productId || `promo_${Date.now()}`,
-                      name: `🎁 ${prize.name}`,
+                      name: `${prize.name}`,
                       image: prize.image || "",
                       isPromo: true,
                     },

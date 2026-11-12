@@ -26,6 +26,37 @@ export default function DocumentModalPreview({
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const blobRef = useRef<Blob | null>(null);
 
+  // Determină URL-ul complet autorizat (asigură atașarea token-ului contabil dacă există)
+  const getEffectiveUrl = (url: string | null): string => {
+    if (!url) return "";
+    let finalUrl = url;
+
+    // Căutăm token contabil dacă nu e deja în URL
+    if (!finalUrl.includes("accountantToken=")) {
+      let accToken: string | null = null;
+      try {
+        if (typeof window !== "undefined") {
+          for (let i = 0; i < sessionStorage.length; i++) {
+            const k = sessionStorage.key(i);
+            if (k && k.startsWith("smart_invoice_accountant_session")) {
+              const v = sessionStorage.getItem(k);
+              if (v) {
+                accToken = v;
+                break;
+              }
+            }
+          }
+        }
+      } catch {}
+
+      if (accToken) {
+        const sep = finalUrl.includes("?") ? "&" : "?";
+        finalUrl = `${finalUrl}${sep}accountantToken=${encodeURIComponent(accToken)}`;
+      }
+    }
+    return finalUrl;
+  };
+
   const fetchPdf = async () => {
     if (!pdfUrl) return;
     setLoading(true);
@@ -45,7 +76,17 @@ export default function DocumentModalPreview({
         }
       } catch {}
 
-      const res = await fetch(pdfUrl, { credentials: "include", headers });
+      const effectiveUrl = getEffectiveUrl(pdfUrl);
+
+      // Extragem accountantToken din URL pentru a-l trimite și în header-ul x-accountant-token
+      try {
+        const m = effectiveUrl.match(/[?&]accountantToken=([^&]+)/);
+        if (m && m[1]) {
+          headers["x-accountant-token"] = decodeURIComponent(m[1]);
+        }
+      } catch {}
+
+      const res = await fetch(effectiveUrl, { credentials: "include", headers });
       if (!res.ok) {
         let msg = `Documentul nu a putut fi descărcat (Cod ${res.status})`;
         try {
@@ -90,6 +131,7 @@ export default function DocumentModalPreview({
   if (!isOpen || !pdfUrl) return null;
 
   const downloadFilename = filename || (type === "nir" ? "NIR.pdf" : "Factura.pdf");
+  const effectiveDownloadUrl = getEffectiveUrl(pdfUrl);
 
   const handleDownload = () => {
     const blob = blobRef.current;
@@ -102,8 +144,8 @@ export default function DocumentModalPreview({
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } else if (pdfUrl) {
-      window.open(pdfUrl, "_blank");
+    } else if (effectiveDownloadUrl) {
+      window.open(effectiveDownloadUrl, "_blank");
     }
   };
 
@@ -156,8 +198,8 @@ export default function DocumentModalPreview({
                 onClick={() => {
                   if (blobUrl) {
                     window.open(blobUrl, "_blank");
-                  } else if (pdfUrl) {
-                    window.open(pdfUrl, "_blank");
+                  } else if (effectiveDownloadUrl) {
+                    window.open(effectiveDownloadUrl, "_blank");
                   }
                 }}
                 disabled={loading || Boolean(error)}

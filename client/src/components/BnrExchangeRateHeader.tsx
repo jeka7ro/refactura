@@ -280,12 +280,12 @@ export function BnrExchangeRateHeader() {
 
                 {/* Rate + Variation + Copy */}
                 <div className="flex items-center gap-1.5">
-                  <span className="font-semibold font-mono text-slate-900 dark:text-white text-xs">
+                  <span className="font-semibold tabular-nums text-slate-900 dark:text-white text-xs">
                     {rate}
                   </span>
                   {info && info.diff !== undefined ? (
                     <span
-                      className={`font-mono text-[10px] font-medium min-w-[46px] text-right ${
+                      className={`tabular-nums text-[10px] font-medium min-w-[46px] text-right ${
                         isDown
                           ? "text-emerald-600 dark:text-emerald-400"
                           : isUp

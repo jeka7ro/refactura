@@ -238,7 +238,7 @@ export default function PaymentScreen() {
               {/* Stanga: iconul card */}
               <div className="pir-card">
                 <div className="payment-pos-icon">
-                  <span className="pos-emoji">💳</span>
+                  <span className="pos-emoji"></span>
                   <div className="pos-waves">
                     <div className="wave" />
                     <div className="wave" />
@@ -517,8 +517,7 @@ export default function PaymentScreen() {
           <div className="payment-processing">
             <div className="pos-nfc-anim">
               <span className="pos-emoji" style={{ fontSize: "4rem" }}>
-                📱
-              </span>
+                </span>
               <div className="nfc-ring nfc-ring-1" />
               <div className="nfc-ring nfc-ring-2" />
               <div className="nfc-ring nfc-ring-3" />
@@ -545,7 +544,7 @@ export default function PaymentScreen() {
 
         {payState === STATE.PIN_ENTRY && (
           <div className="payment-processing">
-            <div style={{ fontSize: "4rem", marginBottom: 16 }}>🔒</div>
+            <div style={{ fontSize: "4rem", marginBottom: 16 }}></div>
             <h2 className="processing-title">Introduceți PIN-ul</h2>
             <p className="processing-step">
               Urmați instrucțiunile de pe terminal
@@ -581,7 +580,7 @@ export default function PaymentScreen() {
         {payState === STATE.APPROVED && (
           <div className="payment-approved fade-in">
             <div className="approved-circle">
-              <span className="approved-check">✓</span>
+              <span className="approved-check"></span>
             </div>
             <h2 className="approved-title">Plată aprobată!</h2>
             {txInfo?.authCode && (

@@ -218,7 +218,7 @@ async function main() {
       settings: JSON.stringify(companySettings),
     })
     .where(eq(tenants.id, TENANT_ID));
-  console.log("✓ Updated tenant company profile and settings");
+  console.log("Updated tenant company profile and settings");
 
   // 2. Clean previous demo data for Tenant 2 (Idempotency)
   // Get invoiceArchive IDs for tenant 2
@@ -253,7 +253,7 @@ async function main() {
 
   // Clean clients for tenant 2
   await db.delete(clients).where(eq(clients.tenantId, TENANT_ID));
-  console.log("✓ Cleaned previous records for tenant 2");
+  console.log("Cleaned previous records for tenant 2");
 
   // 3. Insert Suppliers (isSupplier = 1)
   const supplierData = [
@@ -343,7 +343,7 @@ async function main() {
       ...s,
     });
   }
-  console.log(`✓ Inserted ${supplierData.length} Romanian suppliers into clients directory`);
+  console.log(`Inserted ${supplierData.length} Romanian suppliers into clients directory`);
 
   // 4. Insert Customers (isSupplier = 0)
   const customerData = [
@@ -422,7 +422,7 @@ async function main() {
     });
     insertedClientsMap[c.name] = res.insertId;
   }
-  console.log(`✓ Inserted ${customerData.length} Romanian customers into clients directory`);
+  console.log(`Inserted ${customerData.length} Romanian customers into clients directory`);
 
   // 5. Insert Received Invoices (Facturi Primite) in invoiceArchive
   const myCompany = {
@@ -670,7 +670,7 @@ async function main() {
       });
     }
   }
-  console.log(`✓ Inserted ${receivedInvoices.length} received invoices with full UBL 2.1 XML`);
+  console.log(`Inserted ${receivedInvoices.length} received invoices with full UBL 2.1 XML`);
 
   // 6. Insert Emitted Invoices (Facturi Emise Direct din Platformă)
   const emittedInvoicesData = [
@@ -941,7 +941,7 @@ async function main() {
       });
     }
   }
-  console.log(`✓ Inserted ${emittedInvoicesData.length} emitted invoices with full line items`);
+  console.log(`Inserted ${emittedInvoicesData.length} emitted invoices with full line items`);
 
   // 7. Insert 2 NIR records for the received invoices
   const dedemanArchiveId = insertedArchiveIds["DED-2026-849201"];
@@ -1019,7 +1019,7 @@ async function main() {
       lineOrder: 0,
     });
   }
-  console.log("✓ Inserted 2 NIR records with lines for Gestiune");
+  console.log("Inserted 2 NIR records with lines for Gestiune");
 
   console.log("=========================================");
   console.log("ALL DEMO DATA SUCCESSFULLY GENERATED!");

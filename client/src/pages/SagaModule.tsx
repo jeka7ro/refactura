@@ -490,7 +490,7 @@ function NomenclatorTab() {
                 paginatedArticles.map((art: any, i: number) => (
                   <tr key={art.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                     <td className="px-4 py-3 text-slate-400">{(page - 1) * pageSize + i + 1}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-emerald-700 dark:text-emerald-400 font-medium">{art.code}</td>
+                    <td className="px-4 py-3 tabular-nums text-xs text-emerald-700 dark:text-emerald-400 font-medium">{art.code}</td>
                     <td className="px-4 py-3 text-slate-900 dark:text-white font-medium">{art.name}</td>
                     <td className="px-4 py-3 text-center text-slate-500">{art.unit}</td>
                     <td className="px-4 py-3 text-center text-slate-500">{Number(art.vatRate)}%</td>
@@ -499,7 +499,7 @@ function NomenclatorTab() {
                         {art.category}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-slate-500">{art.accountingAccount}</td>
+                    <td className="px-4 py-3 tabular-nums text-xs text-slate-500">{art.accountingAccount}</td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-1">
                         <ConfirmDeleteWrapper onConfirm={() => deleteMut.mutate({ id: art.id })} title="Ștergi articolul?">
@@ -702,7 +702,7 @@ function MapareTab() {
                     <td className="px-4 py-3 text-slate-700 dark:text-slate-300 max-w-[300px] truncate">{m.externalName}</td>
                     <td className="px-4 py-3 text-center text-emerald-500"><ArrowRight className="w-4 h-4 inline" /></td>
                     <td className="px-4 py-3">
-                      <span className="font-mono text-xs text-emerald-700 dark:text-emerald-400">{m.articleCode}</span>
+                      <span className="tabular-nums text-xs text-emerald-700 dark:text-emerald-400">{m.articleCode}</span>
                       <span className="ml-2 text-slate-600 dark:text-slate-400">{m.articleName}</span>
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-500">{m.supplierCUI || "—"}</td>
@@ -1277,7 +1277,7 @@ function ExportTab() {
                               <div>
                                 <div className="flex items-center gap-2">
                                   <span className="font-bold text-slate-900 dark:text-white">{inv.number}</span>
-                                  <span className="text-slate-400 font-mono text-[11px]">{inv.issueDate}</span>
+                                  <span className="text-slate-400 tabular-nums text-[11px]">{inv.issueDate}</span>
                                 </div>
                                 <div className="text-slate-600 dark:text-slate-300 truncate max-w-[200px]">
                                   {inv.clientName || "Client"} {inv.clientCui ? `(CUI: ${inv.clientCui})` : ""}
@@ -1285,7 +1285,7 @@ function ExportTab() {
                               </div>
                             </div>
                             <div className="text-right">
-                              <span className="font-bold font-mono text-slate-900 dark:text-white">{Number(inv.total).toFixed(2)} {inv.currency || "RON"}</span>
+                              <span className="font-bold tabular-nums text-slate-900 dark:text-white">{Number(inv.total).toFixed(2)} {inv.currency || "RON"}</span>
                               <div className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold">Ieșire SAGA</div>
                             </div>
                           </div>
@@ -1349,14 +1349,14 @@ function ExportTab() {
                                     {n.nirNumber}
                                   </span>
                                   {n.invoiceNumber && (
-                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                    <span className="px-1.5 py-0.5 rounded text-[10px] tabular-nums bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                                       Doc: {n.invoiceNumber}
                                     </span>
                                   )}
                                   {/* Prominent Index SPV */}
                                   {n.spvIndex ? (
                                     <span
-                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200 border border-blue-300 dark:border-blue-700 shadow-xs"
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] tabular-nums font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200 border border-blue-300 dark:border-blue-700 shadow-xs"
                                       title="ID Încărcare SPV / Index ANAF preluat automat din e-Factura"
                                     >
                                       <Hash className="w-3 h-3 text-blue-600 dark:text-blue-400" />
@@ -1376,16 +1376,16 @@ function ExportTab() {
                                   <span>•</span>
                                   <span>Recepție: {n.receiptDate}</span>
                                   <span>•</span>
-                                  <span>Cont: <strong className="text-emerald-700 dark:text-emerald-400 font-mono">{n.accountingAccount || "371"}</strong></span>
+                                  <span>Cont: <strong className="text-emerald-700 dark:text-emerald-400 tabular-nums">{n.accountingAccount || "371"}</strong></span>
                                 </div>
                               </div>
                             </div>
                             <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto shrink-0 gap-1.5">
                               <div className="text-left sm:text-right">
-                                <span className="font-bold font-mono text-slate-900 dark:text-white text-sm">{n.total} RON</span>
+                                <span className="font-bold tabular-nums text-slate-900 dark:text-white text-sm">{n.total} RON</span>
                                 {(n as any).subtotal && (
                                   <div className="text-[10px] text-slate-500 dark:text-slate-400">
-                                    Fără TVA: <span className="font-mono">{(n as any).subtotal}</span> • TVA: <span className="font-mono">{(n as any).totalVat || "0.00"}</span>
+                                    Fără TVA: <span className="tabular-nums">{(n as any).subtotal}</span> • TVA: <span className="tabular-nums">{(n as any).totalVat || "0.00"}</span>
                                   </div>
                                 )}
                                 <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Intrare SAGA</div>
@@ -1448,7 +1448,7 @@ function ExportTab() {
                   </h4>
                   <p className="text-xs text-slate-500">
                     Cheia se generează în contul Saga Web din ecranul{" "}
-                    <code className="bg-slate-200 dark:bg-slate-700 px-1 py-0.5 rounded text-blue-700 dark:text-blue-300 font-mono">
+                    <code className="bg-slate-200 dark:bg-slate-700 px-1 py-0.5 rounded text-blue-700 dark:text-blue-300 tabular-nums">
                       Administrare &gt; Utilizatori &gt; Integrare API
                     </code>.
                   </p>
@@ -1495,7 +1495,7 @@ function ExportTab() {
                     onChange={(e) => setCuiInput(e.target.value)}
                     disabled={!isEditingConfig}
                     placeholder="Ex: 42322117"
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-900 dark:text-white font-mono disabled:opacity-75"
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-900 dark:text-white tabular-nums disabled:opacity-75"
                   />
                 </div>
                 <div className="md:col-span-2">
@@ -1508,7 +1508,7 @@ function ExportTab() {
                     onChange={(e) => setTokenInput(e.target.value)}
                     disabled={!isEditingConfig}
                     placeholder="Lipește aici tokenul generat din Saga Web..."
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-900 dark:text-white font-mono disabled:opacity-75"
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-900 dark:text-white tabular-nums disabled:opacity-75"
                   />
                 </div>
               </div>
@@ -1581,7 +1581,7 @@ function ExportTab() {
               ) : (
                 history.map((h: any, i: number) => (
                   <tr key={h.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                    <td className="px-5 py-3 text-slate-400 font-mono text-xs">{i + 1}</td>
+                    <td className="px-5 py-3 text-slate-400 tabular-nums text-xs">{i + 1}</td>
                     <td className="px-5 py-3 text-slate-900 dark:text-white font-medium">
                       {MONTHS[h.month - 1]} {h.year}
                     </td>
@@ -1768,13 +1768,13 @@ function GestiuniTab() {
             {isLoading && <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>}
             {gestiuni.map((g: any) => (
               <tr key={g.id} className="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                <td className="px-4 py-2 font-mono text-blue-600">{g.cod}</td>
+                <td className="px-4 py-2 tabular-nums text-blue-600">{g.cod}</td>
                 <td className="px-4 py-2 text-slate-900 dark:text-white">{g.denumire}</td>
                 <td className="px-4 py-2 text-slate-500">{g.tipGestiune}</td>
                 <td className="px-4 py-2 text-slate-500">{g.gestionar || "—"}</td>
-                <td className="px-4 py-2 text-slate-500 font-mono text-xs">{g.analitic371 || "—"}</td>
-                <td className="px-4 py-2 text-slate-500 font-mono text-xs">{g.analitic607 || "—"}</td>
-                <td className="px-4 py-2 text-slate-500 font-mono text-xs">{g.analitic707 || "—"}</td>
+                <td className="px-4 py-2 text-slate-500 tabular-nums text-xs">{g.analitic371 || "—"}</td>
+                <td className="px-4 py-2 text-slate-500 tabular-nums text-xs">{g.analitic607 || "—"}</td>
+                <td className="px-4 py-2 text-slate-500 tabular-nums text-xs">{g.analitic707 || "—"}</td>
                 <td className="px-4 py-2">
                   <ConfirmDeleteWrapper onConfirm={() => deleteMut.mutate({ id: g.id })} title="Ștergi gestiunea?">
                     {(openModal) => (
@@ -1943,12 +1943,12 @@ function FurnizoriTab() {
             {isLoading && <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>}
             {filtered.map((f: any) => (
               <tr key={f.id} className="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                <td className="px-4 py-2 font-mono text-blue-600">{f.cod}</td>
+                <td className="px-4 py-2 tabular-nums text-blue-600">{f.cod}</td>
                 <td className="px-4 py-2 text-slate-900 dark:text-white font-medium">{f.denumire}</td>
-                <td className="px-4 py-2 text-slate-500 font-mono">{f.cui || "—"}</td>
+                <td className="px-4 py-2 text-slate-500 tabular-nums">{f.cui || "—"}</td>
                 <td className="px-4 py-2 text-slate-500 text-xs max-w-[200px] truncate">{f.adresa || "—"}</td>
                 <td className="px-4 py-2 text-slate-500">{f.telefon || "—"}</td>
-                <td className="px-4 py-2 text-slate-500 font-mono text-xs">{f.contFurnizor}</td>
+                <td className="px-4 py-2 text-slate-500 tabular-nums text-xs">{f.contFurnizor}</td>
                 <td className="px-4 py-2">
                   <ConfirmDeleteWrapper onConfirm={() => deleteMut.mutate({ id: f.id })} title="Ștergi furnizorul?">
                     {(openModal) => (
@@ -2071,7 +2071,7 @@ function ClientiTab() {
             )}
             {filtered.map((c: any) => (
               <tr key={c.id} className="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                <td className="px-4 py-2 font-mono font-bold text-amber-600 dark:text-amber-400">
+                <td className="px-4 py-2 tabular-nums font-bold text-amber-600 dark:text-amber-400">
                   {c.sagaCode ? (
                     <span className="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs">
                       {c.sagaCode}
@@ -2081,7 +2081,7 @@ function ClientiTab() {
                   )}
                 </td>
                 <td className="px-4 py-2 text-slate-900 dark:text-white font-medium">{c.name}</td>
-                <td className="px-4 py-2 text-slate-500 font-mono text-xs">{c.cui || "—"}</td>
+                <td className="px-4 py-2 text-slate-500 tabular-nums text-xs">{c.cui || "—"}</td>
                 <td className="px-4 py-2 text-slate-500 text-xs">{c.regCom || "—"}</td>
                 <td className="px-4 py-2 text-slate-500 text-xs max-w-[220px] truncate">
                   {c.city ? `${c.city}${c.address ? `, ${c.address}` : ""}` : (c.address || "—")}
@@ -2144,7 +2144,7 @@ function PlanConturiTab() {
             {isLoading && <tr><td colSpan={3} className="px-4 py-8 text-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>}
             {conturi.map((c: any, i: number) => (
               <tr key={i} className="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                <td className="px-4 py-1.5 font-mono text-blue-600 text-xs">{c.cod}</td>
+                <td className="px-4 py-1.5 tabular-nums text-blue-600 text-xs">{c.cod}</td>
                 <td className="px-4 py-1.5 text-slate-900 dark:text-white">{c.denumire}</td>
                 <td className="px-4 py-1.5">
                   <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
@@ -2261,16 +2261,16 @@ function IntrariTab({ mode = "ron" }: { mode?: "ron" | "valuta" }) {
                     selectedIntrareId === intr.id ? "bg-blue-50/50 dark:bg-blue-900/10" : ""
                   }`}
                 >
-                  <td className="px-4 py-2 font-mono text-blue-600">{intr.nrIntern}</td>
+                  <td className="px-4 py-2 tabular-nums text-blue-600">{intr.nrIntern}</td>
                   <td className="px-4 py-2 text-slate-500">{intr.tip}</td>
                   <td className="px-4 py-2 text-slate-900 dark:text-white font-medium">{intr.nrDoc || "—"}</td>
                   <td className="px-4 py-2 text-slate-500">{intr.data}</td>
                   <td className="px-4 py-2 text-slate-900 dark:text-white">{intr.numeFurnizor || "—"}</td>
-                  {mode === "valuta" && <td className="px-4 py-2 text-right font-mono text-slate-500">{Number(intr.curs || 1).toFixed(4)}</td>}
-                  <td className="px-4 py-2 text-right font-mono">{Number(mode === "valuta" ? intr.valoareValuta || 0 : intr.valoare || 0).toFixed(2)}{mode === "valuta" ? ` ${intr.valuta}` : ""}</td>
-                  <td className="px-4 py-2 text-right font-mono text-slate-500">{Number(mode === "valuta" ? intr.tvaValuta || 0 : intr.tva || 0).toFixed(2)}{mode === "valuta" ? ` ${intr.valuta}` : ""}</td>
-                  <td className="px-4 py-2 text-right font-mono font-bold text-slate-900 dark:text-white">{Number(mode === "valuta" ? intr.totalValuta || 0 : intr.total || 0).toFixed(2)}{mode === "valuta" ? ` ${intr.valuta}` : ""}</td>
-                  {mode === "valuta" && <td className="px-4 py-2 text-right font-mono text-slate-500">{Number(intr.total || 0).toFixed(2)} RON</td>}
+                  {mode === "valuta" && <td className="px-4 py-2 text-right tabular-nums text-slate-500">{Number(intr.curs || 1).toFixed(4)}</td>}
+                  <td className="px-4 py-2 text-right tabular-nums">{Number(mode === "valuta" ? intr.valoareValuta || 0 : intr.valoare || 0).toFixed(2)}{mode === "valuta" ? ` ${intr.valuta}` : ""}</td>
+                  <td className="px-4 py-2 text-right tabular-nums text-slate-500">{Number(mode === "valuta" ? intr.tvaValuta || 0 : intr.tva || 0).toFixed(2)}{mode === "valuta" ? ` ${intr.valuta}` : ""}</td>
+                  <td className="px-4 py-2 text-right tabular-nums font-bold text-slate-900 dark:text-white">{Number(mode === "valuta" ? intr.totalValuta || 0 : intr.total || 0).toFixed(2)}{mode === "valuta" ? ` ${intr.valuta}` : ""}</td>
+                  {mode === "valuta" && <td className="px-4 py-2 text-right tabular-nums text-slate-500">{Number(intr.total || 0).toFixed(2)} RON</td>}
                   <td className="px-4 py-2">
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
                       intr.status === "validat" ? "bg-green-100 text-green-700" :
@@ -2320,13 +2320,13 @@ function IntrariTab({ mode = "ron" }: { mode?: "ron" | "valuta" }) {
                                 intrareDetails.lines.map((line: any) => (
                                   <tr key={line.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                                     <td className="px-3 py-2 font-medium">{line.denumire}</td>
-                                    <td className="px-3 py-2 font-mono text-slate-500">{line.cod || "—"}</td>
+                                    <td className="px-3 py-2 tabular-nums text-slate-500">{line.cod || "—"}</td>
                                     <td className="px-3 py-2 text-slate-500">{line.tip || "—"} {line.cont ? `/ ${line.cont}` : ""}</td>
                                     <td className="px-3 py-2 text-center">{line.um || "BUC"}</td>
-                                    <td className="px-3 py-2 text-right font-mono">{Number(line.cantitate || 0).toFixed(2)}</td>
-                                    <td className="px-3 py-2 text-right font-mono">{Number(line.pretUnitar || 0).toFixed(2)}</td>
-                                    <td className="px-3 py-2 text-center font-mono">{line.tvaPercent}%</td>
-                                    <td className="px-3 py-2 text-right font-mono font-semibold">
+                                    <td className="px-3 py-2 text-right tabular-nums">{Number(line.cantitate || 0).toFixed(2)}</td>
+                                    <td className="px-3 py-2 text-right tabular-nums">{Number(line.pretUnitar || 0).toFixed(2)}</td>
+                                    <td className="px-3 py-2 text-center tabular-nums">{line.tvaPercent}%</td>
+                                    <td className="px-3 py-2 text-right tabular-nums font-semibold">
                                       {Number(line.total || (Number(line.cantitate || 0) * Number(line.pretUnitar || 0) * (1 + Number(line.tvaPercent || 0)/100))).toFixed(2)}
                                     </td>
                                   </tr>
@@ -2434,12 +2434,12 @@ function ComenziTab() {
             {isLoading && <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>}
             {comenzi.map((cmd: any) => (
               <tr key={cmd.id} className="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                <td className="px-4 py-2 font-mono text-blue-600">{cmd.nrComanda}</td>
+                <td className="px-4 py-2 tabular-nums text-blue-600">{cmd.nrComanda}</td>
                 <td className="px-4 py-2 text-slate-500">{cmd.tipComanda}</td>
                 <td className="px-4 py-2 text-slate-500">{cmd.data}</td>
                 <td className="px-4 py-2 text-slate-900 dark:text-white">{cmd.denumireClient || "—"}</td>
-                <td className="px-4 py-2 text-right font-mono">{Number(cmd.valoare || 0).toFixed(2)}</td>
-                <td className="px-4 py-2 text-right font-mono font-semibold">{Number(cmd.total || 0).toFixed(2)}</td>
+                <td className="px-4 py-2 text-right tabular-nums">{Number(cmd.valoare || 0).toFixed(2)}</td>
+                <td className="px-4 py-2 text-right tabular-nums font-semibold">{Number(cmd.total || 0).toFixed(2)}</td>
                 <td className="px-4 py-2 text-slate-500">{cmd.dataLivrarii || "—"}</td>
                 <td className="px-4 py-2">
                   <span className={`px-2 py-0.5 rounded text-xs font-medium ${
@@ -2562,9 +2562,9 @@ function ArticoleContabileTab() {
               <tr key={a.id} className="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30">
                 <td className="px-4 py-2 text-slate-500">{a.data}</td>
                 <td className="px-4 py-2 text-slate-900 dark:text-white">{a.nrDocument || "—"}</td>
-                <td className="px-4 py-2 font-mono text-blue-600">{a.contDebit}</td>
-                <td className="px-4 py-2 font-mono text-green-600">{a.contCredit}</td>
-                <td className="px-4 py-2 text-right font-mono font-semibold">{Number(a.suma).toFixed(2)}</td>
+                <td className="px-4 py-2 tabular-nums text-blue-600">{a.contDebit}</td>
+                <td className="px-4 py-2 tabular-nums text-green-600">{a.contCredit}</td>
+                <td className="px-4 py-2 text-right tabular-nums font-semibold">{Number(a.suma).toFixed(2)}</td>
                 <td className="px-4 py-2 text-slate-500 text-xs max-w-[200px] truncate">{a.explicatie || "—"}</td>
                 <td className="px-4 py-2 text-slate-500">{a.tip || "—"}</td>
               </tr>

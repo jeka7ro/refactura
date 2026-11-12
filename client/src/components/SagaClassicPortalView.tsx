@@ -37,6 +37,7 @@ import {
   ArrowLeft,
   ChevronRight,
   Filter,
+  Wifi,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -204,6 +205,22 @@ export default function SagaClassicPortalView({
     },
     onError: (err) => {
       toast.error(`Eroare comunicare SPV ANAF: ${err.message}`);
+    },
+  });
+
+  // Mutație testare conexiune live SPV ANAF
+  const [spvTestResult, setSpvTestResult] = useState<any>(null);
+  const testSpvMutation = trpc.accountantPortal.testSpvConnection.useMutation({
+    onSuccess: (res) => {
+      setSpvTestResult(res);
+      if (res.connected) {
+        toast.success(res.message);
+      } else {
+        toast.error(res.message);
+      }
+    },
+    onError: (err) => {
+      toast.error(`Eroare la testarea conexiunii SPV: ${err.message}`);
     },
   });
 
@@ -648,7 +665,7 @@ export default function SagaClassicPortalView({
             </span>
           </div>
 
-          <span className="hidden lg:inline text-[10.5px] text-slate-600 font-mono">
+          <span className="hidden lg:inline text-[10.5px] text-slate-600 tabular-nums">
             Interval (01.01.2025 - 31.12.2026)
           </span>
         </div>
@@ -1134,7 +1151,7 @@ export default function SagaClassicPortalView({
             )}
 
             <div className="flex items-center gap-1.5 ml-auto">
-              <span className="text-[10px] text-slate-600 font-mono hidden md:inline">
+              <span className="text-[10px] text-slate-600 tabular-nums hidden md:inline">
                 {subView === "partners_list"
                   ? `${displayedPartners.length} parteneri`
                   : `${activeInvoices.length} doc. găsite`}
@@ -1218,7 +1235,7 @@ export default function SagaClassicPortalView({
                             </td>
 
                             {/* Cod SAGA */}
-                            <td className="py-0.5 px-1.5 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
+                            <td className="py-0.5 px-1.5 text-center tabular-nums border-r border-[#D3D3D3] text-[10.5px]">
                               {partner.code}
                             </td>
 
@@ -1231,7 +1248,7 @@ export default function SagaClassicPortalView({
                             </td>
 
                             {/* CUI / CIF */}
-                            <td className="py-0.5 px-2 font-mono border-r border-[#D3D3D3] text-[10.5px]">
+                            <td className="py-0.5 px-2 tabular-nums border-r border-[#D3D3D3] text-[10.5px]">
                               <div className="flex items-center justify-between gap-1">
                                 <span>{partner.cui || "—"}</span>
                                 {partner.cui && (
@@ -1253,7 +1270,7 @@ export default function SagaClassicPortalView({
                             </td>
 
                             {/* Nr. Facturi */}
-                            <td className="py-0.5 px-2 text-center font-mono font-bold border-r border-[#D3D3D3]">
+                            <td className="py-0.5 px-2 text-center tabular-nums font-bold border-r border-[#D3D3D3]">
                               <span
                                 className={`px-1.5 py-0.2 rounded-xs text-[10px] ${
                                   isSelected
@@ -1266,17 +1283,17 @@ export default function SagaClassicPortalView({
                             </td>
 
                             {/* Valoare fără TVA */}
-                            <td className="py-0.5 px-2 text-right font-mono border-r border-[#D3D3D3]">
+                            <td className="py-0.5 px-2 text-right tabular-nums border-r border-[#D3D3D3]">
                               {formatSagaCurrency(partner.totalBase)}
                             </td>
 
                             {/* TVA */}
-                            <td className="py-0.5 px-2 text-right font-mono border-r border-[#D3D3D3]">
+                            <td className="py-0.5 px-2 text-right tabular-nums border-r border-[#D3D3D3]">
                               {formatSagaCurrency(partner.totalVat)}
                             </td>
 
                             {/* Total General */}
-                            <td className="py-0.5 px-2 text-right font-mono font-bold border-r border-[#D3D3D3]">
+                            <td className="py-0.5 px-2 text-right tabular-nums font-bold border-r border-[#D3D3D3]">
                               {formatSagaCurrency(partner.totalGross)}
                             </td>
 
@@ -1284,7 +1301,7 @@ export default function SagaClassicPortalView({
                             {activeTab === "received" && (
                               <td className="py-0.5 px-2 text-center border-r border-[#D3D3D3]">
                                 <span
-                                  className={`px-1.5 py-0.2 rounded-xs font-mono text-[10px] ${
+                                  className={`px-1.5 py-0.2 rounded-xs tabular-nums text-[10px] ${
                                     isSelected
                                       ? "bg-emerald-400 text-slate-950 font-bold"
                                       : partner.nirCount > 0
@@ -1298,7 +1315,7 @@ export default function SagaClassicPortalView({
                             )}
 
                             {/* Ultima factură */}
-                            <td className="py-0.5 px-2 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
+                            <td className="py-0.5 px-2 text-center tabular-nums border-r border-[#D3D3D3] text-[10.5px]">
                               {partner.latestInvoiceDate ? formatSagaDate(partner.latestInvoiceDate) : "—"}
                             </td>
 
@@ -1318,7 +1335,7 @@ export default function SagaClassicPortalView({
                                 }`}
                                 title={`Vezi toate cele ${partner.invoiceCount} facturi ale ${partner.name}`}
                               >
-                                Vezi Facturi ({partner.invoiceCount}) ➔
+                                Vezi Facturi ({partner.invoiceCount}) →
                               </button>
                             </td>
                           </tr>
@@ -1340,7 +1357,7 @@ export default function SagaClassicPortalView({
                     readOnly
                     value={highlightedPartnerInList?.code || ""}
                     title="Cod partener"
-                    className="w-16 bg-white border border-[#7F9DB9] px-1.5 py-0.5 text-[10.5px] font-mono text-center text-slate-900 rounded-none shadow-inner focus:outline-none"
+                    className="w-16 bg-white border border-[#7F9DB9] px-1.5 py-0.5 text-[10.5px] tabular-nums text-center text-slate-900 rounded-none shadow-inner focus:outline-none"
                   />
                   <input
                     type="text"
@@ -1350,12 +1367,12 @@ export default function SagaClassicPortalView({
                     className="w-56 md:w-80 bg-white border border-[#7F9DB9] px-1.5 py-0.5 text-[10.5px] font-bold text-slate-900 rounded-none shadow-inner focus:outline-none truncate"
                   />
                   {highlightedPartnerInList?.cui && (
-                    <span className="font-mono text-slate-600 bg-white px-1.5 py-0.5 border border-[#7F9DB9] text-[10.5px] rounded-none">
+                    <span className="tabular-nums text-slate-600 bg-white px-1.5 py-0.5 border border-[#7F9DB9] text-[10.5px] rounded-none">
                       CUI: {highlightedPartnerInList.cui}
                     </span>
                   )}
                   {highlightedPartnerInList && (
-                    <span className="text-[10.5px] text-slate-700 font-mono hidden md:inline">
+                    <span className="text-[10.5px] text-slate-700 tabular-nums hidden md:inline">
                       {highlightedPartnerInList.invoiceCount} facturi · Total:{" "}
                       <strong>{formatSagaCurrency(highlightedPartnerInList.totalGross)} RON</strong>
                     </span>
@@ -1419,28 +1436,28 @@ export default function SagaClassicPortalView({
                             <td className="py-0.5 px-1 text-center border-r border-[#D3D3D3]">
                               <span className="text-[11px] text-amber-800">🔒</span>
                             </td>
-                            <td className="py-0.5 px-1.5 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
+                            <td className="py-0.5 px-1.5 text-center tabular-nums border-r border-[#D3D3D3] text-[10.5px]">
                               {internalNr}
                             </td>
-                            <td className="py-0.5 px-1.5 font-mono font-bold border-r border-[#D3D3D3] truncate max-w-[140px]">
+                            <td className="py-0.5 px-1.5 tabular-nums font-bold border-r border-[#D3D3D3] truncate max-w-[140px]">
                               {inv.invoiceNumber}
                             </td>
-                            <td className="py-0.5 px-1.5 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
+                            <td className="py-0.5 px-1.5 text-center tabular-nums border-r border-[#D3D3D3] text-[10.5px]">
                               {formatSagaDate(inv.issueDate)}
                             </td>
-                            <td className="py-0.5 px-1.5 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
+                            <td className="py-0.5 px-1.5 text-center tabular-nums border-r border-[#D3D3D3] text-[10.5px]">
                               {formatSagaDate(inv.dueDate || inv.issueDate)}
                             </td>
-                            <td className="py-0.5 px-2 text-right font-mono border-r border-[#D3D3D3]">
+                            <td className="py-0.5 px-2 text-right tabular-nums border-r border-[#D3D3D3]">
                               {formatSagaCurrency(inv.totalBase)}
                             </td>
-                            <td className="py-0.5 px-2 text-right font-mono border-r border-[#D3D3D3]">
+                            <td className="py-0.5 px-2 text-right tabular-nums border-r border-[#D3D3D3]">
                               {formatSagaCurrency(inv.totalVAT)}
                             </td>
-                            <td className="py-0.5 px-2 text-right font-mono font-bold border-r border-[#D3D3D3]">
+                            <td className="py-0.5 px-2 text-right tabular-nums font-bold border-r border-[#D3D3D3]">
                               {formatSagaCurrency(inv.total)}
                             </td>
-                            <td className="py-0.5 px-1.5 text-center font-mono text-[10.5px] border-r border-[#D3D3D3]">
+                            <td className="py-0.5 px-1.5 text-center tabular-nums text-[10.5px] border-r border-[#D3D3D3]">
                               {inv.spvIndex ? (
                                 <button
                                   type="button"
@@ -1449,7 +1466,7 @@ export default function SagaClassicPortalView({
                                     setShowSpvModal(true);
                                     setSpvSearchQuery(inv.spvIndex);
                                   }}
-                                  className="underline cursor-pointer bg-transparent border-0 p-0 font-mono text-[10.5px] text-blue-900"
+                                  className="underline cursor-pointer bg-transparent border-0 p-0 tabular-nums text-[10.5px] text-blue-900"
                                 >
                                   {inv.spvIndex}
                                 </button>
@@ -1521,7 +1538,7 @@ export default function SagaClassicPortalView({
                       className="flex items-center gap-1 px-3 py-0.5 bg-[#E8F5E9] hover:bg-[#C8E6C9] border-t border-l border-white border-b border-r border-[#808080] text-emerald-950 font-bold cursor-pointer shadow-2xs text-[11px]"
                     >
                       <span>Intră în Dosar: {highlightedPartnerInList.name}</span>
-                      <span>➔</span>
+                      <span>→</span>
                     </button>
                   )}
 
@@ -1542,7 +1559,7 @@ export default function SagaClassicPortalView({
                     className="flex items-center gap-1.5 px-3 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-red-700 font-bold cursor-pointer shadow-2xs text-[11px]"
                     title="Ieșire din ecran"
                   >
-                    <span>🚪</span>
+                    <span></span>
                     <span>Iesire</span>
                   </button>
                 </div>
@@ -1574,14 +1591,14 @@ export default function SagaClassicPortalView({
                     <span className="w-px h-4 bg-[#B0C4DE]" />
 
                     <div className="flex items-center gap-1.5">
-                      <span className="font-mono font-bold text-[#000080] bg-white px-1.5 py-0.2 border border-[#B0C4DE] rounded-xs text-[10.5px]">
+                      <span className="tabular-nums font-bold text-[#000080] bg-white px-1.5 py-0.2 border border-[#B0C4DE] rounded-xs text-[10.5px]">
                         {selectedPartnerObj.code}
                       </span>
                       <span className="font-bold text-slate-900 text-[11.5px]">
                         {selectedPartnerObj.name}
                       </span>
                       {selectedPartnerObj.cui && (
-                        <span className="font-mono text-slate-600 bg-white/80 px-1 py-0.2 border border-[#B0C4DE] rounded-xs text-[10.5px]">
+                        <span className="tabular-nums text-slate-600 bg-white/80 px-1 py-0.2 border border-[#B0C4DE] rounded-xs text-[10.5px]">
                           CUI: {selectedPartnerObj.cui}
                         </span>
                       )}
@@ -1594,13 +1611,13 @@ export default function SagaClassicPortalView({
                         {activeInvoices.length} factur{activeInvoices.length === 1 ? "ă" : "i"}
                       </span>
                       <span>
-                        Bază: <strong className="font-mono text-slate-900">{formatSagaCurrency(selectedPartnerObj.totalBase)}</strong> lei
+                        Bază: <strong className="tabular-nums text-slate-900">{formatSagaCurrency(selectedPartnerObj.totalBase)}</strong> lei
                       </span>
                       <span>
-                        TVA: <strong className="font-mono text-slate-900">{formatSagaCurrency(selectedPartnerObj.totalVat)}</strong> lei
+                        TVA: <strong className="tabular-nums text-slate-900">{formatSagaCurrency(selectedPartnerObj.totalVat)}</strong> lei
                       </span>
                       <span className="text-[#000080] font-bold">
-                        Total: <strong className="font-mono">{formatSagaCurrency(selectedPartnerObj.totalGross)}</strong> lei
+                        Total: <strong className="tabular-nums">{formatSagaCurrency(selectedPartnerObj.totalGross)}</strong> lei
                       </span>
 
                       {activeTab === "received" && selectedPartnerObj.nirCount > 0 && (
@@ -1715,17 +1732,17 @@ export default function SagaClassicPortalView({
                             </td>
 
                             {/* Nr. int. (Număr intern SAGA) */}
-                            <td className="py-0.5 px-1.5 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
+                            <td className="py-0.5 px-1.5 text-center tabular-nums border-r border-[#D3D3D3] text-[10.5px]">
                               {internalNr}
                             </td>
 
                             {/* Nr. doc. (Număr factură furnizor) */}
-                            <td className="py-0.5 px-1.5 font-mono font-bold border-r border-[#D3D3D3] truncate max-w-[140px]">
+                            <td className="py-0.5 px-1.5 tabular-nums font-bold border-r border-[#D3D3D3] truncate max-w-[140px]">
                               {inv.invoiceNumber}
                             </td>
 
                             {/* Cod (Cod partener SAGA) */}
-                            <td className="py-0.5 px-1 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
+                            <td className="py-0.5 px-1 text-center tabular-nums border-r border-[#D3D3D3] text-[10.5px]">
                               {partnerCode}
                             </td>
 
@@ -1772,46 +1789,46 @@ export default function SagaClassicPortalView({
 
                             {/* TVA I (TVA la încasare: căsuță bifată) */}
                             <td className="py-0.5 px-1 text-center border-r border-[#D3D3D3]">
-                              <span className="font-mono text-xs opacity-70">☐</span>
+                              <span className="tabular-nums text-xs opacity-70">☐</span>
                             </td>
 
                             {/* Data */}
-                            <td className="py-0.5 px-1.5 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
+                            <td className="py-0.5 px-1.5 text-center tabular-nums border-r border-[#D3D3D3] text-[10.5px]">
                               {formatSagaDate(inv.issueDate)}
                             </td>
 
                             {/* Scadent */}
-                            <td className="py-0.5 px-1.5 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
+                            <td className="py-0.5 px-1.5 text-center tabular-nums border-r border-[#D3D3D3] text-[10.5px]">
                               {formatSagaDate(inv.dueDate || inv.issueDate)}
                             </td>
 
                             {/* Valoare (bază fără TVA) */}
-                            <td className="py-0.5 px-2 text-right font-mono border-r border-[#D3D3D3]">
+                            <td className="py-0.5 px-2 text-right tabular-nums border-r border-[#D3D3D3]">
                               {formatSagaCurrency(inv.totalBase)}
                             </td>
 
                             {/* Repartizat */}
-                            <td className="py-0.5 px-1.5 text-right font-mono border-r border-[#D3D3D3]">
+                            <td className="py-0.5 px-1.5 text-right tabular-nums border-r border-[#D3D3D3]">
                               0.00
                             </td>
 
                             {/* TVA */}
-                            <td className="py-0.5 px-2 text-right font-mono border-r border-[#D3D3D3]">
+                            <td className="py-0.5 px-2 text-right tabular-nums border-r border-[#D3D3D3]">
                               {formatSagaCurrency(inv.totalVAT)}
                             </td>
 
                             {/* Total Factură */}
-                            <td className="py-0.5 px-2 text-right font-mono font-bold border-r border-[#D3D3D3]">
+                            <td className="py-0.5 px-2 text-right tabular-nums font-bold border-r border-[#D3D3D3]">
                               {formatSagaCurrency(inv.total)}
                             </td>
 
                             {/* Neachitat */}
-                            <td className="py-0.5 px-2 text-right font-mono border-r border-[#D3D3D3]">
+                            <td className="py-0.5 px-2 text-right tabular-nums border-r border-[#D3D3D3]">
                               0.00
                             </td>
 
                             {/* Data document */}
-                            <td className="py-0.5 px-1.5 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
+                            <td className="py-0.5 px-1.5 text-center tabular-nums border-r border-[#D3D3D3] text-[10.5px]">
                               {formatSagaDate(inv.issueDate)}
                             </td>
 
@@ -1824,7 +1841,7 @@ export default function SagaClassicPortalView({
                             </td>
 
                             {/* ID incarcare SPV */}
-                            <td className="py-0.5 px-1.5 text-center font-mono text-[10.5px] border-r border-[#D3D3D3]">
+                            <td className="py-0.5 px-1.5 text-center tabular-nums text-[10.5px] border-r border-[#D3D3D3]">
                               {inv.spvIndex ? (
                                 <button
                                   type="button"
@@ -1833,7 +1850,7 @@ export default function SagaClassicPortalView({
                                     setShowSpvModal(true);
                                     setSpvSearchQuery(inv.spvIndex);
                                   }}
-                                  className={`underline cursor-pointer bg-transparent border-0 p-0 font-mono text-[10.5px] ${
+                                  className={`underline cursor-pointer bg-transparent border-0 p-0 tabular-nums text-[10.5px] ${
                                     isSelected ? "text-amber-200" : "text-blue-900"
                                   }`}
                                   title={`Click pentru detalii SPV ANAF: ${inv.spvIndex}`}
@@ -1900,21 +1917,21 @@ export default function SagaClassicPortalView({
                   readOnly
                   value={selectedNrInt}
                   title="Număr intern"
-                  className="w-20 bg-white border border-[#7F9DB9] px-1.5 py-0.5 text-[10.5px] font-mono text-slate-900 rounded-none shadow-inner focus:outline-none"
+                  className="w-20 bg-white border border-[#7F9DB9] px-1.5 py-0.5 text-[10.5px] tabular-nums text-slate-900 rounded-none shadow-inner focus:outline-none"
                 />
                 <input
                   type="text"
                   readOnly
                   value={selectedNrDoc}
                   title="Număr document furnizor"
-                  className="w-36 bg-white border border-[#7F9DB9] px-1.5 py-0.5 text-[10.5px] font-mono font-bold text-slate-900 rounded-none shadow-inner focus:outline-none"
+                  className="w-36 bg-white border border-[#7F9DB9] px-1.5 py-0.5 text-[10.5px] tabular-nums font-bold text-slate-900 rounded-none shadow-inner focus:outline-none"
                 />
                 <input
                   type="text"
                   readOnly
                   value={selectedCod}
                   title="Cod partener SAGA"
-                  className="w-16 bg-white border border-[#7F9DB9] px-1.5 py-0.5 text-[10.5px] font-mono text-center text-slate-900 rounded-none shadow-inner focus:outline-none"
+                  className="w-16 bg-white border border-[#7F9DB9] px-1.5 py-0.5 text-[10.5px] tabular-nums text-center text-slate-900 rounded-none shadow-inner focus:outline-none"
                 />
                 <input
                   type="text"
@@ -1993,7 +2010,7 @@ export default function SagaClassicPortalView({
                   </button>
                   <button
                     type="button"
-                    className="px-1.5 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-mono font-bold cursor-pointer shadow-2xs text-[11px]"
+                    className="px-1.5 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black tabular-nums font-bold cursor-pointer shadow-2xs text-[11px]"
                     title="Calculator"
                   >
                     fx
@@ -2115,67 +2132,67 @@ export default function SagaClassicPortalView({
                             </td>
 
                             {/* Cod articol */}
-                            <td className="py-0.5 px-1.5 text-center font-mono border-r border-[#D3D3D3] text-[10.5px]">
+                            <td className="py-0.5 px-1.5 text-center tabular-nums border-r border-[#D3D3D3] text-[10.5px]">
                               {line.code || String(idx + 1).padStart(8, "0")}
                             </td>
 
                             {/* UM */}
-                            <td className="py-0.5 px-1 text-center font-mono border-r border-[#D3D3D3] uppercase text-[10.5px]">
+                            <td className="py-0.5 px-1 text-center tabular-nums border-r border-[#D3D3D3] uppercase text-[10.5px]">
                               {line.unit || "BUC"}
                             </td>
 
                             {/* TVA (%) */}
-                            <td className="py-0.5 px-1 text-center font-mono border-r border-[#D3D3D3]">
+                            <td className="py-0.5 px-1 text-center tabular-nums border-r border-[#D3D3D3]">
                               {line.vatRate ? Math.round(line.vatRate) : "21"}
                             </td>
 
                             {/* Cantitate */}
-                            <td className="py-0.5 px-1.5 text-right font-mono border-r border-[#D3D3D3]">
+                            <td className="py-0.5 px-1.5 text-right tabular-nums border-r border-[#D3D3D3]">
                               {formatSagaQty(line.quantity)}
                             </td>
 
                             {/* Pret unitar */}
-                            <td className="py-0.5 px-1.5 text-right font-mono border-r border-[#D3D3D3]">
+                            <td className="py-0.5 px-1.5 text-right tabular-nums border-r border-[#D3D3D3]">
                               {formatSagaUnitPrice(line.unitPrice)}
                             </td>
 
                             {/* Valoare */}
-                            <td className="py-0.5 px-2 text-right font-mono border-r border-[#D3D3D3]">
+                            <td className="py-0.5 px-2 text-right tabular-nums border-r border-[#D3D3D3]">
                               {formatSagaCurrency(line.valoare ?? line.quantity * line.unitPrice)}
                             </td>
 
                             {/* Total */}
-                            <td className="py-0.5 px-2 text-right font-mono font-bold border-r border-[#D3D3D3]">
+                            <td className="py-0.5 px-2 text-right tabular-nums font-bold border-r border-[#D3D3D3]">
                               {formatSagaCurrency(line.total)}
                             </td>
 
                             {/* TVA */}
-                            <td className="py-0.5 px-1.5 text-right font-mono border-r border-[#D3D3D3]">
+                            <td className="py-0.5 px-1.5 text-right tabular-nums border-r border-[#D3D3D3]">
                               {formatSagaCurrency(line.tva ?? line.total - line.quantity * line.unitPrice)}
                             </td>
 
                             {/* Nedeductibil */}
-                            <td className="py-0.5 px-1 text-right font-mono border-r border-[#D3D3D3]">
+                            <td className="py-0.5 px-1 text-right tabular-nums border-r border-[#D3D3D3]">
                               0.00
                             </td>
 
                             {/* Cont */}
-                            <td className="py-0.5 px-1.5 text-center font-mono font-bold border-r border-[#D3D3D3]">
+                            <td className="py-0.5 px-1.5 text-center tabular-nums font-bold border-r border-[#D3D3D3]">
                               {line.account || "3028"}
                             </td>
 
                             {/* Pret vanzare */}
-                            <td className="py-0.5 px-1.5 text-right font-mono border-r border-[#D3D3D3]">
+                            <td className="py-0.5 px-1.5 text-right tabular-nums border-r border-[#D3D3D3]">
                               0.0000
                             </td>
 
                             {/* Adaos unitar */}
-                            <td className="py-0.5 px-1.5 text-right font-mono border-r border-[#D3D3D3]">
+                            <td className="py-0.5 px-1.5 text-right tabular-nums border-r border-[#D3D3D3]">
                               0.00
                             </td>
 
                             {/* % Adaos */}
-                            <td className="py-0.5 px-1 text-center font-mono border-r border-[#D3D3D3]">
+                            <td className="py-0.5 px-1 text-center tabular-nums border-r border-[#D3D3D3]">
                               0
                             </td>
 
@@ -2249,7 +2266,7 @@ export default function SagaClassicPortalView({
                     className="flex items-center gap-1.5 px-3 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-red-700 font-bold cursor-pointer shadow-2xs text-[11px]"
                     title="Ieșire din ecran"
                   >
-                    <span>🚪</span>
+                    <span></span>
                     <span>Iesire</span>
                   </button>
                 </div>
@@ -2267,20 +2284,20 @@ export default function SagaClassicPortalView({
               <>
                 <span>
                   Total {activeTab === "received" ? "Furnizori" : "Clienți"}:{" "}
-                  <strong className="font-mono text-white">{displayedPartners.length}</strong>
+                  <strong className="tabular-nums text-white">{displayedPartners.length}</strong>
                 </span>
                 <span>·</span>
                 <span>
-                  Valoare Bază: <strong className="font-mono text-white">{formatSagaCurrency(currentKpiData.totalBase)} RON</strong>
+                  Valoare Bază: <strong className="tabular-nums text-white">{formatSagaCurrency(currentKpiData.totalBase)} RON</strong>
                 </span>
                 <span>·</span>
                 <span>
-                  TVA: <strong className="font-mono text-white">{formatSagaCurrency(currentKpiData.totalVat)} RON</strong>
+                  TVA: <strong className="tabular-nums text-white">{formatSagaCurrency(currentKpiData.totalVat)} RON</strong>
                 </span>
                 <span>·</span>
                 <span>
                   Total Rulaj General:{" "}
-                  <strong className="font-mono text-amber-300">
+                  <strong className="tabular-nums text-amber-300">
                     {formatSagaCurrency(currentKpiData.totalGross)} RON
                   </strong>
                 </span>
@@ -2292,38 +2309,38 @@ export default function SagaClassicPortalView({
                 </span>
                 <span>·</span>
                 <span>
-                  Documente: <strong className="font-mono text-white">{activeInvoices.length}</strong>
+                  Documente: <strong className="tabular-nums text-white">{activeInvoices.length}</strong>
                 </span>
                 <span>·</span>
                 <span>
-                  Bază: <strong className="font-mono text-white">{formatSagaCurrency(selectedPartnerObj.totalBase)} RON</strong>
+                  Bază: <strong className="tabular-nums text-white">{formatSagaCurrency(selectedPartnerObj.totalBase)} RON</strong>
                 </span>
                 <span>·</span>
                 <span>
-                  TVA: <strong className="font-mono text-white">{formatSagaCurrency(selectedPartnerObj.totalVat)} RON</strong>
+                  TVA: <strong className="tabular-nums text-white">{formatSagaCurrency(selectedPartnerObj.totalVat)} RON</strong>
                 </span>
                 <span>·</span>
                 <span>
-                  Total: <strong className="font-mono text-amber-300">{formatSagaCurrency(selectedPartnerObj.totalGross)} RON</strong>
+                  Total: <strong className="tabular-nums text-amber-300">{formatSagaCurrency(selectedPartnerObj.totalGross)} RON</strong>
                 </span>
               </>
             ) : (
               <>
                 <span>
-                  Total documente: <strong className="font-mono text-white">{currentKpiData.totalCount}</strong>
+                  Total documente: <strong className="tabular-nums text-white">{currentKpiData.totalCount}</strong>
                 </span>
                 <span>·</span>
                 <span>
-                  Valoare Bază: <strong className="font-mono text-white">{formatSagaCurrency(currentKpiData.totalBase)} RON</strong>
+                  Valoare Bază: <strong className="tabular-nums text-white">{formatSagaCurrency(currentKpiData.totalBase)} RON</strong>
                 </span>
                 <span>·</span>
                 <span>
-                  TVA: <strong className="font-mono text-white">{formatSagaCurrency(currentKpiData.totalVat)} RON</strong>
+                  TVA: <strong className="tabular-nums text-white">{formatSagaCurrency(currentKpiData.totalVat)} RON</strong>
                 </span>
                 <span>·</span>
                 <span>
                   Total General:{" "}
-                  <strong className="font-mono text-amber-300">
+                  <strong className="tabular-nums text-amber-300">
                     {formatSagaCurrency(currentKpiData.totalGross)} RON
                   </strong>
                 </span>
@@ -2333,7 +2350,7 @@ export default function SagaClassicPortalView({
                     <span>·</span>
                     <span className="text-emerald-200">
                       NIR-uri:{" "}
-                      <strong className="font-mono">
+                      <strong className="tabular-nums">
                         {currentKpis.withNirCount} / {currentKpis.totalCount} ({currentKpis.nirCoveragePercent}%)
                       </strong>
                     </span>
@@ -2351,7 +2368,7 @@ export default function SagaClassicPortalView({
                 ? "Fișă partener activă · [Esc] revine la lista de parteneri · [Enter] deschide factura · [N] NIR"
                 : "Navigați cu tastele [↑] / [↓] · [Enter] deschide factura · [N] deschide NIR"}
             </span>
-            <span className="text-cyan-200/60 font-mono tracking-wide">www.sagasoft.ro</span>
+            <span className="text-cyan-200/60 tabular-nums tracking-wide">www.sagasoft.ro</span>
           </div>
         </div>
       </div>
@@ -2400,40 +2417,96 @@ export default function SagaClassicPortalView({
                 <div className="flex items-center gap-2 text-[11px] text-slate-700">
                   <span>
                     Facturi Primite din SPV:{" "}
-                    <strong className="font-mono text-blue-900">{spvStats?.totalReceived || 0}</strong>
+                    <strong className="tabular-nums text-blue-900">{spvStats?.totalReceived || 0}</strong>
                   </span>
                   <span>·</span>
                   <span>
                     Validate la ANAF:{" "}
-                    <strong className="font-mono text-emerald-800">{spvStats?.validatedEmitted || 0}</strong>
+                    <strong className="tabular-nums text-emerald-800">{spvStats?.validatedEmitted || 0}</strong>
                   </span>
                   {(spvStats?.errorsCount || 0) > 0 && (
                     <>
                       <span>·</span>
                       <span className="text-red-700 font-bold">
-                        Erori ANAF: <strong className="font-mono">{spvStats?.errorsCount}</strong>
+                        Erori ANAF: <strong className="tabular-nums">{spvStats?.errorsCount}</strong>
                       </span>
                     </>
                   )}
                 </div>
               </div>
 
-              {/* Buton Sincronizează cu SPV ANAF */}
-              <button
-                type="button"
-                disabled={syncSpvMutation.isPending}
-                onClick={() => syncSpvMutation.mutate({ token, sessionToken, zile: 60 })}
-                className="flex items-center gap-1.5 px-3 py-1 bg-[#1F4E79] hover:bg-[#102A43] text-white rounded-xs font-bold text-xs shadow-xs cursor-pointer disabled:opacity-50 transition-colors"
-                title="Descarcă ultimele mesaje și facturi noi direct de la ANAF"
-              >
-                <RefreshCw
-                  className={`w-3.5 h-3.5 ${syncSpvMutation.isPending ? "animate-spin" : ""}`}
-                />
-                <span>
-                  {syncSpvMutation.isPending ? "Se descarcă din SPV..." : "Sincronizează cu SPV ANAF acum"}
-                </span>
-              </button>
+              {/* Butoane Acțiuni SPV ANAF */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={testSpvMutation.isPending}
+                  onClick={() => testSpvMutation.mutate({ token, sessionToken })}
+                  className="flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-slate-50 border border-[#7F9DB9] text-slate-800 rounded-xs font-semibold text-xs shadow-xs cursor-pointer disabled:opacity-50 transition-colors"
+                  title="Verifică starea token-ului ANAF și conexiunea la serverele SPV"
+                >
+                  <Wifi
+                    className={`w-3.5 h-3.5 ${
+                      testSpvMutation.isPending
+                        ? "animate-pulse text-amber-500"
+                        : spvTestResult?.connected
+                        ? "text-emerald-600"
+                        : "text-slate-500"
+                    }`}
+                  />
+                  <span>
+                    {testSpvMutation.isPending ? "Testare conexiune..." : "Testează Conexiunea SPV"}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={syncSpvMutation.isPending}
+                  onClick={() => syncSpvMutation.mutate({ token, sessionToken, zile: 60 })}
+                  className="flex items-center gap-1.5 px-3 py-1 bg-[#1F4E79] hover:bg-[#102A43] text-white rounded-xs font-bold text-xs shadow-xs cursor-pointer disabled:opacity-50 transition-colors"
+                  title="Descarcă ultimele mesaje și facturi noi direct de la ANAF"
+                >
+                  <RefreshCw
+                    className={`w-3.5 h-3.5 ${syncSpvMutation.isPending ? "animate-spin" : ""}`}
+                  />
+                  <span>
+                    {syncSpvMutation.isPending ? "Se descarcă din SPV..." : "Sincronizează cu SPV ANAF acum"}
+                  </span>
+                </button>
+              </div>
             </div>
+
+            {/* Rezultat diagnostic testare conexiune SPV */}
+            {spvTestResult && (
+              <div
+                className={`px-3 py-1.5 text-xs flex items-center justify-between border-b ${
+                  spvTestResult.connected
+                    ? "bg-emerald-50 text-emerald-900 border-emerald-200"
+                    : "bg-red-50 text-red-900 border-red-200"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="font-bold">
+                    {spvTestResult.connected ? "✓ Conexiune SPV Activă" : "✕ Eroare Conexiune SPV"}:
+                  </span>
+                  <span>{spvTestResult.message}</span>
+                </div>
+                <div className="flex items-center gap-3 text-[11px] tabular-nums">
+                  {spvTestResult.cui && <span>CUI: <strong>{spvTestResult.cui}</strong></span>}
+                  {spvTestResult.latencyMs != null && <span>Latență: <strong>{spvTestResult.latencyMs} ms</strong></span>}
+                  {spvTestResult.tokenDaysRemaining != null && (
+                    <span>Token valid: <strong>{spvTestResult.tokenDaysRemaining} zile</strong></span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setSpvTestResult(null)}
+                    className="text-slate-500 hover:text-black font-bold ml-2 cursor-pointer"
+                    title="Închide mesajul de diagnostic"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Filtre și căutare în mesajele SPV */}
             <div className="bg-[#ECE9D8] px-3 py-1.5 flex flex-wrap items-center justify-between gap-2 border-b border-[#999999] shrink-0">
@@ -2532,11 +2605,11 @@ export default function SagaClassicPortalView({
                             </span>
                           </td>
 
-                          <td className="py-1 px-2 text-center font-mono font-bold border-r border-[#D3D3D3] text-blue-950">
+                          <td className="py-1 px-2 text-center tabular-nums font-bold border-r border-[#D3D3D3] text-blue-950">
                             {msg.spvIndex || "—"}
                           </td>
 
-                          <td className="py-1 px-2 font-mono font-semibold border-r border-[#D3D3D3] truncate max-w-[140px]">
+                          <td className="py-1 px-2 tabular-nums font-semibold border-r border-[#D3D3D3] truncate max-w-[140px]">
                             {msg.invoiceNumber}
                           </td>
 
@@ -2544,15 +2617,15 @@ export default function SagaClassicPortalView({
                             {msg.partnerName}
                           </td>
 
-                          <td className="py-1 px-2 font-mono border-r border-[#D3D3D3]">
+                          <td className="py-1 px-2 tabular-nums border-r border-[#D3D3D3]">
                             {msg.partnerCui || "—"}
                           </td>
 
-                          <td className="py-1 px-2 text-center font-mono border-r border-[#D3D3D3]">
+                          <td className="py-1 px-2 text-center tabular-nums border-r border-[#D3D3D3]">
                             {formatSagaDate(msg.issueDate)}
                           </td>
 
-                          <td className="py-1 px-2 text-right font-mono font-bold border-r border-[#D3D3D3]">
+                          <td className="py-1 px-2 text-right tabular-nums font-bold border-r border-[#D3D3D3]">
                             {formatSagaCurrency(msg.total)}
                           </td>
 
@@ -2706,7 +2779,7 @@ export default function SagaClassicPortalView({
                             {alert.description}
                           </div>
 
-                          <div className="mt-2 flex items-center gap-3 font-mono text-[10.5px] text-slate-600">
+                          <div className="mt-2 flex items-center gap-3 tabular-nums text-[10.5px] text-slate-600">
                             <span>Document: <strong>{alert.docNumber}</strong></span>
                             {alert.spvIndex && (
                               <span>Index SPV: <strong>{alert.spvIndex}</strong></span>

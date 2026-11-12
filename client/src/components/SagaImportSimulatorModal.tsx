@@ -252,11 +252,11 @@ export function SagaImportSimulatorModal({
           <div className="flex-1 flex flex-col overflow-hidden p-3 bg-slate-900 text-slate-100 select-text">
             <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-700 text-xs text-slate-400">
               <span>
-                Fișier generat: <strong className="text-white font-mono">{data.filename}</strong> (Codificare SAGA: Windows-1250)
+                Fișier generat: <strong className="text-white tabular-nums">{data.filename}</strong> (Codificare SAGA: Windows-1250)
               </span>
               <span>{data.xml.length.toLocaleString("ro-RO")} caractere</span>
             </div>
-            <pre className="flex-1 overflow-auto font-mono text-xs leading-relaxed text-emerald-300 bg-slate-950 p-4 rounded border border-slate-800 select-all">
+            <pre className="flex-1 overflow-auto tabular-nums text-xs leading-relaxed text-emerald-300 bg-slate-950 p-4 rounded border border-slate-800 select-all">
               {data.xml}
             </pre>
           </div>
@@ -599,7 +599,7 @@ export function SagaImportSimulatorModal({
                             )}
                           </div>
                         </td>
-                        <td className="px-1.5 py-0.5 border-r border-[#d9e2ec] font-mono text-slate-900">
+                        <td className="px-1.5 py-0.5 border-r border-[#d9e2ec] tabular-nums text-slate-900">
                           {line.cod ? (
                             <div className="flex items-center justify-between gap-1">
                               <span>{line.cod}</span>

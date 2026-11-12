@@ -20,14 +20,30 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ro } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DownloadCloud, UploadCloud, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { DownloadCloud, UploadCloud, CheckCircle2, AlertCircle, Clock, Wifi, Activity, RefreshCw, Loader2, ShieldCheck } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { isTransmittedInDeadline } from "@/lib/spvDeadline";
+import { toast } from "sonner";
 
 export default function SpvLogs() {
   const { data: logs, isLoading } = trpc.spvLogs.list.useQuery();
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [testResult, setTestResult] = useState<any>(null);
+
+  const testSpvMutation = trpc.integrations.testSpvConnection.useMutation({
+    onSuccess: (data) => {
+      setTestResult(data);
+      if (data.connected) {
+        toast.success(data.message);
+      } else {
+        toast.error(data.message);
+      }
+    },
+    onError: (err) => {
+      toast.error(`Eroare la testarea conexiunii: ${err.message}`);
+    },
+  });
 
   const filteredLogs = logs?.filter(log => {
     if (filterType !== "all" && log.type !== filterType) return false;
@@ -54,12 +70,102 @@ export default function SpvLogs() {
   return (
     <>
       <div className="p-3 sm:p-5 max-w-full space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Jurnal Sincronizări SPV ANAF</h1>
-          <p className="text-slate-500 mt-1">
-            Istoricul complet al facturilor trimise și primite din sistemul național e-Factura.
-          </p>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Jurnal Sincronizări SPV ANAF</h1>
+            <p className="text-slate-500 mt-1">
+              Istoricul complet al facturilor trimise și primite din sistemul național e-Factura.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => testSpvMutation.mutate()}
+              disabled={testSpvMutation.isPending}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
+            >
+              {testSpvMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Se testează conexiunea...</span>
+                </>
+              ) : (
+                <>
+                  <Wifi className="w-4 h-4" />
+                  <span>Testează Conexiunea SPV ANAF</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
+
+        {/* Panou Rezultat Diagnostic SPV ANAF */}
+        {testResult && (
+          <div
+            className={`p-4 rounded-xl border transition-all ${
+              testResult.connected
+                ? testResult.status === "warning"
+                  ? "bg-amber-50/80 border-amber-200 text-amber-900"
+                  : "bg-emerald-50/80 border-emerald-200 text-emerald-950"
+                : "bg-red-50/80 border-red-200 text-red-950"
+            }`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div
+                  className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                    testResult.connected
+                      ? testResult.status === "warning"
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-emerald-100 text-emerald-700"
+                      : "bg-red-100 text-red-700"
+                  }`}
+                >
+                  {testResult.connected ? (
+                    <ShieldCheck className="w-5 h-5" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5" />
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-sm">
+                      {testResult.connected ? "Conexiune SPV Activă" : "Conexiune SPV Eșuată"}
+                    </span>
+                    {testResult.latencyMs !== null && (
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-white/70 border border-current">
+                        Latență: {testResult.latencyMs} ms
+                      </span>
+                    )}
+                    {testResult.cui && (
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-white/70 border border-current">
+                        CUI: {testResult.cui}
+                      </span>
+                    )}
+                    {testResult.daysRemaining !== null && (
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-white/70 border border-current">
+                        Token valabil: {testResult.daysRemaining} zile
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs">{testResult.message}</p>
+                  {testResult.detail && (
+                    <p className="text-[11px] opacity-80">{testResult.detail}</p>
+                  )}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTestResult(null)}
+                className="text-xs opacity-60 hover:opacity-100 p-1 cursor-pointer"
+                title="Închide diagnosticul"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -186,7 +292,7 @@ export default function SpvLogs() {
                           })()}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="font-mono bg-slate-50">
+                          <Badge variant="outline" className="tabular-nums bg-slate-50">
                             {log.spvIndex || "Fără Index"}
                           </Badge>
                         </TableCell>

@@ -481,7 +481,7 @@ export default function HorecaTestPanel() {
                         {o.syrveOrderId && (
                           <p className="text-xs text-muted-foreground mt-2">
                             Syrve ID:{" "}
-                            <span className="font-mono">{o.syrveOrderId}</span>
+                            <span className="tabular-nums">{o.syrveOrderId}</span>
                           </p>
                         )}
                       </div>
@@ -524,7 +524,7 @@ export default function HorecaTestPanel() {
                       )}
                       <div className="flex-1">
                         <h3 className="font-bold text-lg">{b.name || b.id}</h3>
-                        <p className="text-xs text-muted-foreground font-mono">
+                        <p className="text-xs text-muted-foreground tabular-nums">
                           {b.id}
                         </p>
                         {b.primaryColor && (
@@ -533,7 +533,7 @@ export default function HorecaTestPanel() {
                               className="w-5 h-5 rounded-full border border-border"
                               style={{ backgroundColor: b.primaryColor }}
                             ></div>
-                            <span className="text-xs font-mono">
+                            <span className="text-xs tabular-nums">
                               {b.primaryColor}
                             </span>
                           </div>
@@ -541,7 +541,7 @@ export default function HorecaTestPanel() {
                         {b.syrveMenuId && (
                           <p className="text-xs text-muted-foreground mt-1">
                             Syrve Menu:{" "}
-                            <span className="font-mono">
+                            <span className="tabular-nums">
                               {b.syrveMenuId.substring(0, 20)}...
                             </span>
                           </p>

@@ -323,12 +323,12 @@ export default function PlanConturiCombobox({
             className={`${stacked ? "absolute inset-0 opacity-0 cursor-pointer " : ""}w-full bg-transparent text-slate-900 dark:text-white focus:outline-none truncate ${
               displayMode === "name"
                 ? `font-medium ${isSmall ? "text-xs text-left" : "text-sm text-left"}`
-                : `font-bold font-mono ${isSmall ? "text-xs text-left pl-1" : "text-sm text-left pl-1"}`
+                : `font-bold tabular-nums ${isSmall ? "text-xs text-left pl-1" : "text-sm text-left pl-1"}`
             }`}
           />
           {stacked && selectedAccount && (
             <div className="pointer-events-none leading-tight py-0.5">
-              <div className="font-mono font-bold text-xs text-slate-900 dark:text-white truncate">
+              <div className="tabular-nums font-bold text-xs text-slate-900 dark:text-white truncate">
                 {selectedAccount.cod}
               </div>
               <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate">
@@ -353,7 +353,7 @@ export default function PlanConturiCombobox({
                 borderColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 30%, transparent)",
                 color: "var(--tenant-theme-color, #16a34a)",
               }}
-              className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[11px] font-mono font-bold border shrink-0"
+              className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[11px] tabular-nums font-bold border shrink-0"
             >
               {selectedAccount.cod}
             </span>
@@ -410,7 +410,7 @@ export default function PlanConturiCombobox({
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                 Conturi Frecvente NIR
               </span>
-              <span className="text-[10px] text-slate-400 font-mono">
+              <span className="text-[10px] text-slate-400 tabular-nums">
                 {filteredAccounts.length} rezultate
               </span>
             </div>
@@ -438,7 +438,7 @@ export default function PlanConturiCombobox({
                         : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-400"
                     }`}
                   >
-                    <span className="font-mono font-bold">{pop.cod}</span>{" "}
+                    <span className="tabular-nums font-bold">{pop.cod}</span>{" "}
                     <span className="text-[10px] font-normal opacity-85">
                       {pop.shortLabel || pop.denumire}
                     </span>
@@ -498,7 +498,7 @@ export default function PlanConturiCombobox({
                               }
                             : {}
                         }
-                        className={`px-1.5 py-0.5 rounded font-mono font-bold text-xs shrink-0 border ${
+                        className={`px-1.5 py-0.5 rounded tabular-nums font-bold text-xs shrink-0 border ${
                           isSelected
                             ? ""
                             : "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700"

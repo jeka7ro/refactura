@@ -134,7 +134,7 @@ export default function ApiKeysPage() {
                 <tr key={k.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
                   <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{k.name}</td>
                   <td className="px-4 py-3">
-                    <code className="text-xs bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded font-mono text-slate-600 dark:text-slate-300">
+                    <code className="text-xs bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded tabular-nums text-slate-600 dark:text-slate-300">
                       {k.keyPrefix}…
                     </code>
                   </td>
@@ -178,7 +178,7 @@ export default function ApiKeysPage() {
           <ExternalLink className="w-4 h-4 text-slate-400" />
           <h3 className="text-sm font-semibold text-white">Referinta API</h3>
         </div>
-        <div className="space-y-4 text-xs font-mono">
+        <div className="space-y-4 text-xs tabular-nums">
 
           {/* Facturi Primite */}
           <p className="text-slate-400 text-xs font-sans font-semibold uppercase tracking-wider">Facturi Primite</p>

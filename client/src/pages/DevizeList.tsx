@@ -282,7 +282,7 @@ export default function DevizeList() {
                       key={row.id}
                       className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                     >
-                      <td className="px-3 py-2.5 text-slate-400 font-mono">
+                      <td className="px-3 py-2.5 text-slate-400 tabular-nums">
                         {(page - 1) * rowsPerPage + i + 1}
                       </td>
                       <td className="px-3 py-2.5 whitespace-nowrap">
@@ -301,7 +301,7 @@ export default function DevizeList() {
                           {row.clientName || "—"}
                         </div>
                         {row.clientCUI && row.clientCUI !== "—" && (
-                          <div className="text-[11px] font-mono text-slate-500">
+                          <div className="text-[11px] tabular-nums text-slate-500">
                             CUI: {row.clientCUI}
                           </div>
                         )}
@@ -310,7 +310,7 @@ export default function DevizeList() {
                         {row.invoiceId ? (
                           <Link
                             href={`/facturi-emise-nou/${row.invoiceId}`}
-                            className="font-mono font-medium text-sky-600 dark:text-sky-400 hover:underline"
+                            className="tabular-nums font-medium text-sky-600 dark:text-sky-400 hover:underline"
                             title="Deschide factura"
                           >
                             {row.invoiceNumber}
@@ -319,13 +319,13 @@ export default function DevizeList() {
                           <span className="text-slate-400">—</span>
                         )}
                       </td>
-                      <td className="px-3 py-2.5 text-right font-mono text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                      <td className="px-3 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">
                         {netVal.toFixed(2)}
                       </td>
-                      <td className="px-3 py-2.5 text-right font-mono text-slate-500 whitespace-nowrap">
+                      <td className="px-3 py-2.5 text-right tabular-nums text-slate-500 whitespace-nowrap">
                         {vatVal.toFixed(2)}
                       </td>
-                      <td className="px-3 py-2.5 font-bold font-mono text-slate-900 dark:text-white text-right whitespace-nowrap">
+                      <td className="px-3 py-2.5 font-bold tabular-nums text-slate-900 dark:text-white text-right whitespace-nowrap">
                         {grossVal.toFixed(2)} {curr}
                       </td>
                       <td className="px-3 py-2.5 text-center whitespace-nowrap">

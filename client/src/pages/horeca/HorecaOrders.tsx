@@ -330,7 +330,7 @@ export default function HorecaOrders() {
                   paginated.map((order, idx) => {
                     const typeOpt = TYPE_OPTS[
                       order.type as keyof typeof TYPE_OPTS
-                    ] || { label: order.type, icon: "🏷️" };
+                    ] || { label: order.type, icon: "" };
                     const stOpt = STATUS_OPTS[
                       order.status as keyof typeof STATUS_OPTS
                     ] || {

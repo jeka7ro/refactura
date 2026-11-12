@@ -1033,7 +1033,7 @@ export function CompanyPinLockModal({
                   <Timer className="w-4 h-4 shrink-0 text-amber-400" />
                   <span>Blocat temporar (3 încercări greșite)</span>
                 </div>
-                <span className="font-mono text-xs px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+                <span className="tabular-nums text-xs px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
                   {lockoutRemaining}s
                 </span>
               </div>

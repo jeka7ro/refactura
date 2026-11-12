@@ -62,12 +62,12 @@ export const AVAILABLE_LANGUAGES: Array<{
   name: string;
   flag: string;
 }> = [
-  { code: "ro", name: "Română", flag: "🇷🇴" },
-  { code: "en", name: "English", flag: "🇬🇧" },
-  { code: "fr", name: "Français", flag: "🇫🇷" },
-  { code: "nl", name: "Nederlands", flag: "🇳🇱" },
-  { code: "de", name: "Deutsch", flag: "🇩🇪" },
-  { code: "hu", name: "Magyar", flag: "🇭🇺" },
+  { code: "ro", name: "Română", flag: "" },
+  { code: "en", name: "English", flag: "" },
+  { code: "fr", name: "Français", flag: "" },
+  { code: "nl", name: "Nederlands", flag: "" },
+  { code: "de", name: "Deutsch", flag: "" },
+  { code: "hu", name: "Magyar", flag: "" },
 ];
 
 export default function EmittedInvoiceDetail() {
@@ -309,7 +309,7 @@ export default function EmittedInvoiceDetail() {
             <div className="text-sm font-semibold text-slate-900 dark:text-white flex items-center justify-between gap-2">
               <span>{invoice.clientName || "—"}</span>
               {invoice.clientCode && (
-                <span className="px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs font-mono font-bold">
+                <span className="px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs tabular-nums font-bold">
                   Cod SAGA: {invoice.clientCode}
                 </span>
               )}
@@ -413,7 +413,7 @@ export default function EmittedInvoiceDetail() {
                   <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
                   <span>Mesaj eroare de la ANAF (RO e-Factura):</span>
                 </div>
-                <p className="font-mono text-[11px] leading-relaxed bg-white/80 dark:bg-slate-900/60 p-2 rounded border border-rose-100 dark:border-rose-900 break-words">
+                <p className="tabular-nums text-[11px] leading-relaxed bg-white/80 dark:bg-slate-900/60 p-2 rounded border border-rose-100 dark:border-rose-900 break-words">
                   {invoice.spvError}
                 </p>
                 <p className="mt-2 text-[11px] text-slate-600 dark:text-slate-400">
@@ -509,7 +509,7 @@ export default function EmittedInvoiceDetail() {
                 {latestEmailLog.status === "eroare" && latestEmailLog.error && (
                   <div className="p-2 rounded bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-[11px] text-rose-700 dark:text-rose-300">
                     <span className="font-semibold block mb-0.5">Motiv eroare:</span>
-                    <span className="break-all font-mono text-[10px]">{latestEmailLog.error}</span>
+                    <span className="break-all tabular-nums text-[10px]">{latestEmailLog.error}</span>
                   </div>
                 )}
                 {invoiceEmailLogs && invoiceEmailLogs.length > 1 && (() => {
@@ -537,7 +537,7 @@ export default function EmittedInvoiceDetail() {
                 {latestEmailLog.messageId && (
                   <div className="flex justify-between items-center text-[11px] text-slate-400">
                     <span>Message ID:</span>
-                    <span className="font-mono text-[10px] truncate max-w-[120px]" title={latestEmailLog.messageId}>
+                    <span className="tabular-nums text-[10px] truncate max-w-[120px]" title={latestEmailLog.messageId}>
                       {latestEmailLog.messageId}
                     </span>
                   </div>
@@ -1066,7 +1066,7 @@ export default function EmittedInvoiceDetail() {
                   <strong className="text-slate-900 dark:text-white">
                     {latestEmailLog?.recipientName || latestEmailLog?.recipientEmail || invoice.clientName}
                   </strong>{" "}
-                  <span className="text-slate-500 font-mono text-[11px]">
+                  <span className="text-slate-500 tabular-nums text-[11px]">
                     &lt;{latestEmailLog?.recipientEmail || invoice.clientEmail}&gt;
                   </span>
                 </div>

@@ -202,7 +202,7 @@ export function BnrInvoiceRateToggle({
             placeholder={bnrRateInfo?.rateStr || "5.3527"}
             value={customRate || bnrRateInfo?.rateStr || ""}
             onChange={(e) => setCustomRate(e.target.value)}
-            className="w-20 h-8 px-2 text-xs font-mono font-bold rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs"
+            className="w-20 h-8 px-2 text-xs tabular-nums font-bold rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs"
           />
 
           <span className="font-semibold text-slate-700 dark:text-slate-300">RON</span>

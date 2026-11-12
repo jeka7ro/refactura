@@ -1411,7 +1411,7 @@ export function registerPdfRoute(app: any) {
           .font("Roboto-Bold")
           .fillColor("#92400e")
           .text(
-            "⚠ ATENȚIE: Există diferențe cantitative — NIR se întocmește în 3 exemplare (conf. OMFP 2634/2015)",
+            "ATENȚIE: Există diferențe cantitative — NIR se întocmește în 3 exemplare (conf. OMFP 2634/2015)",
             50,
             y + 6
           );
@@ -1569,6 +1569,26 @@ export function registerPdfRoute(app: any) {
         const [byArchive] = await db.select().from(nir).where(eqOp(nir.invoiceArchiveId, id));
         if (byArchive) {
           nirRow = byArchive;
+        } else {
+          // Fallback 2: căutare prin invoiceArchive (dacă NIR e legat doar prin invoiceNumber)
+          const { invoiceArchive } = await import("../drizzle/schema");
+          const [invArchive] = await db
+            .select({ invoiceNumber: invoiceArchive.invoiceNumber, tenantId: invoiceArchive.tenantId })
+            .from(invoiceArchive)
+            .where(eqOp(invoiceArchive.id, id));
+          if (invArchive && invArchive.invoiceNumber) {
+            const [byNum] = await db
+              .select()
+              .from(nir)
+              .where(
+                andOp(
+                  eqOp(nir.tenantId, invArchive.tenantId),
+                  eqOp(nir.invoiceNumber, invArchive.invoiceNumber)
+                )
+              )
+              .limit(1);
+            if (byNum) nirRow = byNum;
+          }
         }
       }
       if (!nirRow) {

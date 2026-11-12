@@ -12,31 +12,31 @@ const BRAND_INFO = {
   smashme: {
     label: "SmashMe",
     color: "#EE3B24",
-    emoji: "🍔",
+    emoji: "",
     desc: "Burgeri smash suculenți",
   },
   crunch: {
     label: "Crunch",
     color: "#FFB800",
-    emoji: "🍗",
+    emoji: "",
     desc: "Pui crispy delicios",
   },
   rollmaster: {
     label: "Roll Master",
     color: "#E31E24",
-    emoji: "🍣",
+    emoji: "",
     desc: "Bucătărie japoneză autentică",
   },
   lovesushi: {
     label: "Love Sushi",
     color: "#E31E24",
-    emoji: "🍣",
+    emoji: "",
     desc: "Iubim sushi-ul",
   },
   pokiwoki: {
     label: "Poki-Woki",
     color: "#F97316",
-    emoji: "🥗",
+    emoji: "",
     desc: "Hawaiian Poke Bowls",
   },
 };
@@ -122,7 +122,7 @@ export default function BrandSelectScreen() {
           const info = BRAND_INFO[bId] || {
             label: bId,
             color: "#6b7a99",
-            emoji: "🍽",
+            emoji: "",
             desc: "",
           };
           const brandConfig = BRANDS[bId];

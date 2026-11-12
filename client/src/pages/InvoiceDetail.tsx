@@ -140,7 +140,7 @@ export default function InvoiceDetail() {
                 Factură Emisă (SPV)
               </span>
               {spvIndex && (
-                <span className="px-2.5 h-8 flex items-center rounded-lg text-xs font-mono font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                <span className="px-2.5 h-8 flex items-center rounded-lg text-xs tabular-nums font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                   Index SPV: {spvIndex}
                 </span>
               )}
@@ -212,7 +212,7 @@ export default function InvoiceDetail() {
               {spvIndex && (
                 <div className="flex justify-between sm:block sm:mb-1">
                   <span className="text-slate-500 sm:hidden">Index SPV:</span>{" "}
-                  <span className="text-slate-600 dark:text-slate-300 font-mono">
+                  <span className="text-slate-600 dark:text-slate-300 tabular-nums">
                     <span className="hidden sm:inline">Index SPV: </span>{spvIndex}
                   </span>
                 </div>

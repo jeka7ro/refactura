@@ -1193,7 +1193,7 @@ export default function ContractCreate() {
                 Partener (SAGA)
               </label>
               {selectedPartner ? (
-                <span className="text-[11px] text-slate-500 font-mono">
+                <span className="text-[11px] text-slate-500 tabular-nums">
                   CUI: {selectedPartner.cui || "-"} {selectedPartner.regCom ? `• Reg. Com: ${selectedPartner.regCom}` : ""} {selectedPartner.city ? `• ${selectedPartner.city}` : ""}
                 </span>
               ) : (
@@ -1232,7 +1232,7 @@ export default function ContractCreate() {
                     value={partnerPhone}
                     onChange={(e) => handleContactChange("phone", e.target.value)}
                     placeholder="ex: 0722..."
-                    className="h-7 text-xs px-2 rounded-lg font-mono bg-slate-50/70 dark:bg-slate-800/60"
+                    className="h-7 text-xs px-2 rounded-lg tabular-nums bg-slate-50/70 dark:bg-slate-800/60"
                   />
                 </div>
                 <div>
@@ -1275,7 +1275,7 @@ export default function ContractCreate() {
                   type="text"
                   value={docNumber}
                   onChange={(e) => handleCommercialChange({ docNumber: e.target.value })}
-                  className="h-6 w-16 rounded text-xs font-mono font-bold text-center px-1 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700"
+                  className="h-6 w-16 rounded text-xs tabular-nums font-bold text-center px-1 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700"
                 />
                 <button
                   type="button"
@@ -1310,7 +1310,7 @@ export default function ContractCreate() {
                   value={docValue}
                   onChange={(e) => handleCommercialChange({ docValue: e.target.value })}
                   placeholder="ex: 28.305,71"
-                  className="h-6 w-28 rounded text-xs font-mono font-bold text-right px-1.5 bg-white dark:bg-slate-900 border-emerald-300 dark:border-emerald-700"
+                  className="h-6 w-28 rounded text-xs tabular-nums font-bold text-right px-1.5 bg-white dark:bg-slate-900 border-emerald-300 dark:border-emerald-700"
                 />
                 <div className="inline-flex items-center p-0.5 rounded-md bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700">
                   <button
@@ -1375,7 +1375,7 @@ export default function ContractCreate() {
                   value={offerNumber}
                   onChange={(e) => handleCommercialChange({ offerNumber: e.target.value })}
                   placeholder="4089"
-                  className="h-6 w-16 rounded text-xs font-mono px-1.5 bg-white dark:bg-slate-900 border-blue-300 dark:border-blue-700"
+                  className="h-6 w-16 rounded text-xs tabular-nums px-1.5 bg-white dark:bg-slate-900 border-blue-300 dark:border-blue-700"
                 />
                 <span className="text-slate-400">/</span>
                 <Input
@@ -1631,7 +1631,7 @@ export default function ContractCreate() {
           <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
             {/* Rezumat Rapid pentru ceilalți tenanți */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-xs font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
+              <span className="tabular-nums text-xs font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
                 Nr. {docNumber}
               </span>
               <span className="text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 px-2.5 py-1 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
@@ -1646,7 +1646,7 @@ export default function ContractCreate() {
                     value={docValue}
                     onChange={(e) => handleCommercialChange({ docValue: e.target.value })}
                     placeholder="ex: 2.864,65"
-                    className="h-6 w-24 rounded text-xs font-mono font-bold text-right px-1.5 bg-white dark:bg-slate-900 border-emerald-300 dark:border-emerald-700"
+                    className="h-6 w-24 rounded text-xs tabular-nums font-bold text-right px-1.5 bg-white dark:bg-slate-900 border-emerald-300 dark:border-emerald-700"
                   />
                   <select
                     value={docCurrency}
@@ -1780,7 +1780,7 @@ export default function ContractCreate() {
                           value={offerNumber}
                           onChange={(e) => handleCommercialChange({ offerNumber: e.target.value })}
                           placeholder="Ex: 4650 sau OFR 4761"
-                          className="h-8 rounded-lg text-xs font-mono px-2 bg-white dark:bg-slate-800"
+                          className="h-8 rounded-lg text-xs tabular-nums px-2 bg-white dark:bg-slate-800"
                         />
                       </div>
 
@@ -1807,7 +1807,7 @@ export default function ContractCreate() {
                             type="text"
                             value={deliveryDays}
                             onChange={(e) => handleCommercialChange({ deliveryDays: e.target.value })}
-                            className="h-8 rounded-lg text-xs font-mono text-center px-2 bg-white dark:bg-slate-800"
+                            className="h-8 rounded-lg text-xs tabular-nums text-center px-2 bg-white dark:bg-slate-800"
                           />
                           <span className="text-[11px] text-slate-500 font-medium shrink-0">zile cal.</span>
                         </div>
@@ -1823,7 +1823,7 @@ export default function ContractCreate() {
                             type="text"
                             value={warrantyYears}
                             onChange={(e) => handleCommercialChange({ warrantyYears: e.target.value })}
-                            className="h-8 rounded-lg text-xs font-mono text-center px-2 bg-white dark:bg-slate-800"
+                            className="h-8 rounded-lg text-xs tabular-nums text-center px-2 bg-white dark:bg-slate-800"
                           />
                           <span className="text-[11px] text-slate-500 font-medium shrink-0">ani</span>
                         </div>
@@ -1845,7 +1845,7 @@ export default function ContractCreate() {
                       type="text"
                       value={basePrice}
                       onChange={(e) => handleCommercialChange({ basePrice: e.target.value })}
-                      className="h-6 w-14 rounded text-xs font-mono text-center px-1"
+                      className="h-6 w-14 rounded text-xs tabular-nums text-center px-1"
                     />
                     <span className="text-[10px] text-slate-500 font-medium">{docCurrency} / lună</span>
                   </div>
@@ -1875,7 +1875,7 @@ export default function ContractCreate() {
                           max="12"
                           value={trialMonths}
                           onChange={(e) => handleCommercialChange({ trialMonths: parseInt(e.target.value) || 1 })}
-                          className="h-6 w-11 rounded text-xs font-mono text-center px-1"
+                          className="h-6 w-11 rounded text-xs tabular-nums text-center px-1"
                         />
                         <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium">luni</span>
                       </div>
@@ -1905,7 +1905,7 @@ export default function ContractCreate() {
                           type="text"
                           value={promoPrice}
                           onChange={(e) => handleCommercialChange({ promoPrice: e.target.value })}
-                          className="h-6 w-14 rounded text-xs font-mono text-center px-1"
+                          className="h-6 w-14 rounded text-xs tabular-nums text-center px-1"
                         />
                         <span className="text-[10px] text-blue-700 dark:text-blue-400 font-medium">{docCurrency} primele</span>
                         <Input
@@ -1914,7 +1914,7 @@ export default function ContractCreate() {
                           max="12"
                           value={promoMonths}
                           onChange={(e) => handleCommercialChange({ promoMonths: parseInt(e.target.value) || 1 })}
-                          className="h-6 w-11 rounded text-xs font-mono text-center px-1"
+                          className="h-6 w-11 rounded text-xs tabular-nums text-center px-1"
                         />
                         <span className="text-[10px] text-blue-700 dark:text-blue-400 font-medium">luni</span>
                       </div>
@@ -1930,7 +1930,7 @@ export default function ContractCreate() {
                       max="60"
                       value={totalDurationMonths}
                       onChange={(e) => handleCommercialChange({ totalDurationMonths: parseInt(e.target.value) || 12 })}
-                      className="h-6 w-12 rounded text-xs font-mono text-center px-1"
+                      className="h-6 w-12 rounded text-xs tabular-nums text-center px-1"
                     />
                     <span className="text-[10px] text-slate-500 font-medium">luni</span>
                     <span className="text-slate-300 dark:text-slate-600">|</span>
@@ -1941,7 +1941,7 @@ export default function ContractCreate() {
                       max="36"
                       value={autoRenewalMonths}
                       onChange={(e) => handleCommercialChange({ autoRenewalMonths: parseInt(e.target.value) || 12 })}
-                      className="h-6 w-12 rounded text-xs font-mono text-center px-1"
+                      className="h-6 w-12 rounded text-xs tabular-nums text-center px-1"
                     />
                     <span className="text-[10px] text-slate-500 font-medium">luni</span>
                   </div>
@@ -1981,7 +1981,7 @@ export default function ContractCreate() {
                 <Input
                   value={docNumber}
                   onChange={(e) => handleCommercialChange({ docNumber: e.target.value })}
-                  className="h-8 rounded-lg text-xs font-mono px-2 bg-white dark:bg-slate-800"
+                  className="h-8 rounded-lg text-xs tabular-nums px-2 bg-white dark:bg-slate-800"
                 />
               </div>
 
@@ -2017,7 +2017,7 @@ export default function ContractCreate() {
                     type="text"
                     value={paymentTermDays}
                     onChange={(e) => setPaymentTermDays(e.target.value)}
-                    className="h-8 rounded-lg text-xs font-mono px-2 text-center bg-white dark:bg-slate-800"
+                    className="h-8 rounded-lg text-xs tabular-nums px-2 text-center bg-white dark:bg-slate-800"
                   />
                   <span className="text-[11px] text-slate-500 font-medium">zile</span>
                 </div>

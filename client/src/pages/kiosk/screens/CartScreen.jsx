@@ -94,7 +94,7 @@ export default function CartScreen() {
     return (
       <div className="cart-screen screen">
         <div className="cart-empty">
-          <span className="cart-empty-icon">🛒</span>
+          <span className="cart-empty-icon"></span>
           <h2>{t("cart_empty", lang)}</h2>
           <p>{t("add_more", lang)}</p>
           <button
@@ -246,8 +246,7 @@ export default function CartScreen() {
                         className="ci-remove"
                         onClick={() => removeFromCart(item.id)}
                       >
-                        🗑️
-                      </button>
+                        </button>
                     </div>
                   </div>
                 ))}
@@ -266,7 +265,7 @@ export default function CartScreen() {
             <div className="cart-suggestions">
               <div className="cart-sugg-header">
                 <span className="cart-sugg-title">
-                  🔥 {t("add_also", lang) || "Adaugă și..."}
+                  {t("add_also", lang) || "Adaugă și..."}
                 </span>
                 <span className="cart-sugg-sub">
                   {t("complete_order", lang) || "Completează comanda ta"}
@@ -286,10 +285,10 @@ export default function CartScreen() {
                           alt={prod.name}
                         />
                       ) : (
-                        <span style={{ fontSize: "1.8rem" }}>🍽️</span>
+                        <span style={{ fontSize: "1.8rem" }}></span>
                       )}
                       {addedIds[prod.id] && (
-                        <div className="cart-sugg-added-overlay">✓</div>
+                        <div className="cart-sugg-added-overlay"></div>
                       )}
                     </div>
                     <div className="cart-sugg-info">

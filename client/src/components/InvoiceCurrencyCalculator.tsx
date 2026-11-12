@@ -247,7 +247,7 @@ export function InvoiceCurrencyCalculator({
               <h4 className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
                 Calculator Valutar BNR
               </h4>
-              <span className="text-[10px] text-slate-400 font-mono">
+              <span className="text-[10px] text-slate-400 tabular-nums">
                 ({bnrDate})
               </span>
             </div>
@@ -268,7 +268,7 @@ export function InvoiceCurrencyCalculator({
             scrollbarWidth: "thin",
           }}
         >
-          {/* Butoane rapide de comutare direcție: EUR ➔ RON vs RON ➔ EUR */}
+          {/* Butoane rapide de comutare direcție: EUR RON vs RON EUR */}
           <div className="grid grid-cols-2 gap-1 p-0.5 bg-slate-100 dark:bg-slate-800/80 rounded-lg">
             <button
               type="button"
@@ -286,7 +286,7 @@ export function InvoiceCurrencyCalculator({
               )}
             >
               <EuFlag className="w-3.5 h-2.5" />
-              <span>EUR ➔ RON</span>
+              <span>EUR RON</span>
             </button>
             <button
               type="button"
@@ -304,7 +304,7 @@ export function InvoiceCurrencyCalculator({
               )}
             >
               <RoFlag className="w-3.5 h-2.5" />
-              <span>RON ➔ EUR</span>
+              <span>RON EUR</span>
             </button>
           </div>
 
@@ -314,8 +314,8 @@ export function InvoiceCurrencyCalculator({
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
                 Sumă de convertit
               </label>
-              <span className="text-[10px] font-mono text-slate-400">
-                {fromCurrency} ➔ {toCurrency}
+              <span className="text-[10px] tabular-nums text-slate-400">
+                {fromCurrency} {toCurrency}
               </span>
             </div>
 
@@ -379,7 +379,7 @@ export function InvoiceCurrencyCalculator({
                 type="button"
                 onClick={() => setAmount(String(p))}
                 className={cn(
-                  "px-1.5 py-0.5 text-[10px] font-mono font-medium rounded border transition-colors cursor-pointer",
+                  "px-1.5 py-0.5 text-[10px] tabular-nums font-medium rounded border transition-colors cursor-pointer",
                   amount === String(p)
                     ? "bg-emerald-600 text-white border-emerald-600 font-bold"
                     : "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200"
@@ -416,7 +416,7 @@ export function InvoiceCurrencyCalculator({
               <span className="text-slate-600 dark:text-slate-400 font-medium text-[10px]">
                 Echivalent la cursul BNR:
               </span>
-              <span className="font-mono font-bold text-emerald-800 dark:text-emerald-300 text-[10px] bg-emerald-100/80 dark:bg-emerald-900/60 px-1.5 py-0.2 rounded">
+              <span className="tabular-nums font-bold text-emerald-800 dark:text-emerald-300 text-[10px] bg-emerald-100/80 dark:bg-emerald-900/60 px-1.5 py-0.2 rounded">
                 {currentPairDisplay}
               </span>
             </div>
@@ -479,7 +479,7 @@ export function InvoiceCurrencyCalculator({
                   placeholder={officialPairRate.toFixed(4)}
                   value={customRate}
                   onChange={e => setCustomRate(e.target.value)}
-                  className="w-20 h-5 px-1.5 text-xs font-mono rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-right"
+                  className="w-20 h-5 px-1.5 text-xs tabular-nums rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-right"
                 />
                 <button
                   type="button"

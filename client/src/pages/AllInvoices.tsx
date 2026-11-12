@@ -1130,7 +1130,7 @@ export default function AllInvoices() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">NIR: Toate</SelectItem>
-                  <SelectItem value="cu_nir">✓ Cu NIR ({nirCounts.cuNir})</SelectItem>
+                  <SelectItem value="cu_nir">Cu NIR ({nirCounts.cuNir})</SelectItem>
                   <SelectItem value="fara_nir">○ Fără NIR ({nirCounts.faraNir})</SelectItem>
                 </SelectContent>
               </Select>
@@ -1191,7 +1191,7 @@ export default function AllInvoices() {
                     const facturiNoi = spvResult.imported === 1 ? "1 factură nouă importată" : `${spvResult.imported} facturi noi importate`;
                     const facturiLimita = spvResult.limitHit === 1 ? "1 factură" : `${spvResult.limitHit} facturi`;
                     toast.warning(
-                      `Sync complet: ${facturiNoi}.\n⚠️ ${facturiLimita} nu ${spvResult.limitHit === 1 ? "a putut" : "au putut"} fi descărcată azi — ANAF permite maxim 10 descărcări/zi per fișier. Va fi importată automat mâine.`,
+                      `Sync complet: ${facturiNoi}.\n${facturiLimita} nu ${spvResult.limitHit === 1 ? "a putut" : "au putut"} fi descărcată azi — ANAF permite maxim 10 descărcări/zi per fișier. Va fi importată automat mâine.`,
                       { id: "sync", duration: 8000 }
                     );
                   } else if (spvResult?.imported > 0) {
@@ -1412,7 +1412,7 @@ export default function AllInvoices() {
                             </span>
                             {row.spvIndex && (
                               <span
-                                className="text-[11px] font-mono text-slate-500 dark:text-slate-400 font-normal leading-none"
+                                className="text-[11px] tabular-nums text-slate-500 dark:text-slate-400 font-normal leading-none"
                                 title={`Index încărcare SPV: ${row.spvIndex}`}
                               >
                                 Index: {row.spvIndex}
@@ -1932,7 +1932,7 @@ export default function AllInvoices() {
                       {row.spvIndex && (
                         <>
                           <span>·</span>
-                          <span className="font-mono">Index: {row.spvIndex}</span>
+                          <span className="tabular-nums">Index: {row.spvIndex}</span>
                         </>
                       )}
                     </div>

@@ -269,7 +269,7 @@ export default function CursValutar() {
           fontSize={9.5}
           fontWeight={800}
           fontFamily="ui-monospace, monospace"
-          className="fill-blue-700 dark:fill-blue-300 font-mono"
+          className="fill-blue-700 dark:fill-blue-300 tabular-nums"
         >
           {num.toFixed(4)}
         </text>
@@ -309,7 +309,7 @@ export default function CursValutar() {
           fontSize={9.5}
           fontWeight={800}
           fontFamily="ui-monospace, monospace"
-          className="fill-amber-700 dark:fill-amber-300 font-mono"
+          className="fill-amber-700 dark:fill-amber-300 tabular-nums"
         >
           {num.toFixed(4)}
         </text>
@@ -380,12 +380,12 @@ export default function CursValutar() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-sm font-black font-mono text-slate-900 dark:text-white">
+                  <span className="text-sm font-black tabular-nums text-slate-900 dark:text-white">
                     {eurRate.toFixed(4)} <span className="text-xs font-normal text-slate-400">RON</span>
                   </span>
                   {eurVar && (
                     <span
-                      className={`block text-[10px] font-bold font-mono ${
+                      className={`block text-[10px] font-bold tabular-nums ${
                         eurVar.trend === "down"
                           ? "text-emerald-600 dark:text-emerald-400"
                           : "text-rose-600 dark:text-rose-400"
@@ -409,12 +409,12 @@ export default function CursValutar() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-sm font-black font-mono text-slate-900 dark:text-white">
+                  <span className="text-sm font-black tabular-nums text-slate-900 dark:text-white">
                     {usdRate.toFixed(4)} <span className="text-xs font-normal text-slate-400">RON</span>
                   </span>
                   {usdVar && (
                     <span
-                      className={`block text-[10px] font-bold font-mono ${
+                      className={`block text-[10px] font-bold tabular-nums ${
                         usdVar.trend === "down"
                           ? "text-emerald-600 dark:text-emerald-400"
                           : "text-rose-600 dark:text-rose-400"
@@ -431,7 +431,7 @@ export default function CursValutar() {
                 <span className="font-semibold text-blue-950 dark:text-blue-200">
                   1 EUR = {crossEurUsd} USD
                 </span>
-                <span className="font-bold font-mono text-emerald-600 dark:text-emerald-400 text-[11px]">
+                <span className="font-bold tabular-nums text-emerald-600 dark:text-emerald-400 text-[11px]">
                   ▲ +0.0012 USD
                 </span>
               </div>
@@ -457,7 +457,7 @@ export default function CursValutar() {
                     Bază legală credite consum & ipotecare
                   </span>
                 </div>
-                <span className="text-lg font-black text-amber-700 dark:text-amber-300 font-mono">
+                <span className="text-lg font-black text-amber-700 dark:text-amber-300 tabular-nums">
                   5.56%
                 </span>
               </div>
@@ -470,15 +470,15 @@ export default function CursValutar() {
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
                   <span className="block text-[10px] font-bold text-slate-400">3 Luni (3M)</span>
-                  <span className="text-sm font-black font-mono text-slate-900 dark:text-white">5.84%</span>
+                  <span className="text-sm font-black tabular-nums text-slate-900 dark:text-white">5.84%</span>
                 </div>
                 <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
                   <span className="block text-[10px] font-bold text-slate-400">6 Luni (6M)</span>
-                  <span className="text-sm font-black font-mono text-slate-900 dark:text-white">5.92%</span>
+                  <span className="text-sm font-black tabular-nums text-slate-900 dark:text-white">5.92%</span>
                 </div>
                 <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
                   <span className="block text-[10px] font-bold text-slate-400">12 Luni (12M)</span>
-                  <span className="text-sm font-black font-mono text-slate-900 dark:text-white">5.98%</span>
+                  <span className="text-sm font-black tabular-nums text-slate-900 dark:text-white">5.98%</span>
                 </div>
               </div>
             </div>
@@ -495,13 +495,13 @@ export default function CursValutar() {
             <div className="grid grid-cols-2 gap-2.5 mb-3">
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
                 <span className="text-[10px] font-bold text-slate-400 block">Dobândă Fixă</span>
-                <span className="text-lg font-black text-slate-900 dark:text-white font-mono">5.45%</span>
+                <span className="text-lg font-black text-slate-900 dark:text-white tabular-nums">5.45%</span>
                 <span className="text-[10px] text-rose-500 block font-semibold">▲ medie oferte</span>
               </div>
 
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
                 <span className="text-[10px] font-bold text-slate-400 block">Dobândă Variabilă</span>
-                <span className="text-lg font-black text-slate-900 dark:text-white font-mono">8.05%</span>
+                <span className="text-lg font-black text-slate-900 dark:text-white tabular-nums">8.05%</span>
                 <span className="text-[10px] text-slate-400 block font-semibold">IRCC + marjă</span>
               </div>
             </div>
@@ -515,7 +515,7 @@ export default function CursValutar() {
                   Politică monetară
                 </span>
               </div>
-              <span className="text-lg font-black text-emerald-700 dark:text-emerald-300 font-mono">
+              <span className="text-lg font-black text-emerald-700 dark:text-emerald-300 tabular-nums">
                 6.50%
               </span>
             </div>
@@ -615,7 +615,7 @@ export default function CursValutar() {
                     </span>
                   </div>
                   <span
-                    className={`text-xs font-bold font-mono px-2 py-0.5 rounded-md ${
+                    className={`text-xs font-bold tabular-nums px-2 py-0.5 rounded-md ${
                       eurStats.change <= 0 ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" : "bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
                     }`}
                   >
@@ -678,9 +678,9 @@ export default function CursValutar() {
                 </div>
 
                 <div className="mt-3 pt-2.5 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-xs text-slate-500">
-                  <span>Minim: <strong className="font-mono text-slate-700 dark:text-slate-300">{eurStats.min.toFixed(4)}</strong></span>
-                  <span>Maxim: <strong className="font-mono text-slate-700 dark:text-slate-300">{eurStats.max.toFixed(4)}</strong></span>
-                  <span>Cotație Curentă: <strong className="font-mono text-blue-600 dark:text-blue-400 font-bold">{eurRate.toFixed(4)} RON</strong></span>
+                  <span>Minim: <strong className="tabular-nums text-slate-700 dark:text-slate-300">{eurStats.min.toFixed(4)}</strong></span>
+                  <span>Maxim: <strong className="tabular-nums text-slate-700 dark:text-slate-300">{eurStats.max.toFixed(4)}</strong></span>
+                  <span>Cotație Curentă: <strong className="tabular-nums text-blue-600 dark:text-blue-400 font-bold">{eurRate.toFixed(4)} RON</strong></span>
                 </div>
               </div>
 
@@ -696,7 +696,7 @@ export default function CursValutar() {
                     </span>
                   </div>
                   <span
-                    className={`text-xs font-bold font-mono px-2 py-0.5 rounded-md ${
+                    className={`text-xs font-bold tabular-nums px-2 py-0.5 rounded-md ${
                       usdStats.change <= 0 ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" : "bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
                     }`}
                   >
@@ -759,9 +759,9 @@ export default function CursValutar() {
                 </div>
 
                 <div className="mt-3 pt-2.5 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-xs text-slate-500">
-                  <span>Minim: <strong className="font-mono text-slate-700 dark:text-slate-300">{usdStats.min.toFixed(4)}</strong></span>
-                  <span>Maxim: <strong className="font-mono text-slate-700 dark:text-slate-300">{usdStats.max.toFixed(4)}</strong></span>
-                  <span>Cotație Curentă: <strong className="font-mono text-amber-600 dark:text-amber-400 font-bold">{usdRate.toFixed(4)} RON</strong></span>
+                  <span>Minim: <strong className="tabular-nums text-slate-700 dark:text-slate-300">{usdStats.min.toFixed(4)}</strong></span>
+                  <span>Maxim: <strong className="tabular-nums text-slate-700 dark:text-slate-300">{usdStats.max.toFixed(4)}</strong></span>
+                  <span>Cotație Curentă: <strong className="tabular-nums text-amber-600 dark:text-amber-400 font-bold">{usdRate.toFixed(4)} RON</strong></span>
                 </div>
               </div>
             </div>
@@ -778,7 +778,7 @@ export default function CursValutar() {
                   </span>
                 </div>
                 <span
-                  className={`text-xs font-bold font-mono px-2 py-0.5 rounded-md ${
+                  className={`text-xs font-bold tabular-nums px-2 py-0.5 rounded-md ${
                     (chartCurrency === "EUR" ? eurStats.change : usdStats.change) <= 0
                       ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
                       : "bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
@@ -844,9 +844,9 @@ export default function CursValutar() {
               </div>
 
               <div className="mt-3 pt-2.5 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-xs text-slate-500">
-                <span>Minim: <strong className="font-mono text-slate-700 dark:text-slate-300">{(chartCurrency === "EUR" ? eurStats.min : usdStats.min).toFixed(4)}</strong></span>
-                <span>Maxim: <strong className="font-mono text-slate-700 dark:text-slate-300">{(chartCurrency === "EUR" ? eurStats.max : usdStats.max).toFixed(4)}</strong></span>
-                <span>Cotație Curentă: <strong className="font-mono font-bold text-blue-600 dark:text-blue-400">{(chartCurrency === "EUR" ? eurRate : usdRate).toFixed(4)} RON</strong></span>
+                <span>Minim: <strong className="tabular-nums text-slate-700 dark:text-slate-300">{(chartCurrency === "EUR" ? eurStats.min : usdStats.min).toFixed(4)}</strong></span>
+                <span>Maxim: <strong className="tabular-nums text-slate-700 dark:text-slate-300">{(chartCurrency === "EUR" ? eurStats.max : usdStats.max).toFixed(4)}</strong></span>
+                <span>Cotație Curentă: <strong className="tabular-nums font-bold text-blue-600 dark:text-blue-400">{(chartCurrency === "EUR" ? eurRate : usdRate).toFixed(4)} RON</strong></span>
               </div>
             </div>
           )}
@@ -881,13 +881,13 @@ export default function CursValutar() {
                         row.date === bnrData?.date ? "bg-blue-50/40 dark:bg-blue-950/20 font-semibold" : ""
                       }`}
                     >
-                      <td className="py-2.5 px-2 font-mono text-slate-600 dark:text-slate-300">{row.formattedDate}</td>
+                      <td className="py-2.5 px-2 tabular-nums text-slate-600 dark:text-slate-300">{row.formattedDate}</td>
                       <td className="py-2.5 px-2 text-slate-400">{row.dayName}</td>
-                      <td className="py-2.5 px-2 font-mono font-bold text-blue-600 dark:text-blue-400">{row.EUR.toFixed(4)}</td>
-                      <td className="py-2.5 px-2 font-mono font-bold text-amber-600 dark:text-amber-400">{row.USD.toFixed(4)}</td>
-                      <td className="py-2.5 px-2 font-mono text-slate-600 dark:text-slate-400">{row.GBP.toFixed(4)}</td>
-                      <td className="py-2.5 px-2 font-mono text-slate-600 dark:text-slate-400">{row.CHF.toFixed(4)}</td>
-                      <td className="py-2.5 px-2 font-mono text-slate-600 dark:text-slate-400">{row.MDL.toFixed(4)}</td>
+                      <td className="py-2.5 px-2 tabular-nums font-bold text-blue-600 dark:text-blue-400">{row.EUR.toFixed(4)}</td>
+                      <td className="py-2.5 px-2 tabular-nums font-bold text-amber-600 dark:text-amber-400">{row.USD.toFixed(4)}</td>
+                      <td className="py-2.5 px-2 tabular-nums text-slate-600 dark:text-slate-400">{row.GBP.toFixed(4)}</td>
+                      <td className="py-2.5 px-2 tabular-nums text-slate-600 dark:text-slate-400">{row.CHF.toFixed(4)}</td>
+                      <td className="py-2.5 px-2 tabular-nums text-slate-600 dark:text-slate-400">{row.MDL.toFixed(4)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1050,7 +1050,7 @@ export default function CursValutar() {
                   </button>
                 </div>
 
-                <div className="text-2xl sm:text-3xl font-black font-mono text-slate-900 dark:text-white tracking-tight">
+                <div className="text-2xl sm:text-3xl font-black tabular-nums text-slate-900 dark:text-white tracking-tight">
                   {formatNumber(convertedResult)}{" "}
                   <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
                     {toCurrency}
@@ -1220,7 +1220,7 @@ export default function CursValutar() {
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-500 font-medium">Valoare fără TVA (Bază):</span>
                   <div className="flex items-center gap-2">
-                    <span className="font-bold font-mono text-slate-900 dark:text-white">
+                    <span className="font-bold tabular-nums text-slate-900 dark:text-white">
                       {formatNumber(vatResults.base)} RON
                     </span>
                     <button
@@ -1243,7 +1243,7 @@ export default function CursValutar() {
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-500 font-medium">Valoare TVA ({activeVatRate}%):</span>
                   <div className="flex items-center gap-2">
-                    <span className="font-bold font-mono text-indigo-600 dark:text-indigo-400">
+                    <span className="font-bold tabular-nums text-indigo-600 dark:text-indigo-400">
                       {formatNumber(vatResults.vat)} RON
                     </span>
                     <button
@@ -1268,7 +1268,7 @@ export default function CursValutar() {
                     Total cu TVA:
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className="text-xl font-black font-mono text-emerald-600 dark:text-emerald-400">
+                    <span className="text-xl font-black tabular-nums text-emerald-600 dark:text-emerald-400">
                       {formatNumber(vatResults.total)} RON
                     </span>
                     <button

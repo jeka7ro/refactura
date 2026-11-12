@@ -161,7 +161,7 @@ export default function ReInvoiceDetail() {
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
           <div className="text-sm">
             <h4 className="font-bold mb-1">Eroare validare SPV ANAF</h4>
-            <p className="whitespace-pre-wrap font-mono text-xs opacity-90">
+            <p className="whitespace-pre-wrap tabular-nums text-xs opacity-90">
               {invoice.spvError}
             </p>
           </div>

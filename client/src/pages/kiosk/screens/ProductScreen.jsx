@@ -178,16 +178,16 @@ export default function ProductScreen() {
               />
             )}
             {product.weight && (
-              <span className="pd-weight">⚖️ {product.weight}g</span>
+              <span className="pd-weight">{product.weight}g</span>
             )}
             {product.energyAmount && (
               <span className="pd-calories">
-                🔥 {Math.round(product.energyAmount)} kcal
+                {Math.round(product.energyAmount)} kcal
               </span>
             )}
             {allergenLabels.length > 0 && (
               <div className="pd-allergens">
-                <span className="pd-allergen-label">⚠️ Alergeni:</span>
+                <span className="pd-allergen-label">Alergeni:</span>
                 {allergenLabels.map(a => (
                   <span key={a} className="allergen-tag">
                     {a}
@@ -246,7 +246,7 @@ export default function ProductScreen() {
                         </span>
                       )}
                       {selected[mod.id] === opt.id && (
-                        <span className="mod-check">✓</span>
+                        <span className="mod-check"></span>
                       )}
                     </button>
                   ))}
@@ -304,8 +304,7 @@ export default function ProductScreen() {
               margin: "0 0 8px 0",
             }}
           >
-            Recomandări Pentru Tine 🔥
-          </h2>
+            Recomandări Pentru Tine </h2>
           <p style={{ fontSize: "1.2rem", color: "#4b5563", margin: 0 }}>
             Ce s-ar mai potrivi cu comanda ta de astăzi?
           </p>
@@ -334,7 +333,7 @@ export default function ProductScreen() {
           </div>
         ) : (
           <div style={{ textAlign: "center", padding: "60px 0", opacity: 0.5 }}>
-            <div style={{ fontSize: "4rem", marginBottom: "16px" }}>🍽️</div>
+            <div style={{ fontSize: "4rem", marginBottom: "16px" }}></div>
             <h3 style={{ color: "#111827", fontSize: "1.4rem" }}>
               Fără recomandări momentan.
             </h3>

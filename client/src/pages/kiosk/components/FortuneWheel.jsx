@@ -514,8 +514,7 @@ export default function FortuneWheel({ config, onClose, onWin }) {
           justifyContent: "center",
         }}
       >
-        ✕
-      </button>
+        </button>
 
       {/* Win Modal Glass Overlay */}
       {showWinModal && winningSlice && (

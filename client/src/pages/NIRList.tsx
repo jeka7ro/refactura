@@ -760,7 +760,7 @@ export default function NIRList() {
                     Status: Toate ({nirList.length})
                   </SelectItem>
                   <SelectItem value="finalizat">
-                    ✓ Finalizate ({statusCounts.finalizat})
+                    Finalizate ({statusCounts.finalizat})
                   </SelectItem>
                   <SelectItem value="draft">
                     ○ Ciorne ({statusCounts.draft})
@@ -987,7 +987,7 @@ export default function NIRList() {
                             .map((c: string) => (
                               <span
                                 key={c}
-                                className="inline-block text-[10px] font-mono font-bold bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 px-1.5 py-0.2 rounded border border-emerald-300 dark:border-emerald-800 mr-1"
+                                className="inline-block text-[10px] tabular-nums font-bold bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 px-1.5 py-0.2 rounded border border-emerald-300 dark:border-emerald-800 mr-1"
                               >
                                 Cod: {c}
                               </span>
@@ -1027,7 +1027,7 @@ export default function NIRList() {
                           )}
                           {(row as any).spvIndex && (
                             <span
-                              className="inline-flex items-center gap-0.5 text-[10px] font-mono font-semibold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 rounded px-1.5 py-0.2"
+                              className="inline-flex items-center gap-0.5 text-[10px] tabular-nums font-semibold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 rounded px-1.5 py-0.2"
                               title={`ID Încărcare SPV: ${(row as any).spvIndex}`}
                             >
                               SPV: {(row as any).spvIndex}
@@ -1040,7 +1040,7 @@ export default function NIRList() {
                     </td>
                     {/* FĂRĂ TVA + TVA = TOTAL */}
                     <td className="px-3 py-3 text-right whitespace-nowrap">
-                      <div className="font-mono text-xs">
+                      <div className="tabular-nums text-xs">
                         <span className="font-medium text-slate-600 dark:text-slate-300">
                           {(row.totalNet || 0).toLocaleString("ro-RO", {
                             minimumFractionDigits: 2,

@@ -93,7 +93,7 @@ function useSetupAssistant(
         setSelectedProvider("spv");
         newMessages.push({
           role: "ai",
-          text: "Integrarea SPV ANAF necesită un certificat digital calificat și înregistrarea aplicației pe portalul ANAF.\n\n🔗 [Creează cont / Autentifică-te în SPV ANAF](https://www.anaf.ro/anaf/internet/ANAF/servicii_online/inregistrare_utilizatori)\n\nContactează-ne pentru asistență sau alege **Oblio** pentru o configurare rapidă.",
+          text: "Integrarea SPV ANAF necesită un certificat digital calificat și înregistrarea aplicației pe portalul ANAF.\n\n[Creează cont / Autentifică-te în SPV ANAF](https://www.anaf.ro/anaf/internet/ANAF/servicii_online/inregistrare_utilizatori)\n\nContactează-ne pentru asistență sau alege **Oblio** pentru o configurare rapidă.",
         });
       } else {
         newMessages.push({
@@ -564,7 +564,7 @@ export default function Integrations() {
         const facturiNoi = result.imported === 1 ? "1 factură nouă importată" : `${result.imported} facturi noi importate`;
         const facturiLimita = result.limitHit === 1 ? "1 factură" : `${result.limitHit} facturi`;
         toast.warning(
-          `Sync complet: ${facturiNoi}.\n⚠️ ${facturiLimita} nu ${result.limitHit === 1 ? "a putut" : "au putut"} fi ${result.limitHit === 1 ? "descărcată" : "descărcate"} azi — ANAF permite maxim 10 descărcări/zi per fișier. ${result.limitHit === 1 ? "Va fi importată" : "Vor fi importate"} automat mâine.`,
+          `Sync complet: ${facturiNoi}.\n${facturiLimita} nu ${result.limitHit === 1 ? "a putut" : "au putut"} fi ${result.limitHit === 1 ? "descărcată" : "descărcate"} azi — ANAF permite maxim 10 descărcări/zi per fișier. ${result.limitHit === 1 ? "Va fi importată" : "Vor fi importate"} automat mâine.`,
           { duration: 8000 }
         );
       } else if (result.imported > 0) {

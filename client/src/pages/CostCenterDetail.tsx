@@ -313,7 +313,7 @@ export default function CostCenterDetail() {
                     <td className="px-4 py-3 font-medium text-slate-900 dark:text-white max-w-[180px]">
                       <span className="block truncate">{inv.supplierName || "-"}</span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-500 font-mono">{inv.supplierCUI || "-"}</td>
+                    <td className="px-4 py-3 text-xs text-slate-500 tabular-nums">{inv.supplierCUI || "-"}</td>
                     <td className="px-4 py-3 text-indigo-600 dark:text-indigo-400 font-medium group-hover:underline">{inv.invoiceNumber || "-"}</td>
                     <td className="px-4 py-3 text-xs text-slate-500">{inv.issueDate ? String(inv.issueDate).slice(0, 10) : "-"}</td>
                     <td className="px-4 py-3 text-xs text-slate-500">{inv.dueDate ? String(inv.dueDate).slice(0, 10) : "-"}</td>

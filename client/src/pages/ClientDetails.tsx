@@ -498,7 +498,7 @@ export default function ClientDetails() {
               <Hash className="w-3.5 h-3.5 text-primary" /> Identificare Fiscală
             </div>
             <div className="font-bold text-slate-900 dark:text-white text-sm">
-              CUI: <span className="font-mono">{client.cui || "—"}</span>
+              CUI: <span className="tabular-nums">{client.cui || "—"}</span>
             </div>
             <div className="text-slate-500 dark:text-slate-400 mt-0.5">
               Reg. Com: <span className="font-medium">{client.regCom || "—"}</span>
@@ -545,7 +545,7 @@ export default function ClientDetails() {
               Monedă: <span className="font-bold text-primary">{client.currency || "RON"}</span>
             </div>
             <div className="text-slate-500 dark:text-slate-400 mt-0.5">
-              Cod SAGA: <span className="font-mono">{(client as any).sagaCode || "—"}</span>
+              Cod SAGA: <span className="tabular-nums">{(client as any).sagaCode || "—"}</span>
             </div>
           </div>
         </div>
@@ -1021,7 +1021,7 @@ export default function ClientDetails() {
                   Firma nu a fost găsită în baza FirmeAPI
                 </h3>
                 <p className="text-xs text-slate-500 mt-1">
-                  Nu s-au găsit înregistrări oficiale pentru CUI: <span className="font-mono font-bold">{cleanCui}</span>. Verifică dacă codul fiscal este corect.
+                  Nu s-au găsit înregistrări oficiale pentru CUI: <span className="tabular-nums font-bold">{cleanCui}</span>. Verifică dacă codul fiscal este corect.
                 </p>
                 <div className="mt-4 flex items-center justify-center gap-2">
                   <button
@@ -1082,7 +1082,7 @@ export default function ClientDetails() {
                         </h2>
                         <div className="mt-1 text-xs text-slate-600 dark:text-slate-300 flex items-center gap-4 flex-wrap">
                           <span>
-                            CUI: <strong className="font-mono text-slate-900 dark:text-white">{g?.cui}</strong>
+                            CUI: <strong className="tabular-nums text-slate-900 dark:text-white">{g?.cui}</strong>
                           </span>
                           <span>
                             Reg. Com: <strong className="text-slate-900 dark:text-white">{g?.nr_reg_com || "—"}</strong>
@@ -1391,7 +1391,7 @@ export default function ClientDetails() {
                                   {fin.map((item) => (
                                     <tr key={item.an} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
                                       <td className="py-2.5 px-3">
-                                        <span className="font-black px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 font-mono">
+                                        <span className="font-black px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 tabular-nums">
                                           {item.an}
                                         </span>
                                       </td>
@@ -1581,7 +1581,7 @@ export default function ClientDetails() {
                           {caen?.caen_principal ? (
                             <div className="p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/40">
                               <div className="flex items-center gap-2">
-                                <span className="px-2 py-0.5 rounded-lg text-xs font-black bg-amber-500 text-white font-mono">
+                                <span className="px-2 py-0.5 rounded-lg text-xs font-black bg-amber-500 text-white tabular-nums">
                                   {caen.caen_principal.cod}
                                 </span>
                                 <span className="font-bold text-slate-900 dark:text-white text-xs">
@@ -1605,7 +1605,7 @@ export default function ClientDetails() {
                                     className="px-2 py-1 rounded-lg text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
                                     title={cs.denumire}
                                   >
-                                    <strong className="font-mono text-emerald-600 mr-1">{cs.cod}</strong>
+                                    <strong className="tabular-nums text-emerald-600 mr-1">{cs.cod}</strong>
                                     {cs.denumire.length > 35 ? `${cs.denumire.substring(0, 35)}...` : cs.denumire}
                                   </span>
                                 ))}
@@ -1646,7 +1646,7 @@ export default function ClientDetails() {
                                   className="w-full p-3.5 text-left flex items-center justify-between gap-3 hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-colors"
                                 >
                                   <div className="flex items-center gap-2.5 flex-wrap">
-                                    <span className="px-2 py-0.5 rounded-md text-[11px] font-black bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 font-mono">
+                                    <span className="px-2 py-0.5 rounded-md text-[11px] font-black bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 tabular-nums">
                                       Nr. {entry.numar}
                                     </span>
                                     <span className="text-xs font-semibold text-slate-900 dark:text-white">
@@ -1797,7 +1797,7 @@ export default function ClientDetails() {
                         <td className="py-2.5 px-3 text-slate-500 text-[11px]">
                           {ctr.validUntil ? `Până la ${ctr.validUntil}` : "Nedeterminată"}
                         </td>
-                        <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900 dark:text-white">
+                        <td className="py-2.5 px-3 text-right tabular-nums font-bold text-slate-900 dark:text-white">
                           {parseFloat(ctr.value || 0).toLocaleString("ro-RO", {
                             minimumFractionDigits: 2,
                           })}{" "}
@@ -1819,11 +1819,11 @@ export default function ClientDetails() {
                         </td>
                         <td className="py-2.5 px-3 text-center">
                           {ctr.fileUrl ? (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                            <span className="px-1.5 py-0.5 rounded text-[10px] tabular-nums bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                               PDF Fizic
                             </span>
                           ) : (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                            <span className="px-1.5 py-0.5 rounded text-[10px] tabular-nums bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                               Digital
                             </span>
                           )}
@@ -2053,7 +2053,7 @@ export default function ClientDetails() {
                     type="text"
                     value={editFormData.cui}
                     onChange={(e) => setEditFormData({ ...editFormData, cui: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary font-mono"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary tabular-nums"
                   />
                 </div>
                 <div>

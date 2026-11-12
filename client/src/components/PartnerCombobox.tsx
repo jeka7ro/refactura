@@ -209,7 +209,7 @@ export default function PartnerCombobox({
                   {selectedPartner.name}
                 </span>
                 {selectedPartner.cui && (
-                  <span className="font-mono text-slate-500 text-[11px] shrink-0">
+                  <span className="tabular-nums text-slate-500 text-[11px] shrink-0">
                     ({selectedPartner.cui})
                   </span>
                 )}
@@ -298,7 +298,7 @@ export default function PartnerCombobox({
                         {renderTypeBadge(p, true)}
                       </div>
 
-                      <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                      <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
                         {p.cui && <span>CUI: {p.cui}</span>}
                         {p.sagaCode && <span>• Cod: {p.sagaCode}</span>}
                         {p.city && <span className="truncate">• {p.city}</span>}

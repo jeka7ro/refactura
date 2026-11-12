@@ -72,6 +72,21 @@ export default function AccountantPortal() {
     }
   });
 
+  // Re-hidratare automată a token-ului de sesiune dacă router-ul a montat componenta
+  useEffect(() => {
+    if (token && !sessionToken && typeof window !== "undefined") {
+      try {
+        const stored =
+          sessionStorage.getItem(`smart_invoice_accountant_session_${token}`) ||
+          sessionStorage.getItem("smart_invoice_accountant_session") ||
+          "";
+        if (stored) {
+          setSessionToken(stored);
+        }
+      } catch {}
+    }
+  }, [token, sessionToken]);
+
   // Navigare Sidebar: "received" (Facturi Primite) sau "emitted" (Facturi Emise)
   const [activeTab, setActiveTab] = useState<"received" | "emitted">("received");
 
@@ -190,9 +205,30 @@ export default function AccountantPortal() {
 
   const getAuthenticatedPdfUrl = (url: string | null) => {
     if (!url) return null;
-    const effectiveToken =
-      sessionToken ||
-      (publicInfo && !publicInfo.requiresPin ? publicInfo.autoSessionToken : "");
+    let effectiveToken = sessionToken;
+    if (!effectiveToken && typeof window !== "undefined") {
+      try {
+        effectiveToken =
+          sessionStorage.getItem(storageKey) ||
+          sessionStorage.getItem(`smart_invoice_accountant_session_${token}`) ||
+          "";
+        if (!effectiveToken) {
+          for (let i = 0; i < sessionStorage.length; i++) {
+            const k = sessionStorage.key(i);
+            if (k && k.startsWith("smart_invoice_accountant_session")) {
+              const v = sessionStorage.getItem(k);
+              if (v) {
+                effectiveToken = v;
+                break;
+              }
+            }
+          }
+        }
+      } catch {}
+    }
+    if (!effectiveToken && publicInfo && !publicInfo.requiresPin) {
+      effectiveToken = publicInfo.autoSessionToken || "";
+    }
     const sep = url.includes("?") ? "&" : "?";
     return effectiveToken
       ? `${url}${sep}accountantToken=${encodeURIComponent(effectiveToken)}`
@@ -202,7 +238,7 @@ export default function AccountantPortal() {
   const handleUnlockSuccess = (newToken: string) => {
     try {
       sessionStorage.setItem(storageKey, newToken);
-      document.cookie = `accountantSession=${encodeURIComponent(newToken)}; path=/; max-age=604800; SameSite=Lax`;
+      document.cookie = `accountantSession=${encodeURIComponent(newToken)}; path=/; max-age=604800; SameSite=Lax; Secure`;
     } catch {}
     setSessionToken(newToken);
     toast.success("Acces autorizat cu succes!");
@@ -730,12 +766,13 @@ export default function AccountantPortal() {
           }
           onViewNirPdf={(inv) => {
             const targetNirId = inv.nirId || inv.id;
-            const targetNirNum = inv.nirNumber || targetNirId;
+            const rawNum = inv.nirNumber || targetNirId;
+            const targetNirNum = String(rawNum).startsWith("NIR") ? rawNum : `NIR-${rawNum}`;
             setPreviewDoc({
               isOpen: true,
-              title: `NIR ${targetNirNum} - ${inv.supplierName || ""}`.trim(),
+              title: `${targetNirNum} - ${inv.supplierName || ""}`.trim(),
               pdfUrl: getAuthenticatedPdfUrl(`/api/pdf/nir/${targetNirId}`),
-              filename: `NIR_${targetNirNum}.pdf`,
+              filename: `${targetNirNum}.pdf`,
               type: "nir",
             });
           }}
@@ -792,7 +829,7 @@ export default function AccountantPortal() {
                 {publicInfo.companyName}
               </h1>
               {publicInfo.cui && (
-                <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                <p className="text-[11px] text-slate-500 tabular-nums mt-0.5">
                   CUI: {publicInfo.cui}
                 </p>
               )}
@@ -1018,7 +1055,7 @@ export default function AccountantPortal() {
                       className="w-full h-8 pl-8 pr-4 rounded-full border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
                     >
                       <option value="all">NIR: Toate</option>
-                      <option value="cu_nir">✓ Cu NIR generat</option>
+                      <option value="cu_nir">Cu NIR generat</option>
                       <option value="fara_nir">○ Fără NIR</option>
                     </select>
                   </div>
@@ -1172,7 +1209,7 @@ export default function AccountantPortal() {
                                 <div className="font-bold text-slate-900 dark:text-white truncate" title={inv.supplierName}>{inv.supplierName}</div>
                                 {inv.supplierCUI && (
                                   <div className="flex items-center gap-1 mt-0.5">
-                                    <span className="text-[10px] font-mono text-slate-500">{inv.supplierCUI}</span>
+                                    <span className="text-[10px] tabular-nums text-slate-500">{inv.supplierCUI}</span>
                                     <button onClick={(e) => handleCopyCui(inv.supplierCUI, e)} title="Copiază CUI" className="text-slate-400 hover:text-blue-600 transition">
                                       {copiedCui === inv.supplierCUI ? <Check className="w-2.5 h-2.5 text-emerald-500" /> : <Copy className="w-2.5 h-2.5" />}
                                     </button>
@@ -1198,7 +1235,7 @@ export default function AccountantPortal() {
                                 </button>
                                 {inv.spvIndex ? (
                                   <div
-                                    className="text-[10px] font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5"
+                                    className="text-[10px] tabular-nums text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5"
                                     title={`Index încărcare SPV: ${inv.spvIndex}`}
                                   >
                                     <span className="text-[9px] uppercase font-bold text-slate-400">SPV:</span>
@@ -1206,27 +1243,30 @@ export default function AccountantPortal() {
                                   </div>
                                 ) : null}
                               </td>
-                              <td className="px-2 py-2 text-right font-mono text-slate-700 dark:text-slate-300 whitespace-nowrap">{formatCurrency(inv.totalBase, inv.currency)}</td>
-                              <td className="px-2 py-2 text-right font-mono text-slate-500 whitespace-nowrap">{formatCurrency(inv.totalVAT, inv.currency)}</td>
-                              <td className="px-2.5 py-2 text-right font-mono font-bold text-slate-900 dark:text-white whitespace-nowrap">{formatCurrency(inv.total, inv.currency)}</td>
+                              <td className="px-2 py-2 text-right tabular-nums text-slate-700 dark:text-slate-300 whitespace-nowrap">{formatCurrency(inv.totalBase, inv.currency)}</td>
+                              <td className="px-2 py-2 text-right tabular-nums text-slate-500 whitespace-nowrap">{formatCurrency(inv.totalVAT, inv.currency)}</td>
+                              <td className="px-2.5 py-2 text-right tabular-nums font-bold text-slate-900 dark:text-white whitespace-nowrap">{formatCurrency(inv.total, inv.currency)}</td>
                               <td className="px-2 py-2 text-center whitespace-nowrap">
                                 {inv.hasNir ? (
                                   <button
                                     type="button"
-                                    onClick={() =>
+                                    onClick={() => {
+                                      const targetNirId = inv.nirId || inv.id;
+                                      const rawNum = inv.nirNumber || targetNirId;
+                                      const targetNirNum = String(rawNum).startsWith("NIR") ? rawNum : `NIR #${rawNum}`;
                                       setPreviewDoc({
                                         isOpen: true,
-                                        title: `NIR #${inv.nirNumber || inv.nirId} — ${inv.supplierName}`,
-                                        pdfUrl: getAuthenticatedPdfUrl(`/api/pdf/nir/${inv.nirId}`),
-                                        filename: `NIR_${inv.nirNumber || inv.nirId}.pdf`,
+                                        title: `${targetNirNum} — ${inv.supplierName}`,
+                                        pdfUrl: getAuthenticatedPdfUrl(`/api/pdf/nir/${targetNirId}`),
+                                        filename: `${targetNirNum}.pdf`,
                                         type: "nir",
-                                      })
-                                    }
+                                      });
+                                    }}
                                     title="Deschide NIR în fereastră"
                                     className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200 transition-colors cursor-pointer"
                                   >
                                     <ClipboardCheck className="w-3 h-3 text-teal-600 shrink-0" />
-                                    <span>{inv.nirNumber ? `NIR #${inv.nirNumber}` : "Recepție"}</span>
+                                    <span>{inv.nirNumber ? (String(inv.nirNumber).startsWith("NIR") ? inv.nirNumber : `NIR #${inv.nirNumber}`) : "Recepție"}</span>
                                   </button>
                                 ) : (
                                   <span className="text-slate-400 text-xs">Fără NIR</span>
@@ -1252,18 +1292,21 @@ export default function AccountantPortal() {
                                     <FileText className="w-3.5 h-3.5" />
                                   </button>
 
-                                  {inv.hasNir && inv.nirId ? (
+                                  {inv.hasNir ? (
                                     <button
                                       type="button"
-                                      onClick={() =>
+                                      onClick={() => {
+                                        const targetNirId = inv.nirId || inv.id;
+                                        const rawNum = inv.nirNumber || targetNirId;
+                                        const targetNirNum = String(rawNum).startsWith("NIR") ? rawNum : `NIR #${rawNum}`;
                                         setPreviewDoc({
                                           isOpen: true,
-                                          title: `NIR #${inv.nirNumber || inv.nirId} — ${inv.supplierName}`,
-                                          pdfUrl: getAuthenticatedPdfUrl(`/api/pdf/nir/${inv.nirId}`),
-                                          filename: `NIR_${inv.nirNumber || inv.nirId}.pdf`,
+                                          title: `${targetNirNum} — ${inv.supplierName}`,
+                                          pdfUrl: getAuthenticatedPdfUrl(`/api/pdf/nir/${targetNirId}`),
+                                          filename: `${targetNirNum}.pdf`,
                                           type: "nir",
-                                        })
-                                      }
+                                        });
+                                      }}
                                       title="Deschide NIR în fereastră"
                                       className="w-7 h-7 rounded-lg bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200 flex items-center justify-center transition-colors shadow-2xs"
                                     >
@@ -1465,7 +1508,7 @@ export default function AccountantPortal() {
                                 <div className="font-bold text-slate-900 dark:text-white truncate" title={inv.clientName}>{inv.clientName}</div>
                                 {inv.clientCUI && (
                                   <div className="flex items-center gap-1 mt-0.5">
-                                    <span className="text-[10px] font-mono text-slate-500">{inv.clientCUI}</span>
+                                    <span className="text-[10px] tabular-nums text-slate-500">{inv.clientCUI}</span>
                                     <button onClick={(e) => handleCopyCui(inv.clientCUI, e)} title="Copiază CUI" className="text-slate-400 hover:text-blue-600 transition">
                                       {copiedCui === inv.clientCUI ? <Check className="w-2.5 h-2.5 text-emerald-500" /> : <Copy className="w-2.5 h-2.5" />}
                                     </button>
@@ -1491,7 +1534,7 @@ export default function AccountantPortal() {
                                 </button>
                                 {inv.spvIndex ? (
                                   <div
-                                    className="text-[10px] font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5"
+                                    className="text-[10px] tabular-nums text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5"
                                     title={`Index încărcare SPV: ${inv.spvIndex}`}
                                   >
                                     <span className="text-[9px] uppercase font-bold text-slate-400">SPV:</span>
@@ -1499,9 +1542,9 @@ export default function AccountantPortal() {
                                   </div>
                                 ) : null}
                               </td>
-                              <td className="px-2 py-2 text-right font-mono text-slate-700 dark:text-slate-300 whitespace-nowrap">{formatCurrency(inv.totalBase, inv.currency)}</td>
-                              <td className="px-2 py-2 text-right font-mono text-slate-500 whitespace-nowrap">{formatCurrency(inv.totalVAT, inv.currency)}</td>
-                              <td className="px-2.5 py-2 text-right font-mono font-bold text-slate-900 dark:text-white whitespace-nowrap">{formatCurrency(inv.total, inv.currency)}</td>
+                              <td className="px-2 py-2 text-right tabular-nums text-slate-700 dark:text-slate-300 whitespace-nowrap">{formatCurrency(inv.totalBase, inv.currency)}</td>
+                              <td className="px-2 py-2 text-right tabular-nums text-slate-500 whitespace-nowrap">{formatCurrency(inv.totalVAT, inv.currency)}</td>
+                              <td className="px-2.5 py-2 text-right tabular-nums font-bold text-slate-900 dark:text-white whitespace-nowrap">{formatCurrency(inv.total, inv.currency)}</td>
                               <td className="px-2.5 py-2 text-center whitespace-nowrap">
                                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
                                   {inv.status || "emis"}

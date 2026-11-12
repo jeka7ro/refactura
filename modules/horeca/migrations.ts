@@ -280,7 +280,7 @@ export async function runHorecaMigrations(db: MySql2Database<any>) {
       // Ignore if exists
     }
 
-    console.log("[HORECA] ✓ All tables ensured");
+    console.log("[HORECA] All tables ensured");
   } catch (err) {
     console.error("[HORECA] Migration error:", err);
   }

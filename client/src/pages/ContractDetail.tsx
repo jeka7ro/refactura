@@ -350,7 +350,7 @@ export default function ContractDetail() {
                 )}
                 {contract.partnerSagaCode && (
                   <div>
-                    Cod SAGA: <span className="font-mono bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded text-slate-700 dark:text-slate-300">{contract.partnerSagaCode}</span>
+                    Cod SAGA: <span className="tabular-nums bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded text-slate-700 dark:text-slate-300">{contract.partnerSagaCode}</span>
                   </div>
                 )}
                 {contract.partnerAddress && (
@@ -523,7 +523,7 @@ export default function ContractDetail() {
                 <History className="h-4 w-4 text-slate-500" />
                 Jurnal Modificări & Explicații
               </h3>
-              <span className="text-xs text-slate-400 font-mono">
+              <span className="text-xs text-slate-400 tabular-nums">
                 {contract.logs?.length || 0} evenimente
               </span>
             </div>
@@ -542,7 +542,7 @@ export default function ContractDetail() {
                         <span className="font-bold text-slate-800 dark:text-slate-200 uppercase">
                           {l.actionType.replace("_", " ")}
                         </span>
-                        <span className="text-slate-400 font-mono">
+                        <span className="text-slate-400 tabular-nums">
                           {new Date(l.createdAt).toLocaleDateString("ro-RO", {
                             day: "2-digit",
                             month: "short",

@@ -440,7 +440,7 @@ export default function AccountantPinLock({
               <span>Portal Contabilitate</span>
             </div>
             <h2 className="text-xl font-bold text-white tracking-tight">{companyName}</h2>
-            {cui && <p className="text-xs text-white/70 font-mono mt-0.5">CUI: {cui}</p>}
+            {cui && <p className="text-xs text-white/70 tabular-nums mt-0.5">CUI: {cui}</p>}
             <p className="text-xs text-slate-300 mt-2 max-w-xs mx-auto">
               Introduceți codul PIN de 4 cifre pentru a accesa facturile și fișele NIR.
             </p>
@@ -454,7 +454,7 @@ export default function AccountantPinLock({
               <Timer className="w-4 h-4 shrink-0 text-amber-400" />
               <span>Blocat temporar (3 încercări greșite)</span>
             </div>
-            <span className="font-mono text-xs px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+            <span className="tabular-nums text-xs px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
               {lockoutRemaining}s
             </span>
           </div>

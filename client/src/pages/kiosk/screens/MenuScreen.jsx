@@ -19,10 +19,10 @@ const BRAND_ORG_MAP = {
 
 // Brand display info for tabs
 const BRAND_TAB_INFO = {
-  smashme: { label: "SmashMe", color: "#EE3B24", emoji: "🍔" },
-  sushimaster: { label: "Sushi Master", color: "#E31E24", emoji: "🍣" },
-  ikura: { label: "Ikura", color: "#8b5cf6", emoji: "🍱" },
-  welovesushi: { label: "WeLoveSushi", color: "#ec4899", emoji: "🍣" },
+  smashme: { label: "SmashMe", color: "#EE3B24", emoji: "" },
+  sushimaster: { label: "Sushi Master", color: "#E31E24", emoji: "" },
+  ikura: { label: "Ikura", color: "#8b5cf6", emoji: "" },
+  welovesushi: { label: "WeLoveSushi", color: "#ec4899", emoji: "" },
 };
 
 export default function MenuScreen() {
@@ -423,7 +423,7 @@ export default function MenuScreen() {
                     : "none",
               }}
             >
-              🍃 Vegetarian
+              Vegetarian
             </button>
           )}
           {allProducts.some(p => p.isSpicy) && (
@@ -449,7 +449,7 @@ export default function MenuScreen() {
                     : "none",
               }}
             >
-              🌶️ Picant
+              Picant
             </button>
           )}
           <input
@@ -473,14 +473,13 @@ export default function MenuScreen() {
         >
           {orderType === "dine-in" ? (
             <span>
-              🍽️ {t("table", lang)} #{tableNumber}
+              {t("table", lang)} #{tableNumber}
             </span>
           ) : (
-            <span>🛍️ {t("takeaway", lang)}</span>
+            <span>{t("takeaway", lang)}</span>
           )}
           <span style={{ marginLeft: "4px", opacity: 0.4, fontSize: "0.9em" }}>
-            ✎
-          </span>
+            </span>
         </div>
       </header>
 
@@ -548,7 +547,7 @@ export default function MenuScreen() {
             }}
           >
             <span className="fav-bar-label">
-              ❤️ {t("saved", lang) || "Salvate"}
+              {t("saved", lang) || "Salvate"}
             </span>
             <button
               onClick={handleAddAllFavorites}
@@ -580,11 +579,11 @@ export default function MenuScreen() {
                       onError={e => {
                         e.target.style.display = "none";
                         e.target.parentNode.innerHTML =
-                          '<span style=\"font-size:1.2rem\">🍽️</span>';
+                          '<span style=\"font-size:1.2rem\"></span>';
                       }}
                     />
                   ) : (
-                    <span style={{ fontSize: "1.2rem" }}>🍽️</span>
+                    <span style={{ fontSize: "1.2rem" }}></span>
                   )}
                 </div>
                 <div className="fav-item-info">
@@ -627,8 +626,7 @@ export default function MenuScreen() {
                     title={t("delete_short", lang) || "Șterge"}
                     onClick={() => toggleFavorite(fav)}
                   >
-                    ✕
-                  </button>
+                    </button>
                 </div>
               </div>
             ))}

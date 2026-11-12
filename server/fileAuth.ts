@@ -179,10 +179,31 @@ export async function requirePdfAccess(
         .where(eq(schema.nir.invoiceArchiveId, id));
       if (byArchive) {
         row = byArchive;
+      } else {
+        // Fallback 2: căutare prin invoiceArchive (dacă NIR e legat doar prin invoiceNumber)
+        const [invArchive] = await db
+          .select({ invoiceNumber: schema.invoiceArchive.invoiceNumber, tenantId: schema.invoiceArchive.tenantId })
+          .from(schema.invoiceArchive)
+          .where(eq(schema.invoiceArchive.id, id));
+        if (invArchive && invArchive.invoiceNumber) {
+          const { and: andOp, eq: eqOp } = await import("drizzle-orm");
+          const [byNum] = await db
+            .select({ tenantId: schema.nir.tenantId })
+            .from(schema.nir)
+            .where(
+              andOp(
+                eqOp(schema.nir.tenantId, invArchive.tenantId),
+                eqOp(schema.nir.invoiceNumber, invArchive.invoiceNumber)
+              )
+            )
+            .limit(1);
+          if (byNum) row = byNum;
+        }
       }
     }
 
     if (!row) {
+      console.warn(`[FileAuth:requirePdfAccess] Document not found for resource="${resource}" id=${id}`);
       res.status(404).json({ error: "Documentul nu a fost găsit" });
       return;
     }
@@ -265,6 +286,7 @@ export async function requirePdfAccess(
     }
 
     // Niciun mecanism de autentificare nu conferă acces la acest document
+    console.warn(`[FileAuth:requirePdfAccess] Access denied for resource="${resource}" id=${id} (docTenantId=${docTenantId}). Has accountantToken=${Boolean(accountantToken)}, has userToken=${Boolean(token)}`);
     res.status(404).json({ error: "Documentul nu a fost găsit" });
   } catch (e: any) {
     console.error("[FileAuth] error:", e?.message);

@@ -248,20 +248,20 @@ export default function SagaSyncPage() {
     switch (tab) {
       case "articles":
         return {
-          menu: "Fișiere ➔ Articole",
-          button: "Tipărire... ➔ Export în Excel (.xlsx)",
+          menu: "Fișiere Articole",
+          button: "Tipărire... Export în Excel (.xlsx)",
           fields: "COD, DENUMIRE, UM, TVA, DEN_TIP, TIP, COD_BARE",
         };
       case "furnizori":
         return {
-          menu: "Fișiere ➔ Furnizori",
-          button: "Tipărire... ➔ Export în Excel (.xlsx)",
+          menu: "Fișiere Furnizori",
+          button: "Tipărire... Export în Excel (.xlsx)",
           fields: "COD, DENUMIRE, COD_FISCAL (CUI), REG_COM, ADRESA, CONT_ANALITIC",
         };
       case "clienti":
         return {
-          menu: "Fișiere ➔ Clienți",
-          button: "Tipărire... ➔ Export în Excel (.xlsx)",
+          menu: "Fișiere Clienți",
+          button: "Tipărire... Export în Excel (.xlsx)",
           fields: "COD, DENUMIRE, COD_FISCAL (CUI), REG_COM, ADRESA, CONT_ANALITIC",
         };
     }
@@ -453,14 +453,14 @@ export default function SagaSyncPage() {
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 Deschide programul SAGA pe calculatorul tău. Mergi în meniul de sus la:
               </p>
-              <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 font-mono text-xs text-blue-700 dark:text-blue-300 font-semibold">
+              <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 tabular-nums text-xs text-blue-700 dark:text-blue-300 font-semibold">
                 {helpPath.menu}
               </div>
               <p className="text-xs text-slate-600 dark:text-slate-400">
                 Apasă butonul de jos:
               </p>
               <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 text-[11px] text-amber-800 dark:text-amber-300 font-medium">
-                👉 {helpPath.button}
+                {helpPath.button}
               </div>
             </div>
           </div>
@@ -487,7 +487,7 @@ export default function SagaSyncPage() {
                 <div className="font-semibold text-slate-800 dark:text-white mb-1">
                   Coloane recunoscute automat:
                 </div>
-                <div className="font-mono text-[10px] text-slate-500 dark:text-slate-400 break-words">
+                <div className="tabular-nums text-[10px] text-slate-500 dark:text-slate-400 break-words">
                   {helpPath.fields}
                 </div>
               </div>
@@ -738,7 +738,7 @@ export default function SagaSyncPage() {
                     key={row.id}
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                   >
-                    <td className="py-2.5 px-4 font-mono font-semibold text-blue-600 dark:text-blue-400">
+                    <td className="py-2.5 px-4 tabular-nums font-semibold text-blue-600 dark:text-blue-400">
                       {row.code}
                     </td>
                     <td className="py-2.5 px-4 font-medium text-slate-900 dark:text-white">
@@ -749,7 +749,7 @@ export default function SagaSyncPage() {
                         {row.category}
                       </span>
                     </td>
-                    <td className="py-2.5 px-4 font-mono text-slate-500 dark:text-slate-400">
+                    <td className="py-2.5 px-4 tabular-nums text-slate-500 dark:text-slate-400">
                       {row.account}
                     </td>
                     <td className="py-2.5 px-4 text-slate-500 dark:text-slate-400">{row.unit}</td>

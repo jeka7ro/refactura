@@ -398,7 +398,7 @@ function CategoriesTab({ locationId }: { locationId: number }) {
   const [form, setForm] = useState({
     name: "",
     description: "",
-    icon: "🍽️",
+    icon: "",
     sortOrder: 0,
   });
 
@@ -413,7 +413,7 @@ function CategoriesTab({ locationId }: { locationId: number }) {
       toast.success("Categorie salvată");
       utils.horeca.menu.listCategories.invalidate();
       setShowForm(false);
-      setForm({ name: "", description: "", icon: "🍽️", sortOrder: 0 });
+      setForm({ name: "", description: "", icon: "", sortOrder: 0 });
     },
     onError: e => toast.error(e.message),
   });
@@ -461,7 +461,7 @@ function CategoriesTab({ locationId }: { locationId: number }) {
               <input
                 value={form.icon}
                 onChange={e => setForm(f => ({ ...f, icon: e.target.value }))}
-                placeholder="🍕"
+                placeholder=""
                 className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 focus:outline-none shadow-sm"
               />
             </div>

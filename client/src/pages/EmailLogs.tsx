@@ -364,14 +364,14 @@ export default function EmailLogs() {
                         <TableCell className="whitespace-nowrap">
                           {log.invoiceId ? (
                             <Link href={`/facturi-emise-nou/${log.invoiceId}`}>
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-mono font-bold text-xs hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors cursor-pointer">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 tabular-nums font-bold text-xs hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors cursor-pointer">
                                 <FileText className="w-3.5 h-3.5" />
                                 {log.invoiceNumber || `FACT-${log.invoiceId}`}
                                 <ExternalLink className="w-3 h-3 opacity-60" />
                               </span>
                             </Link>
                           ) : (
-                            <span className="font-mono text-xs text-slate-500 font-semibold">
+                            <span className="tabular-nums text-xs text-slate-500 font-semibold">
                               {log.invoiceNumber || "—"}
                             </span>
                           )}
@@ -384,7 +384,7 @@ export default function EmailLogs() {
                                 {log.recipientName}
                               </span>
                             )}
-                            <div className="flex items-center gap-1.5 text-xs text-slate-500 font-mono">
+                            <div className="flex items-center gap-1.5 text-xs text-slate-500 tabular-nums">
                               <span>{log.recipientEmail}</span>
                               <button
                                 onClick={() => copyToClipboard(log.recipientEmail)}
@@ -415,7 +415,7 @@ export default function EmailLogs() {
                           )}
                         </TableCell>
 
-                        <TableCell className="text-xs text-slate-500 font-mono max-w-[180px] truncate" title={log.error || log.messageId || ""}>
+                        <TableCell className="text-xs text-slate-500 tabular-nums max-w-[180px] truncate" title={log.error || log.messageId || ""}>
                           {log.error ? (
                             <span className="text-rose-600 dark:text-rose-400 font-sans font-medium text-[11px]">
                               {log.error}
@@ -637,7 +637,7 @@ export default function EmailLogs() {
                   <div>
                     <span className="text-slate-400 font-medium">Către:</span>{" "}
                     <strong className="text-slate-900 dark:text-white">{previewData.recipientName || previewData.recipientEmail}</strong>{" "}
-                    <span className="text-slate-500 font-mono text-[11px]">&lt;{previewData.recipientEmail}&gt;</span>
+                    <span className="text-slate-500 tabular-nums text-[11px]">&lt;{previewData.recipientEmail}&gt;</span>
                   </div>
                   {previewData.sentAt && (
                     <div className="text-[11px] text-slate-500 font-medium">

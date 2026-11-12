@@ -48,7 +48,7 @@ const STATUS_FLOW = [
   },
   {
     value: "delivered",
-    label: "Livrată ✓",
+    label: "Livrată ",
     cls: "bg-emerald-500/20 text-emerald-300",
   },
   { value: "cancelled", label: "Anulată", cls: "bg-red-500/20 text-red-300" },

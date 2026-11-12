@@ -100,7 +100,7 @@ export default function Inventory() {
                       <td className="px-4 py-3 text-center text-slate-600 dark:text-slate-300">
                         {item.unit || "-"}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono text-slate-700 dark:text-slate-300">
+                      <td className="px-4 py-3 text-right tabular-nums text-slate-700 dark:text-slate-300">
                         {formatNumber(Number(item.unitPrice))}
                       </td>
                       <td className="px-4 py-3 text-center text-slate-600 dark:text-slate-300">

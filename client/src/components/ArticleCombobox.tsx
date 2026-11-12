@@ -162,7 +162,7 @@ export default function ArticleCombobox({
                 }
               }
             }}
-            className="w-full bg-transparent text-xs font-mono font-medium text-slate-900 dark:text-white focus:outline-none pr-4 placeholder:font-sans placeholder:font-normal placeholder:text-slate-400"
+            className="w-full bg-transparent text-xs tabular-nums font-medium text-slate-900 dark:text-white focus:outline-none pr-4 placeholder:font-sans placeholder:font-normal placeholder:text-slate-400"
           />
           <button
             type="button"
@@ -199,7 +199,7 @@ export default function ArticleCombobox({
             {filteredArticles.length === 0 ? (
               <div className="p-3 text-center text-xs text-slate-400">
                 <p>Niciun articol găsit.</p>
-                <p className="text-[11px] mt-1 text-slate-500 font-mono">
+                <p className="text-[11px] mt-1 text-slate-500 tabular-nums">
                   Poți păstra codul tastat: <strong>{search}</strong>
                 </p>
               </div>
@@ -224,7 +224,7 @@ export default function ArticleCombobox({
                     } ${isSelected ? "font-semibold text-teal-600 dark:text-teal-400" : ""}`}
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="font-mono font-bold text-teal-600 dark:text-teal-400 text-xs shrink-0">
+                      <span className="tabular-nums font-bold text-teal-600 dark:text-teal-400 text-xs shrink-0">
                         {art.code}
                       </span>
                       <span className="truncate" title={art.name}>

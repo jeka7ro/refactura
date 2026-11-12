@@ -47,7 +47,7 @@ async function cleanMocks() {
     const ids = toDelete.map(i => i.id);
     await db.delete(invoiceArchive).where(inArray(invoiceArchive.id, ids));
     console.log(
-      `\n✅ Șterse ${toDelete.length} facturi mock: ${toDelete.map(i => i.invoiceNumber).join(", ")}`
+      `\nȘterse ${toDelete.length} facturi mock: ${toDelete.map(i => i.invoiceNumber).join(", ")}`
     );
   } else {
     console.log("\nNicio factură mock găsită în invoiceArchive.");
@@ -74,7 +74,7 @@ async function cleanMocks() {
     if (mockInv.length > 0) {
       const ids = mockInv.map((i: any) => i.id);
       await db.delete(invoices).where(inArray((invoices as any).id, ids));
-      console.log(`✅ Șterse ${mockInv.length} facturi mock din invoices`);
+      console.log(`Șterse ${mockInv.length} facturi mock din invoices`);
     }
   } catch (e: any) {
     console.log(`invoices table: ${e.message}`);

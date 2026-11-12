@@ -82,7 +82,7 @@ export default function OrderTypeScreen() {
           className="ot-card"
           onClick={() => setOrderType("dine-in", null)}
         >
-          <div className="ot-card-icon">🍽️</div>
+          <div className="ot-card-icon"></div>
           <h2>{t("dine_in", lang)}</h2>
           <p>{t("dine_in_sub", lang)}</p>
           <div className="ot-arrow">→</div>
@@ -94,7 +94,7 @@ export default function OrderTypeScreen() {
           className="ot-card"
           onClick={() => setOrderType("takeaway", null)}
         >
-          <div className="ot-card-icon">🛍️</div>
+          <div className="ot-card-icon"></div>
           <h2>{t("takeaway", lang)}</h2>
           <p>{t("takeaway_sub", lang)}</p>
           <div className="ot-arrow">→</div>

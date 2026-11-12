@@ -708,9 +708,9 @@ export const languages: { code: Language; label: string }[] = [
   { code: "fr", label: "Français" },
 ];
 export const countries: { code: Country; label: string; flag: string }[] = [
-  { code: "RO", label: "România", flag: "🇷🇴" },
-  { code: "DE", label: "Germania", flag: "🇩🇪" },
-  { code: "FR", label: "Franța", flag: "🇫🇷" },
-  { code: "GB", label: "Marea Britanie", flag: "🇬🇧" },
-  { code: "US", label: "SUA", flag: "🇺🇸" },
+  { code: "RO", label: "România", flag: "" },
+  { code: "DE", label: "Germania", flag: "" },
+  { code: "FR", label: "Franța", flag: "" },
+  { code: "GB", label: "Marea Britanie", flag: "" },
+  { code: "US", label: "SUA", flag: "" },
 ];

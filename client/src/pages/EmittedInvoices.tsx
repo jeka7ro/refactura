@@ -800,7 +800,7 @@ export default function EmittedInvoices() {
                                     ≈ {formatCurrency(computed.totalRon, "RON")}
                                   </span>
                                   <span
-                                    className="text-[9px] text-slate-400 font-mono"
+                                    className="text-[9px] text-slate-400 tabular-nums"
                                     title={`Curs oficial BNR: ${computed.rate.toFixed(4)}`}
                                   >
                                     ({computed.rate.toFixed(4)})
@@ -1276,7 +1276,7 @@ export default function EmittedInvoices() {
               {spvErrorInvoice.spvIndex && (
                 <div className="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800">
                   <span className="text-slate-500 font-medium">Index Încărcare ANAF:</span>
-                  <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                  <span className="tabular-nums font-bold text-slate-700 dark:text-slate-300">
                     {spvErrorInvoice.spvIndex}
                   </span>
                 </div>
@@ -1295,7 +1295,7 @@ export default function EmittedInvoices() {
               <span className="font-bold text-rose-900 dark:text-rose-200 block">
                 Mesaj returnat de serverul ANAF:
               </span>
-              <p className="font-mono text-[11px] text-rose-800 dark:text-rose-300 bg-white/80 dark:bg-slate-900/60 p-2.5 rounded-lg border border-rose-200/60 dark:border-rose-900/60 break-words leading-relaxed max-h-48 overflow-y-auto">
+              <p className="tabular-nums text-[11px] text-rose-800 dark:text-rose-300 bg-white/80 dark:bg-slate-900/60 p-2.5 rounded-lg border border-rose-200/60 dark:border-rose-900/60 break-words leading-relaxed max-h-48 overflow-y-auto">
                 {spvErrorInvoice.spvError || "Eroare de validare la procesarea fișierului XML de către serverul ANAF."}
               </p>
             </div>

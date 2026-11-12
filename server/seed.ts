@@ -16,7 +16,7 @@ async function seed() {
   }
 
   try {
-    console.log("🌱 Seeding subscription plans...");
+    console.log("Seeding subscription plans...");
 
     // Seed subscription plans
     const plans = [
@@ -76,9 +76,9 @@ async function seed() {
         });
     }
 
-    console.log("✅ Subscription plans seeded");
+    console.log("Subscription plans seeded");
 
-    console.log("🌱 Creating superadmin account...");
+    console.log("Creating superadmin account...");
 
     // Hash superadmin password
     const superadminPassword = "19Iunie2026!$";
@@ -98,9 +98,9 @@ async function seed() {
         // Account may already exist
       });
 
-    console.log("✅ Superadmin account created: jeka7ro@gmail.com");
+    console.log("Superadmin account created: jeka7ro@gmail.com");
 
-    console.log("🌱 Creating demo tenant...");
+    console.log("Creating demo tenant...");
 
     // Create demo tenant
     const basicPlan = await db.select().from(subscriptionPlans).limit(1);
@@ -125,7 +125,7 @@ async function seed() {
 
       const demoTenant = { id: 1 }; // Demo tenant ID
 
-      console.log("✅ Demo tenant created");
+      console.log("Demo tenant created");
 
       // Create demo tenant admin account
       const demoAdminPassword = "Demo123!@#";
@@ -145,21 +145,21 @@ async function seed() {
         });
 
       console.log(
-        "✅ Demo tenant admin created: admin@constructmaster.ro / Demo123!@#"
+        "Demo tenant admin created: admin@constructmaster.ro / Demo123!@#"
       );
     }
 
-    console.log("\n✅ Seeding complete!");
-    console.log("\n📝 Superadmin credentials:");
+    console.log("\nSeeding complete!");
+    console.log("\nSuperadmin credentials:");
     console.log("   Email: jeka7ro@gmail.com");
     console.log("   Password: 19Iunie2026!$");
-    console.log("\n📝 Demo tenant admin credentials:");
+    console.log("\nDemo tenant admin credentials:");
     console.log("   Email: admin@constructmaster.ro");
     console.log("   Password: Demo123!@#");
 
     process.exit(0);
   } catch (error) {
-    console.error("❌ Seeding failed:", error);
+    console.error("Seeding failed:", error);
     process.exit(1);
   }
 }

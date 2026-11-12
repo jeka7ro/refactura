@@ -602,7 +602,7 @@ function UsersTab() {
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium text-slate-800 truncate">{t.name}</p>
                           {t.cui && (
-                            <span className="text-[10px] font-mono bg-slate-100 text-slate-500 px-1 rounded">
+                            <span className="text-[10px] tabular-nums bg-slate-100 text-slate-500 px-1 rounded">
                               {t.cui}
                             </span>
                           )}
@@ -1170,7 +1170,7 @@ function ActivityTab() {
           Se încarcă activitatea...
         </div>
       ) : viewMode === "tenants" ? (
-        /* 🏢 Grupare pe Tenanți */
+        /* Grupare pe Tenanți */
         <div className="space-y-4">
           {filteredTenants.map(t => {
             const lastActive = formatActivityTime(t.lastActiveAt);
@@ -1189,7 +1189,7 @@ function ActivityTab() {
                       <div className="flex items-center gap-2">
                         <h4 className="text-sm font-bold text-slate-900">{t.name}</h4>
                         {t.cui && (
-                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-200/70 text-slate-700">
+                          <span className="text-[10px] tabular-nums px-1.5 py-0.5 rounded bg-slate-200/70 text-slate-700">
                             CUI: {t.cui}
                           </span>
                         )}
@@ -1254,7 +1254,7 @@ function ActivityTab() {
                             <div className="text-xs font-semibold text-slate-800">
                               {activity.relative}
                             </div>
-                            <div className="text-[10px] text-slate-400 font-mono">
+                            <div className="text-[10px] text-slate-400 tabular-nums">
                               {activity.exact}
                             </div>
                           </div>
@@ -1280,7 +1280,7 @@ function ActivityTab() {
           )}
         </div>
       ) : (
-        /* 👥 Listă Tabelară Utilizatori */
+        /* Listă Tabelară Utilizatori */
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
@@ -1338,11 +1338,11 @@ function ActivityTab() {
                       <td className="px-4 py-3">{renderStatusBadge(u.activityStatus)}</td>
                       <td className="px-4 py-3">
                         <div className="font-bold text-slate-800">{activity.relative}</div>
-                        <div className="text-[10px] font-mono text-slate-400">
+                        <div className="text-[10px] tabular-nums text-slate-400">
                           {activity.exact}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-slate-500 font-mono text-[11px]">
+                      <td className="px-4 py-3 text-slate-500 tabular-nums text-[11px]">
                         {u.createdAt
                           ? new Date(u.createdAt).toLocaleDateString("ro-RO")
                           : "—"}
