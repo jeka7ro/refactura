@@ -1,5 +1,17 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-12 19:33 — Curățare completă UI SPV ANAF: eliminare bannere, tab implicit pe facturi și design aerisit
+- **Autor:** Antigravity
+- **Ce s-a făcut:** 
+  1. Simplificat radical pagina `/spv` (`client/src/pages/SpvHub.tsx`): eliminat bannerul galben strident și ghidul text stufos de la subsol.
+  2. Setat tab-ul implicit la deschiderea paginii direct pe **Facturi e-Factura**, astfel încât utilizatorul să vadă imediat cele 4 KPI-uri curate și tabelul cu cele 60 de facturi fără confuzie.
+  3. Reformatat secțiunea de **Mesaje & Recipise SPV** într-un tabel elegant și compact (Data, Tip, Index, Titlu, Stare, Acțiuni), identic cu stilul restului aplicației.
+  4. Organizat secțiunile de **Mediere Fiscală Online** și **Contract Împrumut Taxe** în layout curat pe 2 coloane (formular scurt la stânga, previzualizare la dreapta).
+  5. Compactat antetul paginii cu badge discret de conexiune și butoanele principale de test și sincronizare.
+- **Fișiere:** `client/src/pages/SpvHub.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` / `1b69c0b refactor(spv): curatare completa UI - eliminare bannere, tab implicit pe facturi si format tabelar curat`
+- **Build / Teste:** `npm run build` trecut cu succes (0 erori).
+
 ### 2026-11-12 18:52 — Modificare frecvență cron SPV: o singură dată pe zi la ora 09:00
 - **Autor:** Antigravity
 - **Ce s-a făcut:** 
