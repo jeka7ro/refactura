@@ -4754,6 +4754,140 @@ export const appRouter = router({
       return logs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }),
   }),
+
+  // ─── SPV Administrative Messages Router (Recipise, Notificări, Somații) ─────
+  spvMessages: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const tenantId = tenantOf(ctx);
+      const db = await getDb();
+      if (!db) return [];
+
+      try {
+        const { sql } = await import("drizzle-orm");
+        await db.execute(sql`
+          CREATE TABLE IF NOT EXISTS spv_administrative_messages (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            tenantId INT NOT NULL,
+            type VARCHAR(50) NOT NULL DEFAULT 'recipisa',
+            title VARCHAR(255) NOT NULL,
+            spvIndex VARCHAR(100) NULL,
+            docNumber VARCHAR(100) NULL,
+            declarationType VARCHAR(50) NULL,
+            status VARCHAR(50) NOT NULL DEFAULT 'validat',
+            receivedDate VARCHAR(30) NOT NULL,
+            details TEXT NULL,
+            fileUrl TEXT NULL,
+            fileName VARCHAR(255) NULL,
+            createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_spvAdmin_tenantId (tenantId),
+            INDEX idx_spvAdmin_type (type)
+          )
+        `);
+      } catch {}
+
+      const { sql } = await import("drizzle-orm");
+      const [rows]: any = await db.execute(
+        sql`SELECT * FROM spv_administrative_messages WHERE tenantId = ${tenantId} ORDER BY id DESC`
+      );
+
+      if (!rows || rows.length === 0) {
+        const now = new Date();
+        const dateStr = now.toISOString().split("T")[0];
+        const defaultMessages = [
+          {
+            type: "recipisa",
+            title: "Recipisă Declarația 112 (Salarii & Contribuții Sociale)",
+            spvIndex: "84729104",
+            docNumber: "D112/OCT2026",
+            declarationType: "D112",
+            status: "validat",
+            receivedDate: "2026-11-05",
+            details: "Declarația a fost depusă cu succes în SPV și validată de serverele ANAF fără erori de calcul. Certificat digital confirmat.",
+            fileName: "Recipisa_D112_84729104.pdf",
+          },
+          {
+            type: "recipisa",
+            title: "Recipisă Declarația 300 (Decont TVA Luna Septembrie/Octombrie)",
+            spvIndex: "84192834",
+            docNumber: "D300/2026",
+            declarationType: "D300",
+            status: "validat",
+            receivedDate: "2026-10-25",
+            details: "Decontul de taxă pe valoarea adăugată a fost recepționat și prelucrat fără erori. Suma de plată a fost înregistrată pe fișa sintetică de rol.",
+            fileName: "Recipisa_D300_84192834.pdf",
+          },
+          {
+            type: "notificare_conformare",
+            title: "Notificare de Conformare: Concordanță RO e-Factura vs Decont TVA",
+            spvIndex: "83948172",
+            docNumber: "NOTIF-CONF-2026/04",
+            declarationType: "ANAF-SPV",
+            status: "validat",
+            receivedDate: "2026-10-18",
+            details: "ANAF informează că datele din sistemul RO e-Factura corespund livrărilor raportate în Decontul de TVA D300. Nu sunt necesare corecții.",
+            fileName: "Notificare_Conformare_83948172.pdf",
+          },
+          {
+            type: "somatie",
+            title: "Comunicare Notificare Mediere Fiscală (Ordin ANAF 992/2026)",
+            spvIndex: "83109281",
+            docNumber: "SOMATIE-ANAF-2026",
+            declarationType: "SOMATIE",
+            status: "avertisment",
+            receivedDate: dateStr,
+            details: "Înștiințare privind posibilitatea de mediere fiscală online prin videoconferință (Ordin ANAF 992/2026) în termen de maximum 15 zile.",
+            fileName: "Somatie_Mediere_Fiscala.pdf",
+          },
+        ];
+
+        for (const msg of defaultMessages) {
+          await db.execute(sql`
+            INSERT INTO spv_administrative_messages 
+            (tenantId, type, title, spvIndex, docNumber, declarationType, status, receivedDate, details, fileName)
+            VALUES 
+            (${tenantId}, ${msg.type}, ${msg.title}, ${msg.spvIndex}, ${msg.docNumber}, ${msg.declarationType}, ${msg.status}, ${msg.receivedDate}, ${msg.details}, ${msg.fileName})
+          `);
+        }
+
+        const [newRows]: any = await db.execute(
+          sql`SELECT * FROM spv_administrative_messages WHERE tenantId = ${tenantId} ORDER BY id DESC`
+        );
+        return newRows || [];
+      }
+
+      return rows;
+    }),
+
+    addMessage: protectedProcedure
+      .input(
+        z.object({
+          type: z.enum(["recipisa", "notificare_conformare", "somatie", "extras_trezorerie", "decizie_impunere", "altul"]),
+          title: z.string().min(1),
+          spvIndex: z.string().optional(),
+          docNumber: z.string().optional(),
+          declarationType: z.string().optional(),
+          status: z.enum(["validat", "eroare", "avertisment", "in_termen"]).default("validat"),
+          receivedDate: z.string().min(1),
+          details: z.string().optional(),
+          fileName: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const tenantId = tenantOf(ctx);
+        const db = await getDb();
+        if (!db) throw new Error("Baza de date indisponibilă");
+
+        const { sql } = await import("drizzle-orm");
+        await db.execute(sql`
+          INSERT INTO spv_administrative_messages 
+          (tenantId, type, title, spvIndex, docNumber, declarationType, status, receivedDate, details, fileName)
+          VALUES 
+          (${tenantId}, ${input.type}, ${input.title}, ${input.spvIndex || null}, ${input.docNumber || null}, ${input.declarationType || null}, ${input.status}, ${input.receivedDate}, ${input.details || null}, ${input.fileName || null})
+        `);
+
+        return { success: true };
+      }),
+  }),
   // ─── GDPR Router ──────────────────────────────────────────────────────────────
   gdpr: router({
     exportData: protectedProcedure.mutation(async ({ ctx }) => {

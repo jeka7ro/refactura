@@ -1031,6 +1031,169 @@ function getActAditionalTemplate(lang: ContractLanguage, isTradeInvest: boolean 
 }
 
 /**
+ * 6. Șablon Contract de Împrumut Asociat pentru Plata Obligațiilor Fiscale
+ * Conform Codului de Procedură Fiscală (art. 165) și Legii 31/1990
+ */
+function getTaxLoanTemplate(lang: ContractLanguage): ContractTemplate {
+  const isEn = lang === "en";
+  const isBilingual = lang === "ro_en";
+
+  let name = "Contract de Împrumut Asociat pentru Plata Obligațiilor Fiscale (ANAF / Trezorerie)";
+  let description = "Șablon legal esențial când administratorul sau un terț plătește taxele firmei din contul personal. Cerut obligatoriu la controlul ANAF.";
+
+  if (isEn) {
+    name = "Shareholder Loan Agreement for Tax Liabilities (Treasury / ANAF Settlement)";
+    description = "Legal contract when a shareholder or third party pays corporate tax obligations directly to the State Treasury.";
+  } else if (isBilingual) {
+    name = "Contract Bilingv Împrumut Asociat pentru Obligații Fiscale (RO / EN)";
+    description = "Format profesional bilingv pe două coloane (RO/EN): stingere debite fiscale bugetare de către terți/asociați.";
+  }
+
+  const contentHtml = `
+<div style="font-family: 'Segoe UI', Arial, sans-serif; font-size: 11.5px; line-height: 1.55; color: #1e293b; max-width: 800px; margin: 0 auto; padding: 24px;">
+  <div style="border-bottom: 2px solid #0f766e; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <h1 style="color: #0f766e; margin: 0; font-size: 18px; font-weight: 800; text-transform: uppercase;">
+        ${isEn ? "SHAREHOLDER LOAN AGREEMENT" : "CONTRACT DE ÎMPRUMUT ASOCIAT"}
+      </h1>
+      <p style="margin: 3px 0 0 0; color: #64748b; font-size: 11px;">
+        ${isEn ? "For the Direct Settlement of Corporate Tax Obligations (ANAF / State Treasury)" : "Pentru Plata Directă a Obligațiilor Fiscale ale Societății (Trezorerie / ANAF)"}
+      </p>
+    </div>
+    <div style="text-align: right; font-size: 11px; color: #475569;">
+      <strong>Nr. {{contract.number}}</strong><br/>
+      Data: {{contract.startDate}}
+    </div>
+  </div>
+
+  <p>Încheiat astăzi, <strong>{{contract.startDate}}</strong>, între următoarele părți:</p>
+
+  <p><strong>1. {{partner.name}}</strong>, CNP/CUI: <strong>{{partner.cui}}</strong>, cu domiciliul/sediul în {{partner.address}}, în calitate de <strong>ÎMPRUMUTĂTOR (Asociat / Terț Plătitor)</strong>,</p>
+  <p>și</p>
+  <p><strong>2. {{tenant.name}}</strong>, CUI: <strong>{{tenant.cui}}</strong>, Reg. Com.: {{tenant.regCom}}, cu sediul în {{tenant.address}}, IBAN Trezorerie: <strong>{{tenant.iban}}</strong>, reprezentată legal de {{tenant.delegat}}, în calitate de <strong>ÎMPRUMUTAT (Societate Beneficiară)</strong>.</p>
+
+  <h3 style="color: #0f766e; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; font-size: 12px; text-transform: uppercase; margin-top: 18px;">
+    ARTICOLUL 1. OBIECTUL CONTRACTULUI ȘI DESTINAȚIA SUMEI
+  </h3>
+  <p>1.1. Împrumutătorul acordă Împrumutatului un împrumut financiar în sumă de <strong>{{contract.value}} {{contract.currency}}</strong>.</p>
+  <p>1.2. <strong>Destinație specială:</strong> Întreaga sumă este destinată exclusiv și nemijlocit plății obligațiilor fiscale și bugetare datorate de Împrumutat către Bugetul General Consolidat al Statului (Trezoreria Statului / ANAF), constând în: impozit pe profit/venit, TVA, contribuții sociale (CAS, CASS, CAM), penalități sau alte accesorii fiscale.</p>
+  <p>1.3. Plata obligațiilor fiscale poate fi efectuată de către Împrumutător fie prin virament în contul bancar al Împrumutatului, fie direct din contul personal al Împrumutătorului în contul unic deschis la Trezoreria Statului pe numele Împrumutatului, conform art. 165 din Codul de procedură fiscală.</p>
+
+  <h3 style="color: #0f766e; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; font-size: 12px; text-transform: uppercase; margin-top: 18px;">
+    ARTICOLUL 2. TERMENUL DE RESTITUIRE ȘI DOBÂNDA
+  </h3>
+  <p>2.1. Împrumutul este acordat pe o perioadă de până la data de <strong>{{contract.validUntil}}</strong>, cu posibilitate de prelungire prin act adițional.</p>
+  <p>2.2. Prezentul împrumut este <strong>purtător de dobândă 0% (fără dobândă)</strong>, fiind acordat cu scopul exclusiv de sprijin financiar temporar și de evitare a măsurilor de executare silită sau poprire din partea organelor fiscale.</p>
+  <p>2.3. Împrumutatul se obligă să restituie suma împrumutată prin virament bancar pe măsura disponibilităților financiare ale societății.</p>
+
+  <h3 style="color: #0f766e; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; font-size: 12px; text-transform: uppercase; margin-top: 18px;">
+    ARTICOLUL 3. CONFORMITATE FISCALĂ ȘI CONTROL
+  </h3>
+  <p>3.1. Prezentul contract constituie document justificativ legal în fața organelor de inspecție fiscală ale ANAF pentru plata taxelor de către terți/asociați și pentru înregistrarea în contabilitatea societății în contul 4551 „Acționari/Asociați - conturi curente”.</p>
+
+  <table style="width: 100%; margin-top: 40px; font-size: 11px;">
+    <tr>
+      <td style="width: 50%; vertical-align: top;">
+        <strong>ÎMPRUMUTĂTOR (Asociat / Terț)</strong><br/>
+        {{partner.name}}<br/>
+        Semnătura: __________________________
+      </td>
+      <td style="width: 50%; vertical-align: top;">
+        <strong>ÎMPRUMUTAT (Societate)</strong><br/>
+        {{tenant.name}}<br/>
+        Reprezentant: {{tenant.delegat}}<br/>
+        Semnătura și ștampila: __________________________
+      </td>
+    </tr>
+  </table>
+</div>`;
+
+  return {
+    id: "imprumut-asociat-taxe-anaf",
+    name,
+    type: "imprumut_asociat",
+    description,
+    language: lang,
+    contentHtml,
+  };
+}
+
+/**
+ * 7. Șablon Notificare privind Intenția de Mediere Fiscală Online (Ordin ANAF nr. 992/2026)
+ */
+function getFiscalMediationNoticeTemplate(lang: ContractLanguage): ContractTemplate {
+  const isEn = lang === "en";
+  const isBilingual = lang === "ro_en";
+
+  let name = "Notificare Intenție Mediere Fiscală Online (Ordin ANAF 992/2026 — Videoconferință)";
+  let description = "Notificare oficială către organul fiscal pentru medierea online a somației de plată prin videoconferință, în termenul de 15 zile.";
+
+  if (isEn) {
+    name = "Fiscal Mediation Intent Notice (ANAF Order 992/2026 — Videoconference)";
+    description = "Official taxpayer notice to ANAF requesting online fiscal mediation for tax summons within the statutory 15-day window.";
+  } else if (isBilingual) {
+    name = "Notificare Bilingvă Mediere Fiscală Online ANAF (RO / EN)";
+    description = "Procedură oficială de mediere fiscală online prevăzută de Ordinul ANAF nr. 992/2026.";
+  }
+
+  const contentHtml = `
+<div style="font-family: 'Segoe UI', Arial, sans-serif; font-size: 11.5px; line-height: 1.6; color: #1e293b; max-width: 800px; margin: 0 auto; padding: 24px;">
+  <div style="border-bottom: 2px solid #b91c1c; padding-bottom: 12px; margin-bottom: 20px; text-align: center;">
+    <h1 style="color: #b91c1c; margin: 0; font-size: 17px; font-weight: 800; text-transform: uppercase;">
+      NOTIFICARE PRIVIND INTENȚIA DE MEDIERE FISCALĂ
+    </h1>
+    <p style="margin: 4px 0 0 0; color: #64748b; font-size: 11px;">
+      Formular oficial conform art. 230 din Codul de procedură fiscală și Ordinului ANAF nr. 992/2026
+    </p>
+  </div>
+
+  <p style="text-align: right; font-size: 11px;">
+    <strong>Către: DIRECȚIA GENERALĂ REGIONALĂ A FINANȚELOR PUBLICE</strong><br/>
+    <strong>ADMINISTRAȚIA JUDEȚEANĂ / SECTOR A FINANȚELOR PUBLICE</strong><br/>
+    Serviciul Colectare și Executare Silită
+  </p>
+
+  <p><strong>Subscrisa:</strong> <strong>{{tenant.name}}</strong>, cu sediul social în {{tenant.address}}, având Codul Unic de Înregistrare (CUI) <strong>{{tenant.cui}}</strong>, Nr. Registrul Comerțului {{tenant.regCom}}, cont IBAN {{tenant.iban}}, reprezentată legal prin administrator <strong>{{tenant.delegat}}</strong>, telefon {{tenant.phone}}, email {{tenant.email}},</p>
+
+  <p>în temeiul prevederilor <strong>art. 230 din Legea nr. 207/2015 privind Codul de procedură fiscală</strong> și ale <strong>Ordinului președintelui ANAF nr. 992/2026</strong> privind aprobarea Procedurii de mediere,</p>
+
+  <p style="text-align: center; font-weight: bold; margin: 18px 0; font-size: 13px; color: #0f172a;">
+    FORMULEZ PREZENTA NOTIFICARE PRIVIND INTENȚIA DE MEDIERE
+  </p>
+
+  <p>1. Ca urmare a comunicării prin Spațiul Privat Virtual (SPV) a <strong>Somației de plată Nr. {{contract.number}}</strong> din data de <strong>{{contract.startDate}}</strong> și a Titlului Executoriu aferent, învederăm că depunem prezenta notificare <strong>cu respectarea termenului legal de 15 zile</strong> de la comunicare.</p>
+
+  <p>2. <strong>Opțiune de desfășurare online (Ordin ANAF 992/2026):</strong> Vă solicităm respectuos ca procedura de mediere să se desfășoare <strong>prin platforma de videoconferință a Ministerului Finanțelor / ANAF</strong>, conform noilor dispoziții legale, urmând a ne transmite link-ul de conectare pe adresa de email oficială a societății: <strong>{{tenant.email}}</strong>.</p>
+
+  <p>3. <strong>Obiectul medierii:</strong> Clarificarea situației obligațiilor fiscale înscrise în somația de plată menționată, prezentarea documentelor justificative privind plățile deja efectuate, corelarea fișei de evidență pe plătitor cu evidența contabilă proprie și stabilirea de comun acord a unui plan de eșalonare sau stingere a eventualelor debite reale.</p>
+
+  <p>4. Menționăm că de la data depunerii prezentei notificări și până la finalizarea procedurii de mediere, măsurile de executare silită (inclusiv popririle bancare) se suspendă de drept conform art. 230 alin. (3) din Codul de procedură fiscală.</p>
+
+  <table style="width: 100%; margin-top: 40px; font-size: 11px;">
+    <tr>
+      <td style="width: 50%; vertical-align: top;">
+        Data depunerii în SPV: <strong>{{contract.startDate}}</strong>
+      </td>
+      <td style="width: 50%; vertical-align: top; text-align: right;">
+        <strong>{{tenant.name}}</strong><br/>
+        Prin Administrator: <strong>{{tenant.delegat}}</strong><br/>
+        Semnătura: __________________________
+      </td>
+    </tr>
+  </table>
+</div>`;
+
+  return {
+    id: "notificare-mediere-fiscala-anaf",
+    name,
+    type: "mediere_fiscala",
+    description,
+    language: lang,
+    contentHtml,
+  };
+}
+
+/**
  * Funcția centrală de obținere a tuturor șabloanelor în limba dorită, strict izolate pe tenant
  */
 export function getAllContractTemplates(options: TemplateOptions): ContractTemplate[] {
@@ -1038,17 +1201,19 @@ export function getAllContractTemplates(options: TemplateOptions): ContractTempl
 
   const cadruGeneral = getCadruGeneralTemplate(language, isTradeInvest, isWoodGlass);
   const actAditional = getActAditionalTemplate(language, isTradeInvest, isWoodGlass);
+  const taxLoan = getTaxLoanTemplate(language);
+  const mediationNotice = getFiscalMediationNoticeTemplate(language);
 
   if (isWoodGlass) {
     const wgTip = getWoodGlassTipTemplate(language);
-    return [wgTip, actAditional, cadruGeneral];
+    return [wgTip, actAditional, taxLoan, mediationNotice, cadruGeneral];
   }
 
   if (isTradeInvest) {
     const smartQr = getSmartQrTemplate(language);
     const signage = getDigitalSignageTemplate(language);
-    return [smartQr, signage, actAditional, cadruGeneral];
+    return [smartQr, signage, taxLoan, mediationNotice, actAditional, cadruGeneral];
   }
 
-  return [cadruGeneral, actAditional];
+  return [taxLoan, mediationNotice, cadruGeneral, actAditional];
 }
