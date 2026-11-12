@@ -1,5 +1,16 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-12 18:52 — Modificare frecvență cron SPV: o singură dată pe zi la ora 09:00
+- **Autor:** Antigravity
+- **Ce s-a făcut:** 
+  1. Modificat programarea automată a cron-ului SPV în `server/spvCron.ts` din rulare la fiecare 4 ore (`0 */4 * * *`) în rulare o singură dată pe zi, dimineața la ora 09:00 (`0 9 * * *`, fus orar `Europe/Bucharest`).
+  2. Actualizat textul explicativ din ghidul de pe pagina `/spv` (`client/src/pages/SpvHub.tsx`).
+  3. Logica de parsare facturi, arhivare XML și export SAGA rămân 100% neatinse și protejate.
+  4. Sincronizarea manuală rămâne accesibilă oricând la cerere din butonul „Sincronizează cu SPV acum”.
+- **Fișiere:** `server/spvCron.ts`, `client/src/pages/SpvHub.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` / `b4d4af0 fix(spv): setare rulare sincronizare cron zilnica la ora 09:00 in loc de 4 ore`
+- **Build / Teste:** `npm run build` trecut cu succes (0 erori).
+
 ### 2026-11-12 18:50 — Integrare completă opțiuni SPV, Mediere fiscală online (Ord. 992/2026) și Contract împrumut taxe
 - **Autor:** Antigravity
 - **Ce s-a făcut:** 
