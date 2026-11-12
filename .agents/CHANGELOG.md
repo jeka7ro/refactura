@@ -1,5 +1,18 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-12 19:37 — Afișare mesaje reale din SPV ANAF (listaMesajeFactura) și eliminare module generale
+- **Autor:** Antigravity
+- **Ce s-a făcut:** 
+  1. Înlocuit complet logica de mesaje din `server/routers.ts` (`spvMessages`): acum interoghează endpoint-ul oficial ANAF `https://api.anaf.ro/prod/FCTEL/rest/listaMesajeFactura?zile=60&cif=...` și salvează mesajele reale în `spv_raw_messages`.
+  2. Corelat fiecare mesaj real de la ANAF cu facturile din arhivă / emise (CUI emitent, CUI beneficiar, Index încărcare SPV, ID descărcare ANAF, status în sistem și previzualizare PDF).
+  3. Eliminat definitiv din interfață toate modulele generale nedorite (Mediere fiscală online, Contract împrumut asociat, recipise mock).
+  4. Interfața din `client/src/pages/SpvHub.tsx` conține acum doar 2 tab-uri reale și utile:
+     - 📬 **Mesaje Oficiale SPV ANAF**: stream-ul real al mesajelor din ANAF (Facturi Primite, Facturi Trimise, Erori), cu filtre, căutare și buton de copiere index/ID.
+     - 📑 **Facturi Prelucrate & Validate**: evidența facturilor din sistem cu sume, parteneri și PDF.
+- **Fișiere:** `server/routers.ts`, `client/src/pages/SpvHub.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` / `8e96e49 feat(spv): afisare mesaje reale din ANAF listaMesajeFactura si eliminare module generale`
+- **Build / Teste:** `npm run build` trecut cu succes (0 erori).
+
 ### 2026-11-12 19:33 — Curățare completă UI SPV ANAF: eliminare bannere, tab implicit pe facturi și design aerisit
 - **Autor:** Antigravity
 - **Ce s-a făcut:** 
