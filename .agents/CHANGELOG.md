@@ -1,5 +1,14 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-12 22:52 — Eliminare DashboardLayout duplicat din pagina SPV ANAF
+- **Autor:** Antigravity
+- **Ce s-a făcut:** 
+  1. Corectat dublarea structurii de pagină din `client/src/pages/SpvHub.tsx`: componenta era împachetată în `<DashboardLayout>` atât în `App.tsx` la nivel de rută, cât și intern în corpul componentei, cauzând apariția a două meniuri laterale și două antete suprapuse.
+  2. Eliminat wrapper-ul intern `<DashboardLayout>` din `SpvHub.tsx`, lăsând un singur sidebar și un singur header principal.
+- **Fișiere:** `client/src/pages/SpvHub.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` / `e38e453 fix(spv): eliminare DashboardLayout duplicat din SpvHub`
+- **Build / Teste:** `npm run build` trecut cu succes (0 erori).
+
 ### 2026-11-12 19:39 — Eliminare completă fonturi monospace din SPV Hub și aliniere la fontul standard
 - **Autor:** Antigravity
 - **Ce s-a făcut:** 
