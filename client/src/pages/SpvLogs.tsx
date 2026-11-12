@@ -186,7 +186,7 @@ export default function SpvLogs() {
                           })()}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="font-mono bg-slate-50">
+                          <Badge variant="outline" className="tabular-nums bg-slate-50">
                             {log.spvIndex || "Fără Index"}
                           </Badge>
                         </TableCell>

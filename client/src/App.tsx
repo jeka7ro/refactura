@@ -154,7 +154,7 @@ function Router() {
       </Route>
       <Route path="/jurnal-spv">
         <DashboardLayout>
-          <SpvHub />
+          <SpvLogs />
         </DashboardLayout>
       </Route>
       <Route path="/spv">
