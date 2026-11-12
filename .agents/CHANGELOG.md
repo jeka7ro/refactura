@@ -1,5 +1,20 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-12 23:02 — Separare curată: Jurnal SPV intact în Facturi și pagină dedicată SPV ANAF cu mesaje reale
+- **Autor:** Antigravity
+- **Ce s-a făcut:** 
+  1. Restaurat „Jurnal SPV” (`client/src/pages/SpvLogs.tsx`, ruta `/jurnal-spv`) în starea originală sub meniul Facturi, ca evidență curată a facturilor sincronizate, eliminând complet fontul monospace.
+  2. Alocat pagina dedicată „SPV ANAF” (`client/src/pages/SpvHub.tsx`, ruta `/spv`) strict pentru:
+     - Diagnostic și test conexiune SPV live (latență în ms, CUI, valabilitate token OAuth).
+     - Butoane de acțiune: Testează Conexiunea SPV, Actualizează Mesaje SPV, Reautorizare.
+     - 4 carduri sintetice pentru mesajele din SPV (Toate, Primite, Trimise, Erori ANAF).
+     - Tabelul oficial de mesaje descărcate de la ANAF (listaMesajeFactura) afișat direct pe pagină (fără tab-uri care să-l ascundă și fără duplicarea jurnalului de facturi).
+  3. Adăugat în meniul lateral intrarea separată „SPV ANAF” imediat după Facturi, iar în Facturi păstrat „Jurnal SPV”.
+  4. Respectat cu strictețe cerințele utilizatorului: fără fonturi robotizate/monospace, fără emoji-uri și fără ferestre native de alertă.
+- **Fișiere:** `client/src/pages/SpvHub.tsx`, `client/src/pages/SpvLogs.tsx`, `client/src/App.tsx`, `client/src/components/DashboardLayout.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` / `9a6d1fc`
+- **Build / Teste:** `npm run build` trecut cu succes (0 erori).
+
 ### 2026-11-12 22:54 — Unificare Jurnal SPV: eliminare pagină duplicată din meniu și integrare completă
 - **Autor:** Antigravity
 - **Ce s-a făcut:** 
