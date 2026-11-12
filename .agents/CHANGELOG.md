@@ -1,5 +1,20 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-12 18:50 — Integrare completă opțiuni SPV, Mediere fiscală online (Ord. 992/2026) și Contract împrumut taxe
+- **Autor:** Antigravity
+- **Ce s-a făcut:** 
+  1. Integrat în noua pagină dedicată `/spv` (`client/src/pages/SpvHub.tsx`) cele 4 secțiuni mari pe tab-uri:
+     - 📬 **Mesaje & Recipise SPV**: inbox cu recipise declarații fiscale (D112, D300, D394), notificări de conformare ANAF, decizii și somații, plus modal de înregistrare recipise.
+     - 📑 **Facturi e-Factura**: listă completă facturi primite/trimise, buton test live conexiune SPV cu ping și latență ms, sincronizare manuală și reautorizare token OAuth.
+     - ⚖️ **Mediere Fiscală Online (Ordin ANAF 992/2026)**: contor dinamic 15 zile de la comunicarea somației, generator formular notificare oficială cu cerere expresă pentru desfășurare prin videoconferință și descărcare/printare.
+     - 🤝 **Contract de Împrumut Asociat pentru Plata Obligațiilor Fiscale**: șablon legal conform art. 165 Cod procedură fiscală (salvare directă în biblioteca de contracte a firmei și printare).
+  2. Adăugat routerul backend `spvMessages` în `server/routers.ts` cu suport pentru mesaje administrative și recipise SPV.
+  3. Adăugat șabloanele oficiale `getTaxLoanTemplate` și `getFiscalMediationNoticeTemplate` în `server/contractTemplates.ts` pentru toate firmele.
+  4. Păstrat Jurnal SPV (`/jurnal-spv`, `client/src/pages/SpvLogs.tsx`) și cron-ul SPV (`server/spvCron.ts`) complet neatinse și protejate.
+- **Fișiere:** `client/src/pages/SpvHub.tsx`, `server/contractTemplates.ts`, `server/routers.ts`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` / `4492736 feat(spv): adaugare mesaje recipise SPV, mediere fiscala online si contract imprumut taxe`
+- **Build / Teste:** `npm run build` trecut cu succes (0 erori), serverul de dezvoltare servește pagina `/spv` pe portul 3000.
+
 ### 2026-11-12 18:10 — Separare clară: Pagină nouă dedicată SPV ANAF (/spv) și păstrare Jurnal SPV intact
 - **Autor:** Antigravity
 - **Ce s-a făcut:** 
