@@ -1369,7 +1369,7 @@ export default function SpvHub() {
             <span>Ghid de utilizare și funcționare SPV ANAF (e-Factura & Mesaje Fiscale)</span>
           </div>
           <p>
-            • <strong>Sincronizare automată:</strong> Cron-ul securizat interoghează serverele ANAF la fiecare 4 ore pentru facturi noi.
+            • <strong>Sincronizare automată:</strong> Cron-ul securizat interoghează serverele ANAF o singură dată pe zi, dimineața la ora <strong>09:00</strong>. Sincronizarea manuală poate fi declanșată oricând din butonul dedicat.
           </p>
           <p>
             • <strong>Mediere Fiscală Online (Ord. 992/2026):</strong> Dacă primiți o somație de plată prin SPV, aveți dreptul legal ca în termen de <strong>15 zile</strong> să solicitați medierea online prin videoconferință, suspendând automat executarea silită.

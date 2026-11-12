@@ -69,12 +69,18 @@ async function fetchAnafErrorDetails(
 }
 
 export function startSpvCron() {
-  // Run every 4 hours
-  cron.schedule("0 */4 * * *", async () => {
-    console.log("[SPV Cron] Starting SPV synchronization job...");
-    const result = await syncAllSpv();
-    console.log(`[SPV Cron] Auto-cron done: imported=${result?.imported}, limitHit=${result?.limitHit}`);
-  });
+  // Rulare zilnică la ora 09:00 dimineața (Europe/Bucharest)
+  cron.schedule(
+    "0 9 * * *",
+    async () => {
+      console.log("[SPV Cron] Starting daily SPV synchronization job at 09:00...");
+      const result = await syncAllSpv();
+      console.log(`[SPV Cron] Auto-cron done: imported=${result?.imported}, limitHit=${result?.limitHit}`);
+    },
+    {
+      timezone: "Europe/Bucharest",
+    }
+  );
 }
 
 export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
