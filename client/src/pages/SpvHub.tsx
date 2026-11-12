@@ -58,8 +58,8 @@ export default function SpvHub() {
     isFetching: isFetchingMessages,
   } = (trpc as any).spvMessages.list.useQuery({ zile: 60 });
 
-  // Tab Principal de Navigare — Mesaje SPV vs Facturi Sincronizate
-  const [mainTab, setMainTab] = useState<"spv_messages" | "efactura_invoices">("spv_messages");
+  // Tab Principal de Navigare — Facturi Sincronizate vs Mesaje SPV
+  const [mainTab, setMainTab] = useState<"efactura_invoices" | "spv_messages">("efactura_invoices");
 
   // Filtre Mesaje Reale SPV
   const [messageFilter, setMessageFilter] = useState<"all" | "primita" | "trimisa" | "eroare">("all");
@@ -224,7 +224,7 @@ export default function SpvHub() {
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-                Mesaje & Facturi SPV ANAF
+                Jurnal SPV ANAF
               </h1>
               <span className="text-xs px-2.5 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -237,7 +237,7 @@ export default function SpvHub() {
               )}
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Stream-ul oficial de mesaje și facturi descărcate direct de pe serverele ANAF (listaMesajeFactura)
+              Istoricul complet al facturilor și mesajelor sincronizate din sistemul național e-Factura
             </p>
           </div>
 
@@ -345,24 +345,8 @@ export default function SpvHub() {
           </div>
         )}
 
-        {/* TABURI PRINCIPALE: MESAJE REALE SPV vs FACTURI */}
+        {/* TABURI PRINCIPALE: FACTURI vs MESAJE REALE SPV */}
         <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-1">
-          <button
-            type="button"
-            onClick={() => setMainTab("spv_messages")}
-            className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-2 ${
-              mainTab === "spv_messages"
-                ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs"
-                : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-            }`}
-          >
-            <Inbox className="w-4 h-4" />
-            <span>Mesaje Oficiale SPV ANAF</span>
-            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-bold">
-              {msgStats.total}
-            </Badge>
-          </button>
-
           <button
             type="button"
             onClick={() => setMainTab("efactura_invoices")}
@@ -376,6 +360,22 @@ export default function SpvHub() {
             <span>Facturi Prelucrate & Validate</span>
             <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-bold">
               {logs?.length || 0}
+            </Badge>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMainTab("spv_messages")}
+            className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-2 ${
+              mainTab === "spv_messages"
+                ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs"
+                : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+            }`}
+          >
+            <Inbox className="w-4 h-4" />
+            <span>Mesaje Oficiale SPV ANAF</span>
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-bold">
+              {msgStats.total}
             </Badge>
           </button>
         </div>

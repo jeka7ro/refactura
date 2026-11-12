@@ -152,6 +152,11 @@ function Router() {
           <EmittedInvoiceDetail />
         </DashboardLayout>
       </Route>
+      <Route path="/jurnal-spv">
+        <DashboardLayout>
+          <SpvHub />
+        </DashboardLayout>
+      </Route>
       <Route path="/spv">
         <DashboardLayout>
           <SpvHub />
@@ -160,11 +165,6 @@ function Router() {
       <Route path="/spv-anaf">
         <DashboardLayout>
           <SpvHub />
-        </DashboardLayout>
-      </Route>
-      <Route path="/jurnal-spv">
-        <DashboardLayout>
-          <SpvLogs />
         </DashboardLayout>
       </Route>
       <Route path="/evidenta-emailuri">
