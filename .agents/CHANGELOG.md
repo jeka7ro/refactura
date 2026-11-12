@@ -1,5 +1,17 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-12 22:54 — Unificare Jurnal SPV: eliminare pagină duplicată din meniu și integrare completă
+- **Autor:** Antigravity
+- **Ce s-a făcut:** 
+  1. Eliminat intrarea duplicată „SPV ANAF” din meniul principal al aplicației (`client/src/components/DashboardLayout.tsx`), păstrând strict o singură pagină: „Jurnal SPV” din secțiunea Facturi.
+  2. Unificat rutele `/jurnal-spv` și `/spv` în `client/src/App.tsx` spre aceeași componentă completă `SpvHub`.
+  3. În pagina unică Jurnal SPV au fost integrate exact cele două cerințe originale:
+     - Butonul de testare live a conexiunii cu serverele ANAF și verificarea valabilității token-ului OAuth.
+     - Stream-ul oficial de mesaje zilnice descărcate direct de la ANAF (Facturi Primite, Facturi Trimise, Erori ANAF), alături de jurnalul de facturi prelucrate.
+- **Fișiere:** `client/src/components/DashboardLayout.tsx`, `client/src/App.tsx`, `client/src/pages/SpvHub.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` / `a674327 fix(spv): unificare Jurnal SPV - eliminare intrare duplicata din sidebar si integrare buton test cu mesaje reale`
+- **Build / Teste:** `npm run build` trecut cu succes (0 erori).
+
 ### 2026-11-12 22:52 — Eliminare DashboardLayout duplicat din pagina SPV ANAF
 - **Autor:** Antigravity
 - **Ce s-a făcut:** 
