@@ -102,7 +102,7 @@ const navItems: NavItem[] = [
       { href: "/devize", label: "Devize de Lucrări", icon: FileText },
       { href: "/re-facturi", label: "Re-Facturi", icon: FileOutput },
       { href: "/arhiva-facturi", label: "Arhivă Facturi", icon: Archive },
-      { href: "/spv", label: "SPV ANAF (e-Factura)", icon: ShieldCheck },
+      { href: "/jurnal-spv", label: "Jurnal SPV", icon: FileText },
       { href: "/evidenta-emailuri", label: "Evidență Emailuri", icon: Mail },
     ],
   },

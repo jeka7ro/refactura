@@ -67,6 +67,7 @@ import HorecaKioskSettings from "@/pages/horeca/HorecaKioskSettings";
 import HorecaTestPanel from "@/pages/horeca/HorecaTestPanel";
 import KioskApp from "@/pages/kiosk/App.jsx";
 import SpvLogs from "@/pages/SpvLogs";
+import SpvHub from "@/pages/SpvHub";
 import EmailLogs from "@/pages/EmailLogs";
 import SagaModule from "@/pages/SagaModule";
 import SagaSyncPage from "@/pages/SagaSyncPage";
@@ -153,12 +154,12 @@ function Router() {
       </Route>
       <Route path="/spv">
         <DashboardLayout>
-          <SpvLogs />
+          <SpvHub />
         </DashboardLayout>
       </Route>
       <Route path="/spv-anaf">
         <DashboardLayout>
-          <SpvLogs />
+          <SpvHub />
         </DashboardLayout>
       </Route>
       <Route path="/jurnal-spv">

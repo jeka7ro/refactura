@@ -1,18 +1,16 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
-### 2026-11-12 18:05 — Pagină separată dedicată SPV ANAF (/spv) cu test live conexiune și inbox mesaje
+### 2026-11-12 18:10 — Separare clară: Pagină nouă dedicată SPV ANAF (/spv) și păstrare Jurnal SPV intact
 - **Autor:** Antigravity
 - **Ce s-a făcut:** 
-  1. Creat pagina complet separată și dedicată SPV ANAF accesibilă direct la `/spv` (cu alias-uri `/spv-anaf` și `/jurnal-spv`).
-  2. Adăugat element dedicat de navigare directă în meniul principal (sidebar): „SPV ANAF” cu iconiță dedicată și acces dintr-un singur click.
-  3. Integrat buton live de test conexiune SPV ANAF cu diagnostic în timp real (latență server în ms, numărătoare inversă zile valabilitate token OAuth, CUI firmă și mesaj oficial ANAF).
-  4. Integrat buton de sincronizare manuală SPV („Sincronizează cu SPV acum”) și buton de reautorizare token OAuth.
-  5. Implementat tab-uri rapide (Toate, Primite, Trimise, Erori ANAF), căutare avansată după număr factură, CUI, partener și index SPV, copiere rapidă index SPV și CUI.
-  6. Integrat modal de previzualizare PDF factură direct din tabel prin `DocumentModalPreview`.
-  7. Nucleul SPV (`server/spvCron.ts`) și exportul XML SAGA au rămas 100% neatinse.
-- **Fișiere:** `client/src/App.tsx`, `client/src/components/DashboardLayout.tsx`, `client/src/pages/SpvLogs.tsx`, `server/routers.ts`, `.agents/CHANGELOG.md`
-- **Ramură / Commit:** `main` / `891517c feat(spv): adaugare pagina dedicata SPV ANAF (/spv) cu test live conexiune si jurnal complet mesaje`
-- **Build / Teste:** `npm run build` trecut cu succes (0 erori pe client Vite și server `dist/index.js`).
+  1. Păstrat fișierul original `client/src/pages/SpvLogs.tsx` și ruta `/jurnal-spv` („Jurnal SPV” din meniul Facturi) 100% intacte și neatinse, exact cum au fost inițial.
+  2. Creat fișierul nou complet separat `client/src/pages/SpvHub.tsx` pentru noua pagină dedicată `/spv` (și alias `/spv-anaf`).
+  3. Adăugat în sidebar-ul principal secțiunea dedicată „SPV ANAF” cu iconiță proprie, accesibilă separat de Jurnal SPV.
+  4. În noua pagină `/spv` au fost integrate toate funcționalitățile noi: buton de test live conexiune SPV cu diagnostic instant (latență în ms, CUI firmă, numărătoare inversă zile valabilitate token OAuth), sincronizare manuală SPV cu toast informativ, buton reautorizare token OAuth, căutare avansată, tab-uri rapide și previzualizare PDF modal.
+  5. Cron-ul SPV (`server/spvCron.ts`) și exportul XML SAGA rămân 100% neatinse.
+- **Fișiere:** `client/src/pages/SpvHub.tsx` (NOU), `client/src/pages/SpvLogs.tsx` (restaurat intact), `client/src/App.tsx`, `client/src/components/DashboardLayout.tsx`, `server/routers.ts`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` / `2dc0dca feat(spv): separare pagina noua SPV ANAF (/spv) de Jurnal SPV (/jurnal-spv) pastrat intact`
+- **Build / Teste:** `npm run build` trecut cu succes (0 erori client + server).
 
 ### 2026-11-12 16:25 — Rezolvare previzualizare NIR în portal contabil și adăugare test conexiune SPV ANAF
 - **Autor:** Antigravity
