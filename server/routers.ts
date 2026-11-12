@@ -4755,138 +4755,231 @@ export const appRouter = router({
     }),
   }),
 
-  // ─── SPV Administrative Messages Router (Recipise, Notificări, Somații) ─────
+  // ─── SPV ANAF Messages Router (Mesaje Reale ANAF din listaMesajeFactura) ─────
   spvMessages: router({
-    list: protectedProcedure.query(async ({ ctx }) => {
-      const tenantId = tenantOf(ctx);
-      const db = await getDb();
-      if (!db) return [];
-
-      try {
-        const { sql } = await import("drizzle-orm");
-        await db.execute(sql`
-          CREATE TABLE IF NOT EXISTS spv_administrative_messages (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            tenantId INT NOT NULL,
-            type VARCHAR(50) NOT NULL DEFAULT 'recipisa',
-            title VARCHAR(255) NOT NULL,
-            spvIndex VARCHAR(100) NULL,
-            docNumber VARCHAR(100) NULL,
-            declarationType VARCHAR(50) NULL,
-            status VARCHAR(50) NOT NULL DEFAULT 'validat',
-            receivedDate VARCHAR(30) NOT NULL,
-            details TEXT NULL,
-            fileUrl TEXT NULL,
-            fileName VARCHAR(255) NULL,
-            createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_spvAdmin_tenantId (tenantId),
-            INDEX idx_spvAdmin_type (type)
-          )
-        `);
-      } catch {}
-
-      const { sql } = await import("drizzle-orm");
-      const [rows]: any = await db.execute(
-        sql`SELECT * FROM spv_administrative_messages WHERE tenantId = ${tenantId} ORDER BY id DESC`
-      );
-
-      if (!rows || rows.length === 0) {
-        const now = new Date();
-        const dateStr = now.toISOString().split("T")[0];
-        const defaultMessages = [
-          {
-            type: "recipisa",
-            title: "Recipisă Declarația 112 (Salarii & Contribuții Sociale)",
-            spvIndex: "84729104",
-            docNumber: "D112/OCT2026",
-            declarationType: "D112",
-            status: "validat",
-            receivedDate: "2026-11-05",
-            details: "Declarația a fost depusă cu succes în SPV și validată de serverele ANAF fără erori de calcul. Certificat digital confirmat.",
-            fileName: "Recipisa_D112_84729104.pdf",
-          },
-          {
-            type: "recipisa",
-            title: "Recipisă Declarația 300 (Decont TVA Luna Septembrie/Octombrie)",
-            spvIndex: "84192834",
-            docNumber: "D300/2026",
-            declarationType: "D300",
-            status: "validat",
-            receivedDate: "2026-10-25",
-            details: "Decontul de taxă pe valoarea adăugată a fost recepționat și prelucrat fără erori. Suma de plată a fost înregistrată pe fișa sintetică de rol.",
-            fileName: "Recipisa_D300_84192834.pdf",
-          },
-          {
-            type: "notificare_conformare",
-            title: "Notificare de Conformare: Concordanță RO e-Factura vs Decont TVA",
-            spvIndex: "83948172",
-            docNumber: "NOTIF-CONF-2026/04",
-            declarationType: "ANAF-SPV",
-            status: "validat",
-            receivedDate: "2026-10-18",
-            details: "ANAF informează că datele din sistemul RO e-Factura corespund livrărilor raportate în Decontul de TVA D300. Nu sunt necesare corecții.",
-            fileName: "Notificare_Conformare_83948172.pdf",
-          },
-          {
-            type: "somatie",
-            title: "Comunicare Notificare Mediere Fiscală (Ordin ANAF 992/2026)",
-            spvIndex: "83109281",
-            docNumber: "SOMATIE-ANAF-2026",
-            declarationType: "SOMATIE",
-            status: "avertisment",
-            receivedDate: dateStr,
-            details: "Înștiințare privind posibilitatea de mediere fiscală online prin videoconferință (Ordin ANAF 992/2026) în termen de maximum 15 zile.",
-            fileName: "Somatie_Mediere_Fiscala.pdf",
-          },
-        ];
-
-        for (const msg of defaultMessages) {
-          await db.execute(sql`
-            INSERT INTO spv_administrative_messages 
-            (tenantId, type, title, spvIndex, docNumber, declarationType, status, receivedDate, details, fileName)
-            VALUES 
-            (${tenantId}, ${msg.type}, ${msg.title}, ${msg.spvIndex}, ${msg.docNumber}, ${msg.declarationType}, ${msg.status}, ${msg.receivedDate}, ${msg.details}, ${msg.fileName})
-          `);
-        }
-
-        const [newRows]: any = await db.execute(
-          sql`SELECT * FROM spv_administrative_messages WHERE tenantId = ${tenantId} ORDER BY id DESC`
-        );
-        return newRows || [];
-      }
-
-      return rows;
-    }),
-
-    addMessage: protectedProcedure
+    list: protectedProcedure
       .input(
-        z.object({
-          type: z.enum(["recipisa", "notificare_conformare", "somatie", "extras_trezorerie", "decizie_impunere", "altul"]),
-          title: z.string().min(1),
-          spvIndex: z.string().optional(),
-          docNumber: z.string().optional(),
-          declarationType: z.string().optional(),
-          status: z.enum(["validat", "eroare", "avertisment", "in_termen"]).default("validat"),
-          receivedDate: z.string().min(1),
-          details: z.string().optional(),
-          fileName: z.string().optional(),
-        })
+        z
+          .object({
+            zile: z.number().min(1).max(60).default(60).optional(),
+            refresh: z.boolean().default(false).optional(),
+          })
+          .optional()
       )
-      .mutation(async ({ ctx, input }) => {
+      .query(async ({ ctx, input }) => {
         const tenantId = tenantOf(ctx);
         const db = await getDb();
-        if (!db) throw new Error("Baza de date indisponibilă");
+        if (!db) return [];
 
-        const { sql } = await import("drizzle-orm");
-        await db.execute(sql`
-          INSERT INTO spv_administrative_messages 
-          (tenantId, type, title, spvIndex, docNumber, declarationType, status, receivedDate, details, fileName)
-          VALUES 
-          (${tenantId}, ${input.type}, ${input.title}, ${input.spvIndex || null}, ${input.docNumber || null}, ${input.declarationType || null}, ${input.status}, ${input.receivedDate}, ${input.details || null}, ${input.fileName || null})
-        `);
+        const { integrations, tenants, invoiceArchive, emittedInvoices, reInvoices } = await import("../drizzle/schema");
+        const { eq, and, sql } = await import("drizzle-orm");
 
-        return { success: true };
+        // 1. Asigură existența tabelului de mesaje reale SPV
+        try {
+          await db.execute(sql`
+            CREATE TABLE IF NOT EXISTS spv_raw_messages (
+              id INT AUTO_INCREMENT PRIMARY KEY,
+              tenantId INT NOT NULL,
+              anafId VARCHAR(100) NOT NULL,
+              idSolicitare VARCHAR(100) NULL,
+              dataCreareRaw VARCHAR(30) NOT NULL,
+              dataCreare VARCHAR(30) NOT NULL,
+              tip VARCHAR(50) NOT NULL,
+              cif VARCHAR(50) NOT NULL,
+              cifEmitent VARCHAR(50) NULL,
+              cifBeneficiar VARCHAR(50) NULL,
+              detalii TEXT NULL,
+              createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              UNIQUE KEY uq_spv_tenant_anafId (tenantId, anafId),
+              INDEX idx_spv_solicitare (tenantId, idSolicitare),
+              INDEX idx_spv_tip (tenantId, tip)
+            )
+          `);
+        } catch {}
+
+        // 2. Găsește integrarea SPV activă a tenant-ului
+        const [intg] = await db
+          .select()
+          .from(integrations)
+          .where(and(eq(integrations.tenantId, tenantId), eq(integrations.provider, "spv"), eq(integrations.status, "active")));
+
+        // 3. Verifică dacă avem mesaje în DB sau dacă trebuie descărcate de la ANAF
+        const [existingCountRow]: any = await db.execute(
+          sql`SELECT COUNT(*) as cnt FROM spv_raw_messages WHERE tenantId = ${tenantId}`
+        );
+        const existingCount = existingCountRow?.[0]?.cnt || 0;
+
+        const shouldFetchAnaf = input?.refresh || existingCount === 0;
+
+        if (shouldFetchAnaf && intg?.apiKey) {
+          const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
+          const settings = typeof tenant?.settings === "string" ? JSON.parse(tenant.settings || "{}") : tenant?.settings;
+          const rawCui = settings?.companyCui || tenant?.cui || "";
+          const cleanCif = rawCui.replace(/^RO/i, "").trim();
+
+          if (cleanCif) {
+            const zile = input?.zile || 60;
+            const url = `https://api.anaf.ro/prod/FCTEL/rest/listaMesajeFactura?zile=${zile}&cif=${cleanCif}`;
+            try {
+              const res = await fetch(url, {
+                headers: {
+                  Authorization: `Bearer ${intg.apiKey}`,
+                  Accept: "application/json",
+                },
+              });
+              if (res.ok) {
+                const data = await res.json();
+                const rawList = data?.mesaje || [];
+                for (const m of rawList) {
+                  const anafId = String(m.id || "");
+                  const solId = m.id_solicitare ? String(m.id_solicitare) : null;
+                  const dataRaw = String(m.data_creare || "");
+
+                  let formattedDate = dataRaw;
+                  if (dataRaw.length >= 12) {
+                    const y = dataRaw.substring(0, 4);
+                    const mo = dataRaw.substring(4, 6);
+                    const d = dataRaw.substring(6, 8);
+                    const h = dataRaw.substring(8, 10);
+                    const mi = dataRaw.substring(10, 12);
+                    formattedDate = `${d}.${mo}.${y} ${h}:${mi}`;
+                  }
+
+                  const emitMatch = m.detalii?.match(/cif_emitent=(\w+)/i);
+                  const benMatch = m.detalii?.match(/cif_beneficiar=(\w+)/i);
+
+                  await db.execute(sql`
+                    INSERT INTO spv_raw_messages 
+                    (tenantId, anafId, idSolicitare, dataCreareRaw, dataCreare, tip, cif, cifEmitent, cifBeneficiar, detalii)
+                    VALUES 
+                    (${tenantId}, ${anafId}, ${solId}, ${dataRaw}, ${formattedDate}, ${m.tip}, ${m.cif}, ${emitMatch ? emitMatch[1] : null}, ${benMatch ? benMatch[1] : null}, ${m.detalii || null})
+                    ON DUPLICATE KEY UPDATE 
+                    detalii = VALUES(detalii),
+                    tip = VALUES(tip)
+                  `);
+                }
+              }
+            } catch (err: any) {
+              console.warn("[spvMessages] Error fetching messages from ANAF:", err.message);
+            }
+          }
+        }
+
+        // 4. Selectează mesajele din DB
+        const [savedRows]: any = await db.execute(
+          sql`SELECT * FROM spv_raw_messages WHERE tenantId = ${tenantId} ORDER BY dataCreareRaw DESC`
+        );
+        const rows = savedRows || [];
+
+        // 5. Asociază cu facturile locale (invoiceArchive, emittedInvoices, reInvoices)
+        const archives = await db.select().from(invoiceArchive).where(eq(invoiceArchive.tenantId, tenantId));
+        const emitted = await db.select().from(emittedInvoices).where(eq(emittedInvoices.tenantId, tenantId));
+        const reinvs = await db.select().from(reInvoices).where(eq(reInvoices.tenantId, tenantId));
+
+        const archiveBySpv = new Map();
+        for (const a of archives) {
+          if (a.spvIndex) archiveBySpv.set(String(a.spvIndex), a);
+          const match = a.fileName?.match(/SPV_(\d+)/);
+          if (match) archiveBySpv.set(match[1], a);
+        }
+
+        const emittedBySpv = new Map();
+        for (const e of emitted) if (e.spvIndex) emittedBySpv.set(String(e.spvIndex), e);
+        for (const r of reinvs) if (r.spvIndex) emittedBySpv.set(String(r.spvIndex), r);
+
+        return rows.map((r: any) => {
+          const solId = String(r.idSolicitare || "");
+          const downloadId = String(r.anafId || "");
+          const matchArc = archiveBySpv.get(solId) || archiveBySpv.get(downloadId);
+          const matchEmit = emittedBySpv.get(solId);
+
+          return {
+            id: downloadId,
+            idSolicitare: solId,
+            dataCreare: r.dataCreare,
+            dataCreareRaw: r.dataCreareRaw,
+            tip: r.tip,
+            cif: r.cif,
+            cifEmitent: r.cifEmitent,
+            cifBeneficiar: r.cifBeneficiar,
+            detalii: r.detalii,
+            isDownloaded: Boolean(matchArc || matchEmit),
+            invoiceNumber: matchArc?.invoiceNumber || matchEmit?.number || null,
+            partnerName: matchArc?.supplierName || matchEmit?.clientName || null,
+            pdfUrl: matchArc ? `/api/pdf/archive/${matchArc.id}` : (matchEmit ? `/api/pdf/emitted/${matchEmit.id}` : null),
+          };
+        });
       }),
+
+    syncFromAnaf: protectedProcedure.mutation(async ({ ctx }) => {
+      const tenantId = tenantOf(ctx);
+      const db = await getDb();
+      if (!db) throw new Error("Baza de date indisponibilă");
+
+      const { integrations, tenants } = await import("../drizzle/schema");
+      const { eq, and, sql } = await import("drizzle-orm");
+
+      const [intg] = await db
+        .select()
+        .from(integrations)
+        .where(and(eq(integrations.tenantId, tenantId), eq(integrations.provider, "spv"), eq(integrations.status, "active")));
+
+      if (!intg?.apiKey) throw new Error("Nu există token OAuth SPV configurat.");
+
+      const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
+      const settings = typeof tenant?.settings === "string" ? JSON.parse(tenant.settings || "{}") : tenant?.settings;
+      const rawCui = settings?.companyCui || tenant?.cui || "";
+      const cleanCif = rawCui.replace(/^RO/i, "").trim();
+      if (!cleanCif) throw new Error("CUI-ul firmei nu este configurat.");
+
+      const url = `https://api.anaf.ro/prod/FCTEL/rest/listaMesajeFactura?zile=60&cif=${cleanCif}`;
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${intg.apiKey}`,
+          Accept: "application/json",
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error(`ANAF a returnat status ${res.status}`);
+      }
+
+      const data = await res.json();
+      const rawList = data?.mesaje || [];
+      let imported = 0;
+
+      for (const m of rawList) {
+        const anafId = String(m.id || "");
+        const solId = m.id_solicitare ? String(m.id_solicitare) : null;
+        const dataRaw = String(m.data_creare || "");
+
+        let formattedDate = dataRaw;
+        if (dataRaw.length >= 12) {
+          const y = dataRaw.substring(0, 4);
+          const mo = dataRaw.substring(4, 6);
+          const d = dataRaw.substring(6, 8);
+          const h = dataRaw.substring(8, 10);
+          const mi = dataRaw.substring(10, 12);
+          formattedDate = `${d}.${mo}.${y} ${h}:${mi}`;
+        }
+
+        const emitMatch = m.detalii?.match(/cif_emitent=(\w+)/i);
+        const benMatch = m.detalii?.match(/cif_beneficiar=(\w+)/i);
+
+        await db.execute(sql`
+          INSERT INTO spv_raw_messages 
+          (tenantId, anafId, idSolicitare, dataCreareRaw, dataCreare, tip, cif, cifEmitent, cifBeneficiar, detalii)
+          VALUES 
+          (${tenantId}, ${anafId}, ${solId}, ${dataRaw}, ${formattedDate}, ${m.tip}, ${m.cif}, ${emitMatch ? emitMatch[1] : null}, ${benMatch ? benMatch[1] : null}, ${m.detalii || null})
+          ON DUPLICATE KEY UPDATE 
+          detalii = VALUES(detalii),
+          tip = VALUES(tip)
+        `);
+        imported++;
+      }
+
+      return { total: rawList.length, imported };
+    }),
   }),
   // ─── GDPR Router ──────────────────────────────────────────────────────────────
   gdpr: router({
