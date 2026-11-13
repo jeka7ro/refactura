@@ -155,7 +155,7 @@ export async function requirePdfAccess(
       contract: schema.contracts,
     };
     const table = tables[resource];
-    if (!table) {
+    if (!table && resource !== "spv-document") {
       res.status(404).json({ error: "Resursă inexistentă" });
       return;
     }
@@ -166,10 +166,19 @@ export async function requirePdfAccess(
       return;
     }
 
-    let [row] = await db
-      .select({ tenantId: table.tenantId })
-      .from(table)
-      .where(eq(table.id, id));
+    let row: any = null;
+    if (resource === "spv-document") {
+      const [spvRows]: any = await (db as any).execute(
+        sql`SELECT tenantId FROM spv_portal_documents WHERE id = ${id}`
+      );
+      row = spvRows?.[0];
+    } else {
+      const [r] = await db
+        .select({ tenantId: table.tenantId })
+        .from(table)
+        .where(eq(table.id, id));
+      row = r;
+    }
 
     // Fallback pentru NIR: dacă se transmite id-ul de arhivă al facturii în loc de id-ul nir
     if (!row && resource === "nir") {

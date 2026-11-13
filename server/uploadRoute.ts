@@ -41,6 +41,19 @@ const contractUpload = multer({
   },
 });
 
+const spvDocUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB
+  fileFilter: (_req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
+    const extOk = /\.(pdf|xml|zip)$/i.test(file.originalname);
+    if (extOk) {
+      cb(null, true);
+    } else {
+      cb(new Error("Sunt acceptate doar fișiere PDF, XML sau arhive ZIP descărcate din SPV"));
+    }
+  },
+});
+
 function parsePdfToUnicodeCmap(s: string): Map<number, string> {
   const cmap = new Map<number, string>();
   const charBlocks = s.match(/beginbfchar([\s\S]*?)endbfchar/g) || [];
@@ -836,6 +849,110 @@ export function registerUploadRoute(app: Express) {
       } catch (err: any) {
         console.error("[SAGA Import] Error:", err);
         res.status(500).json({ error: err.message || "Eroare la import" });
+      }
+    }
+  );
+
+  // ── SPV PORTAL DOCUMENTS UPLOAD (RECIPISĂ DECLARAȚIE, NOTIFICARE, DECIZIE) ───
+  app.post(
+    "/api/upload-spv-document",
+    (req: Request, res: Response, next) => {
+      spvDocUpload.array("files", 20)(req, res, (err: any) => {
+        if (err) return res.status(400).json({ error: err.message || "Format neacceptat" });
+        next();
+      });
+    },
+    async (req: Request, res: Response) => {
+      try {
+        const files = req.files as Express.Multer.File[];
+        if (!files || files.length === 0) {
+          return res.status(400).json({ error: "Niciun fișier selectat" });
+        }
+
+        const tenantId = await resolveRequestTenant(req);
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) return res.status(500).json({ error: "Baza de date indisponibilă" });
+
+        const [tenantRows]: any = await (db as any).execute(
+          sql`SELECT cui, name FROM tenants WHERE id = ${tenantId}`
+        );
+        const cleanCui = (tenantRows?.[0]?.cui || "").replace(/^RO/i, "").trim() || "42322117";
+
+        const uploadDirDist = path.join(process.cwd(), "dist", "public", "uploads", "spv_documents");
+        const uploadDirClient = path.join(process.cwd(), "client", "public", "uploads", "spv_documents");
+        await fs.promises.mkdir(uploadDirDist, { recursive: true }).catch(() => {});
+        await fs.promises.mkdir(uploadDirClient, { recursive: true }).catch(() => {});
+
+        const results = [];
+        for (const file of files) {
+          const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_");
+          const key = `${Date.now()}-${Math.floor(Math.random() * 1000)}-${safeName}`;
+          const filePathDist = path.join(uploadDirDist, key);
+          const filePathClient = path.join(uploadDirClient, key);
+          await fs.promises.writeFile(filePathDist, file.buffer);
+          await fs.promises.writeFile(filePathClient, file.buffer).catch(() => {});
+
+          const fileUrl = `/uploads/spv_documents/${key}`;
+
+          // Detectare tip declaratie din nume fisier
+          const lowerName = file.originalname.toLowerCase();
+          let tip = "DECLARATIE";
+          let titlu = `Recipisă / Notificare SPV — ${file.originalname}`;
+          let categorie = "recipisa_declaratie";
+
+          if (lowerName.includes("112")) {
+            tip = "D112";
+            titlu = "Recipisă Declarația 112 (Salarii & Contribuții Sociale)";
+          } else if (lowerName.includes("300")) {
+            tip = "D300";
+            titlu = "Recipisă Declarația 300 (Decont TVA)";
+          } else if (lowerName.includes("394")) {
+            tip = "D394";
+            titlu = "Recipisă Declarația 394 (Livrări & Achiziții)";
+          } else if (lowerName.includes("100")) {
+            tip = "D100";
+            titlu = "Recipisă Declarația 100 (Obligații Buget de Stat)";
+          } else if (lowerName.includes("390")) {
+            tip = "D390";
+            titlu = "Recipisă Declarația 390 (Achiziții/Livrări Intracomunitare)";
+          } else if (lowerName.includes("700")) {
+            tip = "D700";
+            titlu = "Recipisă Declarația 700 (Mențiuni Electronice)";
+          } else if (lowerName.includes("notif")) {
+            tip = "NOTIFICARE";
+            titlu = "Notificare Oficială ANAF";
+            categorie = "notificare_anaf";
+          } else if (lowerName.includes("deciz")) {
+            tip = "DECIZIE";
+            titlu = "Decizie Fiscală ANAF";
+            categorie = "decizie_impunere";
+          } else if (lowerName.includes("somat")) {
+            tip = "SOMATIE";
+            titlu = "Somație de Plată ANAF";
+            categorie = "somatie";
+          }
+
+          const regNumMatch = file.originalname.match(/(\d{7,10})/);
+          const numarInregistrare = regNumMatch ? regNumMatch[1] : `${Date.now().toString().slice(-8)}`;
+
+          const now = new Date();
+          const dataDepunere = `${String(now.getDate()).padStart(2, "0")}.${String(now.getMonth() + 1).padStart(2, "0")}.${now.getFullYear()} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+
+          await (db as any).execute(
+            sql`INSERT INTO spv_portal_documents 
+                (tenantId, cif, tip, categorie, titlu, numarInregistrare, dataDepunere, perioadaFiscala, stare, detalii, fileUrl, fileName, sursa)
+                VALUES 
+                (${tenantId}, ${cleanCui}, ${tip}, ${categorie}, ${titlu}, ${numarInregistrare}, ${dataDepunere}, 'Curent', 'validat', 'Document oficial recepționat și încărcat în arhiva SPV a firmei.', ${fileUrl}, ${file.originalname}, 'incarcat_manual')`
+          );
+
+          results.push({ fileName: file.originalname, tip, titlu, numarInregistrare, fileUrl });
+        }
+
+        res.json({ ok: true, count: results.length, documents: results });
+      } catch (err: any) {
+        console.error("[Upload SPV Document] Error:", err.message);
+        res.status(500).json({ error: err.message || "Eroare la încărcare document SPV" });
       }
     }
   );

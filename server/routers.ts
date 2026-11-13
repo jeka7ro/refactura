@@ -4980,6 +4980,131 @@ export const appRouter = router({
 
       return { total: rawList.length, imported };
     }),
+
+    // Lista documente și recipise declarații din portalul ANAF SPV
+    listPortalDocuments: protectedProcedure.query(async ({ ctx }) => {
+      const tenantId = tenantOf(ctx);
+      const db = await getDb();
+      if (!db) return [];
+      const { sql } = await import("drizzle-orm");
+
+      try {
+        const [rows]: any = await (db as any).execute(
+          sql`SELECT * FROM spv_portal_documents WHERE tenantId = ${tenantId} ORDER BY id DESC`
+        );
+        return (rows || []).map((r: any) => ({
+          ...r,
+          pdfUrl: `/api/pdf/spv-document/${r.id}`,
+        }));
+      } catch (err: any) {
+        console.warn("[listPortalDocuments] Error:", err.message);
+        return [];
+      }
+    }),
+
+    // Ștergere document din portal SPV
+    deletePortalDocument: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const tenantId = tenantOf(ctx);
+        const db = await getDb();
+        if (!db) throw new Error("Baza de date indisponibilă");
+        const { sql } = await import("drizzle-orm");
+
+        await (db as any).execute(
+          sql`DELETE FROM spv_portal_documents WHERE id = ${input.id} AND tenantId = ${tenantId}`
+        );
+        return { success: true };
+      }),
+
+    // Sincronizare automată mesaje și recipise declarații direct din ANAF SPV (SPVWS2)
+    syncPortalFromAnaf: protectedProcedure.mutation(async ({ ctx }) => {
+      const tenantId = tenantOf(ctx);
+      const db = await getDb();
+      if (!db) throw new Error("Baza de date indisponibilă");
+
+      const { integrations } = await import("../drizzle/schema");
+      const { eq, and, sql } = await import("drizzle-orm");
+
+      const [intg] = await db
+        .select()
+        .from(integrations)
+        .where(and(eq(integrations.tenantId, tenantId), eq(integrations.provider, "spv"), eq(integrations.status, "active")));
+
+      if (!intg?.apiKey) {
+        return {
+          success: false,
+          needsSpvRole: false,
+          message: "Nu există un token OAuth SPV configurat în sistem.",
+        };
+      }
+
+      try {
+        const url = "https://api.anaf.ro/prod/SPVWS2/rest/listaMesaje?zile=60";
+        const res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${intg.apiKey}`,
+            Accept: "application/json",
+          },
+        });
+
+        if (res.status === 403) {
+          return {
+            success: false,
+            needsSpvRole: true,
+            status: 403,
+            message: "Aplicația OAuth din portalul ANAF (logincert.anaf.ro) nu are activat serviciul SPV (are doar EFACTURA și ETRANSPORT). Bifați serviciul SPV în contul ANAF și apăsați Reautorizare.",
+          };
+        }
+
+        if (!res.ok) {
+          return {
+            success: false,
+            needsSpvRole: false,
+            status: res.status,
+            message: `Serverul ANAF a returnat codul ${res.status}: ${res.statusText}`,
+          };
+        }
+
+        const data = await res.json();
+        const mesaje = data?.mesaje || [];
+        let imported = 0;
+
+        for (const m of mesaje) {
+          const numarInreg = String(m.id || m.id_solicitare || "");
+          const dataCr = String(m.data_creare || "");
+          const tip = String(m.tip || "DECLARATIE");
+          const detalii = String(m.detalii || "");
+
+          const [exist]: any = await (db as any).execute(
+            sql`SELECT id FROM spv_portal_documents WHERE tenantId = ${tenantId} AND numarInregistrare = ${numarInreg}`
+          );
+          if (!exist || exist.length === 0) {
+            await (db as any).execute(
+              sql`INSERT INTO spv_portal_documents 
+                  (tenantId, cif, tip, categorie, titlu, numarInregistrare, dataDepunere, perioadaFiscala, stare, detalii, sursa)
+                  VALUES 
+                  (${tenantId}, ${m.cif || ""}, ${tip}, 'recipisa_declaratie', ${detalii.slice(0, 200) || tip}, ${numarInreg}, ${dataCr}, 'SPV ANAF', 'validat', ${detalii}, 'api_anaf')`
+            );
+            imported++;
+          }
+        }
+
+        return {
+          success: true,
+          needsSpvRole: false,
+          total: mesaje.length,
+          imported,
+          message: `S-au preluat ${imported} mesaje noi din portalul ANAF SPV.`,
+        };
+      } catch (err: any) {
+        return {
+          success: false,
+          needsSpvRole: false,
+          message: `Eroare la conexiunea cu ANAF SPVWS: ${err.message}`,
+        };
+      }
+    }),
   }),
   // ─── GDPR Router ──────────────────────────────────────────────────────────────
   gdpr: router({
