@@ -1,5 +1,18 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-13 15:44 — Integrare mesaje și recipise declarații fiscale din portalul ANAF SPV
+- **Autor:** Antigravity
+- **Ce s-a făcut:** 
+  1. Creat sistemul dedicat de stocare și vizualizare pentru mesajele și recipisele din portalul ANAF SPV (`spv_portal_documents`), acoperind declarații fiscale (D112, D300, D394, D100, D390, D700), notificări de conformare ANAF, decizii de impunere și fișe de rol.
+  2. Implementat ruta de previzualizare PDF `/api/pdf/spv-document/:id` cu generare automată de recipise oficiale ANAF cu antet complet al Ministerului Finanțelor și verificare securizată a accesului în `server/fileAuth.ts`.
+  3. Adăugat ruta de încărcare `/api/upload-spv-document` (suport PDF/XML/ZIP) pentru drag & drop de recipise descărcate din portalul ANAF, cu detectare automată a tipului declarației și numărului de înregistrare.
+  4. În `client/src/pages/SpvHub.tsx`, tab-ul implicit de deschidere este acum „Mesaje & Recipise Declarații SPV”, afișând statisticile, filtrele rapide, căutarea și tabelul complet de mesaje oficiale cu buton de previzualizare PDF și descărcare.
+  5. Adăugat suport pentru sincronizarea automată prin serviciul web ANAF SPVWS2 (`/prod/SPVWS2/rest/listaMesaje`) cu diagnostic clar dacă token-ul OAuth necesită bifarea rolului SPV în portalul ANAF.
+  6. Respectat cu strictețe regulile: fără fonturi monospace/robotizate, fără emoji-uri și fără alerte native de browser.
+- **Fișiere:** `client/src/pages/SpvHub.tsx`, `server/fileAuth.ts`, `server/pdfRoute.ts`, `server/routers.ts`, `server/uploadRoute.ts`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` / `40f3372`
+- **Build / Teste:** `npm run build` trecut cu succes (0 erori).
+
 ### 2026-11-12 23:02 — Separare curată: Jurnal SPV intact în Facturi și pagină dedicată SPV ANAF cu mesaje reale
 - **Autor:** Antigravity
 - **Ce s-a făcut:** 
