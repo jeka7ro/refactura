@@ -4990,7 +4990,7 @@ export const appRouter = router({
 
       try {
         const [rows]: any = await (db as any).execute(
-          sql`SELECT * FROM spv_portal_documents WHERE tenantId = ${tenantId} ORDER BY id DESC`
+          sql`SELECT * FROM spv_portal_documents WHERE tenantId = ${tenantId} ORDER BY STR_TO_DATE(dataDepunere, '%d.%m.%Y %H:%i') DESC, id DESC`
         );
         return (rows || []).map((r: any) => ({
           ...r,

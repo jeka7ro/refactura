@@ -5,7 +5,7 @@
  * într-un cookie (vezi client/src/lib/authCookie.ts), iar aici îl verificăm.
  */
 import type { Request, Response, NextFunction } from "express";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { verifySessionToken, extractTokenFromHeader } from "./session";
 import { getAccountById } from "./auth";
 import { getDb, getDefaultTenantForUser } from "./db";

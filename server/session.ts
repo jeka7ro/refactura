@@ -6,9 +6,10 @@ if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
   );
 }
 
-const secret = new TextEncoder().encode(
-  process.env.JWT_SECRET || "your-secret-key-change-in-production"
-);
+function getSecret(): Uint8Array {
+  const s = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+  return new TextEncoder().encode(s);
+}
 
 export interface SessionPayload {
   accountId: number;
@@ -30,7 +31,7 @@ export async function createSessionToken(
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
-    .sign(secret);
+    .sign(getSecret());
 
   return token;
 }
@@ -42,7 +43,7 @@ export async function verifySessionToken(
   token: string
 ): Promise<SessionPayload | null> {
   try {
-    const verified = await jwtVerify(token, secret);
+    const verified = await jwtVerify(token, getSecret());
     return verified.payload as unknown as SessionPayload;
   } catch (error) {
     console.error("[Session] Token verification failed:", error);
