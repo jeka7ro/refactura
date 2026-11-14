@@ -1,5 +1,20 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-14 12:23 — Deschidere instantanee recipise SPV și rezolvare verificare token PDF
+- **Autor:** Antigravity
+- **Ce s-a făcut:** 
+  1. Identificat și corectat cauza pentru care documentele nu se deschideau: în `server/session.ts`, cheia secretă era salvată la nivel de modul înainte de inițializarea variabilelor de mediu, provocând eșecul verificării semnăturii JWS pe rutele de fișiere protejate (`/api/pdf/spv-document/:id`). Înlocuit cu funcția dinamică `getSecret()`, asigurând autentificarea corectă a oricărui token JWT valid (răspuns 200 OK cu fișier PDF valid).
+  2. Asigurat accesul la arhivă pentru întregul an 2026 (29 de recipise și documente oficiale SPV: D112 pe 11 luni, D300, D394, D100, D205, Bilanț contabil 2025, notificări e-TVA și conformare, decizii ANAF).
+  3. Sortat cronologic stream-ul de recipise descrescător după data oficială de depunere (`STR_TO_DATE`), astfel încât cele mai recente documente din noiembrie și octombrie să fie mereu primele.
+  4. Îmbunătățit substanțial interfața în `client/src/pages/SpvHub.tsx`:
+     - Orice rând din tabelul de recipise sau facturi SPV este acum complet clicabil (`cursor-pointer` cu efect vizual subtil la hover).
+     - Adăugat buton clar de acțiune „Deschide” (cu pictogramă și text) lângă butonul de descărcare directă a fișierului PDF.
+     - Pentru mesajele e-Factura din SPV care sunt în așteptare sau au erori ANAF, la clic se deschide un dialog modal dedicat cu toate detaliile oficiale (index încărcare, ID descărcare cu opțiune de copiere cu un clic, CIF emitent/beneficiar, atenționare ANAF).
+  5. Respectat cu strictețe regulile proiectului: fără fonturi monospace/robotizate, fără emoji-uri și fără ferestre native de alertă de browser.
+- **Fișiere:** `server/session.ts`, `server/fileAuth.ts`, `server/routers.ts`, `client/src/pages/SpvHub.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` / `5554334`
+- **Build / Teste:** `npm run build` trecut cu succes (0 erori). PDF verificat la descărcare cu cod HTTP 200 OK.
+
 ### 2026-11-13 15:44 — Integrare mesaje și recipise declarații fiscale din portalul ANAF SPV
 - **Autor:** Antigravity
 - **Ce s-a făcut:** 
