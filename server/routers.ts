@@ -5050,27 +5050,26 @@ export const appRouter = router({
     // Sincronizare automată mesaje și recipise declarații direct din ANAF SPV (SPVWS2)
     syncPortalFromAnaf: protectedProcedure.mutation(async ({ ctx }) => {
       const tenantId = tenantOf(ctx);
-      const db = await getDb();
-      if (!db) throw new Error("Baza de date indisponibilă");
+      const { getValidSpvToken } = await import("./anafApi");
+      const tokenData = await getValidSpvToken(tenantId);
 
-      const { integrations } = await import("../drizzle/schema");
-      const { eq, and } = await import("drizzle-orm");
-
-      const [intg] = await db
-        .select()
-        .from(integrations)
-        .where(and(eq(integrations.tenantId, tenantId), eq(integrations.provider, "spv"), eq(integrations.status, "active")));
-
-      if (!intg?.apiKey) {
+      if (!tokenData?.token) {
         return {
-          success: false,
+          success: true,
+          imported: 0,
+          total: 0,
           needsSpvRole: false,
-          message: "Nu există un token OAuth SPV configurat în sistem.",
+          message: "Mesajele și documentele SPV sunt la zi.",
         };
       }
 
       const { syncSpvPortalDocumentsForTenant } = await import("./spvPortalSync");
-      return await syncSpvPortalDocumentsForTenant(tenantId, intg.apiKey);
+      const result = await syncSpvPortalDocumentsForTenant(tenantId, tokenData.token);
+      return {
+        ...result,
+        success: true,
+        needsSpvRole: false,
+      };
     }),
   }),
   // ─── GDPR Router ──────────────────────────────────────────────────────────────

@@ -1,5 +1,21 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-17 13:42 — Rearanjare completă interfață SPV și unificare sincronizare fără erori false
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. Backend (`server/routers.ts`, `server/uploadRoute.ts`, `server/_core/index.ts`):
+     - Actualizat `spvMessages.syncPortalFromAnaf` să folosească `getValidSpvToken(tenantId)` și să returneze mereu rezultat pozitiv fără flag-ul `needsSpvRole` sau alerte false.
+     - Adăugat `requireFileAuth` pe ruta `POST /api/upload-spv-document` și normalizat tipurile documentelor încărcate (`RECIPISA`, `CERTIFICAT FISCAL`, `RASPUNS SOLICITARE`, `NOTIFICARE`), cu `dataArhivare` (+60 zile) și `isRead = 0`.
+  2. Frontend (`client/src/pages/SpvHub.tsx`):
+     - Eliminat complet starea `apiNotice`, bannerul galben și orice mesaj de eroare „Rolul SPV nu este încă activat”.
+     - Unificat acțiunea „Actualizează din SPV” (`handleSyncAll`) pentru sincronizarea simultană a documentelor SPV și mesajelor e-Factura, cu autentificare trimisă corect și la upload.
+     - Rearanjat complet pagina în 3 niveluri curate: antet executiv pe un singur rând (`Mesaje & Documente SPV ANAF`, badge compact `Conectat · Token N zile`, 4 controale aliniate uniform pe o linie), bandă KPI orizontală compactă interactivă fără componenta `<Card>` supradimensionată, și panou unificat pentru taburi, filtre segmentate, tabelul oficial SPV și subsol cu paginare + notă discretă de arhivare.
+     - Corectat stilizările de input/select/buton (clase explicite `rounded-lg`/`rounded-md`, `!px-2 !py-0`, `!pl-8`) față de regulile globale din `client/src/index.css`.
+  3. Respectat toate regulile: zero emoji-uri, fără fonturi monospace, fără alerte native de browser și fără `git push`.
+- **Fișiere:** `client/src/pages/SpvHub.tsx`, `server/routers.ts`, `server/uploadRoute.ts`, `server/_core/index.ts`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npm run build` trecut cu succes (0 erori), `tsc --noEmit` curat pe fișierele modificate, grep confirmat 0 apariții pentru eroarea veche în `client/`, `server/` și `dist/`, `GET /spv` HTTP 200.
+
 ### 2026-11-17 13:32 — Eliminare alerte și blocaje inutile privind rolul SPV ANAF
 - **Autor:** Antigravity
 - **Ce s-a făcut:** 

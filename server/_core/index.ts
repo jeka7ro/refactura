@@ -33,6 +33,7 @@ async function startServer() {
   app.use("/api/saga", requireFileAuth);
   app.use("/api/saga-sync", requireFileAuth);
   app.use("/api/upload-invoice", requireFileAuth);
+  app.use("/api/upload-spv-document", requireFileAuth);
   app.use("/api/upload-contract", requireFileAuth);
   app.use("/api/anaf", requireFileAuth);
   app.use("/api/vies", requireFileAuth);

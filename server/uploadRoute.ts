@@ -895,55 +895,76 @@ export function registerUploadRoute(app: Express) {
 
           const fileUrl = `/uploads/spv_documents/${key}`;
 
-          // Detectare tip declaratie din nume fisier
+          // Detectare si normalizare tip document SPV la valorile oficiale
           const lowerName = file.originalname.toLowerCase();
-          let tip = "DECLARATIE";
-          let titlu = `Recipisă / Notificare SPV — ${file.originalname}`;
-          let categorie = "recipisa_declaratie";
+          let tip = "RECIPISA";
+          let titlu = `Document Oficial SPV — ${file.originalname}`;
+          let categorie = "declaratie_fiscala";
+          let formCode = "";
 
-          if (lowerName.includes("112")) {
-            tip = "D112";
+          if (lowerName.includes("101")) {
+            formCode = "D101";
+            titlu = "Recipisă Declarația 101 (Impozit pe Profit)";
+          } else if (lowerName.includes("112")) {
+            formCode = "D112";
             titlu = "Recipisă Declarația 112 (Salarii & Contribuții Sociale)";
           } else if (lowerName.includes("300")) {
-            tip = "D300";
-            titlu = "Recipisă Declarația 300 (Decont TVA)";
+            formCode = "D300";
+            titlu = "Recipisă Declarația 300 (Decont Taxă pe Valoarea Adăugată)";
           } else if (lowerName.includes("394")) {
-            tip = "D394";
-            titlu = "Recipisă Declarația 394 (Livrări & Achiziții)";
+            formCode = "D394";
+            titlu = "Recipisă Declarația 394 (Livrări & Achiziții Teritoriul Național)";
           } else if (lowerName.includes("100")) {
-            tip = "D100";
-            titlu = "Recipisă Declarația 100 (Obligații Buget de Stat)";
+            formCode = "D100";
+            titlu = "Recipisă Declarația 100 (Obligații de Plată la Bugetul de Stat)";
           } else if (lowerName.includes("390")) {
-            tip = "D390";
-            titlu = "Recipisă Declarația 390 (Achiziții/Livrări Intracomunitare)";
+            formCode = "D390";
+            titlu = "Recipisă Declarația 390 (Declarație Recapitulativă Intracomunitară)";
+          } else if (lowerName.includes("205")) {
+            formCode = "D205";
+            titlu = "Recipisă Declarația 205 (Impozit Reținut la Sursă & Dividende)";
           } else if (lowerName.includes("700")) {
-            tip = "D700";
+            formCode = "D700";
             titlu = "Recipisă Declarația 700 (Mențiuni Electronice)";
-          } else if (lowerName.includes("notif")) {
+          } else if (lowerName.includes("bilant")) {
+            formCode = "BILANT";
+            titlu = "Recipisă Situații Financiare Anuale (Bilanț Contabil)";
+          } else if (lowerName.includes("certificat") || lowerName.includes("atestare")) {
+            tip = "CERTIFICAT FISCAL";
+            categorie = "certificat_fiscal";
+            titlu = "Certificat de Atestare Fiscală";
+          } else if (lowerName.includes("vector") || lowerName.includes("fisa") || lowerName.includes("situatie")) {
+            tip = "RASPUNS SOLICITARE";
+            categorie = "raspuns_solicitare";
+            titlu = `Răspuns Solicitare SPV — ${file.originalname}`;
+          } else if (lowerName.includes("notif") || lowerName.includes("deciz") || lowerName.includes("somat")) {
             tip = "NOTIFICARE";
-            titlu = "Notificare Oficială ANAF";
             categorie = "notificare_anaf";
-          } else if (lowerName.includes("deciz")) {
-            tip = "DECIZIE";
-            titlu = "Decizie Fiscală ANAF";
-            categorie = "decizie_impunere";
-          } else if (lowerName.includes("somat")) {
-            tip = "SOMATIE";
-            titlu = "Somație de Plată ANAF";
-            categorie = "somatie";
+            titlu = `Notificare Oficială ANAF — ${file.originalname}`;
           }
 
           const regNumMatch = file.originalname.match(/(\d{7,10})/);
           const numarInregistrare = regNumMatch ? regNumMatch[1] : `${Date.now().toString().slice(-8)}`;
 
+          const pad2 = (n: number) => String(n).padStart(2, "0");
+          const formatSpvDate = (d: Date) =>
+            `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}.${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+
           const now = new Date();
-          const dataDepunere = `${String(now.getDate()).padStart(2, "0")}.${String(now.getMonth() + 1).padStart(2, "0")}.${now.getFullYear()} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+          const dataDepunere = formatSpvDate(now);
+          const archiveDate = new Date(now);
+          archiveDate.setDate(archiveDate.getDate() + 60);
+          const dataArhivare = formatSpvDate(archiveDate);
+
+          const detalii = formCode
+            ? `recipisa pentru CIF ${cleanCui}, tip ${formCode}, numar_inregistrare ${numarInregistrare}, incarcat din ${file.originalname}`
+            : `Document oficial ${file.originalname} pentru CIF ${cleanCui} (${titlu})`;
 
           await (db as any).execute(
             sql`INSERT INTO spv_portal_documents 
-                (tenantId, cif, tip, categorie, titlu, numarInregistrare, dataDepunere, perioadaFiscala, stare, detalii, fileUrl, fileName, sursa)
+                (tenantId, cif, tip, categorie, titlu, numarInregistrare, dataDepunere, dataArhivare, perioadaFiscala, stare, isRead, detalii, fileUrl, fileName, sursa)
                 VALUES 
-                (${tenantId}, ${cleanCui}, ${tip}, ${categorie}, ${titlu}, ${numarInregistrare}, ${dataDepunere}, 'Curent', 'validat', 'Document oficial recepționat și încărcat în arhiva SPV a firmei.', ${fileUrl}, ${file.originalname}, 'incarcat_manual')`
+                (${tenantId}, ${cleanCui}, ${tip}, ${categorie}, ${titlu}, ${numarInregistrare}, ${dataDepunere}, ${dataArhivare}, 'Curent', 'validat', 0, ${detalii}, ${fileUrl}, ${file.originalname}, 'incarcat_manual')`
           );
 
           results.push({ fileName: file.originalname, tip, titlu, numarInregistrare, fileUrl });
