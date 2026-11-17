@@ -4994,12 +4994,42 @@ export const appRouter = router({
         );
         return (rows || []).map((r: any) => ({
           ...r,
+          isRead: Boolean(r.isRead),
           pdfUrl: `/api/pdf/spv-document/${r.id}`,
         }));
       } catch (err: any) {
         console.warn("[listPortalDocuments] Error:", err.message);
         return [];
       }
+    }),
+
+    // Marcare document din portal SPV ca citit / necitit
+    markPortalDocumentRead: protectedProcedure
+      .input(z.object({ id: z.number(), isRead: z.boolean() }))
+      .mutation(async ({ ctx, input }) => {
+        const tenantId = tenantOf(ctx);
+        const db = await getDb();
+        if (!db) throw new Error("Baza de date indisponibilă");
+        const { sql } = await import("drizzle-orm");
+
+        const isReadVal = input.isRead ? 1 : 0;
+        await (db as any).execute(
+          sql`UPDATE spv_portal_documents SET isRead = ${isReadVal}, readAt = ${input.isRead ? new Date() : null} WHERE id = ${input.id} AND tenantId = ${tenantId}`
+        );
+        return { success: true };
+      }),
+
+    // Marcare toate documentele ca citite
+    markAllPortalDocumentsRead: protectedProcedure.mutation(async ({ ctx }) => {
+      const tenantId = tenantOf(ctx);
+      const db = await getDb();
+      if (!db) throw new Error("Baza de date indisponibilă");
+      const { sql } = await import("drizzle-orm");
+
+      await (db as any).execute(
+        sql`UPDATE spv_portal_documents SET isRead = 1, readAt = NOW() WHERE tenantId = ${tenantId}`
+      );
+      return { success: true };
     }),
 
     // Ștergere document din portal SPV

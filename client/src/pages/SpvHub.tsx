@@ -72,6 +72,7 @@ export default function SpvHub() {
   // Filtre Recipise Declaratii SPV
   const [portalFilter, setPortalFilter] = useState<"all" | "declaratie" | "notificare" | "decizie">("all");
   const [portalSearchQuery, setPortalSearchQuery] = useState<string>("");
+  const [readFilter, setReadFilter] = useState<"all" | "unread" | "read">("all");
 
   // Filtre Coloane Specifice Portal ANAF SPV (exact ca in www.anaf.ro)
   const [filterCif, setFilterCif] = useState<string>("");
@@ -91,6 +92,7 @@ export default function SpvHub() {
     setFilterDetalii("");
     setFilterDataArhivare("");
     setPortalFilter("all");
+    setReadFilter("all");
     setPortalSearchQuery("");
     setPage(1);
   };
@@ -169,6 +171,41 @@ export default function SpvHub() {
     },
   });
 
+  // Mutație Marcare Document Citit / Necitit
+  const markReadMutation = (trpc as any).spvMessages.markPortalDocumentRead.useMutation({
+    onSuccess: () => {
+      refetchPortalDocs();
+    },
+    onError: (err: any) => {
+      toast.error(`Eroare la actualizarea stării: ${err.message}`);
+    },
+  });
+
+  // Mutație Marcare Toate Documentele ca Citite
+  const markAllReadMutation = (trpc as any).spvMessages.markAllPortalDocumentsRead.useMutation({
+    onSuccess: () => {
+      toast.success("Toate mesajele din SPV au fost marcate ca citite.");
+      refetchPortalDocs();
+    },
+    onError: (err: any) => {
+      toast.error(`Eroare: ${err.message}`);
+    },
+  });
+
+  // Deschidere și vizualizare document oficial SPV
+  const openDocument = (doc: any) => {
+    if (!doc.isRead) {
+      markReadMutation.mutate({ id: doc.id, isRead: true });
+    }
+    setPreviewDoc({
+      isOpen: true,
+      title: `${doc.titlu} — ${doc.numarInregistrare || doc.cif}`,
+      pdfUrl: doc.pdfUrl,
+      filename: doc.fileName || `Recipisa_${doc.tip}_${doc.numarInregistrare}.pdf`,
+      type: "invoice",
+    });
+  };
+
   // Mutație Sincronizare Mesaje e-Factura
   const syncMessagesMutation = (trpc as any).spvMessages.syncFromAnaf.useMutation({
     onSuccess: (data: any) => {
@@ -228,6 +265,10 @@ export default function SpvHub() {
 
   // Filtrare Recipise & Documente SPV ANAF
   const filteredPortalDocs = portalDocs?.filter((doc: any) => {
+    // Filtrare stare citit / necitit (nou / vechi)
+    if (readFilter === "unread" && doc.isRead) return false;
+    if (readFilter === "read" && !doc.isRead) return false;
+
     if (portalFilter === "declaratie" && doc.tip !== "RECIPISA") return false;
     if (portalFilter === "notificare" && doc.tip !== "CERTIFICAT FISCAL" && doc.tip !== "NOTIFICARE") return false;
     if (portalFilter === "decizie" && doc.tip !== "RASPUNS SOLICITARE" && doc.categorie !== "decizie_impunere") return false;
@@ -271,6 +312,8 @@ export default function SpvHub() {
   // Statistici Recipise & Documente SPV
   const portalStats = {
     total: portalDocs?.length || 0,
+    unread: portalDocs?.filter((d: any) => !d.isRead).length || 0,
+    read: portalDocs?.filter((d: any) => d.isRead).length || 0,
     recipise: portalDocs?.filter((d: any) => d.tip === "RECIPISA").length || 0,
     certificate: portalDocs?.filter((d: any) => d.tip === "CERTIFICAT FISCAL").length || 0,
     solicitari: portalDocs?.filter((d: any) => d.tip === "RASPUNS SOLICITARE").length || 0,
@@ -531,7 +574,10 @@ export default function SpvHub() {
           <div className="space-y-4">
             {/* Carduri Statistici */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              <Card className="shadow-2xs">
+              <Card 
+                className={`shadow-2xs cursor-pointer transition-colors ${readFilter === "all" ? "ring-2 ring-blue-600/30" : ""}`}
+                onClick={() => { setReadFilter("all"); setPage(1); }}
+              >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 p-4">
                   <CardTitle className="text-xs font-medium text-slate-500">Toate Mesajele SPV</CardTitle>
                   <Inbox className="h-4 w-4 text-slate-500" />
@@ -541,6 +587,22 @@ export default function SpvHub() {
                     {portalStats.total}
                   </div>
                   <p className="text-[11px] text-slate-500 mt-0.5">Disponibile în portalul ANAF</p>
+                </CardContent>
+              </Card>
+
+              <Card 
+                className={`shadow-2xs cursor-pointer transition-colors ${readFilter === "unread" ? "ring-2 ring-red-600/50 bg-red-50/20" : ""}`}
+                onClick={() => { setReadFilter("unread"); setPage(1); }}
+              >
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 p-4">
+                  <CardTitle className="text-xs font-medium text-red-600 dark:text-red-400">Mesaje Noi (Necitite)</CardTitle>
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <div className="text-2xl font-bold tabular-nums text-red-600 dark:text-red-400">
+                    {portalStats.unread}
+                  </div>
+                  <p className="text-[11px] text-red-600/80 dark:text-red-400/80 mt-0.5">Evidențiate cu roșu în tabel</p>
                 </CardContent>
               </Card>
 
@@ -559,27 +621,14 @@ export default function SpvHub() {
 
               <Card className="shadow-2xs">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 p-4">
-                  <CardTitle className="text-xs font-medium text-slate-500">Certificate Fiscale</CardTitle>
+                  <CardTitle className="text-xs font-medium text-slate-500">Certificate & Solicitări</CardTitle>
                   <ShieldCheck className="h-4 w-4 text-purple-600" />
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
                   <div className="text-2xl font-bold tabular-nums text-purple-700 dark:text-purple-300">
-                    {portalStats.certificate}
+                    {portalStats.certificate + portalStats.solicitari}
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Atestare fiscală persoane juridice</p>
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-2xs">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 p-4">
-                  <CardTitle className="text-xs font-medium text-slate-500">Răspunsuri Solicitări</CardTitle>
-                  <FileText className="h-4 w-4 text-emerald-600" />
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <div className="text-2xl font-bold tabular-nums text-emerald-700 dark:text-emerald-300">
-                    {portalStats.solicitari}
-                  </div>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Vector fiscal, fișă rol, situație sintetică</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Atestare fiscală, vector fiscal, fișă rol</p>
                 </CardContent>
               </Card>
             </div>
@@ -607,6 +656,57 @@ export default function SpvHub() {
                   <RefreshCw className="w-3.5 h-3.5" />
                   <span>Elimină Filtre</span>
                 </button>
+
+                {/* Filtre Stare: Toate / Noi (Necitite) / Citite */}
+                <div className="flex items-center gap-1 p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs">
+                  <button
+                    type="button"
+                    onClick={() => { setReadFilter("all"); setPage(1); }}
+                    className={`px-2.5 py-1 font-bold rounded transition-colors cursor-pointer ${
+                      readFilter === "all"
+                        ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                    }`}
+                  >
+                    Toate ({portalStats.total})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setReadFilter("unread"); setPage(1); }}
+                    className={`px-2.5 py-1 font-bold rounded transition-colors cursor-pointer flex items-center gap-1.5 ${
+                      readFilter === "unread"
+                        ? "bg-red-600 text-white shadow-2xs"
+                        : "text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40"
+                    }`}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${readFilter === "unread" ? "bg-white" : "bg-red-500 animate-pulse"}`} />
+                    <span>Noi ({portalStats.unread})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setReadFilter("read"); setPage(1); }}
+                    className={`px-2.5 py-1 font-bold rounded transition-colors cursor-pointer ${
+                      readFilter === "read"
+                        ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                    }`}
+                  >
+                    Citite ({portalStats.read})
+                  </button>
+                </div>
+
+                {portalStats.unread > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => markAllReadMutation.mutate()}
+                    disabled={markAllReadMutation.isPending}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-lg transition-colors cursor-pointer"
+                    title="Marchează toate mesajele ca citite"
+                  >
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Marchează toate ca citite</span>
+                  </button>
+                )}
 
                 {(filterCif || (filterTipDoc && filterTipDoc !== "-TOATE-") || filterIdSolicitare || filterDataAfisare || filterDetalii || filterDataArhivare || portalSearchQuery) && (
                   <span className="text-xs text-slate-500 dark:text-slate-400 italic">
@@ -754,26 +854,18 @@ export default function SpvHub() {
                     {/* Corp Tabel */}
                     <tbody>
                       {paginatedPortalDocs.map((doc: any, idx: number) => {
-                        // Primul rând (cel mai recent) este evidențiat cu text roșu exact ca în portalul oficial ANAF SPV!
-                        const isFirstRow = page === 1 && idx === 0 && !filterCif && !filterTipDoc && !filterIdSolicitare && !filterDetalii && !portalSearchQuery;
-                        const rowTextColor = isFirstRow
+                        // Mesajele necitite/noi sunt afișate cu text ROȘU, exact ca în portalul oficial ANAF SPV!
+                        const isUnread = !doc.isRead;
+                        const rowTextColor = isUnread
                           ? "text-[#dc2626] font-semibold"
-                          : "text-slate-800 dark:text-slate-200";
+                          : "text-slate-800 dark:text-slate-200 font-normal";
 
                         return (
                           <tr
                             key={doc.id}
-                            onClick={() =>
-                              setPreviewDoc({
-                                isOpen: true,
-                                title: `${doc.titlu} — ${doc.numarInregistrare || doc.cif}`,
-                                pdfUrl: doc.pdfUrl,
-                                filename: doc.fileName || `Recipisa_${doc.tip}_${doc.numarInregistrare}.pdf`,
-                                type: "invoice",
-                              })
-                            }
+                            onClick={() => openDocument(doc)}
                             className={`border-b border-slate-200 dark:border-slate-800 hover:bg-blue-50/70 dark:hover:bg-blue-950/40 cursor-pointer transition-colors ${
-                              idx % 2 === 1 ? "bg-slate-50/50 dark:bg-slate-900/30" : "bg-white dark:bg-slate-900"
+                              isUnread ? "bg-red-50/30 dark:bg-red-950/20" : (idx % 2 === 1 ? "bg-slate-50/50 dark:bg-slate-900/30" : "bg-white dark:bg-slate-900")
                             }`}
                           >
                             {/* CIF */}
@@ -783,11 +875,18 @@ export default function SpvHub() {
 
                             {/* Tip Document */}
                             <td className={`py-3 px-3 uppercase whitespace-nowrap font-bold tracking-tight ${rowTextColor}`}>
-                              {doc.tip}
+                              <div className="flex items-center gap-1.5">
+                                <span>{doc.tip}</span>
+                                {isUnread && (
+                                  <span className="px-1.5 py-0.2 rounded text-[9.5px] font-bold bg-red-100 text-red-700 border border-red-200 dark:bg-red-950/60 dark:text-red-300 dark:border-red-800">
+                                    NOU
+                                  </span>
+                                )}
+                              </div>
                             </td>
 
                             {/* Id Solicitare */}
-                            <td className={`py-3 px-3 tabular-nums whitespace-nowrap ${isFirstRow ? "text-[#dc2626] font-semibold" : "text-slate-600 dark:text-slate-400"}`}>
+                            <td className={`py-3 px-3 tabular-nums whitespace-nowrap ${isUnread ? "text-[#dc2626] font-semibold" : "text-slate-600 dark:text-slate-400"}`}>
                               {doc.idSolicitare || "-"}
                             </td>
 
@@ -796,24 +895,27 @@ export default function SpvHub() {
                               {doc.dataDepunere}
                             </td>
 
-                            {/* Descarcare document — Butonul oficial albastru [PDF] ca în ANAF */}
+                            {/* Descarcare document — Butonul oficial albastru [PDF] ca în ANAF + Toggle citit */}
                             <td className="py-2.5 px-3 text-center" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setPreviewDoc({
-                                    isOpen: true,
-                                    title: `${doc.titlu} — ${doc.numarInregistrare || doc.cif}`,
-                                    pdfUrl: doc.pdfUrl,
-                                    filename: doc.fileName || `Recipisa_${doc.tip}_${doc.numarInregistrare}.pdf`,
-                                    type: "invoice",
-                                  })
-                                }
-                                className="inline-flex items-center justify-center px-3 py-1 bg-[#1e40af] hover:bg-[#1d4ed8] text-white font-bold text-xs rounded shadow-2xs transition-colors cursor-pointer"
-                                title="Deschide documentul PDF oficial ANAF"
-                              >
-                                PDF
-                              </button>
+                              <div className="inline-flex items-center gap-1.5 justify-center">
+                                <button
+                                  type="button"
+                                  onClick={() => openDocument(doc)}
+                                  className="inline-flex items-center justify-center px-3 py-1 bg-[#1e40af] hover:bg-[#1d4ed8] text-white font-bold text-xs rounded shadow-2xs transition-colors cursor-pointer"
+                                  title="Deschide documentul PDF oficial ANAF"
+                                >
+                                  PDF
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => markReadMutation.mutate({ id: doc.id, isRead: !doc.isRead })}
+                                  disabled={markReadMutation.isPending}
+                                  className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                                  title={doc.isRead ? "Marchează ca necitit (va fi afișat cu text roșu ca nou)" : "Marchează ca citit (va deveni negru)"}
+                                >
+                                  <Eye className={`w-3.5 h-3.5 ${doc.isRead ? "opacity-35" : "text-red-600 font-bold"}`} />
+                                </button>
+                              </div>
                             </td>
 
                             {/* Detalii */}
