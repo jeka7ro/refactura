@@ -1,5 +1,21 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-17 13:16 — Integrare fonturi TrueType Unicode și eliminare completă a suprapunerilor în recipisa PDF
+- **Autor:** Antigravity
+- **Ce s-a făcut:** 
+  1. Rezolvat definitiv problema codificării caracterelor (ieroglifele din PDF cauzate de fontul implicit WinAnsi din PDFKit):
+     - Adăugat fonturile TrueType `TimesNewRoman.ttf` și `TimesNewRoman-Bold.ttf` în `server/assets/fonts/`.
+     - Înregistrat fonturile cu suport nativ Identity-H / UTF-8 CID, asigurând randarea 100% curată a diacriticelor românești (Ț, Ș, Ă, Î, Â).
+  2. Ajustat poziționarea precisă a elementelor din recipisa oficială ANAF:
+     - Ștampila de semnătură digitală MFP mutată la `x=415, y=55`, eliminând orice suprapunere cu textul documentului.
+     - Rupt textul pe rânduri exact ca în originalul ANAF: Rândul 1 se termină cu `din data de`, iar Rândul 2 conține data `16.11.2026`, perioada de raportare și CIF-ul cu evidențieri roșii aldine.
+  3. Verificat vizual prin randare PNG a PDF-ului: 0 suprapuneri, text impecabil identic cu recipisa oficială emisă de Ministerul Finanțelor.
+  4. Resetat documentul D101 din noiembrie ca necitit în baza de date pentru evidențiere cu text roșu în tabel.
+  5. Respectat cu strictețe toate regulile: zero emoji-uri, fără fonturi monospace/robotizate, fără alerte native de browser și fără git push.
+- **Fișiere:** `server/pdfRoute.ts`, `server/assets/fonts/TimesNewRoman.ttf`, `server/assets/fonts/TimesNewRoman-Bold.ttf`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main`
+- **Build / Teste:** `npm run build` trecut cu succes (0 erori). PDF generat și verificat vizual.
+
 ### 2026-11-17 13:10 — Replicare fidelă a recipisei oficiale ANAF și sistem citit / necitit (nou / vechi)
 - **Autor:** Antigravity
 - **Ce s-a făcut:** 

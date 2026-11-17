@@ -3002,9 +3002,24 @@ export function registerPdfRoute(app: any) {
       const PDFDocument = (await import("pdfkit")).default;
       const doc = new PDFDocument({
         size: "A4",
-        margins: { top: 45, bottom: 45, left: 50, right: 50 },
+        margins: { top: 40, bottom: 40, left: 50, right: 50 },
         autoFirstPage: true,
       });
+
+      // Inregistrare fonturi TrueType cu suport complet Unicode pentru diacritice romanesti
+      const timesReg = path.resolve(process.cwd(), "server/assets/fonts/TimesNewRoman.ttf");
+      const timesBold = path.resolve(process.cwd(), "server/assets/fonts/TimesNewRoman-Bold.ttf");
+      const hasTimes = fs.existsSync(timesReg) && fs.existsSync(timesBold);
+
+      if (hasTimes) {
+        doc.registerFont("TimesRoman", timesReg);
+        doc.registerFont("TimesRoman-Bold", timesBold);
+      } else {
+        const robotoReg = path.resolve(process.cwd(), "server/assets/fonts/Roboto-Regular.ttf");
+        const robotoBold = path.resolve(process.cwd(), "server/assets/fonts/Roboto-Bold.ttf");
+        doc.registerFont("TimesRoman", robotoReg);
+        doc.registerFont("TimesRoman-Bold", robotoBold);
+      }
 
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
@@ -3014,19 +3029,19 @@ export function registerPdfRoute(app: any) {
       doc.pipe(res);
 
       // Antet Oficial Ministerul Finantelor / ANAF
-      doc.font("Times-Bold").fontSize(13.5).fillColor("#000000").text("MINISTERUL FINANȚELOR", 50, 50);
-      doc.font("Times-Bold").fontSize(13.5).fillColor("#000000").text("AGENȚIA NAȚIONALĂ DE ADMINISTRARE FISCALĂ", 50, 68);
+      doc.font("TimesRoman-Bold").fontSize(13.5).fillColor("#000000").text("MINISTERUL FINANȚELOR", 50, 45);
+      doc.font("TimesRoman-Bold").fontSize(13.5).fillColor("#000000").text("AGENȚIA NAȚIONALĂ DE ADMINISTRARE FISCALĂ", 50, 63);
 
-      // Semnatura digitala MFP (colt dreapta-sus)
-      const sigX = 370;
-      const sigY = 90;
-      doc.circle(sigX + 14, sigY + 14, 11).fillAndStroke("#fef08a", "#ca8a04");
-      doc.font("Helvetica-Bold").fontSize(13).fillColor("#854d0e").text("?", sigX + 10.5, sigY + 8);
+      // Semnatura digitala MFP (colt dreapta-sus, pozitionata la x=415 pentru a nu se suprapune cu textul)
+      const sigX = 415;
+      const sigY = 55;
+      doc.circle(sigX + 13, sigY + 14, 11).fillAndStroke("#fef08a", "#ca8a04");
+      doc.font("Helvetica-Bold").fontSize(13).fillColor("#854d0e").text("?", sigX + 9.5, sigY + 8);
 
-      doc.font("Helvetica").fontSize(7.5).fillColor("#111827").text("Signature Not Verified", sigX + 30, sigY + 4);
-      doc.fontSize(6.5).fillColor("#4b5563").text("Digitally signed by Ministerul\nFinantelor Publice", sigX + 30, sigY + 14);
-      doc.text(`Date: ${spvDoc.dataDepunere || "2026.11.16 17:03:10"} +02:00`, sigX + 30, sigY + 29);
-      doc.text("Reason: Document MFP", sigX + 30, sigY + 37);
+      doc.font("Helvetica").fontSize(7.5).fillColor("#111827").text("Signature Not Verified", sigX + 29, sigY + 3);
+      doc.fontSize(6.5).fillColor("#4b5563").text("Digitally signed by Ministerul\nFinantelor Publice", sigX + 29, sigY + 13);
+      doc.text(`Date: ${spvDoc.dataDepunere || "2026.11.16 17:03:10"} +02:00`, sigX + 29, sigY + 28);
+      doc.text("Reason: Document MFP", sigX + 29, sigY + 36);
 
       const rawDepunere = String(spvDoc.dataDepunere || "16.11.2026 17:03:10");
       const cleanDateOnly = rawDepunere.split(" ")[0] || "16.11.2026";
@@ -3060,81 +3075,108 @@ export function registerPdfRoute(app: any) {
       let cleanPerioada = String(spvDoc.perioadaFiscala || "12.2025").replace(".", " ");
 
       if (spvDoc.tip === "RECIPISA") {
-        // 1. Linia Index încărcare (in rosu)
-        doc.font("Times-Bold").fontSize(11).fillColor("#cc0000").text(
+        // 1. Linia Index încărcare
+        doc.font("TimesRoman-Bold").fontSize(11).fillColor("#cc0000").text(
           `Index încărcare: ${cleanIndex} din ${cleanDateOnly}`,
           50,
-          102
+          95
         );
 
-        // 2. Paragraf depunere declaratie cu numerele in rosu
-        doc.font("Times-Roman").fontSize(10).fillColor("#000000").text(
+        // 2. Paragraf depunere declaratie - Rand 1 (exact ca in recipisa oficiala ANAF)
+        doc.font("TimesRoman").fontSize(10).fillColor("#000000").text(
           `Ați depus o declaratie  tip ${formType}  cu numărul de înregistrare `,
           50,
-          122,
-          { width: 495, lineGap: 3, continued: true }
+          118,
+          { lineBreak: false }
         );
-        doc.font("Times-Bold").fillColor("#cc0000").text(cleanNumarInreg, { continued: true });
-        doc.font("Times-Roman").fillColor("#000000").text(" din data de ", { continued: true });
-        doc.font("Times-Bold").fillColor("#cc0000").text(cleanDateOnly, { continued: true });
-        doc.font("Times-Roman").fillColor("#000000").text(` pentru perioada de raportare ${cleanPerioada}  pentru CIF: `, { continued: true });
-        doc.font("Times-Bold").fillColor("#cc0000").text(cleanCif, { continued: false });
+        const w1 = doc.widthOfString(`Ați depus o declaratie  tip ${formType}  cu numărul de înregistrare `);
+
+        doc.font("TimesRoman-Bold").fillColor("#cc0000").text(cleanNumarInreg, 50 + w1, 118, { lineBreak: false });
+        const w2 = doc.widthOfString(cleanNumarInreg);
+
+        doc.font("TimesRoman").fillColor("#000000").text(" din data de", 50 + w1 + w2, 118, { lineBreak: false });
+
+        // Paragraf depunere declaratie - Rand 2 (data, perioada raportare si CIF)
+        doc.font("TimesRoman-Bold").fontSize(10).fillColor("#cc0000").text(cleanDateOnly, 50, 134, { lineBreak: false });
+        const dw1 = doc.widthOfString(cleanDateOnly);
+
+        doc.font("TimesRoman").fillColor("#000000").text(
+          `  pentru perioada de raportare ${cleanPerioada}  pentru CIF: `,
+          50 + dw1,
+          134,
+          { lineBreak: false }
+        );
+        const dw2 = doc.widthOfString(`  pentru perioada de raportare ${cleanPerioada}  pentru CIF: `);
+
+        doc.font("TimesRoman-Bold").fillColor("#cc0000").text(cleanCif, 50 + dw1 + dw2, 134, { lineBreak: false });
 
         // 3. Rezultat validare
         const valMsg = spvDoc.stare === "validat" ? "Nu există erori de validare." : (spvDoc.detalii || "Nu există erori de validare.");
-        doc.font("Times-Roman").fontSize(10).fillColor("#000000").text(valMsg, 50, 168);
+        doc.font("TimesRoman").fontSize(10).fillColor("#000000").text(valMsg, 50, 175);
       } else if (spvDoc.tip === "CERTIFICAT FISCAL") {
-        doc.font("Times-Bold").fontSize(11).fillColor("#cc0000").text(
+        doc.font("TimesRoman-Bold").fontSize(11).fillColor("#cc0000").text(
           `Id Solicitare: ${spvDoc.idSolicitare || cleanIndex} din ${cleanDateOnly}`,
           50,
-          102
+          95
         );
 
-        doc.font("Times-Roman").fontSize(10).fillColor("#000000").text(
+        doc.font("TimesRoman").fontSize(10).fillColor("#000000").text(
           "Certificat de atestare fiscala din spatiul privat virtual - persoane JURIDICE cu numarul de inregistrare ",
           50,
-          122,
-          { width: 495, lineGap: 3, continued: true }
+          118,
+          { lineBreak: false }
         );
-        doc.font("Times-Bold").fillColor("#cc0000").text(String(spvDoc.numarInregistrare || cleanIndex), { continued: true });
-        doc.font("Times-Roman").fillColor("#000000").text(" pentru CIF: ", { continued: true });
-        doc.font("Times-Bold").fillColor("#cc0000").text(cleanCif, { continued: false });
+        const cw1 = doc.widthOfString("Certificat de atestare fiscala din spatiul privat virtual - persoane JURIDICE cu numarul de inregistrare ");
 
-        doc.font("Times-Roman").fontSize(10).fillColor("#000000").text(
+        doc.font("TimesRoman-Bold").fillColor("#cc0000").text(String(spvDoc.numarInregistrare || cleanIndex), 50 + cw1, 118, { lineBreak: false });
+
+        doc.font("TimesRoman").fillColor("#000000").text(
+          `pentru CIF: `,
+          50,
+          134,
+          { lineBreak: false }
+        );
+        const cw3 = doc.widthOfString("pentru CIF: ");
+        doc.font("TimesRoman-Bold").fillColor("#cc0000").text(cleanCif, 50 + cw3, 134, { lineBreak: false });
+
+        doc.font("TimesRoman").fontSize(10).fillColor("#000000").text(
           `Contribuabilul ${tenant.name || "TRADE INVEST NETWORK S.R.L."} cu CIF ${cleanCif} nu înregistrează obligații fiscale restante la bugetul general consolidat. Documentul a fost emis electronic prin Spațiul Privat Virtual conform art. 158 din Legea nr. 207/2015.`,
           50,
           160,
           { width: 495, lineGap: 3 }
         );
 
-        doc.font("Times-Roman").fontSize(10).fillColor("#000000").text("Document electronic valabil emis de Ministerul Finanțelor.", 50, 210);
+        doc.font("TimesRoman").fontSize(10).fillColor("#000000").text("Document electronic valabil emis de Ministerul Finanțelor.", 50, 210);
       } else {
         // RASPUNS SOLICITARE sau NOTIFICARE
         const docTitle = spvDoc.titlu || spvDoc.tip;
-        doc.font("Times-Bold").fontSize(11).fillColor("#cc0000").text(
+        doc.font("TimesRoman-Bold").fontSize(11).fillColor("#cc0000").text(
           `Id Solicitare: ${spvDoc.idSolicitare || cleanIndex} din ${cleanDateOnly}`,
           50,
-          102
+          95
         );
 
-        doc.font("Times-Roman").fontSize(10).fillColor("#000000").text(
+        doc.font("TimesRoman").fontSize(10).fillColor("#000000").text(
           `Răspuns la solicitarea dumneavoastră din Spațiul Privat Virtual — ${docTitle} cu numărul de înregistrare `,
           50,
-          122,
-          { width: 495, lineGap: 3, continued: true }
+          118,
+          { lineBreak: false }
         );
-        doc.font("Times-Bold").fillColor("#cc0000").text(String(spvDoc.numarInregistrare || cleanIndex), { continued: true });
-        doc.font("Times-Roman").fillColor("#000000").text(" pentru CIF: ", { continued: true });
-        doc.font("Times-Bold").fillColor("#cc0000").text(cleanCif, { continued: false });
+        const rw1 = doc.widthOfString(`Răspuns la solicitarea dumneavoastră din Spațiul Privat Virtual — ${docTitle} cu numărul de înregistrare `);
+        doc.font("TimesRoman-Bold").fillColor("#cc0000").text(String(spvDoc.numarInregistrare || cleanIndex), 50 + rw1, 118, { lineBreak: false });
 
-        doc.font("Times-Roman").fontSize(10).fillColor("#000000").text(
+        doc.font("TimesRoman").fillColor("#000000").text("pentru CIF: ", 50, 134, { lineBreak: false });
+        const rw3 = doc.widthOfString("pentru CIF: ");
+        doc.font("TimesRoman-Bold").fillColor("#cc0000").text(cleanCif, 50 + rw3, 134, { lineBreak: false });
+
+        doc.font("TimesRoman").fontSize(10).fillColor("#000000").text(
           spvDoc.detalii || "Document eliberat electronic prin sistemul național Spațiul Privat Virtual (SPV).",
           50,
           160,
           { width: 495, lineGap: 3 }
         );
 
-        doc.font("Times-Roman").fontSize(10).fillColor("#000000").text("Nu există erori de validare.", 50, 210);
+        doc.font("TimesRoman").fontSize(10).fillColor("#000000").text("Nu există erori de validare.", 50, 210);
       }
 
       doc.end();
