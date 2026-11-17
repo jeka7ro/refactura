@@ -1,5 +1,26 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-17 13:10 — Replicare fidelă a recipisei oficiale ANAF și sistem citit / necitit (nou / vechi)
+- **Autor:** Antigravity
+- **Ce s-a făcut:** 
+  1. Replicat fidel layout-ul recipisei oficiale ANAF (conform modelului 1314837575.pdf trimis de utilizator):
+     - Eliminat casetele colorate nenaturale; antet oficial curat: `MINISTERUL FINANȚELOR` și `AGENȚIA NAȚIONALĂ DE ADMINISTRARE FISCALĂ` cu font Times New Roman Bold.
+     - Ștampila de semnătură digitală MFP poziționată în dreapta-sus (`Signature Not Verified`, `Digitally signed by Ministerul Finantelor Publice`, `Reason: Document MFP`, pictogramă semnal galbenă).
+     - Rândul de index în text roșu aldin (`Index încărcare: {index} din {data}`).
+     - Textul oficial al depunerii cu evidențierea în roșu aldin a numărului de înregistrare, datei și codului CIF: `Ați depus o declaratie tip D101 cu numărul de înregistrare INTERNT-... din data de ... pentru perioada de raportare ... pentru CIF: 42322117`.
+     - Rezultatul validării oficiale: `Nu există erori de validare.`.
+  2. Implementat sistemul complet de diferențiere mesaje Noi / Necitite vs. Vechi / Citite (exact ca în portalul SPV ANAF):
+     - Mesajele necitite (noi) sunt afișate cu text ROȘU aldin (#dc2626) pe întregul rând și poartă eticheta `NOU`.
+     - Mesajele citite sunt afișate cu text negru normal.
+     - La clic pe rând sau pe butonul `[PDF]`, documentul se deschide în vizualizator și este marcat automat ca citit în baza de date (devine negru).
+     - Adăugat butoane de filtrare rapidă: `Toate ({total})`, `Noi ({unread})` (cu bulină roșie) și `Citite ({read})`.
+     - Adăugat butonul `Marchează toate ca citite` și buton individual de comutare citit/necitit pe fiecare rând.
+  3. Baza de date a fost extinsă cu câmpurile `isRead` și `readAt` în tabela `spv_portal_documents`.
+  4. Respectat cu strictețe toate regulile: fără emoji-uri, fără fonturi robotizate/monospace și fără alerte native de browser.
+- **Fișiere:** `client/src/pages/SpvHub.tsx`, `server/pdfRoute.ts`, `server/routers.ts`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` / `d695f69`
+- **Build / Teste:** `npm run build` trecut cu succes (0 erori). PDF verificat cu succes.
+
 ### 2026-11-17 13:00 — Sincronizare completă a mesajelor și descărcare automată fișiere PDF din SPV ANAF
 - **Autor:** Antigravity
 - **Ce s-a făcut:** 
