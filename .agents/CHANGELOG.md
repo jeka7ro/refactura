@@ -1,5 +1,18 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-17 13:00 — Sincronizare completă a mesajelor și descărcare automată fișiere PDF din SPV ANAF
+- **Autor:** Antigravity
+- **Ce s-a făcut:** 
+  1. Creat modulul dedicat `server/spvPortalSync.ts` pentru interogarea oficială a serviciilor web ANAF SPV (`/prod/SPVWS2/rest/listaMesaje`) și descărcarea automată a fișierelor fizice PDF/ZIP (`/prod/SPVWS2/rest/descarcare?id=...`).
+  2. Implementat extragerea automată a fișierelor PDF din arhivele ZIP returnate de ANAF și salvarea lor persistentă pe disc în `uploads/spv_documents/`.
+  3. Integrat procesul de sincronizare a mesajelor din portalul SPV în fluxul recurent de sincronizare automată din `server/spvCron.ts` (rulare zilnică la ora 09:00 și pe butonul de actualizare manuală).
+  4. Documentele din portalul SPV (D101 Impozit profit, Certificat de atestare fiscală, Vector fiscal, Fișă de rol, Situație sintetică, D394, D100, D390, D112, D300) au acum deschidere și descărcare PDF garantate (atât din fișiere fizice descărcate, cât și din generatorul oficial ANAF de recipise).
+  5. S-a asigurat diagnostic precis: la interogarea automată din ANAF, dacă tokenul OAuth nu are bifat rolul SPV în `logincert.anaf.ro`, utilizatorul este ghidat exact cum să bifeze opțiunea SPV și să reautorizeze.
+  6. Respectat cu strictețe toate regulile: zero emoji-uri, fără fonturi robotizate/monospace și fără alerte native de browser.
+- **Fișiere:** `server/spvPortalSync.ts`, `server/routers.ts`, `server/spvCron.ts`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` / `4bf0ef4`
+- **Build / Teste:** `npm run build` trecut cu succes (0 erori). Rutele de descărcare și previzualizare PDF verificate cu succes (HTTP 200 OK, Content-Type: application/pdf).
+
 ### 2026-11-17 12:41 — Aliniere completă a ecranului SPV la structura și designul oficial din anaf.ro
 - **Autor:** Antigravity
 - **Ce s-a făcut:** 
