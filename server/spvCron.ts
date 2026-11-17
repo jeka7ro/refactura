@@ -939,7 +939,7 @@ export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
 
         imported++;
         console.log(
-          `[SPV Cron] ✓ Imported ${direction === "in" ? "received" : "sent"} invoice ${invoiceNumber} from ${supplierName}`
+          `[SPV Cron] Imported ${direction === "in" ? "received" : "sent"} invoice ${invoiceNumber} from ${supplierName}`
         );
         } catch (msgErr: any) {
           console.error(
@@ -964,6 +964,16 @@ export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
       console.log(
         `[SPV Cron] Done for tenant ${intg.tenantId}: imported=${imported}, skipped=${skipped}, limitHit=${limitHit}`
       );
+
+      // Sincronizare automată documente și recipise din portalul SPV ANAF (SPVWS2)
+      try {
+        const { syncSpvPortalDocumentsForTenant } = await import("./spvPortalSync");
+        const portalRes = await syncSpvPortalDocumentsForTenant(intg.tenantId, currentApiKey, safeFetchAnaf);
+        console.log(`[SPV Cron] SPV portal documents sync for tenant ${intg.tenantId}: ${portalRes.message}`);
+      } catch (portalErr: any) {
+        console.warn(`[SPV Cron] Portal documents sync error for tenant ${intg.tenantId}:`, portalErr.message);
+      }
+
       totalImported += imported;
       totalLimitHit += limitHit;
       totalLimitDetails.push(...limitDetails);

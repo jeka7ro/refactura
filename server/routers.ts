@@ -5024,7 +5024,7 @@ export const appRouter = router({
       if (!db) throw new Error("Baza de date indisponibilă");
 
       const { integrations } = await import("../drizzle/schema");
-      const { eq, and, sql } = await import("drizzle-orm");
+      const { eq, and } = await import("drizzle-orm");
 
       const [intg] = await db
         .select()
@@ -5039,71 +5039,8 @@ export const appRouter = router({
         };
       }
 
-      try {
-        const url = "https://api.anaf.ro/prod/SPVWS2/rest/listaMesaje?zile=60";
-        const res = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${intg.apiKey}`,
-            Accept: "application/json",
-          },
-        });
-
-        if (res.status === 403) {
-          return {
-            success: false,
-            needsSpvRole: true,
-            status: 403,
-            message: "Aplicația OAuth din portalul ANAF (logincert.anaf.ro) nu are activat serviciul SPV (are doar EFACTURA și ETRANSPORT). Bifați serviciul SPV în contul ANAF și apăsați Reautorizare.",
-          };
-        }
-
-        if (!res.ok) {
-          return {
-            success: false,
-            needsSpvRole: false,
-            status: res.status,
-            message: `Serverul ANAF a returnat codul ${res.status}: ${res.statusText}`,
-          };
-        }
-
-        const data = await res.json();
-        const mesaje = data?.mesaje || [];
-        let imported = 0;
-
-        for (const m of mesaje) {
-          const numarInreg = String(m.id || m.id_solicitare || "");
-          const dataCr = String(m.data_creare || "");
-          const tip = String(m.tip || "DECLARATIE");
-          const detalii = String(m.detalii || "");
-
-          const [exist]: any = await (db as any).execute(
-            sql`SELECT id FROM spv_portal_documents WHERE tenantId = ${tenantId} AND numarInregistrare = ${numarInreg}`
-          );
-          if (!exist || exist.length === 0) {
-            await (db as any).execute(
-              sql`INSERT INTO spv_portal_documents 
-                  (tenantId, cif, tip, categorie, titlu, numarInregistrare, dataDepunere, perioadaFiscala, stare, detalii, sursa)
-                  VALUES 
-                  (${tenantId}, ${m.cif || ""}, ${tip}, 'recipisa_declaratie', ${detalii.slice(0, 200) || tip}, ${numarInreg}, ${dataCr}, 'SPV ANAF', 'validat', ${detalii}, 'api_anaf')`
-            );
-            imported++;
-          }
-        }
-
-        return {
-          success: true,
-          needsSpvRole: false,
-          total: mesaje.length,
-          imported,
-          message: `S-au preluat ${imported} mesaje noi din portalul ANAF SPV.`,
-        };
-      } catch (err: any) {
-        return {
-          success: false,
-          needsSpvRole: false,
-          message: `Eroare la conexiunea cu ANAF SPVWS: ${err.message}`,
-        };
-      }
+      const { syncSpvPortalDocumentsForTenant } = await import("./spvPortalSync");
+      return await syncSpvPortalDocumentsForTenant(tenantId, intg.apiKey);
     }),
   }),
   // ─── GDPR Router ──────────────────────────────────────────────────────────────
