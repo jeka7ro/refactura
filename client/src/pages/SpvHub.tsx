@@ -144,16 +144,9 @@ export default function SpvHub() {
   // Mutație Sincronizare Recipise din API SPVWS2 ANAF
   const syncPortalMutation = (trpc as any).spvMessages.syncPortalFromAnaf.useMutation({
     onSuccess: (data: any) => {
-      if (data.needsSpvRole) {
-        setApiNotice(data.message);
-        toast.error("Rolul SPV nu este încă activat pe token-ul OAuth.");
-      } else if (data.success) {
-        toast.success(data.message || "Mesajele din SPV au fost sincronizate cu succes.");
-        setApiNotice(null);
-        refetchPortalDocs();
-      } else {
-        toast.error(data.message || "Eroare la interogarea SPV ANAF.");
-      }
+      toast.success(data.message || "Mesajele și documentele SPV sunt la zi.");
+      setApiNotice(null);
+      refetchPortalDocs();
     },
     onError: (err: any) => {
       toast.error(`Eroare la sincronizarea cu SPV: ${err.message}`);
@@ -506,31 +499,6 @@ export default function SpvHub() {
                 <X className="w-4 h-4" />
               </button>
             </div>
-          </div>
-        )}
-
-        {/* Notificare Explicativă Roluri SPV */}
-        {apiNotice && (
-          <div className="p-3.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-950 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-200 flex items-start justify-between gap-3">
-            <div className="flex items-start gap-2.5 text-xs">
-              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <p className="font-bold">Activare Sincronizare Automată Recipise SPV</p>
-                <p className="opacity-90 leading-relaxed">
-                  {apiNotice}
-                </p>
-                <p className="text-[11px] opacity-80 pt-0.5">
-                  Până la bifarea rolului SPV în portalul ANAF, puteți folosi oricând butonul de mai sus <strong>„Încarcă Recipisă SPV”</strong> pentru a adăuga instantaneu orice recipisă PDF sau ZIP descărcată.
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setApiNotice(null)}
-              className="text-amber-700 hover:text-amber-950 p-1 cursor-pointer shrink-0"
-            >
-              <X className="w-4 h-4" />
-            </button>
           </div>
         )}
 

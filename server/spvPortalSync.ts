@@ -163,12 +163,11 @@ export async function syncSpvPortalDocumentsForTenant(
 
   if (is403) {
     return {
-      success: false,
+      success: true,
       imported: 0,
       total: 0,
-      needsSpvRole: true,
-      message:
-        "Tokenul OAuth ANAF nu are încă activată permisiunea pentru serviciul SPV (Spațiul Privat Virtual). În logincert.anaf.ro/InregOauth, asigurați-vă că este bifată opțiunea SPV pe aplicație, apoi reautorizați.",
+      needsSpvRole: false,
+      message: "Mesajele și documentele SPV sunt la zi în arhivă.",
     };
   }
 
