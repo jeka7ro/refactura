@@ -3032,11 +3032,18 @@ export function registerPdfRoute(app: any) {
       doc.fillColor("#475569").fontSize(8).font(fontRegular).text("Spațiul Privat Virtual (SPV) — Sistemul Național de Comunicare Electronică", 55, 75);
 
       // Titlu Document
-      const isNotif = spvDoc.categorie === "notificare_anaf";
+      const isNotif = spvDoc.categorie === "notificare_anaf" || spvDoc.tip === "NOTIFICARE";
       const isDecizie = spvDoc.categorie === "decizie_impunere";
       let titleHeader = "RECIPISĂ DEPUNERE DECLARAȚIE FISCALĂ";
-      if (isNotif) titleHeader = "NOTIFICARE OFICIALĂ DE CONFORMARE";
-      else if (isDecizie) titleHeader = "DECIZIE FISCALĂ / FIȘĂ SINTETICĂ PE PLĂTITOR";
+      if (spvDoc.tip === "CERTIFICAT FISCAL" || spvDoc.categorie === "certificat_fiscal") {
+        titleHeader = "CERTIFICAT DE ATESTARE FISCALĂ";
+      } else if (spvDoc.tip === "RASPUNS SOLICITARE" || spvDoc.categorie === "raspuns_solicitare") {
+        titleHeader = "RĂSPUNS SOLICITARE SPV — EVIDENȚĂ FISCALĂ";
+      } else if (isNotif) {
+        titleHeader = "NOTIFICARE OFICIALĂ DE CONFORMARE";
+      } else if (isDecizie) {
+        titleHeader = "DECIZIE FISCALĂ / FIȘĂ SINTETICĂ PE PLĂTITOR";
+      }
 
       doc.fillColor("#1e3a8a").fontSize(14).font(fontBold).text(titleHeader, 40, 115, { align: "center" });
       doc.fillColor("#475569").fontSize(9).font(fontRegular).text(`Index Înregistrare SPV: ${spvDoc.numarInregistrare} | Data: ${spvDoc.dataDepunere}`, 40, 133, { align: "center" });

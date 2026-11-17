@@ -73,6 +73,28 @@ export default function SpvHub() {
   const [portalFilter, setPortalFilter] = useState<"all" | "declaratie" | "notificare" | "decizie">("all");
   const [portalSearchQuery, setPortalSearchQuery] = useState<string>("");
 
+  // Filtre Coloane Specifice Portal ANAF SPV (exact ca in www.anaf.ro)
+  const [filterCif, setFilterCif] = useState<string>("");
+  const [filterTipDoc, setFilterTipDoc] = useState<string>("-TOATE-");
+  const [filterIdSolicitare, setFilterIdSolicitare] = useState<string>("");
+  const [filterDataAfisare, setFilterDataAfisare] = useState<string>("");
+  const [filterDetalii, setFilterDetalii] = useState<string>("");
+  const [filterDataArhivare, setFilterDataArhivare] = useState<string>("");
+  const [page, setPage] = useState<number>(1);
+  const pageSize = 15;
+
+  const resetFilters = () => {
+    setFilterCif("");
+    setFilterTipDoc("-TOATE-");
+    setFilterIdSolicitare("");
+    setFilterDataAfisare("");
+    setFilterDetalii("");
+    setFilterDataArhivare("");
+    setPortalFilter("all");
+    setPortalSearchQuery("");
+    setPage(1);
+  };
+
   // Filtre Mesaje e-Factura
   const [messageFilter, setMessageFilter] = useState<"all" | "primita" | "trimisa" | "eroare">("all");
   const [searchMessageQuery, setSearchMessageQuery] = useState<string>("");
@@ -204,11 +226,31 @@ export default function SpvHub() {
     }
   };
 
-  // Filtrare Recipise Declaratii SPV
+  // Filtrare Recipise & Documente SPV ANAF
   const filteredPortalDocs = portalDocs?.filter((doc: any) => {
-    if (portalFilter === "declaratie" && doc.categorie !== "recipisa_declaratie") return false;
-    if (portalFilter === "notificare" && doc.categorie !== "notificare_anaf") return false;
-    if (portalFilter === "decizie" && doc.categorie !== "decizie_impunere" && doc.categorie !== "somatie") return false;
+    if (portalFilter === "declaratie" && doc.tip !== "RECIPISA") return false;
+    if (portalFilter === "notificare" && doc.tip !== "CERTIFICAT FISCAL" && doc.tip !== "NOTIFICARE") return false;
+    if (portalFilter === "decizie" && doc.tip !== "RASPUNS SOLICITARE" && doc.categorie !== "decizie_impunere") return false;
+
+    // Filtre specifice pe coloanele din portalul ANAF SPV
+    if (filterCif.trim() && !doc.cif?.toLowerCase().includes(filterCif.toLowerCase().trim())) {
+      return false;
+    }
+    if (filterTipDoc && filterTipDoc !== "-TOATE-" && doc.tip !== filterTipDoc) {
+      return false;
+    }
+    if (filterIdSolicitare.trim() && !doc.idSolicitare?.toLowerCase().includes(filterIdSolicitare.toLowerCase().trim())) {
+      return false;
+    }
+    if (filterDataAfisare.trim() && !doc.dataDepunere?.toLowerCase().includes(filterDataAfisare.toLowerCase().trim())) {
+      return false;
+    }
+    if (filterDetalii.trim() && !doc.detalii?.toLowerCase().includes(filterDetalii.toLowerCase().trim())) {
+      return false;
+    }
+    if (filterDataArhivare.trim() && !doc.dataArhivare?.toLowerCase().includes(filterDataArhivare.toLowerCase().trim())) {
+      return false;
+    }
 
     if (portalSearchQuery.trim()) {
       const q = portalSearchQuery.toLowerCase().trim();
@@ -217,20 +259,27 @@ export default function SpvHub() {
       const titluMatch = doc.titlu?.toLowerCase().includes(q);
       const perMatch = doc.perioadaFiscala?.toLowerCase().includes(q);
       const detMatch = doc.detalii?.toLowerCase().includes(q);
-      if (!tipMatch && !nrMatch && !titluMatch && !perMatch && !detMatch) {
+      const solMatch = doc.idSolicitare?.toLowerCase().includes(q);
+      const arhMatch = doc.dataArhivare?.toLowerCase().includes(q);
+      if (!tipMatch && !nrMatch && !titluMatch && !perMatch && !detMatch && !solMatch && !arhMatch) {
         return false;
       }
     }
     return true;
   });
 
-  // Statistici Recipise Declaratii SPV
+  // Statistici Recipise & Documente SPV
   const portalStats = {
     total: portalDocs?.length || 0,
-    declaratii: portalDocs?.filter((d: any) => d.categorie === "recipisa_declaratie").length || 0,
-    notificari: portalDocs?.filter((d: any) => d.categorie === "notificare_anaf").length || 0,
-    decizii: portalDocs?.filter((d: any) => d.categorie === "decizie_impunere" || d.categorie === "somatie").length || 0,
+    recipise: portalDocs?.filter((d: any) => d.tip === "RECIPISA").length || 0,
+    certificate: portalDocs?.filter((d: any) => d.tip === "CERTIFICAT FISCAL").length || 0,
+    solicitari: portalDocs?.filter((d: any) => d.tip === "RASPUNS SOLICITARE").length || 0,
+    notificari: portalDocs?.filter((d: any) => d.tip === "NOTIFICARE" || d.categorie === "notificare_anaf").length || 0,
   };
+
+  // Paginare documente SPV
+  const totalPages = Math.max(1, Math.ceil((filteredPortalDocs?.length || 0) / pageSize));
+  const paginatedPortalDocs = filteredPortalDocs?.slice((page - 1) * pageSize, page * pageSize) || [];
 
   // Filtrare Mesaje e-Factura
   const filteredMessages = rawMessages?.filter((msg: any) => {
@@ -477,7 +526,7 @@ export default function SpvHub() {
           </button>
         </div>
 
-        {/* ─── TAB 1: MESAJE & RECIPISE DECLARAȚII SPV (D112, D300, D394, NOTIFICĂRI) ─── */}
+        {/* ─── TAB 1: MESAJE & RECIPISE DECLARAȚII SPV (EXACT CA ÎN PORTALUL ANAF SPV) ─── */}
         {activeHubTab === "declaratii" && (
           <div className="space-y-4">
             {/* Carduri Statistici */}
@@ -491,7 +540,7 @@ export default function SpvHub() {
                   <div className="text-2xl font-bold tabular-nums text-slate-900 dark:text-white">
                     {portalStats.total}
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Înregistrate din portalul ANAF</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Disponibile în portalul ANAF</p>
                 </CardContent>
               </Card>
 
@@ -502,284 +551,341 @@ export default function SpvHub() {
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
                   <div className="text-2xl font-bold tabular-nums text-blue-700 dark:text-blue-300">
-                    {portalStats.declaratii}
+                    {portalStats.recipise}
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-0.5">D112, D300, D394, D100</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">D101, D112, D300, D394, D100, D390</p>
                 </CardContent>
               </Card>
 
               <Card className="shadow-2xs">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 p-4">
-                  <CardTitle className="text-xs font-medium text-slate-500">Notificări de Conformare</CardTitle>
-                  <Bell className="h-4 w-4 text-purple-600" />
+                  <CardTitle className="text-xs font-medium text-slate-500">Certificate Fiscale</CardTitle>
+                  <ShieldCheck className="h-4 w-4 text-purple-600" />
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
                   <div className="text-2xl font-bold tabular-nums text-purple-700 dark:text-purple-300">
-                    {portalStats.notificari}
+                    {portalStats.certificate}
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Comunicări oficiale ANAF</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Atestare fiscală persoane juridice</p>
                 </CardContent>
               </Card>
 
               <Card className="shadow-2xs">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 p-4">
-                  <CardTitle className="text-xs font-medium text-slate-500">Decizii & Extrase</CardTitle>
+                  <CardTitle className="text-xs font-medium text-slate-500">Răspunsuri Solicitări</CardTitle>
                   <FileText className="h-4 w-4 text-emerald-600" />
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
                   <div className="text-2xl font-bold tabular-nums text-emerald-700 dark:text-emerald-300">
-                    {portalStats.decizii}
+                    {portalStats.solicitari}
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Fișe sintetice de rol</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Vector fiscal, fișă rol, situație sintetică</p>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Tabel Recipise & Declarații SPV */}
-            <Card className="shadow-2xs border-slate-200 dark:border-slate-800">
-              <CardHeader className="p-3.5 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                {/* Filtre Rapide */}
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <button
-                    type="button"
-                    onClick={() => setPortalFilter("all")}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                      portalFilter === "all"
-                        ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900"
-                        : "bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                    }`}
-                  >
-                    Toate ({portalStats.total})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPortalFilter("declaratie")}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1 ${
-                      portalFilter === "declaratie"
-                        ? "bg-blue-600 text-white"
-                        : "bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
-                    }`}
-                  >
-                    <FileCheck className="w-3.5 h-3.5" />
-                    <span>Recipise Declarații ({portalStats.declaratii})</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPortalFilter("notificare")}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1 ${
-                      portalFilter === "notificare"
-                        ? "bg-purple-600 text-white"
-                        : "bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100"
-                    }`}
-                  >
-                    <Bell className="w-3.5 h-3.5" />
-                    <span>Notificări ANAF ({portalStats.notificari})</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPortalFilter("decizie")}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1 ${
-                      portalFilter === "decizie"
-                        ? "bg-emerald-600 text-white"
-                        : "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
-                    }`}
-                  >
-                    <FileText className="w-3.5 h-3.5" />
-                    <span>Decizii & Extrase ({portalStats.decizii})</span>
-                  </button>
-                </div>
+            {/* Avertisment Oficial ANAF SPV */}
+            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-xl p-3.5 text-xs text-amber-950 dark:text-amber-200 flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-[12px]">Informații documente electronice disponibile</p>
+                <p className="mt-0.5 text-slate-700 dark:text-slate-300 leading-relaxed text-[11.5px]">
+                  <strong>ATENȚIE!</strong> — Documentele electronice afișate sunt disponibile pentru descărcare doar până la data arhivării. Pentru a nu le pierde, recomandăm descărcarea și păstrarea lor pe stațiile proprii.
+                </p>
+              </div>
+            </div>
 
-                {/* Căutare în declarații */}
-                <div className="relative w-full sm:w-72">
+            {/* Bara de Comenzi & Filtre */}
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1e3264] hover:bg-[#16254a] text-white text-xs font-semibold rounded-lg shadow-2xs transition-colors cursor-pointer"
+                  title="Resetează toate filtrele aplicate pe tabel"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Elimină Filtre</span>
+                </button>
+
+                {(filterCif || (filterTipDoc && filterTipDoc !== "-TOATE-") || filterIdSolicitare || filterDataAfisare || filterDetalii || filterDataArhivare || portalSearchQuery) && (
+                  <span className="text-xs text-slate-500 dark:text-slate-400 italic">
+                    Afișate {filteredPortalDocs?.length || 0} din {portalDocs?.length || 0} documente
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="relative w-64">
                   <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                   <Input
                     type="text"
                     value={portalSearchQuery}
-                    onChange={(e) => setPortalSearchQuery(e.target.value)}
-                    placeholder="Caută D112, D300, index, perioadă..."
+                    onChange={(e) => {
+                      setPortalSearchQuery(e.target.value);
+                      setPage(1);
+                    }}
+                    placeholder="Caută în toate coloanele..."
                     className="pl-8 text-xs h-8"
                   />
                 </div>
-              </CardHeader>
+              </div>
+            </div>
 
-              <CardContent className="p-0">
-                {isLoadingPortalDocs ? (
-                  <div className="p-6 space-y-3">
-                    <Skeleton className="h-9 w-full" />
-                    <Skeleton className="h-9 w-full" />
-                    <Skeleton className="h-9 w-full" />
+            {/* Tabelul Oficial ANAF SPV */}
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-2xs bg-white dark:bg-slate-900">
+              {isLoadingPortalDocs ? (
+                <div className="p-6 space-y-3">
+                  <Skeleton className="h-9 w-full" />
+                  <Skeleton className="h-9 w-full" />
+                  <Skeleton className="h-9 w-full" />
+                </div>
+              ) : filteredPortalDocs?.length === 0 ? (
+                <div className="p-16 text-center text-slate-500">
+                  <FileCheck className="w-10 h-10 mx-auto text-slate-300 mb-2" />
+                  <p className="font-semibold text-sm">Nu există documente electronice care să corespundă filtrelor.</p>
+                  <button
+                    type="button"
+                    onClick={resetFilters}
+                    className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1e3264] text-white text-xs font-semibold rounded-lg"
+                  >
+                    <span>Resetează filtrele</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    {/* Antet Oficial SPV ANAF cu fundal albastru închis */}
+                    <thead>
+                      <tr className="bg-[#1e3264] text-white text-[11px] font-bold select-none border-b border-[#16254a]">
+                        <th className="py-2.5 px-3 w-28">CIF</th>
+                        <th className="py-2.5 px-3 w-44">Tip Document</th>
+                        <th className="py-2.5 px-3 w-32">Id Solicitare</th>
+                        <th className="py-2.5 px-3 w-36">Data Afisare</th>
+                        <th className="py-2.5 px-3 w-28 text-center">Descarcare document</th>
+                        <th className="py-2.5 px-3">Detalii</th>
+                        <th className="py-2.5 px-3 w-44">Data Arhivare/Data afisare SPV</th>
+                      </tr>
+
+                      {/* Rândul de Filtrare Direct sub Antet (exact ca în portalul ANAF) */}
+                      <tr className="bg-[#243d78] border-b border-[#1b2e5a] p-1">
+                        <th className="p-1.5">
+                          <input
+                            type="text"
+                            value={filterCif}
+                            onChange={(e) => {
+                              setFilterCif(e.target.value);
+                              setPage(1);
+                            }}
+                            placeholder="Filtru CIF..."
+                            className="w-full h-6 text-[11px] bg-white text-slate-900 px-1.5 rounded border-none outline-none font-normal"
+                          />
+                        </th>
+                        <th className="p-1.5">
+                          <select
+                            value={filterTipDoc}
+                            onChange={(e) => {
+                              setFilterTipDoc(e.target.value);
+                              setPage(1);
+                            }}
+                            className="w-full h-6 text-[11px] bg-white text-slate-900 px-1 rounded border-none outline-none font-normal"
+                          >
+                            <option value="-TOATE-">-TOATE-</option>
+                            <option value="RECIPISA">RECIPISA</option>
+                            <option value="CERTIFICAT FISCAL">CERTIFICAT FISCAL</option>
+                            <option value="RASPUNS SOLICITARE">RASPUNS SOLICITARE</option>
+                            <option value="NOTIFICARE">NOTIFICARE</option>
+                          </select>
+                        </th>
+                        <th className="p-1.5">
+                          <input
+                            type="text"
+                            value={filterIdSolicitare}
+                            onChange={(e) => {
+                              setFilterIdSolicitare(e.target.value);
+                              setPage(1);
+                            }}
+                            placeholder="Filtru ID..."
+                            className="w-full h-6 text-[11px] bg-white text-slate-900 px-1.5 rounded border-none outline-none font-normal"
+                          />
+                        </th>
+                        <th className="p-1.5">
+                          <input
+                            type="text"
+                            value={filterDataAfisare}
+                            onChange={(e) => {
+                              setFilterDataAfisare(e.target.value);
+                              setPage(1);
+                            }}
+                            placeholder="Filtru Dată..."
+                            className="w-full h-6 text-[11px] bg-white text-slate-900 px-1.5 rounded border-none outline-none font-normal"
+                          />
+                        </th>
+                        <th className="p-1.5 text-center">
+                          <div className="text-[10px] text-slate-200 font-normal">PDF</div>
+                        </th>
+                        <th className="p-1.5">
+                          <input
+                            type="text"
+                            value={filterDetalii}
+                            onChange={(e) => {
+                              setFilterDetalii(e.target.value);
+                              setPage(1);
+                            }}
+                            placeholder="Filtru D101, D394, Vector..."
+                            className="w-full h-6 text-[11px] bg-white text-slate-900 px-1.5 rounded border-none outline-none font-normal"
+                          />
+                        </th>
+                        <th className="p-1.5">
+                          <input
+                            type="text"
+                            value={filterDataArhivare}
+                            onChange={(e) => {
+                              setFilterDataArhivare(e.target.value);
+                              setPage(1);
+                            }}
+                            placeholder="Filtru Arhivare..."
+                            className="w-full h-6 text-[11px] bg-white text-slate-900 px-1.5 rounded border-none outline-none font-normal"
+                          />
+                        </th>
+                      </tr>
+                    </thead>
+
+                    {/* Corp Tabel */}
+                    <tbody>
+                      {paginatedPortalDocs.map((doc: any, idx: number) => {
+                        // Primul rând (cel mai recent) este evidențiat cu text roșu exact ca în portalul oficial ANAF SPV!
+                        const isFirstRow = page === 1 && idx === 0 && !filterCif && !filterTipDoc && !filterIdSolicitare && !filterDetalii && !portalSearchQuery;
+                        const rowTextColor = isFirstRow
+                          ? "text-[#dc2626] font-semibold"
+                          : "text-slate-800 dark:text-slate-200";
+
+                        return (
+                          <tr
+                            key={doc.id}
+                            onClick={() =>
+                              setPreviewDoc({
+                                isOpen: true,
+                                title: `${doc.titlu} — ${doc.numarInregistrare || doc.cif}`,
+                                pdfUrl: doc.pdfUrl,
+                                filename: doc.fileName || `Recipisa_${doc.tip}_${doc.numarInregistrare}.pdf`,
+                                type: "invoice",
+                              })
+                            }
+                            className={`border-b border-slate-200 dark:border-slate-800 hover:bg-blue-50/70 dark:hover:bg-blue-950/40 cursor-pointer transition-colors ${
+                              idx % 2 === 1 ? "bg-slate-50/50 dark:bg-slate-900/30" : "bg-white dark:bg-slate-900"
+                            }`}
+                          >
+                            {/* CIF */}
+                            <td className={`py-3 px-3 tabular-nums whitespace-nowrap ${rowTextColor}`}>
+                              {doc.cif}
+                            </td>
+
+                            {/* Tip Document */}
+                            <td className={`py-3 px-3 uppercase whitespace-nowrap font-bold tracking-tight ${rowTextColor}`}>
+                              {doc.tip}
+                            </td>
+
+                            {/* Id Solicitare */}
+                            <td className={`py-3 px-3 tabular-nums whitespace-nowrap ${isFirstRow ? "text-[#dc2626] font-semibold" : "text-slate-600 dark:text-slate-400"}`}>
+                              {doc.idSolicitare || "-"}
+                            </td>
+
+                            {/* Data Afisare */}
+                            <td className={`py-3 px-3 tabular-nums whitespace-nowrap ${rowTextColor}`}>
+                              {doc.dataDepunere}
+                            </td>
+
+                            {/* Descarcare document — Butonul oficial albastru [PDF] ca în ANAF */}
+                            <td className="py-2.5 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPreviewDoc({
+                                    isOpen: true,
+                                    title: `${doc.titlu} — ${doc.numarInregistrare || doc.cif}`,
+                                    pdfUrl: doc.pdfUrl,
+                                    filename: doc.fileName || `Recipisa_${doc.tip}_${doc.numarInregistrare}.pdf`,
+                                    type: "invoice",
+                                  })
+                                }
+                                className="inline-flex items-center justify-center px-3 py-1 bg-[#1e40af] hover:bg-[#1d4ed8] text-white font-bold text-xs rounded shadow-2xs transition-colors cursor-pointer"
+                                title="Deschide documentul PDF oficial ANAF"
+                              >
+                                PDF
+                              </button>
+                            </td>
+
+                            {/* Detalii */}
+                            <td className={`py-3 px-3 leading-relaxed ${rowTextColor}`}>
+                              <p className="line-clamp-2">{doc.detalii}</p>
+                            </td>
+
+                            {/* Data Arhivare/Data afisare SPV */}
+                            <td className={`py-3 px-3 tabular-nums whitespace-nowrap ${rowTextColor}`}>
+                              {doc.dataArhivare || "-"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Bara de Paginare Oficială SPV */}
+              {filteredPortalDocs && filteredPortalDocs.length > 0 && (
+                <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/70 text-xs">
+                  <div className="text-slate-500">
+                    Afișate {(page - 1) * pageSize + 1} – {Math.min(page * pageSize, filteredPortalDocs.length)} din {filteredPortalDocs.length} mesaje
                   </div>
-                ) : filteredPortalDocs?.length === 0 ? (
-                  <div className="p-16 text-center text-slate-500">
-                    <FileCheck className="w-10 h-10 mx-auto text-slate-300 mb-2" />
-                    <p className="font-semibold text-sm">Nu există documente sau recipise care să corespundă căutării.</p>
-                    <p className="text-xs text-slate-400 mt-1">
-                      Puteți adăuga oricând o recipisă descărcată din SPV prin butonul „Încarcă Recipisă SPV”.
-                    </p>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setPage(1)}
+                      disabled={page === 1}
+                      className="px-2 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 disabled:opacity-40 cursor-pointer font-bold"
+                      title="Prima pagină"
+                    >
+                      |&lt;
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="px-2.5 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 disabled:opacity-40 cursor-pointer font-bold"
+                      title="Pagina precedentă"
+                    >
+                      &lt;
+                    </button>
+
+                    <span className="px-3 py-1 font-semibold tabular-nums text-slate-800 dark:text-slate-200">
+                      {page} / {totalPages}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                      className="px-2.5 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 disabled:opacity-40 cursor-pointer font-bold"
+                      title="Pagina următoare"
+                    >
+                      &gt;
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPage(totalPages)}
+                      disabled={page === totalPages}
+                      className="px-2 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 disabled:opacity-40 cursor-pointer font-bold"
+                      title="Ultima pagină"
+                    >
+                      &gt;|
+                    </button>
                   </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-slate-50/70 dark:bg-slate-900/70 text-[11px]">
-                          <TableHead className="w-32">Data Înregistrare</TableHead>
-                          <TableHead className="w-28">Tip Document</TableHead>
-                          <TableHead className="w-32">Index SPV / Nr.</TableHead>
-                          <TableHead className="w-32">Perioadă</TableHead>
-                          <TableHead>Titlu & Detalii Oficiale ANAF</TableHead>
-                          <TableHead className="w-36">Stare Prelucrare</TableHead>
-                          <TableHead className="w-36 text-center">Acțiuni</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody className="text-xs">
-                        {filteredPortalDocs?.map((doc: any) => {
-                          const isD112 = doc.tip === "D112";
-                          const isD300 = doc.tip === "D300";
-                          const isD394 = doc.tip === "D394";
-                          const isNotif = doc.categorie === "notificare_anaf";
-
-                          return (
-                            <TableRow
-                              key={doc.id}
-                              onClick={() =>
-                                setPreviewDoc({
-                                  isOpen: true,
-                                  title: `${doc.titlu} — Index ${doc.numarInregistrare}`,
-                                  pdfUrl: doc.pdfUrl,
-                                  filename: doc.fileName || `Recipisa_${doc.tip}_${doc.numarInregistrare}.pdf`,
-                                  type: "invoice",
-                                })
-                              }
-                              className="hover:bg-blue-50/60 dark:hover:bg-blue-950/30 cursor-pointer transition-colors"
-                            >
-                              {/* Data Inregistrare */}
-                              <TableCell className="font-semibold tabular-nums whitespace-nowrap py-3">
-                                {doc.dataDepunere}
-                              </TableCell>
-
-                              {/* Tip Document */}
-                              <TableCell className="py-3">
-                                <span
-                                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-bold ${
-                                    isD112
-                                      ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-200"
-                                      : isD300
-                                      ? "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-200"
-                                      : isD394
-                                      ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 border border-indigo-200"
-                                      : isNotif
-                                      ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200"
-                                      : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200"
-                                  }`}
-                                >
-                                  {doc.tip}
-                                </span>
-                              </TableCell>
-
-                              {/* Index SPV */}
-                              <TableCell className="py-3">
-                                <div className="flex items-center gap-1">
-                                  <span className="tabular-nums font-medium text-slate-700 dark:text-slate-300">
-                                    {doc.numarInregistrare}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleCopy(doc.numarInregistrare, e);
-                                    }}
-                                    className="text-slate-400 hover:text-slate-700 p-0.5 cursor-pointer"
-                                    title="Copiază număr înregistrare"
-                                  >
-                                    {copiedId === doc.numarInregistrare ? (
-                                      <Check className="w-2.5 h-2.5 text-emerald-600" />
-                                    ) : (
-                                      <Copy className="w-2.5 h-2.5" />
-                                    )}
-                                  </button>
-                                </div>
-                              </TableCell>
-
-                              {/* Perioada */}
-                              <TableCell className="py-3">
-                                <span className="text-slate-600 dark:text-slate-400 font-medium">
-                                  {doc.perioadaFiscala || "-"}
-                                </span>
-                              </TableCell>
-
-                              {/* Titlu & Detalii */}
-                              <TableCell className="py-3">
-                                <div className="flex flex-col max-w-lg">
-                                  <span className="font-bold text-slate-900 dark:text-white truncate">
-                                    {doc.titlu}
-                                  </span>
-                                  {doc.detalii && (
-                                    <span className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
-                                      {doc.detalii}
-                                    </span>
-                                  )}
-                                </div>
-                              </TableCell>
-
-                              {/* Stare Prelucrare */}
-                              <TableCell className="py-3">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800">
-                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                  <span>{doc.stare === "validat" ? "Validată fără erori" : doc.stare?.toUpperCase()}</span>
-                                </span>
-                              </TableCell>
-
-                              {/* Actiuni */}
-                              <TableCell className="py-3 text-center" onClick={(e) => e.stopPropagation()}>
-                                <div className="flex items-center justify-center gap-1.5">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setPreviewDoc({
-                                        isOpen: true,
-                                        title: `${doc.titlu} — Index ${doc.numarInregistrare}`,
-                                        pdfUrl: doc.pdfUrl,
-                                        filename: doc.fileName || `Recipisa_${doc.tip}_${doc.numarInregistrare}.pdf`,
-                                        type: "invoice",
-                                      })
-                                    }
-                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-semibold transition-colors cursor-pointer"
-                                    title="Deschide și previzualizează PDF Recipisă"
-                                  >
-                                    <Eye className="w-3.5 h-3.5" />
-                                    <span>Deschide</span>
-                                  </button>
-
-                                  <a
-                                    href={`${doc.pdfUrl}?download=true`}
-                                    download={doc.fileName || `Recipisa_${doc.tip}_${doc.numarInregistrare}.pdf`}
-                                    className="w-7 h-7 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 inline-flex items-center justify-center transition-colors"
-                                    title="Descarcă PDF Recipisă"
-                                  >
-                                    <Download className="w-3.5 h-3.5" />
-                                  </a>
-
-                                  {doc.sursa === "incarcat_manual" && (
-                                    <button
-                                      type="button"
-                                      onClick={() => deletePortalMutation.mutate({ id: doc.id })}
-                                      className="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 inline-flex items-center justify-center transition-colors cursor-pointer"
-                                      title="Șterge documentul din arhivă"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
