@@ -1,5 +1,22 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-17 12:41 — Aliniere completă a ecranului SPV la structura și designul oficial din anaf.ro
+- **Autor:** Antigravity
+- **Ce s-a făcut:** 
+  1. Replicat fidel structura, coloanele și stilul tabelului de mesaje din portalul oficial ANAF SPV (`https://www.anaf.ro/anaf/myinternet/SPV/mesaje/`):
+     - Cele 7 coloane oficiale: `CIF`, `Tip Document`, `Id Solicitare`, `Data Afisare`, `Descarcare document` (buton `[PDF]`), `Detalii`, `Data Arhivare/Data afisare SPV`.
+     - Antet albastru închis (#1e3264) cu rând dedicat de filtre inline sub fiecare coloană (filtru CIF, dropdown `Tip Document` cu `-TOATE-`, `RECIPISA`, `CERTIFICAT FISCAL`, `RASPUNS SOLICITARE`, filtre ID, dată, detalii și arhivare).
+     - Buton dedicat „Elimină Filtre” pentru resetarea instantanee a filtrelor.
+     - Mesajul de avertisment oficial ANAF: „ATENȚIE! - documentele electronice afișate sunt disponibile pentru descărcare doar până la data arhivării...”.
+     - Evidențierea primului rând (cel mai recent document necitit, recipisă D101 din noiembrie) cu text roșu (#dc2626), identic cu afișarea reală din portalul ANAF.
+     - Buton albastru compact `[PDF]` în coloana de descărcare, cu deschidere instantanee a fișierului PDF oficial generat sau stocat.
+  2. Baza de date a fost populată cu datele reale din contul SPV al utilizatorului (CUI 42322117): recipisa D101 (impozit profit), certificat de atestare fiscală (id 17657397), duplicat vector fiscal (id 196987758), fișă de rol (id 196987491), situație sintetică (id 196987353), recipise D394, D100, D390, D112, D300 și bilanț anual.
+  3. Adăugat paginare completă `|< < 1 / N > >|` cu indicator al numărului de documente afișate.
+  4. Respectat toate regulile stricte: fără fonturi monospace/robotizate, fără emoji-uri și fără alerte native de browser.
+- **Fișiere:** `client/src/pages/SpvHub.tsx`, `server/pdfRoute.ts`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` / `2cb741f`
+- **Build / Teste:** `npm run build` trecut cu succes (0 erori). Descărcare PDF validată HTTP 200 OK.
+
 ### 2026-11-14 12:23 — Deschidere instantanee recipise SPV și rezolvare verificare token PDF
 - **Autor:** Antigravity
 - **Ce s-a făcut:** 
