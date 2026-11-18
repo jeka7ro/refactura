@@ -141,15 +141,29 @@ export default function SpvHub() {
       typeof document !== "undefined" &&
       Boolean(document.documentElement.dataset.spvConnectorInstalled)
   );
+  const [connectorVersion, setConnectorVersion] = useState<string | null>(
+    () =>
+      typeof document !== "undefined"
+        ? document.documentElement.dataset.spvConnectorInstalled || null
+        : null
+  );
   const [isConnectorModalOpen, setIsConnectorModalOpen] = useState(false);
   const [isUsbSyncing, setIsUsbSyncing] = useState(false);
   const [usbSyncStatus, setUsbSyncStatus] = useState<string | null>(null);
   const [usbErrorBanner, setUsbErrorBanner] = useState<string | null>(null);
+  const [usbResultBanner, setUsbResultBanner] = useState<string | null>(null);
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
   const [copiedPath, setCopiedPath] = useState(false);
 
   useEffect(() => {
-    const onReady = () => setConnectorReady(true);
+    const onReady = (ev: Event) => {
+      setConnectorReady(true);
+      const ver =
+        (ev as CustomEvent)?.detail?.version ||
+        document.documentElement.dataset.spvConnectorInstalled ||
+        null;
+      if (ver) setConnectorVersion(String(ver));
+    };
     const onMessage = (event: MessageEvent) => {
       if (event.source !== window) return;
       if (
@@ -157,6 +171,7 @@ export default function SpvHub() {
         event.data?.type === "SPV_CONNECTOR_PONG"
       ) {
         setConnectorReady(true);
+        if (event.data?.version) setConnectorVersion(String(event.data.version));
       }
     };
     window.addEventListener("spv-connector-ready", onReady);
@@ -211,13 +226,18 @@ export default function SpvHub() {
   const syncInvoicesMutation = trpc.integrations.syncSpv.useMutation();
 
   const handleSyncAll = async () => {
-    if (isSyncingAll) return;
+    if (isSyncingAll || isUsbSyncing) return;
     setIsSyncingAll(true);
     try {
       const [msgRes, invRes] = await Promise.allSettled([
         syncMessagesMutation.mutateAsync(),
         syncInvoicesMutation.mutateAsync({ zile: 60 }),
       ]);
+
+      let usbOutcome: any = null;
+      if (connectorReady && oauthInfo?.tenantCui) {
+        usbOutcome = await runUsbSpvSync();
+      }
 
       await Promise.allSettled([
         refetchPortalDocs(),
@@ -230,7 +250,9 @@ export default function SpvHub() {
 
       const msgTotal =
         msgRes.status === "fulfilled" ? msgRes.value?.total : undefined;
-      if (
+      if ((usbOutcome?.downloaded || 0) > 0 || (usbOutcome?.matchedTotal || 0) > 0) {
+        setActiveHubTab("declaratii");
+      } else if (
         (portalDocs?.length || 0) === 0 &&
         typeof msgTotal === "number" &&
         msgTotal > 0
@@ -238,9 +260,9 @@ export default function SpvHub() {
         setActiveHubTab("efactura");
       }
 
-      if (msgRes.status === "rejected" && invRes.status === "rejected") {
+      if (msgRes.status === "rejected" && invRes.status === "rejected" && !usbOutcome?.ok) {
         toast.error(
-          msgRes.reason?.message || "Eroare la sincronizarea cu ANAF e-Factura."
+          msgRes.reason?.message || "Eroare la sincronizarea cu ANAF."
         );
       } else {
         const importedInvoices =
@@ -301,9 +323,11 @@ export default function SpvHub() {
   };
 
   const handleCheckConnector = () => {
-    if (document.documentElement.dataset.spvConnectorInstalled) {
+    const installedVer = document.documentElement.dataset.spvConnectorInstalled;
+    if (installedVer) {
       setConnectorReady(true);
-      toast.success("Extensia Conector SPV USB este activă în Chrome.");
+      setConnectorVersion(installedVer);
+      toast.success(`Extensia Conector SPV USB v${installedVer} este activă în Chrome.`);
       return;
     }
     window.postMessage(
@@ -311,9 +335,11 @@ export default function SpvHub() {
       "*"
     );
     setTimeout(() => {
-      if (document.documentElement.dataset.spvConnectorInstalled) {
+      const retryVer = document.documentElement.dataset.spvConnectorInstalled;
+      if (retryVer) {
         setConnectorReady(true);
-        toast.success("Extensia Conector SPV USB este activă în Chrome.");
+        setConnectorVersion(retryVer);
+        toast.success(`Extensia Conector SPV USB v${retryVer} este activă în Chrome.`);
       } else {
         toast.info(
           "Extensia nu a fost detectată încă. Reîncarcă pagina după instalarea în chrome://extensions."
@@ -356,19 +382,36 @@ export default function SpvHub() {
     }
   };
 
-  const handleUsbSpvSync = async () => {
+  const logUsbResultToServer = (payload: any) => {
+    try {
+      const token = localStorage.getItem("authToken");
+      const headers: HeadersInit = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      fetch("/api/spv/connector-log", {
+        method: "POST",
+        credentials: "include",
+        headers,
+        body: JSON.stringify(payload || {}),
+      }).catch(() => {});
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const runUsbSpvSync = async (): Promise<any> => {
     if (!connectorReady) {
       setIsConnectorModalOpen(true);
-      return;
+      return null;
     }
     if (!oauthInfo?.tenantCui) {
       toast.error("Profilul activ nu are CUI / CNP configurat în Setări.");
-      return;
+      return null;
     }
-    if (isUsbSyncing) return;
+    if (isUsbSyncing) return null;
 
     setIsUsbSyncing(true);
     setUsbErrorBanner(null);
+    setUsbResultBanner(null);
     setUsbSyncStatus(
       "Se deschide sesiunea cu stick-ul USB pe webserviced.anaf.ro..."
     );
@@ -470,14 +513,18 @@ export default function SpvHub() {
         );
       });
 
+      logUsbResultToServer(result);
       await refetchPortalDocs();
+
+      const cifTypeLabel = oauthInfo.entityType === "pf" ? "CNP" : "CIF";
+      const daysChecked = Number(result?.diagnostics?.zileUsed || 60);
 
       if (!result?.ok) {
         const errMsg =
           result?.error || "Eroare la citirea mesajelor SPV prin stick USB.";
         setUsbErrorBanner(errMsg);
         toast.error(errMsg);
-        return;
+        return result;
       }
 
       if ((result.downloaded || 0) > 0 || (result.matchedTotal || 0) > 0) {
@@ -485,18 +532,30 @@ export default function SpvHub() {
       }
 
       if (result.emptyNotice) {
+        setUsbResultBanner(
+          `${result.emptyNotice} (verificat prin stick USB pe ${cifTypeLabel} ${oauthInfo.tenantCui}). ANAF păstrează documentele disponibile în SPV doar 60 de zile; fișierele mai vechi descărcate anterior le poți urca prin Încarcă Recipisă.`
+        );
         toast.info(result.emptyNotice);
       } else if ((result.downloaded || 0) > 0) {
+        setUsbResultBanner(
+          `S-au descărcat ${result.downloaded} documente PDF originale din SPV ANAF (ultimele ${daysChecked} zile, ${cifTypeLabel} ${oauthInfo.tenantCui}). ANAF păstrează mesajele online maxim 60 de zile; cele descărcate rămân arhivate permanent în aplicație.`
+        );
         toast.success(
           `S-au descărcat și salvat ${result.downloaded} documente PDF originale semnate din SPV ANAF.`
         );
       } else if ((result.matchedTotal || 0) > 0) {
+        setUsbResultBanner(
+          `Toate cele ${result.matchedTotal} documente disponibile la ANAF în ultimele ${daysChecked} zile pentru ${cifTypeLabel} ${oauthInfo.tenantCui} sunt deja salvate aici. Mesajele mai vechi de 60 de zile sunt șterse automat de ANAF după Data Arhivare.`
+        );
         toast.info(
-          `Toate cele ${result.matchedTotal} documente SPV din ultimele 60 de zile sunt deja salvate.`
+          `Toate cele ${result.matchedTotal} documente SPV din ultimele ${daysChecked} zile sunt deja salvate.`
         );
       } else {
+        setUsbResultBanner(
+          `ANAF nu are mesaje SPV active în ultimele ${daysChecked} zile pentru ${cifTypeLabel} ${oauthInfo.tenantCui}. ANAF livrează prin API și portal doar ultimele 60 de zile; documentele mai vechi descărcate anterior în calculator pot fi adăugate prin Încarcă Recipisă.`
+        );
         toast.info(
-          `Nu există mesaje SPV pentru ${oauthInfo.entityType === "pf" ? "CNP" : "CIF"} ${oauthInfo.tenantCui} în ultimele 60 de zile.`
+          `Nu există mesaje SPV pentru ${cifTypeLabel} ${oauthInfo.tenantCui} în ultimele ${daysChecked} zile.`
         );
       }
 
@@ -505,10 +564,15 @@ export default function SpvHub() {
           `${result.failed} documente nu au putut fi salvate: ${result.lastError}`
         );
       }
+      return result;
     } finally {
       setIsUsbSyncing(false);
       setUsbSyncStatus(null);
     }
+  };
+
+  const handleUsbSpvSync = async () => {
+    await runUsbSpvSync();
   };
 
   const spvIntegration = integrationsList?.find((i) => i.provider === "spv");
@@ -728,6 +792,7 @@ export default function SpvHub() {
 
   const isSyncBusy =
     isSyncingAll ||
+    isUsbSyncing ||
     syncMessagesMutation.isPending ||
     syncInvoicesMutation.isPending ||
     isFetchingMessages;
@@ -885,30 +950,47 @@ export default function SpvHub() {
           </div>
         </div>
 
-        {/* Stare sincronizare Stick USB sau eroare */}
-        {(usbSyncStatus || usbErrorBanner) && (
+        {/* Recomandare actualizare extensie v1.1.0 dacă este încă v1.0.0 */}
+        {connectorReady && connectorVersion === "1.0.0" && (
+          <div className="px-3.5 py-2 rounded-xl border border-amber-200 bg-amber-50/90 text-amber-950 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-200 flex items-center justify-between gap-3 text-xs">
+            <span>
+              Extensia <span className="font-semibold">Conector SPV USB</span> rulează pe v1.0.0. Deschide <span className="font-semibold select-all">chrome://extensions</span> și apasă butonul de Reload pe extensie pentru a activa versiunea <span className="font-semibold">1.1.0</span> (protecție sesiuni expirate ANAF).
+            </span>
+          </div>
+        )}
+
+        {/* Stare sincronizare Stick USB, rezultat sau eroare */}
+        {(usbSyncStatus || usbErrorBanner || usbResultBanner) && (
           <div
             className={`px-3.5 py-2.5 rounded-xl border flex items-center justify-between gap-3 text-xs ${
               usbSyncStatus
                 ? "bg-blue-50/90 border-blue-200 text-blue-950 dark:bg-blue-950/40 dark:border-blue-800 dark:text-blue-100"
-                : "bg-red-50/90 border-red-200 text-red-950 dark:bg-red-950/40 dark:border-red-800 dark:text-red-100"
+                : usbErrorBanner
+                ? "bg-red-50/90 border-red-200 text-red-950 dark:bg-red-950/40 dark:border-red-800 dark:text-red-100"
+                : "bg-slate-50 border-slate-200 text-slate-800 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200"
             }`}
           >
             <div className="flex items-center gap-2.5 min-w-0">
               {usbSyncStatus ? (
                 <Loader2 className="w-4 h-4 animate-spin text-blue-600 shrink-0" />
-              ) : (
+              ) : usbErrorBanner ? (
                 <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
               )}
               <span className="font-medium break-words">
-                {usbSyncStatus || usbErrorBanner}
+                {usbSyncStatus || usbErrorBanner || usbResultBanner}
               </span>
             </div>
-            {!usbSyncStatus && usbErrorBanner && (
+            {!usbSyncStatus && (usbErrorBanner || usbResultBanner) && (
               <button
                 type="button"
-                onClick={() => setUsbErrorBanner(null)}
+                onClick={() => {
+                  setUsbErrorBanner(null);
+                  setUsbResultBanner(null);
+                }}
                 className="rounded-lg p-1 opacity-70 hover:opacity-100 cursor-pointer shrink-0"
+                title="Închide notificarea"
               >
                 <X className="w-4 h-4" />
               </button>

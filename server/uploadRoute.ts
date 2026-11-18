@@ -1198,5 +1198,35 @@ export function registerUploadRoute(app: Express) {
       res.status(500).json({ error: err?.message || "Eroare la generarea arhivei conectorului." });
     }
   });
+
+  // ── LOG DIAGNOSTIC REZULTAT CONECTOR USB ─────────────────────────────────────
+  app.post("/api/spv/connector-log", async (req: Request, res: Response) => {
+    try {
+      const tenantId = await resolveRequestTenant(req);
+      const {
+        ok,
+        matchedTotal,
+        downloaded,
+        alreadySaved,
+        failed,
+        error,
+        emptyNotice,
+        diagnostics,
+      } = req.body || {};
+
+      const zileUsed = Number(diagnostics?.zileUsed || 60);
+      const rawTotal = Number(diagnostics?.rawTotal || 0);
+      const allowed = Array.isArray(diagnostics?.allowedCifs)
+        ? diagnostics.allowedCifs.join(",")
+        : "-";
+
+      console.log(
+        `[SPV USB Connector] tenant=${tenantId} ok=${Boolean(ok)} raw=${rawTotal} matched=${Number(matchedTotal || 0)} downloaded=${Number(downloaded || 0)} alreadySaved=${Number(alreadySaved || 0)} failed=${Number(failed || 0)} zile=${zileUsed} allowed=${allowed}${emptyNotice ? ` notice=${String(emptyNotice).slice(0, 120)}` : ""}${error ? ` err=${String(error).slice(0, 180)}` : ""}`
+      );
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message || "Log failed" });
+    }
+  });
 }
 

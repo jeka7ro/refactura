@@ -12,6 +12,21 @@ function normalizeCif(value) {
     .trim();
 }
 
+async function clearAnafWebserviceCookies() {
+  try {
+    const cookies = await chrome.cookies.getAll({
+      url: "https://webserviced.anaf.ro/",
+    });
+    for (const c of cookies) {
+      const host = String(c.domain || "webserviced.anaf.ro").replace(/^\./, "");
+      const cookieUrl = `https://${host}${c.path || "/"}`;
+      await chrome.cookies.remove({ url: cookieUrl, name: c.name }).catch(() => {});
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
 async function readListJsonFromTab(tabId) {
   const results = await chrome.scripting.executeScript({
     target: { tabId },
@@ -27,10 +42,26 @@ async function readListJsonFromTab(tabId) {
         }
       };
 
+      const trimmedPreview = (s) => String(s || "").trim().slice(0, 220);
+
       const preText = document.querySelector("pre")?.textContent || "";
       const bodyText = document.body?.innerText || "";
+      const lowerBody = bodyText.toLowerCase();
+      if (
+        lowerBody.includes("session could not be established") ||
+        lowerBody.includes("access was denied by the access policy")
+      ) {
+        return { parsed: null, isHangupPage: true, preview: trimmedPreview(bodyText) };
+      }
+
       const direct = tryParse(preText) || tryParse(bodyText);
-      if (direct) return { parsed: direct, preview: trimmedPreview(preText || bodyText) };
+      if (direct) {
+        return {
+          parsed: direct,
+          isHangupPage: false,
+          preview: trimmedPreview(preText || bodyText),
+        };
+      }
 
       try {
         const resp = await fetch(window.location.href, {
@@ -38,18 +69,18 @@ async function readListJsonFromTab(tabId) {
           cache: "no-store",
         });
         const txt = await resp.text();
-        return { parsed: tryParse(txt), preview: trimmedPreview(txt) };
+        return {
+          parsed: tryParse(txt),
+          isHangupPage: false,
+          preview: trimmedPreview(txt),
+        };
       } catch (err) {
-        return { parsed: null, preview: String(err?.message || err) };
-      }
-
-      function trimmedPreview(s) {
-        return String(s || "").trim().slice(0, 220);
+        return { parsed: null, isHangupPage: false, preview: String(err?.message || err) };
       }
     },
   });
 
-  return results?.[0]?.result || { parsed: null, preview: "" };
+  return results?.[0]?.result || { parsed: null, isHangupPage: false, preview: "" };
 }
 
 async function downloadDocumentInTab(tabId, messageId) {
@@ -145,8 +176,9 @@ async function waitForListJson(tabId, anafListUrl) {
     if (url.includes("/vdesk/hangup") || url.includes("/my.logout")) {
       if (hangupRetries < 2) {
         hangupRetries += 1;
+        await clearAnafWebserviceCookies();
         await chrome.tabs.update(tabId, { url: anafListUrl });
-        await sleep(700);
+        await sleep(750);
         continue;
       }
       return {
@@ -156,16 +188,58 @@ async function waitForListJson(tabId, anafListUrl) {
       };
     }
 
+    if (tab.status === "complete" && url.includes("/my.policy")) {
+      try {
+        const policyCheck = await readListJsonFromTab(tabId);
+        if (policyCheck?.isHangupPage) {
+          if (hangupRetries < 2) {
+            hangupRetries += 1;
+            await clearAnafWebserviceCookies();
+            await chrome.tabs.update(tabId, { url: anafListUrl });
+            await sleep(750);
+            continue;
+          }
+          return {
+            ok: false,
+            error:
+              "ANAF a respins sesiunea F5 APM. Inchideti tab-ul anaf.ro, verificati stick-ul USB si reincercati.",
+          };
+        }
+      } catch {
+        /* redirect in progress */
+      }
+    }
+
     if (
       tab.status === "complete" &&
       url.startsWith("https://webserviced.anaf.ro/SPVWS2/rest/listaMesaje")
     ) {
-      const readRes = await readListJsonFromTab(tabId);
+      let readRes = null;
+      try {
+        readRes = await readListJsonFromTab(tabId);
+      } catch {
+        readRes = null;
+      }
+
+      if (readRes?.isHangupPage) {
+        if (hangupRetries < 2) {
+          hangupRetries += 1;
+          await clearAnafWebserviceCookies();
+          await chrome.tabs.update(tabId, { url: anafListUrl });
+          await sleep(750);
+          continue;
+        }
+        return {
+          ok: false,
+          error: "ANAF a inchis sesiunea F5 inainte de returnarea listei SPV.",
+        };
+      }
+
       if (readRes?.parsed) {
         return { ok: true, data: readRes.parsed };
       }
       nonJsonAttemptsAtListUrl += 1;
-      if (nonJsonAttemptsAtListUrl >= 10) {
+      if (nonJsonAttemptsAtListUrl >= 12) {
         return {
           ok: false,
           error:
@@ -193,12 +267,12 @@ async function handleSpvSync(msg, appTabId) {
     };
   }
 
-  const zile = Math.min(60, Math.max(1, Number(msg.zile) || 60));
-  const anafListUrl = `https://webserviced.anaf.ro/SPVWS2/rest/listaMesaje?zile=${zile}`;
+  let zileUsed = Math.min(60, Math.max(1, Number(msg.zile) || 60));
+  const initialUrl = `https://webserviced.anaf.ro/SPVWS2/rest/listaMesaje?zile=${zileUsed}`;
   const existingSet = new Set((msg.existingIds || []).map(String));
 
   const workerTab = await chrome.tabs.create({
-    url: anafListUrl,
+    url: initialUrl,
     active: true,
   });
 
@@ -218,13 +292,34 @@ async function handleSpvSync(msg, appTabId) {
   };
 
   try {
-    const listOutcome = await waitForListJson(workerTabId, anafListUrl);
+    let listOutcome = await waitForListJson(workerTabId, initialUrl);
     if (!listOutcome.ok) {
       await restoreAppTab();
       return listOutcome;
     }
 
-    const listData = listOutcome.data;
+    let listData = listOutcome.data;
+
+    // Fallback automat daca ANAF respinge zile=60 cu eroare de interval
+    const fallbackDays = [59, 50];
+    for (const candidateDays of fallbackDays) {
+      if (
+        listData?.eroare &&
+        String(listData.eroare).toLowerCase().includes("zile") &&
+        zileUsed > candidateDays
+      ) {
+        zileUsed = candidateDays;
+        const retryUrl = `https://webserviced.anaf.ro/SPVWS2/rest/listaMesaje?zile=${zileUsed}`;
+        await chrome.tabs.update(workerTabId, { url: retryUrl });
+        listOutcome = await waitForListJson(workerTabId, retryUrl);
+        if (!listOutcome.ok) {
+          await restoreAppTab();
+          return listOutcome;
+        }
+        listData = listOutcome.data;
+      }
+    }
+
     const allowedCifs = Array.from(
       new Set(
         [listData.cnp, ...String(listData.cui || "").split(",")]
@@ -247,18 +342,36 @@ async function handleSpvSync(msg, appTabId) {
           certCnp: listData.cnp ? String(listData.cnp) : null,
           certCui: listData.cui ? String(listData.cui) : null,
           certSerial: listData.serial ? String(listData.serial) : null,
+          diagnostics: {
+            rawTotal: 0,
+            matchedTotal: 0,
+            allowedCifs,
+            zileUsed,
+          },
         };
       }
-      return { ok: false, error: errText };
+      return {
+        ok: false,
+        error: errText,
+        diagnostics: {
+          rawTotal: 0,
+          matchedTotal: 0,
+          allowedCifs,
+          zileUsed,
+        },
+      };
     }
 
     const allMessages = Array.isArray(listData.mesaje) ? listData.mesaje : [];
     const matched = allMessages.filter((m) => {
-      const msgCif = normalizeCif(m?.cif);
+      const msgCif = normalizeCif(m?.cif || m?.cnp || m?.cui);
+      const detaliiText = String(m?.detalii || "");
       const tipUpper = String(m?.tip || "")
         .toUpperCase()
         .trim();
-      return msgCif === targetCif && !E_FACTURA_TIPS.has(tipUpper);
+      const matchesTarget =
+        msgCif === targetCif || (!msgCif && detaliiText.includes(targetCif));
+      return matchesTarget && !E_FACTURA_TIPS.has(tipUpper);
     });
 
     if (
@@ -273,6 +386,12 @@ async function handleSpvSync(msg, appTabId) {
         allowedCifs,
         certSerial: listData.serial ? String(listData.serial) : null,
         error: `Certificatul USB selectat in Chrome are drepturi in SPV pentru ${allowedCifs.join(", ")}, nu pentru ${targetCif}.`,
+        diagnostics: {
+          rawTotal: allMessages.length,
+          matchedTotal: 0,
+          allowedCifs,
+          zileUsed,
+        },
       };
     }
 
@@ -345,6 +464,12 @@ async function handleSpvSync(msg, appTabId) {
       certCnp: listData.cnp ? String(listData.cnp) : null,
       certCui: listData.cui ? String(listData.cui) : null,
       certSerial: listData.serial ? String(listData.serial) : null,
+      diagnostics: {
+        rawTotal: allMessages.length,
+        matchedTotal: matched.length,
+        allowedCifs,
+        zileUsed,
+      },
     };
   } finally {
     await chrome.tabs.remove(workerTabId).catch(() => {});

@@ -1,5 +1,21 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-18 17:08 — Unificare `Actualizează din SPV` cu Extensia Stick USB (`v1.1.0`) și rezolvare sesiuni F5 `webserviced.anaf.ro`
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. `chrome-spv-connector/` (`manifest.json`, `app-bridge.js`, `background.js` — `v1.1.0`):
+     - Adăugat permisiunea `cookies` și `https://*.anaf.ro/*` pentru curățarea automată a cookie-urilor de sesiune F5 expirate (`MRHSession`, `LastMRH_Session`, `F5_ST`) atunci când `webserviced.anaf.ro` redirecționează spre `/vdesk/hangup` sau `/my.logout`.
+     - Protejat `readListJsonFromTab` în `try/catch` la tranzițiile de redirect F5, adăugat fallback automat pe interval (`zile=60 -> 59 -> 50`) și extins potrivirea mesajelor pe `cif` / `cnp` / `cui`.
+  2. `server/_core/index.ts` & `server/uploadRoute.ts`:
+     - Adăugat ruta `POST /api/spv/connector-log` (protejată cu `requireFileAuth`) pentru logarea diagnostică în consola serverului a rezultatelor sincronizării USB.
+  3. `client/src/pages/SpvHub.tsx`:
+     - Unificat butonul `Actualizează din SPV` (`handleSyncAll`) să ruleze și sincronizarea cu stick-ul USB (`runUsbSpvSync`) atunci când extensia este activă.
+     - Adăugat detectare versiune extensie (`v1.0.0` vs `v1.1.0` cu avertisment de Reload) și banner informativ clar privind limita oficială ANAF de 60 de zile pentru mesajele online.
+  4. Respectat toate regulile: zero date/PDF-uri fake, zero emoji-uri, fără fonturi monospace, fără alerte native de browser și fără `git push`.
+- **Fișiere:** `chrome-spv-connector/manifest.json`, `chrome-spv-connector/app-bridge.js`, `chrome-spv-connector/background.js`, `server/_core/index.ts`, `server/uploadRoute.ts`, `client/src/pages/SpvHub.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npm run build` trecut (`0` erori); `tsc --noEmit` curat pe fișierele modificate; `node --check` curat pe extensie; `/api/spv-connector.zip` (`200`, `v1.1.0`); `/api/spv/connector-log` (`401` neautentificat, `200` autentificat); `GET /spv` (`200`); `spv_portal_documents = 0` și tenanții `1`–`6`, `10` intacți.
+
 ### 2026-11-18 16:51 — Extensie Chrome `Conector SPV` (mTLS USB pe `webserviced.anaf.ro/SPVWS2`) și salvare PDF/ZIP reale semnate de ANAF
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
