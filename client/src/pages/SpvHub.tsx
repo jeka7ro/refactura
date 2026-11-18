@@ -845,17 +845,41 @@ export default function SpvHub() {
               </a>
             )}
 
-            {!connectorReady && (
-              <button
-                type="button"
-                onClick={() => setIsConnectorModalOpen(true)}
-                className="h-9 rounded-lg text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-colors px-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 cursor-pointer"
-                title="Instalează extensia Chrome Conector SPV"
-              >
-                <ShieldCheck className="w-3.5 h-3.5 text-slate-500" />
-                <span>Conector USB</span>
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={handleUsbSpvSync}
+              disabled={isUsbSyncing}
+              className={`h-9 rounded-lg text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-colors px-3 border cursor-pointer disabled:opacity-60 ${
+                connectorReady
+                  ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/50 dark:hover:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-800"
+                  : "bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700"
+              }`}
+              title={
+                connectorReady
+                  ? "Descarcă direct din SPV ANAF documentele originale PDF/ZIP folosind stick-ul USB"
+                  : "Instalează extensia Chrome Conector SPV pentru stick USB"
+              }
+            >
+              {isUsbSyncing ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>{usbSyncStatus || "Se sincronizează USB..."}</span>
+                </>
+              ) : (
+                <>
+                  <ShieldCheck
+                    className={`w-3.5 h-3.5 ${
+                      connectorReady ? "text-emerald-600" : "text-slate-500"
+                    }`}
+                  />
+                  <span>
+                    {connectorReady
+                      ? "Sincronizează Stick USB"
+                      : "Instalează Conector USB"}
+                  </span>
+                </>
+              )}
+            </button>
 
             <button
               type="button"
@@ -877,7 +901,7 @@ export default function SpvHub() {
               {isSyncBusy ? (
                 <>
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>{usbSyncStatus || "Se actualizează..."}</span>
+                  <span>Se actualizează...</span>
                 </>
               ) : (
                 <>

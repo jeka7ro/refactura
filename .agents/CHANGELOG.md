@@ -1,5 +1,15 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-18 17:45 — Restaurare buton `Sincronizează Stick USB` în antetul `/spv`
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. `client/src/pages/SpvHub.tsx`:
+     - Restaurat permanent butonul `Sincronizează Stick USB` (sau `Instalează Conector USB` când extensia nu e instalată) în bara de acțiuni din antet, alături de `Testează conexiunea`, `Reautorizare`, `Încarcă Recipisă` și `Actualizează din SPV`, păstrând starea goală curată (`Nu există documente în arhiva SPV.`) și fără bannere redundante.
+  2. Respectat toate regulile: zero date/PDF-uri fake, zero emoji-uri, fără fonturi monospace, fără alerte native de browser și fără `git push`.
+- **Fișiere:** `client/src/pages/SpvHub.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` curat pe `SpvHub.tsx`; `npm run build` trecut (`0` erori); `GET /spv` (`200`).
+
 ### 2026-11-18 17:39 — Mutare profil PF Cazmal Eugeniu pe `eugen7ro@gmail.com`, Conector USB silentios (`v1.2.0`) și curățare UI `/spv`
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
