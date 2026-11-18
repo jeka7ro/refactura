@@ -1,5 +1,6 @@
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 import AdmZip from "adm-zip";
 import { getDb } from "./db";
 import { sql } from "drizzle-orm";
@@ -38,42 +39,99 @@ function computeDataArhivare(dataCr: string): string | null {
 }
 
 /**
+ * Clasifică documentul SPV într-o categorie internă unitară
+ */
+function classifySpvCategory(tip: string, detalii: string): string {
+  const tUpper = tip.toUpperCase();
+  const dUpper = detalii.toUpperCase();
+  if (tUpper.includes("CERTIFICAT") || dUpper.includes("CERTIFICAT DE ATESTARE")) {
+    return "certificat_fiscal";
+  }
+  if (tUpper.includes("SOLICITARE") || dUpper.includes("ADEVERIN")) {
+    return "raspuns_solicitare";
+  }
+  if (tUpper.includes("DECIZIE") || dUpper.includes("DECIZIE DE IMPUNERE")) {
+    return "decizie_impunere";
+  }
+  if (
+    tUpper.includes("NOTIFICARE") ||
+    tUpper.includes("SOMAT") ||
+    dUpper.includes("NOTIFICARE") ||
+    dUpper.includes("SOMATIE") ||
+    dUpper.includes("SOMAȚIE")
+  ) {
+    return "notificare_anaf";
+  }
+  return "declaratie_fiscala";
+}
+
+/**
  * Generează un titlu lizibil și profesional în limba română pentru documentul SPV
  */
 function getDocumentTitle(tip: string, detalii: string): string {
+  const tUpper = tip.toUpperCase();
   const dUpper = detalii.toUpperCase();
-  if (dUpper.includes("D101") || dUpper.includes("101")) {
-    return "Recipisă Declarația 101 (Impozit pe Profit)";
-  }
-  if (dUpper.includes("D112") || dUpper.includes("112")) {
-    return "Recipisă Declarația 112 (Salarii & Contribuții Sociale)";
-  }
-  if (dUpper.includes("D300") || dUpper.includes("300")) {
-    return "Recipisă Declarația 300 (Decont Taxă pe Valoarea Adăugată)";
-  }
-  if (dUpper.includes("D394") || dUpper.includes("394")) {
-    return "Recipisă Declarația 394 (Livrări & Achiziții Teritoriul Național)";
-  }
-  if (dUpper.includes("D100") || dUpper.includes("100")) {
-    return "Recipisă Declarația 100 (Obligații de Plată la Bugetul de Stat)";
-  }
-  if (dUpper.includes("D390") || dUpper.includes("390")) {
-    return "Recipisă Declarația 390 (Declarație Recapitulativă Intracomunitară)";
-  }
-  if (dUpper.includes("D212") || dUpper.includes("212") || dUpper.includes("DECLARATIA UNICA")) {
+  if (
+    /\bD?212\b/i.test(detalii) ||
+    dUpper.includes("DECLARATIA UNICA") ||
+    dUpper.includes("DECLARAȚIA UNICĂ")
+  ) {
     return "Recipisă Declarația Unică 212 — Persoane Fizice";
   }
-  if (dUpper.includes("D205") || dUpper.includes("205")) {
+  if (/\bD?230\b/i.test(detalii)) {
+    return "Recipisă Formular 230 (Redirecționare Impozit pe Venit)";
+  }
+  if (
+    /\bD?256\b/i.test(detalii) ||
+    dUpper.includes("DECIZIE DE IMPUNERE DIN OFICIU")
+  ) {
+    return "Decizie de Impunere din Oficiu D256 — Persoane Fizice";
+  }
+  if (
+    tUpper.includes("DECIZIE") ||
+    dUpper.includes("DECIZIE") ||
+    dUpper.includes("IMPUNERE")
+  ) {
+    return "Decizie de Impunere Anuală ANAF";
+  }
+  if (
+    tUpper.includes("SOMAT") ||
+    dUpper.includes("SOMATIE") ||
+    dUpper.includes("SOMAȚIE")
+  ) {
+    return "Somație Fiscală ANAF";
+  }
+  if (/\bD?101\b/i.test(detalii)) {
+    return "Recipisă Declarația 101 (Impozit pe Profit)";
+  }
+  if (/\bD?112\b/i.test(detalii)) {
+    return "Recipisă Declarația 112 (Salarii & Contribuții Sociale)";
+  }
+  if (/\bD?300\b/i.test(detalii)) {
+    return "Recipisă Declarația 300 (Decont Taxă pe Valoarea Adăugată)";
+  }
+  if (/\bD?394\b/i.test(detalii)) {
+    return "Recipisă Declarația 394 (Livrări & Achiziții Teritoriul Național)";
+  }
+  if (/\bD?100\b/i.test(detalii)) {
+    return "Recipisă Declarația 100 (Obligații de Plată la Bugetul de Stat)";
+  }
+  if (/\bD?390\b/i.test(detalii)) {
+    return "Recipisă Declarația 390 (Declarație Recapitulativă Intracomunitară)";
+  }
+  if (/\bD?205\b/i.test(detalii)) {
     return "Recipisă Declarația 205 (Impozit Reținut la Sursă & Dividende)";
   }
   if (dUpper.includes("ADEVERINTA") || dUpper.includes("ADEVERINȚĂ")) {
     return "Adeverință de Venit ANAF";
   }
-  if (dUpper.includes("BILANT") || dUpper.includes("S1002") || dUpper.includes("S1003") || dUpper.includes("S1005")) {
+  if (dUpper.includes("BILANT") || /\bS100[235]\b/i.test(detalii)) {
     return "Recipisă Situații Financiare Anuale (Bilanț Contabil)";
   }
-  if (dUpper.includes("CERTIFICAT") || tip.includes("CERTIFICAT")) {
-    return "Certificat de Atestare Fiscală Persoane Juridice";
+  if (dUpper.includes("CERTIFICAT") || tUpper.includes("CERTIFICAT")) {
+    return dUpper.includes("FIZIC")
+      ? "Certificat de Atestare Fiscală Persoane Fizice"
+      : "Certificat de Atestare Fiscală Persoane Juridice";
   }
   if (dUpper.includes("VECTOR FISCAL")) {
     return "Duplicat Vector Fiscal";
@@ -84,7 +142,7 @@ function getDocumentTitle(tip: string, detalii: string): string {
   if (dUpper.includes("SITUATIE SINTETICA") || dUpper.includes("SITUAȚIE SINTETICĂ")) {
     return "Duplicat Situație Sintetică a Obligațiilor Fiscale";
   }
-  if (tip === "NOTIFICARE" || dUpper.includes("NOTIFICARE")) {
+  if (tUpper === "NOTIFICARE" || dUpper.includes("NOTIFICARE")) {
     return "Notificare Oficială ANAF";
   }
   return tip ? `Document SPV — ${tip}` : "Document Oficial SPV ANAF";
@@ -208,11 +266,7 @@ export async function syncSpvPortalDocumentsForTenant(
     const titlu = getDocumentTitle(tip, detalii);
     const perioadaFiscala = extractPerioadaFiscala(detalii);
 
-    let categorie = "declaratie_fiscala";
-    if (tip.includes("CERTIFICAT")) categorie = "certificat_fiscal";
-    else if (tip.includes("SOLICITARE")) categorie = "raspuns_solicitare";
-    else if (tip.includes("NOTIFICARE")) categorie = "notificare_anaf";
-    else if (tip.includes("DECIZIE")) categorie = "decizie_impunere";
+    const categorie = classifySpvCategory(tip, detalii);
 
     // 2. Descărcare conținut fizic document (PDF sau ZIP) din SPVWS2 descarcare
     let savedFileName: string | null = null;
@@ -287,5 +341,317 @@ export async function syncSpvPortalDocumentsForTenant(
     imported,
     total: mesaje.length,
     message: `Sincronizare completă: s-au verificat ${mesaje.length} mesaje SPV (${imported} noi salvate).`,
+  };
+}
+
+export interface ImportPortalListResult {
+  success: boolean;
+  imported: number;
+  totalMatched: number;
+  skippedOtherCif: number;
+}
+
+interface ParsedSpvRow {
+  rowCif: string;
+  tip: string;
+  idSolicitare: string | null;
+  dataDepunere: string;
+  dataArhivare: string | null;
+  detalii: string;
+  numarInregistrare: string;
+}
+
+function cleanPortalDetails(raw: string): string {
+  return raw
+    .replace(/\[?(?:PDF|ZIP)\]?/gi, " ")
+    .replace(/\bDescarc[ăa](?:\s+document)?\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function deriveNumarInregistrare(
+  explicitId: string | null,
+  idSolicitare: string | null,
+  detalii: string,
+  rowCif: string,
+  dataDepunere: string,
+  tip: string
+): string {
+  if (explicitId) return explicitId.slice(0, 100);
+  const regMatch =
+    detalii.match(/numar_inregistrare\s+([^\s,;]+)/i) ||
+    detalii.match(/num[ăa]rul\s+de\s+[îi]nregistrare\s+([^\s,;]+)/i) ||
+    detalii.match(/nr\.?\s*[îi]nreg\.?\s*:?\s*([^\s,;]+)/i);
+  if (regMatch?.[1]) return regMatch[1].trim().slice(0, 100);
+  if (idSolicitare) return idSolicitare.slice(0, 100);
+  const dateCompact = dataDepunere.replace(/\D/g, "").slice(0, 14) || "0";
+  const digest = crypto
+    .createHash("sha1")
+    .update(`${rowCif}|${tip}|${dataDepunere}|${detalii}`)
+    .digest("hex")
+    .slice(0, 8);
+  return `SPV-${dateCompact}-${digest}`.slice(0, 100);
+}
+
+function parseTableRecord(fullRowText: string, rowCif: string): ParsedSpvRow | null {
+  const dateCellRe = /^\d{2}\.\d{2}\.\d{4}(?:\s+\d{2}:\d{2}(?::\d{2})?)?$/;
+  const dateSearchRe = /\b(\d{2}\.\d{2}\.\d{4}(?:\s+\d{2}:\d{2}(?::\d{2})?)?)\b/g;
+
+  let tip = "";
+  let idSolicitare: string | null = null;
+  let dataDepunere = "";
+  let dataArhivare: string | null = null;
+  let detalii = "";
+
+  if (fullRowText.includes("\t")) {
+    const cells = fullRowText.split("\t").map((c) => c.trim());
+    const dateIndices: number[] = [];
+    for (let i = 1; i < cells.length; i++) {
+      if (dateCellRe.test(cells[i])) dateIndices.push(i);
+    }
+    const firstDateIdx = dateIndices[0] ?? -1;
+    const lastDateIdx =
+      dateIndices.length > 1 ? dateIndices[dateIndices.length - 1] : -1;
+
+    tip = (cells[1] || "").toUpperCase();
+    if (firstDateIdx !== -1) {
+      dataDepunere = cells[firstDateIdx];
+      if (firstDateIdx >= 3 && cells[2] && cells[2] !== "-") {
+        idSolicitare = cells[2];
+      }
+      if (lastDateIdx > firstDateIdx) {
+        dataArhivare = cells[lastDateIdx];
+      }
+      const detCells = cells
+        .slice(firstDateIdx + 1, lastDateIdx > firstDateIdx ? lastDateIdx : cells.length)
+        .filter((c) => c && !/^\[?(?:PDF|ZIP)\]?$/i.test(c) && !/^Descarc/i.test(c));
+      detalii = cleanPortalDetails(detCells.join(" "));
+    } else {
+      const joined = cells.slice(2).join(" ");
+      const dates = Array.from(joined.matchAll(dateSearchRe)).map((m) => m[1]);
+      dataDepunere = dates[0] || "";
+      dataArhivare = dates[1] || null;
+      detalii = cleanPortalDetails(joined);
+    }
+  } else {
+    const rest = fullRowText.replace(/^(?:RO)?\d{6,13}\s+/i, "").trim();
+    const dates = Array.from(rest.matchAll(dateSearchRe));
+    if (dates.length > 0) {
+      const firstDate = dates[0];
+      dataDepunere = firstDate[1];
+      const prefix = rest.slice(0, firstDate.index).trim();
+      const idAtEnd = prefix.match(/^(.*?)\s{2,}([A-Z0-9/_-]{5,30})$/i) ||
+        prefix.match(/^(.*?)\s+(\d{5,15})$/);
+      if (idAtEnd) {
+        tip = idAtEnd[1].trim().toUpperCase();
+        idSolicitare = idAtEnd[2].trim();
+      } else {
+        tip = prefix.toUpperCase();
+      }
+      const afterStart = (firstDate.index || 0) + firstDate[0].length;
+      let suffix = rest.slice(afterStart).trim();
+      if (dates.length > 1) {
+        const lastDate = dates[dates.length - 1];
+        const relStart = (lastDate.index || 0) - afterStart;
+        if (relStart >= 0 && suffix.slice(relStart).trim() === lastDate[0]) {
+          dataArhivare = lastDate[1];
+          suffix = suffix.slice(0, relStart).trim();
+        }
+      }
+      detalii = cleanPortalDetails(suffix);
+    } else {
+      tip = "MESAJ SPV";
+      detalii = cleanPortalDetails(rest);
+    }
+  }
+
+  if (!tip && !detalii) return null;
+  if (!tip) tip = "MESAJ SPV";
+  if (!dataArhivare && dataDepunere) {
+    dataArhivare = computeDataArhivare(dataDepunere);
+  }
+
+  const numarInregistrare = deriveNumarInregistrare(
+    null,
+    idSolicitare,
+    detalii,
+    rowCif,
+    dataDepunere,
+    tip
+  );
+
+  return {
+    rowCif,
+    tip,
+    idSolicitare,
+    dataDepunere,
+    dataArhivare,
+    detalii,
+    numarInregistrare,
+  };
+}
+
+/**
+ * Importă mesaje & recipise SPV din răspuns JSON (`SPVWS2/rest/listaMesaje`)
+ * sau din textul tabelului copiat direct din `anaf.ro -> SPV -> Mesaje`,
+ * filtrând strict mesajele care aparțin CUI-ului / CNP-ului tenantului curent.
+ */
+export async function importSpvMessagesFromTextOrJson(
+  tenantId: number,
+  rawText: string
+): Promise<ImportPortalListResult> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Baza de date este indisponibilă.");
+  }
+
+  const [tenantRows]: any = await (db as any).execute(
+    sql`SELECT cui, settings FROM tenants WHERE id = ${tenantId} LIMIT 1`
+  );
+  const tenant = tenantRows?.[0];
+  if (!tenant) {
+    throw new Error("Profilul activ nu a fost găsit.");
+  }
+
+  let parsedSettings: any = {};
+  try {
+    parsedSettings =
+      typeof tenant.settings === "string"
+        ? JSON.parse(tenant.settings || "{}")
+        : tenant.settings || {};
+  } catch {}
+
+  const cleanCui = String(tenant.cui || parsedSettings?.companyCui || "")
+    .replace(/^RO/i, "")
+    .trim();
+  if (!cleanCui) {
+    throw new Error(
+      "CUI-ul sau CNP-ul profilului curent nu este configurat în Setări."
+    );
+  }
+
+  const trimmed = String(rawText || "").trim();
+  if (!trimmed) {
+    throw new Error("Introduceți conținutul copiat din portalul ANAF SPV.");
+  }
+
+  const matchedRows: ParsedSpvRow[] = [];
+  let skippedOtherCif = 0;
+
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    let parsed: any;
+    try {
+      parsed = JSON.parse(trimmed);
+    } catch {
+      throw new Error(
+        "Conținutul JSON nu este valid. Verificați că ați copiat complet răspunsul SPV."
+      );
+    }
+
+    const items: any[] = Array.isArray(parsed?.mesaje)
+      ? parsed.mesaje
+      : Array.isArray(parsed)
+      ? parsed
+      : [];
+
+    for (const m of items) {
+      if (!m || typeof m !== "object") continue;
+      const rowCif = String(m.cif || "").replace(/^RO/i, "").trim();
+      if (rowCif !== cleanCui) {
+        if (rowCif) skippedOtherCif++;
+        continue;
+      }
+
+      const tip = String(m.tip || "MESAJ SPV").toUpperCase().trim();
+      const detalii = String(m.detalii || "").trim();
+      const idSolicitare = m.id_solicitare
+        ? String(m.id_solicitare).trim()
+        : null;
+      const dataDepunere = String(m.data_creare || "").trim();
+      const dataArhivare = m.data_arhivare
+        ? String(m.data_arhivare).trim()
+        : computeDataArhivare(dataDepunere);
+      const explicitId = m.id ? String(m.id).trim() : null;
+      const numarInregistrare = deriveNumarInregistrare(
+        explicitId,
+        idSolicitare,
+        detalii,
+        rowCif,
+        dataDepunere,
+        tip
+      );
+
+      matchedRows.push({
+        rowCif,
+        tip,
+        idSolicitare,
+        dataDepunere,
+        dataArhivare,
+        detalii,
+        numarInregistrare,
+      });
+    }
+  } else {
+    const lines = trimmed.split(/\r?\n/);
+    const rowStartRe = /^(?:RO)?(\d{6,13})(?:\t|\s{2,}|\s+(?=[A-ZĂÂÎȘȚ]))/i;
+    const noiseLineRe =
+      /^(?:CIF\b|Tip\s+Document\b|-TOATE-\b|ATEN[ȚT]IE!)/i;
+
+    const grouped: { rowCif: string; text: string }[] = [];
+    let current: { rowCif: string; text: string } | null = null;
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (!line) continue;
+      if (noiseLineRe.test(line)) continue;
+
+      const startMatch = line.match(rowStartRe);
+      if (startMatch) {
+        if (current) grouped.push(current);
+        current = { rowCif: startMatch[1], text: rawLine.trim() };
+      } else if (current) {
+        if (/^(?:\|<\s*<|Ministerul\s+Finan[țt]elor|©|\d+\s*\/\s*\d+$)/i.test(line)) {
+          continue;
+        }
+        current.text += " " + line;
+      }
+    }
+    if (current) grouped.push(current);
+
+    for (const g of grouped) {
+      if (g.rowCif !== cleanCui) {
+        skippedOtherCif++;
+        continue;
+      }
+      const parsedRow = parseTableRecord(g.text, g.rowCif);
+      if (parsedRow) matchedRows.push(parsedRow);
+    }
+  }
+
+  let imported = 0;
+  for (const row of matchedRows) {
+    const [existRows]: any = await (db as any).execute(
+      sql`SELECT id FROM spv_portal_documents WHERE tenantId = ${tenantId} AND numarInregistrare = ${row.numarInregistrare} LIMIT 1`
+    );
+    if (existRows && existRows.length > 0) continue;
+
+    const titlu = getDocumentTitle(row.tip, row.detalii);
+    const categorie = classifySpvCategory(row.tip, row.detalii);
+    const perioadaFiscala = extractPerioadaFiscala(row.detalii);
+
+    await (db as any).execute(
+      sql`INSERT INTO spv_portal_documents
+          (tenantId, cif, tip, categorie, titlu, numarInregistrare, idSolicitare, dataDepunere, dataArhivare, perioadaFiscala, stare, isRead, detalii, sursa)
+          VALUES
+          (${tenantId}, ${row.rowCif}, ${row.tip}, ${categorie}, ${titlu}, ${row.numarInregistrare}, ${row.idSolicitare}, ${row.dataDepunere}, ${row.dataArhivare}, ${perioadaFiscala}, 'validat', 0, ${row.detalii}, 'anaf_spv')`
+    );
+    imported++;
+  }
+
+  return {
+    success: true,
+    imported,
+    totalMatched: matchedRows.length,
+    skippedOtherCif,
   };
 }

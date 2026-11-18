@@ -45,11 +45,11 @@ const spvDocUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 25 * 1024 * 1024 }, // 25MB
   fileFilter: (_req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
-    const extOk = /\.(pdf|xml|zip)$/i.test(file.originalname);
+    const extOk = /\.(pdf|xml|zip|json)$/i.test(file.originalname);
     if (extOk) {
       cb(null, true);
     } else {
-      cb(new Error("Sunt acceptate doar fișiere PDF, XML sau arhive ZIP descărcate din SPV"));
+      cb(new Error("Sunt acceptate doar fișiere PDF, XML, JSON sau arhive ZIP descărcate din SPV"));
     }
   },
 });
@@ -885,7 +885,29 @@ export function registerUploadRoute(app: Express) {
         await fs.promises.mkdir(uploadDirClient, { recursive: true }).catch(() => {});
 
         const results = [];
+        let totalSavedCount = 0;
         for (const file of files) {
+          const lowerName = file.originalname.toLowerCase();
+          if (lowerName.endsWith(".json")) {
+            const { importSpvMessagesFromTextOrJson } = await import("./spvPortalSync");
+            const importRes = await importSpvMessagesFromTextOrJson(
+              tenantId,
+              file.buffer.toString("utf8")
+            );
+            totalSavedCount += importRes.imported;
+            results.push({
+              fileName: file.originalname,
+              tip: "JSON_LIST",
+              titlu: `Import JSON SPV (${importRes.imported} noi)`,
+              numarInregistrare: String(importRes.imported),
+              imported: importRes.imported,
+              totalMatched: importRes.totalMatched,
+              skippedOtherCif: importRes.skippedOtherCif,
+              fileUrl: null,
+            });
+            continue;
+          }
+
           const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_");
           const key = `${Date.now()}-${Math.floor(Math.random() * 1000)}-${safeName}`;
           const filePathDist = path.join(uploadDirDist, key);
@@ -896,41 +918,46 @@ export function registerUploadRoute(app: Express) {
           const fileUrl = `/uploads/spv_documents/${key}`;
 
           // Detectare si normalizare tip document SPV la valorile oficiale
-          const lowerName = file.originalname.toLowerCase();
           let tip = "RECIPISA";
           let titlu = `Document Oficial SPV — ${file.originalname}`;
           let categorie = "declaratie_fiscala";
           let formCode = "";
 
-          if (lowerName.includes("101")) {
+          if (/\bD?256\b/i.test(lowerName) || lowerName.includes("deciz")) {
+            tip = "DECIZIE";
+            categorie = "decizie_impunere";
+            titlu = /\bD?256\b/i.test(lowerName)
+              ? "Decizie de Impunere din Oficiu D256 — Persoane Fizice"
+              : `Decizie de Impunere ANAF — ${file.originalname}`;
+          } else if (/\bD?101\b/i.test(lowerName)) {
             formCode = "D101";
             titlu = "Recipisă Declarația 101 (Impozit pe Profit)";
-          } else if (lowerName.includes("112")) {
+          } else if (/\bD?112\b/i.test(lowerName)) {
             formCode = "D112";
             titlu = "Recipisă Declarația 112 (Salarii & Contribuții Sociale)";
-          } else if (lowerName.includes("300")) {
+          } else if (/\bD?300\b/i.test(lowerName)) {
             formCode = "D300";
             titlu = "Recipisă Declarația 300 (Decont Taxă pe Valoarea Adăugată)";
-          } else if (lowerName.includes("394")) {
+          } else if (/\bD?394\b/i.test(lowerName)) {
             formCode = "D394";
             titlu = "Recipisă Declarația 394 (Livrări & Achiziții Teritoriul Național)";
-          } else if (lowerName.includes("100")) {
+          } else if (/\bD?100\b/i.test(lowerName)) {
             formCode = "D100";
             titlu = "Recipisă Declarația 100 (Obligații de Plată la Bugetul de Stat)";
-          } else if (lowerName.includes("390")) {
+          } else if (/\bD?390\b/i.test(lowerName)) {
             formCode = "D390";
             titlu = "Recipisă Declarația 390 (Declarație Recapitulativă Intracomunitară)";
-          } else if (lowerName.includes("212") || lowerName.includes("unica")) {
+          } else if (/\bD?212\b/i.test(lowerName) || lowerName.includes("unica")) {
             formCode = "D212";
             titlu = "Recipisă Declarația Unică 212 — Persoane Fizice";
           } else if (lowerName.includes("adeverint")) {
             tip = "RASPUNS SOLICITARE";
             categorie = "raspuns_solicitare";
             titlu = "Adeverință de Venit ANAF";
-          } else if (lowerName.includes("205")) {
+          } else if (/\bD?205\b/i.test(lowerName)) {
             formCode = "D205";
             titlu = "Recipisă Declarația 205 (Impozit Reținut la Sursă & Dividende)";
-          } else if (lowerName.includes("700")) {
+          } else if (/\bD?700\b/i.test(lowerName)) {
             formCode = "D700";
             titlu = "Recipisă Declarația 700 (Mențiuni Electronice)";
           } else if (lowerName.includes("bilant")) {
@@ -944,7 +971,7 @@ export function registerUploadRoute(app: Express) {
             tip = "RASPUNS SOLICITARE";
             categorie = "raspuns_solicitare";
             titlu = `Răspuns Solicitare SPV — ${file.originalname}`;
-          } else if (lowerName.includes("notif") || lowerName.includes("deciz") || lowerName.includes("somat")) {
+          } else if (lowerName.includes("notif") || lowerName.includes("somat")) {
             tip = "NOTIFICARE";
             categorie = "notificare_anaf";
             titlu = `Notificare Oficială ANAF — ${file.originalname}`;
@@ -974,10 +1001,11 @@ export function registerUploadRoute(app: Express) {
                 (${tenantId}, ${cleanCui}, ${tip}, ${categorie}, ${titlu}, ${numarInregistrare}, ${dataDepunere}, ${dataArhivare}, 'Curent', 'validat', 0, ${detalii}, ${fileUrl}, ${file.originalname}, 'incarcat_manual')`
           );
 
+          totalSavedCount++;
           results.push({ fileName: file.originalname, tip, titlu, numarInregistrare, fileUrl });
         }
 
-        res.json({ ok: true, count: results.length, documents: results });
+        res.json({ ok: true, count: totalSavedCount, documents: results });
       } catch (err: any) {
         console.error("[Upload SPV Document] Error:", err.message);
         res.status(500).json({ error: err.message || "Eroare la încărcare document SPV" });

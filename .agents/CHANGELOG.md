@@ -1,5 +1,21 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-18 16:27 — Import listă mesaje SPV ANAF (`anaf.ro -> Mesaje`), suport `DECIZIE` / `D256` și populare decizii pe profil PF
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. `server/spvPortalSync.ts` & `server/routers.ts` (`spvMessages.importPortalList`):
+     - Adăugat `importSpvMessagesFromTextOrJson(tenantId, rawText)` pentru importul mesajelor SPV fie din JSON (`SPVWS2/rest/listaMesaje`), fie prin lipire directă din tabelul `anaf.ro -> SPV -> Mesaje`, filtrând strict exclusiv rândurile care aparțin CUI/CNP-ului profilului activ (ignorând complet mesajele altor firme de pe același certificat).
+     - Înlocuit potrivirea prin `.includes("100")` / `.includes("101")` cu expresii regulate cu limite de cuvânt (`\b`) pentru a preveni confuziile pe CNP-uri de 13 cifre și adăugat clasificarea documentelor de Persoană Fizică (`D256` Decizie de Impunere din Oficiu, `D212`, `D230`, `DECIZIE`, `SOMATIE`, Certificat Fizic).
+  2. `server/uploadRoute.ts` & `server/pdfRoute.ts`:
+     - Extins `/api/upload-spv-document` să accepte și fișiere `.json` (`SPVWS2`) și să recunoască deciziile `D256` (`tip = "DECIZIE"`), iar `/api/pdf/spv-document/:id` generează previzualizare PDF dedicată pentru `DECIZIE` (inclusiv afișare CNP pe profil PF).
+  3. `client/src/pages/SpvHub.tsx`:
+     - Adăugat opțiunile `DECIZIE` și `ADRESE` în filtrele și KPI-urile tab-ului `Mesaje & Recipise SPV`, explicat clar starea goală atunci când profilul nu are încă mesaje din portalul SPV importate și adăugat tab-ul `Copiază tabelul din ANAF SPV` în modalul de upload/import.
+  4. Importat pe `Tenant 10` (`Cazmal Eugeniu`, CNP `1801102430126`) cele 3 decizii de impunere din oficiu `D256` din `10.11.2026` (`imported: 3`, `skippedOtherCif: 5` față de CUI `28633533`).
+  5. Respectat toate regulile: zero emoji-uri, fără fonturi monospace, fără alerte native de browser și fără `git push`; verificat că tenanții activi (`1`–`6`) au rămas 100% intacți.
+- **Fișiere:** `server/spvPortalSync.ts`, `server/routers.ts`, `server/uploadRoute.ts`, `server/pdfRoute.ts`, `client/src/pages/SpvHub.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npm run build` trecut (`0` erori); `tsc --noEmit` curat pe fișierele modificate; `GET /api/pdf/spv-document/61` HTTP `200` (`54720` bytes `%PDF-`); `spvMessages.listPortalDocuments` (`3` decizii), `spvMessages.list` (`2` mesaje e-Factura) și `invoiceArchive.list` (`2` facturi Hidroelectrica) verificate live pentru `Tenant 10`.
+
 ### 2026-11-18 16:04 — Conectare certificat USB personal pe profilul PF (Cazmal Eugeniu) și sincronizare facturi + mesaje SPV
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

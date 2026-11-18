@@ -5631,6 +5631,12 @@ export const appRouter = router({
         needsSpvRole: false,
       };
     }),
+    importPortalList: protectedProcedure
+      .input(z.object({ rawText: z.string().min(3).max(500000) }))
+      .mutation(async ({ ctx, input }) => {
+        const { importSpvMessagesFromTextOrJson } = await import("./spvPortalSync");
+        return await importSpvMessagesFromTextOrJson(tenantOf(ctx), input.rawText);
+      }),
   }),
   // ─── GDPR Router ──────────────────────────────────────────────────────────────
   gdpr: router({

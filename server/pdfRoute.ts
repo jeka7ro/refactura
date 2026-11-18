@@ -3062,16 +3062,18 @@ export function registerPdfRoute(app: any) {
 
       // Determinare tip formular
       let formType = "D101";
-      const dUpper = (String(spvDoc.detalii || "") + " " + String(spvDoc.titlu || "")).toUpperCase();
-      if (dUpper.includes("D101") || dUpper.includes("101")) formType = "D101";
-      else if (dUpper.includes("D112") || dUpper.includes("112")) formType = "D112";
-      else if (dUpper.includes("D300") || dUpper.includes("300")) formType = "D300";
-      else if (dUpper.includes("D394") || dUpper.includes("394")) formType = "D394";
-      else if (dUpper.includes("D100") || dUpper.includes("100")) formType = "D100";
-      else if (dUpper.includes("D390") || dUpper.includes("390")) formType = "D390";
-      else if (dUpper.includes("D212") || dUpper.includes("212")) formType = "D212";
-      else if (dUpper.includes("D205") || dUpper.includes("205")) formType = "D205";
-      else if (dUpper.includes("BILANT") || dUpper.includes("S1002")) formType = "BILANT";
+      const dRaw = String(spvDoc.detalii || "") + " " + String(spvDoc.titlu || "");
+      const dUpper = dRaw.toUpperCase();
+      if (/\bD?256\b/i.test(dRaw)) formType = "D256";
+      else if (/\bD?212\b/i.test(dRaw)) formType = "D212";
+      else if (/\bD?101\b/i.test(dRaw)) formType = "D101";
+      else if (/\bD?112\b/i.test(dRaw)) formType = "D112";
+      else if (/\bD?300\b/i.test(dRaw)) formType = "D300";
+      else if (/\bD?394\b/i.test(dRaw)) formType = "D394";
+      else if (/\bD?100\b/i.test(dRaw)) formType = "D100";
+      else if (/\bD?390\b/i.test(dRaw)) formType = "D390";
+      else if (/\bD?205\b/i.test(dRaw)) formType = "D205";
+      else if (dUpper.includes("BILANT") || /\bS1002\b/i.test(dRaw)) formType = "BILANT";
 
       let cleanPerioada = String(spvDoc.perioadaFiscala || "12.2025").replace(".", " ");
 
@@ -3148,6 +3150,52 @@ export function registerPdfRoute(app: any) {
         );
 
         doc.font("TimesRoman").fontSize(10).fillColor("#000000").text("Document electronic valabil emis de Ministerul Finanțelor.", 50, 210);
+      } else if (spvDoc.tip === "DECIZIE" || spvDoc.categorie === "decizie_impunere") {
+        const cifLabel = /^\d{13}$/.test(cleanCif) ? "CNP" : "CIF";
+        doc.font("TimesRoman-Bold").fontSize(11).fillColor("#cc0000").text(
+          `Comunicare Oficială SPV — Data afișare: ${spvDoc.dataDepunere || cleanDateOnly}`,
+          50,
+          95
+        );
+
+        doc.font("TimesRoman-Bold").fontSize(12).fillColor("#000000").text(
+          String(spvDoc.titlu || "DECIZIE DE IMPUNERE ANAF"),
+          50,
+          122,
+          { width: 495 }
+        );
+
+        doc.font("TimesRoman").fontSize(10).fillColor("#000000").text(
+          `Contribuabil: `,
+          50,
+          148,
+          { lineBreak: false }
+        );
+        const dc1 = doc.widthOfString("Contribuabil: ");
+        doc.font("TimesRoman-Bold").fillColor("#000000").text(
+          String(tenant.name || "Contribuabil"),
+          50 + dc1,
+          148,
+          { lineBreak: false }
+        );
+
+        doc.font("TimesRoman").fillColor("#000000").text(`${cifLabel}: `, 50, 165, { lineBreak: false });
+        const dc2 = doc.widthOfString(`${cifLabel}: `);
+        doc.font("TimesRoman-Bold").fillColor("#cc0000").text(cleanCif, 50 + dc2, 165);
+
+        doc.font("TimesRoman").fontSize(10).fillColor("#000000").text(
+          spvDoc.detalii || "Decizie de impunere emisă electronic prin Spațiul Privat Virtual (SPV).",
+          50,
+          192,
+          { width: 495, lineGap: 3 }
+        );
+
+        doc.font("TimesRoman").fontSize(9.5).fillColor("#4b5563").text(
+          "Document comunicat electronic prin Spațiul Privat Virtual (SPV) conform art. 47 din Legea nr. 207/2015 privind Codul de procedură fiscală. Pentru atașarea fișierului PDF original descărcat din portalul anaf.ro, folosiți butonul „Încarcă Recipisă” din pagina SPV ANAF.",
+          50,
+          245,
+          { width: 495, lineGap: 3 }
+        );
       } else {
         // RASPUNS SOLICITARE sau NOTIFICARE
         const docTitle = spvDoc.titlu || spvDoc.tip;
