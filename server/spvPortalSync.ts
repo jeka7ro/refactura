@@ -60,8 +60,14 @@ function getDocumentTitle(tip: string, detalii: string): string {
   if (dUpper.includes("D390") || dUpper.includes("390")) {
     return "Recipisă Declarația 390 (Declarație Recapitulativă Intracomunitară)";
   }
+  if (dUpper.includes("D212") || dUpper.includes("212") || dUpper.includes("DECLARATIA UNICA")) {
+    return "Recipisă Declarația Unică 212 — Persoane Fizice";
+  }
   if (dUpper.includes("D205") || dUpper.includes("205")) {
     return "Recipisă Declarația 205 (Impozit Reținut la Sursă & Dividende)";
+  }
+  if (dUpper.includes("ADEVERINTA") || dUpper.includes("ADEVERINȚĂ")) {
+    return "Adeverință de Venit ANAF";
   }
   if (dUpper.includes("BILANT") || dUpper.includes("S1002") || dUpper.includes("S1003") || dUpper.includes("S1005")) {
     return "Recipisă Situații Financiare Anuale (Bilanț Contabil)";

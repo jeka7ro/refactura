@@ -134,18 +134,23 @@ export const authRouter = router({
             let tenantLogo: string | null = null;
             let logoHasBackground = false;
             let logoBgColor: string | null = null;
+            let parsedS: any = {};
             if (tenant.settings) {
               try {
-                const s = typeof tenant.settings === "string" ? JSON.parse(tenant.settings) : tenant.settings;
-                tenantLogo = s.logoBase64 || null;
-                logoHasBackground = Boolean(s.logoHasBackground);
-                logoBgColor = s.logoBgColor || null;
+                parsedS = typeof tenant.settings === "string" ? JSON.parse(tenant.settings) : tenant.settings;
+                tenantLogo = parsedS.logoBase64 || null;
+                logoHasBackground = Boolean(parsedS.logoHasBackground);
+                logoBgColor = parsedS.logoBgColor || null;
               } catch (_) {}
             }
+            const cleanCode = String(tenant.cui || "").replace(/^RO/i, "").trim();
+            const tenantEntityType: "pj" | "pf" =
+              parsedS?.entityType === "pf" || /^\d{13}$/.test(cleanCode) ? "pf" : "pj";
             return {
               ...user,
               tenantName: tenant.name,
               tenantCUI: tenant.cui,
+              tenantEntityType,
               tenantLogo,
               logoHasBackground,
               logoBgColor,

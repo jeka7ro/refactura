@@ -173,6 +173,7 @@ export default function Settings() {
     }
   };
 
+  const [entityType, setEntityType] = useState<"pj" | "pf">("pj");
   const [settings, setSettings] = useState<CompanySettings>(() => ({
     name: "",
     cui: "",
@@ -213,6 +214,11 @@ export default function Settings() {
           parsedSettings = JSON.parse(currentTenant.tenants.settings);
         }
       } catch (e) {}
+
+      const rawCode = String(currentTenant.tenants.cui || "").replace(/^RO/i, "").trim();
+      setEntityType(
+        parsedSettings.entityType === "pf" || /^\d{13}$/.test(rawCode) ? "pf" : "pj"
+      );
 
       setSettings(prev => ({
         ...prev,
@@ -362,13 +368,19 @@ export default function Settings() {
   const [showPasswordForm, setShowPasswordForm] = useState(false);
 
   const handleSave = async () => {
+    const cleanCode = String(settings.cui || "").replace(/\s+/g, "");
+    if (entityType === "pf" && cleanCode && !/^\d{13}$/.test(cleanCode)) {
+      toast.error("CNP-ul trebuie să conțină exact 13 cifre.");
+      return;
+    }
     setSaving(true);
     try {
       const primaryRon = bankAccounts.find(a => a.currency === "RON") || bankAccounts[0];
       const primaryEur = bankAccounts.find(a => a.currency === "EUR");
 
       const settingsStr = JSON.stringify({
-        regCom: settings.regCom,
+        entityType,
+        regCom: entityType === "pf" ? "" : settings.regCom,
         city: settings.city,
         county: settings.county,
         country: settings.country,
@@ -394,7 +406,7 @@ export default function Settings() {
 
       await updateSettingsMutation.mutateAsync({
         name: settings.name,
-        cui: settings.cui,
+        cui: cleanCode,
         email: settings.email,
         phone: settings.phone,
         address: settings.address,
@@ -402,6 +414,7 @@ export default function Settings() {
       });
 
       await utils.tenants.current.invalidate();
+      await utils.tenants.list.invalidate();
       await utils.auth.me.invalidate();
 
       toast.success("Setări salvate", {
@@ -648,7 +661,7 @@ export default function Settings() {
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
-                  {tab.label}
+                  {tab.id === "company" && entityType === "pf" ? "Profil PF" : tab.label}
                 </button>
               );
             })}
@@ -660,49 +673,82 @@ export default function Settings() {
           {/* Company tab */}
           {activeTab === "company" && (
             <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 space-y-3">
-              <h2 className="text-xs font-bold text-slate-700 dark:text-white uppercase tracking-wide">
-                Date Firmă
-              </h2>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-xs font-bold text-slate-700 dark:text-white uppercase tracking-wide">
+                  {entityType === "pf" ? "Date Persoană Fizică" : "Date Firmă"}
+                </h2>
+                <div className="inline-flex items-center p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 gap-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setEntityType("pj")}
+                    className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors cursor-pointer ${
+                      entityType === "pj"
+                        ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                    }`}
+                  >
+                    Firmă (CUI)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEntityType("pf")}
+                    className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors cursor-pointer ${
+                      entityType === "pf"
+                        ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                    }`}
+                  >
+                    Persoană Fizică (CNP)
+                  </button>
+                </div>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                 <SettingField
-                  label="Denumire firmă"
+                  label={entityType === "pf" ? "Nume și prenume" : "Denumire firmă"}
                   value={settings.name}
                   onChange={v => update("name", v)}
-                  placeholder="ConstructMaster SRL"
+                  placeholder={entityType === "pf" ? "Popescu Ion" : "ConstructMaster SRL"}
                   autocomplete="organization"
                 />
-                {/* CUI with ANAF lookup */}
+                {/* CUI or CNP */}
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                    CUI / CIF
+                    {entityType === "pf" ? "CNP (13 cifre)" : "CUI / CIF"}
                   </label>
                   <div className="flex gap-1.5">
                     <input
                       value={settings.cui}
+                      maxLength={entityType === "pf" ? 13 : undefined}
                       onChange={e => {
-                        update("cui", e.target.value);
+                        const val =
+                          entityType === "pf"
+                            ? e.target.value.replace(/\D/g, "").slice(0, 13)
+                            : e.target.value;
+                        update("cui", val);
                         setCuiLookupError("");
                       }}
-                      onKeyDown={e => e.key === "Enter" && lookupCui()}
-                      placeholder="RO12345678"
+                      onKeyDown={e => entityType === "pj" && e.key === "Enter" && lookupCui()}
+                      placeholder={entityType === "pf" ? "1850101123456" : "RO12345678"}
                       autoComplete="off"
-                      className="flex-1 px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none text-slate-900 dark:text-white"
+                      className="flex-1 px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none text-slate-900 dark:text-white tabular-nums"
                     />
-                    <button
-                      type="button"
-                      onClick={lookupCui}
-                      disabled={cuiLookupLoading || !settings.cui}
-                      title="Caută date firmă după CUI (ANAF)"
-                      style={{ backgroundColor: themeColor }}
-                      className="flex items-center gap-1 px-2.5 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-[10px] font-bold transition-colors flex-shrink-0"
-                    >
-                      {cuiLookupLoading ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <Search className="w-3 h-3" />
-                      )}
-                      Auto-fill
-                    </button>
+                    {entityType !== "pf" && (
+                      <button
+                        type="button"
+                        onClick={lookupCui}
+                        disabled={cuiLookupLoading || !settings.cui}
+                        title="Caută date firmă după CUI (ANAF)"
+                        style={{ backgroundColor: themeColor }}
+                        className="flex items-center gap-1 px-2.5 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-[10px] font-bold transition-colors flex-shrink-0"
+                      >
+                        {cuiLookupLoading ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Search className="w-3 h-3" />
+                        )}
+                        Auto-fill
+                      </button>
+                    )}
                   </div>
                   {cuiLookupError && (
                     <div className="flex items-center gap-1 mt-1 text-[10px] text-red-500">
@@ -711,13 +757,15 @@ export default function Settings() {
                     </div>
                   )}
                 </div>
-                <SettingField
-                  label="Reg. Com."
-                  value={settings.regCom}
-                  onChange={v => update("regCom", v)}
-                  placeholder="J40/1234/2020"
-                  mono
-                />
+                {entityType !== "pf" && (
+                  <SettingField
+                    label="Reg. Com."
+                    value={settings.regCom}
+                    onChange={v => update("regCom", v)}
+                    placeholder="J40/1234/2020"
+                    mono
+                  />
+                )}
                 <SettingField
                   label="Email"
                   value={settings.email}

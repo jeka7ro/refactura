@@ -164,37 +164,41 @@ function useSetupAssistant(
 
 function SpvConfigForm({
   tenantCui,
+  entityType,
   serverConfigured,
   hasActiveToken,
   tokenExpiresAt,
 }: {
   tenantCui?: string;
+  entityType?: "pj" | "pf";
   serverConfigured?: boolean;
   hasActiveToken?: boolean;
   tokenExpiresAt?: string | null;
 }) {
+  const cleanCode = String(tenantCui || "").replace(/^RO/i, "").trim();
+  const isPf = entityType === "pf" || /^\d{13}$/.test(cleanCode);
   return (
     <div className="pt-3 border-t border-slate-100 dark:border-slate-700 space-y-3">
       <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
         Configurare SPV ANAF
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-        {/* CIF — din profilul firmei */}
+        {/* CIF / CNP — din profilul activ */}
         <div className="relative">
           <input
             type="text"
             readOnly
             value={
-              tenantCui
-                ? tenantCui.toUpperCase().startsWith("RO")
-                  ? tenantCui.toUpperCase()
-                  : `RO${tenantCui}`
+              cleanCode
+                ? isPf
+                  ? cleanCode
+                  : `RO${cleanCode}`
                 : "—"
             }
-            className="h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 w-full cursor-default"
+            className="h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 w-full cursor-default tabular-nums"
           />
           <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-medium">
-            CIF
+            {isPf ? "CNP" : "CIF"}
           </span>
         </div>
         {/* OAuth Token status */}
@@ -261,7 +265,7 @@ function SpvConfigForm({
           <div className="flex items-start gap-2">
             <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
             <span>
-              Completează și salvează mai întâi CUI-ul firmei în pagina Setări înainte de autorizarea cu tokenul USB ANAF.
+              Completează și salvează mai întâi CNP-ul / CUI-ul profilului în pagina Setări înainte de autorizarea cu tokenul USB ANAF.
             </span>
           </div>
           <Link
@@ -274,7 +278,7 @@ function SpvConfigForm({
       )}
       <p className="text-[11px] text-slate-400 dark:text-slate-500">
         Conexiunea SPV se face prin OAuth ANAF. Tokenul se reînnoiește automat.
-        CIF-ul este preluat din profilul firmei.
+        {" "}{isPf ? "CNP-ul" : "CIF-ul"} este preluat din profilul activ.
       </p>
     </div>
   );
@@ -1334,6 +1338,7 @@ export default function Integrations() {
                           <SpvConfigForm
                             key={db?.id ?? "spv-new"}
                             tenantCui={getSpvOAuthUrl.data?.tenantCui}
+                            entityType={(getSpvOAuthUrl.data as any)?.entityType}
                             serverConfigured={
                               getSpvOAuthUrl.data?.serverConfigured
                             }

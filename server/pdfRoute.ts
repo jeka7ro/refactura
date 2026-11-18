@@ -3069,6 +3069,7 @@ export function registerPdfRoute(app: any) {
       else if (dUpper.includes("D394") || dUpper.includes("394")) formType = "D394";
       else if (dUpper.includes("D100") || dUpper.includes("100")) formType = "D100";
       else if (dUpper.includes("D390") || dUpper.includes("390")) formType = "D390";
+      else if (dUpper.includes("D212") || dUpper.includes("212")) formType = "D212";
       else if (dUpper.includes("D205") || dUpper.includes("205")) formType = "D205";
       else if (dUpper.includes("BILANT") || dUpper.includes("S1002")) formType = "BILANT";
 

@@ -920,6 +920,13 @@ export function registerUploadRoute(app: Express) {
           } else if (lowerName.includes("390")) {
             formCode = "D390";
             titlu = "Recipisă Declarația 390 (Declarație Recapitulativă Intracomunitară)";
+          } else if (lowerName.includes("212") || lowerName.includes("unica")) {
+            formCode = "D212";
+            titlu = "Recipisă Declarația Unică 212 — Persoane Fizice";
+          } else if (lowerName.includes("adeverint")) {
+            tip = "RASPUNS SOLICITARE";
+            categorie = "raspuns_solicitare";
+            titlu = "Adeverință de Venit ANAF";
           } else if (lowerName.includes("205")) {
             formCode = "D205";
             titlu = "Recipisă Declarația 205 (Impozit Reținut la Sursă & Dividende)";

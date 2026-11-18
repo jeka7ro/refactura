@@ -54,10 +54,21 @@ import {
   Database,
   Coins,
   Lock,
+  User,
+  ChevronsUpDown,
+  Check,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,6 +77,25 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { BnrExchangeRateHeader } from "./BnrExchangeRateHeader";
 import { CompanyPinLockModal } from "./CompanyPinLockModal";
+
+function getTenantDisplayMeta(t: any, fallbackEmail?: string) {
+  let s: any = {};
+  try {
+    if (t?.settings) {
+      s = typeof t.settings === "string" ? JSON.parse(t.settings) : t.settings;
+    }
+  } catch {}
+  const cleanCode = String(t?.cui || "").replace(/^RO/i, "").trim();
+  const isPf = s?.entityType === "pf" || /^\d{13}$/.test(cleanCode);
+  const subtitle = cleanCode
+    ? isPf
+      ? `CNP ${cleanCode}`
+      : `RO${cleanCode}`
+    : isPf
+      ? "Persoană Fizică"
+      : t?.email || fallbackEmail || "";
+  return { isPf, cleanCode, subtitle };
+}
 
 
 const LOGO_URL = "/gettsapp_logo_ver2.png";
@@ -202,6 +232,146 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { data: currentTenant } = trpc.tenants.current.useQuery(undefined, {
     enabled: !!user,
   });
+
+  const { data: tenantsList = [] } = trpc.tenants.list.useQuery(undefined, {
+    enabled: !!user,
+  });
+
+  const [showAddProfileModal, setShowAddProfileModal] = useState(false);
+  const [profileType, setProfileType] = useState<"pf" | "pj">("pf");
+  const [pfName, setPfName] = useState("");
+  const [pfCnp, setPfCnp] = useState("");
+  const [pfAddress, setPfAddress] = useState("");
+  const [pfPhone, setPfPhone] = useState("");
+  const [pjCui, setPjCui] = useState("");
+  const [pjName, setPjName] = useState("");
+  const [pjAddress, setPjAddress] = useState("");
+  const [pjPhone, setPjPhone] = useState("");
+  const [pjCity, setPjCity] = useState("");
+  const [pjRegCom, setPjRegCom] = useState("");
+  const [anafLookupLoading, setAnafLookupLoading] = useState(false);
+  const [profileFormError, setProfileFormError] = useState("");
+
+  const openAddProfileModal = (initialType: "pf" | "pj" = "pf") => {
+    setProfileType(initialType);
+    setProfileFormError("");
+    setShowAddProfileModal(true);
+  };
+
+  const applyTenantSessionAndReload = (token?: string, successMsg?: string) => {
+    if (token) {
+      localStorage.setItem("authToken", token);
+    }
+    try {
+      sessionStorage.clear();
+    } catch {}
+    if (successMsg) {
+      toast.success(successMsg);
+    }
+    window.location.reload();
+  };
+
+  const switchTenantMutation = trpc.tenants.switchTenant.useMutation({
+    onSuccess: (data) => {
+      applyTenantSessionAndReload(data?.token, "Profilul activ a fost schimbat.");
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Eroare la schimbarea profilului.");
+    },
+  });
+
+  const createTenantMutation = trpc.tenants.create.useMutation({
+    onSuccess: (data: any) => {
+      setShowAddProfileModal(false);
+      applyTenantSessionAndReload(
+        data?.token,
+        profileType === "pf"
+          ? "Profilul de Persoană Fizică a fost creat."
+          : "Profilul de Firmă a fost creat."
+      );
+    },
+    onError: (err: any) => {
+      const msg = err?.message || "Nu s-a putut crea profilul.";
+      setProfileFormError(msg);
+      toast.error(msg);
+    },
+  });
+
+  const handleAnafLookupPj = async () => {
+    const clean = pjCui.replace(/^RO/i, "").replace(/\s+/g, "");
+    if (!/^\d{2,10}$/.test(clean)) {
+      setProfileFormError("Introduceți un CUI valid (2–10 cifre) pentru preluare din ANAF.");
+      return;
+    }
+    setAnafLookupLoading(true);
+    setProfileFormError("");
+    try {
+      const token = localStorage.getItem("authToken");
+      const headers: HeadersInit = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      const res = await fetch(`/api/anaf/${clean}`, {
+        credentials: "include",
+        headers,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setProfileFormError(err.error || "CUI-ul nu a fost găsit în ANAF.");
+        return;
+      }
+      const data = await res.json();
+      if (data?.denumire) setPjName(data.denumire);
+      if (data?.adresa) setPjAddress(data.adresa);
+      if (data?.judet) setPjCity(data.judet);
+      if (data?.nrRegCom) setPjRegCom(data.nrRegCom);
+      if (data?.telefon) setPjPhone(data.telefon);
+    } catch {
+      setProfileFormError("Eroare la interogarea ANAF.");
+    } finally {
+      setAnafLookupLoading(false);
+    }
+  };
+
+  const handleCreateProfileSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileFormError("");
+
+    if (profileType === "pf") {
+      if (!pfName.trim()) {
+        setProfileFormError("Introduceți numele și prenumele.");
+        return;
+      }
+      const cleanCnp = pfCnp.replace(/\s+/g, "");
+      if (!/^\d{13}$/.test(cleanCnp)) {
+        setProfileFormError("CNP-ul trebuie să conțină exact 13 cifre.");
+        return;
+      }
+      createTenantMutation.mutate({
+        name: pfName.trim(),
+        cui: cleanCnp,
+        address: pfAddress.trim() || undefined,
+        phone: pfPhone.trim() || undefined,
+        entityType: "pf",
+        switchImmediately: true,
+      });
+      return;
+    }
+
+    if (!pjName.trim()) {
+      setProfileFormError("Introduceți denumirea firmei / PFA.");
+      return;
+    }
+    const cleanPj = pjCui.replace(/\s+/g, "");
+    createTenantMutation.mutate({
+      name: pjName.trim(),
+      cui: cleanPj || undefined,
+      address: pjAddress.trim() || undefined,
+      phone: pjPhone.trim() || undefined,
+      city: pjCity.trim() || undefined,
+      regCom: pjRegCom.trim() || undefined,
+      entityType: "pj",
+      switchImmediately: true,
+    });
+  };
 
   const {
     data: pinStatus,
@@ -393,6 +563,28 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const companyLogo = parsedTenantSettings?.logoBase64 || (user as any)?.tenantLogo || "";
   const companyName = (user as any)?.tenantName || currentTenant?.name || user?.name || "Companie";
+  const activeProfileMeta = useMemo(() => {
+    const meta = getTenantDisplayMeta(
+      currentTenant || {
+        cui: (user as any)?.tenantCUI,
+        settings: (user as any)?.tenantEntityType
+          ? { entityType: (user as any).tenantEntityType }
+          : null,
+        email: user?.email,
+      },
+      user?.email || ""
+    );
+    const isPf =
+      meta.isPf || (user as any)?.tenantEntityType === "pf";
+    const subtitle = meta.cleanCode
+      ? isPf
+        ? `CNP ${meta.cleanCode}`
+        : `RO${meta.cleanCode}`
+      : isPf
+        ? "Persoană Fizică"
+        : user?.email || "";
+    return { ...meta, isPf, subtitle };
+  }, [currentTenant, user]);
   const [logoError, setLogoError] = useState(false);
 
   useEffect(() => {
@@ -602,44 +794,128 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         )}
       </nav>
 
-      {/* Company info */}
+      {/* Company / Profile Switcher */}
       {!collapsed && (
-        <div className="px-3 py-3 border-t border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0 overflow-hidden border border-slate-200/60 dark:border-slate-700/60"
-              style={
-                companyLogo &&
-                !logoError &&
-                parsedTenantSettings?.logoHasBackground &&
-                parsedTenantSettings?.logoBgColor
-                  ? { backgroundColor: parsedTenantSettings.logoBgColor }
-                  : undefined
-              }
-            >
-              {companyLogo && !logoError ? (
-                <img
-                  src={companyLogo}
-                  alt={companyName}
-                  className="w-full h-full object-contain p-0.5"
-                />
-              ) : (
-                <Building2 className="w-4 h-4 text-slate-500 dark:text-slate-500" />
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-slate-900 dark:text-white text-sm font-bold leading-tight break-words">
-                {companyName}
+        <div className="px-2.5 py-2.5 border-t border-slate-200 dark:border-slate-800">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="w-full flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors text-left cursor-pointer"
+                title="Schimbă profilul (Firmă / Persoană Fizică) sau adaugă unul nou"
+              >
+                <div
+                  className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden border",
+                    companyLogo && !logoError
+                      ? "bg-slate-100 dark:bg-slate-800 border-slate-200/60 dark:border-slate-700/60"
+                      : activeProfileMeta.isPf
+                        ? "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 border-indigo-200/70 dark:border-indigo-800"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200/60 dark:border-slate-700/60"
+                  )}
+                  style={
+                    companyLogo &&
+                    !logoError &&
+                    parsedTenantSettings?.logoHasBackground &&
+                    parsedTenantSettings?.logoBgColor
+                      ? { backgroundColor: parsedTenantSettings.logoBgColor }
+                      : undefined
+                  }
+                >
+                  {companyLogo && !logoError ? (
+                    <img
+                      src={companyLogo}
+                      alt={companyName}
+                      className="w-full h-full object-contain p-0.5"
+                    />
+                  ) : activeProfileMeta.isPf ? (
+                    <User className="w-4 h-4" />
+                  ) : (
+                    <Building2 className="w-4 h-4" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-slate-900 dark:text-white text-sm font-bold leading-tight truncate">
+                      {companyName}
+                    </span>
+                    {activeProfileMeta.isPf && (
+                      <span className="px-1.5 py-0.5 rounded-md text-[9.5px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-950/70 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 shrink-0">
+                        PF
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-slate-500 font-medium text-xs truncate mt-0.5 tabular-nums">
+                    {activeProfileMeta.subtitle}
+                  </div>
+                </div>
+                <ChevronsUpDown className="w-4 h-4 text-slate-400 shrink-0" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" side="top" className="w-64">
+              <div className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Profiluri &amp; Companii
               </div>
-              <div className="text-slate-500 font-medium text-xs truncate mt-0.5">
-                {(user as any)?.tenantCUI || currentTenant?.cui
-                  ? String((user as any)?.tenantCUI || currentTenant?.cui).toUpperCase().startsWith("RO")
-                    ? String((user as any)?.tenantCUI || currentTenant?.cui).toUpperCase()
-                    : `RO${(user as any)?.tenantCUI || currentTenant?.cui}`
-                  : user?.email || ""}
+              <div className="max-h-60 overflow-y-auto space-y-0.5">
+                {(tenantsList as any[]).map((t: any) => {
+                  const meta = getTenantDisplayMeta(t, user?.email || "");
+                  const isSelected = Number(t.id) === Number(effectiveTenantId);
+                  return (
+                    <DropdownMenuItem
+                      key={t.id}
+                      onClick={() => {
+                        if (!isSelected) {
+                          switchTenantMutation.mutate({ tenantId: Number(t.id) });
+                        }
+                      }}
+                      className="cursor-pointer flex items-center gap-2.5 py-2"
+                    >
+                      <div
+                        className={cn(
+                          "w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0",
+                          meta.isPf
+                            ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400"
+                            : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                        )}
+                      >
+                        {meta.isPf ? (
+                          <User className="w-3.5 h-3.5" />
+                        ) : (
+                          <Building2 className="w-3.5 h-3.5" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-semibold text-slate-900 dark:text-white truncate">
+                            {t.name}
+                          </span>
+                          {meta.isPf && (
+                            <span className="px-1 py-0 rounded text-[9px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-950/70 dark:text-indigo-300 shrink-0">
+                              PF
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-slate-500 truncate tabular-nums">
+                          {meta.subtitle}
+                        </div>
+                      </div>
+                      {isSelected && (
+                        <Check className="w-4 h-4 text-blue-600 shrink-0" />
+                      )}
+                    </DropdownMenuItem>
+                  );
+                })}
               </div>
-            </div>
-          </div>
+              <div className="border-t border-slate-200 dark:border-slate-700 my-1" />
+              <DropdownMenuItem
+                onClick={() => openAddProfileModal("pf")}
+                className="cursor-pointer text-blue-600 dark:text-blue-400 font-semibold py-2 flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Adaugă Persoană Fizică / Firmă</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       )}
 
@@ -815,6 +1091,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               </div>
             </div>
             <div className="border-t border-slate-200 dark:border-slate-700 my-1" />
+            <DropdownMenuItem
+              onClick={() => openAddProfileModal("pf")}
+              className="cursor-pointer text-blue-600 dark:text-blue-400 font-medium flex items-center"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              <span>+ Adaugă Persoană Fizică / Firmă</span>
+            </DropdownMenuItem>
             {pinStatus?.pinEnabled && (
               <DropdownMenuItem
                 onClick={() => handleLockScreen()}
@@ -942,6 +1225,213 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           );
         })()}
       </div>
+
+      {/* Modal Adăugare Profil Nou (Persoană Fizică sau Firmă) */}
+      <Dialog open={showAddProfileModal} onOpenChange={setShowAddProfileModal}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-slate-900 dark:text-white">
+              Adaugă Profil Nou
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Creează un profil separat de Persoană Fizică (CNP) sau o Firmă / PFA (CUI) cu facturi și mesaje SPV complet izolate.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleCreateProfileSubmit} className="space-y-4 pt-1">
+            {/* Selector segmentat tip profil */}
+            <div className="grid grid-cols-2 p-1 rounded-lg bg-slate-100 dark:bg-slate-800 gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setProfileType("pf");
+                  setProfileFormError("");
+                }}
+                className={cn(
+                  "rounded-md py-2 px-3 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer",
+                  profileType === "pf"
+                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                )}
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>Persoană Fizică (CNP)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setProfileType("pj");
+                  setProfileFormError("");
+                }}
+                className={cn(
+                  "rounded-md py-2 px-3 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer",
+                  profileType === "pj"
+                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                )}
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>Firmă / PFA (CUI)</span>
+              </button>
+            </div>
+
+            {profileType === "pf" ? (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+                    Nume și Prenume *
+                  </label>
+                  <input
+                    type="text"
+                    value={pfName}
+                    onChange={(e) => setPfName(e.target.value)}
+                    placeholder="Ex: Popescu Ion"
+                    className="w-full h-9 !px-3 !py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+                    CNP (13 cifre) *
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={13}
+                    value={pfCnp}
+                    onChange={(e) => setPfCnp(e.target.value.replace(/\D/g, "").slice(0, 13))}
+                    placeholder="1850101123456"
+                    className="w-full h-9 !px-3 !py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white tabular-nums"
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+                      Adresă domiciliu
+                    </label>
+                    <input
+                      type="text"
+                      value={pfAddress}
+                      onChange={(e) => setPfAddress(e.target.value)}
+                      placeholder="Opțional"
+                      className="w-full h-9 !px-3 !py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+                      Telefon
+                    </label>
+                    <input
+                      type="text"
+                      value={pfPhone}
+                      onChange={(e) => setPfPhone(e.target.value)}
+                      placeholder="Opțional"
+                      className="w-full h-9 !px-3 !py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+                <div className="p-3 rounded-lg bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/60 text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed">
+                  Profilul are facturi emise, arhivă facturi primite și mesaje SPV complet separate. Sincronizarea OAuth SPV funcționează dacă certificatul digital are drept în SPV pe CNP, sau poți încărca oricând fișierele XML/ZIP/PDF descărcate din contul SPV personal (inclusiv Declarația Unică D212).
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+                    CUI / CIF
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={pjCui}
+                      onChange={(e) => setPjCui(e.target.value)}
+                      placeholder="RO12345678"
+                      className="flex-1 h-9 !px-3 !py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white tabular-nums"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAnafLookupPj}
+                      disabled={anafLookupLoading || !pjCui.trim()}
+                      className="h-9 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 inline-flex items-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-50"
+                    >
+                      {anafLookupLoading ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Search className="w-3.5 h-3.5" />
+                      )}
+                      <span>Preia din ANAF</span>
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+                    Denumire Firmă *
+                  </label>
+                  <input
+                    type="text"
+                    value={pjName}
+                    onChange={(e) => setPjName(e.target.value)}
+                    placeholder="Ex: Exemplu Construct SRL"
+                    className="w-full h-9 !px-3 !py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+                      Adresă sediu
+                    </label>
+                    <input
+                      type="text"
+                      value={pjAddress}
+                      onChange={(e) => setPjAddress(e.target.value)}
+                      placeholder="Opțional"
+                      className="w-full h-9 !px-3 !py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+                      Telefon
+                    </label>
+                    <input
+                      type="text"
+                      value={pjPhone}
+                      onChange={(e) => setPjPhone(e.target.value)}
+                      placeholder="Opțional"
+                      className="w-full h-9 !px-3 !py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {profileFormError && (
+              <div className="p-2.5 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-xs text-red-700 dark:text-red-300 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{profileFormError}</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setShowAddProfileModal(false)}
+                className="h-9 px-3.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer"
+              >
+                Anulează
+              </button>
+              <button
+                type="submit"
+                disabled={createTenantMutation.isPending}
+                className="h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+              >
+                {createTenantMutation.isPending && (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                )}
+                <span>Creează și comută pe profil</span>
+              </button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

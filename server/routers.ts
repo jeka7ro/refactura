@@ -208,15 +208,134 @@ export const appRouter = router({
     create: protectedProcedure
       .input(
         z.object({
-          name: z.string(),
-          email: z.string().email(),
+          name: z.string().min(1, "Numele este obligatoriu"),
+          email: z.string().optional(),
           phone: z.string().optional(),
           address: z.string().optional(),
           cui: z.string().optional(),
+          entityType: z.enum(["pj", "pf"]).optional().default("pj"),
+          city: z.string().optional(),
+          regCom: z.string().optional(),
+          switchImmediately: z.boolean().optional().default(true),
         })
       )
-      .mutation(async ({ input }) => {
-        return createTenant(input);
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new Error("Neautentificat");
+        const db = await getDb();
+        if (!db) throw new Error("Baza de date indisponibilă");
+        const { tenants, userTenants, accounts } = await import("../drizzle/schema");
+        const { eq, or } = await import("drizzle-orm");
+
+        const rawCui = (input.cui || "").trim();
+        let normalizedCui: string | null = null;
+        if (input.entityType === "pf") {
+          const cleanedCnp = rawCui.replace(/\s+/g, "");
+          if (cleanedCnp && !/^\d{13}$/.test(cleanedCnp)) {
+            throw new Error("CNP-ul trebuie să conțină exact 13 cifre.");
+          }
+          normalizedCui = cleanedCnp === "" ? null : cleanedCnp;
+        } else {
+          const cleanedPj = rawCui.replace(/\s+/g, "");
+          normalizedCui = cleanedPj === "" ? null : cleanedPj;
+        }
+
+        if (normalizedCui) {
+          const bareCode = normalizedCui.replace(/^RO/i, "");
+          const [existing] = await db
+            .select({ id: tenants.id })
+            .from(tenants)
+            .where(
+              or(
+                eq(tenants.cui, normalizedCui),
+                eq(tenants.cui, bareCode),
+                eq(tenants.cui, `RO${bareCode}`)
+              )
+            )
+            .limit(1);
+          if (existing) {
+            throw new Error("Există deja un profil înregistrat cu acest CUI / CNP.");
+          }
+        }
+
+        const initialSettings =
+          input.entityType === "pf"
+            ? {
+                entityType: "pf",
+                city: input.city?.trim() || "",
+                country: "RO",
+                defaultCurrency: "RON",
+                defaultLanguage: "ro",
+                defaultVatRate: 0,
+                invoicePrefix: "PF",
+                invoiceStartNumber: 1,
+                defaultDueDays: 15,
+                invoiceTemplate: "classic",
+                modules: {
+                  saga: false,
+                  production: false,
+                  costCenters: false,
+                  integrations: true,
+                },
+              }
+            : {
+                entityType: "pj",
+                regCom: input.regCom?.trim() || "",
+                city: input.city?.trim() || "",
+                country: "RO",
+                defaultCurrency: "RON",
+                defaultLanguage: "ro",
+                defaultVatRate: 19,
+                invoicePrefix: "FACT",
+                invoiceStartNumber: 1,
+                defaultDueDays: 15,
+                invoiceTemplate: "classic",
+                modules: {
+                  saga: true,
+                  production: false,
+                  costCenters: true,
+                  integrations: true,
+                },
+              };
+
+        const insertRes: any = await db.insert(tenants).values({
+          name: input.name.trim(),
+          email:
+            (input.email && input.email.trim()) ||
+            ctx.user.email ||
+            "contact@smartinvoice.local",
+          phone: input.phone?.trim() || null,
+          address: input.address?.trim() || null,
+          cui: normalizedCui,
+          settings: JSON.stringify(initialSettings),
+        });
+        const newTenantId = Number(insertRes[0]?.insertId || insertRes?.insertId);
+        if (!newTenantId) {
+          throw new Error("Nu s-a putut crea profilul.");
+        }
+
+        await db.insert(userTenants).values({
+          userId: ctx.user.id,
+          tenantId: newTenantId,
+          role: ctx.user.role === "superadmin" ? "superadmin" : "admin",
+          isActive: 1,
+        });
+
+        let token: string | undefined;
+        if (input.switchImmediately !== false) {
+          await db
+            .update(accounts)
+            .set({ tenantId: newTenantId })
+            .where(eq(accounts.id, ctx.user.id));
+
+          token = await createSessionToken({
+            accountId: ctx.user.id,
+            email: ctx.user.email || "",
+            role: ctx.user.role,
+            tenantId: newTenantId,
+          });
+        }
+
+        return { success: true, tenantId: newTenantId, token };
       }),
     current: protectedProcedure.query(async ({ ctx }) => {
       const tenantId = ctx.user?.tenantId;
@@ -523,7 +642,7 @@ export const appRouter = router({
       .input(
         z.object({
           name: z.string().optional(),
-          email: z.string().email().optional(),
+          email: z.string().optional(),
           phone: z.string().optional(),
           address: z.string().optional(),
           cui: z.string().optional(),
@@ -538,6 +657,18 @@ export const appRouter = router({
         const { tenants } = await import("../drizzle/schema");
         const { eq } = await import("drizzle-orm");
         const updateData: any = { ...input };
+        if (input.email !== undefined) {
+          const trimmedEmail = input.email.trim();
+          if (trimmedEmail === "") {
+            delete updateData.email;
+          } else {
+            updateData.email = trimmedEmail;
+          }
+        }
+        if (input.cui !== undefined) {
+          const trimmedCui = input.cui.trim();
+          updateData.cui = trimmedCui === "" ? null : trimmedCui;
+        }
         if (input.settings) {
           const [currentT] = await db
             .select()
@@ -554,13 +685,14 @@ export const appRouter = router({
           } catch {
             newSettings = {};
           }
+          const mergedSettings: any = { ...existingSettings, ...newSettings };
           if (existingSettings.accessPinHash) {
-            newSettings.accessPinHash = existingSettings.accessPinHash;
+            mergedSettings.accessPinHash = existingSettings.accessPinHash;
           }
           if (existingSettings.accessPinEnabled !== undefined) {
-            newSettings.accessPinEnabled = existingSettings.accessPinEnabled;
+            mergedSettings.accessPinEnabled = existingSettings.accessPinEnabled;
           }
-          updateData.settings = JSON.stringify(newSettings);
+          updateData.settings = JSON.stringify(mergedSettings);
         }
         await db
           .update(tenants)
@@ -2585,21 +2717,26 @@ export const appRouter = router({
         .select({ cui: tenants.cui, settings: tenants.settings })
         .from(tenants)
         .where(eq(tenants.id, (tenantOf(ctx))));
-      let settingsCui = "";
+      let parsedSettings: any = {};
       try {
-        const s =
+        parsedSettings =
           typeof tenant?.settings === "string"
             ? JSON.parse(tenant.settings || "{}")
-            : tenant?.settings;
-        settingsCui = s?.companyCui || "";
+            : tenant?.settings || {};
       } catch {}
+      const settingsCui = parsedSettings?.companyCui || "";
       const cleanCui = String(tenant?.cui || settingsCui || "")
         .replace(/^RO/i, "")
         .trim();
+      const entityType: "pj" | "pf" =
+        parsedSettings?.entityType === "pf" || /^\d{13}$/.test(cleanCui)
+          ? "pf"
+          : "pj";
       return {
         url: authUrl.toString(),
         serverConfigured: !!(clientId && clientSecret),
         tenantCui: cleanCui,
+        entityType,
       };
     }),
     syncSpv: protectedProcedure

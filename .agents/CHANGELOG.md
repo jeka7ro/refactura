@@ -1,5 +1,21 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-18 11:31 — Suport profil separat Persoană Fizică (CNP) cu izolare SPV și facturi + comutator profiluri
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. Backend (`server/routers.ts`, `server/auth-routers.ts`, `server/spvPortalSync.ts`, `server/uploadRoute.ts`, `server/pdfRoute.ts`):
+     - Extins `tenants.create` să creeze profiluri de tip `Persoană Fizică (pf)` pe CNP (validat strict 13 cifre,unicitate verificată, `cui: null` dacă lipsă, setări inițiale dedicate `entityType: "pf"`) sau `Firmă (pj)`, să asocieze automat în `userTenants` și să comute sesiunea imediat pe noul profil.
+     - Actualizat `tenants.updateSettings` să accepte email opțional/gol fără eroare, să salveze `cui` nulificat când este gol și să facă merge între `existingSettings` și `newSettings` pentru a păstra `entityType`, `modules` și PIN-ul.
+     - Adăugat `entityType` / `tenantEntityType` în `integrations.getSpvOAuthUrl` și `auth.me`, plus recunoaștere documente SPV specifice persoanei fizice (`D212` Declarația Unică și `Adeverință de Venit ANAF`).
+  2. Frontend (`client/src/components/DashboardLayout.tsx`, `client/src/pages/Settings.tsx`, `client/src/pages/Integrations.tsx`):
+     - Transformat zona de firmă din colțul stânga-jos al meniului lateral într-un selector interactiv de profiluri (cu badge `PF` și `CNP ...` pentru persoane fizice, plus comutare instantanee între firmă și persoană fizică) și adăugat butonul `+ Adaugă Persoană Fizică / Firmă` (atât în sidebar cât și în meniul avatarului din dreapta-sus).
+     - Implementat modalul de creare profil nou (cu selector `Persoană Fizică (CNP)` / `Firmă / PFA (CUI)` și auto-completare din ANAF după CUI pentru firme).
+     - Adaptat etichetele din `Setări` (`Profil PF`, `Nume și prenume`, `CNP (13 cifre)`, ascundere `Reg. Com.` și `Auto-fill` pe profil PF) și din `Integrări` (`CNP` în loc de `CIF` fără prefix `RO` pe profil PF).
+  3. Respectat toate regulile: zero emoji-uri, fără fonturi monospace, fără alerte native de browser și fără `git push`.
+- **Fișiere:** `server/routers.ts`, `server/auth-routers.ts`, `server/spvPortalSync.ts`, `server/uploadRoute.ts`, `server/pdfRoute.ts`, `client/src/components/DashboardLayout.tsx`, `client/src/pages/Settings.tsx`, `client/src/pages/Integrations.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npm run build` trecut cu succes (`0` erori), zero erori TypeScript pe liniile modificate.
+
 ### 2026-11-18 11:12 — Adăugare rută alias `/integrations` în App.tsx pentru prevenire 404 la callback SPV
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
