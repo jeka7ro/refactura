@@ -118,4 +118,5 @@ rowood/
 contracte/*.zip
 contracte/Aplica_ie_Pontaj_QR/
 test_*.pdf
+client/public/uploads/
 

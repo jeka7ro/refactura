@@ -49,9 +49,11 @@ export function classifySpvCategory(tip: string, detalii: string): string {
   if (
     tUpper.includes("NOTIFICARE") ||
     tUpper.includes("SOMAT") ||
+    tUpper === "ADRESE" ||
     dUpper.includes("NOTIFICARE") ||
     dUpper.includes("SOMATIE") ||
-    dUpper.includes("SOMAȚIE")
+    dUpper.includes("SOMAȚIE") ||
+    dUpper.includes("POPRIR")
   ) {
     return "notificare_anaf";
   }
@@ -134,6 +136,12 @@ export function getDocumentTitle(tip: string, detalii: string): string {
   }
   if (dUpper.includes("SITUATIE SINTETICA") || dUpper.includes("SITUAȚIE SINTETICĂ")) {
     return "Duplicat Situație Sintetică a Obligațiilor Fiscale";
+  }
+  if (dUpper.includes("POPRIR")) {
+    return "Adresă Înființare / Ridicare Poprire ANAF";
+  }
+  if (tUpper === "ADRESE") {
+    return "Adresă Oficială ANAF";
   }
   if (tUpper === "NOTIFICARE" || dUpper.includes("NOTIFICARE")) {
     return "Notificare Oficială ANAF";

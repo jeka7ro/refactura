@@ -141,28 +141,15 @@ export default function SpvHub() {
       typeof document !== "undefined" &&
       Boolean(document.documentElement.dataset.spvConnectorInstalled)
   );
-  const [connectorVersion, setConnectorVersion] = useState<string | null>(
-    () =>
-      typeof document !== "undefined"
-        ? document.documentElement.dataset.spvConnectorInstalled || null
-        : null
-  );
   const [isConnectorModalOpen, setIsConnectorModalOpen] = useState(false);
   const [isUsbSyncing, setIsUsbSyncing] = useState(false);
   const [usbSyncStatus, setUsbSyncStatus] = useState<string | null>(null);
-  const [usbErrorBanner, setUsbErrorBanner] = useState<string | null>(null);
-  const [usbResultBanner, setUsbResultBanner] = useState<string | null>(null);
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
   const [copiedPath, setCopiedPath] = useState(false);
 
   useEffect(() => {
-    const onReady = (ev: Event) => {
+    const onReady = () => {
       setConnectorReady(true);
-      const ver =
-        (ev as CustomEvent)?.detail?.version ||
-        document.documentElement.dataset.spvConnectorInstalled ||
-        null;
-      if (ver) setConnectorVersion(String(ver));
     };
     const onMessage = (event: MessageEvent) => {
       if (event.source !== window) return;
@@ -171,7 +158,6 @@ export default function SpvHub() {
         event.data?.type === "SPV_CONNECTOR_PONG"
       ) {
         setConnectorReady(true);
-        if (event.data?.version) setConnectorVersion(String(event.data.version));
       }
     };
     window.addEventListener("spv-connector-ready", onReady);
@@ -236,7 +222,7 @@ export default function SpvHub() {
 
       let usbOutcome: any = null;
       if (connectorReady && oauthInfo?.tenantCui) {
-        usbOutcome = await runUsbSpvSync();
+        usbOutcome = await runUsbSpvSync({ fromUnifiedSync: true });
       }
 
       await Promise.allSettled([
@@ -260,22 +246,22 @@ export default function SpvHub() {
         setActiveHubTab("efactura");
       }
 
+      const importedInvoices =
+        invRes.status === "fulfilled" ? invRes.value?.imported || 0 : 0;
+      const usbDownloaded = Number(usbOutcome?.downloaded || 0);
+
       if (msgRes.status === "rejected" && invRes.status === "rejected" && !usbOutcome?.ok) {
-        toast.error(
-          msgRes.reason?.message || "Eroare la sincronizarea cu ANAF."
-        );
-      } else {
-        const importedInvoices =
-          invRes.status === "fulfilled" ? invRes.value?.imported || 0 : 0;
-        if (typeof msgTotal === "number") {
-          toast.success(
-            importedInvoices > 0
-              ? `Sincronizat din ANAF (${msgTotal} mesaje e-Factura, ${importedInvoices} facturi importate).`
-              : `Sincronizat din ANAF (${msgTotal} mesaje e-Factura).`
+        if (!usbOutcome?.error) {
+          toast.error(
+            msgRes.reason?.message || "Eroare la sincronizarea cu ANAF."
           );
-        } else {
-          toast.success("Datele din ANAF au fost actualizate.");
         }
+      } else if (usbDownloaded > 0) {
+        toast.success(`Actualizat din SPV (${usbDownloaded} documente noi).`);
+      } else if (importedInvoices > 0) {
+        toast.success(`Actualizat din SPV (${importedInvoices} facturi noi).`);
+      } else if (!usbOutcome || usbOutcome.ok) {
+        toast.success("Datele din SPV au fost actualizate.");
       }
     } finally {
       setIsSyncingAll(false);
@@ -326,8 +312,7 @@ export default function SpvHub() {
     const installedVer = document.documentElement.dataset.spvConnectorInstalled;
     if (installedVer) {
       setConnectorReady(true);
-      setConnectorVersion(installedVer);
-      toast.success(`Extensia Conector SPV USB v${installedVer} este activă în Chrome.`);
+      toast.success("Extensia Conector SPV USB este activă.");
       return;
     }
     window.postMessage(
@@ -338,8 +323,7 @@ export default function SpvHub() {
       const retryVer = document.documentElement.dataset.spvConnectorInstalled;
       if (retryVer) {
         setConnectorReady(true);
-        setConnectorVersion(retryVer);
-        toast.success(`Extensia Conector SPV USB v${retryVer} este activă în Chrome.`);
+        toast.success("Extensia Conector SPV USB este activă.");
       } else {
         toast.info(
           "Extensia nu a fost detectată încă. Reîncarcă pagina după instalarea în chrome://extensions."
@@ -398,23 +382,24 @@ export default function SpvHub() {
     }
   };
 
-  const runUsbSpvSync = async (): Promise<any> => {
+  const runUsbSpvSync = async (options?: {
+    fromUnifiedSync?: boolean;
+  }): Promise<any> => {
+    const fromUnifiedSync = Boolean(options?.fromUnifiedSync);
     if (!connectorReady) {
-      setIsConnectorModalOpen(true);
+      if (!fromUnifiedSync) setIsConnectorModalOpen(true);
       return null;
     }
     if (!oauthInfo?.tenantCui) {
-      toast.error("Profilul activ nu are CUI / CNP configurat în Setări.");
+      if (!fromUnifiedSync) {
+        toast.error("Profilul activ nu are CUI / CNP configurat în Setări.");
+      }
       return null;
     }
     if (isUsbSyncing) return null;
 
     setIsUsbSyncing(true);
-    setUsbErrorBanner(null);
-    setUsbResultBanner(null);
-    setUsbSyncStatus(
-      "Se deschide sesiunea cu stick-ul USB pe webserviced.anaf.ro..."
-    );
+    setUsbSyncStatus(null);
 
     const requestId = `spv_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const existingIds = (portalDocs || [])
@@ -439,9 +424,7 @@ export default function SpvHub() {
           if (data.requestId !== requestId) return;
 
           if (data.type === "SPV_CONNECTOR_PROGRESS") {
-            setUsbSyncStatus(
-              `Se descarcă documentul ${data.current} / ${data.total} (${data.tip || "DOCUMENT"})...`
-            );
+            setUsbSyncStatus(`Se descarcă ${data.current}/${data.total}...`);
             return;
           }
 
@@ -516,13 +499,9 @@ export default function SpvHub() {
       logUsbResultToServer(result);
       await refetchPortalDocs();
 
-      const cifTypeLabel = oauthInfo.entityType === "pf" ? "CNP" : "CIF";
-      const daysChecked = Number(result?.diagnostics?.zileUsed || 60);
-
       if (!result?.ok) {
         const errMsg =
           result?.error || "Eroare la citirea mesajelor SPV prin stick USB.";
-        setUsbErrorBanner(errMsg);
         toast.error(errMsg);
         return result;
       }
@@ -531,36 +510,20 @@ export default function SpvHub() {
         setActiveHubTab("declaratii");
       }
 
-      if (result.emptyNotice) {
-        setUsbResultBanner(
-          `${result.emptyNotice} (verificat prin stick USB pe ${cifTypeLabel} ${oauthInfo.tenantCui}). ANAF păstrează documentele disponibile în SPV doar 60 de zile; fișierele mai vechi descărcate anterior le poți urca prin Încarcă Recipisă.`
-        );
-        toast.info(result.emptyNotice);
-      } else if ((result.downloaded || 0) > 0) {
-        setUsbResultBanner(
-          `S-au descărcat ${result.downloaded} documente PDF originale din SPV ANAF (ultimele ${daysChecked} zile, ${cifTypeLabel} ${oauthInfo.tenantCui}). ANAF păstrează mesajele online maxim 60 de zile; cele descărcate rămân arhivate permanent în aplicație.`
-        );
-        toast.success(
-          `S-au descărcat și salvat ${result.downloaded} documente PDF originale semnate din SPV ANAF.`
-        );
-      } else if ((result.matchedTotal || 0) > 0) {
-        setUsbResultBanner(
-          `Toate cele ${result.matchedTotal} documente disponibile la ANAF în ultimele ${daysChecked} zile pentru ${cifTypeLabel} ${oauthInfo.tenantCui} sunt deja salvate aici. Mesajele mai vechi de 60 de zile sunt șterse automat de ANAF după Data Arhivare.`
-        );
-        toast.info(
-          `Toate cele ${result.matchedTotal} documente SPV din ultimele ${daysChecked} zile sunt deja salvate.`
-        );
-      } else {
-        setUsbResultBanner(
-          `ANAF nu are mesaje SPV active în ultimele ${daysChecked} zile pentru ${cifTypeLabel} ${oauthInfo.tenantCui}. ANAF livrează prin API și portal doar ultimele 60 de zile; documentele mai vechi descărcate anterior în calculator pot fi adăugate prin Încarcă Recipisă.`
-        );
-        toast.info(
-          `Nu există mesaje SPV pentru ${cifTypeLabel} ${oauthInfo.tenantCui} în ultimele ${daysChecked} zile.`
-        );
+      if (!fromUnifiedSync) {
+        if ((result.downloaded || 0) > 0) {
+          toast.success(
+            `S-au descărcat ${result.downloaded} documente noi din SPV.`
+          );
+        } else if ((result.matchedTotal || 0) > 0) {
+          toast.info("Toate documentele disponibile sunt deja salvate.");
+        } else {
+          toast.info("Nu există documente noi în SPV.");
+        }
       }
 
       if ((result.failed || 0) > 0 && result.lastError) {
-        setUsbErrorBanner(
+        toast.error(
           `${result.failed} documente nu au putut fi salvate: ${result.lastError}`
         );
       }
@@ -572,7 +535,7 @@ export default function SpvHub() {
   };
 
   const handleUsbSpvSync = async () => {
-    await runUsbSpvSync();
+    await runUsbSpvSync({ fromUnifiedSync: false });
   };
 
   const spvIntegration = integrationsList?.find((i) => i.provider === "spv");
@@ -882,41 +845,17 @@ export default function SpvHub() {
               </a>
             )}
 
-            <button
-              type="button"
-              onClick={handleUsbSpvSync}
-              disabled={isUsbSyncing}
-              className={`h-9 rounded-lg text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-colors px-3 border cursor-pointer disabled:opacity-60 ${
-                connectorReady
-                  ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/50 dark:hover:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-800"
-                  : "bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700"
-              }`}
-              title={
-                connectorReady
-                  ? "Descarcă direct din webserviced.anaf.ro documentele originale PDF/ZIP folosind stick-ul USB"
-                  : "Instalează extensia Chrome Conector SPV pentru stick USB"
-              }
-            >
-              {isUsbSyncing ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Se sincronizează USB...</span>
-                </>
-              ) : (
-                <>
-                  <ShieldCheck
-                    className={`w-3.5 h-3.5 ${
-                      connectorReady ? "text-emerald-600" : "text-slate-500"
-                    }`}
-                  />
-                  <span>
-                    {connectorReady
-                      ? "Sincronizează Stick USB"
-                      : "Instalează Conector USB"}
-                  </span>
-                </>
-              )}
-            </button>
+            {!connectorReady && (
+              <button
+                type="button"
+                onClick={() => setIsConnectorModalOpen(true)}
+                className="h-9 rounded-lg text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-colors px-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 cursor-pointer"
+                title="Instalează extensia Chrome Conector SPV"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-slate-500" />
+                <span>Conector USB</span>
+              </button>
+            )}
 
             <button
               type="button"
@@ -938,7 +877,7 @@ export default function SpvHub() {
               {isSyncBusy ? (
                 <>
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>Se actualizează...</span>
+                  <span>{usbSyncStatus || "Se actualizează..."}</span>
                 </>
               ) : (
                 <>
@@ -949,54 +888,6 @@ export default function SpvHub() {
             </button>
           </div>
         </div>
-
-        {/* Recomandare actualizare extensie v1.1.0 dacă este încă v1.0.0 */}
-        {connectorReady && connectorVersion === "1.0.0" && (
-          <div className="px-3.5 py-2 rounded-xl border border-amber-200 bg-amber-50/90 text-amber-950 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-200 flex items-center justify-between gap-3 text-xs">
-            <span>
-              Extensia <span className="font-semibold">Conector SPV USB</span> rulează pe v1.0.0. Deschide <span className="font-semibold select-all">chrome://extensions</span> și apasă butonul de Reload pe extensie pentru a activa versiunea <span className="font-semibold">1.1.0</span> (protecție sesiuni expirate ANAF).
-            </span>
-          </div>
-        )}
-
-        {/* Stare sincronizare Stick USB, rezultat sau eroare */}
-        {(usbSyncStatus || usbErrorBanner || usbResultBanner) && (
-          <div
-            className={`px-3.5 py-2.5 rounded-xl border flex items-center justify-between gap-3 text-xs ${
-              usbSyncStatus
-                ? "bg-blue-50/90 border-blue-200 text-blue-950 dark:bg-blue-950/40 dark:border-blue-800 dark:text-blue-100"
-                : usbErrorBanner
-                ? "bg-red-50/90 border-red-200 text-red-950 dark:bg-red-950/40 dark:border-red-800 dark:text-red-100"
-                : "bg-slate-50 border-slate-200 text-slate-800 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200"
-            }`}
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              {usbSyncStatus ? (
-                <Loader2 className="w-4 h-4 animate-spin text-blue-600 shrink-0" />
-              ) : usbErrorBanner ? (
-                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
-              ) : (
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              )}
-              <span className="font-medium break-words">
-                {usbSyncStatus || usbErrorBanner || usbResultBanner}
-              </span>
-            </div>
-            {!usbSyncStatus && (usbErrorBanner || usbResultBanner) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setUsbErrorBanner(null);
-                  setUsbResultBanner(null);
-                }}
-                className="rounded-lg p-1 opacity-70 hover:opacity-100 cursor-pointer shrink-0"
-                title="Închide notificarea"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        )}
 
         {/* Diagnostic Conexiune SPV (doar când utilizatorul testează explicit) */}
         {testResult && (
@@ -1473,55 +1364,11 @@ export default function SpvHub() {
                   <Skeleton className="h-9 w-full" />
                 </div>
               ) : (portalDocs?.length || 0) === 0 ? (
-                <div className="p-10 sm:p-12 text-center max-w-2xl mx-auto">
-                  <FileCheck className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
-                  <p className="font-semibold text-sm text-slate-800 dark:text-slate-200">
-                    Niciun document PDF oficial din portalul SPV încărcat pe acest profil
+                <div className="p-14 text-center text-slate-500">
+                  <FileCheck className="w-10 h-10 mx-auto text-slate-300 mb-2" />
+                  <p className="font-semibold text-sm">
+                    Nu există documente în arhiva SPV.
                   </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
-                    Tokenul OAuth ANAF sincronizează automat{" "}
-                    <span className="font-semibold text-slate-700 dark:text-slate-300">
-                      RO e-Factura
-                    </span>{" "}
-                    (tab-ul Mesaje e-Factura). Recipisele și deciziile din portalul{" "}
-                    <span className="font-semibold text-slate-700 dark:text-slate-300">
-                      webserviced.anaf.ro / anaf.ro
-                    </span>{" "}
-                    sunt disponibile aici exclusiv cu fișiere PDF/ZIP originale descărcate cu certificatul USB.
-                  </p>
-                  <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-                    <button
-                      type="button"
-                      onClick={handleUsbSpvSync}
-                      disabled={isUsbSyncing}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#1e3264] hover:bg-[#16254a] disabled:opacity-60 text-white text-xs font-semibold cursor-pointer transition-colors"
-                    >
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      <span>
-                        {connectorReady
-                          ? "Sincronizează Stick USB ANAF"
-                          : "Instalează Conector Stick USB"}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsUploadOpen(true)}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 text-xs font-semibold cursor-pointer transition-colors"
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Încarcă PDF / ZIP Original din SPV</span>
-                    </button>
-                    {msgStats.total > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setActiveHubTab("efactura")}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-950/70 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-xs font-semibold cursor-pointer transition-colors"
-                      >
-                        <Inbox className="w-3.5 h-3.5" />
-                        <span>Vezi Mesaje e-Factura ({msgStats.total})</span>
-                      </button>
-                    )}
-                  </div>
                 </div>
               ) : filteredPortalDocs?.length === 0 ? (
                 <div className="p-14 text-center text-slate-500">

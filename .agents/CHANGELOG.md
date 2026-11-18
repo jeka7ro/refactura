@@ -1,5 +1,23 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-18 17:39 — Mutare profil PF Cazmal Eugeniu pe `eugen7ro@gmail.com`, Conector USB silentios (`v1.2.0`) și curățare UI `/spv`
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. Baza de date (`tenants`, `userTenants`, `accounts`):
+     - Mutat profilul de Persoană Fizică `Cazmal Eugeniu` (`Tenant 10`, CNP `1801102430126`, `email: eugen7ro@gmail.com`) din asocierea cu `Tenant 1` (`TRADE INVEST NETWORK S.R.L.`) pe contul `eugen7ro@gmail.com` (`Tenant 2`, `TWIN SOLUTIONS SRL`, `CUI 28633533`), care partajează același stick USB `Cazmal Eugeniu`.
+     - Eliminată legătura `pairedPfTenantId` de pe `Tenant 1` și accesul `userTenants` (`userId=1, tenantId=10`); adăugat acces activ `userTenants` (`userId=3, tenantId=10`); păstrate 100% intacte toate facturile, mesajele și cele `8` documente PDF reale din `spv_portal_documents` (`id 64..71`).
+  2. `chrome-spv-connector/` (`manifest.json`, `app-bridge.js`, `background.js` — `v1.2.0`):
+     - Adăugat `tryDirectFetchListJson` și `downloadDocumentDirect` direct în Service Worker pentru rulare silențioasă fără deschidere de tab nou, plus fallback în tab ascuns (`active: false`) cu CSS (`opacity: 0; background: #f8fafc`) care ascunde paginile JSON brute.
+     - Adăugat `resetAnafCertSession()` (`/vdesk/hangup.php3`, `/my.logout.php3` și curățare cookie-uri F5 `.anaf.ro`) cu reîncercare automată atunci când sesiunea F5 aparține stick-ului USB anterior, plus mesaj clar pentru `chrome://restart` dacă browserul reține certificatul anterior în cache-ul TLS.
+  3. `client/src/pages/SpvHub.tsx`:
+     - Eliminat bannerul informativ lung, bannerele persistente `usbErrorBanner` / `usbResultBanner` / `v1.0.0`, textul tehnic și cele 3 butoane redundante din starea goală `Mesaje & Recipise SPV`, precum și butonul duplicat `Sincronizează Stick USB` din antet atunci când extensia este activă (`Actualizează din SPV` unificat cu un singur toast).
+  4. `server/spvPortalSync.ts` & `.gitignore`:
+     - Adăugat titluri dedicate pentru documentele `ADRESE` / poprire și adăugat `client/public/uploads/` în `.gitignore`.
+  5. Respectat toate regulile: zero date/PDF-uri fake, zero emoji-uri, fără fonturi monospace, fără alerte native de browser și fără `git push`.
+- **Fișiere:** `.gitignore`, `chrome-spv-connector/manifest.json`, `chrome-spv-connector/app-bridge.js`, `chrome-spv-connector/background.js`, `client/src/pages/SpvHub.tsx`, `server/spvPortalSync.ts`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `node --check` curat pe `background.js` și `app-bridge.js`; `manifest.json` (`1.2.0`); `npx tsc --noEmit` curat pe fișierele modificate; `npm run build` trecut (`0` erori); `GET /spv` (`200`); `GET /api/spv-connector.zip` (`401` neautentificat, `200` arhivă `v1.2.0` autentificat); verificat `getEntityPair` & `switchTenant` (`Tenant 1` `pf: null`, `eugen7ro@gmail.com` pereche `2` <-> `10`); toate cele `8` PDF-uri reale intacte în DB și pe disc.
+
 ### 2026-11-18 17:08 — Unificare `Actualizează din SPV` cu Extensia Stick USB (`v1.1.0`) și rezolvare sesiuni F5 `webserviced.anaf.ro`
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
