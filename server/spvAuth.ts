@@ -29,6 +29,7 @@ export function registerSpvAuth(app: Express) {
     authUrl.searchParams.append("response_type", "code");
     authUrl.searchParams.append("client_id", clientId);
     authUrl.searchParams.append("redirect_uri", redirectUri);
+    authUrl.searchParams.append("token_content_type", "jwt");
     // You can pass the tenantId in state so it returns in the callback
     authUrl.searchParams.append("state", String(tenantId));
 
@@ -40,9 +41,9 @@ export function registerSpvAuth(app: Express) {
     const { code, state, error, error_description } = req.query;
 
     if (error) {
-      return res
-        .status(400)
-        .send(`ANAF Auth Error: ${error} - ${error_description}`);
+      return res.redirect(
+        `/integrari?spv_error=${encodeURIComponent(String(error))}&spv_error_desc=${encodeURIComponent(String(error_description || ""))}`
+      );
     }
 
     if (!code || !state) {
@@ -80,6 +81,7 @@ export function registerSpvAuth(app: Express) {
             client_id: clientId,
             client_secret: clientSecret,
             redirect_uri: redirectUri,
+            token_content_type: "jwt",
           }).toString(),
         }
       );
@@ -139,7 +141,7 @@ export function registerSpvAuth(app: Express) {
       }
 
       // Redirect back to integrations page with success
-      res.redirect("/integrations?spv_success=true");
+      res.redirect("/integrari?spv_success=true");
     } catch (err: any) {
       res
         .status(500)

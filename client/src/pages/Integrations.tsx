@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { Link } from "wouter";
 import { parseEfacturaXML } from "@/lib/efactura";
 import JSZip from "jszip";
 import {
@@ -183,7 +184,13 @@ function SpvConfigForm({
           <input
             type="text"
             readOnly
-            value={tenantCui ? `RO${tenantCui}` : "—"}
+            value={
+              tenantCui
+                ? tenantCui.toUpperCase().startsWith("RO")
+                  ? tenantCui.toUpperCase()
+                  : `RO${tenantCui}`
+                : "—"
+            }
             className="h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 w-full cursor-default"
           />
           <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-medium">
@@ -249,6 +256,22 @@ function SpvConfigForm({
           <ExternalLink className="w-3 h-3" /> ANAF Developer Portal
         </a>
       </div>
+      {!tenantCui && (
+        <div className="p-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-950 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-200 flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <span>
+              Completează și salvează mai întâi CUI-ul firmei în pagina Setări înainte de autorizarea cu tokenul USB ANAF.
+            </span>
+          </div>
+          <Link
+            href="/setari"
+            className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold whitespace-nowrap shrink-0 transition-colors"
+          >
+            Mergi la Setări
+          </Link>
+        </div>
+      )}
       <p className="text-[11px] text-slate-400 dark:text-slate-500">
         Conexiunea SPV se face prin OAuth ANAF. Tokenul se reînnoiește automat.
         CIF-ul este preluat din profilul firmei.
@@ -479,6 +502,7 @@ export default function Integrations() {
   const [configuringId, setConfiguringId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState<string | null>(null);
   const [deleteProviderId, setDeleteProviderId] = useState<string | null>(null);
+  const [spvAuthError, setSpvAuthError] = useState<{ code: string; desc?: string } | null>(null);
   const aiEndRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -486,6 +510,29 @@ export default function Integrations() {
     isLoading,
     refetch,
   } = trpc.integrations.list.useQuery();
+
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const spvSuccess = params.get("spv_success");
+      const spvError = params.get("spv_error");
+      const spvErrorDesc = params.get("spv_error_desc");
+
+      if (spvSuccess === "true") {
+        toast.success("Conectarea OAuth cu SPV ANAF a reușit!");
+        setSpvAuthError(null);
+        refetch();
+        window.history.replaceState({}, "", window.location.pathname);
+      } else if (spvError) {
+        setSpvAuthError({
+          code: spvError,
+          desc: spvErrorDesc && spvErrorDesc !== "undefined" ? spvErrorDesc : undefined,
+        });
+        toast.error(`Autorizarea ANAF SPV a eșuat (${spvError}).`);
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    } catch {}
+  }, [refetch]);
   const upsertMutation = trpc.integrations.upsert.useMutation({
     onSuccess: () => refetch(),
   });
@@ -872,6 +919,43 @@ export default function Integrations() {
         </div>
       )}
 
+      {/* Eroare OAuth SPV ANAF */}
+      {spvAuthError && (
+        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-4 text-xs text-red-950 dark:text-red-100 flex items-start justify-between gap-3">
+          <div className="flex items-start gap-2.5">
+            <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+            <div className="space-y-1.5">
+              <p className="font-bold">
+                Autorizarea ANAF SPV a fost respinsă ({spvAuthError.code}
+                {spvAuthError.desc ? ` — ${spvAuthError.desc}` : ""})
+              </p>
+              <p className="leading-relaxed opacity-90">
+                Serverul ANAF nu a primit certificatul digital din browser sau a folosit o sesiune TLS memorată fără certificat.
+              </p>
+              <ul className="list-disc pl-4 space-y-0.5 opacity-90">
+                <li>
+                  Verifică în <strong>Setări</strong> că firma are salvat CUI-ul real (și că tokenul USB este asociat în SPV ANAF pentru acest CUI).
+                </li>
+                <li>
+                  Pe Mac în Chrome, dacă ai băgat tokenul USB după ce browserul era deschis, închide complet Chrome cu <strong>Cmd + Q</strong> și redeschide-l (sau deschide o fereastră Incognito cu <strong>Cmd + Shift + N</strong>), cu aplicația driverului de semnătură pornită.
+                </li>
+                <li>
+                  Când apeși toggle-ul SPV ANAF, selectează certificatul digital din fereastra sistemului și introdu PIN-ul tokenului.
+                </li>
+              </ul>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSpvAuthError(null)}
+            className="rounded-lg p-1 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/40 shrink-0 cursor-pointer"
+            title="Închide mesajul"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Integrations Table — stilul tabelului din Facturi */}
       <div className="bg-white dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
         <table className="w-full text-xs">
@@ -985,6 +1069,13 @@ export default function Integrations() {
                             } else {
                               // connect
                               if (provider.id === "spv") {
+                                if (!getSpvOAuthUrl.data?.tenantCui) {
+                                  setConfiguringId("spv");
+                                  toast.error(
+                                    "Completează mai întâi CUI-ul firmei în pagina Setări înainte de conectarea SPV."
+                                  );
+                                  return;
+                                }
                                 if (getSpvOAuthUrl.data?.url) {
                                   window.location.href = getSpvOAuthUrl.data.url;
                                 } else {

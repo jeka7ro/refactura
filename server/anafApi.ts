@@ -25,6 +25,7 @@ export async function refreshSpvToken(intg: any): Promise<string | null> {
         refresh_token: intg.apiSecret,
         client_id: clientId,
         client_secret: clientSecret,
+        token_content_type: "jwt",
       }).toString(),
     });
 

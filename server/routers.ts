@@ -2576,18 +2576,30 @@ export const appRouter = router({
       authUrl.searchParams.append("response_type", "code");
       authUrl.searchParams.append("client_id", clientId || "");
       authUrl.searchParams.append("redirect_uri", redirectUri);
+      authUrl.searchParams.append("token_content_type", "jwt");
       authUrl.searchParams.append("state", String((tenantOf(ctx))));
       // Fetch tenant CUI
       const { tenants } = await import("../drizzle/schema");
       const db = await getDb();
       const [tenant] = await db!
-        .select({ cui: tenants.cui })
+        .select({ cui: tenants.cui, settings: tenants.settings })
         .from(tenants)
         .where(eq(tenants.id, (tenantOf(ctx))));
+      let settingsCui = "";
+      try {
+        const s =
+          typeof tenant?.settings === "string"
+            ? JSON.parse(tenant.settings || "{}")
+            : tenant?.settings;
+        settingsCui = s?.companyCui || "";
+      } catch {}
+      const cleanCui = String(tenant?.cui || settingsCui || "")
+        .replace(/^RO/i, "")
+        .trim();
       return {
         url: authUrl.toString(),
         serverConfigured: !!(clientId && clientSecret),
-        tenantCui: tenant?.cui || "",
+        tenantCui: cleanCui,
       };
     }),
     syncSpv: protectedProcedure

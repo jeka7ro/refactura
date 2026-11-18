@@ -1,5 +1,20 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-18 10:59 — Fix autorizare OAuth ANAF SPV (`token_content_type=jwt`), redirect `/integrari` și validare CUI
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. Backend (`server/routers.ts`, `server/spvAuth.ts`, `server/anafApi.ts`):
+     - Adăugat parametrul obligatoriu `token_content_type=jwt` în URL-ul OAuth (`/anaf-oauth2/v1/authorize`) din `integrations.getSpvOAuthUrl` și `/api/spv/auth`, precum și în schimbul codului și refresh token pe `/anaf-oauth2/v1/token`.
+     - Corectat `getSpvOAuthUrl` să citească CUI-ul firmei și din `tenants.settings` (`companyCui`), normalizat fără prefix `RO`.
+     - Corectat callback-ul `/api/spv/callback`: redirecționează la succes către `/integrari?spv_success=true` (în loc de ruta inexistentă `/integrations`) și la eroare către `/integrari?spv_error=...&spv_error_desc=...` (în loc de text brut).
+  2. Frontend (`client/src/pages/Integrations.tsx`):
+     - Preluat `spv_success` și `spv_error` la revenirea din OAuth cu panou explicativ inline (inclusiv pașii de deblocare certificat USB în Chrome pe macOS) și curățare automată a query string-ului.
+     - Validat prezența CUI-ului firmei înainte de redirecționarea spre ANAF SPV și afișat avertisment cu link direct spre `/setari` în `SpvConfigForm`; eliminat dublarea prefixului `RO` la afișare.
+  3. Respectat toate regulile: zero emoji-uri, fără fonturi monospace, fără alerte native de browser și fără `git push`.
+- **Fișiere:** `server/routers.ts`, `server/spvAuth.ts`, `server/anafApi.ts`, `client/src/pages/Integrations.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npm run build` trecut cu succes (`0` erori), `tsc --noEmit` curat pe fișierele modificate.
+
 ### 2026-11-17 13:42 — Rearanjare completă interfață SPV și unificare sincronizare fără erori false
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
