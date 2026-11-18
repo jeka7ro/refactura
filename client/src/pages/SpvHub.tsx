@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import {
@@ -68,6 +68,24 @@ export default function SpvHub() {
     refetch: refetchMessages,
     isFetching: isFetchingMessages,
   } = (trpc as any).spvMessages.list.useQuery({ zile: 60 });
+
+  const hasAutoSelectedTabRef = useRef(false);
+
+  useEffect(() => {
+    hasAutoSelectedTabRef.current = false;
+  }, [oauthInfo?.tenantCui]);
+
+  useEffect(() => {
+    if (isLoadingPortalDocs || isLoadingMessages || hasAutoSelectedTabRef.current) {
+      return;
+    }
+    if ((portalDocs?.length || 0) === 0 && (rawMessages?.length || 0) > 0) {
+      hasAutoSelectedTabRef.current = true;
+      setActiveHubTab("efactura");
+    } else if ((portalDocs?.length || 0) > 0) {
+      hasAutoSelectedTabRef.current = true;
+    }
+  }, [isLoadingPortalDocs, isLoadingMessages, portalDocs, rawMessages]);
 
   // Filtre Documente SPV
   const [portalFilter, setPortalFilter] = useState<
@@ -156,22 +174,40 @@ export default function SpvHub() {
   const syncMessagesMutation = (
     trpc as any
   ).spvMessages.syncFromAnaf.useMutation();
+  const syncInvoicesMutation = trpc.integrations.syncSpv.useMutation();
 
   const handleSyncAll = async () => {
     if (isSyncingAll) return;
     setIsSyncingAll(true);
     try {
-      const [portalRes, msgRes] = await Promise.allSettled([
+      const [portalRes, msgRes, invRes] = await Promise.allSettled([
         syncPortalMutation.mutateAsync(),
         syncMessagesMutation.mutateAsync(),
+        syncInvoicesMutation.mutateAsync({ zile: 60 }),
       ]);
 
       await Promise.allSettled([
         refetchPortalDocs(),
         refetchMessages(),
         utils.spvLogs.list.invalidate(),
+        utils.invoices.list.invalidate(),
+        utils.invoiceArchive.list.invalidate(),
         refetchIntegrations(),
       ]);
+
+      const portalCount =
+        portalRes.status === "fulfilled"
+          ? portalRes.value?.total ?? portalDocs?.length ?? 0
+          : portalDocs?.length ?? 0;
+      const msgTotal =
+        msgRes.status === "fulfilled" ? msgRes.value?.total : undefined;
+      if (
+        (portalCount || 0) === 0 &&
+        typeof msgTotal === "number" &&
+        msgTotal > 0
+      ) {
+        setActiveHubTab("efactura");
+      }
 
       if (msgRes.status === "rejected" && portalRes.status === "rejected") {
         toast.error(
@@ -180,10 +216,13 @@ export default function SpvHub() {
       } else if (msgRes.status === "rejected") {
         toast.success("Documentele SPV au fost actualizate.");
       } else {
-        const msgTotal = msgRes.value?.total;
+        const importedInvoices =
+          invRes.status === "fulfilled" ? invRes.value?.imported || 0 : 0;
         if (typeof msgTotal === "number") {
           toast.success(
-            `Mesajele și documentele SPV au fost actualizate (${msgTotal} mesaje e-Factura).`
+            importedInvoices > 0
+              ? `Mesajele și documentele SPV au fost actualizate (${msgTotal} mesaje e-Factura, ${importedInvoices} facturi importate).`
+              : `Mesajele și documentele SPV au fost actualizate (${msgTotal} mesaje e-Factura).`
           );
         } else {
           toast.success("Mesajele și documentele SPV au fost actualizate.");
@@ -443,6 +482,7 @@ export default function SpvHub() {
     isSyncingAll ||
     syncPortalMutation.isPending ||
     syncMessagesMutation.isPending ||
+    syncInvoicesMutation.isPending ||
     isFetchingMessages;
 
   const hasActivePortalFilters = Boolean(

@@ -1,5 +1,21 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-18 16:04 — Conectare certificat USB personal pe profilul PF (Cazmal Eugeniu) și sincronizare facturi + mesaje SPV
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. `server/anafApi.ts` (`refreshSpvToken`) & `server/spvAuth.ts` (`/api/spv/callback`):
+     - Actualizat refresh-ul de token SPV să sincronizeze în lockstep toate rândurile `integrations` (`provider: "spv"`) care partajează același `apiSecret` / `refresh_token`, respectiv același subiect de certificat digital (`sub` din JWT la reautorizare OAuth), prevenind desincronizarea între `Tenant 2` (`TWIN SOLUTIONS SRL`) și `Tenant 10` (`Cazmal Eugeniu`).
+  2. Configurare integrare SPV și sincronizare pe `Tenant 10` (`Cazmal Eugeniu`, CNP `1801102430126`):
+     - Configurat rând propriu activ în `integrations` (`id: 7`, `tenantId: 10`, token certificat DigiSign personal `...a08a...`, valid 90 zile până la `2027-02-16`) în locul fallback-ului anterior către certificatul `TRADE INVEST NETWORK S.R.L.` (care nu avea drept în SPV pe CNP `1801102430126`).
+     - Sincronizat live facturile și mesajele din ANAF SPV exclusiv pentru `Tenant 10`: importate 2 facturi primite de la `S.P.E.E.H. Hidroelectrica S.A.` (`26113034175` / `-15.31 RON` și `26114768752` / `3.47 RON`, cu PDF + XML UBL și liniile aferente) și 2 mesaje în `spv_raw_messages`.
+  3. `client/src/pages/SpvHub.tsx`:
+     - Adăugat auto-selecție pentru tab-ul `Mesaje e-Factura` atunci când profilul nu are documente în `Mesaje & Recipise SPV` (`0`), dar are mesaje e-Factura (`> 0`).
+     - Inclus apelul `integrations.syncSpv` și invalidarea `invoices.list` / `invoiceArchive.list` în butonul `Actualizează din SPV`.
+  4. Respectat toate regulile: zero emoji-uri, fără fonturi monospace, fără alerte native de browser și fără `git push`; verificat că tenanții activi (`1`–`6`) au rămas 100% intacți.
+- **Fișiere:** `server/anafApi.ts`, `server/spvAuth.ts`, `client/src/pages/SpvHub.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npm run build` trecut (`0` erori); `tsc --noEmit` curat pe fișierele modificate; `HTTP /spv` și `HTTP /facturi` (`200`); `testSpvConnection(10)` (`connected: true`, `121ms`, CNP `1801102430126`, 90 zile) și `testSpvConnection(1)` (`connected: true`, `46ms`, CUI `42322117`).
+
 ### 2026-11-18 15:53 — Partajare sigură token certificat USB pentru profilul PF pereche și diagnostic înrolare ANAF CNP
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

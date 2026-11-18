@@ -1,6 +1,6 @@
 import { getDb } from "./db";
 import { integrations, reInvoices, tenants } from "../drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, or } from "drizzle-orm";
 
 const ANAF_UPLOAD_URL =
   "https://api.anaf.ro/prod/FCTEL/rest/upload?standard=UBL&cif=";
@@ -47,7 +47,12 @@ export async function refreshSpvToken(intg: any): Promise<string | null> {
         status: "active",
         updatedAt: new Date(),
       })
-      .where(eq(integrations.id, intg.id));
+      .where(
+        and(
+          eq(integrations.provider, "spv"),
+          or(eq(integrations.id, intg.id), eq(integrations.apiSecret, intg.apiSecret))
+        )
+      );
 
     console.log(`[SPV Auth] Successfully refreshed token for integration ${intg.id}, valid until ${expiresAt.toISOString()}`);
     return data.access_token;

@@ -1,8 +1,22 @@
 import type { Express } from "express";
 import { getDb } from "./db";
 import { integrations } from "../drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { ENV } from "./_core/env";
+
+function extractJwtSub(jwtToken?: string | null): string | null {
+  if (!jwtToken) return null;
+  const parts = String(jwtToken).split(".");
+  if (parts.length !== 3) return null;
+  try {
+    const payload = JSON.parse(
+      Buffer.from(parts[1], "base64url").toString("utf8")
+    );
+    return payload?.sub ? String(payload.sub) : null;
+  } catch {
+    return null;
+  }
+}
 
 export function registerSpvAuth(app: Express) {
   // Initiates the OAuth flow
@@ -138,6 +152,35 @@ export function registerSpvAuth(app: Express) {
           tokenExpiresAt: expiresAt,
           status: "active",
         });
+      }
+
+      // Sync other SPV integration rows sharing the exact same USB certificate subject (`sub`)
+      const newSub = extractJwtSub(accessToken);
+      if (newSub) {
+        const spvRows = await db
+          .select({
+            id: integrations.id,
+            tenantId: integrations.tenantId,
+            apiKey: integrations.apiKey,
+          })
+          .from(integrations)
+          .where(eq(integrations.provider, "spv"));
+        const matchingIds = spvRows
+          .filter(
+            (row) => row.tenantId !== tenantId && extractJwtSub(row.apiKey) === newSub
+          )
+          .map((row) => row.id);
+        if (matchingIds.length > 0) {
+          await db
+            .update(integrations)
+            .set({
+              apiKey: accessToken,
+              apiSecret: refreshToken,
+              tokenExpiresAt: expiresAt,
+              status: "active",
+            })
+            .where(inArray(integrations.id, matchingIds));
+        }
       }
 
       // Redirect back to integrations page with success
