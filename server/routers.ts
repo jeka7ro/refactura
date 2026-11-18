@@ -218,7 +218,8 @@ function isTenantPfRow(t: { cui?: string | null; settings?: string | null }): bo
 async function resolveEntityPair(
   db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
   userId: number,
-  activeTenantId: number
+  activeTenantId: number,
+  userRole?: string
 ) {
   const { tenants, userTenants } = await import("../drizzle/schema");
   const { and, asc, eq } = await import("drizzle-orm");
@@ -282,7 +283,7 @@ async function resolveEntityPair(
         .limit(1);
       pfRow = foundPf || null;
     }
-    if (!pfRow && userId) {
+    if (!pfRow && userId && !(userRole === "superadmin" && activeT.id !== 1)) {
       const linkedRows = await db
         .select({ tenant: tenants })
         .from(tenants)
@@ -503,7 +504,12 @@ export const appRouter = router({
       const db = await getDb();
       if (!db) return null;
 
-      const resolved = await resolveEntityPair(db, ctx.user.id, tenantId);
+      const resolved = await resolveEntityPair(
+        db,
+        ctx.user.id,
+        tenantId,
+        ctx.user.role
+      );
       if (!resolved) return null;
 
       return {
@@ -516,7 +522,8 @@ export const appRouter = router({
     upsertPersonalProfile: protectedProcedure
       .input(
         z.object({
-          name: z.string().trim().min(1, "Numele și prenumele sunt obligatorii"),
+          lastName: z.string().trim().min(1, "Numele de familie este obligatoriu"),
+          firstName: z.string().trim().min(1, "Prenumele este obligatoriu"),
           cnp: z
             .string()
             .trim()
@@ -539,8 +546,15 @@ export const appRouter = router({
         const { tenants, userTenants, accounts } = await import("../drizzle/schema");
         const { and, eq } = await import("drizzle-orm");
 
-        const resolved = await resolveEntityPair(db, ctx.user.id, activeTenantId);
+        const resolved = await resolveEntityPair(
+          db,
+          ctx.user.id,
+          activeTenantId,
+          ctx.user.role
+        );
         if (!resolved) throw new Error("Profilul activ nu a fost găsit");
+
+        const fullName = `${input.lastName} ${input.firstName}`.replace(/\s+/g, " ").trim();
 
         let pj = resolved.pjRow || undefined;
         let existingPf = resolved.pfRow || undefined;
@@ -582,6 +596,8 @@ export const appRouter = router({
           const initialPfSettings = {
             entityType: "pf",
             pairedPjTenantId: pj.id,
+            lastName: input.lastName,
+            firstName: input.firstName,
             city: input.city?.trim() || "",
             country: input.country || "RO",
             iban: primaryRon?.iban || "",
@@ -605,7 +621,7 @@ export const appRouter = router({
           };
 
           const insertRes: any = await db.insert(tenants).values({
-            name: input.name,
+            name: fullName,
             cui: input.cnp,
             email:
               (input.email && input.email.trim()) ||
@@ -640,6 +656,8 @@ export const appRouter = router({
           const mergedPfSettings: Record<string, any> = {
             ...prevPfSettings,
             entityType: "pf",
+            lastName: input.lastName,
+            firstName: input.firstName,
             city: input.city?.trim() || "",
             country: input.country || "RO",
             iban: primaryRon?.iban || "",
@@ -661,7 +679,7 @@ export const appRouter = router({
           }
 
           const updatePayload: Record<string, any> = {
-            name: input.name,
+            name: fullName,
             cui: input.cnp,
             phone: input.phone?.trim() || null,
             address: input.address?.trim() || null,

@@ -135,35 +135,50 @@ export default function Settings() {
 
   const switchingToTypeRef = useRef<"pj" | "pf">("pj");
 
+  const applyTenantSessionAndNavigate = (
+    token?: string,
+    targetTenantId?: number,
+    targetType?: "pj" | "pf",
+    successMsg?: string
+  ) => {
+    if (token) {
+      localStorage.setItem("authToken", token);
+    }
+    try {
+      localStorage.removeItem("tenant-theme-color");
+      const savedPinEntries: [string, string][] = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const k = sessionStorage.key(i);
+        if (k && k.startsWith("smart_invoice_unlocked_pin_")) {
+          const v = sessionStorage.getItem(k);
+          if (v) savedPinEntries.push([k, v]);
+        }
+      }
+      sessionStorage.clear();
+      for (const [k, v] of savedPinEntries) {
+        sessionStorage.setItem(k, v);
+      }
+      if (
+        targetTenantId &&
+        sessionStorage.getItem(`smart_invoice_unlocked_pin_${targetTenantId}`) === "true"
+      ) {
+        sessionStorage.setItem("smart_invoice_pin_session_unlocked", String(targetTenantId));
+      }
+    } catch {}
+    if (successMsg) {
+      toast.success(successMsg);
+    }
+    window.location.href = targetType === "pf" ? "/setari?tab=pf" : "/setari?tab=company";
+  };
+
   const switchTenantMutation = trpc.tenants.switchTenant.useMutation({
     onSuccess: (data) => {
-      if (data?.token) {
-        localStorage.setItem("authToken", data.token);
-      }
-      try {
-        localStorage.removeItem("tenant-theme-color");
-        const savedPinEntries: [string, string][] = [];
-        for (let i = 0; i < sessionStorage.length; i++) {
-          const k = sessionStorage.key(i);
-          if (k && k.startsWith("smart_invoice_unlocked_pin_")) {
-            const v = sessionStorage.getItem(k);
-            if (v) savedPinEntries.push([k, v]);
-          }
-        }
-        sessionStorage.clear();
-        for (const [k, v] of savedPinEntries) {
-          sessionStorage.setItem(k, v);
-        }
-        if (
-          data?.tenantId &&
-          sessionStorage.getItem(`smart_invoice_unlocked_pin_${data.tenantId}`) === "true"
-        ) {
-          sessionStorage.setItem("smart_invoice_pin_session_unlocked", String(data.tenantId));
-        }
-      } catch {}
-      toast.success("Profilul activ a fost schimbat.");
-      window.location.href =
-        switchingToTypeRef.current === "pf" ? "/setari?tab=pf" : "/setari?tab=company";
+      applyTenantSessionAndNavigate(
+        data?.token,
+        data?.tenantId,
+        switchingToTypeRef.current,
+        "Profilul activ a fost schimbat."
+      );
     },
     onError: (err: any) => {
       toast.error(err?.message || "Eroare la schimbarea profilului.");
@@ -297,7 +312,8 @@ export default function Settings() {
     },
   ]);
 
-  const [pfName, setPfName] = useState("");
+  const [pfLastName, setPfLastName] = useState("");
+  const [pfFirstName, setPfFirstName] = useState("");
   const [pfCnp, setPfCnp] = useState("");
   const [pfEmail, setPfEmail] = useState("");
   const [pfPhone, setPfPhone] = useState("");
@@ -395,7 +411,8 @@ export default function Settings() {
   useEffect(() => {
     const pfRow = entityPair?.pf;
     if (!pfRow) {
-      setPfName("");
+      setPfLastName("");
+      setPfFirstName("");
       setPfCnp("");
       setPfEmail("");
       setPfPhone("");
@@ -413,7 +430,20 @@ export default function Settings() {
         parsedPf = JSON.parse(pfRow.settings);
       }
     } catch {}
-    setPfName(pfRow.name || "");
+    if (parsedPf.lastName || parsedPf.firstName) {
+      setPfLastName(parsedPf.lastName || "");
+      setPfFirstName(parsedPf.firstName || "");
+    } else {
+      const rawFull = (pfRow.name || "").trim();
+      const spaceIdx = rawFull.indexOf(" ");
+      if (spaceIdx > 0) {
+        setPfLastName(rawFull.slice(0, spaceIdx).trim());
+        setPfFirstName(rawFull.slice(spaceIdx + 1).trim());
+      } else {
+        setPfLastName(rawFull);
+        setPfFirstName("");
+      }
+    }
     setPfCnp(pfRow.cui || "");
     setPfEmail(pfRow.email || "");
     setPfPhone(pfRow.phone || "");
@@ -566,10 +596,15 @@ export default function Settings() {
   };
 
   const handleSavePf = async () => {
-    const cleanName = pfName.trim();
+    const cleanLastName = pfLastName.trim();
+    const cleanFirstName = pfFirstName.trim();
     const cleanCnp = pfCnp.replace(/\s+/g, "");
-    if (!cleanName) {
-      toast.error("Introduceți numele și prenumele.");
+    if (!cleanLastName) {
+      toast.error("Introduceți numele de familie.");
+      return;
+    }
+    if (!cleanFirstName) {
+      toast.error("Introduceți prenumele.");
       return;
     }
     if (!/^\d{13}$/.test(cleanCnp)) {
@@ -580,7 +615,8 @@ export default function Settings() {
     try {
       const shouldSwitchImmediately = !entityPair?.pf;
       const res = await upsertPfMutation.mutateAsync({
-        name: cleanName,
+        lastName: cleanLastName,
+        firstName: cleanFirstName,
         cnp: cleanCnp,
         email: pfEmail.trim() || undefined,
         phone: pfPhone.trim() || undefined,
@@ -592,13 +628,12 @@ export default function Settings() {
       });
 
       if (res?.token) {
-        localStorage.setItem("authToken", res.token);
-        try {
-          localStorage.removeItem("tenant-theme-color");
-          sessionStorage.clear();
-        } catch {}
-        toast.success("Profilul de Persoană Fizică a fost salvat și activat.");
-        window.location.reload();
+        applyTenantSessionAndNavigate(
+          res.token,
+          res.pfTenantId,
+          "pf",
+          "Profilul de Persoană Fizică a fost salvat și activat."
+        );
         return;
       }
 
@@ -1214,73 +1249,88 @@ export default function Settings() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                <SettingField
-                  label="Nume și prenume"
-                  value={pfName}
-                  onChange={setPfName}
-                  placeholder="Popescu Ion"
-                  autocomplete="name"
-                />
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                    CNP (13 cifre)
-                  </label>
-                  <input
-                    value={pfCnp}
-                    inputMode="numeric"
-                    maxLength={13}
-                    onChange={e =>
-                      setPfCnp(e.target.value.replace(/\D/g, "").slice(0, 13))
-                    }
-                    placeholder="1850101123456"
-                    autoComplete="off"
-                    className="w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none text-slate-900 dark:text-white tabular-nums"
-                  />
-                </div>
-                <SettingField
-                  label="Email"
-                  value={pfEmail}
-                  onChange={setPfEmail}
-                  placeholder="nume@exemplu.ro"
-                  autocomplete="email"
-                />
-                <SettingField
-                  label="Telefon"
-                  value={pfPhone}
-                  onChange={setPfPhone}
-                  placeholder="+40 722 000 000"
-                  autocomplete="tel"
-                />
-                <div className="md:col-span-2">
+              <div className="space-y-2.5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                   <SettingField
-                    label="Adresă domiciliu"
-                    value={pfAddress}
-                    onChange={setPfAddress}
-                    placeholder="Str. Exemplu nr. 1"
+                    label="Nume"
+                    value={pfLastName}
+                    onChange={setPfLastName}
+                    placeholder="Popescu"
+                    autocomplete="family-name"
+                  />
+                  <SettingField
+                    label="Prenume"
+                    value={pfFirstName}
+                    onChange={setPfFirstName}
+                    placeholder="Ion"
+                    autocomplete="given-name"
                   />
                 </div>
-                <SettingField
-                  label="Oraș"
-                  value={pfCity}
-                  onChange={setPfCity}
-                  placeholder="București"
-                />
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                    Țară
-                  </label>
-                  <select
-                    value={pfCountry}
-                    onChange={e => setPfCountry(e.target.value as Country)}
-                    className="w-full h-8 px-3 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500"
-                  >
-                    {countries.map(c => (
-                      <option key={c.code} value={c.code}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </select>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                      CNP (13 cifre)
+                    </label>
+                    <input
+                      value={pfCnp}
+                      inputMode="numeric"
+                      maxLength={13}
+                      onChange={e =>
+                        setPfCnp(e.target.value.replace(/\D/g, "").slice(0, 13))
+                      }
+                      placeholder="1850101123456"
+                      autoComplete="off"
+                      className="w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none text-slate-900 dark:text-white tabular-nums"
+                    />
+                  </div>
+                  <SettingField
+                    label="Email"
+                    value={pfEmail}
+                    onChange={setPfEmail}
+                    placeholder="nume@exemplu.ro"
+                    autocomplete="email"
+                  />
+                  <SettingField
+                    label="Telefon"
+                    value={pfPhone}
+                    onChange={setPfPhone}
+                    placeholder="+40 722 000 000"
+                    autocomplete="tel"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                  <div className="md:col-span-2">
+                    <SettingField
+                      label="Adresă domiciliu"
+                      value={pfAddress}
+                      onChange={setPfAddress}
+                      placeholder="Str. Exemplu nr. 1"
+                    />
+                  </div>
+                  <SettingField
+                    label="Oraș"
+                    value={pfCity}
+                    onChange={setPfCity}
+                    placeholder="București"
+                  />
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                      Țară
+                    </label>
+                    <select
+                      value={pfCountry}
+                      onChange={e => setPfCountry(e.target.value as Country)}
+                      className="w-full h-8 px-3 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      {countries.map(c => (
+                        <option key={c.code} value={c.code}>
+                          {c.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
 

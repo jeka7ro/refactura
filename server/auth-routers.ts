@@ -18,7 +18,7 @@ async function resolveSuperadminLoginTenantId(account: {
   tenantId: number | null;
 }): Promise<number | null> {
   let activeTenantId = account.tenantId;
-  if (account.role !== "superadmin" && account.email !== "jeka7ro@gmail.com") {
+  if (account.email !== "jeka7ro@gmail.com" && account.email !== "contact@getapp.ro") {
     return activeTenantId;
   }
   if (activeTenantId && activeTenantId !== 1) {

@@ -1,5 +1,19 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-18 15:19 — Separare câmpuri Nume / Prenume pe Persoană Fizică și audit izolare tenanți activi
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. `client/src/pages/Settings.tsx` & `server/routers.ts`:
+     - Împărțit câmpul unic `Nume și prenume` din tab-ul **Persoană Fizică** în două câmpuri distincte: **Nume** (`lastName`) și **Prenume** (`firstName`), cu populare automată din datele existente (ex: `Cazmal` / `Eugeniu`) și validare separată la salvare (`tenants.upsertPersonalProfile`).
+     - Reutilizat `applyTenantSessionAndNavigate` la prima activare a profilului PF pentru păstrarea sesiunii PIN și navigarea directă pe `/setari?tab=pf`.
+  2. Protecție și audit complet tenanți activi (`server/routers.ts`, `server/auth-routers.ts`):
+     - Limitat `resolveSuperadminLoginTenantId` exclusiv la conturile `jeka7ro@gmail.com` / `contact@getapp.ro` și protejat `resolveEntityPair` să nu asocieze profilul personal PF peste firmele altor clienți dacă superadmin accesează un alt tenant.
+     - Audit read-only pe toți tenanții activi (`1`–`6`): `auth.me`, `tenants.current`, `tenants.list`, `invoices.list`, `emittedInvoice.list` și exportul XML SAGA (`generateSagaExportXML`) funcționează izolat și fără regresie.
+  3. Respectat toate regulile: zero emoji-uri, fără fonturi monospace, fără alerte native de browser și fără `git push`.
+- **Fișiere:** `server/routers.ts`, `server/auth-routers.ts`, `client/src/pages/Settings.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npm run build` trecut cu succes (`0` erori); zero erori TypeScript în `Settings.tsx` și `DashboardLayout.tsx` sau pe liniile modificate din `routers.ts`; verificat live tenanții `1`, `2`, `4` (890 facturi primite / 743 emise) și `6` (520 facturi primite).
+
 ### 2026-11-18 14:51 — Asociere automată profil PF existent (Cazmal Eugeniu), nume reale în comutator și auto-selecție tab în Setări
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
