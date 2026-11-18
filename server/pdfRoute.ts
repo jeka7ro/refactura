@@ -2982,10 +2982,14 @@ export function registerPdfRoute(app: any) {
         ];
         for (const p of candidates) {
           if (fs.existsSync(p)) {
-            res.setHeader("Content-Type", "application/pdf");
+            const isZipFile = p.toLowerCase().endsWith(".zip");
+            res.setHeader(
+              "Content-Type",
+              isZipFile ? "application/zip" : "application/pdf"
+            );
             res.setHeader(
               "Content-Disposition",
-              `${isDownload ? "attachment" : "inline"}; filename="${safeFilename}"`
+              `${isZipFile || isDownload ? "attachment" : "inline"}; filename="${safeFilename}"`
             );
             fs.createReadStream(p).pipe(res);
             return;

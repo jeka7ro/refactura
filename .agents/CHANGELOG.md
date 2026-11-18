@@ -1,5 +1,21 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-18 16:51 — Extensie Chrome `Conector SPV` (mTLS USB pe `webserviced.anaf.ro/SPVWS2`) și salvare PDF/ZIP reale semnate de ANAF
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. Extensie Chrome Manifest V3 în `chrome-spv-connector/` (`manifest.json`, `background.js`, `app-bridge.js`):
+     - Folosește certificatul digital USB conectat în Chrome pe Mac/Windows (fără drivere PKCS#11 separate) pentru a interoga prin mTLS `https://webserviced.anaf.ro/SPVWS2/rest/listaMesaje?zile=60` și a descărca documentele reale din `https://webserviced.anaf.ro/SPVWS2/rest/descarcare?id=...`.
+     - Filtrează strict mesajele după `CUI` / `CNP` al profilului activ din aplicație (`Cazmal Eugeniu` `1801102430126`, `TWIN SOLUTIONS SRL` `28633533` etc.), exclude mesajele e-Factura și tratează automat redirect-urile F5 BigIP (`/my.policy`, `/vdesk/hangup`).
+  2. Backend (`server/_core/index.ts`, `server/uploadRoute.ts`, `server/pdfRoute.ts`):
+     - Adăugat `POST /api/spv/import-real-document` protejat prin `requireFileAuth`: verifică corespondența exactă a `cif` cu tenantul activ și magic bytes (`%PDF-` / `PK\x03\x04`), păstrând pe disc exclusiv octeții originali ai PDF-ului semnat de Ministerul Finanțelor (extras direct din `.zip` dacă e cazul).
+     - Adăugat `GET /api/spv-connector.zip` protejat prin `requireFileAuth` pentru descărcarea rapidă a extensiei și suport `.zip` în `GET /api/pdf/spv-document/:id`.
+  3. Frontend (`client/src/pages/SpvHub.tsx`):
+     - Detectare automată a extensiei în pagină (`Sincronizează Stick USB` / `Instalează Conector USB`), indicator live de progres pe documente și modal de instalare în 3 pași (`chrome://extensions` -> `Load unpacked`, cu descărcare ZIP sau copiere cale locală).
+  4. Respectat toate regulile: zero date/PDF-uri fake, zero emoji-uri, fără fonturi monospace, fără alerte native de browser și fără `git push`.
+- **Fișiere:** `chrome-spv-connector/manifest.json`, `chrome-spv-connector/background.js`, `chrome-spv-connector/app-bridge.js`, `server/_core/index.ts`, `server/uploadRoute.ts`, `server/pdfRoute.ts`, `client/src/pages/SpvHub.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npm run build` trecut (`0` erori); `tsc --noEmit` curat pe fișierele modificate; `node --check` curat pe extensie; `GET /api/spv-connector.zip` (`401` neautentificat, `200` arhivă ZIP validă cu 3 fișiere autentificat); `POST /api/spv/import-real-document` respinge cu `400` CIF greșit și fișiere non-PDF/ZIP; `spv_portal_documents` = `0` și tenanții `1`–`6`, `10` intacți.
+
 ### 2026-11-18 16:40 — Eliminare completă date fake și generator PDF fals din `spv_portal_documents` + Regulă permanentă anti-fake
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
