@@ -6,37 +6,12 @@ const E_FACTURA_TIPS = new Set([
   "ERORI FACTURA",
 ]);
 
-const HIDE_JSON_CSS =
-  "html, body, pre { background: #f8fafc !important; color: transparent !important; opacity: 0 !important; }";
+let lastAuthenticatedCifs = [];
 
 function normalizeCif(value) {
   return String(value || "")
     .replace(/^RO/i, "")
     .trim();
-}
-
-function arrayBufferToBase64(buf) {
-  const bytes = new Uint8Array(buf);
-  const CHUNK_SIZE = 0x6000;
-  let binary = "";
-  for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
-    const sub = bytes.subarray(i, i + CHUNK_SIZE);
-    binary += String.fromCharCode.apply(null, sub);
-  }
-  return btoa(binary);
-}
-
-function parseContentDispositionFilename(disp) {
-  if (!disp) return "";
-  const nameMatch =
-    disp.match(/filename\*=UTF-8''([^;]+)/i) ||
-    disp.match(/filename="?([^";]+)"?/i);
-  if (!nameMatch?.[1]) return "";
-  try {
-    return decodeURIComponent(nameMatch[1].trim());
-  } catch {
-    return nameMatch[1].trim();
-  }
 }
 
 async function clearAnafWebserviceCookies() {
@@ -66,146 +41,6 @@ async function clearAnafWebserviceCookies() {
   }
 }
 
-async function resetAnafCertSession() {
-  const logoutEndpoints = [
-    "https://webserviced.anaf.ro/vdesk/hangup.php3",
-    "https://webserviced.anaf.ro/my.logout.php3",
-  ];
-  await Promise.all(
-    logoutEndpoints.map(async (endpoint) => {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 2500);
-      try {
-        await fetch(endpoint, {
-          credentials: "include",
-          cache: "no-store",
-          redirect: "follow",
-          signal: controller.signal,
-        });
-      } catch {
-        /* ignore logout network errors */
-      } finally {
-        clearTimeout(timer);
-      }
-    })
-  );
-  await clearAnafWebserviceCookies();
-}
-
-async function hideTabJsonContent(tabId) {
-  try {
-    await chrome.scripting.insertCSS({
-      target: { tabId },
-      css: HIDE_JSON_CSS,
-    });
-  } catch {
-    /* tab might still be navigating or on policy page */
-  }
-}
-
-async function tryDirectFetchListJson(url) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 5000);
-  try {
-    const resp = await fetch(url, {
-      credentials: "include",
-      cache: "no-store",
-      redirect: "follow",
-      signal: controller.signal,
-    });
-    const finalUrl = String(resp.url || "");
-    if (finalUrl.includes("/vdesk/hangup") || finalUrl.includes("/my.logout")) {
-      await clearAnafWebserviceCookies();
-      return { ok: false, needsTab: true };
-    }
-    const text = await resp.text();
-    const trimmed = String(text || "").trim();
-    if (resp.ok && trimmed.startsWith("{")) {
-      try {
-        return { ok: true, data: JSON.parse(trimmed) };
-      } catch {
-        return { ok: false, needsTab: true };
-      }
-    }
-    return { ok: false, needsTab: true };
-  } catch {
-    return { ok: false, needsTab: true };
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-async function downloadDocumentDirect(messageId) {
-  const url = `https://webserviced.anaf.ro/SPVWS2/rest/descarcare?id=${encodeURIComponent(
-    String(messageId)
-  )}`;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 15000);
-  try {
-    const resp = await fetch(url, {
-      credentials: "include",
-      cache: "no-store",
-      redirect: "follow",
-      signal: controller.signal,
-    });
-    const finalUrl = String(resp.url || "");
-    if (finalUrl.includes("/vdesk/hangup") || finalUrl.includes("/my.logout")) {
-      await clearAnafWebserviceCookies();
-      return { ok: false, needsTab: true };
-    }
-
-    const contentType = resp.headers.get("content-type") || "";
-    const disp = resp.headers.get("content-disposition") || "";
-    const fileName = parseContentDispositionFilename(disp);
-    const buf = await resp.arrayBuffer();
-    const bytes = new Uint8Array(buf);
-
-    if (!resp.ok || bytes.length === 0) {
-      return {
-        ok: false,
-        needsTab: true,
-        error: `ANAF a returnat HTTP ${resp.status} pentru documentul ${messageId}.`,
-      };
-    }
-
-    let firstNonWs = 0;
-    for (let i = 0; i < Math.min(bytes.length, 64); i++) {
-      if (bytes[i] > 32) {
-        firstNonWs = bytes[i];
-        break;
-      }
-    }
-
-    if (contentType.toLowerCase().includes("json") || firstNonWs === 123) {
-      try {
-        const text = new TextDecoder("utf-8").decode(bytes);
-        const jsonErr = JSON.parse(text);
-        if (jsonErr?.eroare) {
-          return { ok: false, error: String(jsonErr.eroare) };
-        }
-      } catch {
-        /* ignore */
-      }
-      return { ok: false, needsTab: true };
-    }
-
-    if (contentType.toLowerCase().includes("text/html") || firstNonWs === 60) {
-      return { ok: false, needsTab: true };
-    }
-
-    return {
-      ok: true,
-      base64: arrayBufferToBase64(buf),
-      contentType,
-      fileName,
-    };
-  } catch {
-    return { ok: false, needsTab: true };
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 async function readListJsonFromTab(tabId) {
   const results = await chrome.scripting.executeScript({
     target: { tabId },
@@ -223,16 +58,12 @@ async function readListJsonFromTab(tabId) {
 
       const trimmedPreview = (s) => String(s || "").trim().slice(0, 220);
 
-      const preEl = document.querySelector("pre");
-      if (preEl) {
-        preEl.style.opacity = "0";
-      }
-      if (document.documentElement) {
-        document.documentElement.style.backgroundColor = "#f8fafc";
-      }
+      const preText = document.querySelector("pre")?.textContent || "";
+      const bodyText = Array.from(document.body?.children || [])
+        .filter((el) => el.id !== "spv-connector-overlay")
+        .map((el) => el.innerText || el.textContent || "")
+        .join("\n");
 
-      const preText = preEl?.textContent || "";
-      const bodyText = document.body?.innerText || "";
       const lowerBody = bodyText.toLowerCase();
       if (
         lowerBody.includes("session could not be established") ||
@@ -343,20 +174,10 @@ async function downloadDocumentInTab(tabId, messageId) {
   );
 }
 
-async function waitForListJson(tabId, anafListUrl, appTabId, options = {}) {
-  const deadline = Date.now() + 120000;
+async function waitForListJson(tabId, anafListUrl) {
+  const deadline = Date.now() + 90000;
   let hangupRetries = 0;
   let nonJsonAttemptsAtListUrl = 0;
-  let waitStartAt = Date.now();
-  let focusedForAuth = false;
-  const focusImmediately = Boolean(options?.focusImmediately);
-
-  const restoreFocusIfNeeded = async () => {
-    if (focusedForAuth && appTabId) {
-      focusedForAuth = false;
-      await chrome.tabs.update(appTabId, { active: true }).catch(() => {});
-    }
-  };
 
   while (Date.now() < deadline) {
     let tab;
@@ -365,7 +186,8 @@ async function waitForListJson(tabId, anafListUrl, appTabId, options = {}) {
     } catch {
       return {
         ok: false,
-        error: "Tab-ul ANAF a fost inchis inainte de finalizarea autentificarii cu stick-ul USB.",
+        error:
+          "Fereastra de autentificare ANAF a fost inchisa inainte de finalizarea citirii stick-ului USB.",
       };
     }
 
@@ -373,29 +195,16 @@ async function waitForListJson(tabId, anafListUrl, appTabId, options = {}) {
     if (url.includes("/vdesk/hangup") || url.includes("/my.logout")) {
       if (hangupRetries < 2) {
         hangupRetries += 1;
-        waitStartAt = Date.now();
         await clearAnafWebserviceCookies();
-        await chrome.tabs.update(tabId, { url: anafListUrl });
+        await chrome.tabs.update(tabId, { url: anafListUrl }).catch(() => {});
         await sleep(750);
         continue;
       }
-      await restoreFocusIfNeeded();
       return {
         ok: false,
         error:
           "ANAF a inchis sesiunea de certificat (hangup). Verifica daca stick-ul USB este introdus si PIN-ul certificatului a fost introdus corect.",
       };
-    }
-
-    const waitingThresholdMs = focusImmediately ? 0 : 2500;
-    if (
-      !focusedForAuth &&
-      (url.includes("/my.policy") ||
-        (tab.status === "loading" && !url.includes("/SPVWS2/rest/listaMesaje"))) &&
-      Date.now() - waitStartAt >= waitingThresholdMs
-    ) {
-      focusedForAuth = true;
-      await chrome.tabs.update(tabId, { active: true }).catch(() => {});
     }
 
     if (tab.status === "complete" && url.includes("/my.policy")) {
@@ -404,27 +213,20 @@ async function waitForListJson(tabId, anafListUrl, appTabId, options = {}) {
         if (policyCheck?.isHangupPage) {
           if (hangupRetries < 2) {
             hangupRetries += 1;
-            waitStartAt = Date.now();
             await clearAnafWebserviceCookies();
-            await chrome.tabs.update(tabId, { url: anafListUrl });
+            await chrome.tabs.update(tabId, { url: anafListUrl }).catch(() => {});
             await sleep(750);
             continue;
           }
-          await restoreFocusIfNeeded();
           return {
             ok: false,
             error:
-              "ANAF a respins sesiunea F5 APM. Inchideti tab-ul anaf.ro, verificati stick-ul USB si reincercati.",
+              "ANAF a respins sesiunea F5 APM. Verifica stick-ul USB si PIN-ul si reincerca.",
           };
         }
       } catch {
         /* redirect in progress */
       }
-    }
-
-    if (url.startsWith("https://webserviced.anaf.ro/SPVWS2/rest/listaMesaje")) {
-      await hideTabJsonContent(tabId);
-      await restoreFocusIfNeeded();
     }
 
     if (
@@ -441,9 +243,8 @@ async function waitForListJson(tabId, anafListUrl, appTabId, options = {}) {
       if (readRes?.isHangupPage) {
         if (hangupRetries < 2) {
           hangupRetries += 1;
-          waitStartAt = Date.now();
           await clearAnafWebserviceCookies();
-          await chrome.tabs.update(tabId, { url: anafListUrl });
+          await chrome.tabs.update(tabId, { url: anafListUrl }).catch(() => {});
           await sleep(750);
           continue;
         }
@@ -456,6 +257,7 @@ async function waitForListJson(tabId, anafListUrl, appTabId, options = {}) {
       if (readRes?.parsed) {
         return { ok: true, data: readRes.parsed };
       }
+
       nonJsonAttemptsAtListUrl += 1;
       if (nonJsonAttemptsAtListUrl >= 12) {
         return {
@@ -469,15 +271,14 @@ async function waitForListJson(tabId, anafListUrl, appTabId, options = {}) {
     await sleep(400);
   }
 
-  await restoreFocusIfNeeded();
   return {
     ok: false,
     error:
-      "Timpul de asteptare (120s) pentru selectarea certificatului USB si introducerea PIN-ului a expirat.",
+      "Timpul de asteptare (90s) pentru selectarea certificatului USB si introducerea PIN-ului a expirat.",
   };
 }
 
-async function handleSpvSync(msg, appTabId) {
+async function handleSpvSync(msg, appTabId, appWindowId) {
   const targetCif = normalizeCif(msg.cif);
   if (!targetCif) {
     return {
@@ -490,64 +291,76 @@ async function handleSpvSync(msg, appTabId) {
   const initialUrl = `https://webserviced.anaf.ro/SPVWS2/rest/listaMesaje?zile=${zileUsed}`;
   const existingSet = new Set((msg.existingIds || []).map(String));
 
+  if (lastAuthenticatedCifs.length > 0 && !lastAuthenticatedCifs.includes(targetCif)) {
+    await clearAnafWebserviceCookies();
+  }
+
+  const popupWidth = 640;
+  const popupHeight = 520;
+  let left = 300;
+  let top = 140;
+
+  if (appWindowId) {
+    try {
+      const parentWin = await chrome.windows.get(appWindowId);
+      if (
+        typeof parentWin.left === "number" &&
+        typeof parentWin.top === "number" &&
+        typeof parentWin.width === "number" &&
+        typeof parentWin.height === "number"
+      ) {
+        left = Math.max(40, Math.round(parentWin.left + (parentWin.width - popupWidth) / 2));
+        top = Math.max(40, Math.round(parentWin.top + (parentWin.height - popupHeight) / 2));
+      }
+    } catch {
+      /* keep safe fallback coordinates */
+    }
+  }
+
+  let popupWindowId = null;
   let workerTabId = null;
 
-  const onTabUpdated = (updatedTabId, _changeInfo, tab) => {
-    if (updatedTabId !== workerTabId) return;
-    const u = String(tab?.url || "");
-    if (u.startsWith("https://webserviced.anaf.ro/SPVWS2/")) {
-      hideTabJsonContent(workerTabId);
-    }
-  };
-  chrome.tabs.onUpdated.addListener(onTabUpdated);
-
-  const ensureWorkerTab = async (urlToLoad) => {
-    if (workerTabId) {
-      if (urlToLoad) {
-        await chrome.tabs.update(workerTabId, { url: urlToLoad });
-      }
+  const ensurePopupWorker = async (urlToLoad) => {
+    if (popupWindowId && workerTabId) {
+      await chrome.tabs.update(workerTabId, { url: urlToLoad }).catch(() => {});
+      await chrome.windows.update(popupWindowId, { focused: true }).catch(() => {});
       return workerTabId;
     }
-    const created = await chrome.tabs.create({
-      url: urlToLoad || initialUrl,
-      active: false,
+
+    const popupWin = await chrome.windows.create({
+      url: chrome.runtime.getURL("auth.html"),
+      type: "popup",
+      width: popupWidth,
+      height: popupHeight,
+      left,
+      top,
+      focused: true,
     });
-    if (!created?.id) {
+
+    popupWindowId = popupWin?.id || null;
+    workerTabId = popupWin?.tabs?.[0]?.id || null;
+    if (!workerTabId && popupWindowId) {
+      const qTabs = await chrome.tabs.query({ windowId: popupWindowId }).catch(() => []);
+      workerTabId = qTabs?.[0]?.id || null;
+    }
+
+    if (!popupWindowId || !workerTabId) {
       return null;
     }
-    workerTabId = created.id;
+
+    await sleep(250);
+    await chrome.tabs.update(workerTabId, { url: urlToLoad || initialUrl });
     return workerTabId;
   };
 
-  const restoreAppTab = async () => {
-    if (appTabId) {
-      await chrome.tabs.update(appTabId, { active: true }).catch(() => {});
-    }
-  };
-
-  const fetchListPayload = async (urlToLoad) => {
-    const directRes = await tryDirectFetchListJson(urlToLoad);
-    if (directRes?.ok && directRes.data) {
-      return { ok: true, data: directRes.data };
-    }
-    const tabId = await ensureWorkerTab(urlToLoad);
+  try {
+    const tabId = await ensurePopupWorker(initialUrl);
     if (!tabId) {
       return {
         ok: false,
-        error: "Nu s-a putut deschide sesiunea in fundal pentru webserviced.anaf.ro.",
+        error: "Nu s-a putut deschide fereastra popup pentru webserviced.anaf.ro.",
       };
     }
-    return waitForListJson(tabId, urlToLoad, appTabId);
-  };
-
-  try {
-    let listOutcome = await fetchListPayload(initialUrl);
-    if (!listOutcome.ok) {
-      await restoreAppTab();
-      return listOutcome;
-    }
-
-    let listData = listOutcome.data;
 
     const getAllowedCifs = (data) =>
       Array.from(
@@ -569,7 +382,8 @@ async function handleSpvSync(msg, appTabId) {
         ) {
           zileUsed = candidateDays;
           const retryUrl = `https://webserviced.anaf.ro/SPVWS2/rest/listaMesaje?zile=${zileUsed}`;
-          const nextOutcome = await fetchListPayload(retryUrl);
+          await ensurePopupWorker(retryUrl);
+          const nextOutcome = await waitForListJson(workerTabId, retryUrl);
           if (!nextOutcome.ok) {
             return { ok: false, outcome: nextOutcome };
           }
@@ -579,36 +393,45 @@ async function handleSpvSync(msg, appTabId) {
       return { ok: true, data: currentData };
     };
 
-    const resolvedInitial = await resolveFallbackDays(listData);
+    let listOutcome = await waitForListJson(tabId, initialUrl);
+    if (!listOutcome.ok) {
+      return listOutcome;
+    }
+
+    const resolvedInitial = await resolveFallbackDays(listOutcome.data);
     if (!resolvedInitial.ok) {
-      await restoreAppTab();
       return resolvedInitial.outcome;
     }
-    listData = resolvedInitial.data;
 
+    let listData = resolvedInitial.data;
     let allowedCifs = getAllowedCifs(listData);
 
-    // Daca sesiunea F5 anterioara apartine altui stick USB, resetam sesiunea F5 si fortam re-autentificarea
+    // Daca sesiunea F5 anterioara apartine altui stick USB, fortam logout F5 + cookie clear in popup si reincercam
     if (allowedCifs.length > 0 && !allowedCifs.includes(targetCif)) {
-      await resetAnafCertSession();
+      await clearAnafWebserviceCookies();
+      await ensurePopupWorker("https://webserviced.anaf.ro/vdesk/hangup.php3");
+      await sleep(900);
+      await clearAnafWebserviceCookies();
+
       const freshUrl = `https://webserviced.anaf.ro/SPVWS2/rest/listaMesaje?zile=${zileUsed}`;
-      const tabId = await ensureWorkerTab(freshUrl);
-      if (tabId) {
-        const freshOutcome = await waitForListJson(tabId, freshUrl, appTabId, {
-          focusImmediately: true,
-        });
-        if (freshOutcome?.ok && freshOutcome.data) {
-          const resolvedFresh = await resolveFallbackDays(freshOutcome.data);
-          if (resolvedFresh.ok) {
-            listData = resolvedFresh.data;
-            allowedCifs = getAllowedCifs(listData);
-          }
-        }
+      await ensurePopupWorker(freshUrl);
+      const freshOutcome = await waitForListJson(workerTabId, freshUrl);
+      if (!freshOutcome.ok) {
+        return freshOutcome;
       }
+      const resolvedFresh = await resolveFallbackDays(freshOutcome.data);
+      if (!resolvedFresh.ok) {
+        return resolvedFresh.outcome;
+      }
+      listData = resolvedFresh.data;
+      allowedCifs = getAllowedCifs(listData);
     }
 
     if (listData.eroare) {
       const errText = String(listData.eroare);
+      if (allowedCifs.includes(targetCif)) {
+        lastAuthenticatedCifs = allowedCifs;
+      }
       if (errText.toLowerCase().includes("nu exista mesaje")) {
         return {
           ok: true,
@@ -662,7 +485,7 @@ async function handleSpvSync(msg, appTabId) {
         wrongCertificate: true,
         allowedCifs,
         certSerial: listData.serial ? String(listData.serial) : null,
-        error: `Chrome pastreaza in memorie certificatul anterior (${allowedCifs.join(", ")}). Deschide chrome://restart in bara de adrese pentru a selecta noul stick USB (${targetCif}).`,
+        error: `Chrome pastreaza in memorie certificatul anterior (${allowedCifs.join(", ")}). Deschide o fila noua si scrie chrome://restart pentru a selecta stick-ul USB nou (${targetCif}).`,
         diagnostics: {
           rawTotal: allMessages.length,
           matchedTotal: 0,
@@ -670,6 +493,10 @@ async function handleSpvSync(msg, appTabId) {
           zileUsed,
         },
       };
+    }
+
+    if (allowedCifs.includes(targetCif) || matched.length > 0) {
+      lastAuthenticatedCifs = allowedCifs;
     }
 
     const toDownload = matched.filter(
@@ -682,6 +509,17 @@ async function handleSpvSync(msg, appTabId) {
 
     for (let i = 0; i < toDownload.length; i += 1) {
       const m = toDownload[i];
+      const progressText = `Se descarca documentul ${i + 1} din ${toDownload.length}...`;
+
+      if (workerTabId) {
+        await chrome.tabs
+          .sendMessage(workerTabId, {
+            type: "SPV_POPUP_PROGRESS",
+            text: progressText,
+          })
+          .catch(() => {});
+      }
+
       if (appTabId) {
         await chrome.tabs
           .sendMessage(appTabId, {
@@ -694,20 +532,7 @@ async function handleSpvSync(msg, appTabId) {
           .catch(() => {});
       }
 
-      let dl = await downloadDocumentDirect(m.id);
-      if ((!dl?.ok || !dl?.base64) && dl?.needsTab) {
-        let tabId = workerTabId;
-        if (!tabId) {
-          tabId = await ensureWorkerTab(initialUrl);
-          if (tabId) {
-            await waitForListJson(tabId, initialUrl, appTabId).catch(() => {});
-          }
-        }
-        if (tabId) {
-          dl = await downloadDocumentInTab(tabId, m.id);
-        }
-      }
-
+      const dl = await downloadDocumentInTab(workerTabId, m.id);
       if (!dl?.ok || !dl?.base64) {
         failed += 1;
         lastError = dl?.error || `Eroare la descarcarea mesajului ${m.id}.`;
@@ -760,10 +585,8 @@ async function handleSpvSync(msg, appTabId) {
       },
     };
   } finally {
-    chrome.tabs.onUpdated.removeListener(onTabUpdated);
-    if (workerTabId) {
-      await chrome.tabs.remove(workerTabId).catch(() => {});
-      await restoreAppTab();
+    if (popupWindowId) {
+      await chrome.windows.remove(popupWindowId).catch(() => {});
     }
   }
 }
@@ -773,7 +596,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   (async () => {
     try {
-      const result = await handleSpvSync(message, sender?.tab?.id || null);
+      const result = await handleSpvSync(
+        message,
+        sender?.tab?.id || null,
+        sender?.tab?.windowId || null
+      );
       sendResponse(result);
     } catch (err) {
       sendResponse({

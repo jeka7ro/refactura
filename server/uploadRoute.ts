@@ -1177,7 +1177,14 @@ export function registerUploadRoute(app: Express) {
   app.get("/api/spv-connector.zip", async (_req: Request, res: Response) => {
     try {
       const extDir = path.resolve(process.cwd(), "chrome-spv-connector");
-      const files = ["manifest.json", "background.js", "app-bridge.js"];
+      const files = [
+        "manifest.json",
+        "background.js",
+        "app-bridge.js",
+        "auth.html",
+        "anaf-popup.css",
+        "anaf-popup.js",
+      ];
       for (const f of files) {
         if (!fs.existsSync(path.join(extDir, f))) {
           return res.status(404).json({ error: `Lipsește fișierul ${f} din conector.` });

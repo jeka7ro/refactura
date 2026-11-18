@@ -898,7 +898,9 @@ export default function SpvHub() {
               className="h-9 rounded-lg text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-colors px-3.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white shadow-2xs cursor-pointer"
               title="Interoghează ANAF și actualizează lista mesajelor"
             >
-              {isSyncBusy ? (
+              {isSyncingAll ||
+              syncMessagesMutation.isPending ||
+              syncInvoicesMutation.isPending ? (
                 <>
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                   <span>Se actualizează...</span>

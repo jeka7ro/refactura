@@ -1,5 +1,21 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-18 18:32 — Conectare Stick USB în fereastră popup centrată (`v1.3.0`) și rezolvare blocaj TLS pe certificatul Cazmal Elena
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. `chrome-spv-connector/` (`auth.html`, `anaf-popup.css`, `anaf-popup.js`, `manifest.json`, `app-bridge.js`, `background.js` — `v1.3.0`):
+     - Eliminat complet apelurile `fetch` din Service Worker către `webserviced.anaf.ro` și deschiderea de tab-uri în fundal (`chrome.tabs.create`), care blocau dialogul macOS/Chrome de selectare certificat USB (`Fără titlu`).
+     - Înlocuit cu fereastră dedicată `chrome.windows.create({ type: "popup", width: 640, height: 520, focused: true })` centrată peste fereastra aplicației, inițializată prin `auth.html` și acoperită curat de overlay-ul luminos `anaf-popup.css` / `anaf-popup.js` (`#f8fafc`, fără JSON brut afișat și cu progres live).
+     - Adăugat resetare sesiune F5 (`/vdesk/hangup.php3` + curățare cookie-uri `.anaf.ro` în popup) atunci când certificatul activ în sesiune diferă de CUI/CNP-ul tenantului curent.
+  2. `server/uploadRoute.ts`:
+     - Inclus în `GET /api/spv-connector.zip` toate cele `6` fișiere ale extensiei (`manifest.json`, `background.js`, `app-bridge.js`, `auth.html`, `anaf-popup.css`, `anaf-popup.js`).
+  3. `client/src/pages/SpvHub.tsx`:
+     - Păstrate intacte toate butoanele; separat strict condiția de spinner a butonului `Actualizează din SPV` față de `Sincronizează Stick USB`.
+  4. Respectat toate regulile: zero date/PDF-uri fake, zero emoji-uri, fără fonturi monospace, fără alerte native de browser și fără `git push`.
+- **Fișiere:** `chrome-spv-connector/auth.html`, `chrome-spv-connector/anaf-popup.css`, `chrome-spv-connector/anaf-popup.js`, `chrome-spv-connector/manifest.json`, `chrome-spv-connector/app-bridge.js`, `chrome-spv-connector/background.js`, `server/uploadRoute.ts`, `client/src/pages/SpvHub.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `node --check` curat pe `background.js`, `app-bridge.js`, `anaf-popup.js`; `manifest.json` (`1.3.0`); zero `chrome.tabs.create` și zero `fetch` direct în Service Worker; `npx tsc --noEmit` curat pe fișierele modificate; `npm run build` trecut (`0` erori); `GET /spv` (`200`); `GET /api/spv-connector.zip` (`200`, toate cele 6 fișiere la `v1.3.0`).
+
 ### 2026-11-18 17:45 — Restaurare buton `Sincronizează Stick USB` în antetul `/spv`
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

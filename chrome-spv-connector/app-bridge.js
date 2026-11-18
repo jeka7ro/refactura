@@ -1,5 +1,5 @@
 (() => {
-  const EXTENSION_VERSION = "1.2.0";
+  const EXTENSION_VERSION = "1.3.0";
   const APP_SOURCE = "smart-invoice-app";
   const EXT_SOURCE = "smart-invoice-extension";
 

@@ -1,0 +1,96 @@
+(() => {
+  const isPopup =
+    Boolean(window.toolbar && window.toolbar.visible === false) ||
+    window.outerWidth <= 720;
+
+  if (!isPopup) return;
+
+  document.documentElement.setAttribute("data-spv-popup", "1");
+
+  let latestProgressText = "";
+
+  const getDefaultStatus = () => {
+    const path = String(window.location?.pathname || "");
+    if (path.includes("/SPVWS2/")) {
+      return "Se citesc documentele oficiale din SPV ANAF...";
+    }
+    return "Selectează certificatul digital USB și confirmă codul PIN.";
+  };
+
+  const mountOverlay = () => {
+    if (!document.body) return false;
+    if (document.getElementById("spv-connector-overlay")) return true;
+
+    const overlay = document.createElement("div");
+    overlay.id = "spv-connector-overlay";
+
+    const card = document.createElement("div");
+    card.id = "spv-connector-card";
+
+    const badge = document.createElement("div");
+    badge.id = "spv-connector-badge";
+    badge.innerHTML =
+      '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>';
+
+    const title = document.createElement("h1");
+    title.id = "spv-connector-title";
+    title.textContent = "Conectare Stick USB — ANAF SPV";
+
+    const status = document.createElement("p");
+    status.id = "spv-popup-status";
+    status.textContent = latestProgressText || getDefaultStatus();
+
+    const spinnerRow = document.createElement("div");
+    spinnerRow.id = "spv-connector-spinner-row";
+
+    const spinner = document.createElement("span");
+    spinner.id = "spv-connector-spinner";
+
+    const spinnerText = document.createElement("span");
+    spinnerText.textContent = "Conexiune securizată ANAF";
+
+    spinnerRow.appendChild(spinner);
+    spinnerRow.appendChild(spinnerText);
+
+    const note = document.createElement("p");
+    note.id = "spv-connector-note";
+    note.textContent = "Fereastra se va închide automat la finalizare.";
+
+    card.appendChild(badge);
+    card.appendChild(title);
+    card.appendChild(status);
+    card.appendChild(spinnerRow);
+    card.appendChild(note);
+    overlay.appendChild(card);
+
+    document.body.appendChild(overlay);
+    return true;
+  };
+
+  if (!mountOverlay()) {
+    const observer = new MutationObserver(() => {
+      if (mountOverlay()) {
+        observer.disconnect();
+      }
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+    document.addEventListener("DOMContentLoaded", () => {
+      mountOverlay();
+    });
+  }
+
+  try {
+    chrome.runtime.onMessage.addListener((message) => {
+      if (message?.type === "SPV_POPUP_PROGRESS" && message.text) {
+        latestProgressText = String(message.text);
+        const statusEl = document.getElementById("spv-popup-status");
+        if (statusEl) {
+          statusEl.textContent = latestProgressText;
+        }
+      }
+      return false;
+    });
+  } catch {
+    /* ignore */
+  }
+})();

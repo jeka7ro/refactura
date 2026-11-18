@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ro">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Conectare Stick USB — ANAF SPV</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        background: #f8fafc;
+        color-scheme: light;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      .wrap {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        box-sizing: border-box;
+      }
+      .card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 28px 24px;
+        max-width: 380px;
+        width: 100%;
+        text-align: center;
+        box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+        box-sizing: border-box;
+      }
+      .badge {
+        width: 48px;
+        height: 48px;
+        margin: 0 auto 16px;
+        border-radius: 12px;
+        background: #eff6ff;
+        border: 1px solid #dbeafe;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #2563eb;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 16px;
+        font-weight: 700;
+        color: #0f172a;
+        letter-spacing: -0.01em;
+      }
+      .status {
+        margin: 0 0 18px;
+        font-size: 13px;
+        line-height: 1.45;
+        color: #475569;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 6px 12px;
+        border-radius: 9999px;
+        background: #f1f5f9;
+        color: #334155;
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 14px;
+      }
+      .spinner {
+        width: 14px;
+        height: 14px;
+        border: 2px solid #cbd5e1;
+        border-top-color: #2563eb;
+        border-radius: 50%;
+        animation: spv-spin 0.8s linear infinite;
+      }
+      .note {
+        margin: 0;
+        font-size: 11.5px;
+        color: #64748b;
+      }
+      @keyframes spv-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <div class="badge">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+            />
+            <path d="m9 12 2 2 4-4" />
+          </svg>
+        </div>
+        <h1>Conectare Stick USB — ANAF SPV</h1>
+        <p class="status">
+          Se inițializează conexiunea securizată cu certificatul digital...
+        </p>
+        <div class="pill">
+          <span class="spinner"></span>
+          <span>Conexiune securizată ANAF</span>
+        </div>
+        <p class="note">
+          Selectează certificatul în fereastra Chrome și confirmă codul PIN.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
