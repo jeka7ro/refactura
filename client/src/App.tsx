@@ -328,6 +328,11 @@ function Router() {
           <Integrations />
         </DashboardLayout>
       </Route>
+      <Route path="/integrations">
+        <DashboardLayout>
+          <Integrations />
+        </DashboardLayout>
+      </Route>
       <Route path="/setari">
         <DashboardLayout>
           <Settings />

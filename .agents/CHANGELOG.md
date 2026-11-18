@@ -1,5 +1,14 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-18 11:12 — Adăugare rută alias `/integrations` în App.tsx pentru prevenire 404 la callback SPV
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. Adăugat ruta alias `<Route path="/integrations">` lângă `<Route path="/integrari">` în `client/src/App.tsx`, astfel încât orice redirecționare către `/integrations?spv_success=true` să randeze pagina `Integrations` fără 404.
+  2. Respectat toate regulile: zero emoji-uri, fără fonturi monospace, fără alerte native de browser și fără `git push`.
+- **Fișiere:** `client/src/App.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npm run build` trecut cu succes (`0` erori).
+
 ### 2026-11-18 10:59 — Fix autorizare OAuth ANAF SPV (`token_content_type=jwt`), redirect `/integrari` și validare CUI
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
