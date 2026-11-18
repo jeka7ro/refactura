@@ -1,5 +1,23 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-18 14:51 — Asociere automată profil PF existent (Cazmal Eugeniu), nume reale în comutator și auto-selecție tab în Setări
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. `server/routers.ts`:
+     - Adăugat `resolveEntityPair(db, userId, activeTenantId)` care descoperă și leagă automat bidirecțional profilul de Persoană Fizică existent al utilizatorului (`Cazmal Eugeniu`, CNP `1801102430126`, ID `10`) de firma curentă (`TRADE INVEST NETWORK S.R.L.`, ID `1`) prin `pairedPfTenantId` / `pairedPjTenantId`.
+     - Actualizat `tenants.getEntityPair` și `tenants.upsertPersonalProfile` să folosească `resolveEntityPair` (inclusiv recunoașterea unui CNP deja creat de același utilizator pentru actualizare, fără eroare falsă de duplicat).
+  2. `server/auth-routers.ts`:
+     - Adăugat `resolveSuperadminLoginTenantId`: la login, păstrează sesiunea pe profilul de Persoană Fizică asociat contului dacă utilizatorul s-a autentificat fiind pe PF, resetând spre tenantul `1` doar dacă sesiunea era lăsată pe un alt tenant client.
+  3. `client/src/components/DashboardLayout.tsx`:
+     - Eliminat exportul necomponent `getTenantDisplayMeta` (eliminând invalidarea Vite Fast Refresh).
+     - Actualizat meniul avatarului din dreapta-sus să afișeze strict perechea cu numele reale (`TRADE INVEST NETWORK S.R.L.` și `Cazmal Eugeniu` + CNP `1801102430126`), fără alți tenanți, păstrând cheia de deblocare PIN în `sessionStorage` la comutare și navigând direct pe `/setari?tab=pf` sau `/setari?tab=company` când comutarea se face din pagina Setări.
+  4. `client/src/pages/Settings.tsx`:
+     - Auto-selectat tab-ul `Persoană Fizică` la deschiderea `/setari` când profilul activ este PF (`activeType === "pf"`), adăugat comutare rapidă între `TRADE INVEST NETWORK S.R.L.` și `Cazmal Eugeniu` în antetul `Date Firmă` și păstrat deblocarea PIN în `sessionStorage` la comutare.
+  5. Respectat toate regulile: zero emoji-uri, fără fonturi monospace, fără alerte native de browser și fără `git push`.
+- **Fișiere:** `server/routers.ts`, `server/auth-routers.ts`, `client/src/components/DashboardLayout.tsx`, `client/src/pages/Settings.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npm run build` trecut cu succes (`0` erori); zero erori TypeScript pe liniile modificate; verificat live `tenants.getEntityPair` (`pj: { id: 1, name: "TRADE INVEST NETWORK S.R.L.", cui: "RO42322117" }`, `pf: { id: 10, name: "Cazmal Eugeniu", cui: "1801102430126" }`) și asocierea persistentă în MySQL.
+
 ### 2026-11-18 14:00 — Eliminare listă multi-tenant și introducere comutator strict 1-la-1 Juridică / Fizică în meniul avatarului + tab Persoană Fizică în Setări
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

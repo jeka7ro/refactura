@@ -106,6 +106,22 @@ export default function Settings() {
   const { data: currentTenantData, isLoading: isLoadingTenants } =
     trpc.tenants.current.useQuery();
   const { data: entityPair } = trpc.tenants.getEntityPair.useQuery();
+  const hasAutoSelectedTabRef = useRef(false);
+  useEffect(() => {
+    if (hasAutoSelectedTabRef.current || !entityPair) return;
+    try {
+      const qTab = new URLSearchParams(window.location.search).get("tab");
+      if (qTab) {
+        hasAutoSelectedTabRef.current = true;
+        return;
+      }
+    } catch {}
+    hasAutoSelectedTabRef.current = true;
+    if (entityPair.activeType === "pf") {
+      setActiveTab("pf");
+    }
+  }, [entityPair?.activeType]);
+
   const currentTenant = useMemo(() => {
     if (currentTenantData) return { tenants: currentTenantData };
     return null;
@@ -117,6 +133,8 @@ export default function Settings() {
     [entityPair, currentTenantData]
   );
 
+  const switchingToTypeRef = useRef<"pj" | "pf">("pj");
+
   const switchTenantMutation = trpc.tenants.switchTenant.useMutation({
     onSuccess: (data) => {
       if (data?.token) {
@@ -124,10 +142,28 @@ export default function Settings() {
       }
       try {
         localStorage.removeItem("tenant-theme-color");
+        const savedPinEntries: [string, string][] = [];
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const k = sessionStorage.key(i);
+          if (k && k.startsWith("smart_invoice_unlocked_pin_")) {
+            const v = sessionStorage.getItem(k);
+            if (v) savedPinEntries.push([k, v]);
+          }
+        }
         sessionStorage.clear();
+        for (const [k, v] of savedPinEntries) {
+          sessionStorage.setItem(k, v);
+        }
+        if (
+          data?.tenantId &&
+          sessionStorage.getItem(`smart_invoice_unlocked_pin_${data.tenantId}`) === "true"
+        ) {
+          sessionStorage.setItem("smart_invoice_pin_session_unlocked", String(data.tenantId));
+        }
       } catch {}
       toast.success("Profilul activ a fost schimbat.");
-      window.location.reload();
+      window.location.href =
+        switchingToTypeRef.current === "pf" ? "/setari?tab=pf" : "/setari?tab=company";
     },
     onError: (err: any) => {
       toast.error(err?.message || "Eroare la schimbarea profilului.");
@@ -825,9 +861,40 @@ export default function Settings() {
           {/* Company tab */}
           {activeTab === "company" && (
             <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 space-y-3">
-              <h2 className="text-xs font-bold text-slate-700 dark:text-white uppercase tracking-wide">
-                Date Firmă
-              </h2>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-xs font-bold text-slate-700 dark:text-white uppercase tracking-wide">
+                  Date Firmă
+                </h2>
+                {entityPair?.pf && (
+                  entityPair.activeType === "pj" ? (
+                    <button
+                      type="button"
+                      disabled={switchTenantMutation.isPending}
+                      onClick={() => {
+                        switchingToTypeRef.current = "pf";
+                        switchTenantMutation.mutate({ tenantId: Number(entityPair.pf!.id) });
+                      }}
+                      className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <User className="w-3.5 h-3.5" />
+                      <span>Comută pe {entityPair.pf.name} (PF)</span>
+                    </button>
+                  ) : entityPair.pj ? (
+                    <button
+                      type="button"
+                      disabled={switchTenantMutation.isPending}
+                      onClick={() => {
+                        switchingToTypeRef.current = "pj";
+                        switchTenantMutation.mutate({ tenantId: Number(entityPair.pj!.id) });
+                      }}
+                      className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Building2 className="w-3.5 h-3.5" />
+                      <span>Activează Firmă ({entityPair.pj.name})</span>
+                    </button>
+                  ) : null
+                )}
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                 <SettingField
                   label="Denumire firmă"
@@ -1114,9 +1181,10 @@ export default function Settings() {
                     <button
                       type="button"
                       disabled={switchTenantMutation.isPending}
-                      onClick={() =>
-                        switchTenantMutation.mutate({ tenantId: Number(entityPair.pf!.id) })
-                      }
+                      onClick={() => {
+                        switchingToTypeRef.current = "pf";
+                        switchTenantMutation.mutate({ tenantId: Number(entityPair.pf!.id) });
+                      }}
                       className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <User className="w-3.5 h-3.5" />
@@ -1131,9 +1199,10 @@ export default function Settings() {
                         <button
                           type="button"
                           disabled={switchTenantMutation.isPending}
-                          onClick={() =>
-                            switchTenantMutation.mutate({ tenantId: Number(entityPair.pj!.id) })
-                          }
+                          onClick={() => {
+                            switchingToTypeRef.current = "pj";
+                            switchTenantMutation.mutate({ tenantId: Number(entityPair.pj!.id) });
+                          }}
                           className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                         >
                           <Building2 className="w-3.5 h-3.5" />

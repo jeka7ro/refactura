@@ -2,7 +2,7 @@
 // Fixed sidebar (240px) + main content area
 // Design: slate-900 sidebar, white content, blue-600 accents
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -55,6 +55,7 @@ import {
   Coins,
   Lock,
   User,
+  Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -68,7 +69,7 @@ import {
 import { BnrExchangeRateHeader } from "./BnrExchangeRateHeader";
 import { CompanyPinLockModal } from "./CompanyPinLockModal";
 
-export function getTenantDisplayMeta(t: any, fallbackEmail?: string) {
+function getTenantDisplayMeta(t: any, fallbackEmail?: string) {
   let s: any = {};
   try {
     if (t?.settings) {
@@ -227,25 +228,61 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     enabled: !!user,
   });
 
-  const applyTenantSessionAndReload = (token?: string, successMsg?: string) => {
+  const targetSwitchTypeRef = useRef<"pj" | "pf" | null>(null);
+
+  const applyTenantSessionAndReload = (
+    token?: string,
+    successMsg?: string,
+    targetTenantId?: number,
+    targetType?: "pj" | "pf" | null
+  ) => {
     if (token) {
       localStorage.setItem("authToken", token);
     }
     try {
       localStorage.removeItem("tenant-theme-color");
+      const savedPinEntries: [string, string][] = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const k = sessionStorage.key(i);
+        if (k && k.startsWith("smart_invoice_unlocked_pin_")) {
+          const v = sessionStorage.getItem(k);
+          if (v) savedPinEntries.push([k, v]);
+        }
+      }
       sessionStorage.clear();
+      for (const [k, v] of savedPinEntries) {
+        sessionStorage.setItem(k, v);
+      }
+      if (
+        targetTenantId &&
+        sessionStorage.getItem(`smart_invoice_unlocked_pin_${targetTenantId}`) === "true"
+      ) {
+        sessionStorage.setItem("smart_invoice_pin_session_unlocked", String(targetTenantId));
+      }
     } catch {}
     if (successMsg) {
       toast.success(successMsg);
+    }
+    if (window.location.pathname === "/setari" && targetType) {
+      window.location.href = targetType === "pf" ? "/setari?tab=pf" : "/setari?tab=company";
+      return;
     }
     window.location.reload();
   };
 
   const switchTenantMutation = trpc.tenants.switchTenant.useMutation({
     onSuccess: (data) => {
-      applyTenantSessionAndReload(data?.token, "Profilul activ a fost schimbat.");
+      const targetType = targetSwitchTypeRef.current;
+      targetSwitchTypeRef.current = null;
+      applyTenantSessionAndReload(
+        data?.token,
+        "Profilul activ a fost schimbat.",
+        data?.tenantId,
+        targetType
+      );
     },
     onError: (err: any) => {
+      targetSwitchTypeRef.current = null;
       toast.error(err?.message || "Eroare la schimbarea profilului.");
     },
   });
@@ -858,7 +895,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               )}
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-64">
+          <DropdownMenuContent align="end" className="w-72">
             <div className="px-3 py-2 text-xs text-slate-500">
               <div className="flex items-center gap-2.5 mb-1">
                 {companyLogo && !logoError ? (
@@ -894,53 +931,101 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               </div>
             </div>
             <div className="border-t border-slate-200 dark:border-slate-700 my-1" />
-            <div className="px-2 py-1.5">
-              <div className="px-1 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <div className="px-2 py-1.5 space-y-1">
+              <div className="px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 Comută Profilul
               </div>
-              <div className="grid grid-cols-2 p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 gap-0.5">
+              <button
+                type="button"
+                disabled={switchTenantMutation.isPending}
+                onClick={() => {
+                  if (entityPair?.activeType === "pf" && entityPair?.pj?.id) {
+                    targetSwitchTypeRef.current = "pj";
+                    switchTenantMutation.mutate({ tenantId: Number(entityPair.pj.id) });
+                  }
+                }}
+                className={cn(
+                  "w-full rounded-lg px-2.5 py-2 text-left flex items-center gap-2.5 transition-colors cursor-pointer border",
+                  entityPair?.activeType !== "pf"
+                    ? "bg-blue-50/70 border-blue-200 dark:bg-blue-950/40 dark:border-blue-800"
+                    : "bg-transparent border-transparent hover:bg-slate-100 dark:hover:bg-slate-800"
+                )}
+              >
+                <div className="w-7 h-7 rounded-md bg-blue-100/80 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                  <Building2 className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-semibold text-slate-900 dark:text-white truncate">
+                    {entityPair?.pj?.name || companyName}
+                  </div>
+                  <div className="text-[10.5px] text-slate-500 truncate tabular-nums">
+                    {entityPair?.pj?.cui
+                      ? `Persoană Juridică · ${
+                          String(entityPair.pj.cui).toUpperCase().startsWith("RO")
+                            ? entityPair.pj.cui
+                            : `RO${entityPair.pj.cui}`
+                        }`
+                      : "Persoană Juridică"}
+                  </div>
+                </div>
+                {entityPair?.activeType !== "pf" && (
+                  <Check className="w-4 h-4 text-blue-600 shrink-0" />
+                )}
+              </button>
+
+              {entityPair?.pf ? (
                 <button
                   type="button"
                   disabled={switchTenantMutation.isPending}
                   onClick={() => {
-                    if (entityPair?.activeType === "pf" && entityPair?.pj?.id) {
-                      switchTenantMutation.mutate({ tenantId: Number(entityPair.pj.id) });
+                    if (entityPair.activeType !== "pf") {
+                      targetSwitchTypeRef.current = "pf";
+                      switchTenantMutation.mutate({ tenantId: Number(entityPair.pf!.id) });
                     }
                   }}
                   className={cn(
-                    "rounded-md py-1.5 px-2 text-[11px] font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer",
-                    entityPair?.activeType !== "pf"
-                      ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                    "w-full rounded-lg px-2.5 py-2 text-left flex items-center gap-2.5 transition-colors cursor-pointer border",
+                    entityPair.activeType === "pf"
+                      ? "bg-indigo-50/80 border-indigo-200 dark:bg-indigo-950/50 dark:border-indigo-800"
+                      : "bg-transparent border-transparent hover:bg-slate-100 dark:hover:bg-slate-800"
                   )}
                 >
-                  <Building2 className="w-3 h-3 shrink-0" />
-                  <span className="truncate">Juridică</span>
+                  <div className="w-7 h-7 rounded-md bg-indigo-100/80 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                    <User className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-semibold text-slate-900 dark:text-white truncate">
+                      {entityPair.pf.name}
+                    </div>
+                    <div className="text-[10.5px] text-slate-500 truncate tabular-nums">
+                      {entityPair.pf.cui
+                        ? `Persoană Fizică · CNP ${entityPair.pf.cui}`
+                        : "Persoană Fizică"}
+                    </div>
+                  </div>
+                  {entityPair.activeType === "pf" && (
+                    <Check className="w-4 h-4 text-indigo-600 shrink-0" />
+                  )}
                 </button>
+              ) : (
                 <button
                   type="button"
-                  disabled={switchTenantMutation.isPending}
-                  onClick={() => {
-                    if (entityPair?.pf?.id) {
-                      if (entityPair.activeType !== "pf") {
-                        switchTenantMutation.mutate({ tenantId: Number(entityPair.pf.id) });
-                      }
-                    } else {
-                      toast.info("Completează datele de Persoană Fizică în Setări pentru activare.");
-                      setLocation("/setari?tab=pf");
-                    }
-                  }}
-                  className={cn(
-                    "rounded-md py-1.5 px-2 text-[11px] font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer",
-                    entityPair?.activeType === "pf"
-                      ? "bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 shadow-2xs"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                  )}
+                  onClick={() => setLocation("/setari?tab=pf")}
+                  className="w-full rounded-lg px-2.5 py-2 text-left flex items-center gap-2.5 transition-colors cursor-pointer border border-dashed border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
-                  <User className="w-3 h-3 shrink-0" />
-                  <span className="truncate">Fizică</span>
+                  <div className="w-7 h-7 rounded-md bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                    <User className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 truncate">
+                      + Adaugă Persoană Fizică (CNP)
+                    </div>
+                    <div className="text-[10.5px] text-slate-500 truncate">
+                      Configurează profilul separat în Setări
+                    </div>
+                  </div>
                 </button>
-              </div>
+              )}
             </div>
             <div className="border-t border-slate-200 dark:border-slate-700 my-1" />
             {pinStatus?.pinEnabled && (

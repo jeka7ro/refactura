@@ -209,6 +209,114 @@ function stripPinFromTenant<T extends { settings?: string | null }>(t: T): T {
   return { ...t, settings: JSON.stringify(parsed) };
 }
 
+function isTenantPfRow(t: { cui?: string | null; settings?: string | null }): boolean {
+  const s = parseTenantSettingsSafe(t.settings);
+  const cleanCode = String(t.cui || "").replace(/^RO/i, "").trim();
+  return s.entityType === "pf" || /^\d{13}$/.test(cleanCode);
+}
+
+async function resolveEntityPair(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
+  userId: number,
+  activeTenantId: number
+) {
+  const { tenants, userTenants } = await import("../drizzle/schema");
+  const { and, asc, eq } = await import("drizzle-orm");
+
+  const [activeT] = await db
+    .select()
+    .from(tenants)
+    .where(eq(tenants.id, activeTenantId))
+    .limit(1);
+  if (!activeT) return null;
+
+  const parsed = parseTenantSettingsSafe(activeT.settings);
+  const isPf = isTenantPfRow(activeT);
+
+  let pjRow: typeof activeT | null = null;
+  let pfRow: typeof activeT | null = null;
+
+  if (isPf) {
+    pfRow = activeT;
+    if (parsed.pairedPjTenantId) {
+      const [foundPj] = await db
+        .select()
+        .from(tenants)
+        .where(eq(tenants.id, Number(parsed.pairedPjTenantId)))
+        .limit(1);
+      pjRow = foundPj || null;
+    }
+    if (!pjRow && userId) {
+      const linkedRows = await db
+        .select({ tenant: tenants })
+        .from(tenants)
+        .innerJoin(userTenants, eq(userTenants.tenantId, tenants.id))
+        .where(and(eq(userTenants.userId, userId), eq(userTenants.isActive, 1)))
+        .orderBy(asc(userTenants.id));
+      const matched = linkedRows.find((r) => !isTenantPfRow(r.tenant));
+      if (matched) {
+        pjRow = matched.tenant;
+        const pjSettings = parseTenantSettingsSafe(pjRow.settings);
+        pjSettings.pairedPfTenantId = activeT.id;
+        const pfSettings = parseTenantSettingsSafe(activeT.settings);
+        pfSettings.pairedPjTenantId = pjRow.id;
+        await db
+          .update(tenants)
+          .set({ settings: JSON.stringify(pjSettings) })
+          .where(eq(tenants.id, pjRow.id));
+        await db
+          .update(tenants)
+          .set({ settings: JSON.stringify(pfSettings) })
+          .where(eq(tenants.id, activeT.id));
+        pjRow = { ...pjRow, settings: JSON.stringify(pjSettings) };
+        pfRow = { ...pfRow, settings: JSON.stringify(pfSettings) };
+      }
+    }
+  } else {
+    pjRow = activeT;
+    if (parsed.pairedPfTenantId) {
+      const [foundPf] = await db
+        .select()
+        .from(tenants)
+        .where(eq(tenants.id, Number(parsed.pairedPfTenantId)))
+        .limit(1);
+      pfRow = foundPf || null;
+    }
+    if (!pfRow && userId) {
+      const linkedRows = await db
+        .select({ tenant: tenants })
+        .from(tenants)
+        .innerJoin(userTenants, eq(userTenants.tenantId, tenants.id))
+        .where(and(eq(userTenants.userId, userId), eq(userTenants.isActive, 1)))
+        .orderBy(asc(userTenants.id));
+      const matched = linkedRows.find((r) => {
+        if (!isTenantPfRow(r.tenant)) return false;
+        const pfSettings = parseTenantSettingsSafe(r.tenant.settings);
+        return !pfSettings.pairedPjTenantId || Number(pfSettings.pairedPjTenantId) === activeT.id;
+      });
+      if (matched) {
+        pfRow = matched.tenant;
+        const pjSettings = parseTenantSettingsSafe(activeT.settings);
+        pjSettings.pairedPfTenantId = pfRow.id;
+        const pfSettings = parseTenantSettingsSafe(pfRow.settings);
+        pfSettings.pairedPjTenantId = activeT.id;
+        await db
+          .update(tenants)
+          .set({ settings: JSON.stringify(pjSettings) })
+          .where(eq(tenants.id, activeT.id));
+        await db
+          .update(tenants)
+          .set({ settings: JSON.stringify(pfSettings) })
+          .where(eq(tenants.id, pfRow.id));
+        pjRow = { ...pjRow, settings: JSON.stringify(pjSettings) };
+        pfRow = { ...pfRow, settings: JSON.stringify(pfSettings) };
+      }
+    }
+  }
+
+  return { isPf, activeT, pjRow, pfRow };
+}
+
 export const appRouter = router({
   system: systemRouter,
   horeca: horecaRouter,
@@ -394,48 +502,15 @@ export const appRouter = router({
       if (!tenantId) return null;
       const db = await getDb();
       if (!db) return null;
-      const { tenants } = await import("../drizzle/schema");
-      const { eq } = await import("drizzle-orm");
-      const [activeT] = await db
-        .select()
-        .from(tenants)
-        .where(eq(tenants.id, tenantId))
-        .limit(1);
-      if (!activeT) return null;
 
-      const parsed = parseTenantSettingsSafe(activeT.settings);
-      const isPf = parsed.entityType === "pf";
-
-      let pj: typeof activeT | null = null;
-      let pf: typeof activeT | null = null;
-
-      if (isPf) {
-        pf = stripPinFromTenant(activeT);
-        if (parsed.pairedPjTenantId) {
-          const [pjRow] = await db
-            .select()
-            .from(tenants)
-            .where(eq(tenants.id, Number(parsed.pairedPjTenantId)))
-            .limit(1);
-          pj = pjRow ? stripPinFromTenant(pjRow) : null;
-        }
-      } else {
-        pj = stripPinFromTenant(activeT);
-        if (parsed.pairedPfTenantId) {
-          const [pfRow] = await db
-            .select()
-            .from(tenants)
-            .where(eq(tenants.id, Number(parsed.pairedPfTenantId)))
-            .limit(1);
-          pf = pfRow ? stripPinFromTenant(pfRow) : null;
-        }
-      }
+      const resolved = await resolveEntityPair(db, ctx.user.id, tenantId);
+      if (!resolved) return null;
 
       return {
-        activeType: isPf ? ("pf" as const) : ("pj" as const),
-        activeTenantId: activeT.id,
-        pj,
-        pf,
+        activeType: resolved.isPf ? ("pf" as const) : ("pj" as const),
+        activeTenantId: resolved.activeT.id,
+        pj: resolved.pjRow ? stripPinFromTenant(resolved.pjRow) : null,
+        pf: resolved.pfRow ? stripPinFromTenant(resolved.pfRow) : null,
       };
     }),
     upsertPersonalProfile: protectedProcedure
@@ -462,50 +537,36 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new Error("Baza de date indisponibilă");
         const { tenants, userTenants, accounts } = await import("../drizzle/schema");
-        const { eq } = await import("drizzle-orm");
+        const { and, eq } = await import("drizzle-orm");
 
-        const [activeT] = await db
-          .select()
-          .from(tenants)
-          .where(eq(tenants.id, activeTenantId))
-          .limit(1);
-        if (!activeT) throw new Error("Profilul activ nu a fost găsit");
+        const resolved = await resolveEntityPair(db, ctx.user.id, activeTenantId);
+        if (!resolved) throw new Error("Profilul activ nu a fost găsit");
 
-        const activeSettings = parseTenantSettingsSafe(activeT.settings);
-        const isPfActive = activeSettings.entityType === "pf";
-
-        let pj: typeof activeT | undefined;
-        let existingPf: typeof activeT | undefined;
-
-        if (isPfActive) {
-          existingPf = activeT;
-          if (activeSettings.pairedPjTenantId) {
-            const [pjRow] = await db
-              .select()
-              .from(tenants)
-              .where(eq(tenants.id, Number(activeSettings.pairedPjTenantId)))
-              .limit(1);
-            pj = pjRow;
-          }
-        } else {
-          pj = activeT;
-          if (activeSettings.pairedPfTenantId) {
-            const [pfRow] = await db
-              .select()
-              .from(tenants)
-              .where(eq(tenants.id, Number(activeSettings.pairedPfTenantId)))
-              .limit(1);
-            existingPf = pfRow;
-          }
-        }
+        let pj = resolved.pjRow || undefined;
+        let existingPf = resolved.pfRow || undefined;
 
         const [duplicate] = await db
-          .select({ id: tenants.id })
+          .select()
           .from(tenants)
           .where(eq(tenants.cui, input.cnp))
           .limit(1);
         if (duplicate && duplicate.id !== existingPf?.id) {
-          throw new Error("Există deja un profil înregistrat cu acest CNP.");
+          const [ownedByUser] = await db
+            .select({ id: userTenants.id })
+            .from(userTenants)
+            .where(
+              and(
+                eq(userTenants.userId, ctx.user.id),
+                eq(userTenants.tenantId, duplicate.id),
+                eq(userTenants.isActive, 1)
+              )
+            )
+            .limit(1);
+          if (ownedByUser && !existingPf) {
+            existingPf = duplicate;
+          } else {
+            throw new Error("Există deja un profil înregistrat cu acest CNP.");
+          }
         }
 
         const bankList = Array.isArray(input.bankAccounts) ? input.bankAccounts : [];

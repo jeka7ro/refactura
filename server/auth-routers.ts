@@ -11,6 +11,71 @@ const resend = new Resend(process.env.RESEND_API_KEY || "re_dummy_key_to_prevent
 const EMAIL_FROM = process.env.EMAIL_FROM || "onboarding@resend.dev";
 const APP_URL = process.env.APP_URL || "http://localhost:3000";
 
+async function resolveSuperadminLoginTenantId(account: {
+  id: number;
+  email: string;
+  role: string;
+  tenantId: number | null;
+}): Promise<number | null> {
+  let activeTenantId = account.tenantId;
+  if (account.role !== "superadmin" && account.email !== "jeka7ro@gmail.com") {
+    return activeTenantId;
+  }
+  if (activeTenantId && activeTenantId !== 1) {
+    try {
+      const { getDb } = await import("./db");
+      const db = await getDb();
+      if (db) {
+        const { tenants, userTenants } = await import("../drizzle/schema");
+        const { and, eq } = await import("drizzle-orm");
+        const [t] = await db
+          .select({ id: tenants.id, cui: tenants.cui, settings: tenants.settings })
+          .from(tenants)
+          .where(eq(tenants.id, activeTenantId))
+          .limit(1);
+        if (t) {
+          let s: any = {};
+          try {
+            s = JSON.parse(t.settings || "{}");
+          } catch {}
+          const cleanCode = String(t.cui || "").replace(/^RO/i, "").trim();
+          const isPf = s?.entityType === "pf" || /^\d{13}$/.test(cleanCode);
+          if (isPf) {
+            const [owned] = await db
+              .select({ id: userTenants.id })
+              .from(userTenants)
+              .where(
+                and(
+                  eq(userTenants.userId, account.id),
+                  eq(userTenants.tenantId, t.id),
+                  eq(userTenants.isActive, 1)
+                )
+              )
+              .limit(1);
+            if (owned || Number(s?.pairedPjTenantId) === 1) {
+              return activeTenantId;
+            }
+          }
+        }
+      }
+    } catch {}
+  }
+
+  activeTenantId = 1;
+  try {
+    const { getDb } = await import("./db");
+    const db = await getDb();
+    if (db) {
+      const { accounts } = await import("../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      await db.update(accounts).set({ tenantId: 1 }).where(eq(accounts.id, account.id));
+    }
+  } catch (e) {
+    console.warn("[Auth] Failed to reset superadmin tenantId to 1:", e);
+  }
+  return activeTenantId;
+}
+
 export const authRouter = router({
   /**
    * Register a new account
@@ -73,21 +138,7 @@ export const authRouter = router({
       try {
         const account = await authenticateAccount(input.email, input.password);
 
-        let activeTenantId = account.tenantId;
-        if (account.role === "superadmin" || account.email === "jeka7ro@gmail.com") {
-          activeTenantId = 1;
-          try {
-            const { getDb } = await import("./db");
-            const db = await getDb();
-            if (db) {
-              const { accounts } = await import("../drizzle/schema");
-              const { eq } = await import("drizzle-orm");
-              await db.update(accounts).set({ tenantId: 1 }).where(eq(accounts.id, account.id));
-            }
-          } catch (e) {
-            console.warn("[Auth] Failed to reset superadmin tenantId to 1:", e);
-          }
-        }
+        const activeTenantId = await resolveSuperadminLoginTenantId(account);
 
         const token = await createSessionToken({
           accountId: account.id,
@@ -270,21 +321,7 @@ export const authRouter = router({
           throw new Error("Account is inactive");
         }
         
-        let activeTenantId = account.tenantId;
-        if (account.role === "superadmin" || account.email === "jeka7ro@gmail.com") {
-          activeTenantId = 1;
-          try {
-            const { getDb } = await import("./db");
-            const db = await getDb();
-            if (db) {
-              const { accounts } = await import("../drizzle/schema");
-              const { eq } = await import("drizzle-orm");
-              await db.update(accounts).set({ tenantId: 1 }).where(eq(accounts.id, account.id));
-            }
-          } catch (e) {
-            console.warn("[Auth] Failed to reset superadmin tenantId to 1:", e);
-          }
-        }
+        const activeTenantId = await resolveSuperadminLoginTenantId(account);
 
         const token = await createSessionToken({
           accountId: account.id,
