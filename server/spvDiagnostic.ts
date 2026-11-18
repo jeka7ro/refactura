@@ -44,7 +44,7 @@ export async function testSpvConnection(tenantId: number): Promise<SpvTestResult
 
   const cleanCif = (tenant?.cui || "").replace(/^RO/i, "").trim();
 
-  // 2. Verificare integrare SPV în DB
+  // 2. Verificare integrare SPV în DB (cu fallback strict pe firma pereche pentru profil PF)
   const [spvIntg] = await db
     .select()
     .from(integrations)
@@ -56,7 +56,20 @@ export async function testSpvConnection(tenantId: number): Promise<SpvTestResult
     )
     .limit(1);
 
-  if (!spvIntg || !spvIntg.apiKey) {
+  let effectiveSpvIntg = spvIntg;
+  let tokenInfo: { token: string; integration: any } | null = null;
+  if (!effectiveSpvIntg || !effectiveSpvIntg.apiKey) {
+    try {
+      tokenInfo = await getValidSpvToken(tenantId);
+      if (tokenInfo?.integration) {
+        effectiveSpvIntg = tokenInfo.integration;
+      }
+    } catch (err: any) {
+      console.error("[SPV Test] Fallback token lookup failed:", err?.message);
+    }
+  }
+
+  if (!effectiveSpvIntg || !effectiveSpvIntg.apiKey) {
     return {
       status: "not_configured",
       connected: false,
@@ -65,14 +78,16 @@ export async function testSpvConnection(tenantId: number): Promise<SpvTestResult
       tokenExpiresAt: null,
       daysRemaining: null,
       isExpired: false,
-      message: "Conexiunea SPV ANAF nu este configurată pentru această firmă.",
+      message: "Conexiunea SPV ANAF nu este configurată pentru acest profil.",
       detail: "Autentificați-vă prin butonul 'Conectează ANAF SPV' cu certificatul digital.",
     };
   }
 
   // 3. Verificare dată expirare token
   const now = new Date();
-  const tokenExpiresAt = spvIntg.tokenExpiresAt ? new Date(spvIntg.tokenExpiresAt) : null;
+  const tokenExpiresAt = effectiveSpvIntg.tokenExpiresAt
+    ? new Date(effectiveSpvIntg.tokenExpiresAt)
+    : null;
   let daysRemaining: number | null = null;
   let isExpired = false;
 
@@ -83,14 +98,15 @@ export async function testSpvConnection(tenantId: number): Promise<SpvTestResult
   }
 
   // 4. Preluare / Reîmprospătare token valid prin buffer-ul securizat
-  let tokenInfo: { token: string; integration: any } | null = null;
-  try {
-    tokenInfo = await getValidSpvToken(tenantId);
-  } catch (err: any) {
-    console.error("[SPV Test] Error getting valid token:", err?.message);
+  if (!tokenInfo) {
+    try {
+      tokenInfo = await getValidSpvToken(tenantId);
+    } catch (err: any) {
+      console.error("[SPV Test] Error getting valid token:", err?.message);
+    }
   }
 
-  const effectiveToken = tokenInfo?.token || spvIntg.apiKey;
+  const effectiveToken = tokenInfo?.token || effectiveSpvIntg.apiKey;
 
   if (!effectiveToken) {
     return {
@@ -142,10 +158,34 @@ export async function testSpvConnection(tenantId: number): Promise<SpvTestResult
 
     if (res.status === 200) {
       let count = 0;
+      let anafError: string | null = null;
       try {
         const data = await res.json();
-        if (Array.isArray(data?.mesaje)) count = data.mesaje.length;
+        if (data?.eroare) {
+          anafError = String(data.eroare);
+        } else if (Array.isArray(data?.mesaje)) {
+          count = data.mesaje.length;
+        }
       } catch {}
+
+      if (anafError) {
+        const isPfCode = /^\d{13}$/.test(cleanCif);
+        return {
+          status: "warning",
+          connected: false,
+          latencyMs,
+          cui: cleanCif,
+          tokenExpiresAt: tokenExpiresAt ? tokenExpiresAt.toISOString() : null,
+          daysRemaining,
+          isExpired: false,
+          message: isPfCode
+            ? `Certificatul digital USB este valid, dar nu este încă înrolat la ANAF în SPV pe CNP ${cleanCif} (${anafError}).`
+            : `Răspuns ANAF pentru CIF ${cleanCif}: ${anafError}`,
+          detail: isPfCode
+            ? "Pentru sincronizare automată pe CNP, înrolați certificatul digital și ca Persoană Fizică pe anaf.ro (Înregistrare utilizatori -> Persoane fizice -> Înregistrare cu certificat digital), sau încărcați manual documentele PDF/ZIP descărcate din SPV."
+            : anafError,
+        };
+      }
 
       const warningDays = daysRemaining !== null && daysRemaining <= 10;
       return {

@@ -2967,8 +2967,31 @@ export const appRouter = router({
   // ─── Integrations Router ─────────────────────────────────────────────────────
   integrations: router({
     list: protectedProcedure.query(async ({ ctx }) => {
-      
-      return getIntegrations((tenantOf(ctx)));
+      const tenantId = tenantOf(ctx);
+      const list = await getIntegrations(tenantId);
+      if (!list.some((i) => i.provider === "spv")) {
+        const db = await getDb();
+        if (db) {
+          const { tenants } = await import("../drizzle/schema");
+          const { eq } = await import("drizzle-orm");
+          const [t] = await db
+            .select({ settings: tenants.settings })
+            .from(tenants)
+            .where(eq(tenants.id, tenantId))
+            .limit(1);
+          const s = parseTenantSettingsSafe(t?.settings);
+          if (s.entityType === "pf" && s.pairedPjTenantId) {
+            const pairedList = await getIntegrations(Number(s.pairedPjTenantId));
+            const pairedSpv = pairedList.find(
+              (i) => i.provider === "spv" && i.status === "active" && i.apiKey
+            );
+            if (pairedSpv) {
+              return [...list, { ...pairedSpv, tenantId }];
+            }
+          }
+        }
+      }
+      return list;
     }),
     exportSaga: protectedProcedure
       .input(
@@ -5449,26 +5472,23 @@ export const appRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Baza de date indisponibilă");
 
-      const { integrations, tenants } = await import("../drizzle/schema");
-      const { eq, and, sql } = await import("drizzle-orm");
+      const { tenants } = await import("../drizzle/schema");
+      const { eq, sql } = await import("drizzle-orm");
+      const { getValidSpvToken } = await import("./anafApi");
 
-      const [intg] = await db
-        .select()
-        .from(integrations)
-        .where(and(eq(integrations.tenantId, tenantId), eq(integrations.provider, "spv"), eq(integrations.status, "active")));
-
-      if (!intg?.apiKey) throw new Error("Nu există token OAuth SPV configurat.");
+      const tokenData = await getValidSpvToken(tenantId);
+      if (!tokenData?.token) throw new Error("Nu există token OAuth SPV configurat.");
 
       const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
       const settings = typeof tenant?.settings === "string" ? JSON.parse(tenant.settings || "{}") : tenant?.settings;
       const rawCui = settings?.companyCui || tenant?.cui || "";
       const cleanCif = rawCui.replace(/^RO/i, "").trim();
-      if (!cleanCif) throw new Error("CUI-ul firmei nu este configurat.");
+      if (!cleanCif) throw new Error("CUI-ul / CNP-ul profilului nu este configurat.");
 
       const url = `https://api.anaf.ro/prod/FCTEL/rest/listaMesajeFactura?zile=60&cif=${cleanCif}`;
       const res = await fetch(url, {
         headers: {
-          Authorization: `Bearer ${intg.apiKey}`,
+          Authorization: `Bearer ${tokenData.token}`,
           Accept: "application/json",
         },
       });
@@ -5478,6 +5498,13 @@ export const appRouter = router({
       }
 
       const data = await res.json();
+      if (data?.eroare) {
+        return {
+          total: 0,
+          imported: 0,
+          anafNotice: String(data.eroare),
+        };
+      }
       const rawList = data?.mesaje || [];
       let imported = 0;
 

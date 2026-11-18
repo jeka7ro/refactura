@@ -1,5 +1,5 @@
 import { getDb } from "./db";
-import { integrations, reInvoices } from "../drizzle/schema";
+import { integrations, reInvoices, tenants } from "../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 
 const ANAF_UPLOAD_URL =
@@ -57,7 +57,10 @@ export async function refreshSpvToken(intg: any): Promise<string | null> {
   }
 }
 
-export async function getValidSpvToken(tenantId: number): Promise<{ token: string; integration: any } | null> {
+export async function getValidSpvToken(
+  tenantId: number,
+  allowPairedFallback = true
+): Promise<{ token: string; integration: any } | null> {
   const db = await getDb();
   if (!db) return null;
 
@@ -73,7 +76,23 @@ export async function getValidSpvToken(tenantId: number): Promise<{ token: strin
     )
     .limit(1);
 
-  if (!intg?.apiKey) return null;
+  if (!intg?.apiKey) {
+    if (allowPairedFallback) {
+      const [t] = await db
+        .select({ settings: tenants.settings })
+        .from(tenants)
+        .where(eq(tenants.id, tenantId))
+        .limit(1);
+      let s: any = {};
+      try {
+        s = t?.settings ? JSON.parse(t.settings) : {};
+      } catch {}
+      if (s?.entityType === "pf" && s?.pairedPjTenantId) {
+        return getValidSpvToken(Number(s.pairedPjTenantId), false);
+      }
+    }
+    return null;
+  }
 
   const now = new Date();
   const isExpiring = intg.tokenExpiresAt

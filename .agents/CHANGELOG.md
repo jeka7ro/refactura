@@ -1,5 +1,20 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-18 15:53 — Partajare sigură token certificat USB pentru profilul PF pereche și diagnostic înrolare ANAF CNP
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. `server/anafApi.ts` (`getValidSpvToken`):
+     - Adăugat fallback securizat strict pentru profilurile de Persoană Fizică (`entityType === "pf"`) care au `pairedPjTenantId`: reutilizează tokenul certificatului digital de pe firma pereche fără să afecteze tenanții activi care au propriul token și protejând tokenul firmei de revocare prin a doua autorizare OAuth pe același stick USB.
+  2. `server/spvDiagnostic.ts` (`testSpvConnection`):
+     - Folosește același fallback de token pe profilul PF și verifică explicit câmpul `data.eroare` returnat de ANAF pe HTTP 200, afișând diagnostic exact când certificatul digital USB nu este încă înrolat în SPV și pe CNP-ul persoanei fizice (`anaf.ro -> Înregistrare utilizatori -> Persoane fizice -> Înregistrare cu certificat digital`).
+  3. `server/routers.ts` (`integrations.list`, `spvMessages.syncFromAnaf`):
+     - `integrations.list` reflectă integrarea SPV activă a certificatului USB pereche și pe profilul PF (păstrând ștergerea/modificarea strict izolată pe `tenantId`-ul curent).
+     - `spvMessages.syncFromAnaf` utilizează `getValidSpvToken(tenantId)` și gestionează curat răspunsul `data.eroare` de la ANAF.
+  4. Respectat toate regulile: zero emoji-uri, fără fonturi monospace, fără alerte native de browser și fără `git push`.
+- **Fișiere:** `server/anafApi.ts`, `server/spvDiagnostic.ts`, `server/routers.ts`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npm run build` trecut (`0` erori); `tsc --noEmit` curat pe `anafApi.ts` și `spvDiagnostic.ts`; verificat live `testSpvConnection(1)` (`connected: true`, `42322117`, `125ms`) și `testSpvConnection(10)` (`warning`, diagnostic explicit ANAF pe CNP `1801102430126`).
+
 ### 2026-11-18 15:19 — Separare câmpuri Nume / Prenume pe Persoană Fizică și audit izolare tenanți activi
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
