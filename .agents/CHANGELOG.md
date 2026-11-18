@@ -1,5 +1,24 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-18 14:00 — Eliminare listă multi-tenant și introducere comutator strict 1-la-1 Juridică / Fizică în meniul avatarului + tab Persoană Fizică în Setări
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. `server/routers.ts`:
+     - Izolat `tenants.list` să returneze exclusiv profilul activ al sesiunii (eliminând afișarea altor tenanți/clienți SaaS din `userTenants` în interfață).
+     - Adăugat `tenants.getEntityPair` (returnează strict perechea 1-la-1 `pj` <-> `pf` legată prin `pairedPfTenantId` / `pairedPjTenantId`, fără niciun alt tenant) și `tenants.upsertPersonalProfile` (creează/actualizează profilul separat de Persoană Fizică pe CNP și îl leagă 1-la-1 de firma curentă, cu comutare imediată la prima creare).
+     - Extins `tenants.updateSettings` cu `targetTenantId` validat strict pe perechea curentă și eliminat inserarea automată în `userTenants` din `tenants.switchTenant`.
+  2. `client/src/components/DashboardLayout.tsx`:
+     - Eliminat complet lista de tenanți din header, meniul lateral și modalul `Adaugă Profil Nou`, restabilind layout-ul curat original al antetului și barei laterale.
+     - Adăugat comutatorul segmentat `[ Juridică | Fizică ]` direct în meniul dropdown al avatarului din dreapta-sus (`Comută Profilul`, deasupra `Blochează ecranul` / `Deconectare`).
+  3. `client/src/pages/Settings.tsx`:
+     - Eliminat bara `Cont activ:` cu lista tuturor tenanților de deasupra setărilor și restaurat antetul curat.
+     - Adăugat tab-ul dedicat **`Persoană Fizică`** în meniul din stânga din **Setări** (sub `Firmă`), cu câmpuri 100% separate (`Nume și prenume`, `CNP 13 cifre`, `Email`, `Telefon`, `Adresă domiciliu`, `Oraș`, `Țară`, `Conturi IBAN personale`) fără amestec cu datele firmei.
+     - Corectat referința preexistentă `(user as any)?.tenantId` din `handleSavePin`.
+  4. Respectat toate regulile: zero emoji-uri, fără fonturi monospace, fără alerte native de browser și fără `git push`.
+- **Fișiere:** `server/routers.ts`, `client/src/components/DashboardLayout.tsx`, `client/src/pages/Settings.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npm run build` trecut cu succes (`0` erori); zero erori TypeScript pe liniile modificate și în `DashboardLayout.tsx` / `Settings.tsx`; verificat live `HTTP /setari` (`200`), `tenants.list` (`[{"id":1,"name":"TRADE INVEST NETWORK S.R.L."}]`) și `tenants.getEntityPair` (`activeType: pj`, `pf: null`).
+
 ### 2026-11-18 12:14 — Creare și comutare profil separat Persoană Fizică (CNP) în Setări, Header și Sidebar restrâns
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

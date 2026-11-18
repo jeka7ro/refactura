@@ -192,6 +192,23 @@ const qrPontajProcedure = protectedProcedure.use(({ ctx, next }) => {
   return next({ ctx });
 });
 
+function parseTenantSettingsSafe(raw: unknown): Record<string, any> {
+  if (!raw) return {};
+  if (typeof raw === "object") return { ...(raw as Record<string, any>) };
+  try {
+    return JSON.parse(String(raw));
+  } catch {
+    return {};
+  }
+}
+
+function stripPinFromTenant<T extends { settings?: string | null }>(t: T): T {
+  if (!t?.settings) return t;
+  const parsed = parseTenantSettingsSafe(t.settings);
+  delete parsed.accessPinHash;
+  return { ...t, settings: JSON.stringify(parsed) };
+}
+
 export const appRouter = router({
   system: systemRouter,
   horeca: horecaRouter,
@@ -203,7 +220,27 @@ export const appRouter = router({
   tenants: router({
     list: protectedProcedure.query(async ({ ctx }) => {
       if (!ctx.user) return [];
-      return getTenantsByUser(ctx.user.id);
+      const db = await getDb();
+      if (!db) return [];
+      const { tenants } = await import("../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      if (ctx.user.tenantId) {
+        const [activeT] = await db
+          .select()
+          .from(tenants)
+          .where(eq(tenants.id, ctx.user.tenantId))
+          .limit(1);
+        if (activeT) {
+          return [
+            {
+              ...stripPinFromTenant(activeT),
+              role: ctx.user.role === "superadmin" ? "superadmin" : "admin",
+            },
+          ];
+        }
+      }
+      const fallback = await getTenantsByUser(ctx.user.id);
+      return fallback.slice(0, 1).map((t) => stripPinFromTenant(t));
     }),
     create: protectedProcedure
       .input(
@@ -350,15 +387,252 @@ export const appRouter = router({
         .where(eq(tenants.id, tenantId))
         .limit(1);
       if (!t) return null;
-      if (t.settings) {
-        try {
-          const parsed = JSON.parse(t.settings);
-          delete parsed.accessPinHash;
-          t.settings = JSON.stringify(parsed);
-        } catch {}
-      }
-      return t;
+      return stripPinFromTenant(t);
     }),
+    getEntityPair: protectedProcedure.query(async ({ ctx }) => {
+      const tenantId = ctx.user?.tenantId;
+      if (!tenantId) return null;
+      const db = await getDb();
+      if (!db) return null;
+      const { tenants } = await import("../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      const [activeT] = await db
+        .select()
+        .from(tenants)
+        .where(eq(tenants.id, tenantId))
+        .limit(1);
+      if (!activeT) return null;
+
+      const parsed = parseTenantSettingsSafe(activeT.settings);
+      const isPf = parsed.entityType === "pf";
+
+      let pj: typeof activeT | null = null;
+      let pf: typeof activeT | null = null;
+
+      if (isPf) {
+        pf = stripPinFromTenant(activeT);
+        if (parsed.pairedPjTenantId) {
+          const [pjRow] = await db
+            .select()
+            .from(tenants)
+            .where(eq(tenants.id, Number(parsed.pairedPjTenantId)))
+            .limit(1);
+          pj = pjRow ? stripPinFromTenant(pjRow) : null;
+        }
+      } else {
+        pj = stripPinFromTenant(activeT);
+        if (parsed.pairedPfTenantId) {
+          const [pfRow] = await db
+            .select()
+            .from(tenants)
+            .where(eq(tenants.id, Number(parsed.pairedPfTenantId)))
+            .limit(1);
+          pf = pfRow ? stripPinFromTenant(pfRow) : null;
+        }
+      }
+
+      return {
+        activeType: isPf ? ("pf" as const) : ("pj" as const),
+        activeTenantId: activeT.id,
+        pj,
+        pf,
+      };
+    }),
+    upsertPersonalProfile: protectedProcedure
+      .input(
+        z.object({
+          name: z.string().trim().min(1, "Numele și prenumele sunt obligatorii"),
+          cnp: z
+            .string()
+            .trim()
+            .regex(/^\d{13}$/, "CNP-ul trebuie să conțină exact 13 cifre"),
+          email: z.string().optional(),
+          phone: z.string().optional(),
+          address: z.string().optional(),
+          city: z.string().optional(),
+          country: z.string().optional(),
+          bankAccounts: z.array(z.any()).optional(),
+          switchToPf: z.boolean().optional().default(false),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new Error("Neautentificat");
+        const activeTenantId = ctx.user.tenantId;
+        if (!activeTenantId) throw new Error("Nu există profil activ");
+        const db = await getDb();
+        if (!db) throw new Error("Baza de date indisponibilă");
+        const { tenants, userTenants, accounts } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+
+        const [activeT] = await db
+          .select()
+          .from(tenants)
+          .where(eq(tenants.id, activeTenantId))
+          .limit(1);
+        if (!activeT) throw new Error("Profilul activ nu a fost găsit");
+
+        const activeSettings = parseTenantSettingsSafe(activeT.settings);
+        const isPfActive = activeSettings.entityType === "pf";
+
+        let pj: typeof activeT | undefined;
+        let existingPf: typeof activeT | undefined;
+
+        if (isPfActive) {
+          existingPf = activeT;
+          if (activeSettings.pairedPjTenantId) {
+            const [pjRow] = await db
+              .select()
+              .from(tenants)
+              .where(eq(tenants.id, Number(activeSettings.pairedPjTenantId)))
+              .limit(1);
+            pj = pjRow;
+          }
+        } else {
+          pj = activeT;
+          if (activeSettings.pairedPfTenantId) {
+            const [pfRow] = await db
+              .select()
+              .from(tenants)
+              .where(eq(tenants.id, Number(activeSettings.pairedPfTenantId)))
+              .limit(1);
+            existingPf = pfRow;
+          }
+        }
+
+        const [duplicate] = await db
+          .select({ id: tenants.id })
+          .from(tenants)
+          .where(eq(tenants.cui, input.cnp))
+          .limit(1);
+        if (duplicate && duplicate.id !== existingPf?.id) {
+          throw new Error("Există deja un profil înregistrat cu acest CNP.");
+        }
+
+        const bankList = Array.isArray(input.bankAccounts) ? input.bankAccounts : [];
+        const primaryRon =
+          bankList.find((a: any) => a?.currency === "RON") || bankList[0];
+        const primaryEur = bankList.find((a: any) => a?.currency === "EUR");
+
+        let pfId: number;
+        if (!existingPf) {
+          if (!pj) {
+            throw new Error("Profilul de persoană juridică nu a fost găsit.");
+          }
+          const initialPfSettings = {
+            entityType: "pf",
+            pairedPjTenantId: pj.id,
+            city: input.city?.trim() || "",
+            country: input.country || "RO",
+            iban: primaryRon?.iban || "",
+            bank: primaryRon?.bank || "",
+            ibanEur: primaryEur?.iban || "",
+            bankEur: primaryEur?.bank || "",
+            bankAccounts: bankList,
+            defaultCurrency: "RON",
+            defaultLanguage: "ro",
+            defaultVatRate: 0,
+            invoicePrefix: "PF",
+            invoiceStartNumber: 1,
+            defaultDueDays: 15,
+            invoiceTemplate: "classic",
+            modules: {
+              saga: false,
+              production: false,
+              costCenters: false,
+              integrations: true,
+            },
+          };
+
+          const insertRes: any = await db.insert(tenants).values({
+            name: input.name,
+            cui: input.cnp,
+            email:
+              (input.email && input.email.trim()) ||
+              ctx.user.email ||
+              pj.email ||
+              "contact@smartinvoice.local",
+            phone: input.phone?.trim() || null,
+            address: input.address?.trim() || null,
+            settings: JSON.stringify(initialPfSettings),
+          });
+          pfId = Number(insertRes[0]?.insertId || insertRes?.insertId);
+          if (!pfId) {
+            throw new Error("Nu s-a putut crea profilul de persoană fizică.");
+          }
+
+          await db.insert(userTenants).values({
+            userId: ctx.user.id,
+            tenantId: pfId,
+            role: ctx.user.role === "superadmin" ? "superadmin" : "admin",
+            isActive: 1,
+          });
+
+          const pjSettings = parseTenantSettingsSafe(pj.settings);
+          pjSettings.pairedPfTenantId = pfId;
+          await db
+            .update(tenants)
+            .set({ settings: JSON.stringify(pjSettings) })
+            .where(eq(tenants.id, pj.id));
+        } else {
+          pfId = existingPf.id;
+          const prevPfSettings = parseTenantSettingsSafe(existingPf.settings);
+          const mergedPfSettings: Record<string, any> = {
+            ...prevPfSettings,
+            entityType: "pf",
+            city: input.city?.trim() || "",
+            country: input.country || "RO",
+            iban: primaryRon?.iban || "",
+            bank: primaryRon?.bank || "",
+            ibanEur: primaryEur?.iban || "",
+            bankEur: primaryEur?.bank || "",
+            bankAccounts: bankList,
+          };
+          if (pj?.id) {
+            mergedPfSettings.pairedPjTenantId = pj.id;
+          } else if (prevPfSettings.pairedPjTenantId) {
+            mergedPfSettings.pairedPjTenantId = prevPfSettings.pairedPjTenantId;
+          }
+          if (prevPfSettings.accessPinHash) {
+            mergedPfSettings.accessPinHash = prevPfSettings.accessPinHash;
+          }
+          if (prevPfSettings.accessPinEnabled !== undefined) {
+            mergedPfSettings.accessPinEnabled = prevPfSettings.accessPinEnabled;
+          }
+
+          const updatePayload: Record<string, any> = {
+            name: input.name,
+            cui: input.cnp,
+            phone: input.phone?.trim() || null,
+            address: input.address?.trim() || null,
+            settings: JSON.stringify(mergedPfSettings),
+          };
+          if (input.email && input.email.trim()) {
+            updatePayload.email = input.email.trim();
+          }
+
+          await db
+            .update(tenants)
+            .set(updatePayload)
+            .where(eq(tenants.id, existingPf.id));
+        }
+
+        let token: string | undefined;
+        if (input.switchToPf) {
+          await db
+            .update(accounts)
+            .set({ tenantId: pfId })
+            .where(eq(accounts.id, ctx.user.id));
+
+          token = await createSessionToken({
+            accountId: ctx.user.id,
+            email: ctx.user.email || "",
+            role: ctx.user.role,
+            tenantId: pfId,
+          });
+        }
+
+        return { success: true, pfTenantId: pfId, token };
+      }),
     getModules: protectedProcedure.query(async ({ ctx }) => {
       const { getDefaultTenantForUser } = await import("./db");
       const tenantId =
@@ -647,6 +921,7 @@ export const appRouter = router({
           address: z.string().optional(),
           cui: z.string().optional(),
           settings: z.string().optional(),
+          targetTenantId: z.number().optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -656,7 +931,29 @@ export const appRouter = router({
         if (!db) throw new Error("No DB");
         const { tenants } = await import("../drizzle/schema");
         const { eq } = await import("drizzle-orm");
+
+        let effectiveTargetId = tenantId;
+        if (input.targetTenantId && input.targetTenantId !== tenantId) {
+          const [activeRow] = await db
+            .select()
+            .from(tenants)
+            .where(eq(tenants.id, tenantId))
+            .limit(1);
+          const activeSettings = parseTenantSettingsSafe(activeRow?.settings);
+          const isPairedTarget =
+            Number(activeSettings.pairedPjTenantId) === input.targetTenantId ||
+            Number(activeSettings.pairedPfTenantId) === input.targetTenantId;
+          if (!isPairedTarget) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Acces interzis la setările acestui profil.",
+            });
+          }
+          effectiveTargetId = input.targetTenantId;
+        }
+
         const updateData: any = { ...input };
+        delete updateData.targetTenantId;
         if (input.email !== undefined) {
           const trimmedEmail = input.email.trim();
           if (trimmedEmail === "") {
@@ -673,18 +970,10 @@ export const appRouter = router({
           const [currentT] = await db
             .select()
             .from(tenants)
-            .where(eq(tenants.id, tenantId))
+            .where(eq(tenants.id, effectiveTargetId))
             .limit(1);
-          let existingSettings: any = {};
-          try {
-            existingSettings = JSON.parse(currentT?.settings || "{}");
-          } catch {}
-          let newSettings: any = {};
-          try {
-            newSettings = JSON.parse(input.settings);
-          } catch {
-            newSettings = {};
-          }
+          const existingSettings = parseTenantSettingsSafe(currentT?.settings);
+          const newSettings = parseTenantSettingsSafe(input.settings);
           const mergedSettings: any = { ...existingSettings, ...newSettings };
           if (existingSettings.accessPinHash) {
             mergedSettings.accessPinHash = existingSettings.accessPinHash;
@@ -692,12 +981,24 @@ export const appRouter = router({
           if (existingSettings.accessPinEnabled !== undefined) {
             mergedSettings.accessPinEnabled = existingSettings.accessPinEnabled;
           }
+          if (
+            existingSettings.pairedPfTenantId !== undefined &&
+            newSettings.pairedPfTenantId === undefined
+          ) {
+            mergedSettings.pairedPfTenantId = existingSettings.pairedPfTenantId;
+          }
+          if (
+            existingSettings.pairedPjTenantId !== undefined &&
+            newSettings.pairedPjTenantId === undefined
+          ) {
+            mergedSettings.pairedPjTenantId = existingSettings.pairedPjTenantId;
+          }
           updateData.settings = JSON.stringify(mergedSettings);
         }
         await db
           .update(tenants)
           .set(updateData)
-          .where(eq(tenants.id, tenantId));
+          .where(eq(tenants.id, effectiveTargetId));
         return { success: true };
       }),
     switchTenant: protectedProcedure
@@ -706,10 +1007,23 @@ export const appRouter = router({
         if (!ctx.user) throw new Error("Neautentificat");
         const db = await getDb();
         if (!db) throw new Error("No DB");
-        const { accounts, userTenants } = await import("../drizzle/schema");
+        const { accounts, tenants, userTenants } = await import("../drizzle/schema");
         const { eq, and } = await import("drizzle-orm");
 
-        // Verificare strictă de securitate: tenant-ul trebuie să fie explicit asignat utilizatorului în userTenants sau utilizatorul e superadmin
+        let isPairedProfile = false;
+        if (ctx.user.tenantId && ctx.user.tenantId !== input.tenantId) {
+          const [currentT] = await db
+            .select({ settings: tenants.settings })
+            .from(tenants)
+            .where(eq(tenants.id, ctx.user.tenantId))
+            .limit(1);
+          const s = parseTenantSettingsSafe(currentT?.settings);
+          isPairedProfile =
+            Number(s.pairedPfTenantId) === input.tenantId ||
+            Number(s.pairedPjTenantId) === input.tenantId;
+        }
+
+        // Verificare strictă de securitate: tenant-ul trebuie să fie explicit asignat utilizatorului în userTenants, să fie profilul pereche PF/PJ sau utilizatorul e superadmin
         const [hasAccess] = await db
           .select()
           .from(userTenants)
@@ -721,17 +1035,8 @@ export const appRouter = router({
             )
           );
 
-        if (!hasAccess && ctx.user.role !== "superadmin") {
+        if (!hasAccess && !isPairedProfile && ctx.user.role !== "superadmin") {
           throw new Error("Acces interzis: datele fiecărui tenant sunt strict confidențiale.");
-        }
-
-        if (!hasAccess && ctx.user.role === "superadmin") {
-          await db.insert(userTenants).values({
-            userId: ctx.user.id,
-            tenantId: input.tenantId,
-            role: "superadmin",
-            isActive: 1,
-          });
         }
 
         await db

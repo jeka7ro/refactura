@@ -29,7 +29,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { getTenantDisplayMeta } from "@/components/DashboardLayout";
 import {
   currencies,
   languages,
@@ -44,6 +43,7 @@ import { trpc } from "@/lib/trpc";
 
 const tabs = [
   { id: "company", label: "Firmă", icon: Building2 },
+  { id: "pf", label: "Persoană Fizică", icon: User },
   { id: "invoicing", label: "Facturare", icon: FileText },
   { id: "appearance", label: "Aspect", icon: Palette },
   { id: "localization", label: "Localizare", icon: Globe },
@@ -52,6 +52,38 @@ const tabs = [
   { id: "accountant", label: "Portal Contabil", icon: ShieldCheck },
   { id: "gdpr", label: "GDPR & Date", icon: Shield },
 ];
+
+function parseBankAccountsFromSettings(parsedSettings: any): BankAccount[] {
+  const accounts: BankAccount[] = [];
+  if (
+    parsedSettings?.bankAccounts &&
+    Array.isArray(parsedSettings.bankAccounts) &&
+    parsedSettings.bankAccounts.length > 0
+  ) {
+    accounts.push(...parsedSettings.bankAccounts.map((a: any) => ({ ...a })));
+  } else {
+    accounts.push({
+      id: "acc_ron",
+      currency: "RON",
+      iban: parsedSettings?.iban || "",
+      bank: parsedSettings?.bank || "",
+      isDefault: true,
+    });
+    if (parsedSettings?.ibanEur) {
+      accounts.push({
+        id: "acc_eur",
+        currency: "EUR",
+        iban: parsedSettings.ibanEur,
+        bank: parsedSettings.bankEur || "",
+        isDefault: false,
+      });
+    }
+  }
+  if (accounts.length > 0) {
+    accounts[0] = { ...accounts[0], currency: "RON", isDefault: true };
+  }
+  return accounts;
+}
 
 export default function Settings() {
   const [location] = useLocation();
@@ -73,11 +105,17 @@ export default function Settings() {
   }, [location]);
   const { data: currentTenantData, isLoading: isLoadingTenants } =
     trpc.tenants.current.useQuery();
-  const { data: userTenants = [] } = trpc.tenants.list.useQuery();
+  const { data: entityPair } = trpc.tenants.getEntityPair.useQuery();
   const currentTenant = useMemo(() => {
     if (currentTenantData) return { tenants: currentTenantData };
     return null;
   }, [currentTenantData]);
+  const firmData = useMemo(
+    () =>
+      entityPair?.pj ||
+      (entityPair?.activeType !== "pf" ? currentTenantData : null),
+    [entityPair, currentTenantData]
+  );
 
   const switchTenantMutation = trpc.tenants.switchTenant.useMutation({
     onSuccess: (data) => {
@@ -95,32 +133,6 @@ export default function Settings() {
       toast.error(err?.message || "Eroare la schimbarea profilului.");
     },
   });
-
-  const openCreateProfileModal = (type: "pf" | "pj") => {
-    window.dispatchEvent(
-      new CustomEvent("open-add-profile-modal", { detail: { type } })
-    );
-  };
-
-  const existingPfTenant = useMemo(
-    () =>
-      (userTenants as any[]).find(
-        (t: any) =>
-          getTenantDisplayMeta(t).isPf &&
-          Number(t.id) !== Number(currentTenantData?.id)
-      ),
-    [userTenants, currentTenantData?.id]
-  );
-
-  const existingPjTenant = useMemo(
-    () =>
-      (userTenants as any[]).find(
-        (t: any) =>
-          !getTenantDisplayMeta(t).isPf &&
-          Number(t.id) !== Number(currentTenantData?.id)
-      ),
-    [userTenants, currentTenantData?.id]
-  );
 
   const [logoBase64, setLogoBase64] = useState<string>("");
   const [logoHasBackground, setLogoHasBackground] = useState<boolean>(false);
@@ -218,7 +230,6 @@ export default function Settings() {
     }
   };
 
-  const [entityType, setEntityType] = useState<"pj" | "pf">("pj");
   const [settings, setSettings] = useState<CompanySettings>(() => ({
     name: "",
     cui: "",
@@ -250,20 +261,32 @@ export default function Settings() {
     },
   ]);
 
-  // Update settings when tenant data is loaded
+  const [pfName, setPfName] = useState("");
+  const [pfCnp, setPfCnp] = useState("");
+  const [pfEmail, setPfEmail] = useState("");
+  const [pfPhone, setPfPhone] = useState("");
+  const [pfAddress, setPfAddress] = useState("");
+  const [pfCity, setPfCity] = useState("");
+  const [pfCountry, setPfCountry] = useState<Country>("RO");
+  const [pfBankAccounts, setPfBankAccounts] = useState<BankAccount[]>([
+    {
+      id: "pf-ron-1",
+      currency: "RON",
+      iban: "",
+      bank: "",
+      isDefault: true,
+    },
+  ]);
+
+  // Update company (PJ) settings when company tenant data is loaded
   useEffect(() => {
-    if (currentTenant && currentTenant.tenants) {
+    if (firmData) {
       let parsedSettings: any = {};
       try {
-        if (currentTenant.tenants.settings) {
-          parsedSettings = JSON.parse(currentTenant.tenants.settings);
+        if (firmData.settings) {
+          parsedSettings = JSON.parse(firmData.settings);
         }
-      } catch (e) {}
-
-      const rawCode = String(currentTenant.tenants.cui || "").replace(/^RO/i, "").trim();
-      const isPf =
-        parsedSettings.entityType === "pf" || /^\d{13}$/.test(rawCode);
-      setEntityType(isPf ? "pf" : "pj");
+      } catch {}
 
       setSettings({
         regCom: "",
@@ -274,56 +297,33 @@ export default function Settings() {
         bank: "",
         defaultCurrency: "RON",
         defaultLanguage: "ro",
-        defaultVatRate: isPf ? 0 : 21,
-        invoicePrefix: isPf ? "PF" : "INV",
+        defaultVatRate: 21,
+        invoicePrefix: "INV",
         invoiceStartNumber: 1,
         defaultDueDays: 7,
         defaultMarkupPercent: 20,
         ...parsedSettings,
-        name: currentTenant.tenants.name || "",
-        email: currentTenant.tenants.email || "",
-        phone: currentTenant.tenants.phone || "",
-        address: currentTenant.tenants.address || "",
-        cui: currentTenant.tenants.cui || "",
+        name: firmData.name || "",
+        email: firmData.email || "",
+        phone: firmData.phone || "",
+        address: firmData.address || "",
+        cui: firmData.cui || "",
       });
 
-      let accounts: BankAccount[] = [];
-      if (parsedSettings.bankAccounts && Array.isArray(parsedSettings.bankAccounts) && parsedSettings.bankAccounts.length > 0) {
-        accounts = parsedSettings.bankAccounts;
-      } else {
-        const defaultIban = parsedSettings.iban || "";
-        const defaultBank = parsedSettings.bank || "";
-        accounts.push({
-          id: "acc_ron",
-          currency: "RON",
-          iban: defaultIban,
-          bank: defaultBank,
-          isDefault: true,
-        });
-        if (parsedSettings.ibanEur) {
-          accounts.push({
-            id: "acc_eur",
-            currency: "EUR",
-            iban: parsedSettings.ibanEur,
-            bank: parsedSettings.bankEur || "",
-            isDefault: false,
-          });
-        }
-      }
-      if (accounts.length > 0) {
-        accounts[0].currency = "RON";
-        accounts[0].isDefault = true;
-      }
-      setBankAccounts(accounts);
-
-      if (parsedSettings.logoBase64) {
-        setLogoBase64(parsedSettings.logoBase64);
-      } else {
-        setLogoBase64("");
-      }
+      setBankAccounts(parseBankAccountsFromSettings(parsedSettings));
+      setLogoBase64(parsedSettings.logoBase64 || "");
       setLogoHasBackground(Boolean(parsedSettings.logoHasBackground));
       setLogoBgColor(parsedSettings.logoBgColor || "#0f172a");
+    }
+  }, [firmData?.id, firmData?.settings, firmData?.name]);
 
+  // Keep active theme / template in sync with the active workspace
+  useEffect(() => {
+    if (currentTenant?.tenants?.settings) {
+      let parsedSettings: any = {};
+      try {
+        parsedSettings = JSON.parse(currentTenant.tenants.settings);
+      } catch {}
       if (parsedSettings.theme) {
         setActiveTheme(parsedSettings.theme as ThemeId);
         document.documentElement.setAttribute("data-theme", parsedSettings.theme);
@@ -353,10 +353,45 @@ export default function Settings() {
         localStorage.setItem("invoice-template", tmpl);
       }
     }
-  }, [currentTenant?.tenants?.id, currentTenant?.tenants?.settings, currentTenant?.tenants?.name]);
+  }, [currentTenant?.tenants?.id, currentTenant?.tenants?.settings]);
 
-  const addBankAccount = (curr: string = "EUR") => {
-    setBankAccounts(prev => [
+  // Hydrate separate Persoana Fizica tab ONLY from paired PF profile (empty if not created yet)
+  useEffect(() => {
+    const pfRow = entityPair?.pf;
+    if (!pfRow) {
+      setPfName("");
+      setPfCnp("");
+      setPfEmail("");
+      setPfPhone("");
+      setPfAddress("");
+      setPfCity("");
+      setPfCountry("RO");
+      setPfBankAccounts([
+        { id: "acc_ron", currency: "RON", iban: "", bank: "", isDefault: true },
+      ]);
+      return;
+    }
+    let parsedPf: any = {};
+    try {
+      if (pfRow.settings) {
+        parsedPf = JSON.parse(pfRow.settings);
+      }
+    } catch {}
+    setPfName(pfRow.name || "");
+    setPfCnp(pfRow.cui || "");
+    setPfEmail(pfRow.email || "");
+    setPfPhone(pfRow.phone || "");
+    setPfAddress(pfRow.address || "");
+    setPfCity(parsedPf.city || "");
+    setPfCountry((parsedPf.country as Country) || "RO");
+    setPfBankAccounts(parseBankAccountsFromSettings(parsedPf));
+  }, [entityPair?.pf?.id, entityPair?.pf?.settings, entityPair?.pf?.name]);
+
+  const addBankAccountFor = (
+    setter: React.Dispatch<React.SetStateAction<BankAccount[]>>,
+    curr: string = "EUR"
+  ) => {
+    setter(prev => [
       ...prev,
       {
         id: "acc_" + Date.now() + "_" + Math.floor(Math.random() * 10000),
@@ -368,14 +403,22 @@ export default function Settings() {
     ]);
   };
 
-  const updateBankAccount = (index: number, field: keyof BankAccount, val: any) => {
-    setBankAccounts(prev =>
+  const updateBankAccountFor = (
+    setter: React.Dispatch<React.SetStateAction<BankAccount[]>>,
+    index: number,
+    field: keyof BankAccount,
+    val: any
+  ) => {
+    setter(prev =>
       prev.map((acc, i) => (i === index ? { ...acc, [field]: val } : acc))
     );
   };
 
-  const removeBankAccount = (index: number) => {
-    setBankAccounts(prev => {
+  const removeBankAccountFor = (
+    setter: React.Dispatch<React.SetStateAction<BankAccount[]>>,
+    index: number
+  ) => {
+    setter(prev => {
       const filtered = prev.filter((_, i) => i !== index);
       if (filtered.length === 0) {
         return [{ id: "acc_ron", currency: "RON", iban: "", bank: "", isDefault: true }];
@@ -385,6 +428,7 @@ export default function Settings() {
   };
 
   const [saving, setSaving] = useState(false);
+  const [savingPf, setSavingPf] = useState(false);
   const [cuiLookupLoading, setCuiLookupLoading] = useState(false);
   const [cuiLookupError, setCuiLookupError] = useState("");
 
@@ -415,6 +459,7 @@ export default function Settings() {
 
   const utils = trpc.useUtils();
   const updateSettingsMutation = trpc.tenants.updateSettings.useMutation();
+  const upsertPfMutation = trpc.tenants.upsertPersonalProfile.useMutation();
   const exportDataMutation = trpc.gdpr.exportData.useMutation();
   const deleteAccountMutation = trpc.gdpr.deleteAccount.useMutation();
   const changePasswordMutation = trpc.auth.changePassword.useMutation();
@@ -426,18 +471,14 @@ export default function Settings() {
 
   const handleSave = async () => {
     const cleanCode = String(settings.cui || "").replace(/\s+/g, "");
-    if (entityType === "pf" && cleanCode && !/^\d{13}$/.test(cleanCode)) {
-      toast.error("CNP-ul trebuie să conțină exact 13 cifre.");
-      return;
-    }
     setSaving(true);
     try {
       const primaryRon = bankAccounts.find(a => a.currency === "RON") || bankAccounts[0];
       const primaryEur = bankAccounts.find(a => a.currency === "EUR");
 
       const settingsStr = JSON.stringify({
-        entityType,
-        regCom: entityType === "pf" ? "" : settings.regCom,
+        entityType: "pj",
+        regCom: settings.regCom,
         city: settings.city,
         county: settings.county,
         country: settings.country,
@@ -468,11 +509,15 @@ export default function Settings() {
         phone: settings.phone,
         address: settings.address,
         settings: settingsStr,
+        targetTenantId: firmData?.id,
       });
 
-      await utils.tenants.current.invalidate();
-      await utils.tenants.list.invalidate();
-      await utils.auth.me.invalidate();
+      await Promise.all([
+        utils.tenants.current.invalidate(),
+        utils.tenants.getEntityPair.invalidate(),
+        utils.tenants.list.invalidate(),
+        utils.auth.me.invalidate(),
+      ]);
 
       toast.success("Setări salvate", {
         description: "Modificările au fost aplicate",
@@ -481,6 +526,56 @@ export default function Settings() {
       toast.error("Eroare la salvare", { description: e.message });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSavePf = async () => {
+    const cleanName = pfName.trim();
+    const cleanCnp = pfCnp.replace(/\s+/g, "");
+    if (!cleanName) {
+      toast.error("Introduceți numele și prenumele.");
+      return;
+    }
+    if (!/^\d{13}$/.test(cleanCnp)) {
+      toast.error("CNP-ul trebuie să conțină exact 13 cifre.");
+      return;
+    }
+    setSavingPf(true);
+    try {
+      const shouldSwitchImmediately = !entityPair?.pf;
+      const res = await upsertPfMutation.mutateAsync({
+        name: cleanName,
+        cnp: cleanCnp,
+        email: pfEmail.trim() || undefined,
+        phone: pfPhone.trim() || undefined,
+        address: pfAddress.trim() || undefined,
+        city: pfCity.trim() || undefined,
+        country: pfCountry || "RO",
+        bankAccounts: pfBankAccounts,
+        switchToPf: shouldSwitchImmediately,
+      });
+
+      if (res?.token) {
+        localStorage.setItem("authToken", res.token);
+        try {
+          localStorage.removeItem("tenant-theme-color");
+          sessionStorage.clear();
+        } catch {}
+        toast.success("Profilul de Persoană Fizică a fost salvat și activat.");
+        window.location.reload();
+        return;
+      }
+
+      await Promise.all([
+        utils.tenants.getEntityPair.invalidate(),
+        utils.tenants.current.invalidate(),
+        utils.auth.me.invalidate(),
+      ]);
+      toast.success("Datele de Persoană Fizică au fost salvate.");
+    } catch (e: any) {
+      toast.error("Eroare la salvarea profilului", { description: e?.message });
+    } finally {
+      setSavingPf(false);
     }
   };
 
@@ -588,7 +683,7 @@ export default function Settings() {
         currentPin: pinFormMode === "change" ? pinCurrent.trim() : undefined,
       });
 
-      const tid = currentTenant?.tenants?.id || pinStatus?.tenantId || (user as any)?.tenantId;
+      const tid = currentTenant?.tenants?.id || pinStatus?.tenantId || currentTenantData?.id;
       if (tid) {
         try {
           sessionStorage.setItem("smart_invoice_pin_session_unlocked", String(tid));
@@ -696,84 +791,8 @@ export default function Settings() {
           Setări
         </h1>
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          {entityType === "pf"
-            ? "Profil persoană fizică, facturare și preferințe"
-            : "Firmă, facturare și preferințe"}
+          Firmă, facturare și preferințe
         </p>
-      </div>
-
-      {/* Profil Activ & Conturi Separate (Firmă / Persoană Fizică) */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-3 flex flex-wrap items-center justify-between gap-2.5">
-        <div className="flex flex-wrap items-center gap-2 min-w-0">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1">
-            Cont activ:
-          </span>
-          {(userTenants as any[]).map((t: any) => {
-            const meta = getTenantDisplayMeta(t);
-            const isSelected = Number(t.id) === Number(currentTenantData?.id);
-            return (
-              <button
-                key={t.id}
-                type="button"
-                disabled={switchTenantMutation.isPending}
-                onClick={() => {
-                  if (!isSelected) {
-                    switchTenantMutation.mutate({ tenantId: Number(t.id) });
-                  }
-                }}
-                className={cn(
-                  "rounded-lg px-2.5 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5 border transition-colors cursor-pointer disabled:opacity-60",
-                  isSelected
-                    ? meta.isPf
-                      ? "bg-indigo-50 border-indigo-300 text-indigo-900 dark:bg-indigo-950/60 dark:border-indigo-700 dark:text-indigo-200"
-                      : "bg-blue-50 border-blue-300 text-blue-900 dark:bg-blue-950/60 dark:border-blue-700 dark:text-blue-200"
-                    : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:border-slate-700 dark:text-slate-300"
-                )}
-              >
-                {meta.isPf ? (
-                  <User className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
-                ) : (
-                  <Building2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-                )}
-                <span className="truncate max-w-[180px]">{t.name}</span>
-                {meta.isPf && (
-                  <span className="px-1 py-0 rounded text-[9px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/70 dark:text-indigo-300">
-                    PF
-                  </span>
-                )}
-                {meta.subtitle && (
-                  <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 tabular-nums hidden sm:inline">
-                    {meta.subtitle}
-                  </span>
-                )}
-                {isSelected && (
-                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={() => openCreateProfileModal("pf")}
-            className="h-8 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <User className="w-3.5 h-3.5" />
-            <span>Cont Persoană Fizică (CNP)</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => openCreateProfileModal("pj")}
-            className="h-8 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <Building2 className="w-3.5 h-3.5" />
-            <span>Firmă Nouă (CUI)</span>
-          </button>
-        </div>
       </div>
 
       <div className="flex gap-4 flex-col md:flex-row">
@@ -794,7 +813,7 @@ export default function Settings() {
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
-                  {tab.id === "company" && entityType === "pf" ? "Profil PF" : tab.label}
+                  {tab.label}
                 </button>
               );
             })}
@@ -806,115 +825,49 @@ export default function Settings() {
           {/* Company tab */}
           {activeTab === "company" && (
             <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-xs font-bold text-slate-700 dark:text-white uppercase tracking-wide">
-                    {entityType === "pf" ? "Date Persoană Fizică" : "Date Firmă"}
-                  </h2>
-                  <span
-                    className={cn(
-                      "px-2 py-0.5 rounded-md text-[10px] font-bold border",
-                      entityType === "pf"
-                        ? "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800"
-                        : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
-                    )}
-                  >
-                    {entityType === "pf" ? "Profil separat · CNP" : "Profil firmă · CUI"}
-                  </span>
-                </div>
-                {entityType === "pj" ? (
-                  existingPfTenant ? (
-                    <button
-                      type="button"
-                      disabled={switchTenantMutation.isPending}
-                      onClick={() =>
-                        switchTenantMutation.mutate({ tenantId: Number(existingPfTenant.id) })
-                      }
-                      className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      <User className="w-3.5 h-3.5" />
-                      <span>Comută pe Persoană Fizică ({existingPfTenant.name})</span>
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => openCreateProfileModal("pf")}
-                      className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Creează Cont Persoană Fizică (CNP)</span>
-                    </button>
-                  )
-                ) : existingPjTenant ? (
-                  <button
-                    type="button"
-                    disabled={switchTenantMutation.isPending}
-                    onClick={() =>
-                      switchTenantMutation.mutate({ tenantId: Number(existingPjTenant.id) })
-                    }
-                    className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    <Building2 className="w-3.5 h-3.5" />
-                    <span>Comută pe Firmă ({existingPjTenant.name})</span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => openCreateProfileModal("pj")}
-                    className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Adaugă Firmă (CUI)</span>
-                  </button>
-                )}
-              </div>
+              <h2 className="text-xs font-bold text-slate-700 dark:text-white uppercase tracking-wide">
+                Date Firmă
+              </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                 <SettingField
-                  label={entityType === "pf" ? "Nume și prenume" : "Denumire firmă"}
+                  label="Denumire firmă"
                   value={settings.name}
                   onChange={v => update("name", v)}
-                  placeholder={entityType === "pf" ? "Popescu Ion" : "ConstructMaster SRL"}
+                  placeholder="ConstructMaster SRL"
                   autocomplete="organization"
                 />
-                {/* CUI or CNP */}
+                {/* CUI with ANAF lookup */}
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                    {entityType === "pf" ? "CNP (13 cifre)" : "CUI / CIF"}
+                    CUI / CIF
                   </label>
                   <div className="flex gap-1.5">
                     <input
                       value={settings.cui}
-                      maxLength={entityType === "pf" ? 13 : undefined}
                       onChange={e => {
-                        const val =
-                          entityType === "pf"
-                            ? e.target.value.replace(/\D/g, "").slice(0, 13)
-                            : e.target.value;
-                        update("cui", val);
+                        update("cui", e.target.value);
                         setCuiLookupError("");
                       }}
-                      onKeyDown={e => entityType === "pj" && e.key === "Enter" && lookupCui()}
-                      placeholder={entityType === "pf" ? "1850101123456" : "RO12345678"}
+                      onKeyDown={e => e.key === "Enter" && lookupCui()}
+                      placeholder="RO12345678"
                       autoComplete="off"
                       className="flex-1 px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none text-slate-900 dark:text-white tabular-nums"
                     />
-                    {entityType !== "pf" && (
-                      <button
-                        type="button"
-                        onClick={lookupCui}
-                        disabled={cuiLookupLoading || !settings.cui}
-                        title="Caută date firmă după CUI (ANAF)"
-                        style={{ backgroundColor: themeColor }}
-                        className="flex items-center gap-1 px-2.5 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-[10px] font-bold transition-colors flex-shrink-0"
-                      >
-                        {cuiLookupLoading ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <Search className="w-3 h-3" />
-                        )}
-                        Auto-fill
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={lookupCui}
+                      disabled={cuiLookupLoading || !settings.cui}
+                      title="Caută date firmă după CUI (ANAF)"
+                      style={{ backgroundColor: themeColor }}
+                      className="flex items-center gap-1 px-2.5 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-[10px] font-bold transition-colors flex-shrink-0"
+                    >
+                      {cuiLookupLoading ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Search className="w-3 h-3" />
+                      )}
+                      Auto-fill
+                    </button>
                   </div>
                   {cuiLookupError && (
                     <div className="flex items-center gap-1 mt-1 text-[10px] text-red-500">
@@ -923,15 +876,13 @@ export default function Settings() {
                     </div>
                   )}
                 </div>
-                {entityType !== "pf" && (
-                  <SettingField
-                    label="Reg. Com."
-                    value={settings.regCom}
-                    onChange={v => update("regCom", v)}
-                    placeholder="J40/1234/2020"
-                    mono
-                  />
-                )}
+                <SettingField
+                  label="Reg. Com."
+                  value={settings.regCom}
+                  onChange={v => update("regCom", v)}
+                  placeholder="J40/1234/2020"
+                  mono
+                />
                 <SettingField
                   label="Email"
                   value={settings.email}
@@ -978,111 +929,19 @@ export default function Settings() {
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-                      Date Bancare & Conturi (IBAN)
-                    </h3>
-                    <p className="text-[11px] text-slate-500">
-                      {entityType === "pf"
-                        ? "Adaugă conturile bancare personale în RON, EUR, USD etc."
-                        : "Adaugă conturile bancare ale firmei în RON, EUR, USD etc."}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => addBankAccount("EUR")}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg transition-colors border border-blue-200 dark:border-blue-800"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Adaugă Cont / IBAN
-                  </button>
-                </div>
-
-                <div className="space-y-2.5">
-                  {bankAccounts.map((acc, idx) => (
-                    <div
-                      key={acc.id || idx}
-                      className="p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg space-y-2 relative"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                            Cont {idx + 1}
-                          </span>
-                          {idx === 0 && (
-                            <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300">
-                              Principal
-                            </span>
-                          )}
-                        </div>
-                        {bankAccounts.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeBankAccount(idx)}
-                            className="text-slate-400 hover:text-red-500 p-1 transition-colors"
-                            title="Șterge acest cont"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
-                        <div className="sm:col-span-3">
-                          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                            Valută
-                          </label>
-                          <select
-                            value={acc.currency || "RON"}
-                            onChange={e => updateBankAccount(idx, "currency", e.target.value)}
-                            className="w-full h-8 px-2 text-xs font-semibold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500"
-                          >
-                            <option value="RON">RON (Lei)</option>
-                            <option value="EUR">EUR (€)</option>
-                            <option value="USD">USD ($)</option>
-                            <option value="GBP">GBP (£)</option>
-                            <option value="CHF">CHF</option>
-                          </select>
-                        </div>
-                        <div className="sm:col-span-5">
-                          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                            IBAN
-                          </label>
-                          <input
-                            type="text"
-                            value={acc.iban}
-                            onChange={e => updateBankAccount(idx, "iban", e.target.value.toUpperCase())}
-                            placeholder="RO49AAAA..."
-                            className="w-full h-8 px-2.5 text-xs tabular-nums rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500"
-                          />
-                        </div>
-                        <div className="sm:col-span-4">
-                          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                            Bancă
-                          </label>
-                          <input
-                            type="text"
-                            value={acc.bank}
-                            onChange={e => updateBankAccount(idx, "bank", e.target.value)}
-                            placeholder="ex: Unicredit, BCR..."
-                            className="w-full h-8 px-2.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <BankAccountsSection
+                subtitle="Adaugă conturile bancare ale firmei în RON, EUR, USD etc."
+                accounts={bankAccounts}
+                onAdd={() => addBankAccountFor(setBankAccounts, "EUR")}
+                onUpdate={(idx, field, val) => updateBankAccountFor(setBankAccounts, idx, field, val)}
+                onRemove={(idx) => removeBankAccountFor(setBankAccounts, idx)}
+              />
 
               {/* Logo firmă */}
               <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-                    {entityType === "pf"
-                      ? "Siglă / Semnătură pe Facturi (Opțional)"
-                      : "Logo Firmă"}
+                    Logo Firmă
                   </h3>
                   {logoBase64 && (
                     <span className="text-[10px] text-slate-400">
@@ -1235,6 +1094,136 @@ export default function Settings() {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Persoană Fizică tab (profil separat pe CNP, izolat de datele firmei) */}
+          {activeTab === "pf" && (
+            <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-xs font-bold text-slate-700 dark:text-white uppercase tracking-wide">
+                    Date Persoană Fizică
+                  </h2>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Profil separat pe CNP cu mesaje SPV și facturi complet izolate de firmă.
+                  </p>
+                </div>
+                {entityPair?.pf && (
+                  entityPair.activeType !== "pf" ? (
+                    <button
+                      type="button"
+                      disabled={switchTenantMutation.isPending}
+                      onClick={() =>
+                        switchTenantMutation.mutate({ tenantId: Number(entityPair.pf!.id) })
+                      }
+                      className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <User className="w-3.5 h-3.5" />
+                      <span>Comută pe Persoană Fizică</span>
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800">
+                        Profil activ acum
+                      </span>
+                      {entityPair.pj && (
+                        <button
+                          type="button"
+                          disabled={switchTenantMutation.isPending}
+                          onClick={() =>
+                            switchTenantMutation.mutate({ tenantId: Number(entityPair.pj!.id) })
+                          }
+                          className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <Building2 className="w-3.5 h-3.5" />
+                          <span>Comută pe Firmă</span>
+                        </button>
+                      )}
+                    </div>
+                  )
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                <SettingField
+                  label="Nume și prenume"
+                  value={pfName}
+                  onChange={setPfName}
+                  placeholder="Popescu Ion"
+                  autocomplete="name"
+                />
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                    CNP (13 cifre)
+                  </label>
+                  <input
+                    value={pfCnp}
+                    inputMode="numeric"
+                    maxLength={13}
+                    onChange={e =>
+                      setPfCnp(e.target.value.replace(/\D/g, "").slice(0, 13))
+                    }
+                    placeholder="1850101123456"
+                    autoComplete="off"
+                    className="w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none text-slate-900 dark:text-white tabular-nums"
+                  />
+                </div>
+                <SettingField
+                  label="Email"
+                  value={pfEmail}
+                  onChange={setPfEmail}
+                  placeholder="nume@exemplu.ro"
+                  autocomplete="email"
+                />
+                <SettingField
+                  label="Telefon"
+                  value={pfPhone}
+                  onChange={setPfPhone}
+                  placeholder="+40 722 000 000"
+                  autocomplete="tel"
+                />
+                <div className="md:col-span-2">
+                  <SettingField
+                    label="Adresă domiciliu"
+                    value={pfAddress}
+                    onChange={setPfAddress}
+                    placeholder="Str. Exemplu nr. 1"
+                  />
+                </div>
+                <SettingField
+                  label="Oraș"
+                  value={pfCity}
+                  onChange={setPfCity}
+                  placeholder="București"
+                />
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                    Țară
+                  </label>
+                  <select
+                    value={pfCountry}
+                    onChange={e => setPfCountry(e.target.value as Country)}
+                    className="w-full h-8 px-3 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    {countries.map(c => (
+                      <option key={c.code} value={c.code}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <BankAccountsSection
+                subtitle="Adaugă conturile bancare personale în RON, EUR, USD etc."
+                accounts={pfBankAccounts}
+                onAdd={() => addBankAccountFor(setPfBankAccounts, "EUR")}
+                onUpdate={(idx, field, val) =>
+                  updateBankAccountFor(setPfBankAccounts, idx, field, val)
+                }
+                onRemove={idx => removeBankAccountFor(setPfBankAccounts, idx)}
+              />
             </div>
           )}
 
@@ -2233,25 +2222,138 @@ export default function Settings() {
 
           {/* Save button */}
           {(activeTab === "company" ||
+            activeTab === "pf" ||
             activeTab === "invoicing" ||
             activeTab === "localization") && (
             <div className="flex justify-end">
               <button
-                onClick={handleSave}
-                disabled={saving}
+                onClick={activeTab === "pf" ? handleSavePf : handleSave}
+                disabled={activeTab === "pf" ? savingPf : saving}
                 style={{ backgroundColor: themeColor }}
                 className="flex items-center gap-1.5 px-4 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all disabled:opacity-60"
               >
-                {saving ? (
+                {(activeTab === "pf" ? savingPf : saving) ? (
                   <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <Check className="w-3 h-3" />
                 )}
-                Salvează
+                {activeTab === "pf" && !entityPair?.pf
+                  ? "Salvează și activează Persoana Fizică"
+                  : "Salvează"}
               </button>
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function BankAccountsSection({
+  subtitle,
+  accounts,
+  onAdd,
+  onUpdate,
+  onRemove,
+}: {
+  subtitle: string;
+  accounts: BankAccount[];
+  onAdd: () => void;
+  onUpdate: (index: number, field: keyof BankAccount, val: any) => void;
+  onRemove: (index: number) => void;
+}) {
+  return (
+    <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+            Date Bancare & Conturi (IBAN)
+          </h3>
+          <p className="text-[11px] text-slate-500">{subtitle}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onAdd}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg transition-colors border border-blue-200 dark:border-blue-800"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Adaugă Cont / IBAN
+        </button>
+      </div>
+
+      <div className="space-y-2.5">
+        {accounts.map((acc, idx) => (
+          <div
+            key={acc.id || idx}
+            className="p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg space-y-2 relative"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                  Cont {idx + 1}
+                </span>
+                {idx === 0 && (
+                  <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300">
+                    Principal
+                  </span>
+                )}
+              </div>
+              {accounts.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => onRemove(idx)}
+                  className="text-slate-400 hover:text-red-500 p-1 transition-colors"
+                  title="Șterge acest cont"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
+              <div className="sm:col-span-3">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                  Valută
+                </label>
+                <select
+                  value={acc.currency || "RON"}
+                  onChange={e => onUpdate(idx, "currency", e.target.value)}
+                  className="w-full h-8 px-2 text-xs font-semibold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="RON">RON (Lei)</option>
+                  <option value="EUR">EUR (€)</option>
+                  <option value="USD">USD ($)</option>
+                  <option value="GBP">GBP (£)</option>
+                  <option value="CHF">CHF</option>
+                </select>
+              </div>
+              <div className="sm:col-span-5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                  IBAN
+                </label>
+                <input
+                  type="text"
+                  value={acc.iban}
+                  onChange={e => onUpdate(idx, "iban", e.target.value.toUpperCase())}
+                  placeholder="RO49AAAA..."
+                  className="w-full h-8 px-2.5 text-xs tabular-nums rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+              <div className="sm:col-span-4">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                  Bancă
+                </label>
+                <input
+                  type="text"
+                  value={acc.bank}
+                  onChange={e => onUpdate(idx, "bank", e.target.value)}
+                  placeholder="ex: Unicredit, BCR..."
+                  className="w-full h-8 px-2.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
