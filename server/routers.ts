@@ -5550,7 +5550,7 @@ export const appRouter = router({
 
       try {
         const [rows]: any = await (db as any).execute(
-          sql`SELECT * FROM spv_portal_documents WHERE tenantId = ${tenantId} ORDER BY STR_TO_DATE(dataDepunere, '%d.%m.%Y %H:%i') DESC, id DESC`
+          sql`SELECT * FROM spv_portal_documents WHERE tenantId = ${tenantId} AND fileUrl IS NOT NULL ORDER BY STR_TO_DATE(dataDepunere, '%d.%m.%Y %H:%i') DESC, id DESC`
         );
         return (rows || []).map((r: any) => ({
           ...r,
@@ -5631,12 +5631,6 @@ export const appRouter = router({
         needsSpvRole: false,
       };
     }),
-    importPortalList: protectedProcedure
-      .input(z.object({ rawText: z.string().min(3).max(500000) }))
-      .mutation(async ({ ctx, input }) => {
-        const { importSpvMessagesFromTextOrJson } = await import("./spvPortalSync");
-        return await importSpvMessagesFromTextOrJson(tenantOf(ctx), input.rawText);
-      }),
   }),
   // ─── GDPR Router ──────────────────────────────────────────────────────────────
   gdpr: router({

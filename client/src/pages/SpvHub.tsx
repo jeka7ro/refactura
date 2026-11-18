@@ -130,52 +130,9 @@ export default function SpvHub() {
   const [isSyncingAll, setIsSyncingAll] = useState<boolean>(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Stare Modal Upload Recipisă / Import Listă SPV
+  // Stare Modal Upload Recipisă / Document original SPV
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [uploadModalMode, setUploadModalMode] = useState<"file" | "paste">(
-    "file"
-  );
-  const [pasteText, setPasteText] = useState("");
   const [isUploading, setIsUploading] = useState(false);
-
-  const openUploadModal = (mode: "file" | "paste") => {
-    setUploadModalMode(mode);
-    setIsUploadOpen(true);
-  };
-
-  const importPortalListMutation = (
-    trpc as any
-  ).spvMessages.importPortalList.useMutation({
-    onSuccess: (data: any) => {
-      if (data.imported > 0) {
-        toast.success(
-          `S-au importat ${data.imported} mesaje SPV pentru profilul curent${
-            data.skippedOtherCif > 0
-              ? ` (${data.skippedOtherCif} rânduri aparținând altui CUI/CNP au fost ignorate)`
-              : ""
-          }.`
-        );
-      } else if (data.totalMatched > 0) {
-        toast.info(
-          "Toate mesajele potrivite acestui profil există deja în arhivă."
-        );
-      } else if (data.skippedOtherCif > 0) {
-        toast.warning(
-          `Textul lipit conține doar mesaje pentru alt CUI/CNP (${data.skippedOtherCif} rânduri ignorate).`
-        );
-      } else {
-        toast.warning(
-          "Nu s-au identificat rânduri de mesaje SPV în textul introdus."
-        );
-      }
-      setPasteText("");
-      setIsUploadOpen(false);
-      refetchPortalDocs();
-    },
-    onError: (err: any) => {
-      toast.error(`Eroare la importul listei SPV: ${err.message}`);
-    },
-  });
 
   // Previzualizare modal PDF
   const [selectedSpvMessage, setSelectedSpvMessage] = useState<any | null>(
@@ -210,10 +167,7 @@ export default function SpvHub() {
     },
   });
 
-  // Mutații Sincronizare (orchestrate unitar din handleSyncAll)
-  const syncPortalMutation = (
-    trpc as any
-  ).spvMessages.syncPortalFromAnaf.useMutation();
+  // Mutații Sincronizare (strict date reale din API-ul OAuth ANAF RO e-Factura)
   const syncMessagesMutation = (
     trpc as any
   ).spvMessages.syncFromAnaf.useMutation();
@@ -223,8 +177,7 @@ export default function SpvHub() {
     if (isSyncingAll) return;
     setIsSyncingAll(true);
     try {
-      const [portalRes, msgRes, invRes] = await Promise.allSettled([
-        syncPortalMutation.mutateAsync(),
+      const [msgRes, invRes] = await Promise.allSettled([
         syncMessagesMutation.mutateAsync(),
         syncInvoicesMutation.mutateAsync({ zile: 60 }),
       ]);
@@ -238,37 +191,31 @@ export default function SpvHub() {
         refetchIntegrations(),
       ]);
 
-      const portalCount =
-        portalRes.status === "fulfilled"
-          ? portalRes.value?.total ?? portalDocs?.length ?? 0
-          : portalDocs?.length ?? 0;
       const msgTotal =
         msgRes.status === "fulfilled" ? msgRes.value?.total : undefined;
       if (
-        (portalCount || 0) === 0 &&
+        (portalDocs?.length || 0) === 0 &&
         typeof msgTotal === "number" &&
         msgTotal > 0
       ) {
         setActiveHubTab("efactura");
       }
 
-      if (msgRes.status === "rejected" && portalRes.status === "rejected") {
+      if (msgRes.status === "rejected" && invRes.status === "rejected") {
         toast.error(
-          msgRes.reason?.message || "Eroare la sincronizarea cu SPV."
+          msgRes.reason?.message || "Eroare la sincronizarea cu ANAF e-Factura."
         );
-      } else if (msgRes.status === "rejected") {
-        toast.success("Documentele SPV au fost actualizate.");
       } else {
         const importedInvoices =
           invRes.status === "fulfilled" ? invRes.value?.imported || 0 : 0;
         if (typeof msgTotal === "number") {
           toast.success(
             importedInvoices > 0
-              ? `Mesajele și documentele SPV au fost actualizate (${msgTotal} mesaje e-Factura, ${importedInvoices} facturi importate).`
-              : `Mesajele și documentele SPV au fost actualizate (${msgTotal} mesaje e-Factura).`
+              ? `Sincronizat din ANAF (${msgTotal} mesaje e-Factura, ${importedInvoices} facturi importate).`
+              : `Sincronizat din ANAF (${msgTotal} mesaje e-Factura).`
           );
         } else {
-          toast.success("Mesajele și documentele SPV au fost actualizate.");
+          toast.success("Datele din ANAF au fost actualizate.");
         }
       }
     } finally {
@@ -533,7 +480,6 @@ export default function SpvHub() {
 
   const isSyncBusy =
     isSyncingAll ||
-    syncPortalMutation.isPending ||
     syncMessagesMutation.isPending ||
     syncInvoicesMutation.isPending ||
     isFetchingMessages;
@@ -625,9 +571,9 @@ export default function SpvHub() {
 
             <button
               type="button"
-              onClick={() => openUploadModal("file")}
+              onClick={() => setIsUploadOpen(true)}
               className="h-9 rounded-lg text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-colors px-3.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 cursor-pointer"
-              title="Încarcă o recipisă sau notificare PDF/ZIP descărcată din SPV"
+              title="Încarcă o recipisă sau notificare PDF/ZIP originală descărcată din SPV"
             >
               <Upload className="w-3.5 h-3.5" />
               <span>Încarcă Recipisă</span>
@@ -1133,35 +1079,27 @@ export default function SpvHub() {
                 <div className="p-10 sm:p-12 text-center max-w-2xl mx-auto">
                   <FileCheck className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
                   <p className="font-semibold text-sm text-slate-800 dark:text-slate-200">
-                    Niciun mesaj sau recipisă fiscală importată încă pe acest profil
+                    Niciun document PDF oficial din portalul SPV încărcat pe acest profil
                   </p>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
-                    Tokenul OAuth ANAF sincronizează automat doar facturile electronice (tab-ul{" "}
+                    Tokenul OAuth ANAF sincronizează automat{" "}
                     <span className="font-semibold text-slate-700 dark:text-slate-300">
-                      Mesaje e-Factura
-                    </span>
-                    ). Recipisele, deciziile de impunere, Declarația Unică (D212) și notificările din portalul SPV ANAF nu sunt livrate de ANAF prin OAuth — le poți încărca ca PDF/ZIP sau poți lipi direct tabelul din pagina Mesaje de pe anaf.ro (se importă strict documentele pentru{" "}
-                    <span className="font-semibold tabular-nums text-slate-700 dark:text-slate-300">
-                      {oauthInfo?.tenantCui || "acest profil"}
-                    </span>
-                    ).
+                      RO e-Factura
+                    </span>{" "}
+                    (tab-ul Mesaje e-Factura). Recipisele și deciziile din portalul{" "}
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">
+                      webserviced.anaf.ro / anaf.ro
+                    </span>{" "}
+                    sunt disponibile aici exclusiv cu fișiere PDF/ZIP originale descărcate cu certificatul USB.
                   </p>
                   <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
                     <button
                       type="button"
-                      onClick={() => openUploadModal("file")}
+                      onClick={() => setIsUploadOpen(true)}
                       className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#1e3264] hover:bg-[#16254a] text-white text-xs font-semibold cursor-pointer transition-colors"
                     >
                       <Upload className="w-3.5 h-3.5" />
-                      <span>Încarcă PDF / ZIP din SPV</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => openUploadModal("paste")}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 text-xs font-semibold cursor-pointer transition-colors"
-                    >
-                      <FileText className="w-3.5 h-3.5" />
-                      <span>Importă lista din SPV ANAF</span>
+                      <span>Încarcă PDF / ZIP Original din SPV</span>
                     </button>
                     {msgStats.total > 0 && (
                       <button
@@ -1660,127 +1598,45 @@ export default function SpvHub() {
         </div>
       </div>
 
-      {/* Modal Upload Recipisă / Import Listă SPV */}
+      {/* Modal Upload Recipisă / Document original SPV */}
       <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-base font-bold text-slate-900 dark:text-white">
-              Încarcă Recipisă sau Listă Mesaje din SPV ANAF
+              Încarcă Recipisă sau Mesaj Original SPV ANAF
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
-              Încarcă documentele PDF/ZIP descărcate din portalul ANAF sau lipește direct tabelul din pagina Mesaje de pe anaf.ro.
+              Selectați fișierul PDF sau arhiva ZIP originală descărcată din portalul ANAF (recipise, decizii D256, declarația D212, notificări).
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 pt-1">
-            <div className="inline-flex w-full p-1 rounded-lg bg-slate-100 dark:bg-slate-800 gap-1">
-              <button
-                type="button"
-                onClick={() => setUploadModalMode("file")}
-                className={`flex-1 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
-                  uploadModalMode === "file"
-                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                }`}
-              >
-                Fișiere PDF / ZIP / JSON
-              </button>
-              <button
-                type="button"
-                onClick={() => setUploadModalMode("paste")}
-                className={`flex-1 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
-                  uploadModalMode === "paste"
-                    ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                }`}
-              >
-                Copiază tabelul din ANAF SPV
-              </button>
+          <div className="space-y-4 pt-2">
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 rounded-xl p-8 text-center cursor-pointer transition-colors bg-slate-50/50 dark:bg-slate-900/50"
+            >
+              <Upload className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+              <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                Apasă aici sau trage fișierul PDF / ZIP original descărcat din SPV
+              </p>
+              <p className="text-[11px] text-slate-400 mt-1">
+                Se salvează exclusiv fișierele reale semnate de Ministerul Finanțelor.
+              </p>
             </div>
 
-            {uploadModalMode === "file" ? (
-              <>
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 rounded-xl p-8 text-center cursor-pointer transition-colors bg-slate-50/50 dark:bg-slate-900/50"
-                >
-                  <Upload className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                  <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                    Apasă aici sau trage fișierul PDF / ZIP / JSON descărcat din SPV
-                  </p>
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    Recunoaște automat D212, D256, decizii de impunere, D112, D300, D394 și liste JSON SPVWS2.
-                  </p>
-                </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.zip"
+              multiple
+              onChange={handleFileUpload}
+              className="hidden"
+            />
 
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf,.xml,.zip,.json"
-                  multiple
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-
-                {isUploading && (
-                  <div className="flex items-center justify-center gap-2 text-xs text-blue-600 font-semibold py-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Se încarcă și se prelucrează documentul...</span>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="space-y-3">
-                <div className="rounded-lg bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 p-3 text-xs text-slate-600 dark:text-slate-300 space-y-1">
-                  <p>
-                    1. Deschide <span className="font-semibold">anaf.ro &rarr; Spațiul Privat Virtual &rarr; Mesaje</span> (sau răspunsul JSON din <span className="font-semibold">SPVWS2/rest/listaMesaje</span>).
-                  </p>
-                  <p>
-                    2. Selectează tabelul cu mesaje (<span className="font-semibold">Cmd+A</span> / <span className="font-semibold">Cmd+C</span>) și lipește mai jos — se importă automat doar mesajele pentru{" "}
-                    <span className="font-semibold tabular-nums">
-                      {oauthInfo?.entityType === "pf" ? "CNP" : "CIF"}{" "}
-                      {oauthInfo?.tenantCui || "profilul activ"}
-                    </span>
-                    .
-                  </p>
-                </div>
-
-                <textarea
-                  value={pasteText}
-                  onChange={(e) => setPasteText(e.target.value)}
-                  rows={6}
-                  placeholder="Lipește aici rândurile copiate din tabelul Mesaje de pe anaf.ro sau JSON-ul SPVWS2..."
-                  className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:border-blue-500 outline-none resize-y"
-                />
-
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsUploadOpen(false)}
-                    className="px-3.5 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold cursor-pointer"
-                  >
-                    Anulează
-                  </button>
-                  <button
-                    type="button"
-                    disabled={
-                      !pasteText.trim() || importPortalListMutation.isPending
-                    }
-                    onClick={() =>
-                      importPortalListMutation.mutate({ rawText: pasteText })
-                    }
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1e3264] hover:bg-[#16254a] disabled:opacity-50 text-white text-xs font-semibold cursor-pointer"
-                  >
-                    {importPortalListMutation.isPending ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Se importă...</span>
-                      </>
-                    ) : (
-                      <span>Importă mesajele SPV</span>
-                    )}
-                  </button>
-                </div>
+            {isUploading && (
+              <div className="flex items-center justify-center gap-2 text-xs text-blue-600 font-semibold py-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Se încarcă și se prelucrează documentul...</span>
               </div>
             )}
           </div>

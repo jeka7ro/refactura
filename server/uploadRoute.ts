@@ -45,11 +45,11 @@ const spvDocUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 25 * 1024 * 1024 }, // 25MB
   fileFilter: (_req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
-    const extOk = /\.(pdf|xml|zip|json)$/i.test(file.originalname);
+    const extOk = /\.(pdf|zip)$/i.test(file.originalname);
     if (extOk) {
       cb(null, true);
     } else {
-      cb(new Error("Sunt acceptate doar fișiere PDF, XML, JSON sau arhive ZIP descărcate din SPV"));
+      cb(new Error("Sunt acceptate doar fișiere PDF sau arhive ZIP originale descărcate din SPV ANAF"));
     }
   },
 });
@@ -887,39 +887,37 @@ export function registerUploadRoute(app: Express) {
         const results = [];
         let totalSavedCount = 0;
         for (const file of files) {
-          const lowerName = file.originalname.toLowerCase();
-          if (lowerName.endsWith(".json")) {
-            const { importSpvMessagesFromTextOrJson } = await import("./spvPortalSync");
-            const importRes = await importSpvMessagesFromTextOrJson(
-              tenantId,
-              file.buffer.toString("utf8")
-            );
-            totalSavedCount += importRes.imported;
-            results.push({
-              fileName: file.originalname,
-              tip: "JSON_LIST",
-              titlu: `Import JSON SPV (${importRes.imported} noi)`,
-              numarInregistrare: String(importRes.imported),
-              imported: importRes.imported,
-              totalMatched: importRes.totalMatched,
-              skippedOtherCif: importRes.skippedOtherCif,
-              fileUrl: null,
-            });
-            continue;
+          let fileBuf = file.buffer;
+          let actualOriginalName = file.originalname;
+          if (path.extname(file.originalname).toLowerCase() === ".zip") {
+            const zip = new AdmZip(file.buffer);
+            const pdfEntry = zip
+              .getEntries()
+              .find((e) => !e.isDirectory && e.entryName.toLowerCase().endsWith(".pdf"));
+            if (!pdfEntry) {
+              return res.status(400).json({
+                error: `Arhiva ${file.originalname} nu conține niciun fișier PDF original semnat din SPV ANAF.`,
+              });
+            }
+            fileBuf = pdfEntry.getData();
+            actualOriginalName =
+              path.basename(pdfEntry.entryName) ||
+              `${path.basename(file.originalname, ".zip")}.pdf`;
           }
 
-          const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_");
+          const lowerName = actualOriginalName.toLowerCase();
+          const safeName = actualOriginalName.replace(/[^a-zA-Z0-9._-]/g, "_");
           const key = `${Date.now()}-${Math.floor(Math.random() * 1000)}-${safeName}`;
           const filePathDist = path.join(uploadDirDist, key);
           const filePathClient = path.join(uploadDirClient, key);
-          await fs.promises.writeFile(filePathDist, file.buffer);
-          await fs.promises.writeFile(filePathClient, file.buffer).catch(() => {});
+          await fs.promises.writeFile(filePathDist, fileBuf);
+          await fs.promises.writeFile(filePathClient, fileBuf).catch(() => {});
 
           const fileUrl = `/uploads/spv_documents/${key}`;
 
           // Detectare si normalizare tip document SPV la valorile oficiale
           let tip = "RECIPISA";
-          let titlu = `Document Oficial SPV — ${file.originalname}`;
+          let titlu = `Document Oficial SPV — ${actualOriginalName}`;
           let categorie = "declaratie_fiscala";
           let formCode = "";
 
@@ -928,7 +926,7 @@ export function registerUploadRoute(app: Express) {
             categorie = "decizie_impunere";
             titlu = /\bD?256\b/i.test(lowerName)
               ? "Decizie de Impunere din Oficiu D256 — Persoane Fizice"
-              : `Decizie de Impunere ANAF — ${file.originalname}`;
+              : `Decizie de Impunere ANAF — ${actualOriginalName}`;
           } else if (/\bD?101\b/i.test(lowerName)) {
             formCode = "D101";
             titlu = "Recipisă Declarația 101 (Impozit pe Profit)";
@@ -970,14 +968,14 @@ export function registerUploadRoute(app: Express) {
           } else if (lowerName.includes("vector") || lowerName.includes("fisa") || lowerName.includes("situatie")) {
             tip = "RASPUNS SOLICITARE";
             categorie = "raspuns_solicitare";
-            titlu = `Răspuns Solicitare SPV — ${file.originalname}`;
+            titlu = `Răspuns Solicitare SPV — ${actualOriginalName}`;
           } else if (lowerName.includes("notif") || lowerName.includes("somat")) {
             tip = "NOTIFICARE";
             categorie = "notificare_anaf";
-            titlu = `Notificare Oficială ANAF — ${file.originalname}`;
+            titlu = `Notificare Oficială ANAF — ${actualOriginalName}`;
           }
 
-          const regNumMatch = file.originalname.match(/(\d{7,10})/);
+          const regNumMatch = actualOriginalName.match(/(\d{7,10})/);
           const numarInregistrare = regNumMatch ? regNumMatch[1] : `${Date.now().toString().slice(-8)}`;
 
           const pad2 = (n: number) => String(n).padStart(2, "0");
@@ -991,18 +989,18 @@ export function registerUploadRoute(app: Express) {
           const dataArhivare = formatSpvDate(archiveDate);
 
           const detalii = formCode
-            ? `recipisa pentru CIF ${cleanCui}, tip ${formCode}, numar_inregistrare ${numarInregistrare}, incarcat din ${file.originalname}`
-            : `Document oficial ${file.originalname} pentru CIF ${cleanCui} (${titlu})`;
+            ? `recipisa pentru CIF ${cleanCui}, tip ${formCode}, numar_inregistrare ${numarInregistrare}, incarcat din ${actualOriginalName}`
+            : `Document oficial ${actualOriginalName} pentru CIF ${cleanCui} (${titlu})`;
 
           await (db as any).execute(
             sql`INSERT INTO spv_portal_documents 
                 (tenantId, cif, tip, categorie, titlu, numarInregistrare, dataDepunere, dataArhivare, perioadaFiscala, stare, isRead, detalii, fileUrl, fileName, sursa)
                 VALUES 
-                (${tenantId}, ${cleanCui}, ${tip}, ${categorie}, ${titlu}, ${numarInregistrare}, ${dataDepunere}, ${dataArhivare}, 'Curent', 'validat', 0, ${detalii}, ${fileUrl}, ${file.originalname}, 'incarcat_manual')`
+                (${tenantId}, ${cleanCui}, ${tip}, ${categorie}, ${titlu}, ${numarInregistrare}, ${dataDepunere}, ${dataArhivare}, 'Curent', 'validat', 0, ${detalii}, ${fileUrl}, ${actualOriginalName}, 'incarcat_manual')`
           );
 
           totalSavedCount++;
-          results.push({ fileName: file.originalname, tip, titlu, numarInregistrare, fileUrl });
+          results.push({ fileName: actualOriginalName, tip, titlu, numarInregistrare, fileUrl });
         }
 
         res.json({ ok: true, count: totalSavedCount, documents: results });

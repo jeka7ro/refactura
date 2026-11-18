@@ -1,5 +1,24 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-18 16:40 — Eliminare completă date fake și generator PDF fals din `spv_portal_documents` + Regulă permanentă anti-fake
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. Baza de date (`spv_portal_documents`):
+     - Șterse definitiv toate cele `34` de înregistrări fake fără fișier PDF real pe disc (`29` pe `Tenant 1`, `3` pe `Tenant 10`, `2` pe `Tenant 4`), lăsând tabela curată (`0` înregistrări fake) și păstrând 100% intacte facturile reale din `invoiceArchive` și mesajele reale din `spv_raw_messages`.
+  2. `server/pdfRoute.ts` (`/spv-document/:id`):
+     - Eliminat complet generatorul fals de PDF cu `pdfkit` (`Signature Not Verified`); ruta servește exclusiv fișiere PDF reale aflate pe disc și returnează HTTP `404` dacă fișierul nu există.
+  3. `server/spvPortalSync.ts`, `server/spvCron.ts`, `server/routers.ts`, `server/uploadRoute.ts`:
+     - Eliminat apelurile către URL-ul inexistent `api.anaf.ro/prod/SPVWS2/rest/...`, funcția `importSpvMessagesFromTextOrJson` și mutația `spvMessages.importPortalList`.
+     - Filtrare strictă `fileUrl IS NOT NULL` în `spvMessages.listPortalDocuments`; `/api/upload-spv-document` acceptă strict fișiere reale `.pdf` și `.zip` originale ANAF (cu extragerea PDF-ului semnat din arhive `.zip`).
+  4. `client/src/pages/SpvHub.tsx`:
+     - Eliminat importul copy-paste / JSON fără PDF și afișat starea goală onestă pentru `Mesaje & Recipise SPV` cu upload strict de PDF/ZIP original și comutare rapidă pe `Mesaje e-Factura` (date reale din API-ul ANAF).
+  5. `.agents/AGENTS.md` & `.agents/rules/project-rules.md`:
+     - Adăugat regula strictă permanentă `INTERZIS DATE FAKE / MOCK / PDF-URI FALSIFICATE`.
+  6. Respectat toate regulile: zero emoji-uri, fără fonturi monospace, fără alerte native de browser și fără `git push`.
+- **Fișiere:** `server/pdfRoute.ts`, `server/spvPortalSync.ts`, `server/spvCron.ts`, `server/routers.ts`, `server/uploadRoute.ts`, `client/src/pages/SpvHub.tsx`, `.agents/AGENTS.md`, `.agents/rules/project-rules.md`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npm run build` trecut (`0` erori); `tsc --noEmit` curat pe fișierele modificate; `GET /api/pdf/spv-document/61` HTTP `404`; `spv_portal_documents` = `0` rânduri fake; toate facturile și mesajele e-Factura reale intacte.
+
 ### 2026-11-18 16:27 — Import listă mesaje SPV ANAF (`anaf.ro -> Mesaje`), suport `DECIZIE` / `D256` și populare decizii pe profil PF
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
