@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useLocation } from "wouter";
 import {
   Building2,
+  User,
   Globe,
   FileText,
   Bell,
@@ -28,6 +29,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getTenantDisplayMeta } from "@/components/DashboardLayout";
 import {
   currencies,
   languages,
@@ -74,8 +76,51 @@ export default function Settings() {
   const { data: userTenants = [] } = trpc.tenants.list.useQuery();
   const currentTenant = useMemo(() => {
     if (currentTenantData) return { tenants: currentTenantData };
-    return userTenants[0];
-  }, [currentTenantData, userTenants]);
+    return null;
+  }, [currentTenantData]);
+
+  const switchTenantMutation = trpc.tenants.switchTenant.useMutation({
+    onSuccess: (data) => {
+      if (data?.token) {
+        localStorage.setItem("authToken", data.token);
+      }
+      try {
+        localStorage.removeItem("tenant-theme-color");
+        sessionStorage.clear();
+      } catch {}
+      toast.success("Profilul activ a fost schimbat.");
+      window.location.reload();
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || "Eroare la schimbarea profilului.");
+    },
+  });
+
+  const openCreateProfileModal = (type: "pf" | "pj") => {
+    window.dispatchEvent(
+      new CustomEvent("open-add-profile-modal", { detail: { type } })
+    );
+  };
+
+  const existingPfTenant = useMemo(
+    () =>
+      (userTenants as any[]).find(
+        (t: any) =>
+          getTenantDisplayMeta(t).isPf &&
+          Number(t.id) !== Number(currentTenantData?.id)
+      ),
+    [userTenants, currentTenantData?.id]
+  );
+
+  const existingPjTenant = useMemo(
+    () =>
+      (userTenants as any[]).find(
+        (t: any) =>
+          !getTenantDisplayMeta(t).isPf &&
+          Number(t.id) !== Number(currentTenantData?.id)
+      ),
+    [userTenants, currentTenantData?.id]
+  );
 
   const [logoBase64, setLogoBase64] = useState<string>("");
   const [logoHasBackground, setLogoHasBackground] = useState<boolean>(false);
@@ -216,19 +261,31 @@ export default function Settings() {
       } catch (e) {}
 
       const rawCode = String(currentTenant.tenants.cui || "").replace(/^RO/i, "").trim();
-      setEntityType(
-        parsedSettings.entityType === "pf" || /^\d{13}$/.test(rawCode) ? "pf" : "pj"
-      );
+      const isPf =
+        parsedSettings.entityType === "pf" || /^\d{13}$/.test(rawCode);
+      setEntityType(isPf ? "pf" : "pj");
 
-      setSettings(prev => ({
-        ...prev,
+      setSettings({
+        regCom: "",
+        city: "",
+        county: "",
+        country: "RO",
+        iban: "",
+        bank: "",
+        defaultCurrency: "RON",
+        defaultLanguage: "ro",
+        defaultVatRate: isPf ? 0 : 21,
+        invoicePrefix: isPf ? "PF" : "INV",
+        invoiceStartNumber: 1,
+        defaultDueDays: 7,
+        defaultMarkupPercent: 20,
+        ...parsedSettings,
         name: currentTenant.tenants.name || "",
         email: currentTenant.tenants.email || "",
         phone: currentTenant.tenants.phone || "",
         address: currentTenant.tenants.address || "",
         cui: currentTenant.tenants.cui || "",
-        ...parsedSettings,
-      }));
+      });
 
       let accounts: BankAccount[] = [];
       if (parsedSettings.bankAccounts && Array.isArray(parsedSettings.bankAccounts) && parsedSettings.bankAccounts.length > 0) {
@@ -639,8 +696,84 @@ export default function Settings() {
           Setări
         </h1>
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          Firmă, facturare și preferințe
+          {entityType === "pf"
+            ? "Profil persoană fizică, facturare și preferințe"
+            : "Firmă, facturare și preferințe"}
         </p>
+      </div>
+
+      {/* Profil Activ & Conturi Separate (Firmă / Persoană Fizică) */}
+      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-3 flex flex-wrap items-center justify-between gap-2.5">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1">
+            Cont activ:
+          </span>
+          {(userTenants as any[]).map((t: any) => {
+            const meta = getTenantDisplayMeta(t);
+            const isSelected = Number(t.id) === Number(currentTenantData?.id);
+            return (
+              <button
+                key={t.id}
+                type="button"
+                disabled={switchTenantMutation.isPending}
+                onClick={() => {
+                  if (!isSelected) {
+                    switchTenantMutation.mutate({ tenantId: Number(t.id) });
+                  }
+                }}
+                className={cn(
+                  "rounded-lg px-2.5 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5 border transition-colors cursor-pointer disabled:opacity-60",
+                  isSelected
+                    ? meta.isPf
+                      ? "bg-indigo-50 border-indigo-300 text-indigo-900 dark:bg-indigo-950/60 dark:border-indigo-700 dark:text-indigo-200"
+                      : "bg-blue-50 border-blue-300 text-blue-900 dark:bg-blue-950/60 dark:border-blue-700 dark:text-blue-200"
+                    : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:border-slate-700 dark:text-slate-300"
+                )}
+              >
+                {meta.isPf ? (
+                  <User className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                ) : (
+                  <Building2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                )}
+                <span className="truncate max-w-[180px]">{t.name}</span>
+                {meta.isPf && (
+                  <span className="px-1 py-0 rounded text-[9px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/70 dark:text-indigo-300">
+                    PF
+                  </span>
+                )}
+                {meta.subtitle && (
+                  <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 tabular-nums hidden sm:inline">
+                    {meta.subtitle}
+                  </span>
+                )}
+                {isSelected && (
+                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => openCreateProfileModal("pf")}
+            className="h-8 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <User className="w-3.5 h-3.5" />
+            <span>Cont Persoană Fizică (CNP)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => openCreateProfileModal("pj")}
+            className="h-8 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <Building2 className="w-3.5 h-3.5" />
+            <span>Firmă Nouă (CUI)</span>
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-4 flex-col md:flex-row">
@@ -674,33 +807,66 @@ export default function Settings() {
           {activeTab === "company" && (
             <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-xs font-bold text-slate-700 dark:text-white uppercase tracking-wide">
-                  {entityType === "pf" ? "Date Persoană Fizică" : "Date Firmă"}
-                </h2>
-                <div className="inline-flex items-center p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 gap-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setEntityType("pj")}
-                    className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors cursor-pointer ${
-                      entityType === "pj"
-                        ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
-                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                    }`}
-                  >
-                    Firmă (CUI)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEntityType("pf")}
-                    className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors cursor-pointer ${
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xs font-bold text-slate-700 dark:text-white uppercase tracking-wide">
+                    {entityType === "pf" ? "Date Persoană Fizică" : "Date Firmă"}
+                  </h2>
+                  <span
+                    className={cn(
+                      "px-2 py-0.5 rounded-md text-[10px] font-bold border",
                       entityType === "pf"
-                        ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
-                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                    }`}
+                        ? "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800"
+                        : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
+                    )}
                   >
-                    Persoană Fizică (CNP)
-                  </button>
+                    {entityType === "pf" ? "Profil separat · CNP" : "Profil firmă · CUI"}
+                  </span>
                 </div>
+                {entityType === "pj" ? (
+                  existingPfTenant ? (
+                    <button
+                      type="button"
+                      disabled={switchTenantMutation.isPending}
+                      onClick={() =>
+                        switchTenantMutation.mutate({ tenantId: Number(existingPfTenant.id) })
+                      }
+                      className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <User className="w-3.5 h-3.5" />
+                      <span>Comută pe Persoană Fizică ({existingPfTenant.name})</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => openCreateProfileModal("pf")}
+                      className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Creează Cont Persoană Fizică (CNP)</span>
+                    </button>
+                  )
+                ) : existingPjTenant ? (
+                  <button
+                    type="button"
+                    disabled={switchTenantMutation.isPending}
+                    onClick={() =>
+                      switchTenantMutation.mutate({ tenantId: Number(existingPjTenant.id) })
+                    }
+                    className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Building2 className="w-3.5 h-3.5" />
+                    <span>Comută pe Firmă ({existingPjTenant.name})</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => openCreateProfileModal("pj")}
+                    className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Adaugă Firmă (CUI)</span>
+                  </button>
+                )}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                 <SettingField
@@ -819,7 +985,9 @@ export default function Settings() {
                       Date Bancare & Conturi (IBAN)
                     </h3>
                     <p className="text-[11px] text-slate-500">
-                      Adaugă conturile bancare ale firmei în RON, EUR, USD etc.
+                      {entityType === "pf"
+                        ? "Adaugă conturile bancare personale în RON, EUR, USD etc."
+                        : "Adaugă conturile bancare ale firmei în RON, EUR, USD etc."}
                     </p>
                   </div>
                   <button
@@ -912,7 +1080,9 @@ export default function Settings() {
               <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-                    Logo Firmă
+                    {entityType === "pf"
+                      ? "Siglă / Semnătură pe Facturi (Opțional)"
+                      : "Logo Firmă"}
                   </h3>
                   {logoBase64 && (
                     <span className="text-[10px] text-slate-400">

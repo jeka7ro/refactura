@@ -78,7 +78,7 @@ import {
 import { BnrExchangeRateHeader } from "./BnrExchangeRateHeader";
 import { CompanyPinLockModal } from "./CompanyPinLockModal";
 
-function getTenantDisplayMeta(t: any, fallbackEmail?: string) {
+export function getTenantDisplayMeta(t: any, fallbackEmail?: string) {
   let s: any = {};
   try {
     if (t?.settings) {
@@ -241,6 +241,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [profileType, setProfileType] = useState<"pf" | "pj">("pf");
   const [pfName, setPfName] = useState("");
   const [pfCnp, setPfCnp] = useState("");
+  const [pfEmail, setPfEmail] = useState("");
   const [pfAddress, setPfAddress] = useState("");
   const [pfPhone, setPfPhone] = useState("");
   const [pjCui, setPjCui] = useState("");
@@ -254,15 +255,36 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const openAddProfileModal = (initialType: "pf" | "pj" = "pf") => {
     setProfileType(initialType);
+    setPfName("");
+    setPfCnp("");
+    setPfEmail("");
+    setPfAddress("");
+    setPfPhone("");
+    setPjCui("");
+    setPjName("");
+    setPjAddress("");
+    setPjPhone("");
+    setPjCity("");
+    setPjRegCom("");
     setProfileFormError("");
     setShowAddProfileModal(true);
   };
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      openAddProfileModal(detail?.type === "pj" ? "pj" : "pf");
+    };
+    window.addEventListener("open-add-profile-modal", handler);
+    return () => window.removeEventListener("open-add-profile-modal", handler);
+  }, []);
 
   const applyTenantSessionAndReload = (token?: string, successMsg?: string) => {
     if (token) {
       localStorage.setItem("authToken", token);
     }
     try {
+      localStorage.removeItem("tenant-theme-color");
       sessionStorage.clear();
     } catch {}
     if (successMsg) {
@@ -348,6 +370,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       createTenantMutation.mutate({
         name: pfName.trim(),
         cui: cleanCnp,
+        email: pfEmail.trim() || undefined,
         address: pfAddress.trim() || undefined,
         phone: pfPhone.trim() || undefined,
         entityType: "pf",
@@ -671,6 +694,79 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     return location === href || location.startsWith(href + "/");
   };
 
+  const renderProfileMenuItems = () => (
+    <>
+      <div className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+        Profil Activ &amp; Conturi Separate
+      </div>
+      <div className="max-h-60 overflow-y-auto space-y-0.5">
+        {(tenantsList as any[]).map((t: any) => {
+          const meta = getTenantDisplayMeta(t, user?.email || "");
+          const isSelected = Number(t.id) === Number(effectiveTenantId);
+          return (
+            <DropdownMenuItem
+              key={t.id}
+              onClick={() => {
+                if (!isSelected) {
+                  switchTenantMutation.mutate({ tenantId: Number(t.id) });
+                }
+              }}
+              className="cursor-pointer flex items-center gap-2.5 py-2"
+            >
+              <div
+                className={cn(
+                  "w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0",
+                  meta.isPf
+                    ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400"
+                    : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                )}
+              >
+                {meta.isPf ? (
+                  <User className="w-3.5 h-3.5" />
+                ) : (
+                  <Building2 className="w-3.5 h-3.5" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-semibold text-slate-900 dark:text-white truncate">
+                    {t.name}
+                  </span>
+                  {meta.isPf && (
+                    <span className="px-1 py-0 rounded text-[9px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-950/70 dark:text-indigo-300 shrink-0">
+                      PF
+                    </span>
+                  )}
+                </div>
+                <div className="text-[11px] text-slate-500 truncate tabular-nums">
+                  {meta.subtitle}
+                </div>
+              </div>
+              {isSelected && (
+                <Check className="w-4 h-4 text-blue-600 shrink-0" />
+              )}
+            </DropdownMenuItem>
+          );
+        })}
+      </div>
+      <div className="border-t border-slate-200 dark:border-slate-700 my-1" />
+      <DropdownMenuItem
+        onClick={() => openAddProfileModal("pf")}
+        className="cursor-pointer text-indigo-600 dark:text-indigo-400 font-semibold py-2 flex items-center gap-2"
+      >
+        <User className="w-4 h-4" />
+        <span>+ Cont Persoană Fizică (CNP)</span>
+      </DropdownMenuItem>
+      <DropdownMenuItem
+        onClick={() => openAddProfileModal("pj")}
+        className="cursor-pointer text-blue-600 dark:text-blue-400 font-semibold py-2 flex items-center gap-2"
+      >
+        <Building2 className="w-4 h-4" />
+        <span>+ Adaugă Firmă / PFA (CUI)</span>
+      </DropdownMenuItem>
+    </>
+  );
+
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Nav */}
@@ -795,10 +891,47 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       </nav>
 
       {/* Company / Profile Switcher */}
-      {!collapsed && (
-        <div className="px-2.5 py-2.5 border-t border-slate-200 dark:border-slate-800">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+      <div className="px-2.5 py-2.5 border-t border-slate-200 dark:border-slate-800">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            {collapsed ? (
+              <button
+                type="button"
+                className="w-10 h-10 mx-auto rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors flex items-center justify-center cursor-pointer"
+                title={`${companyName} (${activeProfileMeta.subtitle}) — Schimbă profilul`}
+              >
+                <div
+                  className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden border",
+                    companyLogo && !logoError
+                      ? "bg-slate-100 dark:bg-slate-800 border-slate-200/60 dark:border-slate-700/60"
+                      : activeProfileMeta.isPf
+                        ? "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 border-indigo-200/70 dark:border-indigo-800"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200/60 dark:border-slate-700/60"
+                  )}
+                  style={
+                    companyLogo &&
+                    !logoError &&
+                    parsedTenantSettings?.logoHasBackground &&
+                    parsedTenantSettings?.logoBgColor
+                      ? { backgroundColor: parsedTenantSettings.logoBgColor }
+                      : undefined
+                  }
+                >
+                  {companyLogo && !logoError ? (
+                    <img
+                      src={companyLogo}
+                      alt={companyName}
+                      className="w-full h-full object-contain p-0.5"
+                    />
+                  ) : activeProfileMeta.isPf ? (
+                    <User className="w-4 h-4" />
+                  ) : (
+                    <Building2 className="w-4 h-4" />
+                  )}
+                </div>
+              </button>
+            ) : (
               <button
                 type="button"
                 className="w-full flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors text-left cursor-pointer"
@@ -851,73 +984,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 </div>
                 <ChevronsUpDown className="w-4 h-4 text-slate-400 shrink-0" />
               </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" side="top" className="w-64">
-              <div className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Profiluri &amp; Companii
-              </div>
-              <div className="max-h-60 overflow-y-auto space-y-0.5">
-                {(tenantsList as any[]).map((t: any) => {
-                  const meta = getTenantDisplayMeta(t, user?.email || "");
-                  const isSelected = Number(t.id) === Number(effectiveTenantId);
-                  return (
-                    <DropdownMenuItem
-                      key={t.id}
-                      onClick={() => {
-                        if (!isSelected) {
-                          switchTenantMutation.mutate({ tenantId: Number(t.id) });
-                        }
-                      }}
-                      className="cursor-pointer flex items-center gap-2.5 py-2"
-                    >
-                      <div
-                        className={cn(
-                          "w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0",
-                          meta.isPf
-                            ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400"
-                            : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                        )}
-                      >
-                        {meta.isPf ? (
-                          <User className="w-3.5 h-3.5" />
-                        ) : (
-                          <Building2 className="w-3.5 h-3.5" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-semibold text-slate-900 dark:text-white truncate">
-                            {t.name}
-                          </span>
-                          {meta.isPf && (
-                            <span className="px-1 py-0 rounded text-[9px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-950/70 dark:text-indigo-300 shrink-0">
-                              PF
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[11px] text-slate-500 truncate tabular-nums">
-                          {meta.subtitle}
-                        </div>
-                      </div>
-                      {isSelected && (
-                        <Check className="w-4 h-4 text-blue-600 shrink-0" />
-                      )}
-                    </DropdownMenuItem>
-                  );
-                })}
-              </div>
-              <div className="border-t border-slate-200 dark:border-slate-700 my-1" />
-              <DropdownMenuItem
-                onClick={() => openAddProfileModal("pf")}
-                className="cursor-pointer text-blue-600 dark:text-blue-400 font-semibold py-2 flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                <span>+ Adaugă Persoană Fizică / Firmă</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      )}
+            )}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" side="top" className="w-64">
+            {renderProfileMenuItems()}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
       {/* Collapse toggle */}
       <div className="px-3 py-3 border-t border-slate-200/50 dark:border-slate-800/50">
@@ -1000,6 +1073,63 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         >
           <Menu className="w-4 h-4 text-slate-600 dark:text-slate-500" />
         </button>
+
+        {/* Active Profile Switcher Pill (always visible, including collapsed sidebar) */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="h-9 px-2.5 sm:px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 hover:bg-slate-100 dark:bg-slate-800/80 dark:hover:bg-slate-800 flex items-center gap-2 transition-colors cursor-pointer min-w-0 max-w-[200px] sm:max-w-[300px]"
+              title="Schimbă profilul activ (Firmă / Persoană Fizică) sau creează unul nou"
+            >
+              <div
+                className={cn(
+                  "w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 overflow-hidden",
+                  companyLogo && !logoError
+                    ? "bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-700"
+                    : activeProfileMeta.isPf
+                      ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400"
+                      : "bg-slate-200/70 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                )}
+                style={
+                  companyLogo &&
+                  !logoError &&
+                  parsedTenantSettings?.logoHasBackground &&
+                  parsedTenantSettings?.logoBgColor
+                    ? { backgroundColor: parsedTenantSettings.logoBgColor }
+                    : undefined
+                }
+              >
+                {companyLogo && !logoError ? (
+                  <img
+                    src={companyLogo}
+                    alt={companyName}
+                    className="w-full h-full object-contain p-0.5"
+                  />
+                ) : activeProfileMeta.isPf ? (
+                  <User className="w-3.5 h-3.5 text-indigo-600" />
+                ) : (
+                  <Building2 className="w-3.5 h-3.5 text-slate-600" />
+                )}
+              </div>
+              <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                {companyName}
+              </span>
+              {activeProfileMeta.isPf && (
+                <span className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-950/70 dark:text-indigo-300 shrink-0">
+                  PF
+                </span>
+              )}
+              <span className="hidden lg:inline text-[11px] text-slate-500 tabular-nums shrink-0">
+                · {activeProfileMeta.subtitle}
+              </span>
+              <ChevronsUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-72">
+            {renderProfileMenuItems()}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <div className="flex-1" />
 
@@ -1093,10 +1223,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="border-t border-slate-200 dark:border-slate-700 my-1" />
             <DropdownMenuItem
               onClick={() => openAddProfileModal("pf")}
+              className="cursor-pointer text-indigo-600 dark:text-indigo-400 font-medium flex items-center"
+            >
+              <User className="w-4 h-4 mr-2" />
+              <span>+ Cont Persoană Fizică (CNP)</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => openAddProfileModal("pj")}
               className="cursor-pointer text-blue-600 dark:text-blue-400 font-medium flex items-center"
             >
-              <Plus className="w-4 h-4 mr-2" />
-              <span>+ Adaugă Persoană Fizică / Firmă</span>
+              <Building2 className="w-4 h-4 mr-2" />
+              <span>+ Adaugă Firmă / PFA (CUI)</span>
             </DropdownMenuItem>
             {pinStatus?.pinEnabled && (
               <DropdownMenuItem
@@ -1306,13 +1443,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 block mb-1">
-                      Adresă domiciliu
+                      Email (Opțional)
                     </label>
                     <input
-                      type="text"
-                      value={pfAddress}
-                      onChange={(e) => setPfAddress(e.target.value)}
-                      placeholder="Opțional"
+                      type="email"
+                      value={pfEmail}
+                      onChange={(e) => setPfEmail(e.target.value)}
+                      placeholder={user?.email || "Opțional"}
                       className="w-full h-9 !px-3 !py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                     />
                   </div>
@@ -1328,6 +1465,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                       className="w-full h-9 !px-3 !py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                     />
                   </div>
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+                    Adresă domiciliu
+                  </label>
+                  <input
+                    type="text"
+                    value={pfAddress}
+                    onChange={(e) => setPfAddress(e.target.value)}
+                    placeholder="Opțional"
+                    className="w-full h-9 !px-3 !py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                  />
                 </div>
                 <div className="p-3 rounded-lg bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/60 text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed">
                   Profilul are facturi emise, arhivă facturi primite și mesaje SPV complet separate. Sincronizarea OAuth SPV funcționează dacă certificatul digital are drept în SPV pe CNP, sau poți încărca oricând fișierele XML/ZIP/PDF descărcate din contul SPV personal (inclusiv Declarația Unică D212).

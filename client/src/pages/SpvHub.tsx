@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import {
   Table,
@@ -469,15 +470,24 @@ export default function SpvHub() {
               <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
                 Mesaje &amp; Documente SPV ANAF
               </h1>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 whitespace-nowrap shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span>
-                  Conectat
-                  {daysUntilExpiration != null
-                    ? ` · Token ${daysUntilExpiration} zile`
-                    : ""}
+              {spvIntegration?.apiKey ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 whitespace-nowrap shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span>
+                    Conectat
+                    {daysUntilExpiration != null
+                      ? ` · Token ${daysUntilExpiration} zile`
+                      : ""}
+                  </span>
                 </span>
-              </span>
+              ) : (
+                <Link href="/integrari">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800 whitespace-nowrap shrink-0 cursor-pointer transition-colors">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    <span>OAuth SPV neconectat · Conectează în Integrări</span>
+                  </span>
+                </Link>
+              )}
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               Recipise declarații fiscale, certificate de atestare, răspunsuri
@@ -1046,7 +1056,7 @@ export default function SpvHub() {
                     <thead>
                       <tr className="bg-[#1e3264] text-white text-[11px] font-bold select-none border-b border-[#16254a]">
                         <th className="py-2.5 px-3 w-28 whitespace-nowrap">
-                          CIF
+                          {oauthInfo?.entityType === "pf" ? "CNP / CIF" : "CIF"}
                         </th>
                         <th className="py-2.5 px-3 w-44 whitespace-nowrap">
                           Tip Document
@@ -1076,7 +1086,11 @@ export default function SpvHub() {
                               setFilterCif(e.target.value);
                               setPage(1);
                             }}
-                            placeholder="Filtru CIF..."
+                            placeholder={
+                              oauthInfo?.entityType === "pf"
+                                ? "Filtru CNP / CIF..."
+                                : "Filtru CIF..."
+                            }
                             className="w-full !px-2 !py-0 h-7 text-[11px] rounded-md bg-white text-slate-900 border-none outline-none font-normal"
                           />
                         </th>

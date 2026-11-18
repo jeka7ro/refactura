@@ -1,5 +1,22 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-18 12:14 — Creare și comutare profil separat Persoană Fizică (CNP) în Setări, Header și Sidebar restrâns
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. `client/src/pages/Settings.tsx`:
+     - Eliminat comutatorul local `setEntityType("pj" | "pf")` din antetul cardului `Date Firmă`, care schimba doar etichetele câmpurilor lăsând datele firmei active (`TRADE INVEST NETWORK S.R.L.`) pe ecran.
+     - Adăugat bara `Cont activ:` cu toate conturile separate (Firmă și Persoană Fizică) + butoanele `+ Cont Persoană Fizică (CNP)` și `+ Firmă Nouă (CUI)` direct în `Setări`, precum și buton rapid de comutare/creare profil separat lângă titlul `Date Firmă` / `Date Persoană Fizică`.
+     - Corectat `currentTenant` (eliminat fallback-ul spre `userTenants[0]`) și resetarea curată a stării `settings` la schimbarea profilului activ, cu etichete adaptate pentru Persoană Fizică (`conturi bancare personale`, `Siglă / Semnătură pe Facturi`).
+  2. `client/src/components/DashboardLayout.tsx`:
+     - Exportat `getTenantDisplayMeta` și adăugat selectorul de `Profil Activ & Conturi Separate` în antetul de sus (`<header>`) și în sidebar-ul restrâns (`collapsed`), astfel încât profilul activ și comutarea către/crearea unui cont de `Persoană Fizică (CNP)` să fie mereu vizibile indiferent dacă meniul lateral este restrâns.
+     - Unificat deschiderea modalului de creare profil nou prin evenimentul `open-add-profile-modal` (cu resetarea câmpurilor la deschidere, câmp opțional de email pe profil PF și curățare `tenant-theme-color` la comutarea tenantului) + acțiuni distincte `+ Cont Persoană Fizică (CNP)` și `+ Adaugă Firmă / PFA (CUI)`.
+  3. `client/src/pages/SpvHub.tsx`:
+     - Actualizat badge-ul de status din antet: afișează `Conectat` doar când profilul activ are token OAuth configurat (`spvIntegration?.apiKey`), altfel afișează link către `/integrari` (`OAuth SPV neconectat · Conectează în Integrări`), și adaptat eticheta/placeholder-ul coloanei `CNP / CIF` pentru profiluri `pf`.
+  4. Respectat toate regulile: zero emoji-uri, fără fonturi monospace, fără alerte native de browser și fără `git push`.
+- **Fișiere:** `client/src/pages/Settings.tsx`, `client/src/components/DashboardLayout.tsx`, `client/src/pages/SpvHub.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npm run build` trecut cu succes (`0` erori); zero erori TypeScript pe liniile modificate; `GET /setari`, `GET /spv` și `GET /integrari` HTTP `200`.
+
 ### 2026-11-18 11:31 — Suport profil separat Persoană Fizică (CNP) cu izolare SPV și facturi + comutator profiluri
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
