@@ -33,7 +33,7 @@ async function reinjectAppBridgeTabs() {
           target: { tabId: tab.id },
           files: ["app-bridge.js"],
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   } catch {
     /* ignore */
@@ -73,7 +73,7 @@ async function clearAnafWebserviceCookies(targetStoreId = null) {
         seen.add(key);
         const removeDetails = { url: cookieUrl, name: c.name };
         if (effectiveStoreId) removeDetails.storeId = effectiveStoreId;
-        await chrome.cookies.remove(removeDetails).catch(() => {});
+        await chrome.cookies.remove(removeDetails).catch(() => { });
       }
     }
   } catch {
@@ -348,24 +348,6 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
   const incognitoAllowed = await chrome.extension
     .isAllowedIncognitoAccess()
     .catch(() => false);
-
-  if (!incognitoAllowed) {
-    return {
-      ok: false,
-      needsIncognitoPermission: true,
-      error:
-        "Activeaza bifa 'Permite in modul incognito' (Allow in Incognito) in chrome://extensions -> Detalii pe extensia Conector SPV.",
-      diagnostics: {
-        rawTotal: 0,
-        matchedTotal: 0,
-        allowedCifs: [],
-        zileUsed: 60,
-        incognitoPopup: false,
-        incognitoAllowed: false,
-      },
-    };
-  }
-
   let usedIncognito = false;
 
   const finalizeResult = (res) => {
@@ -446,17 +428,38 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
       return workerTabId;
     }
 
-    const popupWin = await chrome.windows.create({
-      url: "about:blank",
-      type: "popup",
-      incognito: true,
-      width: popupWidth,
-      height: popupHeight,
-      left,
-      top,
-      focused: true,
-    });
-    usedIncognito = true;
+    let popupWin = null;
+    if (incognitoAllowed) {
+      try {
+        popupWin = await chrome.windows.create({
+          url: "about:blank",
+          type: "popup",
+          incognito: true,
+          width: popupWidth,
+          height: popupHeight,
+          left,
+          top,
+          focused: true,
+        });
+        usedIncognito = true;
+      } catch {
+        popupWin = null;
+        usedIncognito = false;
+      }
+    }
+
+    if (!popupWin) {
+      popupWin = await chrome.windows.create({
+        url: chrome.runtime.getURL("auth.html"),
+        type: "popup",
+        width: popupWidth,
+        height: popupHeight,
+        left,
+        top,
+        focused: true,
+      });
+      usedIncognito = false;
+    }
 
     popupWindowId = popupWin?.id || null;
     let workerTab = popupWin?.tabs?.[0] || null;
@@ -667,7 +670,7 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
             total: toDownload.length,
             tip: String(m.tip || "DOCUMENT"),
           })
-          .catch(() => {});
+          .catch(() => { });
       }
 
       const dl = await downloadDocumentInTab(workerTabId, m.id);

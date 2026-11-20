@@ -169,6 +169,17 @@ export async function testSpvConnection(tenantId: number): Promise<SpvTestResult
       } catch {}
 
       if (anafError) {
+        const normalizedErr = anafError
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase();
+        if (normalizedErr.includes("nu exista mesaje")) {
+          count = 0;
+          anafError = null;
+        }
+      }
+
+      if (anafError) {
         const isPfCode = /^\d{13}$/.test(cleanCif);
         return {
           status: "warning",

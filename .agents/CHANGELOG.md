@@ -1,5 +1,22 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-20 12:28 — Corectare diagnostic `Nu exista mesaje` și sincronizare nativă directă USB macOS (fără extensie/tab Chrome pe localhost)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. `server/spvDiagnostic.ts`:
+     - Tratat mesajul ANAF HTTP `200` `Nu exista mesaje in ultimele 1 zile` ca răspuns valid cu `0` facturi noi în ultimele 24h (`connected: true`), eliminând eroarea falsă `nu este încă înrolat la ANAF în SPV pe CNP ...` când profilul PF este înrolat și activ.
+  2. `server/native/spv-usb-helper.swift`, `server/spvNativeUsb.ts`, `server/spvPortalSync.ts`, `server/_core/index.ts`, `server/uploadRoute.ts`:
+     - Adăugat helper nativ macOS (`CryptoTokenKit` `SecIdentity` + `URLSessionConfiguration.ephemeral` izolat) apelat prin `POST /api/spv/sync-usb-native` (protejat cu `requireFileAuth`), care citește stick-ul USB conectat în Mac și descarcă documentele reale din `webserviced.anaf.ro/SPVWS2` cu sesiune TLS/cookie proaspătă la fiecare rulare, fără Chrome tabs, fără popups și fără reinstalări de extensie.
+     - Extras `getTenantCleanCui` și `saveRealSpvDocument` ca helper comun în `server/spvPortalSync.ts`, refolosit de `/api/spv/import-real-document` și `/api/spv/sync-usb-native`.
+     - Ignorat binarul compilat `server/native/spv-usb-helper` în `.gitignore` (păstrând sursa `.swift` versionată).
+  3. `client/src/pages/SpvHub.tsx` & `chrome-spv-connector/background.js`:
+     - Păstrate intacte toate cele 5 butoane din `/spv`; eliminată blocarea prin `REQUIRED_CONNECTOR_VERSION` și bannerul roșu din modal; `runUsbSpvSync` apelează mai întâi `/api/spv/sync-usb-native` pe localhost și revine la extensia Chrome doar când backend-ul nu este macOS (cloud).
+     - Restaurat fallback-ul grațios în `chrome-spv-connector/background.js` când `Allow in Incognito` nu este bifată pe cloud.
+  4. Respectat toate regulile: zero date/PDF-uri fake, zero emoji-uri, fără fonturi monospace, fără alerte native de browser și fără `git push`.
+- **Fișiere:** `.gitignore`, `server/spvDiagnostic.ts`, `server/spvPortalSync.ts`, `server/native/spv-usb-helper.swift`, `server/spvNativeUsb.ts`, `server/_core/index.ts`, `server/uploadRoute.ts`, `client/src/pages/SpvHub.tsx`, `chrome-spv-connector/background.js`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `swiftc -O` compilat fără erori (`spv-usb-helper --list-certs` detectează `CAZMAL EUGENIU`); `testSpvConnection(10)`, `testSpvConnection(2)` și `testSpvConnection(1)` toate `connected: true` (`114ms`, `47ms`, `36ms`); `npx tsc --noEmit` curat pe fișierele modificate; `node --check` curat pe `background.js`; `npm run build` trecut (`0` erori); `GET /spv` (`200`); `POST /api/spv/sync-usb-native` (`401` neautentificat); toate cele `8` documente PDF reale din `spv_portal_documents` intacte.
+
 ### 2026-11-20 12:16 — Blocare versiune veche `< 1.4.0` în UI și forțare strictă popup `incognito: true`
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

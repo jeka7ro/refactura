@@ -42,8 +42,6 @@ import {
 import { toast } from "sonner";
 import DocumentModalPreview from "@/components/DocumentModalPreview";
 
-const REQUIRED_CONNECTOR_VERSION = "1.4.0";
-
 export default function SpvHub() {
   const utils = trpc.useUtils();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -137,17 +135,17 @@ export default function SpvHub() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Stare Conector Chrome Stick USB ANAF (webserviced.anaf.ro/SPVWS2)
+  // Stare Conector Stick USB ANAF (nativ macOS pe localhost / extensie Chrome pe cloud)
+  const isLocalHost =
+    typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1");
   const [connectorReady, setConnectorReady] = useState<boolean>(
     () =>
       typeof document !== "undefined" &&
       Boolean(document.documentElement.dataset.spvConnectorInstalled)
   );
-  const [installedExtVer, setInstalledExtVer] = useState<string>(() =>
-    typeof document !== "undefined"
-      ? document.documentElement.dataset.spvConnectorInstalled || ""
-      : ""
-  );
+  const usbReady = connectorReady || isLocalHost;
   const [isConnectorModalOpen, setIsConnectorModalOpen] = useState(false);
   const [isUsbSyncing, setIsUsbSyncing] = useState(false);
   const [usbSyncStatus, setUsbSyncStatus] = useState<string | null>(null);
@@ -155,14 +153,8 @@ export default function SpvHub() {
   const [copiedPath, setCopiedPath] = useState(false);
 
   useEffect(() => {
-    const syncInstalledVer = (ver?: string) => {
-      const next =
-        ver || document.documentElement.dataset.spvConnectorInstalled || "";
-      if (next) setInstalledExtVer(next);
-    };
-    const onReady = (ev: Event) => {
+    const onReady = () => {
       setConnectorReady(true);
-      syncInstalledVer((ev as CustomEvent)?.detail?.version);
     };
     const onMessage = (event: MessageEvent) => {
       if (event.source !== window) return;
@@ -171,7 +163,6 @@ export default function SpvHub() {
         event.data?.type === "SPV_CONNECTOR_PONG"
       ) {
         setConnectorReady(true);
-        syncInstalledVer(event.data?.version);
       }
     };
     window.addEventListener("spv-connector-ready", onReady);
@@ -235,7 +226,7 @@ export default function SpvHub() {
       ]);
 
       let usbOutcome: any = null;
-      if (connectorReady && oauthInfo?.tenantCui) {
+      if (usbReady && oauthInfo?.tenantCui) {
         usbOutcome = await runUsbSpvSync({ fromUnifiedSync: true });
       }
 
@@ -326,7 +317,6 @@ export default function SpvHub() {
     const installedVer = document.documentElement.dataset.spvConnectorInstalled;
     if (installedVer) {
       setConnectorReady(true);
-      setInstalledExtVer(installedVer);
       toast.success(`Extensia Conector SPV USB v${installedVer} este activă.`);
       return;
     }
@@ -338,7 +328,6 @@ export default function SpvHub() {
       const retryVer = document.documentElement.dataset.spvConnectorInstalled;
       if (retryVer) {
         setConnectorReady(true);
-        setInstalledExtVer(retryVer);
         toast.success(`Extensia Conector SPV USB v${retryVer} este activă.`);
       } else {
         toast.info(
@@ -404,23 +393,6 @@ export default function SpvHub() {
     fromUnifiedSync?: boolean;
   }): Promise<any> => {
     const fromUnifiedSync = Boolean(options?.fromUnifiedSync);
-    if (!connectorReady) {
-      if (!fromUnifiedSync) setIsConnectorModalOpen(true);
-      return null;
-    }
-    const currentVer = document.documentElement.dataset.spvConnectorInstalled || "";
-    setInstalledExtVer(currentVer);
-    if (currentVer !== REQUIRED_CONNECTOR_VERSION) {
-      setIsConnectorModalOpen(true);
-      toast.error(
-        `În Chrome rulează încă extensia veche v${currentVer || "1.0"}. Înlocuiește-o cu v${REQUIRED_CONNECTOR_VERSION} (Incognito) urmând pașii afișați.`
-      );
-      return {
-        ok: false,
-        outdatedExtension: true,
-        error: `Extensie veche v${currentVer}`,
-      };
-    }
     if (!oauthInfo?.tenantCui) {
       if (!fromUnifiedSync) {
         toast.error("Profilul activ nu are CUI / CNP configurat în Setări.");
@@ -430,15 +402,76 @@ export default function SpvHub() {
     if (isUsbSyncing) return null;
 
     setIsUsbSyncing(true);
-    setUsbSyncStatus(null);
+    setUsbSyncStatus("Se citește stick-ul USB...");
 
-    const requestId = `spv_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const existingIds = (portalDocs || [])
-      .map((d: any) => String(d.numarInregistrare || ""))
-      .filter(Boolean);
+    const applyUsbOutcome = async (result: any, fromExtension: boolean) => {
+      if (fromExtension) {
+        logUsbResultToServer(result);
+      }
+      await refetchPortalDocs();
+
+      if (!result?.ok) {
+        const errMsg =
+          result?.error || "Eroare la citirea mesajelor SPV prin stick USB.";
+        if (result?.needsIncognitoPermission) {
+          setIsConnectorModalOpen(true);
+        }
+        toast.error(errMsg);
+        return result;
+      }
+
+      if ((result.downloaded || 0) > 0 || (result.matchedTotal || 0) > 0) {
+        setActiveHubTab("declaratii");
+      }
+
+      if (!fromUnifiedSync) {
+        if ((result.downloaded || 0) > 0) {
+          toast.success(
+            `S-au descărcat ${result.downloaded} documente noi din SPV.`
+          );
+        } else if ((result.matchedTotal || 0) > 0) {
+          toast.info("Toate documentele disponibile sunt deja salvate.");
+        } else {
+          toast.info("Nu există documente noi în SPV.");
+        }
+      }
+
+      if ((result.failed || 0) > 0 && result.lastError) {
+        toast.error(
+          `${result.failed} documente nu au putut fi salvate: ${result.lastError}`
+        );
+      }
+      return result;
+    };
 
     try {
-      const result: any = await new Promise((resolve) => {
+      const token = localStorage.getItem("authToken");
+      const nativeHeaders: HeadersInit = { "Content-Type": "application/json" };
+      if (token) nativeHeaders["Authorization"] = `Bearer ${token}`;
+
+      const nativeRes = await fetch("/api/spv/sync-usb-native", {
+        method: "POST",
+        credentials: "include",
+        headers: nativeHeaders,
+        body: JSON.stringify({ zile: 60 }),
+      });
+      const nativeJson = await nativeRes.json().catch(() => null);
+
+      if (nativeJson?.supported === true) {
+        return await applyUsbOutcome(nativeJson, false);
+      }
+
+      if (!connectorReady) {
+        if (!fromUnifiedSync) setIsConnectorModalOpen(true);
+        return null;
+      }
+
+      const requestId = `spv_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const existingIds = (portalDocs || [])
+        .map((d: any) => String(d.numarInregistrare || ""))
+        .filter(Boolean);
+
+      const extResult: any = await new Promise((resolve) => {
         const safetyTimer = window.setTimeout(() => {
           window.removeEventListener("message", onExtMessage);
           resolve({
@@ -461,16 +494,15 @@ export default function SpvHub() {
 
           if (data.type === "SPV_CONNECTOR_DOCUMENT") {
             try {
-              const token = localStorage.getItem("authToken");
-              const headers: HeadersInit = {
+              const saveHeaders: HeadersInit = {
                 "Content-Type": "application/json",
               };
-              if (token) headers["Authorization"] = `Bearer ${token}`;
+              if (token) saveHeaders["Authorization"] = `Bearer ${token}`;
 
               const saveRes = await fetch("/api/spv/import-real-document", {
                 method: "POST",
                 credentials: "include",
-                headers,
+                headers: saveHeaders,
                 body: JSON.stringify(data.item),
               });
               const saveJson = await saveRes.json().catch(() => ({}));
@@ -527,41 +559,7 @@ export default function SpvHub() {
         );
       });
 
-      logUsbResultToServer(result);
-      await refetchPortalDocs();
-
-      if (!result?.ok) {
-        const errMsg =
-          result?.error || "Eroare la citirea mesajelor SPV prin stick USB.";
-        if (result?.needsIncognitoPermission) {
-          setIsConnectorModalOpen(true);
-        }
-        toast.error(errMsg);
-        return result;
-      }
-
-      if ((result.downloaded || 0) > 0 || (result.matchedTotal || 0) > 0) {
-        setActiveHubTab("declaratii");
-      }
-
-      if (!fromUnifiedSync) {
-        if ((result.downloaded || 0) > 0) {
-          toast.success(
-            `S-au descărcat ${result.downloaded} documente noi din SPV.`
-          );
-        } else if ((result.matchedTotal || 0) > 0) {
-          toast.info("Toate documentele disponibile sunt deja salvate.");
-        } else {
-          toast.info("Nu există documente noi în SPV.");
-        }
-      }
-
-      if ((result.failed || 0) > 0 && result.lastError) {
-        toast.error(
-          `${result.failed} documente nu au putut fi salvate: ${result.lastError}`
-        );
-      }
-      return result;
+      return await applyUsbOutcome(extResult, true);
     } finally {
       setIsUsbSyncing(false);
       setUsbSyncStatus(null);
@@ -884,12 +882,12 @@ export default function SpvHub() {
               onClick={handleUsbSpvSync}
               disabled={isUsbSyncing}
               className={`h-9 rounded-lg text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-colors px-3 border cursor-pointer disabled:opacity-60 ${
-                connectorReady
+                usbReady
                   ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/50 dark:hover:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-800"
                   : "bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700"
               }`}
               title={
-                connectorReady
+                usbReady
                   ? "Descarcă direct din SPV ANAF documentele originale PDF/ZIP folosind stick-ul USB"
                   : "Instalează extensia Chrome Conector SPV pentru stick USB"
               }
@@ -903,11 +901,11 @@ export default function SpvHub() {
                 <>
                   <ShieldCheck
                     className={`w-3.5 h-3.5 ${
-                      connectorReady ? "text-emerald-600" : "text-slate-500"
+                      usbReady ? "text-emerald-600" : "text-slate-500"
                     }`}
                   />
                   <span>
-                    {connectorReady
+                    {usbReady
                       ? "Sincronizează Stick USB"
                       : "Instalează Conector USB"}
                   </span>
@@ -1932,15 +1930,6 @@ export default function SpvHub() {
           </DialogHeader>
 
           <div className="space-y-3.5 pt-1 text-xs">
-            {installedExtVer && installedExtVer !== REQUIRED_CONNECTOR_VERSION && (
-              <div className="rounded-lg border border-red-200 dark:border-red-900 bg-red-50/80 dark:bg-red-950/40 p-3 text-red-900 dark:text-red-200 leading-relaxed">
-                În Chrome este încă activă versiunea veche{" "}
-                <span className="font-bold">v{installedExtVer}</span> (încărcată anterior din alt folder / Downloads), motiv pentru care deschidea tab normal. Șterge extensia veche din{" "}
-                <span className="font-semibold select-all">chrome://extensions</span> (Remove), apoi apasă{" "}
-                <span className="font-semibold">Load unpacked</span> pe calea de mai jos (v{REQUIRED_CONNECTOR_VERSION}) și bifează{" "}
-                <span className="font-semibold">Permite în modul incognito</span>.
-              </div>
-            )}
             <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/70 p-3.5 space-y-2 text-slate-700 dark:text-slate-300">
               <p className="font-semibold text-slate-900 dark:text-white">
                 Instalare în 4 pași (20 secunde):

@@ -1,9 +1,194 @@
+import fs from "fs";
+import path from "path";
+import AdmZip from "adm-zip";
+import { sql } from "drizzle-orm";
+
 export interface SyncPortalResult {
   success: boolean;
   imported: number;
   total: number;
   message: string;
   needsSpvRole?: boolean;
+}
+
+export interface SaveRealSpvDocInput {
+  anafId?: unknown;
+  cif?: unknown;
+  tip?: unknown;
+  idSolicitare?: unknown;
+  dataCreare?: unknown;
+  detalii?: unknown;
+  fileBase64?: unknown;
+  originalFileName?: unknown;
+}
+
+export type SaveRealSpvDocResult =
+  | {
+      ok: true;
+      skippedDuplicate: boolean;
+      id: number | null;
+      fileUrl?: string;
+      fileName?: string;
+    }
+  | {
+      ok: false;
+      statusCode: number;
+      error: string;
+    };
+
+export async function getTenantCleanCui(
+  db: any,
+  tenantId: number
+): Promise<string> {
+  const [tenantRows]: any = await db.execute(
+    sql`SELECT cui, settings FROM tenants WHERE id = ${tenantId} LIMIT 1`
+  );
+  const tenantRow = tenantRows?.[0];
+  let parsedSettings: any = {};
+  try {
+    parsedSettings =
+      typeof tenantRow?.settings === "string"
+        ? JSON.parse(tenantRow.settings || "{}")
+        : tenantRow?.settings || {};
+  } catch {}
+  return String(tenantRow?.cui || parsedSettings?.companyCui || "")
+    .replace(/^RO/i, "")
+    .trim();
+}
+
+export async function saveRealSpvDocument(
+  db: any,
+  tenantId: number,
+  cleanCui: string,
+  item: SaveRealSpvDocInput
+): Promise<SaveRealSpvDocResult> {
+  const normAnafId = String(item?.anafId || "").trim();
+  const normReqCif = String(item?.cif || "").replace(/^RO/i, "").trim();
+  if (!normAnafId) {
+    return { ok: false, statusCode: 400, error: "Lipsește ID-ul documentului ANAF." };
+  }
+  if (!normReqCif || normReqCif !== cleanCui) {
+    return {
+      ok: false,
+      statusCode: 400,
+      error: `Documentul aparține CIF/CNP ${normReqCif || "-"}, nu profilului activ (${cleanCui}).`,
+    };
+  }
+  if (!item?.fileBase64 || typeof item.fileBase64 !== "string") {
+    return {
+      ok: false,
+      statusCode: 400,
+      error: "Lipsește conținutul binar al documentului ANAF.",
+    };
+  }
+
+  const rawBuf = Buffer.from(item.fileBase64, "base64");
+  if (rawBuf.length < 100) {
+    return {
+      ok: false,
+      statusCode: 400,
+      error: "Fișierul primit din ANAF este gol sau incomplet.",
+    };
+  }
+
+  const isPdf = rawBuf.slice(0, 5).toString("utf8") === "%PDF-";
+  const isZip = rawBuf.slice(0, 4).toString("hex") === "504b0304";
+  if (!isPdf && !isZip) {
+    return {
+      ok: false,
+      statusCode: 400,
+      error: "Fișierul descărcat nu este un PDF sau ZIP valid semnat de ANAF.",
+    };
+  }
+
+  const [existRows]: any = await db.execute(
+    sql`SELECT id, fileUrl FROM spv_portal_documents WHERE tenantId = ${tenantId} AND numarInregistrare = ${normAnafId} LIMIT 1`
+  );
+  if (existRows?.[0]?.fileUrl) {
+    return {
+      ok: true,
+      skippedDuplicate: true,
+      id: existRows[0].id,
+    };
+  }
+
+  const normTip = String(item?.tip || "DOCUMENT").toUpperCase().trim();
+  const normDetalii = String(item?.detalii || "").trim();
+  const safeTip = normTip.replace(/[^a-zA-Z0-9_-]/g, "_");
+
+  let finalBuf: Buffer = rawBuf;
+  let finalFileName = "";
+  if (isPdf) {
+    const requestedBase = item?.originalFileName
+      ? path.basename(String(item.originalFileName)).replace(/[^a-zA-Z0-9._-]/g, "_")
+      : "";
+    finalFileName =
+      requestedBase && requestedBase.toLowerCase().endsWith(".pdf")
+        ? requestedBase
+        : `${safeTip}_${normAnafId}.pdf`;
+  } else {
+    const zip = new AdmZip(rawBuf);
+    const pdfEntry = zip
+      .getEntries()
+      .find((e) => !e.isDirectory && e.entryName.toLowerCase().endsWith(".pdf"));
+    if (pdfEntry) {
+      const entryBuf = pdfEntry.getData();
+      if (entryBuf.slice(0, 5).toString("utf8") === "%PDF-") {
+        finalBuf = entryBuf;
+        const entryBase = path.basename(pdfEntry.entryName).replace(/[^a-zA-Z0-9._-]/g, "_");
+        finalFileName = `${safeTip}_${normAnafId}_${entryBase}`;
+      } else {
+        finalFileName = `${safeTip}_${normAnafId}.zip`;
+      }
+    } else {
+      finalFileName = `${safeTip}_${normAnafId}.zip`;
+    }
+  }
+
+  const uploadDirDist = path.join(process.cwd(), "dist", "public", "uploads", "spv_documents");
+  const uploadDirClient = path.join(process.cwd(), "client", "public", "uploads", "spv_documents");
+  await fs.promises.mkdir(uploadDirDist, { recursive: true }).catch(() => {});
+  await fs.promises.mkdir(uploadDirClient, { recursive: true }).catch(() => {});
+
+  const diskKey = `${tenantId}_${normAnafId}_${finalFileName}`.replace(/[^a-zA-Z0-9._-]/g, "_");
+  await fs.promises.writeFile(path.join(uploadDirDist, diskKey), finalBuf);
+  await fs.promises.writeFile(path.join(uploadDirClient, diskKey), finalBuf).catch(() => {});
+  const fileUrl = `/uploads/spv_documents/${diskKey}`;
+
+  const dataDepunere = String(item?.dataCreare || "").trim();
+  const dataArhivare = computeDataArhivare(dataDepunere);
+  const titlu = getDocumentTitle(normTip, normDetalii);
+  const categorie = classifySpvCategory(normTip, normDetalii);
+  const perioadaFiscala = extractPerioadaFiscala(normDetalii);
+  const normSolicitare = item?.idSolicitare ? String(item.idSolicitare).trim() : null;
+
+  if (existRows?.[0]?.id) {
+    await db.execute(
+      sql`UPDATE spv_portal_documents SET fileUrl = ${fileUrl}, fileName = ${finalFileName}, sursa = 'webserviced_anaf' WHERE id = ${existRows[0].id}`
+    );
+    return {
+      ok: true,
+      skippedDuplicate: false,
+      id: existRows[0].id,
+      fileUrl,
+      fileName: finalFileName,
+    };
+  }
+
+  const [insRes]: any = await db.execute(
+    sql`INSERT INTO spv_portal_documents
+        (tenantId, cif, tip, categorie, titlu, numarInregistrare, idSolicitare, dataDepunere, dataArhivare, perioadaFiscala, stare, isRead, detalii, fileName, fileUrl, sursa)
+        VALUES
+        (${tenantId}, ${cleanCui}, ${normTip}, ${categorie}, ${titlu}, ${normAnafId}, ${normSolicitare}, ${dataDepunere}, ${dataArhivare}, ${perioadaFiscala}, 'validat', 0, ${normDetalii}, ${finalFileName}, ${fileUrl}, 'webserviced_anaf')`
+  );
+
+  return {
+    ok: true,
+    skippedDuplicate: false,
+    id: insRes?.insertId || null,
+    fileUrl,
+    fileName: finalFileName,
+  };
 }
 
 /**
