@@ -1,5 +1,18 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-20 12:16 — Blocare versiune veche `< 1.4.0` în UI și forțare strictă popup `incognito: true`
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. `chrome-spv-connector/background.js` (`v1.4.0`):
+     - Eliminat complet fallback-ul non-incognito din `ensurePopupWorker`: `chrome.windows.create` rulează exclusiv cu `incognito: true` (`about:blank`), iar dacă permisiunea `Allow in Incognito` nu este activată în Chrome, oprește imediat fluxul și returnează eroarea clară `needsIncognitoPermission: true` fără să deschidă tab-uri sau ferestre normale.
+  2. `client/src/pages/SpvHub.tsx`:
+     - Păstrate intacte toate butoanele din `/spv`; adăugat verificare `REQUIRED_CONNECTOR_VERSION = "1.4.0"` înainte de `SPV_CONNECTOR_SYNC`, astfel încât o copie veche rămasă în Chrome (ex. `v1.1.0` din `Downloads`) să nu mai poată deschide tab normal și să deschidă automat modalul cu avertismentul roșu și calea exactă către `v1.4.0`.
+     - La `needsIncognitoPermission`, deschide automat modalul cu instrucțiunea pentru `Permite în modul incognito`.
+  3. Respectat toate regulile: zero date/PDF-uri fake, zero emoji-uri, fără fonturi monospace, fără alerte native de browser și fără `git push`.
+- **Fișiere:** `chrome-spv-connector/background.js`, `client/src/pages/SpvHub.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `node --check` curat pe `background.js` și `app-bridge.js`; zero `chrome.tabs.create` și `1` `chrome.windows.create` strict `incognito: true`; `npx tsc --noEmit` curat pe `SpvHub.tsx`; `npm run build` trecut (`0` erori); `GET /spv` (`200`); `GET /api/spv-connector.zip` (`200`, `v1.4.0`).
+
 ### 2026-11-20 12:12 — Fereastră popup Incognito automată în Conector SPV (`v1.4.0`) + re-injectare bridge la reload
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

@@ -259,7 +259,7 @@ async function waitForListJson(tabId, anafListUrl, popupStoreId = null) {
       if (hangupRetries < 2) {
         hangupRetries += 1;
         await clearAnafWebserviceCookies(tab.cookieStoreId || popupStoreId);
-        await chrome.tabs.update(tabId, { url: anafListUrl }).catch(() => {});
+        await chrome.tabs.update(tabId, { url: anafListUrl }).catch(() => { });
         await sleep(750);
         continue;
       }
@@ -278,7 +278,7 @@ async function waitForListJson(tabId, anafListUrl, popupStoreId = null) {
           if (hangupRetries < 2) {
             hangupRetries += 1;
             await clearAnafWebserviceCookies(tab.cookieStoreId || popupStoreId);
-            await chrome.tabs.update(tabId, { url: anafListUrl }).catch(() => {});
+            await chrome.tabs.update(tabId, { url: anafListUrl }).catch(() => { });
             await sleep(750);
             continue;
           }
@@ -309,7 +309,7 @@ async function waitForListJson(tabId, anafListUrl, popupStoreId = null) {
         if (hangupRetries < 2) {
           hangupRetries += 1;
           await clearAnafWebserviceCookies(tab.cookieStoreId || popupStoreId);
-          await chrome.tabs.update(tabId, { url: anafListUrl }).catch(() => {});
+          await chrome.tabs.update(tabId, { url: anafListUrl }).catch(() => { });
           await sleep(750);
           continue;
         }
@@ -348,6 +348,24 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
   const incognitoAllowed = await chrome.extension
     .isAllowedIncognitoAccess()
     .catch(() => false);
+
+  if (!incognitoAllowed) {
+    return {
+      ok: false,
+      needsIncognitoPermission: true,
+      error:
+        "Activeaza bifa 'Permite in modul incognito' (Allow in Incognito) in chrome://extensions -> Detalii pe extensia Conector SPV.",
+      diagnostics: {
+        rawTotal: 0,
+        matchedTotal: 0,
+        allowedCifs: [],
+        zileUsed: 60,
+        incognitoPopup: false,
+        incognitoAllowed: false,
+      },
+    };
+  }
+
   let usedIncognito = false;
 
   const finalizeResult = (res) => {
@@ -423,43 +441,22 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
 
   const ensurePopupWorker = async (urlToLoad) => {
     if (popupWindowId && workerTabId) {
-      await chrome.tabs.update(workerTabId, { url: urlToLoad }).catch(() => {});
-      await chrome.windows.update(popupWindowId, { focused: true }).catch(() => {});
+      await chrome.tabs.update(workerTabId, { url: urlToLoad }).catch(() => { });
+      await chrome.windows.update(popupWindowId, { focused: true }).catch(() => { });
       return workerTabId;
     }
 
-    let popupWin = null;
-    if (incognitoAllowed) {
-      try {
-        popupWin = await chrome.windows.create({
-          url: "about:blank",
-          type: "popup",
-          incognito: true,
-          width: popupWidth,
-          height: popupHeight,
-          left,
-          top,
-          focused: true,
-        });
-        usedIncognito = true;
-      } catch {
-        popupWin = null;
-        usedIncognito = false;
-      }
-    }
-
-    if (!popupWin) {
-      popupWin = await chrome.windows.create({
-        url: chrome.runtime.getURL("auth.html"),
-        type: "popup",
-        width: popupWidth,
-        height: popupHeight,
-        left,
-        top,
-        focused: true,
-      });
-      usedIncognito = false;
-    }
+    const popupWin = await chrome.windows.create({
+      url: "about:blank",
+      type: "popup",
+      incognito: true,
+      width: popupWidth,
+      height: popupHeight,
+      left,
+      top,
+      focused: true,
+    });
+    usedIncognito = true;
 
     popupWindowId = popupWin?.id || null;
     let workerTab = popupWin?.tabs?.[0] || null;
@@ -658,7 +655,7 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
             type: "SPV_POPUP_PROGRESS",
             text: progressText,
           })
-          .catch(() => {});
+          .catch(() => { });
       }
 
       if (appTabId) {
@@ -727,7 +724,7 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
     });
   } finally {
     if (popupWindowId) {
-      await chrome.windows.remove(popupWindowId).catch(() => {});
+      await chrome.windows.remove(popupWindowId).catch(() => { });
     }
   }
 }

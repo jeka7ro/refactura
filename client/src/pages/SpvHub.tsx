@@ -42,6 +42,8 @@ import {
 import { toast } from "sonner";
 import DocumentModalPreview from "@/components/DocumentModalPreview";
 
+const REQUIRED_CONNECTOR_VERSION = "1.4.0";
+
 export default function SpvHub() {
   const utils = trpc.useUtils();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -141,6 +143,11 @@ export default function SpvHub() {
       typeof document !== "undefined" &&
       Boolean(document.documentElement.dataset.spvConnectorInstalled)
   );
+  const [installedExtVer, setInstalledExtVer] = useState<string>(() =>
+    typeof document !== "undefined"
+      ? document.documentElement.dataset.spvConnectorInstalled || ""
+      : ""
+  );
   const [isConnectorModalOpen, setIsConnectorModalOpen] = useState(false);
   const [isUsbSyncing, setIsUsbSyncing] = useState(false);
   const [usbSyncStatus, setUsbSyncStatus] = useState<string | null>(null);
@@ -148,8 +155,14 @@ export default function SpvHub() {
   const [copiedPath, setCopiedPath] = useState(false);
 
   useEffect(() => {
-    const onReady = () => {
+    const syncInstalledVer = (ver?: string) => {
+      const next =
+        ver || document.documentElement.dataset.spvConnectorInstalled || "";
+      if (next) setInstalledExtVer(next);
+    };
+    const onReady = (ev: Event) => {
       setConnectorReady(true);
+      syncInstalledVer((ev as CustomEvent)?.detail?.version);
     };
     const onMessage = (event: MessageEvent) => {
       if (event.source !== window) return;
@@ -158,6 +171,7 @@ export default function SpvHub() {
         event.data?.type === "SPV_CONNECTOR_PONG"
       ) {
         setConnectorReady(true);
+        syncInstalledVer(event.data?.version);
       }
     };
     window.addEventListener("spv-connector-ready", onReady);
@@ -312,7 +326,8 @@ export default function SpvHub() {
     const installedVer = document.documentElement.dataset.spvConnectorInstalled;
     if (installedVer) {
       setConnectorReady(true);
-      toast.success("Extensia Conector SPV USB este activă.");
+      setInstalledExtVer(installedVer);
+      toast.success(`Extensia Conector SPV USB v${installedVer} este activă.`);
       return;
     }
     window.postMessage(
@@ -323,7 +338,8 @@ export default function SpvHub() {
       const retryVer = document.documentElement.dataset.spvConnectorInstalled;
       if (retryVer) {
         setConnectorReady(true);
-        toast.success("Extensia Conector SPV USB este activă.");
+        setInstalledExtVer(retryVer);
+        toast.success(`Extensia Conector SPV USB v${retryVer} este activă.`);
       } else {
         toast.info(
           "Extensia nu a fost detectată încă. Reîncarcă pagina după instalarea în chrome://extensions."
@@ -391,6 +407,19 @@ export default function SpvHub() {
     if (!connectorReady) {
       if (!fromUnifiedSync) setIsConnectorModalOpen(true);
       return null;
+    }
+    const currentVer = document.documentElement.dataset.spvConnectorInstalled || "";
+    setInstalledExtVer(currentVer);
+    if (currentVer !== REQUIRED_CONNECTOR_VERSION) {
+      setIsConnectorModalOpen(true);
+      toast.error(
+        `În Chrome rulează încă extensia veche v${currentVer || "1.0"}. Înlocuiește-o cu v${REQUIRED_CONNECTOR_VERSION} (Incognito) urmând pașii afișați.`
+      );
+      return {
+        ok: false,
+        outdatedExtension: true,
+        error: `Extensie veche v${currentVer}`,
+      };
     }
     if (!oauthInfo?.tenantCui) {
       if (!fromUnifiedSync) {
@@ -504,6 +533,9 @@ export default function SpvHub() {
       if (!result?.ok) {
         const errMsg =
           result?.error || "Eroare la citirea mesajelor SPV prin stick USB.";
+        if (result?.needsIncognitoPermission) {
+          setIsConnectorModalOpen(true);
+        }
         toast.error(errMsg);
         return result;
       }
@@ -1900,6 +1932,15 @@ export default function SpvHub() {
           </DialogHeader>
 
           <div className="space-y-3.5 pt-1 text-xs">
+            {installedExtVer && installedExtVer !== REQUIRED_CONNECTOR_VERSION && (
+              <div className="rounded-lg border border-red-200 dark:border-red-900 bg-red-50/80 dark:bg-red-950/40 p-3 text-red-900 dark:text-red-200 leading-relaxed">
+                În Chrome este încă activă versiunea veche{" "}
+                <span className="font-bold">v{installedExtVer}</span> (încărcată anterior din alt folder / Downloads), motiv pentru care deschidea tab normal. Șterge extensia veche din{" "}
+                <span className="font-semibold select-all">chrome://extensions</span> (Remove), apoi apasă{" "}
+                <span className="font-semibold">Load unpacked</span> pe calea de mai jos (v{REQUIRED_CONNECTOR_VERSION}) și bifează{" "}
+                <span className="font-semibold">Permite în modul incognito</span>.
+              </div>
+            )}
             <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/70 p-3.5 space-y-2 text-slate-700 dark:text-slate-300">
               <p className="font-semibold text-slate-900 dark:text-white">
                 Instalare în 4 pași (20 secunde):
