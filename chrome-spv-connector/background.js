@@ -129,7 +129,8 @@ async function readListJsonFromTab(tabId) {
       const lowerBody = bodyText.toLowerCase();
       if (
         lowerBody.includes("session could not be established") ||
-        lowerBody.includes("access was denied by the access policy")
+        lowerBody.includes("access was denied by the access policy") ||
+        lowerBody.includes("certificatul nu a fost prezentat")
       ) {
         return { parsed: null, isHangupPage: true, preview: trimmedPreview(bodyText) };
       }

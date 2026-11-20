@@ -1,5 +1,19 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-20 12:35 — Eliminare helper `URLSession` (`HTTP 500` la renegociere TLS 1.2 ANAF) și restaurare apel direct `chrome-spv-connector` fără blocaj de versiune
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. `server/native/spv-usb-helper.swift`, `server/spvNativeUsb.ts`, `server/_core/index.ts`, `server/uploadRoute.ts`, `.gitignore`:
+     - Eliminat helperul `URLSession` (`spv-usb-helper.swift` / `spvNativeUsb.ts`) și ruta `/api/spv/sync-usb-native`, deoarece serverul F5 BigIP `webserviced.anaf.ro/my.policy` efectuează renegociere TLS 1.2 (`HelloRequest` + `Request CERT`) respinsă de `URLSession` cu `HTTP 500`, păstrând intacte `server/spvDiagnostic.ts` (`connected: true` pe `Nu exista mesaje in ultimele 1 zile`) și `server/spvPortalSync.ts` (`getTenantCleanCui`, `saveRealSpvDocument`).
+  2. `client/src/pages/SpvHub.tsx`:
+     - Păstrate intacte toate cele 5 butoane din `/spv`; restaurat apelul direct către `chrome-spv-connector` (`SPV_CONNECTOR_SYNC`) fără blocaj `REQUIRED_CONNECTOR_VERSION` și fără apel către `/api/spv/sync-usb-native`.
+  3. `chrome-spv-connector/background.js`:
+     - Adăugată detecția rapidă `certificatul nu a fost prezentat` în `readListJsonFromTab` (`isHangupPage: true`) pentru retry/eroare rapidă pe `/my.policy`.
+  4. Respectat toate regulile: zero date/PDF-uri fake, zero emoji-uri, fără fonturi monospace, fără alerte native de browser și fără `git push`.
+- **Fișiere:** `.gitignore`, `server/_core/index.ts`, `server/uploadRoute.ts`, `client/src/pages/SpvHub.tsx`, `chrome-spv-connector/background.js`, `.agents/CHANGELOG.md` (șterse `server/native/spv-usb-helper.swift` și `server/spvNativeUsb.ts`)
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `node --check` curat pe `background.js` și `app-bridge.js`; `npx tsc --noEmit` curat pe fișierele modificate; `npm run build` trecut (`0` erori); `GET /spv` (`200`); `GET /api/spv-connector.zip` (`200`, `1.4.0`); `testSpvConnection(10)` returnează `connected: true` (`122ms`); toate cele `8` documente PDF reale (`64..71`) intacte.
+
 ### 2026-11-20 12:28 — Corectare diagnostic `Nu exista mesaje` și sincronizare nativă directă USB macOS (fără extensie/tab Chrome pe localhost)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

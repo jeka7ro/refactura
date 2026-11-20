@@ -1036,24 +1036,6 @@ export function registerUploadRoute(app: Express) {
     }
   });
 
-  // ── NATIVE MACOS USB SYNC FOR SPVWS2 (CryptoTokenKit SecIdentity + Ephemeral TLS) ──
-  app.post("/api/spv/sync-usb-native", async (req: Request, res: Response) => {
-    try {
-      const tenantId = await resolveRequestTenant(req);
-      const { syncSpvViaNativeUsbMac } = await import("./spvNativeUsb");
-      const zile = Number(req.body?.zile) || 60;
-      const result = await syncSpvViaNativeUsbMac(tenantId, zile);
-      res.json(result);
-    } catch (err: any) {
-      console.error("[SPV Native USB] Error:", err?.message);
-      res.status(500).json({
-        supported: process.platform === "darwin",
-        ok: false,
-        error: err?.message || "Eroare la citirea stick-ului USB ANAF.",
-      });
-    }
-  });
-
   // ── DOWNLOAD CHROME EXTENSION CONECTOR SPV AS ZIP ────────────────────────────
   app.get("/api/spv-connector.zip", async (_req: Request, res: Response) => {
     try {
