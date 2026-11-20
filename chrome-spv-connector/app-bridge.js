@@ -1,7 +1,15 @@
 (() => {
-  const EXTENSION_VERSION = "1.3.0";
+  const EXTENSION_VERSION = "1.4.0";
   const APP_SOURCE = "smart-invoice-app";
   const EXT_SOURCE = "smart-invoice-extension";
+
+  if (typeof window.__spvConnectorCleanup === "function") {
+    try {
+      window.__spvConnectorCleanup();
+    } catch {
+      /* ignore cleanup error */
+    }
+  }
 
   try {
     document.documentElement.dataset.spvConnectorInstalled = EXTENSION_VERSION;
@@ -16,7 +24,8 @@
 
   const pendingDocAcks = new Map();
 
-  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  const onRuntimeMessage = (message, _sender, sendResponse) => {
+    if (!chrome?.runtime?.id) return false;
     if (!message || !message.requestId) return false;
 
     if (message.type === "SPV_CONNECTOR_PROGRESS") {
@@ -68,10 +77,19 @@
     }
 
     return false;
-  });
+  };
 
-  window.addEventListener("message", async (event) => {
+  const onWindowMessage = async (event) => {
     if (event.source !== window) return;
+    if (!chrome?.runtime?.id) {
+      try {
+        window.__spvConnectorCleanup?.();
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
+
     const data = event.data;
     if (!data || data.source !== APP_SOURCE) return;
 
@@ -136,5 +154,17 @@
         );
       }
     }
-  });
+  };
+
+  chrome.runtime.onMessage.addListener(onRuntimeMessage);
+  window.addEventListener("message", onWindowMessage);
+
+  window.__spvConnectorCleanup = () => {
+    window.removeEventListener("message", onWindowMessage);
+    try {
+      chrome.runtime.onMessage.removeListener(onRuntimeMessage);
+    } catch {
+      /* extension context already gone */
+    }
+  };
 })();

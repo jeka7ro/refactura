@@ -1,5 +1,20 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-20 12:12 — Fereastră popup Incognito automată în Conector SPV (`v1.4.0`) + re-injectare bridge la reload
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. `chrome-spv-connector/` (`manifest.json`, `app-bridge.js`, `background.js` — `v1.4.0`):
+     - Configurat `"incognito": "spanning"` și permisiunea `browsingData` în `manifest.json`.
+     - Fereastra popup de autentificare cu stick USB folosește automat o sesiune Incognito izolată (`chrome.windows.create({ type: "popup", incognito: true, url: "about:blank" })`) când este activată permisiunea `Allow in Incognito`, eliminând complet blocajele din cache-ul TLS/certificat Chrome între sesiuni F5 ANAF consecutive (`OffTheRecord BrowserContext` nou la fiecare sincronizare și distrus automat la închidere).
+     - Când permisiunea Incognito nu este activată încă, rulează `chrome.browsingData.remove` pe originile `anaf.ro` + curățare cookie-uri F5 înainte de deschidere și afișează îndrumarea clară pentru activarea `Allow in Incognito` dacă F5 închide sesiunea.
+     - Adăugat `chrome.runtime.onInstalled` cu re-injectare automată `app-bridge.js` pe tab-urile deschise ale aplicației și mecanism `window.__spvConnectorCleanup` pentru reload fără refuz de context.
+  2. `client/src/pages/SpvHub.tsx` & `server/uploadRoute.ts`:
+     - Păstrate 100% intacte toate butoanele din `/spv`; adăugat pasul 4 (`Allow in Incognito`) în modalul de configurare al conectorului USB și transmis `extVersion` + `incognitoPopup` în `/api/spv/connector-log`.
+  3. Respectat toate regulile: zero date/PDF-uri fake, zero emoji-uri, fără fonturi monospace, fără alerte native de browser și fără `git push`.
+- **Fișiere:** `chrome-spv-connector/manifest.json`, `chrome-spv-connector/app-bridge.js`, `chrome-spv-connector/background.js`, `client/src/pages/SpvHub.tsx`, `server/uploadRoute.ts`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `node --check` curat pe `background.js`, `app-bridge.js`, `anaf-popup.js`; `manifest.json` (`1.4.0`, `spanning`, `browsingData`); `npx tsc --noEmit` curat pe fișierele modificate; `npm run build` trecut (`0` erori); `GET /spv` (`200`); `GET /api/spv-connector.zip` (`200`, toate cele 6 fișiere la `v1.4.0`); toate cele `8` documente PDF reale intacte în `spv_portal_documents`.
+
 ### 2026-11-18 18:32 — Conectare Stick USB în fereastră popup centrată (`v1.3.0`) și rezolvare blocaj TLS pe certificatul Cazmal Elena
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

@@ -1219,6 +1219,7 @@ export function registerUploadRoute(app: Express) {
         error,
         emptyNotice,
         diagnostics,
+        extVersion,
       } = req.body || {};
 
       const zileUsed = Number(diagnostics?.zileUsed || 60);
@@ -1226,9 +1227,11 @@ export function registerUploadRoute(app: Express) {
       const allowed = Array.isArray(diagnostics?.allowedCifs)
         ? diagnostics.allowedCifs.join(",")
         : "-";
+      const verLabel = extVersion ? String(extVersion) : "-";
+      const incognitoFlag = Boolean(diagnostics?.incognitoPopup);
 
       console.log(
-        `[SPV USB Connector] tenant=${tenantId} ok=${Boolean(ok)} raw=${rawTotal} matched=${Number(matchedTotal || 0)} downloaded=${Number(downloaded || 0)} alreadySaved=${Number(alreadySaved || 0)} failed=${Number(failed || 0)} zile=${zileUsed} allowed=${allowed}${emptyNotice ? ` notice=${String(emptyNotice).slice(0, 120)}` : ""}${error ? ` err=${String(error).slice(0, 180)}` : ""}`
+        `[SPV USB Connector] tenant=${tenantId} ver=${verLabel} incognito=${incognitoFlag} ok=${Boolean(ok)} raw=${rawTotal} matched=${Number(matchedTotal || 0)} downloaded=${Number(downloaded || 0)} alreadySaved=${Number(alreadySaved || 0)} failed=${Number(failed || 0)} zile=${zileUsed} allowed=${allowed}${emptyNotice ? ` notice=${String(emptyNotice).slice(0, 120)}` : ""}${error ? ` err=${String(error).slice(0, 180)}` : ""}`
       );
       res.json({ ok: true });
     } catch (err: any) {

@@ -371,11 +371,13 @@ export default function SpvHub() {
       const token = localStorage.getItem("authToken");
       const headers: HeadersInit = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
+      const extVersion =
+        document.documentElement.dataset.spvConnectorInstalled || "unknown";
       fetch("/api/spv/connector-log", {
         method: "POST",
         credentials: "include",
         headers,
-        body: JSON.stringify(payload || {}),
+        body: JSON.stringify({ ...(payload || {}), extVersion }),
       }).catch(() => {});
     } catch {
       /* ignore */
@@ -1900,7 +1902,7 @@ export default function SpvHub() {
           <div className="space-y-3.5 pt-1 text-xs">
             <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/70 p-3.5 space-y-2 text-slate-700 dark:text-slate-300">
               <p className="font-semibold text-slate-900 dark:text-white">
-                Instalare în 3 pași (20 secunde):
+                Instalare în 4 pași (20 secunde):
               </p>
               <p>
                 1. Descarcă arhiva extensiei și dezarhivează-o (sau folosește direct folderul proiectului dacă ești pe localhost).
@@ -1917,6 +1919,10 @@ export default function SpvHub() {
                 3. Apasă{" "}
                 <span className="font-semibold">Load unpacked</span> și selectează folderul{" "}
                 <span className="font-semibold">chrome-spv-connector</span>.
+              </p>
+              <p>
+                4. Apasă <span className="font-semibold">Detalii</span> (Details) pe extensie și activează{" "}
+                <span className="font-semibold">Permite în modul incognito</span> (Allow in Incognito) — astfel fiecare sincronizare deschide automat o mini-fereastră Incognito izolată, fără blocaje de sesiune în Chrome.
               </p>
             </div>
 

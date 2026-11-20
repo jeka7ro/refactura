@@ -6,6 +6,15 @@ const E_FACTURA_TIPS = new Set([
   "ERORI FACTURA",
 ]);
 
+const APP_TAB_PATTERNS = [
+  "http://localhost:3000/*",
+  "http://127.0.0.1:3000/*",
+  "https://refactura.up.railway.app/*",
+];
+
+const INCOGNITO_HINT =
+  "Activeaza 'Permite in modul incognito' (Allow in Incognito) in chrome://extensions -> Detalii pe extensia Conector SPV, pentru ca fereastra USB sa ruleze automat in sesiune Incognito curata.";
+
 let lastAuthenticatedCifs = [];
 
 function normalizeCif(value) {
@@ -14,13 +23,39 @@ function normalizeCif(value) {
     .trim();
 }
 
-async function clearAnafWebserviceCookies() {
+async function reinjectAppBridgeTabs() {
+  try {
+    const tabs = await chrome.tabs.query({ url: APP_TAB_PATTERNS });
+    for (const tab of tabs) {
+      if (!tab?.id) continue;
+      await chrome.scripting
+        .executeScript({
+          target: { tabId: tab.id },
+          files: ["app-bridge.js"],
+        })
+        .catch(() => {});
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+chrome.runtime.onInstalled.addListener(() => {
+  reinjectAppBridgeTabs();
+});
+
+async function clearAnafWebserviceCookies(targetStoreId = null) {
   try {
     const seen = new Set();
+    const storeOpt = targetStoreId ? { storeId: targetStoreId } : {};
     const lists = await Promise.all([
-      chrome.cookies.getAll({ url: "https://webserviced.anaf.ro/" }).catch(() => []),
-      chrome.cookies.getAll({ domain: "webserviced.anaf.ro" }).catch(() => []),
-      chrome.cookies.getAll({ domain: "anaf.ro" }).catch(() => []),
+      chrome.cookies
+        .getAll({ url: "https://webserviced.anaf.ro/", ...storeOpt })
+        .catch(() => []),
+      chrome.cookies
+        .getAll({ domain: "webserviced.anaf.ro", ...storeOpt })
+        .catch(() => []),
+      chrome.cookies.getAll({ domain: "anaf.ro", ...storeOpt }).catch(() => []),
     ]);
     for (const group of lists) {
       for (const c of group) {
@@ -28,14 +63,41 @@ async function clearAnafWebserviceCookies() {
         const cookieUrl = `https://${host}${c.path || "/"}`;
         const isF5Cookie =
           host.includes("webserviced.anaf.ro") ||
-          /^(MRHSession|LastMRH_Session|F5_ST|TIN|Session_)/i.test(String(c.name || ""));
+          /^(MRHSession|LastMRH_Session|F5_ST|TIN|Session_)/i.test(
+            String(c.name || "")
+          );
         if (!isF5Cookie) continue;
-        const key = `${cookieUrl}|${c.name}|${c.storeId || ""}`;
+        const effectiveStoreId = c.storeId || targetStoreId || "";
+        const key = `${cookieUrl}|${c.name}|${effectiveStoreId}`;
         if (seen.has(key)) continue;
         seen.add(key);
-        await chrome.cookies.remove({ url: cookieUrl, name: c.name }).catch(() => {});
+        const removeDetails = { url: cookieUrl, name: c.name };
+        if (effectiveStoreId) removeDetails.storeId = effectiveStoreId;
+        await chrome.cookies.remove(removeDetails).catch(() => {});
       }
     }
+  } catch {
+    /* ignore */
+  }
+}
+
+async function purgeNormalAnafBrowsingData() {
+  try {
+    await chrome.browsingData.remove(
+      {
+        origins: [
+          "https://webserviced.anaf.ro",
+          "https://www.anaf.ro",
+          "https://anaf.ro",
+          "https://logincert.anaf.ro",
+        ],
+      },
+      {
+        cookies: true,
+        cache: true,
+        cacheStorage: true,
+      }
+    );
   } catch {
     /* ignore */
   }
@@ -174,7 +236,7 @@ async function downloadDocumentInTab(tabId, messageId) {
   );
 }
 
-async function waitForListJson(tabId, anafListUrl) {
+async function waitForListJson(tabId, anafListUrl, popupStoreId = null) {
   const deadline = Date.now() + 90000;
   let hangupRetries = 0;
   let nonJsonAttemptsAtListUrl = 0;
@@ -186,6 +248,7 @@ async function waitForListJson(tabId, anafListUrl) {
     } catch {
       return {
         ok: false,
+        popupClosedByUser: true,
         error:
           "Fereastra de autentificare ANAF a fost inchisa inainte de finalizarea citirii stick-ului USB.",
       };
@@ -195,13 +258,14 @@ async function waitForListJson(tabId, anafListUrl) {
     if (url.includes("/vdesk/hangup") || url.includes("/my.logout")) {
       if (hangupRetries < 2) {
         hangupRetries += 1;
-        await clearAnafWebserviceCookies();
+        await clearAnafWebserviceCookies(tab.cookieStoreId || popupStoreId);
         await chrome.tabs.update(tabId, { url: anafListUrl }).catch(() => {});
         await sleep(750);
         continue;
       }
       return {
         ok: false,
+        needsIncognitoHint: true,
         error:
           "ANAF a inchis sesiunea de certificat (hangup). Verifica daca stick-ul USB este introdus si PIN-ul certificatului a fost introdus corect.",
       };
@@ -213,13 +277,14 @@ async function waitForListJson(tabId, anafListUrl) {
         if (policyCheck?.isHangupPage) {
           if (hangupRetries < 2) {
             hangupRetries += 1;
-            await clearAnafWebserviceCookies();
+            await clearAnafWebserviceCookies(tab.cookieStoreId || popupStoreId);
             await chrome.tabs.update(tabId, { url: anafListUrl }).catch(() => {});
             await sleep(750);
             continue;
           }
           return {
             ok: false,
+            needsIncognitoHint: true,
             error:
               "ANAF a respins sesiunea F5 APM. Verifica stick-ul USB si PIN-ul si reincerca.",
           };
@@ -243,13 +308,14 @@ async function waitForListJson(tabId, anafListUrl) {
       if (readRes?.isHangupPage) {
         if (hangupRetries < 2) {
           hangupRetries += 1;
-          await clearAnafWebserviceCookies();
+          await clearAnafWebserviceCookies(tab.cookieStoreId || popupStoreId);
           await chrome.tabs.update(tabId, { url: anafListUrl }).catch(() => {});
           await sleep(750);
           continue;
         }
         return {
           ok: false,
+          needsIncognitoHint: true,
           error: "ANAF a inchis sesiunea F5 inainte de returnarea listei SPV.",
         };
       }
@@ -279,19 +345,53 @@ async function waitForListJson(tabId, anafListUrl) {
 }
 
 async function handleSpvSync(msg, appTabId, appWindowId) {
+  const incognitoAllowed = await chrome.extension
+    .isAllowedIncognitoAccess()
+    .catch(() => false);
+  let usedIncognito = false;
+
+  const finalizeResult = (res) => {
+    const out = {
+      ...(res || { ok: false }),
+      diagnostics: {
+        ...(res?.diagnostics || {}),
+        incognitoPopup: usedIncognito,
+        incognitoAllowed,
+      },
+    };
+    if (
+      out.ok === false &&
+      !usedIncognito &&
+      (out.wrongCertificate || out.needsIncognitoHint) &&
+      out.error &&
+      !String(out.error).includes("Permite in modul incognito")
+    ) {
+      out.error = `${out.error} ${INCOGNITO_HINT}`;
+    }
+    delete out.needsIncognitoHint;
+    delete out.popupClosedByUser;
+    return out;
+  };
+
   const targetCif = normalizeCif(msg.cif);
   if (!targetCif) {
-    return {
+    return finalizeResult({
       ok: false,
       error: "Profilul activ nu are CUI / CNP configurat in Setari.",
-    };
+    });
   }
 
   let zileUsed = Math.min(60, Math.max(1, Number(msg.zile) || 60));
   const initialUrl = `https://webserviced.anaf.ro/SPVWS2/rest/listaMesaje?zile=${zileUsed}`;
   const existingSet = new Set((msg.existingIds || []).map(String));
 
-  if (lastAuthenticatedCifs.length > 0 && !lastAuthenticatedCifs.includes(targetCif)) {
+  if (!incognitoAllowed) {
+    await purgeNormalAnafBrowsingData();
+    await clearAnafWebserviceCookies();
+  } else if (
+    lastAuthenticatedCifs.length > 0 &&
+    !lastAuthenticatedCifs.includes(targetCif)
+  ) {
     await clearAnafWebserviceCookies();
   }
 
@@ -319,6 +419,7 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
 
   let popupWindowId = null;
   let workerTabId = null;
+  let popupStoreId = null;
 
   const ensurePopupWorker = async (urlToLoad) => {
     if (popupWindowId && workerTabId) {
@@ -327,28 +428,60 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
       return workerTabId;
     }
 
-    const popupWin = await chrome.windows.create({
-      url: chrome.runtime.getURL("auth.html"),
-      type: "popup",
-      width: popupWidth,
-      height: popupHeight,
-      left,
-      top,
-      focused: true,
-    });
+    let popupWin = null;
+    if (incognitoAllowed) {
+      try {
+        popupWin = await chrome.windows.create({
+          url: "about:blank",
+          type: "popup",
+          incognito: true,
+          width: popupWidth,
+          height: popupHeight,
+          left,
+          top,
+          focused: true,
+        });
+        usedIncognito = true;
+      } catch {
+        popupWin = null;
+        usedIncognito = false;
+      }
+    }
+
+    if (!popupWin) {
+      popupWin = await chrome.windows.create({
+        url: chrome.runtime.getURL("auth.html"),
+        type: "popup",
+        width: popupWidth,
+        height: popupHeight,
+        left,
+        top,
+        focused: true,
+      });
+      usedIncognito = false;
+    }
 
     popupWindowId = popupWin?.id || null;
-    workerTabId = popupWin?.tabs?.[0]?.id || null;
+    let workerTab = popupWin?.tabs?.[0] || null;
+    workerTabId = workerTab?.id || null;
     if (!workerTabId && popupWindowId) {
-      const qTabs = await chrome.tabs.query({ windowId: popupWindowId }).catch(() => []);
-      workerTabId = qTabs?.[0]?.id || null;
+      const qTabs = await chrome.tabs
+        .query({ windowId: popupWindowId })
+        .catch(() => []);
+      workerTab = qTabs?.[0] || null;
+      workerTabId = workerTab?.id || null;
     }
 
     if (!popupWindowId || !workerTabId) {
       return null;
     }
 
-    await sleep(250);
+    popupStoreId = workerTab?.cookieStoreId || null;
+    if (popupStoreId) {
+      await clearAnafWebserviceCookies(popupStoreId);
+    }
+
+    await sleep(220);
     await chrome.tabs.update(workerTabId, { url: urlToLoad || initialUrl });
     return workerTabId;
   };
@@ -356,10 +489,10 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
   try {
     const tabId = await ensurePopupWorker(initialUrl);
     if (!tabId) {
-      return {
+      return finalizeResult({
         ok: false,
         error: "Nu s-a putut deschide fereastra popup pentru webserviced.anaf.ro.",
-      };
+      });
     }
 
     const getAllowedCifs = (data) =>
@@ -383,7 +516,11 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
           zileUsed = candidateDays;
           const retryUrl = `https://webserviced.anaf.ro/SPVWS2/rest/listaMesaje?zile=${zileUsed}`;
           await ensurePopupWorker(retryUrl);
-          const nextOutcome = await waitForListJson(workerTabId, retryUrl);
+          const nextOutcome = await waitForListJson(
+            workerTabId,
+            retryUrl,
+            popupStoreId
+          );
           if (!nextOutcome.ok) {
             return { ok: false, outcome: nextOutcome };
           }
@@ -393,14 +530,14 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
       return { ok: true, data: currentData };
     };
 
-    let listOutcome = await waitForListJson(tabId, initialUrl);
+    let listOutcome = await waitForListJson(tabId, initialUrl, popupStoreId);
     if (!listOutcome.ok) {
-      return listOutcome;
+      return finalizeResult(listOutcome);
     }
 
     const resolvedInitial = await resolveFallbackDays(listOutcome.data);
     if (!resolvedInitial.ok) {
-      return resolvedInitial.outcome;
+      return finalizeResult(resolvedInitial.outcome);
     }
 
     let listData = resolvedInitial.data;
@@ -408,20 +545,24 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
 
     // Daca sesiunea F5 anterioara apartine altui stick USB, fortam logout F5 + cookie clear in popup si reincercam
     if (allowedCifs.length > 0 && !allowedCifs.includes(targetCif)) {
-      await clearAnafWebserviceCookies();
+      await clearAnafWebserviceCookies(popupStoreId);
       await ensurePopupWorker("https://webserviced.anaf.ro/vdesk/hangup.php3");
       await sleep(900);
-      await clearAnafWebserviceCookies();
+      await clearAnafWebserviceCookies(popupStoreId);
 
       const freshUrl = `https://webserviced.anaf.ro/SPVWS2/rest/listaMesaje?zile=${zileUsed}`;
       await ensurePopupWorker(freshUrl);
-      const freshOutcome = await waitForListJson(workerTabId, freshUrl);
+      const freshOutcome = await waitForListJson(
+        workerTabId,
+        freshUrl,
+        popupStoreId
+      );
       if (!freshOutcome.ok) {
-        return freshOutcome;
+        return finalizeResult(freshOutcome);
       }
       const resolvedFresh = await resolveFallbackDays(freshOutcome.data);
       if (!resolvedFresh.ok) {
-        return resolvedFresh.outcome;
+        return finalizeResult(resolvedFresh.outcome);
       }
       listData = resolvedFresh.data;
       allowedCifs = getAllowedCifs(listData);
@@ -433,7 +574,7 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
         lastAuthenticatedCifs = allowedCifs;
       }
       if (errText.toLowerCase().includes("nu exista mesaje")) {
-        return {
+        return finalizeResult({
           ok: true,
           emptyNotice: errText,
           matchedTotal: 0,
@@ -449,9 +590,9 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
             allowedCifs,
             zileUsed,
           },
-        };
+        });
       }
-      return {
+      return finalizeResult({
         ok: false,
         error: errText,
         diagnostics: {
@@ -460,7 +601,7 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
           allowedCifs,
           zileUsed,
         },
-      };
+      });
     }
 
     const allMessages = Array.isArray(listData.mesaje) ? listData.mesaje : [];
@@ -480,7 +621,7 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
       allowedCifs.length > 0 &&
       !allowedCifs.includes(targetCif)
     ) {
-      return {
+      return finalizeResult({
         ok: false,
         wrongCertificate: true,
         allowedCifs,
@@ -492,7 +633,7 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
           allowedCifs,
           zileUsed,
         },
-      };
+      });
     }
 
     if (allowedCifs.includes(targetCif) || matched.length > 0) {
@@ -567,7 +708,7 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
       }
     }
 
-    return {
+    return finalizeResult({
       ok: true,
       matchedTotal: matched.length,
       downloaded,
@@ -583,7 +724,7 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
         allowedCifs,
         zileUsed,
       },
-    };
+    });
   } finally {
     if (popupWindowId) {
       await chrome.windows.remove(popupWindowId).catch(() => {});
