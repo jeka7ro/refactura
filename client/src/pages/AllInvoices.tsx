@@ -786,137 +786,146 @@ export default function AllInvoices() {
   };
 
   return (
-    <div className="p-3 sm:p-5 max-w-full space-y-3">
+    <div className="p-2.5 sm:p-4 max-w-full space-y-4">
       {/* Header cu Titlu + Export/Sync (Top Row) si Filtre Perioada (Bottom Row) */}
-      <div className="flex flex-col gap-3 mb-4">
+      <div className="flex flex-col gap-3.5">
         {/* Top Row: Title & Action Buttons */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between px-1">
           <div>
-            <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
+            <h1 className="text-xl sm:text-[22px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em] leading-tight">
               Facturi
             </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Total: <strong>{allRows.length}</strong> înregistrări
+            <p className="text-xs text-[#636366] dark:text-[#98989d] mt-0.5 tabular-nums">
+              Total: <strong className="text-[#1d1d1f] dark:text-white font-semibold">{allRows.length}</strong> înregistrări
             </p>
           </div>
         </div>
 
-        {/* KPI Cards (Grid uniform pe mobile si desktop) */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 pb-2">
+        {/* KPI Cards — Apple macOS Tahoe Concentric Interactive Tiles */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {/* TOTAL */}
           <div
-            className={`bg-white dark:bg-slate-900 rounded-2xl border p-3 sm:p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md cursor-pointer ${
+            className={`rounded-[22px] border p-4 sm:p-5 flex items-center justify-between min-h-[88px] transition-all duration-200 cursor-pointer ${
               typeFilter === "all"
-                ? "border-blue-500/60 ring-1 ring-blue-500/20"
-                : "border-slate-200 dark:border-slate-800"
+                ? "bg-gradient-to-br from-white via-white to-primary/[0.07] dark:from-[#1c1c1e] dark:via-[#1c1c1e] dark:to-primary/[0.14] border-primary/45 ring-2 ring-primary/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_8px_24px_-6px_rgba(15,23,42,0.08)]"
+                : "bg-white/95 dark:bg-[#1c1c1e] border-black/[0.06] dark:border-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_2px_10px_-3px_rgba(15,23,42,0.05)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,1),0_8px_22px_-6px_rgba(15,23,42,0.08)]"
             }`}
             onClick={() => { setTypeFilter("all"); setPage(1); }}
           >
             <div>
-              <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 truncate">
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[#636366] dark:text-[#98989d] mb-1.5 truncate">
                 Total
               </p>
-              <div className="flex items-baseline gap-1.5">
-                <p className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white leading-none">
+              <div className="flex items-baseline gap-1.5 tabular-nums">
+                <p className="text-2xl sm:text-[28px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.025em] leading-none">
                   {allRows.length}
                 </p>
                 {filtered.length !== allRows.length && (
-                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                  <span className="text-xs font-semibold text-primary">
                     ({filtered.length})
                   </span>
                 )}
               </div>
             </div>
+            <div className="w-10 h-10 rounded-2xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center flex-shrink-0 ml-2">
+              <ClipboardList className="w-4.5 h-4.5 text-primary" />
+            </div>
           </div>
 
           {/* EMISE */}
           <div
-            className={`bg-white dark:bg-slate-900 rounded-2xl border p-3 sm:p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md cursor-pointer ${
+            className={`rounded-[22px] border p-4 sm:p-5 flex items-center justify-between min-h-[88px] transition-all duration-200 cursor-pointer ${
               typeFilter === "emis"
-                ? "border-blue-500/60 ring-1 ring-blue-500/20"
-                : "border-slate-200 dark:border-slate-800"
+                ? "bg-gradient-to-br from-white via-white to-emerald-500/[0.08] dark:from-[#1c1c1e] dark:via-[#1c1c1e] dark:to-emerald-500/[0.15] border-emerald-500/45 ring-2 ring-emerald-500/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_8px_24px_-6px_rgba(15,23,42,0.08)]"
+                : "bg-white/95 dark:bg-[#1c1c1e] border-black/[0.06] dark:border-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_2px_10px_-3px_rgba(15,23,42,0.05)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,1),0_8px_22px_-6px_rgba(15,23,42,0.08)]"
             }`}
             onClick={() => { setTypeFilter("emis"); setPage(1); }}
           >
             <div>
-              <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 truncate">
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[#636366] dark:text-[#98989d] mb-1.5 truncate">
                 Emise
               </p>
-              <div className="flex items-baseline gap-1.5">
-                <p className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white leading-none">
+              <div className="flex items-baseline gap-1.5 tabular-nums">
+                <p className="text-2xl sm:text-[28px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.025em] leading-none">
                   {allRows.filter(r => r.type === "emis").length}
                 </p>
                 {filtered.length !== allRows.length && (
-                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                     ({filtered.filter(r => r.type === "emis").length})
                   </span>
                 )}
               </div>
             </div>
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/12 dark:bg-emerald-500/20 flex items-center justify-center flex-shrink-0 ml-2">
+              <Send className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            </div>
           </div>
 
           {/* PRIMITE */}
           <div
-             className={`bg-white dark:bg-slate-900 rounded-2xl border p-3 sm:p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md cursor-pointer ${
+            className={`rounded-[22px] border p-4 sm:p-5 flex items-center justify-between min-h-[88px] transition-all duration-200 cursor-pointer ${
               typeFilter === "primit"
-                ? "border-blue-500/60 ring-1 ring-blue-500/20"
-                : "border-slate-200 dark:border-slate-800"
+                ? "bg-gradient-to-br from-white via-white to-amber-500/[0.08] dark:from-[#1c1c1e] dark:via-[#1c1c1e] dark:to-amber-500/[0.15] border-amber-500/45 ring-2 ring-amber-500/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_8px_24px_-6px_rgba(15,23,42,0.08)]"
+                : "bg-white/95 dark:bg-[#1c1c1e] border-black/[0.06] dark:border-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_2px_10px_-3px_rgba(15,23,42,0.05)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,1),0_8px_22px_-6px_rgba(15,23,42,0.08)]"
             }`}
-             onClick={() => { setTypeFilter("primit"); setPage(1); }}
+            onClick={() => { setTypeFilter("primit"); setPage(1); }}
           >
             <div>
-              <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 truncate">
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[#636366] dark:text-[#98989d] mb-1.5 truncate">
                 Primite
               </p>
-              <div className="flex items-baseline gap-1.5">
-                <p className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white leading-none">
+              <div className="flex items-baseline gap-1.5 tabular-nums">
+                <p className="text-2xl sm:text-[28px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.025em] leading-none">
                   {allRows.filter(r => r.type === "primit").length}
                 </p>
                 {filtered.length !== allRows.length && (
-                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                  <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
                     ({filtered.filter(r => r.type === "primit").length})
                   </span>
                 )}
               </div>
             </div>
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/12 dark:bg-amber-500/20 flex items-center justify-center flex-shrink-0 ml-2">
+              <Download className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+            </div>
           </div>
 
           {/* TOTAL SUMĂ (PENTRU CELE AFIȘATE / FILTRATE) */}
           <div
-            className={`bg-white dark:bg-slate-900 rounded-2xl border p-3 sm:p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md ${
+            className={`rounded-[22px] border p-4 sm:p-5 flex items-center justify-between min-h-[88px] transition-all duration-200 ${
               filteredTotals.isFiltered
-                ? "border-blue-400/80 dark:border-blue-700/80 bg-blue-50/20 dark:bg-blue-950/20"
-                : "border-slate-200 dark:border-slate-800"
+                ? "bg-gradient-to-br from-white via-white to-primary/[0.07] dark:from-[#1c1c1e] dark:to-primary/[0.14] border-primary/45 ring-2 ring-primary/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_8px_24px_-6px_rgba(15,23,42,0.08)]"
+                : "bg-white/95 dark:bg-[#1c1c1e] border-black/[0.06] dark:border-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_2px_10px_-3px_rgba(15,23,42,0.05)]"
             }`}
           >
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5 mb-1">
-                <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">
+            <div className="min-w-0 flex-1 tabular-nums">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[#636366] dark:text-[#98989d] truncate">
                   Total Sumă
                 </p>
                 {filteredTotals.isFiltered ? (
-                  <span className="text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 leading-none">
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/12 text-primary leading-none">
                     Filtrate
                   </span>
                 ) : (
-                  <span className="text-[8px] sm:text-[9px] font-medium text-slate-400 leading-none">
+                  <span className="text-[10px] font-medium text-[#636366] dark:text-[#98989d] leading-none">
                     (Toate)
                   </span>
                 )}
               </div>
               {filteredTotals.entries.length === 0 ? (
-                <p className="text-base sm:text-lg font-black text-slate-800 dark:text-white leading-none">
+                <p className="text-lg sm:text-xl font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em] leading-none">
                   0,00 RON
                 </p>
               ) : (
                 <div className="flex flex-col justify-center">
-                  <p className="text-sm sm:text-base lg:text-lg font-black text-slate-900 dark:text-white leading-tight truncate">
+                  <p className="text-base sm:text-lg lg:text-[21px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em] leading-tight truncate">
                     {formatCurrency(filteredTotals.entries[0][1], (filteredTotals.entries[0][0] as Currency) || "RON")}
                   </p>
                   {filteredTotals.entries.length > 1 && (
-                    <div className="flex items-center gap-1.5 flex-wrap">
+                    <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
                       {filteredTotals.entries.slice(1).map(([curr, val]) => (
-                        <span key={curr} className="text-[9px] sm:text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                        <span key={curr} className="text-[11px] font-semibold text-[#636366] dark:text-[#98989d]">
                           + {formatCurrency(val, (curr as Currency) || "EUR")}
                         </span>
                       ))}
@@ -925,8 +934,8 @@ export default function AllInvoices() {
                 </div>
               )}
             </div>
-            <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-900/40 flex items-center justify-center flex-shrink-0 ml-2">
-              <Coins className="w-4 h-4 text-amber-500" />
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/12 dark:bg-amber-500/20 flex items-center justify-center flex-shrink-0 ml-2">
+              <Coins className="w-4.5 h-4.5 text-amber-600 dark:text-amber-400" />
             </div>
           </div>
         </div>
@@ -934,20 +943,20 @@ export default function AllInvoices() {
 
       {/* Banner selectie multipla */}
       {selectedIds.size > 0 && (
-        <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-blue-600 text-white rounded-lg shadow-md">
-          <span className="text-sm font-semibold">
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5 apple-btn-prominent rounded-full shadow-lg">
+          <span className="text-sm font-semibold tabular-nums">
             {selectedIds.size} factură/facturi selectate
           </span>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setSelectedIds(new Set())}
-              className="px-3 h-7 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-semibold transition-colors"
+              className="px-3.5 h-8 rounded-full bg-white/20 hover:bg-white/30 text-white text-xs font-semibold transition-colors"
             >
               Anulează
             </button>
             <button
               onClick={handleDownloadSelectedZip}
-              className="px-3 h-7 rounded-lg bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-700 text-xs font-bold transition-colors shadow-sm"
+              className="px-3.5 h-8 rounded-full bg-white text-[#1d1d1f] hover:bg-white/90 text-xs font-semibold transition-colors shadow-sm"
             >
               Descarcă selectate
             </button>
@@ -971,7 +980,7 @@ export default function AllInvoices() {
                 toast.success(`${ok} facturi șterse`, { id: "bulk-del" });
                 r1(); r2(); r3();
               }}
-              className="px-3 h-7 rounded-lg bg-red-600 text-white hover:bg-red-700 text-xs font-bold transition-colors shadow-sm"
+              className="px-3.5 h-8 rounded-full bg-[#ff3b30] text-white hover:bg-[#e0352b] text-xs font-semibold transition-colors shadow-sm"
             >
               Șterge selectate
             </button>
@@ -979,19 +988,19 @@ export default function AllInvoices() {
         </div>
       )}
 
-      {/* Card tabel */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-6">
-        {/* Search & Filtre — Pe un singur rând */}
-        <div className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800/50 flex flex-col gap-2 bg-white dark:bg-slate-900">
+      {/* Card tabel — Apple Tahoe Concentric Container */}
+      <div className="bg-white/96 dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_2px_10px_-3px_rgba(15,23,42,0.04),0_12px_32px_-10px_rgba(15,23,42,0.06)] overflow-hidden">
+        {/* Search & Filtre — Apple Frosted Toolbar Strip */}
+        <div className="px-4 py-3 border-b border-black/[0.06] dark:border-white/[0.08] flex flex-col gap-2 bg-[#f5f7fb]/85 dark:bg-white/[0.025] backdrop-blur-md">
           <div className="flex items-center gap-2.5 w-full flex-wrap xl:flex-nowrap">
             {/* Cautare */}
             <div className="relative flex-1 min-w-[200px]">
               <Search
-                className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                className="w-3.5 h-3.5 text-[#636366] dark:text-[#98989d] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
               />
               <input
-                style={{ paddingLeft: 34, paddingRight: search ? 68 : 14 }}
-                className="rounded-full w-full h-8 border border-slate-200 dark:border-slate-700 outline-none text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all shadow-none"
+                style={{ paddingLeft: 36, paddingRight: search ? 72 : 14 }}
+                className="rounded-full w-full h-9 border border-black/[0.08] dark:border-white/[0.12] outline-none text-[13px] bg-white/90 dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white placeholder:text-[#636366] dark:placeholder:text-[#98989d] shadow-[inset_0_1px_2px_rgba(15,23,42,0.04),0_1px_0_rgba(255,255,255,0.9)] focus:bg-white dark:focus:bg-[#3a3a3c] transition-all"
                 placeholder="Caută factură..."
                 value={search}
                 onChange={e => {
@@ -1001,21 +1010,22 @@ export default function AllInvoices() {
               />
               {search && (
                 <>
-                  <div className="absolute right-7 top-1/2 -translate-y-1/2 bg-blue-600 text-white rounded-full px-1.5 py-0.5 text-[9px] font-bold">
+                  <div className="absolute right-8 top-1/2 -translate-y-1/2 bg-primary text-white rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums">
                     {filtered.length}/{allRows.length}
                   </div>
                   <button
                     onClick={() => setSearch("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2"
+                    aria-label="Șterge căutarea"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center hover:bg-black/[0.06] dark:hover:bg-white/[0.10]"
                   >
-                    <X className="w-3 h-3 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" />
+                    <X className="w-3 h-3 text-[#636366] hover:text-[#1d1d1f] dark:text-[#98989d] dark:hover:text-white" />
                   </button>
                 </>
               )}
             </div>
 
             {/* Perioadă Filter */}
-            <div className="w-[140px] sm:w-[155px] flex-shrink-0">
+            <div className="w-[146px] sm:w-[158px] flex-shrink-0">
               <Select
                 value={period}
                 onValueChange={val => {
@@ -1028,7 +1038,7 @@ export default function AllInvoices() {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 shadow-none flex items-center gap-1.5 px-3">
+                <SelectTrigger className="h-9 w-full rounded-full text-xs font-semibold apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-1.5 px-3.5">
                   <Calendar className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
                   <SelectValue placeholder="Perioadă" />
                 </SelectTrigger>
@@ -1045,8 +1055,8 @@ export default function AllInvoices() {
               </Select>
             </div>
 
-            {/* Type Filter */}
-            <div className="w-[110px] sm:w-[125px] flex-shrink-0">
+            {/* Type Filter — widened so "Tip: Toate" never truncates */}
+            <div className="w-[136px] sm:w-[144px] flex-shrink-0">
               <Select
                 value={typeFilter}
                 onValueChange={val => {
@@ -1054,7 +1064,7 @@ export default function AllInvoices() {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 shadow-none flex items-center gap-1.5 px-3">
+                <SelectTrigger className="h-9 w-full rounded-full text-xs font-semibold apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-1.5 px-3.5">
                   <Tag className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
                   <SelectValue placeholder="Tip" />
                 </SelectTrigger>
@@ -1067,7 +1077,7 @@ export default function AllInvoices() {
             </div>
 
             {/* Read / Unread Filter */}
-            <div className="w-[125px] sm:w-[150px] flex-shrink-0">
+            <div className="w-[136px] sm:w-[152px] flex-shrink-0">
               <Select
                 value={readFilter}
                 onValueChange={val => {
@@ -1076,18 +1086,18 @@ export default function AllInvoices() {
                 }}
               >
                 <SelectTrigger
-                  className={`h-8 w-full rounded-full text-xs font-bold border ${
+                  className={`h-9 w-full rounded-full text-xs font-semibold ${
                     readFilter !== "all"
-                      ? "border-blue-500 bg-blue-50/70 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-700"
-                      : "border-slate-200 bg-white text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
-                  } hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 shadow-none flex items-center gap-1.5 px-3`}
+                      ? "border-blue-500/60 bg-blue-50/90 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-700"
+                      : "apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7]"
+                  } flex items-center gap-1.5 px-3.5 tabular-nums`}
                 >
                   {readFilter === "unread" ? (
                     <Mail className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
                   ) : readFilter === "read" ? (
-                    <MailOpen className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
+                    <MailOpen className="w-3.5 h-3.5 text-[#636366] dark:text-[#98989d] flex-shrink-0" />
                   ) : (
-                    <Mail className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
+                    <Mail className="w-3.5 h-3.5 text-[#636366] dark:text-[#98989d] flex-shrink-0" />
                   )}
                   <SelectValue placeholder="Citire" />
                 </SelectTrigger>
@@ -1104,7 +1114,7 @@ export default function AllInvoices() {
             </div>
 
             {/* Filtru NIR dedicat (Cu / Fara NIR) */}
-            <div className="w-[130px] sm:w-[155px] flex-shrink-0">
+            <div className="w-[136px] sm:w-[156px] flex-shrink-0">
               <Select
                 value={nirFilter}
                 onValueChange={val => {
@@ -1113,11 +1123,11 @@ export default function AllInvoices() {
                 }}
               >
                 <SelectTrigger
-                  className={`h-8 w-full rounded-full text-xs font-bold border ${
+                  className={`h-9 w-full rounded-full text-xs font-semibold ${
                     nirFilter !== "all"
-                      ? "border-teal-500 bg-teal-50/70 text-teal-800 dark:bg-teal-950/50 dark:text-teal-300 dark:border-teal-700"
-                      : "border-slate-200 bg-white text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
-                  } hover:bg-slate-50 focus:ring-2 focus:ring-teal-500 shadow-none flex items-center gap-1.5 px-3`}
+                      ? "border-teal-500/60 bg-teal-50/90 text-teal-800 dark:bg-teal-950/50 dark:text-teal-300 dark:border-teal-700"
+                      : "apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7]"
+                  } flex items-center gap-1.5 px-3.5 tabular-nums`}
                 >
                   <ClipboardCheck
                     className={`w-3.5 h-3.5 ${
@@ -1137,7 +1147,7 @@ export default function AllInvoices() {
             </div>
 
             {/* Source Filter */}
-            <div className="w-[135px] sm:w-[150px] flex-shrink-0">
+            <div className="w-[142px] sm:w-[154px] flex-shrink-0">
               <Select
                 value={sourceFilter}
                 onValueChange={val => {
@@ -1145,7 +1155,7 @@ export default function AllInvoices() {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 shadow-none flex items-center gap-1.5 px-3">
+                <SelectTrigger className="h-9 w-full rounded-full text-xs font-semibold apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-1.5 px-3.5">
                   <Globe className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
                   <SelectValue placeholder="Sursă" />
                 </SelectTrigger>
@@ -1159,7 +1169,7 @@ export default function AllInvoices() {
               </Select>
             </div>
 
-            {/* Buton Sync */}
+            {/* Buton Sync — Apple Liquid Glass Prominent Capsule */}
             <button
               onClick={async () => {
                 const hasOblio = (dbIntegrations as any[]).some(
@@ -1209,7 +1219,7 @@ export default function AllInvoices() {
                 }
               }}
               disabled={syncOblio.isPending || syncSpvManual.isPending}
-              className="flex items-center justify-center gap-1.5 px-4 h-8 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-all disabled:opacity-60 flex-shrink-0 shadow-sm"
+              className="apple-btn-prominent flex items-center justify-center gap-1.5 px-4.5 h-9 rounded-full text-white text-xs font-semibold transition-all disabled:opacity-60 flex-shrink-0 cursor-pointer"
               title="Sincronizează din sursele configurate (Oblio / SPV)"
             >
               {syncOblio.isPending || syncSpvManual.isPending ? (
@@ -1250,12 +1260,12 @@ export default function AllInvoices() {
         {/* DESKTOP TABLE */}
         <div className="hidden sm:block overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+            <thead className="bg-[#f8f9fc]/90 dark:bg-white/[0.02] border-b border-black/[0.06] dark:border-white/[0.08]">
               <tr>
                 <th className="px-4 py-3 w-10 text-center">
                   <input
                     type="checkbox"
-                    className="rounded border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-primary cursor-pointer"
                     checked={
                       paginated.length > 0 &&
                       paginated.every(r => selectedIds.has(`${r.source}-${r.id}`))
@@ -1264,68 +1274,68 @@ export default function AllInvoices() {
                     title="Selectează/Deselectează toate de pe această pagină"
                   />
                 </th>
-                <th className="px-4 py-3 w-12 text-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                <th className="px-4 py-3 w-12 text-center text-[10.5px] font-semibold text-[#636366] dark:text-[#98989d] uppercase tracking-wider whitespace-nowrap">
                   Nr. Crt.
                 </th>
                 <th
-                  className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 whitespace-nowrap"
+                  className="px-4 py-3 text-left text-[11px] font-semibold text-[#636366] dark:text-[#98989d] uppercase tracking-wider cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white whitespace-nowrap select-none transition-colors"
                   onClick={() => handleSort("number")}
                 >
                   <div className="flex items-center gap-1">
                     Număr Factură{" "}
-                    <span className="text-blue-500">
+                    <span className="text-primary">
                       {getSortIcon("number")}
                     </span>
                   </div>
                 </th>
                 <th
-                  className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 whitespace-nowrap"
+                  className="px-4 py-3 text-left text-[11px] font-semibold text-[#636366] dark:text-[#98989d] uppercase tracking-wider cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white whitespace-nowrap select-none transition-colors"
                   onClick={() => handleSort("partnerName")}
                 >
                   <div className="flex items-center gap-1">
                     Partener{" "}
-                    <span className="text-blue-500">
+                    <span className="text-primary">
                       {getSortIcon("partnerName")}
                     </span>
                   </div>
                 </th>
                 <th
-                  className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 whitespace-nowrap"
+                  className="px-4 py-3 text-left text-[11px] font-semibold text-[#636366] dark:text-[#98989d] uppercase tracking-wider cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white whitespace-nowrap select-none transition-colors"
                   onClick={() => handleSort("date")}
                 >
                   <div className="flex items-center gap-1">
                     Dată / Scadență{" "}
-                    <span className="text-blue-500">{getSortIcon("date")}</span>
+                    <span className="text-primary">{getSortIcon("date")}</span>
                   </div>
                 </th>
                 <th
-                  className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 whitespace-nowrap"
+                  className="px-4 py-3 text-right text-[11px] font-semibold text-[#636366] dark:text-[#98989d] uppercase tracking-wider cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white whitespace-nowrap select-none transition-colors"
                   onClick={() => handleSort("total")}
                 >
                   <div className="flex items-center justify-end gap-1">
                     Total{" "}
-                    <span className="text-blue-500">
+                    <span className="text-primary">
                       {getSortIcon("total")}
                     </span>
                   </div>
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">
+                <th className="px-4 py-3 text-right text-[11px] font-semibold text-[#636366] dark:text-[#98989d] uppercase tracking-wider whitespace-nowrap">
                   Acțiuni
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
               {isLoading ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center">
-                    <Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto" />
+                    <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto" />
                   </td>
                 </tr>
               ) : paginated.length === 0 ? (
                 <tr>
                   <td
                     colSpan={7}
-                    className="py-4 text-center text-slate-400 text-[11px] bg-slate-50/50 dark:bg-slate-800/20 border-b border-dashed border-slate-200 dark:border-slate-800"
+                    className="py-6 text-center text-[#636366] dark:text-[#98989d] text-xs bg-black/[0.015] dark:bg-white/[0.02]"
                   >
                     {search || typeFilter !== "all" || nirFilter !== "all"
                       ? "Nicio factură pentru filtrele aplicate."
@@ -1339,27 +1349,27 @@ export default function AllInvoices() {
                   return (
                     <tr
                       key={`${row.source}-${row.type}-${row.id}`}
-                      className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${selectedIds.has(`${row.source}-${row.id}`) ? "bg-blue-50/50 dark:bg-blue-900/10" : isUnread ? "bg-blue-50/20 dark:bg-blue-950/20" : ""}`}
+                      className={`hover:bg-black/[0.02] dark:hover:bg-white/[0.035] transition-colors ${selectedIds.has(`${row.source}-${row.id}`) ? "bg-primary/[0.06] dark:bg-primary/[0.12]" : isUnread ? "bg-blue-500/[0.035] dark:bg-blue-500/[0.08]" : ""}`}
                     >
                       <td className="px-4 py-2.5 text-center">
                         <input
                           type="checkbox"
-                          className="rounded border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-primary cursor-pointer"
                           checked={selectedIds.has(`${row.source}-${row.id}`)}
                           onChange={() => toggleSelect(row)}
                         />
                       </td>
                       <td className="px-4 py-2.5 text-center whitespace-nowrap">
-                        <div className="h-10 flex items-center justify-center font-bold text-xs text-slate-700 dark:text-slate-300">
+                        <div className="h-10 flex items-center justify-center font-semibold text-xs text-[#636366] dark:text-[#98989d] tabular-nums">
                           {(page - 1) * rowsPerPage + i + 1}
                         </div>
                       </td>
                       <td className="px-4 py-2.5 whitespace-nowrap">
-                        <div className="h-10 flex flex-col justify-center">
+                        <div className="h-10 flex flex-col justify-center gap-0.5">
                           <div className="h-5 flex items-center gap-1.5">
                             {isUnread && (
                               <span
-                                className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0 inline-block shadow-sm"
+                                className="w-2 h-2 rounded-full bg-primary shrink-0 inline-block shadow-sm"
                                 title="Factură nouă (necitită)"
                               />
                             )}
@@ -1375,19 +1385,19 @@ export default function AllInvoices() {
                                   navigate(`/facturi-emise-nou/view/${row.id}`);
                                 else navigate(`/facturi-primite/${row.id}`);
                               }}
-                              className={`text-xs text-left truncate hover:underline ${
+                              className={`text-[12.5px] text-left truncate hover:underline tabular-nums ${
                                 isUnread
-                                  ? "font-bold text-blue-700 dark:text-blue-400"
-                                  : "font-normal text-blue-600 dark:text-blue-500"
+                                  ? "font-bold text-primary"
+                                  : "font-semibold text-primary"
                               }`}
                             >
                               {row.number}
                             </button>
                             <span
-                              className={`px-1.5 py-0.5 rounded text-[10px] font-bold border leading-none ${
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border leading-none ${
                                 row.type === "emis"
-                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800"
-                                  : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800"
+                                  ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30"
+                                  : "bg-amber-500/12 text-amber-700 border-amber-500/20 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30"
                               }`}
                             >
                               {tb.label}
@@ -1395,7 +1405,7 @@ export default function AllInvoices() {
                             {row.nirNumber && (
                               <Link href={`/nir/edit/${row.nirId}`}>
                                 <span
-                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border leading-none bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100 hover:border-teal-300 dark:bg-teal-950/50 dark:text-teal-300 dark:border-teal-800 transition-colors cursor-pointer"
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border leading-none bg-teal-500/10 text-teal-700 border-teal-500/20 hover:bg-teal-500/20 dark:bg-teal-500/15 dark:text-teal-300 dark:border-teal-500/30 transition-colors cursor-pointer tabular-nums"
                                   title={`NIR asociat: ${row.nirNumber}. Click pentru vizualizare / editare NIR.`}
                                 >
                                   <ClipboardCheck className="w-3 h-3 text-teal-600 dark:text-teal-400 shrink-0" />
@@ -1406,13 +1416,13 @@ export default function AllInvoices() {
                           </div>
                           <div className="h-5 flex items-center gap-2">
                             <span
-                              className={`px-2 py-0.5 rounded-full text-[11px] font-normal border leading-none ${STATUS_COLORS[row.status] || STATUS_COLORS.pending}`}
+                              className={`px-2 py-0.5 rounded-full text-[10.5px] font-medium border leading-none ${STATUS_COLORS[row.status] || STATUS_COLORS.pending}`}
                             >
                               {getStatusLabel(row.status, row.type)}
                             </span>
                             {row.spvIndex && (
                               <span
-                                className="text-[11px] tabular-nums text-slate-500 dark:text-slate-400 font-normal leading-none"
+                                className="text-[11px] tabular-nums text-[#636366] dark:text-[#98989d] font-normal leading-none"
                                 title={`Index încărcare SPV: ${row.spvIndex}`}
                               >
                                 Index: {row.spvIndex}
@@ -1422,17 +1432,17 @@ export default function AllInvoices() {
                         </div>
                       </td>
                       <td className="px-4 py-2.5">
-                        <div className="h-10 flex flex-col justify-center">
+                        <div className="h-10 flex flex-col justify-center gap-0.5">
                           <div className="h-5 flex items-center">
                             {(() => {
                               const cId = getClientId(row);
                               return (
                                 <Link
                                   href={cId ? `/client/${cId}` : `/clienti?search=${encodeURIComponent(row.partnerName)}`}
-                                  className={`text-xs max-w-[200px] truncate hover:underline hover:text-primary transition-colors cursor-pointer block ${
+                                  className={`text-[12.5px] max-w-[220px] truncate hover:underline hover:text-primary transition-colors cursor-pointer block ${
                                     isUnread
-                                      ? "font-bold text-slate-900 dark:text-white"
-                                      : "font-normal text-slate-600 dark:text-slate-400"
+                                      ? "font-bold text-[#1d1d1f] dark:text-white"
+                                      : "font-medium text-[#1d1d1f] dark:text-[#f5f5f7]"
                                   }`}
                                   title={row.partnerName}
                                 >
@@ -1441,42 +1451,42 @@ export default function AllInvoices() {
                               );
                             })()}
                           </div>
-                          <div className="h-5 flex items-center text-[11px] text-slate-400 font-normal gap-1.5 whitespace-nowrap">
+                          <div className="h-5 flex items-center text-[11px] text-[#636366] dark:text-[#98989d] font-normal gap-1.5 whitespace-nowrap tabular-nums">
                             {row.partnerCui ? (
                               <>
                                 <span>{`CUI: ${row.partnerCui}`}</span>
-                                <span>•</span>
+                                <span>·</span>
                               </>
                             ) : null}
-                            <span className={`font-normal ${SOURCE_BADGE[row.source]?.cls || "text-slate-500"}`}>
+                            <span className={`font-medium ${SOURCE_BADGE[row.source]?.cls || "text-[#636366]"}`}>
                               {SOURCE_BADGE[row.source]?.label || row.source}
                             </span>
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-2.5 whitespace-nowrap">
-                        <div className="h-10 flex flex-col justify-center">
+                      <td className="px-4 py-2.5 whitespace-nowrap tabular-nums">
+                        <div className="h-10 flex flex-col justify-center gap-0.5">
                           <div className="h-5 flex items-center">
-                            <span className={`text-xs ${
+                            <span className={`text-[12.5px] ${
                               isUnread
-                                ? "font-bold text-slate-900 dark:text-white"
-                                : "font-normal text-slate-600 dark:text-slate-400"
+                                ? "font-bold text-[#1d1d1f] dark:text-white"
+                                : "font-medium text-[#3a3a3c] dark:text-[#ebebf5]"
                             }`}>
                               {formatDate(row.date)}
                             </span>
                           </div>
-                          <div className="h-5 flex items-center text-[11px] text-slate-400 font-normal">
+                          <div className="h-5 flex items-center text-[11px] text-[#636366] dark:text-[#98989d] font-normal">
                             {row.dueDate ? `Scad: ${formatDate(row.dueDate)}` : "—"}
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-2.5 text-right whitespace-nowrap">
-                        <div className="h-10 flex flex-col justify-center items-end">
+                      <td className="px-4 py-2.5 text-right whitespace-nowrap tabular-nums">
+                        <div className="h-10 flex flex-col justify-center items-end gap-0.5">
                           <div className="h-5 flex items-center justify-end">
-                            <span className={`text-xs ${
+                            <span className={`text-[13px] ${
                               isUnread
-                                ? "font-bold text-slate-900 dark:text-white"
-                                : "font-normal text-slate-700 dark:text-slate-300"
+                                ? "font-bold text-[#1d1d1f] dark:text-white"
+                                : "font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]"
                             }`}>
                               {formatCurrency(row.total, row.currency as Currency)}
                             </span>
@@ -1485,7 +1495,7 @@ export default function AllInvoices() {
                             {row.spvStatus &&
                             (row.spvStatus.toLowerCase() === "validat" ||
                               row.spvStatus.toLowerCase() === "trimisa") ? (
-                              <span className="text-[10px] font-normal text-green-600 dark:text-emerald-400 bg-green-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-green-200 dark:border-emerald-800/80 leading-none">
+                              <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/12 dark:bg-emerald-500/18 px-2 py-0.5 rounded-full border border-emerald-500/20 leading-none">
                                 {row.spvStatus.toLowerCase() === "validat"
                                   ? "Validată SPV"
                                   : "Trimisă SPV"}
@@ -1498,7 +1508,7 @@ export default function AllInvoices() {
                                     !row.partnerCui.toUpperCase().startsWith("RO") &&
                                     /^[A-Z]{2}/.test(row.partnerCui)))) ? (
                               <span
-                                className="text-[10px] font-normal text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/80 leading-none"
+                                className="text-[10px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-500/12 dark:bg-amber-500/18 px-2 py-0.5 rounded-full border border-amber-500/20 leading-none"
                                 title="Factură externă (UE/Non-UE) - declarată prin D390/D300, nu se transmite în SPV"
                               >
                                 Extern (D390)
@@ -1513,13 +1523,13 @@ export default function AllInvoices() {
                                 spvSentAt={row.spvSentAt}
                               />
                             ) : (
-                              <span className="text-slate-400">—</span>
+                              <span className="text-[#636366] dark:text-[#98989d]">—</span>
                             )}
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-2.5 whitespace-nowrap">
-                        <div className="h-10 flex items-center justify-end gap-1">
+                        <div className="h-10 flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => {
                               if (row.source === "refactura") {
@@ -1553,7 +1563,8 @@ export default function AllInvoices() {
                                 toast.error("PDF-ul nu este disponibil.");
                               }
                             }}
-                            className="flex items-center justify-center w-7 h-7 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 transition-colors"
+                            aria-label={`Descarcă PDF ${row.number}`}
+                            className="apple-btn-glass flex items-center justify-center w-8 h-8 rounded-full text-[#3a3a3c] dark:text-[#ebebf5] hover:text-primary transition-all cursor-pointer"
                             title="Descarcă PDF"
                           >
                             <FileDown className="w-3.5 h-3.5" />
@@ -1561,7 +1572,8 @@ export default function AllInvoices() {
                           {row.nirId && (
                             <Link href={`/nir/edit/${row.nirId}`}>
                               <button
-                                className="flex items-center justify-center w-7 h-7 rounded-lg bg-teal-50 dark:bg-teal-950/40 hover:bg-teal-100 dark:hover:bg-teal-900/60 text-teal-600 dark:text-teal-400 border border-teal-200 dark:border-teal-800 transition-colors"
+                                aria-label={`Vezi NIR ${row.nirNumber || ""}`}
+                                className="flex items-center justify-center w-8 h-8 rounded-full bg-teal-500/12 dark:bg-teal-500/20 hover:bg-teal-500/20 text-teal-600 dark:text-teal-400 border border-teal-500/25 transition-all cursor-pointer"
                                 title={`Vezi NIR: ${row.nirNumber || ""}`}
                               >
                                 <ClipboardCheck className="w-3.5 h-3.5" />
@@ -1570,7 +1582,10 @@ export default function AllInvoices() {
                           )}
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <button className="flex items-center justify-center w-7 h-7 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 transition-colors">
+                              <button
+                                aria-label="Mai multe acțiuni"
+                                className="apple-btn-glass flex items-center justify-center w-8 h-8 rounded-full text-[#3a3a3c] dark:text-[#ebebf5] transition-all cursor-pointer"
+                              >
                                 <MoreVertical className="w-3.5 h-3.5" />
                               </button>
                             </DropdownMenuTrigger>
@@ -1948,9 +1963,9 @@ export default function AllInvoices() {
           )}
         </div>
 
-        {/* Footer paginare — obligatoriu */}
-        <div className="px-3 py-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 rounded-b-lg flex-wrap gap-2">
-          <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+        {/* Footer paginare — Apple HIG Capsule Controls */}
+        <div className="px-4 py-3 border-t border-black/[0.06] dark:border-white/[0.08] flex items-center justify-between bg-[#f8f9fc]/85 dark:bg-white/[0.02] flex-wrap gap-2">
+          <div className="flex items-center gap-2 text-xs text-[#636366] dark:text-[#98989d] tabular-nums">
             <span className="flex items-center whitespace-nowrap">
               Afișează
               <Select
@@ -1960,7 +1975,7 @@ export default function AllInvoices() {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="h-6 px-2 text-xs border-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700 w-[60px] rounded-lg focus:ring-1 focus:ring-blue-500 mx-1">
+                <SelectTrigger className="h-7 px-2.5 text-xs apple-btn-glass w-[64px] rounded-full mx-1.5">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1974,24 +1989,26 @@ export default function AllInvoices() {
               </Select>
             </span>
             <span className="whitespace-nowrap ml-2">
-              Total înregistrări: <strong>{filtered.length}</strong>
+              Total înregistrări: <strong className="text-[#1d1d1f] dark:text-white font-semibold">{filtered.length}</strong>
             </span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
-            <span className="whitespace-nowrap">
-              Pg. {page}/{totalPages}
+          <div className="flex items-center gap-1.5 text-xs text-[#636366] dark:text-[#98989d] tabular-nums">
+            <span className="whitespace-nowrap mr-1">
+              Pg. <strong className="text-[#1d1d1f] dark:text-white font-semibold">{page}/{totalPages}</strong>
             </span>
             <button
               onClick={() => setPage(p => p - 1)}
               disabled={page === 1}
-              className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 disabled:opacity-40 transition-colors shadow-none"
+              aria-label="Pagina anterioară"
+              className="apple-btn-glass w-8 h-8 rounded-full flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] disabled:opacity-35 transition-all"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => setPage(p => p + 1)}
               disabled={page >= totalPages}
-              className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 disabled:opacity-40 transition-colors shadow-none"
+              aria-label="Pagina următoare"
+              className="apple-btn-glass w-8 h-8 rounded-full flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] disabled:opacity-35 transition-all"
             >
               <ChevronRight className="w-3.5 h-3.5" />
             </button>

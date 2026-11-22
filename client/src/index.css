@@ -147,28 +147,102 @@ h1, h2, h3, .apple-display {
   font-variant-numeric: tabular-nums;
 }
 
+/* Apple macOS Tahoe Window Ambient Canvas — Gives Liquid Glass subtle light & tint to refract */
+.apple-canvas {
+  background-color: #eef1f6;
+  background-image:
+    radial-gradient(1100px 580px at 6% -6%, color-mix(in srgb, var(--tenant-theme-color, #2563eb) 13%, transparent), transparent 65%),
+    radial-gradient(900px 520px at 95% 4%, rgba(56, 189, 248, 0.11), transparent 60%),
+    radial-gradient(850px 560px at 50% 106%, color-mix(in srgb, var(--tenant-theme-color, #2563eb) 8%, transparent), transparent 65%),
+    linear-gradient(180deg, #eef2f7 0%, #f4f6fa 50%, #edf0f6 100%);
+}
+
+.dark .apple-canvas {
+  background-color: #050508;
+  background-image:
+    radial-gradient(1100px 560px at 8% -6%, color-mix(in srgb, var(--tenant-theme-color, #0a84ff) 20%, transparent), transparent 65%),
+    radial-gradient(900px 500px at 94% 6%, rgba(56, 189, 248, 0.10), transparent 60%),
+    linear-gradient(180deg, #07070b 0%, #050508 100%);
+}
+
 /* Liquid Glass Utilities — Functional Layer Only (Apple HIG liquid-glass.md) */
 .glass,
 .apple-glass {
-  background-color: rgba(255, 255, 255, 0.82);
-  -webkit-backdrop-filter: blur(24px) saturate(1.5);
-  backdrop-filter: blur(24px) saturate(1.5);
-  border: 1px solid rgba(0, 0, 0, 0.07);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.76) 0%, rgba(255, 255, 255, 0.56) 100%);
+  -webkit-backdrop-filter: blur(28px) saturate(1.9);
+  backdrop-filter: blur(28px) saturate(1.9);
+  border: 1px solid rgba(255, 255, 255, 0.86);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.7),
-    0 1px 3px rgba(0, 0, 0, 0.04),
-    0 8px 24px -8px rgba(0, 0, 0, 0.05);
+    inset 0 1.5px 0.5px rgba(255, 255, 255, 0.96),
+    inset 0 -1px 0.5px rgba(255, 255, 255, 0.45),
+    0 0 0 0.5px rgba(15, 23, 42, 0.06),
+    0 12px 32px -8px rgba(15, 23, 42, 0.09),
+    0 2px 6px rgba(15, 23, 42, 0.04);
 }
 
 .dark .glass,
 .dark .apple-glass {
-  background-color: rgba(28, 28, 30, 0.84);
-  -webkit-backdrop-filter: blur(24px) saturate(1.5);
-  backdrop-filter: blur(24px) saturate(1.5);
-  border-color: rgba(255, 255, 255, 0.10);
+  background: linear-gradient(145deg, rgba(36, 36, 40, 0.78) 0%, rgba(24, 24, 28, 0.64) 100%);
+  -webkit-backdrop-filter: blur(28px) saturate(1.9);
+  backdrop-filter: blur(28px) saturate(1.9);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 8px 28px -8px rgba(0, 0, 0, 0.45);
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0.5px rgba(255, 255, 255, 0.04),
+    0 14px 36px -8px rgba(0, 0, 0, 0.55);
+}
+
+/* Apple Liquid Glass Capsule Controls (.buttonStyle(.glass) & .buttonStyle(.glassProminent)) */
+.apple-btn-glass {
+  border-radius: 9999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(248, 250, 252, 0.72) 100%);
+  -webkit-backdrop-filter: blur(16px) saturate(1.6);
+  backdrop-filter: blur(16px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow:
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.98),
+    0 0 0 0.5px rgba(15, 23, 42, 0.08),
+    0 2px 6px -1px rgba(15, 23, 42, 0.06);
+}
+
+.apple-btn-glass:hover {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.86) 100%);
+  box-shadow:
+    inset 0 1px 0.5px rgba(255, 255, 255, 1),
+    0 0 0 0.5px rgba(15, 23, 42, 0.11),
+    0 4px 12px -2px rgba(15, 23, 42, 0.09);
+}
+
+.dark .apple-btn-glass {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.11) 0%, rgba(255, 255, 255, 0.06) 100%);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow:
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.18),
+    0 2px 8px -2px rgba(0, 0, 0, 0.4);
+}
+
+.dark .apple-btn-glass:hover {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.09) 100%);
+}
+
+.apple-btn-prominent {
+  border-radius: 9999px;
+  background-color: var(--tenant-theme-color, var(--primary, #16a34a));
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0.02) 55%, rgba(0, 0, 0, 0.08) 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  box-shadow:
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.52),
+    inset 0 -1px 0.5px rgba(0, 0, 0, 0.14),
+    0 4px 14px -3px color-mix(in srgb, var(--tenant-theme-color, #16a34a) 45%, transparent);
+}
+
+.apple-btn-prominent:hover {
+  filter: brightness(1.05);
+  box-shadow:
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.6),
+    inset 0 -1px 0.5px rgba(0, 0, 0, 0.14),
+    0 6px 18px -3px color-mix(in srgb, var(--tenant-theme-color, #16a34a) 55%, transparent);
 }
 
 .glass-sm {
@@ -387,16 +461,44 @@ h1, h2, h3, .apple-display {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   SMARTDEVIZE GLOBAL UI RULES — MAC OS TAHOE STYLE
-   Toate butoanele, input-urile și barele de căutare = PILL SHAPE
+   SMARTDEVIZE GLOBAL UI RULES — MAC OS TAHOE LIQUID GLASS STYLE
+   Toate butoanele de acțiune și controalele compacte = CAPSULE (PILL)
 ═══════════════════════════════════════════════════════════════ */
 
-/* Override global: Butoanele interactive au border-radius de tip pill */
-button:not(.btn-icon):not([class*="rounded-none"]):not([class*="rounded-sm"]):not([class*="rounded-md"]):not([class*="rounded-lg"]):not([class*="rounded-xl"]) {
-  border-radius: 9999px;
+/* Capsule shape pe butoanele de acțiune (inclusiv cele cu rounded-lg/md vechi),
+   excluzând cardurile mari interactive, tab-urile, dropdown items și checkbox-urile */
+[data-slot="button"],
+button.h-6,
+button.h-7,
+button.h-8,
+button.h-9,
+button.h-10,
+button.h-11,
+a.h-8,
+a.h-9,
+a.h-10,
+button:not(.btn-icon):not(.catalog-dropdown-item):not([role="combobox"]):not([role="option"]):not([role="menuitem"]):not([role="tab"]):not([role="checkbox"]):not([role="switch"]):not([data-slot="tabs-trigger"]):not([class*="rounded-none"]):not([class*="rounded-2xl"]):not([class*="rounded-xl"]):not([class*="w-full"]) {
+  border-radius: 9999px !important;
 }
 
-/* Container-ele mari rămân rounded, dar fin (macOS style) */
+/* Specular Liquid Glass sheen pe toate butoanele primare colorate din aplicație */
+button.bg-blue-600,
+button.bg-blue-500,
+a.bg-blue-600,
+button.bg-emerald-600,
+button.bg-emerald-500,
+button.bg-teal-600,
+button.bg-green-600,
+button.bg-primary,
+[data-slot="button"].bg-primary {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0.02) 56%, rgba(0, 0, 0, 0.08) 100%) !important;
+  box-shadow:
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.52),
+    inset 0 -1px 0.5px rgba(0, 0, 0, 0.14),
+    0 4px 14px -3px color-mix(in srgb, var(--tenant-theme-color, #16a34a) 42%, transparent) !important;
+}
+
+/* Container-ele mari rămân rounded, dar concentric Apple Tahoe (22px) */
 .card,
 [data-slot="card"],
 .kpi-card,
@@ -405,7 +507,7 @@ button:not(.btn-icon):not([class*="rounded-none"]):not([class*="rounded-sm"]):no
 .glass-input,
 .modal,
 [data-slot="dialog-content"] {
-  border-radius: 16px;
+  border-radius: 22px;
 }
 
 /* ═══════════════════════════════════════════════════════════════

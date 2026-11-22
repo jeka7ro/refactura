@@ -378,7 +378,7 @@ export default function SpvHub() {
         credentials: "include",
         headers,
         body: JSON.stringify({ ...(payload || {}), extVersion }),
-      }).catch(() => {});
+      }).catch(() => { });
     } catch {
       /* ignore */
     }
@@ -767,14 +767,14 @@ export default function SpvHub() {
 
   const hasActivePortalFilters = Boolean(
     filterCif ||
-      (filterTipDoc && filterTipDoc !== "-TOATE-") ||
-      filterIdSolicitare ||
-      filterDataAfisare ||
-      filterDetalii ||
-      filterDataArhivare ||
-      portalSearchQuery ||
-      readFilter !== "all" ||
-      portalFilter !== "all"
+    (filterTipDoc && filterTipDoc !== "-TOATE-") ||
+    filterIdSolicitare ||
+    filterDataAfisare ||
+    filterDetalii ||
+    filterDataArhivare ||
+    portalSearchQuery ||
+    readFilter !== "all" ||
+    portalFilter !== "all"
   );
 
   return (
@@ -815,13 +815,13 @@ export default function SpvHub() {
             </p>
           </div>
 
-          {/* Bară de acțiuni aliniată pe un singur rând */}
+          {/* Bară de acțiuni aliniată pe un singur rând — Apple Liquid Glass Capsules */}
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
             <button
               type="button"
               onClick={() => testSpvMutation.mutate()}
               disabled={testSpvMutation.isPending}
-              className="h-9 rounded-lg text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-colors px-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 cursor-pointer disabled:opacity-60"
+              className="apple-btn-glass h-9 rounded-full text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-all px-3.5 text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer disabled:opacity-60"
               title="Trimite un ping către serverul ANAF și verifică token-ul"
             >
               {testSpvMutation.isPending ? (
@@ -842,10 +842,10 @@ export default function SpvHub() {
                 href={oauthInfo.url}
                 target="_blank"
                 rel="noreferrer"
-                className="h-9 rounded-lg text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-colors px-3 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
+                className="apple-btn-glass h-9 rounded-full text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-all px-3.5 text-[#1d1d1f] dark:text-[#f5f5f7]"
                 title="Reautorizare certificat cu token OAuth ANAF"
               >
-                <KeyRound className="w-3.5 h-3.5 text-slate-500" />
+                <KeyRound className="w-3.5 h-3.5 text-[#636366] dark:text-[#98989d]" />
                 <span>Reautorizare</span>
               </a>
             )}
@@ -854,11 +854,11 @@ export default function SpvHub() {
               type="button"
               onClick={handleUsbSpvSync}
               disabled={isUsbSyncing}
-              className={`h-9 rounded-lg text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-colors px-3 border cursor-pointer disabled:opacity-60 ${
+              className={`h-9 rounded-full text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-all px-3.5 cursor-pointer disabled:opacity-60 ${
                 connectorReady
-                  ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/50 dark:hover:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-800"
-                  : "bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700"
-              }`}
+                  ? "bg-emerald-500/12 hover:bg-emerald-500/18 text-emerald-800 border border-emerald-500/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] dark:bg-emerald-500/18 dark:hover:bg-emerald-500/25 dark:text-emerald-300 dark:border-emerald-500/30"
+                  : "apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7]"
+                }`}
               title={
                 connectorReady
                   ? "Descarcă direct din SPV ANAF documentele originale PDF/ZIP folosind stick-ul USB"
@@ -874,7 +874,7 @@ export default function SpvHub() {
                 <>
                   <ShieldCheck
                     className={`w-3.5 h-3.5 ${
-                      connectorReady ? "text-emerald-600" : "text-slate-500"
+                      connectorReady ? "text-emerald-600" : "text-[#636366] dark:text-[#98989d]"
                     }`}
                   />
                   <span>
@@ -889,7 +889,7 @@ export default function SpvHub() {
             <button
               type="button"
               onClick={() => setIsUploadOpen(true)}
-              className="h-9 rounded-lg text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-colors px-3.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 cursor-pointer"
+              className="apple-btn-glass h-9 rounded-full text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-all px-3.5 text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
               title="Încarcă o recipisă sau notificare PDF/ZIP originală descărcată din SPV"
             >
               <Upload className="w-3.5 h-3.5" />
@@ -900,12 +900,12 @@ export default function SpvHub() {
               type="button"
               onClick={handleSyncAll}
               disabled={isSyncBusy}
-              className="h-9 rounded-lg text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-colors px-3.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white shadow-2xs cursor-pointer"
+              className="apple-btn-prominent h-9 rounded-full text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-all px-4 disabled:opacity-60 text-white cursor-pointer"
               title="Interoghează ANAF și actualizează lista mesajelor"
             >
               {isSyncingAll ||
-              syncMessagesMutation.isPending ||
-              syncInvoicesMutation.isPending ? (
+                syncMessagesMutation.isPending ||
+                syncInvoicesMutation.isPending ? (
                 <>
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                   <span>Se actualizează...</span>
@@ -923,11 +923,10 @@ export default function SpvHub() {
         {/* Diagnostic Conexiune SPV (doar când utilizatorul testează explicit) */}
         {testResult && (
           <div
-            className={`px-3.5 py-2.5 rounded-xl border transition-all ${
-              testResult.connected
+            className={`px-3.5 py-2.5 rounded-xl border transition-all ${testResult.connected
                 ? "bg-emerald-50/90 border-emerald-200 text-emerald-950 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-100"
                 : "bg-red-50/90 border-red-200 text-red-950 dark:bg-red-950/40 dark:border-red-800 dark:text-red-100"
-            }`}
+              }`}
           >
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5 text-xs flex-wrap">
@@ -953,12 +952,12 @@ export default function SpvHub() {
                 )}
                 {(testResult.daysRemaining ?? testResult.tokenDaysRemaining) !=
                   null && (
-                  <span className="px-2 py-0.5 rounded-md font-semibold bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 tabular-nums">
-                    Token:{" "}
-                    {testResult.daysRemaining ?? testResult.tokenDaysRemaining}{" "}
-                    zile
-                  </span>
-                )}
+                    <span className="px-2 py-0.5 rounded-md font-semibold bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 tabular-nums">
+                      Token:{" "}
+                      {testResult.daysRemaining ?? testResult.tokenDaysRemaining}{" "}
+                      zile
+                    </span>
+                  )}
                 <span className="opacity-90">{testResult.message}</span>
               </div>
               <button
@@ -984,11 +983,10 @@ export default function SpvHub() {
                 setFilterTipDoc("-TOATE-");
                 setPage(1);
               }}
-              className={`rounded-xl bg-white dark:bg-slate-900 border px-4 py-3 flex items-center gap-3.5 shadow-2xs text-left transition-all cursor-pointer ${
-                readFilter === "all" && portalFilter === "all"
+              className={`rounded-xl bg-white dark:bg-slate-900 border px-4 py-3 flex items-center gap-3.5 shadow-2xs text-left transition-all cursor-pointer ${readFilter === "all" && portalFilter === "all"
                   ? "border-blue-500 ring-1 ring-blue-500/20"
                   : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
-              }`}
+                }`}
             >
               <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
                 <Inbox className="w-5 h-5" />
@@ -1010,11 +1008,10 @@ export default function SpvHub() {
                 setPortalFilter("all");
                 setPage(1);
               }}
-              className={`rounded-xl bg-white dark:bg-slate-900 border px-4 py-3 flex items-center gap-3.5 shadow-2xs text-left transition-all cursor-pointer ${
-                readFilter === "unread"
+              className={`rounded-xl bg-white dark:bg-slate-900 border px-4 py-3 flex items-center gap-3.5 shadow-2xs text-left transition-all cursor-pointer ${readFilter === "unread"
                   ? "border-red-500 ring-1 ring-red-500/20 bg-red-50/30 dark:bg-red-950/20"
                   : "border-slate-200 dark:border-slate-800 hover:border-red-200 dark:hover:border-red-900/60"
-              }`}
+                }`}
             >
               <div className="w-10 h-10 rounded-lg bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0 relative">
                 <AlertCircle className="w-5 h-5" />
@@ -1027,11 +1024,10 @@ export default function SpvHub() {
                   Mesaje Noi (Necitite)
                 </p>
                 <p
-                  className={`text-xl font-bold tabular-nums leading-tight mt-0.5 ${
-                    portalStats.unread > 0
+                  className={`text-xl font-bold tabular-nums leading-tight mt-0.5 ${portalStats.unread > 0
                       ? "text-red-600 dark:text-red-400"
                       : "text-slate-900 dark:text-white"
-                  }`}
+                    }`}
                 >
                   {portalStats.unread}
                 </p>
@@ -1045,11 +1041,10 @@ export default function SpvHub() {
                 setReadFilter("all");
                 setPage(1);
               }}
-              className={`rounded-xl bg-white dark:bg-slate-900 border px-4 py-3 flex items-center gap-3.5 shadow-2xs text-left transition-all cursor-pointer ${
-                portalFilter === "declaratie"
+              className={`rounded-xl bg-white dark:bg-slate-900 border px-4 py-3 flex items-center gap-3.5 shadow-2xs text-left transition-all cursor-pointer ${portalFilter === "declaratie"
                   ? "border-blue-500 ring-1 ring-blue-500/20"
                   : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
-              }`}
+                }`}
             >
               <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
                 <FileCheck className="w-5 h-5" />
@@ -1071,11 +1066,10 @@ export default function SpvHub() {
                 setReadFilter("all");
                 setPage(1);
               }}
-              className={`rounded-xl bg-white dark:bg-slate-900 border px-4 py-3 flex items-center gap-3.5 shadow-2xs text-left transition-all cursor-pointer ${
-                portalFilter === "cert_sol"
+              className={`rounded-xl bg-white dark:bg-slate-900 border px-4 py-3 flex items-center gap-3.5 shadow-2xs text-left transition-all cursor-pointer ${portalFilter === "cert_sol"
                   ? "border-indigo-500 ring-1 ring-indigo-500/20"
                   : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
-              }`}
+                }`}
             >
               <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
                 <ShieldCheck className="w-5 h-5" />
@@ -1097,11 +1091,10 @@ export default function SpvHub() {
             <button
               type="button"
               onClick={() => setMessageFilter("all")}
-              className={`rounded-xl bg-white dark:bg-slate-900 border px-4 py-3 flex items-center gap-3.5 shadow-2xs text-left transition-all cursor-pointer ${
-                messageFilter === "all"
+              className={`rounded-xl bg-white dark:bg-slate-900 border px-4 py-3 flex items-center gap-3.5 shadow-2xs text-left transition-all cursor-pointer ${messageFilter === "all"
                   ? "border-blue-500 ring-1 ring-blue-500/20"
                   : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
-              }`}
+                }`}
             >
               <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
                 <Inbox className="w-5 h-5" />
@@ -1119,11 +1112,10 @@ export default function SpvHub() {
             <button
               type="button"
               onClick={() => setMessageFilter("primita")}
-              className={`rounded-xl bg-white dark:bg-slate-900 border px-4 py-3 flex items-center gap-3.5 shadow-2xs text-left transition-all cursor-pointer ${
-                messageFilter === "primita"
+              className={`rounded-xl bg-white dark:bg-slate-900 border px-4 py-3 flex items-center gap-3.5 shadow-2xs text-left transition-all cursor-pointer ${messageFilter === "primita"
                   ? "border-indigo-500 ring-1 ring-indigo-500/20"
                   : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
-              }`}
+                }`}
             >
               <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
                 <ArrowDownLeft className="w-5 h-5" />
@@ -1141,11 +1133,10 @@ export default function SpvHub() {
             <button
               type="button"
               onClick={() => setMessageFilter("trimisa")}
-              className={`rounded-xl bg-white dark:bg-slate-900 border px-4 py-3 flex items-center gap-3.5 shadow-2xs text-left transition-all cursor-pointer ${
-                messageFilter === "trimisa"
+              className={`rounded-xl bg-white dark:bg-slate-900 border px-4 py-3 flex items-center gap-3.5 shadow-2xs text-left transition-all cursor-pointer ${messageFilter === "trimisa"
                   ? "border-blue-500 ring-1 ring-blue-500/20"
                   : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
-              }`}
+                }`}
             >
               <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
                 <ArrowUpRight className="w-5 h-5" />
@@ -1163,11 +1154,10 @@ export default function SpvHub() {
             <button
               type="button"
               onClick={() => setMessageFilter("eroare")}
-              className={`rounded-xl bg-white dark:bg-slate-900 border px-4 py-3 flex items-center gap-3.5 shadow-2xs text-left transition-all cursor-pointer ${
-                messageFilter === "eroare"
+              className={`rounded-xl bg-white dark:bg-slate-900 border px-4 py-3 flex items-center gap-3.5 shadow-2xs text-left transition-all cursor-pointer ${messageFilter === "eroare"
                   ? "border-red-500 ring-1 ring-red-500/20"
                   : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
-              }`}
+                }`}
             >
               <div className="w-10 h-10 rounded-lg bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0">
                 <AlertCircle className="w-5 h-5" />
@@ -1193,11 +1183,10 @@ export default function SpvHub() {
               <button
                 type="button"
                 onClick={() => setActiveHubTab("declaratii")}
-                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer inline-flex items-center gap-2 whitespace-nowrap ${
-                  activeHubTab === "declaratii"
+                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer inline-flex items-center gap-2 whitespace-nowrap ${activeHubTab === "declaratii"
                     ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                }`}
+                  }`}
               >
                 <FileCheck className="w-3.5 h-3.5" />
                 <span>Mesaje &amp; Recipise SPV</span>
@@ -1209,11 +1198,10 @@ export default function SpvHub() {
               <button
                 type="button"
                 onClick={() => setActiveHubTab("efactura")}
-                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer inline-flex items-center gap-2 whitespace-nowrap ${
-                  activeHubTab === "efactura"
+                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer inline-flex items-center gap-2 whitespace-nowrap ${activeHubTab === "efactura"
                     ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                }`}
+                  }`}
               >
                 <Inbox className="w-3.5 h-3.5" />
                 <span>Mesaje e-Factura</span>
@@ -1234,11 +1222,10 @@ export default function SpvHub() {
                       setReadFilter("all");
                       setPage(1);
                     }}
-                    className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${
-                      readFilter === "all"
+                    className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${readFilter === "all"
                         ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
                         : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                    }`}
+                      }`}
                   >
                     Toate ({portalStats.total})
                   </button>
@@ -1248,18 +1235,16 @@ export default function SpvHub() {
                       setReadFilter("unread");
                       setPage(1);
                     }}
-                    className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap ${
-                      readFilter === "unread"
+                    className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap ${readFilter === "unread"
                         ? "bg-red-600 text-white shadow-2xs"
                         : "text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40"
-                    }`}
+                      }`}
                   >
                     <span
-                      className={`w-2 h-2 rounded-full ${
-                        readFilter === "unread"
+                      className={`w-2 h-2 rounded-full ${readFilter === "unread"
                           ? "bg-white"
                           : "bg-red-500 animate-pulse"
-                      }`}
+                        }`}
                     />
                     <span>Noi ({portalStats.unread})</span>
                   </button>
@@ -1269,11 +1254,10 @@ export default function SpvHub() {
                       setReadFilter("read");
                       setPage(1);
                     }}
-                    className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${
-                      readFilter === "read"
+                    className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${readFilter === "read"
                         ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
                         : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                    }`}
+                      }`}
                   >
                     Citite ({portalStats.read})
                   </button>
@@ -1295,11 +1279,10 @@ export default function SpvHub() {
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className={`rounded-lg h-8 px-2.5 text-xs font-medium border inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${
-                    hasActivePortalFilters
+                  className={`rounded-lg h-8 px-2.5 text-xs font-medium border inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${hasActivePortalFilters
                       ? "bg-[#1e3264] text-white border-[#1e3264] hover:bg-[#16254a]"
                       : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
-                  }`}
+                    }`}
                   title="Resetează toate filtrele aplicate pe tabel"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
@@ -1326,46 +1309,42 @@ export default function SpvHub() {
                   <button
                     type="button"
                     onClick={() => setMessageFilter("all")}
-                    className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${
-                      messageFilter === "all"
+                    className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${messageFilter === "all"
                         ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
                         : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                    }`}
+                      }`}
                   >
                     Toate ({msgStats.total})
                   </button>
                   <button
                     type="button"
                     onClick={() => setMessageFilter("primita")}
-                    className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${
-                      messageFilter === "primita"
+                    className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${messageFilter === "primita"
                         ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
                         : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                    }`}
+                      }`}
                   >
                     Primite ({msgStats.primite})
                   </button>
                   <button
                     type="button"
                     onClick={() => setMessageFilter("trimisa")}
-                    className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${
-                      messageFilter === "trimisa"
+                    className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${messageFilter === "trimisa"
                         ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
                         : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                    }`}
+                      }`}
                   >
                     Trimise ({msgStats.trimise})
                   </button>
                   <button
                     type="button"
                     onClick={() => setMessageFilter("eroare")}
-                    className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${
-                      messageFilter === "eroare"
+                    className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${messageFilter === "eroare"
                         ? "bg-red-600 text-white shadow-2xs"
                         : msgStats.erori > 0
-                        ? "text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40"
-                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                    }`}
+                          ? "text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40"
+                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                      }`}
                   >
                     Erori ({msgStats.erori})
                   </button>
@@ -1551,13 +1530,12 @@ export default function SpvHub() {
                           <tr
                             key={doc.id}
                             onClick={() => openDocument(doc)}
-                            className={`border-b border-slate-200 dark:border-slate-800 hover:bg-blue-50/70 dark:hover:bg-blue-950/40 cursor-pointer transition-colors ${
-                              isUnread
+                            className={`border-b border-slate-200 dark:border-slate-800 hover:bg-blue-50/70 dark:hover:bg-blue-950/40 cursor-pointer transition-colors ${isUnread
                                 ? "bg-red-50/30 dark:bg-red-950/20"
                                 : idx % 2 === 1
-                                ? "bg-slate-50/50 dark:bg-slate-900/30"
-                                : "bg-white dark:bg-slate-900"
-                            }`}
+                                  ? "bg-slate-50/50 dark:bg-slate-900/30"
+                                  : "bg-white dark:bg-slate-900"
+                              }`}
                           >
                             {/* CIF */}
                             <td
@@ -1582,11 +1560,10 @@ export default function SpvHub() {
 
                             {/* Id Solicitare */}
                             <td
-                              className={`py-2.5 px-3 tabular-nums whitespace-nowrap ${
-                                isUnread
+                              className={`py-2.5 px-3 tabular-nums whitespace-nowrap ${isUnread
                                   ? "text-[#dc2626] font-semibold"
                                   : "text-slate-600 dark:text-slate-400"
-                              }`}
+                                }`}
                             >
                               {doc.idSolicitare || "-"}
                             </td>
@@ -1629,11 +1606,10 @@ export default function SpvHub() {
                                   }
                                 >
                                   <Eye
-                                    className={`w-3.5 h-3.5 ${
-                                      doc.isRead
+                                    className={`w-3.5 h-3.5 ${doc.isRead
                                         ? "opacity-35"
                                         : "text-red-600"
-                                    }`}
+                                      }`}
                                   />
                                 </button>
                               </div>
@@ -1766,13 +1742,11 @@ export default function SpvHub() {
                               if (msg.pdfUrl) {
                                 setPreviewDoc({
                                   isOpen: true,
-                                  title: `Factura ${msg.invoiceNumber || ""} — ${
-                                    msg.partnerName || ""
-                                  }`,
+                                  title: `Factura ${msg.invoiceNumber || ""} — ${msg.partnerName || ""
+                                    }`,
                                   pdfUrl: msg.pdfUrl,
-                                  filename: `Factura_${
-                                    msg.invoiceNumber || msg.id
-                                  }.pdf`,
+                                  filename: `Factura_${msg.invoiceNumber || msg.id
+                                    }.pdf`,
                                   type: isReceived ? "invoice" : "emitted",
                                 });
                               } else {
@@ -1786,13 +1760,12 @@ export default function SpvHub() {
                             </TableCell>
                             <TableCell className="py-2.5">
                               <span
-                                className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10.5px] font-bold ${
-                                  isReceived
+                                className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10.5px] font-bold ${isReceived
                                     ? "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-200"
                                     : isSent
-                                    ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-200"
-                                    : "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 border border-red-200"
-                                }`}
+                                      ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-200"
+                                      : "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 border border-red-200"
+                                  }`}
                               >
                                 {isReceived && (
                                   <ArrowDownLeft className="w-3 h-3 text-purple-600" />
@@ -1846,13 +1819,11 @@ export default function SpvHub() {
                                   onClick={() =>
                                     setPreviewDoc({
                                       isOpen: true,
-                                      title: `Factura ${
-                                        msg.invoiceNumber || ""
-                                      } — ${msg.partnerName || ""}`,
+                                      title: `Factura ${msg.invoiceNumber || ""
+                                        } — ${msg.partnerName || ""}`,
                                       pdfUrl: msg.pdfUrl,
-                                      filename: `Factura_${
-                                        msg.invoiceNumber || msg.id
-                                      }.pdf`,
+                                      filename: `Factura_${msg.invoiceNumber || msg.id
+                                        }.pdf`,
                                       type: isReceived ? "invoice" : "emitted",
                                     })
                                   }
@@ -2145,7 +2116,7 @@ export default function SpvHub() {
                   {selectedSpvMessage.invoiceNumber
                     ? `Factură înregistrată: ${selectedSpvMessage.invoiceNumber}`
                     : selectedSpvMessage.partnerName ||
-                      "Recepționat din ANAF SPV"}
+                    "Recepționat din ANAF SPV"}
                 </span>
               </div>
               {selectedSpvMessage.detalii && (

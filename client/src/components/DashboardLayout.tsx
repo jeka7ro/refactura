@@ -600,14 +600,22 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div key={item.href}>
               <Link href={item.href} onClick={() => setMobileOpen(false)}>
                 <div
-                  style={active && !item.subItems ? { backgroundColor: themeColor } : undefined}
-                  className={cn(
-                    "flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13.5px] leading-snug transition-all duration-150 cursor-pointer group",
+                  style={
                     active && !item.subItems
-                      ? "text-white font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_2px_6px_rgba(0,0,0,0.12)]"
+                      ? {
+                          backgroundColor: themeColor,
+                          backgroundImage:
+                            "linear-gradient(180deg, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.02) 58%, rgba(0,0,0,0.08) 100%)",
+                        }
+                      : undefined
+                  }
+                  className={cn(
+                    "flex items-center gap-2.5 px-3.5 py-2 rounded-full text-[13.5px] leading-snug transition-all duration-150 cursor-pointer group",
+                    active && !item.subItems
+                      ? "text-white font-semibold shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.52),0_4px_12px_-2px_rgba(0,0,0,0.18)]"
                       : (active || hasExpandedSubs) && item.subItems
-                        ? "text-[#1d1d1f] dark:text-white font-semibold bg-black/[0.035] dark:bg-white/[0.05]"
-                        : "text-[#3a3a3c] font-medium hover:text-[#1d1d1f] hover:bg-black/[0.045] dark:text-[#ebebf5]/80 dark:hover:text-white dark:hover:bg-white/[0.06]",
+                        ? "text-[#1d1d1f] dark:text-white font-semibold bg-white/75 dark:bg-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_3px_rgba(0,0,0,0.05)]"
+                        : "text-[#3a3a3c] font-medium hover:text-[#1d1d1f] hover:bg-white/65 dark:text-[#ebebf5]/80 dark:hover:text-white dark:hover:bg-white/[0.07]",
                     collapsed && "justify-center px-2"
                   )}
                 >
@@ -630,7 +638,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               </Link>
               {/* Sub-items indentat */}
               {!collapsed && item.subItems && (active || hasExpandedSubs) && (
-                <div className="ml-3.5 mt-0.5 pl-3 border-l border-black/[0.08] dark:border-white/[0.10] space-y-0.5 py-0.5">
+                <div className="ml-4 mt-1 pl-3 border-l border-black/[0.08] dark:border-white/[0.10] space-y-0.5 py-0.5">
                   {item.subItems.map(sub => {
                     const SubIcon = sub.icon;
                     const subActive = location === sub.href;
@@ -641,12 +649,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         onClick={() => setMobileOpen(false)}
                       >
                         <div
-                          style={subActive ? { backgroundColor: themeColor } : undefined}
-                          className={cn(
-                            "flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12.5px] transition-all duration-150 cursor-pointer group",
+                          style={
                             subActive
-                              ? "text-white font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_1px_3px_rgba(0,0,0,0.10)]"
-                              : "text-[#636366] font-medium hover:text-[#1d1d1f] hover:bg-black/[0.04] dark:text-[#98989d] dark:hover:text-white dark:hover:bg-white/[0.06]"
+                              ? {
+                                  backgroundColor: themeColor,
+                                  backgroundImage:
+                                    "linear-gradient(180deg, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.02) 58%, rgba(0,0,0,0.08) 100%)",
+                                }
+                              : undefined
+                          }
+                          className={cn(
+                            "flex items-center gap-2 px-3 py-1.5 rounded-full text-[12.5px] transition-all duration-150 cursor-pointer group",
+                            subActive
+                              ? "text-white font-semibold shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.5),0_3px_10px_-2px_rgba(0,0,0,0.18)]"
+                              : "text-[#636366] font-medium hover:text-[#1d1d1f] hover:bg-white/65 dark:text-[#98989d] dark:hover:text-white dark:hover:bg-white/[0.07]"
                           )}
                         >
                           <SubIcon
@@ -792,9 +808,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-[#f5f5f7] dark:bg-black overflow-hidden p-2.5 sm:p-3.5 gap-2.5 sm:gap-3.5">
-      {/* Top Header — Apple Liquid Glass Functional Bar */}
-      <header className="h-15 apple-glass rounded-2xl flex items-center px-4 sm:px-5 gap-3 sm:gap-3.5 flex-shrink-0 z-20">
+    <div className="relative flex h-screen apple-canvas overflow-hidden">
+      {/* Top Header — Floating Apple Liquid Glass Functional Bar (content scrolls underneath) */}
+      <header className="fixed top-2.5 sm:top-3.5 left-2.5 sm:left-3.5 right-2.5 sm:right-3.5 h-15 apple-glass rounded-[22px] flex items-center px-4 sm:px-5 gap-3 sm:gap-3.5 z-30">
         {/* Logo */}
         <Link href="/">
           <div className="flex items-center flex-shrink-0 mr-1.5 cursor-pointer hover:opacity-90 transition-opacity">
@@ -817,7 +833,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Mobile menu toggle */}
         <button
           aria-label="Deschide meniul"
-          className="md:hidden w-9 h-9 rounded-full border border-black/[0.08] dark:border-white/[0.10] bg-black/[0.03] dark:bg-white/[0.05] flex items-center justify-center hover:bg-black/[0.06] dark:hover:bg-white/[0.10] transition-colors"
+          className="md:hidden w-9 h-9 rounded-full apple-btn-glass flex items-center justify-center transition-all"
           onClick={() => setMobileOpen(true)}
         >
           <Menu className="w-4 h-4 text-[#3a3a3c] dark:text-[#ebebf5]" />
@@ -826,7 +842,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Desktop Sidebar collapse toggle */}
         <button
           aria-label={collapsed ? "Extinde bara laterală" : "Restrânge bara laterală"}
-          className="hidden md:flex w-9 h-9 rounded-full border border-black/[0.08] dark:border-white/[0.10] bg-black/[0.025] dark:bg-white/[0.05] items-center justify-center hover:bg-black/[0.06] dark:hover:bg-white/[0.10] transition-colors"
+          className="hidden md:flex w-9 h-9 rounded-full apple-btn-glass items-center justify-center transition-all"
           onClick={() => setCollapsed(!collapsed)}
         >
           <Menu className="w-4 h-4 text-[#3a3a3c] dark:text-[#ebebf5]" />
@@ -838,7 +854,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <BnrExchangeRateHeader />
 
         {/* Multi-currency / country indicator */}
-        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/[0.035] dark:bg-white/[0.06] border border-black/[0.06] dark:border-white/[0.09]">
+        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full apple-btn-glass">
           <Globe className="w-3.5 h-3.5 text-[#636366] dark:text-[#98989d]" />
           <span className="text-xs font-semibold text-[#3a3a3c] dark:text-[#ebebf5]">
             RON
@@ -849,7 +865,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <button
           aria-label="Notificări"
           title="Notificări"
-          className="relative w-9 h-9 rounded-full border border-black/[0.08] dark:border-white/[0.10] bg-black/[0.025] dark:bg-white/[0.05] flex items-center justify-center hover:bg-black/[0.06] dark:hover:bg-white/[0.10] transition-colors"
+          className="relative w-9 h-9 rounded-full apple-btn-glass flex items-center justify-center transition-all"
         >
           <Bell className="w-4 h-4 text-[#3a3a3c] dark:text-[#ebebf5]" />
         </button>
@@ -859,7 +875,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           onClick={toggleTheme}
           aria-label={theme === "dark" ? "Comută la modul luminos" : "Comută la modul întunecat"}
           title={theme === "dark" ? "Mod luminos" : "Mod întunecat"}
-          className="w-9 h-9 rounded-full border border-black/[0.08] dark:border-white/[0.10] bg-black/[0.025] dark:bg-white/[0.05] flex items-center justify-center hover:bg-black/[0.06] dark:hover:bg-white/[0.10] transition-colors"
+          className="w-9 h-9 rounded-full apple-btn-glass flex items-center justify-center transition-all"
         >
           {theme === "dark" ? (
             <Sun className="w-4 h-4 text-[#ebebf5]" />
@@ -1057,12 +1073,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </DropdownMenu>
       </header>
 
-      {/* Bottom Area (Sidebar + Main Content) */}
-      <div className="flex-1 flex min-h-0 gap-2.5 sm:gap-3.5">
+      {/* Bottom Area (Sidebar + Main Content scrolling smoothly beneath Floating Liquid Glass Header) */}
+      <div className="flex-1 flex min-w-0 h-full">
         {/* Desktop Sidebar — Apple Liquid Glass Functional Layer */}
         <aside
           className={cn(
-            "hidden md:flex flex-col apple-glass rounded-2xl transition-all duration-300 flex-shrink-0",
+            "hidden md:flex flex-col apple-glass rounded-[22px] transition-all duration-300 flex-shrink-0 mt-[74px] sm:mt-[80px] mb-2.5 sm:mb-3.5 ml-2.5 sm:ml-3.5 z-20",
             collapsed ? "w-20" : "w-64"
           )}
         >
@@ -1076,14 +1092,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               className="absolute inset-0 bg-black/45 dark:bg-black/65 backdrop-blur-sm"
               onClick={() => setMobileOpen(false)}
             />
-            <aside className="absolute left-0 top-0 bottom-0 w-68 bg-white/94 dark:bg-[#1c1c1e]/94 backdrop-blur-2xl backdrop-saturate-150 border-r border-black/[0.08] dark:border-white/[0.10] flex flex-col shadow-2xl">
+            <aside className="absolute left-0 top-0 bottom-0 w-68 apple-glass rounded-r-[24px] flex flex-col shadow-2xl">
               <SidebarContent />
             </aside>
           </div>
         )}
 
-        {/* Page Content */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden px-1 pb-[calc(85px+env(safe-area-inset-bottom))] md:pb-12">
+        {/* Page Content — Full-height scroll container so content refracts behind floating Liquid Glass Header */}
+        <main className="flex-1 h-full overflow-y-auto overflow-x-hidden pt-[74px] sm:pt-[80px] px-2.5 sm:px-3.5 pb-[calc(85px+env(safe-area-inset-bottom))] md:pb-12">
           {children}
         </main>
       </div>

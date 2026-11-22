@@ -1,5 +1,21 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-22 22:18 — Redesign vizual vizibil Apple Liquid Glass & butoane capsulă (`button.tsx`, `AllInvoices.tsx`, `SpvHub.tsx`, `DashboardLayout.tsx`, `index.css`) + restart server Vite
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Floating Liquid Glass real & Canvas Tahoe (`DashboardLayout.tsx`, `client/src/index.css`):**
+     - Adăugat canvas ambiental `.apple-canvas` și poziționat `<header>` ca bară flotantă `fixed` Liquid Glass (`blur(28px) saturate(1.9)`, dublu contur specular `inset 0 1.5px 0.5px rgba(255,255,255,0.96)`), astfel încât la derularea paginilor conținutul trece efectiv pe sub sticla transluzentă conform `liquid-glass.md`.
+     - Transformat itemii activi din sidebar (inclusiv sub-itemii ex. `Evidență Facturi`) în capsule `rounded-full` cu luciu Apple `.glassProminent`.
+  2. **Butoane Capsulă (`rounded-full`) & Sticlă Speculară la nivel global (`button.tsx`, `badge.tsx`, `select.tsx`, `tabs.tsx`, `index.css`):**
+     - Actualizat `button.tsx` de la `rounded-lg` (`8px`) la capsule Apple `rounded-full` cu stiluri `.glassProminent` (primar) și `.glass` (outline/secondary), plus `badge.tsx`, `select.tsx` și `tabs.tsx` la capsule `rounded-full` și `card.tsx` la raze concentrice `rounded-[22px]`.
+  3. **Aplicare pe `/facturi` (`AllInvoices.tsx`), `/spv` (`SpvHub.tsx`) și `/dashboard` (`Dashboard.tsx`):**
+     - Pe `AllInvoices.tsx`: carduri KPI interactive `rounded-[22px]` cu iconițe dedicate și contur luminos pe filtrul activ, bară de filtre frosted glass fără trunchiere pe `Tip: Toate`, badge-uri capsulă `rounded-full` și butoane rotunde `.apple-btn-glass` (`w-8 h-8 rounded-full`) pe rânduri și paginare.
+     - Pe `SpvHub.tsx`: păstrate intacte toate cele 5 butoane din antet și aliniate la capsule `.apple-btn-glass` / `.apple-btn-prominent` `rounded-full`.
+     - Repornit serverul local `npm run dev` pentru actualizarea `__BUILD_NUMBER__` și reîncărcarea completă a bundle-ului Vite.
+- **Fișiere:** `client/src/index.css`, `client/src/components/DashboardLayout.tsx`, `client/src/components/ui/button.tsx`, `client/src/components/ui/badge.tsx`, `client/src/components/ui/card.tsx`, `client/src/components/ui/tabs.tsx`, `client/src/components/ui/select.tsx`, `client/src/pages/AllInvoices.tsx`, `client/src/pages/SpvHub.tsx`, `client/src/pages/Dashboard.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npm run build` trecut cu `0` erori; serverul dev repornit pe `http://localhost:3000`; fără `git push`.
+
 ### 2026-11-22 21:28 — Aplicare redesign Apple Human Interface Guidelines (`dickwu/apple-design-skill`) pe sistemul UI global, layout și Dashboard
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

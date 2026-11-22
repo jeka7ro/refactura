@@ -789,15 +789,15 @@ export default function Dashboard() {
             </DropdownMenu>
           )}
 
-          {/* Time Horizon Filter Pills — Apple Segmented Control */}
-          <div className="inline-flex items-center bg-black/[0.05] dark:bg-white/[0.08] p-1 rounded-xl">
+          {/* Time Horizon Filter Pills — Apple Capsule Segmented Control */}
+          <div className="inline-flex items-center bg-black/[0.055] dark:bg-white/[0.08] p-1 rounded-full shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)]">
             {(["7D", "30D", "3M", "6M", "1Y", "ALL"] as TimeHorizon[]).map((hz) => (
               <button
                 key={hz}
                 onClick={() => setTimeHorizon(hz)}
-                className={`px-2.5 py-1 text-xs rounded-[9px] transition-all duration-150 ${
+                className={`px-3 py-1 text-xs rounded-full transition-all duration-150 ${
                   timeHorizon === hz
-                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.10),0_1px_1px_rgba(0,0,0,0.06)]"
+                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_4px_rgba(0,0,0,0.10),0_1px_1px_rgba(0,0,0,0.06)]"
                     : "text-[#636366] dark:text-[#98989d] font-medium hover:text-[#1d1d1f] dark:hover:text-white"
                 }`}
               >
@@ -821,7 +821,7 @@ export default function Dashboard() {
             onClick={handleRefresh}
             aria-label="Reîmprospătează datele financiare"
             title="Reîmprospătează datele financiare"
-            className="w-9 h-9 rounded-xl border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-[#2c2c2e] flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:bg-black/[0.04] dark:hover:bg-white/[0.10] transition-colors"
+            className="apple-btn-glass w-9 h-9 rounded-full flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] transition-all"
           >
             <RefreshCw
               className={`w-4 h-4 ${isRefreshing ? "animate-spin text-primary" : ""}`}
@@ -1000,12 +1000,12 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="inline-flex items-center bg-black/[0.05] dark:bg-white/[0.08] p-1 rounded-xl text-xs">
+            <div className="inline-flex items-center bg-black/[0.055] dark:bg-white/[0.08] p-1 rounded-full text-xs shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)]">
               <button
                 onClick={() => setViewMode("stream3d")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[9px] transition-all duration-150 ${
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full transition-all duration-150 ${
                   viewMode === "stream3d"
-                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.10),0_1px_1px_rgba(0,0,0,0.06)]"
+                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_4px_rgba(0,0,0,0.10),0_1px_1px_rgba(0,0,0,0.06)]"
                     : "text-[#636366] dark:text-[#98989d] font-medium hover:text-[#1d1d1f] dark:hover:text-white"
                 }`}
               >
@@ -1014,9 +1014,9 @@ export default function Dashboard() {
               </button>
               <button
                 onClick={() => setViewMode("bars3d")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[9px] transition-all duration-150 ${
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full transition-all duration-150 ${
                   viewMode === "bars3d"
-                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.10),0_1px_1px_rgba(0,0,0,0.06)]"
+                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_4px_rgba(0,0,0,0.10),0_1px_1px_rgba(0,0,0,0.06)]"
                     : "text-[#636366] dark:text-[#98989d] font-medium hover:text-[#1d1d1f] dark:hover:text-white"
                 }`}
               >
@@ -1025,9 +1025,9 @@ export default function Dashboard() {
               </button>
               <button
                 onClick={() => setViewMode("cashflow")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[9px] transition-all duration-150 ${
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full transition-all duration-150 ${
                   viewMode === "cashflow"
-                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.10),0_1px_1px_rgba(0,0,0,0.06)]"
+                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_4px_rgba(0,0,0,0.10),0_1px_1px_rgba(0,0,0,0.06)]"
                     : "text-[#636366] dark:text-[#98989d] font-medium hover:text-[#1d1d1f] dark:hover:text-white"
                 }`}
               >
@@ -1291,12 +1291,12 @@ export default function Dashboard() {
               </p>
             </div>
 
-            <div className="inline-flex bg-black/[0.05] dark:bg-white/[0.08] p-1 rounded-xl text-xs">
+            <div className="inline-flex bg-black/[0.055] dark:bg-white/[0.08] p-1 rounded-full text-xs shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)]">
               <button
                 onClick={() => setPartnerTab("clients")}
-                className={`px-3 py-1.5 rounded-[9px] transition-all duration-150 tabular-nums ${
+                className={`px-3.5 py-1.5 rounded-full transition-all duration-150 tabular-nums ${
                   partnerTab === "clients"
-                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.10),0_1px_1px_rgba(0,0,0,0.06)]"
+                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_4px_rgba(0,0,0,0.10),0_1px_1px_rgba(0,0,0,0.06)]"
                     : "text-[#636366] dark:text-[#98989d] font-medium hover:text-[#1d1d1f] dark:hover:text-white"
                 }`}
               >
@@ -1304,9 +1304,9 @@ export default function Dashboard() {
               </button>
               <button
                 onClick={() => setPartnerTab("suppliers")}
-                className={`px-3 py-1.5 rounded-[9px] transition-all duration-150 tabular-nums ${
+                className={`px-3.5 py-1.5 rounded-full transition-all duration-150 tabular-nums ${
                   partnerTab === "suppliers"
-                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.10),0_1px_1px_rgba(0,0,0,0.06)]"
+                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_4px_rgba(0,0,0,0.10),0_1px_1px_rgba(0,0,0,0.06)]"
                     : "text-[#636366] dark:text-[#98989d] font-medium hover:text-[#1d1d1f] dark:hover:text-white"
                 }`}
               >
