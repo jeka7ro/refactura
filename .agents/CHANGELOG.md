@@ -1,5 +1,22 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-22 21:28 — Aplicare redesign Apple Human Interface Guidelines (`dickwu/apple-design-skill`) pe sistemul UI global, layout și Dashboard
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Accesibilitate & Contraste WCAG AA (`accessibility.md`, `color.md`, `client/index.html`, `client/src/index.css`):**
+     - Eliminat `maximum-scale=1` din `client/index.html` și adăugat `viewport-fit=cover` pentru suport zoom 200%+ și safe areas iOS/iPadOS.
+     - Ridicat contrastul etichetelor secundare (`--muted-foreground`: `#636366` în Light Mode `5.9:1` pe alb / `5.4:1` pe `#f5f5f7`, `#98989d` în Dark Mode `5.6:1` pe `#1c1c1e`) și corectat `--accent-foreground` / `--destructive-foreground` la `#ffffff` în Dark Mode.
+     - Adăugat suport `@media (prefers-reduced-motion: reduce)` și `@media (prefers-reduced-transparency: reduce)`, indicatori `:focus-visible` pentru tastatură și `aria-label` + ținte tactile `>= 28x28pt` / `36x36px` pe controalele cu iconițe.
+  2. **Tipografie Apple SF Pro & Separare Straturi Liquid Glass (`typography.md`, `liquid-glass.md`, `client/src/index.css`):**
+     - Înlocuit fontul forțat `"Segoe UI", "Roboto"` de pe `button`, `input`, `textarea`, `select` și `.kpi-value` cu stiva nativă Apple (`-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter"`), tracking optic (`-0.011em` / `-0.022em`) și `tabular-nums` pe valorile financiare.
+     - Aplicat disciplina celor 2 straturi din `liquid-glass.md`: `.apple-glass` (`backdrop-filter: blur(24px) saturate(1.5)`) strict pe stratul funcțional flotant (header, sidebar, tab bar mobil, meniuri, dialoguri), iar cardurile din stratul de conținut (`--card: #ffffff` / `#1c1c1e` peste canvas `#f5f5f7` / `#000000`) pe suprafețe opace curate, fără blur 40px și fără bounce `scale(1.02)` la hover.
+  3. **Shell Global, Componente Shadcn, DataTable & Dashboard (`DashboardLayout.tsx`, `BnrExchangeRateHeader.tsx`, `DataTable.tsx`, `Dashboard.tsx`, `components/ui/*`):**
+     - Aplicat ierarhie tipografică macOS în sidebar (`13.5px`, `font-medium` inactiv vs `font-semibold` activ) și Liquid Glass pe header, sidebar și tab bar-ul mobil (aliniat la `themeColor`).
+     - Aliniat `Tabs` și comutatoarele din `Dashboard.tsx` la stilul Apple Segmented Control, `Dialog` / `DropdownMenu` / `Popover` / `Select` la suprafețe macOS transluzente cu colțuri `rounded-xl` / `rounded-2xl`, și `DataTable.tsx` la antete lizibile și paginare accesibilă (`28x28px`), păstrând 100% intacte toate butoanele, rutele și funcționalitățile existente.
+- **Fișiere:** `client/index.html`, `client/src/index.css`, `client/src/components/DashboardLayout.tsx`, `client/src/components/BnrExchangeRateHeader.tsx`, `client/src/components/DataTable.tsx`, `client/src/components/ui/card.tsx`, `client/src/components/ui/tabs.tsx`, `client/src/components/ui/dialog.tsx`, `client/src/components/ui/dropdown-menu.tsx`, `client/src/components/ui/popover.tsx`, `client/src/components/ui/select.tsx`, `client/src/components/ui/table.tsx`, `client/src/pages/Dashboard.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` și `npm run build` verificate (`0` erori), fără `git push`.
+
 ### 2026-11-22 21:14 — Integrare `dickwu/apple-design-skill` (Apple HIG skill + regulă `always_on`) în proiect
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

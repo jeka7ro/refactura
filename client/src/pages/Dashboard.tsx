@@ -718,29 +718,29 @@ export default function Dashboard() {
     currentTenant?.cui || (user as any)?.tenantCUI || "";
 
   return (
-    <div className="p-3 sm:p-5 max-w-full space-y-6">
+    <div className="p-2.5 sm:p-4 max-w-full space-y-5">
       {/* ── TOP BAR: Header & Multi-Tenant Executive Switcher ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#1c1c1e] p-4 sm:p-5 rounded-2xl border border-black/[0.06] dark:border-white/[0.09] shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_16px_-4px_rgba(0,0,0,0.04)]">
         <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20 flex-shrink-0">
+          <div className="w-11 h-11 rounded-xl bg-primary flex items-center justify-center text-white shadow-sm flex-shrink-0">
             <Building2 className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-lg sm:text-[21px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em]">
                 {activeCompanyName}
               </h1>
               {activeCompanyCui && (
-                <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5] border border-black/[0.06] dark:border-white/[0.08] tabular-nums">
                   {String(activeCompanyCui).toUpperCase().startsWith("RO")
                     ? String(activeCompanyCui).toUpperCase()
                     : `RO${activeCompanyCui}`}
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1.5">
+            <p className="text-xs text-[#636366] dark:text-[#98989d] mt-0.5 flex items-center gap-1.5">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+              <span className="text-emerald-700 dark:text-emerald-400 font-medium">
                 Conectat SPV / e-Factura
               </span>
             </p>
@@ -748,19 +748,19 @@ export default function Dashboard() {
         </div>
 
         {/* Action Controls: Horizon & Refresh */}
-        <div className="flex items-center flex-wrap gap-2 sm:gap-3">
+        <div className="flex items-center flex-wrap gap-2 sm:gap-2.5">
           {/* Tenant Switcher dropdown (if superadmin or multi-tenant) */}
           {tenantsList.length > 1 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                  <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                <button className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-black/[0.08] dark:border-white/[0.10] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-xs font-semibold text-[#1d1d1f] dark:text-white hover:bg-black/[0.06] dark:hover:bg-white/[0.12] transition-colors">
+                  <Building2 className="w-3.5 h-3.5 text-primary" />
                   <span>Schimbă Compania</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                  <ChevronDown className="w-3.5 h-3.5 text-[#636366] dark:text-[#98989d]" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64">
-                <div className="px-3 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                <div className="px-3 py-2 text-[11px] font-semibold text-[#636366] dark:text-[#98989d] uppercase tracking-wider">
                   Companii Disponibile
                 </div>
                 {tenantsList.map((t: any) => {
@@ -769,18 +769,18 @@ export default function Dashboard() {
                     <DropdownMenuItem
                       key={t.id}
                       onClick={() => switchTenantMutation.mutate({ tenantId: t.id })}
-                      className="flex items-center justify-between cursor-pointer py-2 px-3"
+                      className="flex items-center justify-between cursor-pointer py-2 px-3 rounded-lg"
                     >
                       <div className="min-w-0 flex-1">
-                        <div className="text-xs font-semibold text-slate-900 dark:text-white truncate">
+                        <div className="text-xs font-semibold text-[#1d1d1f] dark:text-white truncate">
                           {t.name}
                         </div>
-                        <div className="text-[10px] text-slate-500 truncate">
+                        <div className="text-[11px] text-[#636366] dark:text-[#98989d] truncate tabular-nums">
                           {t.cui ? `CUI: ${t.cui}` : t.email}
                         </div>
                       </div>
                       {isCurrent && (
-                        <Check className="w-4 h-4 text-blue-600 flex-shrink-0 ml-2" />
+                        <Check className="w-4 h-4 text-primary flex-shrink-0 ml-2" />
                       )}
                     </DropdownMenuItem>
                   );
@@ -789,16 +789,16 @@ export default function Dashboard() {
             </DropdownMenu>
           )}
 
-          {/* Time Horizon Filter Pills */}
-          <div className="inline-flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700/60">
+          {/* Time Horizon Filter Pills — Apple Segmented Control */}
+          <div className="inline-flex items-center bg-black/[0.05] dark:bg-white/[0.08] p-1 rounded-xl">
             {(["7D", "30D", "3M", "6M", "1Y", "ALL"] as TimeHorizon[]).map((hz) => (
               <button
                 key={hz}
                 onClick={() => setTimeHorizon(hz)}
-                className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all duration-200 ${
+                className={`px-2.5 py-1 text-xs rounded-[9px] transition-all duration-150 ${
                   timeHorizon === hz
-                    ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.10),0_1px_1px_rgba(0,0,0,0.06)]"
+                    : "text-[#636366] dark:text-[#98989d] font-medium hover:text-[#1d1d1f] dark:hover:text-white"
                 }`}
               >
                 {hz === "7D"
@@ -819,11 +819,12 @@ export default function Dashboard() {
           {/* Refresh Button */}
           <button
             onClick={handleRefresh}
+            aria-label="Reîmprospătează datele financiare"
             title="Reîmprospătează datele financiare"
-            className="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-blue-600 hover:border-blue-300 dark:hover:border-blue-700 transition-all shadow-sm"
+            className="w-9 h-9 rounded-xl border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-[#2c2c2e] flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:bg-black/[0.04] dark:hover:bg-white/[0.10] transition-colors"
           >
             <RefreshCw
-              className={`w-4 h-4 ${isRefreshing ? "animate-spin text-blue-600" : ""}`}
+              className={`w-4 h-4 ${isRefreshing ? "animate-spin text-primary" : ""}`}
             />
           </button>
         </div>
@@ -832,33 +833,33 @@ export default function Dashboard() {
       {/* ── SMART FINANCIAL KPI STRIP ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* KPI 1: Venituri Emise */}
-        <div className="relative overflow-hidden bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm hover:shadow-md transition-all">
+        <div className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_16px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_6px_rgba(0,0,0,0.05),0_10px_24px_-6px_rgba(0,0,0,0.07)] transition-shadow">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#636366] dark:text-[#98989d]">
               Venituri (Facturi Emise)
             </span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60 flex items-center justify-center text-emerald-600">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 dark:bg-emerald-400/15 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
               <FileOutput className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+          <div className="mt-2.5 text-2xl sm:text-[28px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.024em] tabular-nums">
             {formatCurrency(kpi.totalEmittedRon, "RON")}
           </div>
-          <div className="mt-2 flex items-center justify-between text-xs">
-            <span className="text-slate-500 dark:text-slate-400">
+          <div className="mt-2.5 flex items-center justify-between text-xs tabular-nums">
+            <span className="text-[#636366] dark:text-[#98989d]">
               {kpi.countEmitted} facturi emise
               {currencyBreakdown.EUR?.emitted > 0 && (
-                <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                <span className="ml-1.5 px-1.5 py-0.5 rounded-md text-[10.5px] font-semibold bg-blue-500/10 text-blue-700 dark:text-blue-300">
                   +{currencyBreakdown.EUR.emitted.toFixed(0)} EUR
                 </span>
               )}
             </span>
             {kpi.emittedGrowth !== null && (
               <span
-                className={`flex items-center font-bold text-[11px] ${
+                className={`flex items-center font-semibold text-xs ${
                   parseFloat(kpi.emittedGrowth) >= 0
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : "text-rose-600 dark:text-rose-400"
+                    ? "text-emerald-700 dark:text-emerald-400"
+                    : "text-rose-700 dark:text-rose-400"
                 }`}
               >
                 {parseFloat(kpi.emittedGrowth) >= 0 ? (
@@ -873,28 +874,28 @@ export default function Dashboard() {
         </div>
 
         {/* KPI 2: Cheltuieli Primite */}
-        <div className="relative overflow-hidden bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm hover:shadow-md transition-all">
+        <div className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_16px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_6px_rgba(0,0,0,0.05),0_10px_24px_-6px_rgba(0,0,0,0.07)] transition-shadow">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#636366] dark:text-[#98989d]">
               Cheltuieli (Facturi Primite)
             </span>
-            <div className="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200/60 dark:border-rose-800/60 flex items-center justify-center text-rose-600">
+            <div className="w-9 h-9 rounded-xl bg-rose-500/10 dark:bg-rose-400/15 flex items-center justify-center text-rose-600 dark:text-rose-400">
               <FileText className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+          <div className="mt-2.5 text-2xl sm:text-[28px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.024em] tabular-nums">
             {formatCurrency(kpi.totalReceivedRon, "RON")}
           </div>
-          <div className="mt-2 flex items-center justify-between text-xs">
-            <span className="text-slate-500 dark:text-slate-400">
+          <div className="mt-2.5 flex items-center justify-between text-xs tabular-nums">
+            <span className="text-[#636366] dark:text-[#98989d]">
               {kpi.countReceived} facturi furnizori
             </span>
             {kpi.receivedGrowth !== null && (
               <span
-                className={`flex items-center font-bold text-[11px] ${
+                className={`flex items-center font-semibold text-xs ${
                   parseFloat(kpi.receivedGrowth) <= 0
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : "text-rose-600 dark:text-rose-400"
+                    ? "text-emerald-700 dark:text-emerald-400"
+                    : "text-rose-700 dark:text-rose-400"
                 }`}
               >
                 {parseFloat(kpi.receivedGrowth) <= 0 ? (
@@ -909,23 +910,23 @@ export default function Dashboard() {
         </div>
 
         {/* KPI 3: Cashflow Net */}
-        <div className="relative overflow-hidden bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm hover:shadow-md transition-all">
+        <div className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_16px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_6px_rgba(0,0,0,0.05),0_10px_24px_-6px_rgba(0,0,0,0.07)] transition-shadow">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#636366] dark:text-[#98989d]">
               Sold Cashflow Net
             </span>
             <div
               className={`w-9 h-9 rounded-xl flex items-center justify-center ${
                 kpi.netCashflowRon >= 0
-                  ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 border border-blue-200/60 dark:border-blue-800/60"
-                  : "bg-rose-50 dark:bg-rose-950/40 text-rose-600 border border-rose-200/60 dark:border-rose-800/60"
+                  ? "bg-blue-500/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-400"
+                  : "bg-rose-500/10 dark:bg-rose-400/15 text-rose-600 dark:text-rose-400"
               }`}
             >
               <Wallet className="w-4 h-4" />
             </div>
           </div>
           <div
-            className={`mt-2 text-2xl sm:text-3xl font-black tracking-tight ${
+            className={`mt-2.5 text-2xl sm:text-[28px] font-bold tracking-[-0.024em] tabular-nums ${
               kpi.netCashflowRon >= 0
                 ? "text-emerald-600 dark:text-emerald-400"
                 : "text-rose-600 dark:text-rose-400"
@@ -934,15 +935,15 @@ export default function Dashboard() {
             {kpi.netCashflowRon >= 0 ? "+" : ""}
             {formatCurrency(kpi.netCashflowRon, "RON")}
           </div>
-          <div className="mt-2 flex items-center justify-between text-xs">
-            <span className="text-slate-500 dark:text-slate-400">
-              Marjă: <span className="font-bold text-slate-700 dark:text-slate-200">{kpi.marginPct}%</span>
+          <div className="mt-2.5 flex items-center justify-between text-xs tabular-nums">
+            <span className="text-[#636366] dark:text-[#98989d]">
+              Marjă: <span className="font-semibold text-[#1d1d1f] dark:text-white">{kpi.marginPct}%</span>
             </span>
             <span
-              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+              className={`px-2 py-0.5 rounded-full text-[10.5px] font-semibold ${
                 kpi.netCashflowRon >= 0
-                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                  : "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300"
+                  ? "bg-emerald-500/12 text-emerald-800 dark:text-emerald-300"
+                  : "bg-rose-500/12 text-rose-800 dark:text-rose-300"
               }`}
             >
               {kpi.netCashflowRon >= 0 ? "Surplus" : "Deficit"}
@@ -951,27 +952,27 @@ export default function Dashboard() {
         </div>
 
         {/* KPI 4: Balanță TVA Estimat */}
-        <div className="relative overflow-hidden bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm hover:shadow-md transition-all">
+        <div className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_16px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_6px_rgba(0,0,0,0.05),0_10px_24px_-6px_rgba(0,0,0,0.07)] transition-shadow">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#636366] dark:text-[#98989d]">
               Balanță TVA Estimat
             </span>
-            <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200/60 dark:border-purple-800/60 flex items-center justify-center text-purple-600">
+            <div className="w-9 h-9 rounded-xl bg-purple-500/10 dark:bg-purple-400/15 flex items-center justify-center text-purple-600 dark:text-purple-400">
               <Percent className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+          <div className="mt-2.5 text-2xl sm:text-[28px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.024em] tabular-nums">
             {formatCurrency(Math.abs(kpi.netVatRon), "RON")}
           </div>
-          <div className="mt-2 flex items-center justify-between text-xs">
-            <span className="text-slate-500 dark:text-slate-400 truncate">
+          <div className="mt-2.5 flex items-center justify-between text-xs">
+            <span className="text-[#636366] dark:text-[#98989d] truncate">
               {kpi.netVatRon >= 0 ? "TVA de plată" : "TVA de recuperat"}
             </span>
             <span
-              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+              className={`px-2 py-0.5 rounded-full text-[10.5px] font-semibold ${
                 kpi.netVatRon >= 0
-                  ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
-                  : "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300"
+                  ? "bg-amber-500/15 text-amber-800 dark:text-amber-300"
+                  : "bg-purple-500/15 text-purple-800 dark:text-purple-300"
               }`}
             >
               {kpi.netVatRon >= 0 ? "De plată" : "De recuperat"}
@@ -981,31 +982,31 @@ export default function Dashboard() {
       </div>
 
       {/* ── MAIN 3D VOLUMETRIC CHART SECTION ── */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 sm:p-7 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] p-5 sm:p-6 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_16px_-4px_rgba(0,0,0,0.04)]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
+              <h2 className="text-base sm:text-[17px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.02em]">
                 Evoluție Financiară 3D & Cashflow
               </h2>
-              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800">
+              <span className="px-2 py-0.5 rounded-md text-[10.5px] font-semibold bg-[#f2f2f7] text-[#3a3a3c] dark:bg-[#2c2c2e] dark:text-[#ebebf5] border border-black/[0.06] dark:border-white/[0.08]">
                 ZoomCharts 3D
               </span>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-xs text-[#636366] dark:text-[#98989d] mt-1">
               Comparație volumetrică în timp real între facturile emise (încasări) și
               facturile primite (cheltuieli)
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="inline-flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700/60 text-xs">
+            <div className="inline-flex items-center bg-black/[0.05] dark:bg-white/[0.08] p-1 rounded-xl text-xs">
               <button
                 onClick={() => setViewMode("stream3d")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[9px] transition-all duration-150 ${
                   viewMode === "stream3d"
-                    ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.10),0_1px_1px_rgba(0,0,0,0.06)]"
+                    : "text-[#636366] dark:text-[#98989d] font-medium hover:text-[#1d1d1f] dark:hover:text-white"
                 }`}
               >
                 <LineChart className="w-3.5 h-3.5" />
@@ -1013,10 +1014,10 @@ export default function Dashboard() {
               </button>
               <button
                 onClick={() => setViewMode("bars3d")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[9px] transition-all duration-150 ${
                   viewMode === "bars3d"
-                    ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.10),0_1px_1px_rgba(0,0,0,0.06)]"
+                    : "text-[#636366] dark:text-[#98989d] font-medium hover:text-[#1d1d1f] dark:hover:text-white"
                 }`}
               >
                 <BarChart3 className="w-3.5 h-3.5" />
@@ -1024,10 +1025,10 @@ export default function Dashboard() {
               </button>
               <button
                 onClick={() => setViewMode("cashflow")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[9px] transition-all duration-150 ${
                   viewMode === "cashflow"
-                    ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.10),0_1px_1px_rgba(0,0,0,0.06)]"
+                    : "text-[#636366] dark:text-[#98989d] font-medium hover:text-[#1d1d1f] dark:hover:text-white"
                 }`}
               >
                 <Wallet className="w-3.5 h-3.5" />
@@ -1277,36 +1278,36 @@ export default function Dashboard() {
       </div>
 
       {/* ── INTELLIGENCE WIDGETS ROW ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Widget 1: Top Parteneri (2 Cols) */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-sm">
+        <div className="lg:col-span-2 bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_16px_-4px_rgba(0,0,0,0.04)]">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
             <div>
-              <h2 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
+              <h2 className="text-base font-bold text-[#1d1d1f] dark:text-white tracking-[-0.02em]">
                 Top Parteneri după Volum Financiar
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-xs text-[#636366] dark:text-[#98989d] mt-0.5">
                 Clasament ponderat al celor mai importanți clienți și furnizori
               </p>
             </div>
 
-            <div className="inline-flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs">
+            <div className="inline-flex bg-black/[0.05] dark:bg-white/[0.08] p-1 rounded-xl text-xs">
               <button
                 onClick={() => setPartnerTab("clients")}
-                className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                className={`px-3 py-1.5 rounded-[9px] transition-all duration-150 tabular-nums ${
                   partnerTab === "clients"
-                    ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
-                    : "text-slate-600 dark:text-slate-400"
+                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.10),0_1px_1px_rgba(0,0,0,0.06)]"
+                    : "text-[#636366] dark:text-[#98989d] font-medium hover:text-[#1d1d1f] dark:hover:text-white"
                 }`}
               >
                 Top Clienți ({topClients.length})
               </button>
               <button
                 onClick={() => setPartnerTab("suppliers")}
-                className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                className={`px-3 py-1.5 rounded-[9px] transition-all duration-150 tabular-nums ${
                   partnerTab === "suppliers"
-                    ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm"
-                    : "text-slate-600 dark:text-slate-400"
+                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.10),0_1px_1px_rgba(0,0,0,0.06)]"
+                    : "text-[#636366] dark:text-[#98989d] font-medium hover:text-[#1d1d1f] dark:hover:text-white"
                 }`}
               >
                 Top Furnizori ({topSuppliers.length})
@@ -1316,7 +1317,7 @@ export default function Dashboard() {
 
           <div className="space-y-4">
             {(partnerTab === "clients" ? topClients : topSuppliers).length === 0 ? (
-              <div className="py-12 text-center text-xs text-slate-400">
+              <div className="py-12 text-center text-xs text-[#636366] dark:text-[#98989d]">
                 Nu există date pentru perioada selectată.
               </div>
             ) : (
@@ -1324,7 +1325,7 @@ export default function Dashboard() {
                 <div key={partner.name + idx} className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="w-5 h-5 rounded-md bg-slate-100 dark:bg-slate-800 text-[11px] font-black text-slate-700 dark:text-slate-300 flex items-center justify-center flex-shrink-0">
+                      <span className="w-5 h-5 rounded-md bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[11px] font-bold text-[#3a3a3c] dark:text-[#ebebf5] flex items-center justify-center flex-shrink-0 tabular-nums">
                         {idx + 1}
                       </span>
                       {partnerTab === "clients" ? (
@@ -1334,41 +1335,41 @@ export default function Dashboard() {
                               ? `/client/${findClientId(partner.name, partner.cui)}`
                               : `/clienti?search=${encodeURIComponent(partner.name)}`
                           }
-                          className="font-bold text-slate-900 dark:text-white truncate hover:underline hover:text-primary transition-colors cursor-pointer"
+                          className="font-semibold text-[#1d1d1f] dark:text-white truncate hover:underline hover:text-primary transition-colors cursor-pointer"
                         >
                           {partner.name}
                         </Link>
                       ) : (
-                        <span className="font-bold text-slate-900 dark:text-white truncate">
+                        <span className="font-semibold text-[#1d1d1f] dark:text-white truncate">
                           {partner.name}
                         </span>
                       )}
                       {partner.cui && (
-                        <span className="text-[10px] text-slate-400 flex-shrink-0">
+                        <span className="text-[11px] text-[#636366] dark:text-[#98989d] flex-shrink-0 tabular-nums">
                           ({partner.cui})
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                      <span className="text-[11px] text-slate-400">
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-2 tabular-nums">
+                      <span className="text-[11px] text-[#636366] dark:text-[#98989d]">
                         {partner.count} factur{partner.count > 1 ? "i" : "ă"}
                       </span>
-                      <span className="font-black text-slate-900 dark:text-white">
+                      <span className="font-bold text-[#1d1d1f] dark:text-white">
                         {formatCurrency(partner.total, "RON")}
                       </span>
                     </div>
                   </div>
 
-                  {/* 3D Volumetric Progress Bar */}
-                  <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5">
+                  {/* Progress Bar */}
+                  <div className="h-2 bg-[#f2f2f7] dark:bg-[#2c2c2e] rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${Math.min(Math.max(partner.pct, 3), 100)}%` }}
-                      transition={{ duration: 0.6, ease: "easeOut" }}
+                      transition={{ duration: 0.5, ease: "easeOut" }}
                       className={`h-full rounded-full ${
                         partnerTab === "clients"
-                          ? "bg-gradient-to-r from-emerald-500 to-teal-400 shadow-sm shadow-emerald-500/20"
-                          : "bg-gradient-to-r from-rose-500 to-pink-500 shadow-sm shadow-rose-500/20"
+                          ? "bg-emerald-500"
+                          : "bg-rose-500"
                       }`}
                     />
                   </div>
@@ -1379,23 +1380,23 @@ export default function Dashboard() {
         </div>
 
         {/* Widget 2: Diagnostic SPV & Stare Facturi (1 Col) */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_16px_-4px_rgba(0,0,0,0.04)] flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
+                <h2 className="text-base font-bold text-[#1d1d1f] dark:text-white tracking-[-0.02em]">
                   Diagnostic Stare & SPV
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                <p className="text-xs text-[#636366] dark:text-[#98989d] mt-0.5">
                   Distribuția facturilor în intervalul ales
                 </p>
               </div>
-              <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600">
+              <div className="w-8 h-8 rounded-xl bg-blue-500/10 dark:bg-blue-400/15 flex items-center justify-center text-blue-600 dark:text-blue-400">
                 <ShieldCheck className="w-4 h-4" />
               </div>
             </div>
 
-            {/* 3D Donut Ring */}
+            {/* Donut Ring */}
             <div className="relative w-full h-44 flex items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -1414,10 +1415,10 @@ export default function Dashboard() {
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-2xl font-black text-slate-900 dark:text-white">
+                <span className="text-2xl font-bold text-[#1d1d1f] dark:text-white tabular-nums tracking-[-0.02em]">
                   {filteredInvoices.length}
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <span className="text-[10.5px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">
                   Total Facturi
                 </span>
               </div>
@@ -1425,26 +1426,26 @@ export default function Dashboard() {
           </div>
 
           {/* Status Breakdown Legend */}
-          <div className="space-y-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+          <div className="space-y-2 mt-4 pt-4 border-t border-black/[0.06] dark:border-white/[0.08]">
             {statusDistribution.map((st) => (
               <div
                 key={st.name}
-                className="flex items-center justify-between text-xs py-0.5"
+                className="flex items-center justify-between text-xs py-0.5 tabular-nums"
               >
                 <div className="flex items-center gap-2">
                   <span
                     className="w-2.5 h-2.5 rounded-full"
                     style={{ backgroundColor: st.color }}
                   />
-                  <span className="text-slate-600 dark:text-slate-400 font-medium">
+                  <span className="text-[#3a3a3c] dark:text-[#ebebf5] font-medium">
                     {st.name}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-slate-900 dark:text-white">
+                  <span className="font-semibold text-[#1d1d1f] dark:text-white">
                     {st.value}
                   </span>
-                  <span className="text-[10px] text-slate-400">
+                  <span className="text-[11px] text-[#636366] dark:text-[#98989d]">
                     ({Math.round((st.value / (filteredInvoices.length || 1)) * 100)}%)
                   </span>
                 </div>
@@ -1455,36 +1456,36 @@ export default function Dashboard() {
       </div>
 
       {/* ── RECENT INVOICES ACTIVITY FEED ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Facturi Emise Recente */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-sm">
-          <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_16px_-4px_rgba(0,0,0,0.04)]">
+          <div className="px-6 py-4 border-b border-black/[0.06] dark:border-white/[0.08] flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-black text-slate-900 dark:text-white tracking-tight">
+              <h2 className="text-sm font-bold text-[#1d1d1f] dark:text-white tracking-[-0.015em]">
                 Facturi Emise Recente (Vânzări)
               </h2>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-xs text-[#636366] dark:text-[#98989d]">
                 Ultimele facturi emise către clienți
               </p>
             </div>
             <Link href="/facturi-emise-nou">
-              <span className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer">
-                Vezi toate <ChevronRight className="w-3 h-3" />
+              <span className="text-xs font-semibold text-primary hover:underline flex items-center gap-1 cursor-pointer">
+                Vezi toate <ChevronRight className="w-3.5 h-3.5" />
               </span>
             </Link>
           </div>
 
-          <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
+          <div className="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
             {allInvoices
               .filter((i) => i.type === "emis")
               .slice(0, 5)
               .map((inv) => (
                 <div
                   key={`${inv.source}-${inv.id}`}
-                  className="px-6 py-3.5 hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors flex items-center justify-between gap-3"
+                  className="px-6 py-3.5 hover:bg-black/[0.02] dark:hover:bg-white/[0.035] transition-colors flex items-center justify-between gap-3"
                 >
                   <div className="min-w-0">
-                    <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
+                    <div className="text-xs sm:text-[13.5px] font-semibold text-[#1d1d1f] dark:text-white truncate">
                       <Link
                         href={
                           inv.clientId || findClientId(inv.partnerName, inv.partnerCui)
@@ -1496,8 +1497,8 @@ export default function Dashboard() {
                         {inv.partnerName}
                       </Link>
                     </div>
-                    <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2">
-                      <span className="font-semibold text-slate-700 dark:text-slate-300">
+                    <div className="text-[11.5px] text-[#636366] dark:text-[#98989d] mt-0.5 flex items-center gap-2 tabular-nums">
+                      <span className="font-medium text-[#3a3a3c] dark:text-[#ebebf5]">
                         {inv.number}
                       </span>
                       <span>·</span>
@@ -1505,14 +1506,14 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2.5 flex-shrink-0">
+                  <div className="flex items-center gap-2.5 flex-shrink-0 tabular-nums">
                     <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      className={`px-2 py-0.5 rounded-full text-[10.5px] font-semibold ${
                         inv.status === "paid" || inv.status === "processed"
-                          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400"
+                          ? "bg-emerald-500/12 text-emerald-800 dark:text-emerald-300"
                           : inv.status === "sent"
-                          ? "bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400"
-                          : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                          ? "bg-blue-500/12 text-blue-800 dark:text-blue-300"
+                          : "bg-[#f2f2f7] text-[#3a3a3c] dark:bg-[#2c2c2e] dark:text-[#ebebf5]"
                       }`}
                     >
                       {inv.status === "paid" || inv.status === "processed"
@@ -1521,14 +1522,15 @@ export default function Dashboard() {
                         ? "Trimis"
                         : "Ciornă"}
                     </span>
-                    <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white min-w-[90px] text-right">
+                    <span className="text-xs sm:text-[13.5px] font-bold text-[#1d1d1f] dark:text-white min-w-[92px] text-right">
                       {formatCurrency(inv.rawTotal, inv.currency as Currency)}
                     </span>
                     {inv.fileUrl && (
                       <button
                         type="button"
+                        aria-label={`Vizualizează factura ${inv.number}`}
                         onClick={() => setPreviewInvoice(inv)}
-                        className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:text-blue-600 hover:border-blue-400 transition-colors cursor-pointer"
+                        className="w-8 h-8 rounded-lg border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-[#2c2c2e] flex items-center justify-center text-[#636366] dark:text-[#98989d] hover:text-primary hover:border-primary/40 transition-colors cursor-pointer"
                         title="Vizualizează Factura PDF"
                       >
                         <Eye className="w-3.5 h-3.5" />
@@ -1541,38 +1543,38 @@ export default function Dashboard() {
         </div>
 
         {/* Facturi Primite Recente */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-sm">
-          <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_16px_-4px_rgba(0,0,0,0.04)]">
+          <div className="px-6 py-4 border-b border-black/[0.06] dark:border-white/[0.08] flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-black text-slate-900 dark:text-white tracking-tight">
+              <h2 className="text-sm font-bold text-[#1d1d1f] dark:text-white tracking-[-0.015em]">
                 Facturi Primite Recente (Achiziții)
               </h2>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-xs text-[#636366] dark:text-[#98989d]">
                 Ultimele facturi de la furnizori
               </p>
             </div>
             <Link href="/facturi">
-              <span className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer">
-                Vezi toate <ChevronRight className="w-3 h-3" />
+              <span className="text-xs font-semibold text-primary hover:underline flex items-center gap-1 cursor-pointer">
+                Vezi toate <ChevronRight className="w-3.5 h-3.5" />
               </span>
             </Link>
           </div>
 
-          <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
+          <div className="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
             {allInvoices
               .filter((i) => i.type === "primit")
               .slice(0, 5)
               .map((inv) => (
                 <div
                   key={`primita-${inv.id}`}
-                  className="px-6 py-3.5 hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors flex items-center justify-between gap-3"
+                  className="px-6 py-3.5 hover:bg-black/[0.02] dark:hover:bg-white/[0.035] transition-colors flex items-center justify-between gap-3"
                 >
                   <div className="min-w-0">
-                    <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
+                    <div className="text-xs sm:text-[13.5px] font-semibold text-[#1d1d1f] dark:text-white truncate">
                       {inv.partnerName}
                     </div>
-                    <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2">
-                      <span className="font-semibold text-slate-700 dark:text-slate-300">
+                    <div className="text-[11.5px] text-[#636366] dark:text-[#98989d] mt-0.5 flex items-center gap-2 tabular-nums">
+                      <span className="font-medium text-[#3a3a3c] dark:text-[#ebebf5]">
                         {inv.number}
                       </span>
                       <span>·</span>
@@ -1580,26 +1582,27 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2.5 flex-shrink-0">
+                  <div className="flex items-center gap-2.5 flex-shrink-0 tabular-nums">
                     <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      className={`px-2 py-0.5 rounded-full text-[10.5px] font-semibold ${
                         inv.status === "paid" || inv.status === "processed"
-                          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400"
-                          : "bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400"
+                          ? "bg-emerald-500/12 text-emerald-800 dark:text-emerald-300"
+                          : "bg-amber-500/15 text-amber-800 dark:text-amber-300"
                       }`}
                     >
                       {inv.status === "paid" || inv.status === "processed"
                         ? "Achitat"
                         : "În așteptare"}
                     </span>
-                    <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white min-w-[90px] text-right">
+                    <span className="text-xs sm:text-[13.5px] font-bold text-[#1d1d1f] dark:text-white min-w-[92px] text-right">
                       {formatCurrency(inv.rawTotal, inv.currency as Currency)}
                     </span>
                     {inv.fileUrl && (
                       <button
                         type="button"
+                        aria-label={`Vizualizează factura ${inv.number}`}
                         onClick={() => setPreviewInvoice(inv)}
-                        className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:text-blue-600 hover:border-blue-400 transition-colors cursor-pointer"
+                        className="w-8 h-8 rounded-lg border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-[#2c2c2e] flex items-center justify-center text-[#636366] dark:text-[#98989d] hover:text-primary hover:border-primary/40 transition-colors cursor-pointer"
                         title="Vizualizează Factura PDF"
                       >
                         <Eye className="w-3.5 h-3.5" />

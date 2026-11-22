@@ -138,20 +138,20 @@ export function BnrExchangeRateHeader() {
               setIsOpen((prev) => !prev);
             }
           }}
-          className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-full bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer select-none text-left"
+          className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-full bg-black/[0.035] hover:bg-black/[0.06] dark:bg-white/[0.06] dark:hover:bg-white/[0.10] border border-black/[0.06] dark:border-white/[0.09] transition-colors cursor-pointer select-none text-left"
           title={`Curs BNR ${dateStr} (${dayLetter}) · Click pentru detalii`}
         >
           {/* Header Pill */}
           <div className="flex items-center gap-2 text-xs leading-none">
             {/* EUR */}
-            <span className="inline-flex items-center gap-1 font-semibold text-slate-700 dark:text-slate-200 leading-none">
+            <span className="inline-flex items-center gap-1 font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] leading-none">
               <span className="inline-flex items-center justify-center rounded-[2px] overflow-hidden shadow-2xs border border-black/10 flex-shrink-0">
                 <EuFlag className="w-3.5 h-2.5 block" />
               </span>
-              <span className="text-[11px] font-normal text-slate-400 dark:text-slate-500">
+              <span className="text-[11px] font-medium text-[#636366] dark:text-[#98989d]">
                 EUR
               </span>
-              <span className="tabular-nums font-semibold text-slate-900 dark:text-white">
+              <span className="tabular-nums font-semibold text-[#1d1d1f] dark:text-white">
                 {eurRate}
               </span>
               <span
@@ -185,14 +185,14 @@ export function BnrExchangeRateHeader() {
             </span>
 
             {/* USD */}
-            <span className="hidden md:inline-flex items-center gap-1 font-semibold text-slate-700 dark:text-slate-200 leading-none">
+            <span className="hidden md:inline-flex items-center gap-1 font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] leading-none">
               <span className="inline-flex items-center justify-center rounded-[2px] overflow-hidden shadow-2xs border border-black/10 flex-shrink-0">
                 <UsFlag className="w-3.5 h-2.5 block" />
               </span>
-              <span className="text-[11px] font-normal text-slate-400 dark:text-slate-500">
+              <span className="text-[11px] font-medium text-[#636366] dark:text-[#98989d]">
                 USD
               </span>
-              <span className="tabular-nums font-semibold text-slate-900 dark:text-white">
+              <span className="tabular-nums font-semibold text-[#1d1d1f] dark:text-white">
                 {usdRate}
               </span>
               <span
@@ -201,15 +201,16 @@ export function BnrExchangeRateHeader() {
                     ? "text-emerald-600 dark:text-emerald-400"
                     : usdVar?.trend === "up"
                     ? "text-rose-600 dark:text-rose-400"
-                    : "text-slate-400"
+                    : "text-[#636366] dark:text-[#98989d]"
                 }`}
               >
                 {usdVar?.trend === "down" ? "▼" : usdVar?.trend === "up" ? "▲" : "="}
               </span>
               <button
                 type="button"
+                aria-label={`Copiază curs USD ${usdRate}`}
                 onClick={(e) => handleCopyRate(e, "USD_HDR", "USD", usdRate)}
-                className="p-1 -mr-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-90"
+                className="p-1 -mr-0.5 rounded hover:bg-black/[0.06] dark:hover:bg-white/[0.10] text-[#636366] dark:text-[#98989d] hover:text-primary transition-all active:scale-90"
                 title={`Copiază curs USD (${usdRate})`}
               >
                 {copiedKey === "USD_HDR" ? (
@@ -226,7 +227,7 @@ export function BnrExchangeRateHeader() {
             </span>
 
             {/* Date Tag */}
-            <span className="inline-flex items-center text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-none whitespace-nowrap">
+            <span className="inline-flex items-center text-[11px] font-medium text-[#636366] dark:text-[#98989d] leading-none whitespace-nowrap tabular-nums">
               BNR {dateStr} ({dayLetter})
             </span>
           </div>

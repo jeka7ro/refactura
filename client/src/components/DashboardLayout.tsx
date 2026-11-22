@@ -588,7 +588,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Nav */}
-      <nav className="flex-1 py-4 px-2 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 py-3.5 px-2.5 space-y-0.5 overflow-y-auto">
         {navItems.map(item => {
           const Icon = item.icon;
           const active = isActive(item.href);
@@ -602,24 +602,24 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <div
                   style={active && !item.subItems ? { backgroundColor: themeColor } : undefined}
                   className={cn(
-                    "flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all duration-150 cursor-pointer group",
+                    "flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13.5px] leading-snug transition-all duration-150 cursor-pointer group",
                     active && !item.subItems
-                      ? "text-white shadow-sm font-bold"
+                      ? "text-white font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_2px_6px_rgba(0,0,0,0.12)]"
                       : (active || hasExpandedSubs) && item.subItems
-                        ? "text-slate-900 dark:text-white font-bold"
-                        : "text-slate-700 font-bold hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800",
+                        ? "text-[#1d1d1f] dark:text-white font-semibold bg-black/[0.035] dark:bg-white/[0.05]"
+                        : "text-[#3a3a3c] font-medium hover:text-[#1d1d1f] hover:bg-black/[0.045] dark:text-[#ebebf5]/80 dark:hover:text-white dark:hover:bg-white/[0.06]",
                     collapsed && "justify-center px-2"
                   )}
                 >
                   <Icon
                     style={active && !item.subItems ? undefined : (active || hasExpandedSubs) && item.subItems ? { color: themeColor } : undefined}
                     className={cn(
-                      "w-4 h-4 flex-shrink-0",
+                      "w-4 h-4 flex-shrink-0 transition-colors",
                       active && !item.subItems
                         ? "text-white"
                         : (active || hasExpandedSubs) && item.subItems
                           ? ""
-                          : "text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white"
+                          : "text-[#636366] dark:text-[#98989d] group-hover:text-[#1d1d1f] dark:group-hover:text-white"
                     )}
                   />
                   {!collapsed && (
@@ -630,7 +630,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               </Link>
               {/* Sub-items indentat */}
               {!collapsed && item.subItems && (active || hasExpandedSubs) && (
-                <div className="ml-3 mt-0.5 pl-3 border-l border-slate-200 dark:border-slate-700 space-y-0.5">
+                <div className="ml-3.5 mt-0.5 pl-3 border-l border-black/[0.08] dark:border-white/[0.10] space-y-0.5 py-0.5">
                   {item.subItems.map(sub => {
                     const SubIcon = sub.icon;
                     const subActive = location === sub.href;
@@ -643,16 +643,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         <div
                           style={subActive ? { backgroundColor: themeColor } : undefined}
                           className={cn(
-                            "flex items-center gap-2 px-2 py-1.5 rounded-md text-xs font-medium transition-all duration-150 cursor-pointer group",
+                            "flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12.5px] transition-all duration-150 cursor-pointer group",
                             subActive
-                              ? "text-white shadow-sm font-bold"
-                              : "text-slate-500 font-medium hover:text-slate-900 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-white dark:hover:bg-slate-800"
+                              ? "text-white font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_1px_3px_rgba(0,0,0,0.10)]"
+                              : "text-[#636366] font-medium hover:text-[#1d1d1f] hover:bg-black/[0.04] dark:text-[#98989d] dark:hover:text-white dark:hover:bg-white/[0.06]"
                           )}
                         >
                           <SubIcon
                             className={cn(
                               "w-3.5 h-3.5 flex-shrink-0",
-                              subActive ? "text-white" : "text-slate-500"
+                              subActive ? "text-white" : "text-[#636366] dark:text-[#98989d]"
                             )}
                           />
                           <span className="truncate">{sub.label}</span>
@@ -669,7 +669,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {(user?.role === "superadmin" || user?.role === "admin") && (
           <>
             {!collapsed && (
-              <div className="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-600">
+              <div className="px-3 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">
                 Admin
               </div>
             )}
@@ -684,10 +684,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 >
                   <div
                     className={cn(
-                      "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150 cursor-pointer group",
+                      "flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13.5px] transition-all duration-150 cursor-pointer group",
                       active
-                        ? "bg-purple-600 text-white shadow-sm font-bold"
-                        : "text-slate-700 font-bold hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800",
+                        ? "bg-purple-600 text-white shadow-sm font-semibold"
+                        : "text-[#3a3a3c] font-medium hover:text-[#1d1d1f] hover:bg-black/[0.045] dark:text-[#ebebf5]/80 dark:hover:text-white dark:hover:bg-white/[0.06]",
                       collapsed && "justify-center px-2"
                     )}
                   >
@@ -696,7 +696,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         "w-4 h-4 flex-shrink-0",
                         active
                           ? "text-white"
-                          : "text-slate-500 group-hover:text-purple-600 dark:group-hover:text-white"
+                          : "text-[#636366] dark:text-[#98989d] group-hover:text-purple-600 dark:group-hover:text-white"
                       )}
                     />
                     {!collapsed && <span className="flex-1">{item.label}</span>}
@@ -710,10 +710,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Company info */}
       {!collapsed && (
-        <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-800">
+        <div className="px-4 py-3 border-t border-black/[0.06] dark:border-white/[0.08]">
           <div className="flex items-center gap-2.5">
             <div
-              className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0 overflow-hidden border border-slate-200/60 dark:border-slate-700/60"
+              className="w-8 h-8 rounded-lg bg-black/[0.04] dark:bg-white/[0.08] flex items-center justify-center flex-shrink-0 overflow-hidden border border-black/[0.06] dark:border-white/[0.08]"
               style={
                 companyLogo &&
                 !logoError &&
@@ -732,14 +732,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               ) : activeProfileMeta.isPf ? (
                 <User className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
               ) : (
-                <Building2 className="w-4 h-4 text-slate-500 dark:text-slate-500" />
+                <Building2 className="w-4 h-4 text-[#636366] dark:text-[#98989d]" />
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-slate-900 dark:text-white text-sm font-bold leading-tight break-words">
+              <div className="text-[#1d1d1f] dark:text-white text-[13px] font-semibold leading-tight break-words">
                 {companyName}
               </div>
-              <div className="text-slate-500 font-medium text-xs truncate mt-0.5 tabular-nums">
+              <div className="text-[#636366] dark:text-[#98989d] font-medium text-[11.5px] truncate mt-0.5 tabular-nums">
                 {activeProfileMeta.subtitle}
               </div>
             </div>
@@ -748,18 +748,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       )}
 
       {/* Collapse toggle */}
-      <div className="px-3 py-3 border-t border-slate-200/50 dark:border-slate-800/50">
+      <div className="px-3 py-2.5 border-t border-black/[0.06] dark:border-white/[0.08]">
         <button
           onClick={() => setCollapsed(!collapsed)}
           title={collapsed ? "Extinde sidebar" : "Restrânge sidebar"}
+          aria-label={collapsed ? "Extinde bara laterală" : "Restrânge bara laterală"}
           className={cn(
-            "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all duration-200 group",
-            "text-slate-400 hover:text-slate-700 dark:hover:text-slate-200",
-            "hover:bg-slate-100 dark:hover:bg-slate-800",
+            "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all duration-150 group",
+            "text-[#636366] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white",
+            "hover:bg-black/[0.045] dark:hover:bg-white/[0.06]",
             collapsed && "justify-center"
           )}
         >
-          <div className="w-5 h-5 rounded-lg bg-slate-100 dark:bg-slate-800 group-hover:bg-slate-200 dark:group-hover:bg-slate-700 flex items-center justify-center transition-colors flex-shrink-0">
+          <div className="w-6 h-6 rounded-lg bg-black/[0.045] dark:bg-white/[0.08] group-hover:bg-black/[0.08] dark:group-hover:bg-white/[0.12] flex items-center justify-center transition-colors flex-shrink-0">
             {collapsed
               ? <ChevronRight className="w-3.5 h-3.5" />
               : <ChevronLeft className="w-3.5 h-3.5" />
@@ -775,7 +776,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Număr și dată build */}
       <div
-        className="px-3 pb-3 text-center text-[10px] leading-tight text-slate-400 dark:text-slate-500 select-text"
+        className="px-3 pb-3 text-center text-[10.5px] leading-tight text-[#636366] dark:text-[#98989d] select-text tabular-nums"
         title={`Build ${__BUILD_NUMBER__} · ${__BUILD_DATE__}`}
       >
         {collapsed ? (
@@ -791,23 +792,23 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-slate-100 dark:bg-slate-950 overflow-hidden p-3 sm:p-4 gap-3 sm:gap-4">
-      {/* Top Header — Full width island */}
-      <header className="h-16 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center px-4 sm:px-6 gap-4 flex-shrink-0">
+    <div className="flex flex-col h-screen bg-[#f5f5f7] dark:bg-black overflow-hidden p-2.5 sm:p-3.5 gap-2.5 sm:gap-3.5">
+      {/* Top Header — Apple Liquid Glass Functional Bar */}
+      <header className="h-15 apple-glass rounded-2xl flex items-center px-4 sm:px-5 gap-3 sm:gap-3.5 flex-shrink-0 z-20">
         {/* Logo */}
         <Link href="/">
-          <div className="flex items-center flex-shrink-0 mr-2 cursor-pointer hover:opacity-90 transition-opacity">
+          <div className="flex items-center flex-shrink-0 mr-1.5 cursor-pointer hover:opacity-90 transition-opacity">
             {collapsed ? (
               <img
                 src="/logo_icon_spv.png"
                 alt="Factura SPV"
-                className="h-10 w-10 object-contain flex-shrink-0 z-10 transition-all duration-200"
+                className="h-9 w-9 object-contain flex-shrink-0 z-10 transition-all duration-200"
               />
             ) : (
               <img
                 src="/logo_spv2.png"
                 alt="Factura SPV"
-                className="h-14 sm:h-16 w-auto object-contain flex-shrink-0 z-10 transition-all duration-200"
+                className="h-13 sm:h-14 w-auto object-contain flex-shrink-0 z-10 transition-all duration-200"
               />
             )}
           </div>
@@ -815,18 +816,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
         {/* Mobile menu toggle */}
         <button
-          className="md:hidden w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+          aria-label="Deschide meniul"
+          className="md:hidden w-9 h-9 rounded-full border border-black/[0.08] dark:border-white/[0.10] bg-black/[0.03] dark:bg-white/[0.05] flex items-center justify-center hover:bg-black/[0.06] dark:hover:bg-white/[0.10] transition-colors"
           onClick={() => setMobileOpen(true)}
         >
-          <Menu className="w-4 h-4 text-slate-600 dark:text-slate-500" />
+          <Menu className="w-4 h-4 text-[#3a3a3c] dark:text-[#ebebf5]" />
         </button>
 
-        {/* Desktop Sidebar collapse toggle (optional, dar vizual cum e in poza cu acel hamburger de langa logo) */}
+        {/* Desktop Sidebar collapse toggle */}
         <button
-          className="hidden md:flex w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+          aria-label={collapsed ? "Extinde bara laterală" : "Restrânge bara laterală"}
+          className="hidden md:flex w-9 h-9 rounded-full border border-black/[0.08] dark:border-white/[0.10] bg-black/[0.025] dark:bg-white/[0.05] items-center justify-center hover:bg-black/[0.06] dark:hover:bg-white/[0.10] transition-colors"
           onClick={() => setCollapsed(!collapsed)}
         >
-          <Menu className="w-4 h-4 text-slate-600 dark:text-slate-500" />
+          <Menu className="w-4 h-4 text-[#3a3a3c] dark:text-[#ebebf5]" />
         </button>
 
         <div className="flex-1" />
@@ -835,27 +838,33 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <BnrExchangeRateHeader />
 
         {/* Multi-currency / country indicator */}
-        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-          <Globe className="w-3.5 h-3.5 text-slate-500" />
-          <span className="text-xs font-semibold text-slate-600 dark:text-slate-500">
+        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/[0.035] dark:bg-white/[0.06] border border-black/[0.06] dark:border-white/[0.09]">
+          <Globe className="w-3.5 h-3.5 text-[#636366] dark:text-[#98989d]" />
+          <span className="text-xs font-semibold text-[#3a3a3c] dark:text-[#ebebf5]">
             RON
           </span>
         </div>
 
         {/* Notifications — fără count hardcodat */}
-        <button className="relative w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-blue-50 dark:hover:bg-slate-800 hover:text-blue-600 hover:border-blue-200 dark:hover:border-blue-700 transition-colors">
-          <Bell className="w-4 h-4 text-slate-500 dark:text-slate-500" />
+        <button
+          aria-label="Notificări"
+          title="Notificări"
+          className="relative w-9 h-9 rounded-full border border-black/[0.08] dark:border-white/[0.10] bg-black/[0.025] dark:bg-white/[0.05] flex items-center justify-center hover:bg-black/[0.06] dark:hover:bg-white/[0.10] transition-colors"
+        >
+          <Bell className="w-4 h-4 text-[#3a3a3c] dark:text-[#ebebf5]" />
         </button>
 
         {/* Theme toggle */}
         <button
           onClick={toggleTheme}
-          className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-blue-50 dark:hover:bg-slate-800 hover:text-blue-600 hover:border-blue-200 dark:hover:border-blue-700 transition-colors"
+          aria-label={theme === "dark" ? "Comută la modul luminos" : "Comută la modul întunecat"}
+          title={theme === "dark" ? "Mod luminos" : "Mod întunecat"}
+          className="w-9 h-9 rounded-full border border-black/[0.08] dark:border-white/[0.10] bg-black/[0.025] dark:bg-white/[0.05] flex items-center justify-center hover:bg-black/[0.06] dark:hover:bg-white/[0.10] transition-colors"
         >
           {theme === "dark" ? (
-            <Sun className="w-4 h-4 text-slate-500 dark:text-slate-500" />
+            <Sun className="w-4 h-4 text-[#ebebf5]" />
           ) : (
-            <Moon className="w-4 h-4 text-slate-500 dark:text-slate-500" />
+            <Moon className="w-4 h-4 text-[#3a3a3c]" />
           )}
         </button>
 
@@ -1049,11 +1058,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       </header>
 
       {/* Bottom Area (Sidebar + Main Content) */}
-      <div className="flex-1 flex min-h-0 gap-3 sm:gap-4">
-        {/* Desktop Sidebar */}
+      <div className="flex-1 flex min-h-0 gap-2.5 sm:gap-3.5">
+        {/* Desktop Sidebar — Apple Liquid Glass Functional Layer */}
         <aside
           className={cn(
-            "hidden md:flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all duration-300 flex-shrink-0",
+            "hidden md:flex flex-col apple-glass rounded-2xl transition-all duration-300 flex-shrink-0",
             collapsed ? "w-20" : "w-64"
           )}
         >
@@ -1064,10 +1073,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {mobileOpen && (
           <div className="fixed inset-0 z-50 md:hidden">
             <div
-              className="absolute inset-0 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/45 dark:bg-black/65 backdrop-blur-sm"
               onClick={() => setMobileOpen(false)}
             />
-            <aside className="absolute left-0 top-0 bottom-0 w-64 bg-white dark:bg-slate-900 flex flex-col">
+            <aside className="absolute left-0 top-0 bottom-0 w-68 bg-white/94 dark:bg-[#1c1c1e]/94 backdrop-blur-2xl backdrop-saturate-150 border-r border-black/[0.08] dark:border-white/[0.10] flex flex-col shadow-2xl">
               <SidebarContent />
             </aside>
           </div>
@@ -1079,8 +1088,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </main>
       </div>
 
-      {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-1 pb-[env(safe-area-inset-bottom)] pt-2 h-[calc(60px+env(safe-area-inset-bottom))] shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)] z-40">
+      {/* Mobile Bottom Navigation — iOS Liquid Glass Tab Bar */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/84 dark:bg-[#1c1c1e]/86 backdrop-blur-xl backdrop-saturate-150 border-t border-black/[0.08] dark:border-white/[0.10] px-1 pb-[env(safe-area-inset-bottom)] pt-1.5 h-[calc(60px+env(safe-area-inset-bottom))] shadow-[0_-4px_20px_-6px_rgba(0,0,0,0.08)] z-40">
         {(() => {
           const activeParent = navItems.find(
             item =>
@@ -1097,11 +1106,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             return (
               <div className="flex items-center w-full h-full overflow-x-auto scrollbar-hide gap-1 px-1">
                 <div
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setForceMainMenu(true)}
-                  className="flex-shrink-0 flex flex-col items-center justify-center w-16 h-12 gap-1 cursor-pointer transition-colors rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-500 dark:hover:text-slate-200"
+                  className="flex-shrink-0 flex flex-col items-center justify-center w-16 h-12 gap-1 cursor-pointer transition-colors rounded-xl text-[#636366] hover:text-[#1d1d1f] dark:text-[#98989d] dark:hover:text-white"
                 >
                   <ArrowLeft className="w-5 h-5" />
-                  <span className="text-[10px] font-medium leading-none text-center">Înapoi</span>
+                  <span className="text-[10.5px] font-medium leading-none text-center">Înapoi</span>
                 </div>
                 
                 {activeParent.subItems!.map(sub => {
@@ -1109,14 +1120,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   const subActive = location === sub.href;
                   return (
                     <Link key={sub.href} href={sub.href} onClick={() => setForceMainMenu(false)}>
-                      <div className={cn(
-                        "flex-shrink-0 flex flex-col items-center justify-center w-[4.5rem] h-12 gap-1 cursor-pointer transition-colors rounded-xl px-1",
-                        subActive 
-                          ? "text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/20" 
-                          : "text-slate-500 hover:text-slate-900 dark:text-slate-500 dark:hover:text-slate-200 active:bg-slate-100 dark:active:bg-slate-800"
-                      )}>
-                        <SubIcon className={cn("w-5 h-5", subActive && "stroke-[2.5px] scale-110 transition-transform")} />
-                        <span className={cn("text-[10px] font-medium leading-none text-center truncate w-full", subActive && "font-bold")}>{sub.label}</span>
+                      <div
+                        style={subActive ? { color: themeColor } : undefined}
+                        className={cn(
+                          "flex-shrink-0 flex flex-col items-center justify-center w-[4.5rem] h-12 gap-1 cursor-pointer transition-colors rounded-xl px-1",
+                          subActive
+                            ? "bg-black/[0.04] dark:bg-white/[0.08]"
+                            : "text-[#636366] hover:text-[#1d1d1f] dark:text-[#98989d] dark:hover:text-white active:bg-black/[0.05] dark:active:bg-white/[0.08]"
+                        )}
+                      >
+                        <SubIcon className={cn("w-5 h-5", subActive && "stroke-[2.25px]")} />
+                        <span className={cn("text-[10.5px] font-medium leading-none text-center truncate w-full", subActive && "font-semibold")}>{sub.label}</span>
                       </div>
                     </Link>
                   );
@@ -1139,14 +1153,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                       setForceMainMenu(false);
                     }
                   }}>
-                    <div className={cn(
-                      "flex flex-col items-center justify-center w-[4.5rem] h-12 gap-1 cursor-pointer transition-colors rounded-xl",
-                      active 
-                        ? "text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/20" 
-                        : "text-slate-500 hover:text-slate-900 dark:text-slate-500 dark:hover:text-slate-200 active:bg-slate-100 dark:active:bg-slate-800"
-                    )}>
-                      <Icon className={cn("w-5 h-5", active && "stroke-[2.5px] scale-110 transition-transform")} />
-                      <span className={cn("text-[10px] font-medium leading-none", active && "font-bold")}>{item.label}</span>
+                    <div
+                      style={active ? { color: themeColor } : undefined}
+                      className={cn(
+                        "flex flex-col items-center justify-center w-[4.5rem] h-12 gap-1 cursor-pointer transition-colors rounded-xl",
+                        active
+                          ? "bg-black/[0.04] dark:bg-white/[0.08]"
+                          : "text-[#636366] hover:text-[#1d1d1f] dark:text-[#98989d] dark:hover:text-white active:bg-black/[0.05] dark:active:bg-white/[0.08]"
+                      )}
+                    >
+                      <Icon className={cn("w-5 h-5", active && "stroke-[2.25px]")} />
+                      <span className={cn("text-[10.5px] font-medium leading-none", active && "font-semibold")}>{item.label}</span>
                     </div>
                   </Link>
                 );

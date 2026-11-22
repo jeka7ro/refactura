@@ -9,8 +9,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  --tabular-nums: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", system-ui, sans-serif;
+  --tabular-nums: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -53,9 +53,9 @@
   /* Dynamic Tenant Primary Theme System */
   --tenant-theme-color: #16a34a;
   --primary: var(--tenant-theme-color, #16a34a);
-  --primary-foreground: #f5f5f7;
+  --primary-foreground: #ffffff;
   --sidebar-primary: var(--tenant-theme-color, #16a34a);
-  --sidebar-primary-foreground: #f5f5f7;
+  --sidebar-primary-foreground: #ffffff;
   --chart-1: #34c759;
   --chart-2: var(--tenant-theme-color, #16a34a);
   --chart-3: #ff9500;
@@ -63,61 +63,61 @@
   --chart-5: #ff3b30;
   --radius: 0.75rem;
 
-  /* Light Mode - Tahoe */
-  --background: #ffffff;
+  /* Light Mode — Apple HIG System Grouped & Accessible Contrast (WCAG AA >= 4.5:1) */
+  --background: #f5f5f7;
   --foreground: #1d1d1f;
-  --card: rgba(255, 255, 255, 0.7);
+  --card: #ffffff;
   --card-foreground: #1d1d1f;
-  --popover: #ffffff;
+  --popover: rgba(255, 255, 255, 0.94);
   --popover-foreground: #1d1d1f;
-  --secondary: #f5f5f7;
-  --secondary-foreground: #555555;
-  --muted: #e8e8ed;
-  --muted-foreground: #86868b;
+  --secondary: #f2f2f7;
+  --secondary-foreground: #3a3a3c;
+  --muted: #efeff4;
+  --muted-foreground: #636366;
   --accent: var(--tenant-theme-color, #16a34a);
   --accent-foreground: #ffffff;
   --destructive: #ff3b30;
   --destructive-foreground: #ffffff;
-  --border: #e5e5ea;
-  --input: #f5f5f7;
+  --border: rgba(0, 0, 0, 0.08);
+  --input: #f2f2f7;
   --ring: var(--tenant-theme-color, #16a34a);
-  --sidebar: #f5f5f7;
+  --sidebar: rgba(255, 255, 255, 0.82);
   --sidebar-foreground: #1d1d1f;
   --sidebar-accent: var(--tenant-theme-color, #16a34a);
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #e5e5ea;
+  --sidebar-border: rgba(0, 0, 0, 0.07);
   --sidebar-ring: var(--tenant-theme-color, #16a34a);
 }
 
 .dark {
-  /* Dark Mode - Tahoe */
+  /* Dark Mode — Apple HIG Elevated Surfaces & Accessible Contrast */
   --primary: var(--tenant-theme-color, #16a34a);
-  --primary-foreground: #f5f5f7;
+  --primary-foreground: #ffffff;
   --sidebar-primary: var(--tenant-theme-color, #16a34a);
-  --sidebar-primary-foreground: #f5f5f7;
+  --sidebar-primary-foreground: #ffffff;
   --background: #000000;
   --foreground: #f5f5f7;
-  --card: rgba(255, 255, 255, 0.08);
+  --card: #1c1c1e;
   --card-foreground: #f5f5f7;
-  --popover: #1e293b;
+  --popover: rgba(28, 28, 30, 0.94);
   --popover-foreground: #f5f5f7;
-  --secondary: rgba(255, 255, 255, 0.06);
-  --secondary-foreground: #a1a1a6;
-  --muted: rgba(255, 255, 255, 0.1);
-  --muted-foreground: #86868b;
-  --accent: #0a84ff;
-  --accent-foreground: #000000;
+  --secondary: #2c2c2e;
+  --secondary-foreground: #ebebf5;
+  --muted: #2c2c2e;
+  --muted-foreground: #98989d;
+  --accent: var(--tenant-theme-color, #0a84ff);
+  --accent-foreground: #ffffff;
   --destructive: #ff453a;
-  --destructive-foreground: #000000;
-  --border: rgba(255, 255, 255, 0.1);
+  --destructive-foreground: #ffffff;
+  --border: rgba(255, 255, 255, 0.10);
   --input: rgba(255, 255, 255, 0.08);
-  --ring: #0a84ff;
-  --sidebar: rgba(255, 255, 255, 0.05);
+  --ring: var(--tenant-theme-color, #0a84ff);
+  --sidebar: rgba(28, 28, 30, 0.84);
   --sidebar-foreground: #f5f5f7;
-  --sidebar-accent: #0a84ff;
-  --sidebar-accent-foreground: #000000;
-  --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: #0a84ff;
+  --sidebar-accent: var(--tenant-theme-color, #0a84ff);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.09);
+  --sidebar-ring: var(--tenant-theme-color, #0a84ff);
 }
 
 /* Base Styles */
@@ -128,128 +128,166 @@
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 body {
   @apply bg-background text-foreground;
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  font-size: 16px;
-  line-height: 1.5;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.47059;
+  letter-spacing: -0.011em;
 }
 
-/* Glassmorphism Utilities */
-.glass {
-  background-color: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(40px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+h1, h2, h3, .apple-display {
+  letter-spacing: -0.022em;
 }
 
-.dark .glass {
-  background-color: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.1);
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Liquid Glass Utilities — Functional Layer Only (Apple HIG liquid-glass.md) */
+.glass,
+.apple-glass {
+  background-color: rgba(255, 255, 255, 0.82);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  backdrop-filter: blur(24px) saturate(1.5);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    0 8px 24px -8px rgba(0, 0, 0, 0.05);
+}
+
+.dark .glass,
+.dark .apple-glass {
+  background-color: rgba(28, 28, 30, 0.84);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  backdrop-filter: blur(24px) saturate(1.5);
+  border-color: rgba(255, 255, 255, 0.10);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 8px 28px -8px rgba(0, 0, 0, 0.45);
 }
 
 .glass-sm {
-  background-color: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(30px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background-color: rgba(255, 255, 255, 0.74);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .dark .glass-sm {
-  background-color: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.05);
+  background-color: rgba(28, 28, 30, 0.76);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .glass-lg {
-  background-color: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(50px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 0.90);
+  -webkit-backdrop-filter: blur(32px) saturate(1.6);
+  backdrop-filter: blur(32px) saturate(1.6);
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .dark .glass-lg {
-  background-color: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.15);
+  background-color: rgba(28, 28, 30, 0.90);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
-/* KPI Cards - Apple Style */
+/* KPI Cards — Content Layer: Opaque Standard Surface, No Blur, No Scale Bounce */
 .kpi-card {
-  background-color: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(40px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: var(--card);
+  border: 1px solid var(--border);
   border-radius: 1rem;
-  padding: 1.5rem;
-  transition: all 0.3s ease;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 4px 16px -4px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .dark .kpi-card {
-  background-color: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.1);
+  background-color: #1c1c1e;
+  border-color: rgba(255, 255, 255, 0.09);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .kpi-card:hover {
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  transform: scale(1.02);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05), 0 10px 24px -6px rgba(0, 0, 0, 0.07);
 }
 
 .dark .kpi-card:hover {
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 6px 24px -6px rgba(0, 0, 0, 0.5);
 }
 
 .kpi-value {
-  font-size: 2.25rem;
+  font-size: 2rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.024em;
+  font-variant-numeric: tabular-nums;
   color: var(--foreground);
-  font-family: "Segoe UI", "Roboto", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", system-ui, sans-serif;
 }
 
 .kpi-label {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   color: var(--muted-foreground);
 }
 
-/* Chart Cards */
+/* Chart Cards — Content Layer: Opaque Surface */
 .chart-card {
-  background-color: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(40px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: var(--card);
+  border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.5rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 4px 16px -4px rgba(0, 0, 0, 0.04);
 }
 
 .dark .chart-card {
-  background-color: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.1);
+  background-color: #1c1c1e;
+  border-color: rgba(255, 255, 255, 0.09);
 }
 
 @layer base {
   /* Buttons */
   button {
-    @apply transition-all duration-200;
-    font-family: "Segoe UI", "Roboto", sans-serif;
+    @apply transition-all duration-150;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
   }
 
-  button:active {
-    @apply scale-95;
+  button:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  /* Keyboard Accessibility Focus Indicator (Apple HIG Full Keyboard Access) */
+  button:focus-visible,
+  a:focus-visible,
+  [role="button"]:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
 
   /* Input Fields */
   input,
   textarea,
   select {
-    @apply px-4 py-2 transition-colors;
-    font-family: "Segoe UI", "Roboto", sans-serif;
-    /* Eliminat border-border pentru a evita conflictele cu Shadcn (InputGroup/Input) */
+    @apply px-3.5 py-2 transition-colors;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
   }
 
   input:focus,
   textarea:focus,
   select:focus {
     @apply outline-none;
-    /* Eliminat ring-2 ring-primary/50 border-primary pentru a nu suprapune ring-uri la autofill */
+  }
+
+  input:focus-visible:not([readonly]),
+  textarea:focus-visible:not([readonly]),
+  select:focus-visible {
+    border-color: color-mix(in srgb, var(--ring) 65%, transparent);
   }
 
   /* Fix Chrome Autofill breaking transparent inputs inside rounded groups */
@@ -259,6 +297,35 @@ body {
   input:-webkit-autofill:active {
     transition: background-color 9999s ease-in-out 0s !important;
     -webkit-text-fill-color: var(--foreground) !important;
+  }
+}
+
+/* Apple Accessibility Media Queries: Reduce Motion & Reduce Transparency */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  .apple-glass,
+  .glass-sm,
+  .glass-lg {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    background-color: #ffffff !important;
+  }
+  .dark .glass,
+  .dark .apple-glass,
+  .dark .glass-sm,
+  .dark .glass-lg {
+    background-color: #1c1c1e !important;
   }
 }
 
@@ -331,12 +398,14 @@ button:not(.btn-icon):not([class*="rounded-none"]):not([class*="rounded-sm"]):no
 
 /* Container-ele mari rămân rounded, dar fin (macOS style) */
 .card,
-[class*="card"],
+[data-slot="card"],
+.kpi-card,
+.chart-card,
 .glass-card,
 .glass-input,
 .modal,
-[role="dialog"] > div {
-  border-radius: 20px !important;
+[data-slot="dialog-content"] {
+  border-radius: 16px;
 }
 
 /* ═══════════════════════════════════════════════════════════════
