@@ -69,3 +69,7 @@ Adaugă o intrare nouă DEASUPRA celor existente în `.agents/CHANGELOG.md` în 
 **Define success criteria. Loop until verified.**
 - Transform imperative tasks into verifiable goals (tests/checks before and after).
 - For multi-step tasks, state a brief `Step -> verify: check` plan and verify before finishing.
+
+# Apple Design Skill (`dickwu/apple-design-skill`)
+
+Pentru orice creare, audit sau îmbunătățire UI/UX, urmează `.agents/skills/apple-design/SKILL.md` și referințele Apple HIG din `.agents/skills/apple-design/references/hig/` (`accessibility.md`, `layout.md`, `typography.md`, `color.md`, plus componentele relevante de pe ecran), păstrând toate regulile stricte ale proiectului.

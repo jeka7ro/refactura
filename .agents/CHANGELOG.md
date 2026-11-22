@@ -1,5 +1,16 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-22 21:14 — Integrare `dickwu/apple-design-skill` (Apple HIG skill + regulă `always_on`) în proiect
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. `.agents/skills/apple-design/`:
+     - Instalat complet repository-ul `dickwu/apple-design-skill` (`SKILL.md`, `GEMINI.md`, `AGENTS.md`, `scripts/pull-hig.mjs` și toate cele `124` pagini Apple Human Interface Guidelines din `references/hig/`).
+  2. `.agents/rules/apple-design.md`, `.agents/AGENTS.md`, `CLAUDE.md`:
+     - Adăugat regula permanentă `trigger: always_on` și referințele pentru Antigravity și Paperclip/Claude Code către `.agents/skills/apple-design/SKILL.md`.
+- **Fișiere:** `.agents/skills/apple-design/**`, `.agents/rules/apple-design.md`, `.agents/AGENTS.md`, `CLAUDE.md`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** Verificat `SKILL.md` (`name: apple-design`), `124` fișiere HIG prezente în `.agents/skills/apple-design/references/hig/`, fără `git push`.
+
 ### 2026-11-22 21:08 — Integrare `andrej-karpathy-skills` (skill + reguli permanente `always_on`) în proiect
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

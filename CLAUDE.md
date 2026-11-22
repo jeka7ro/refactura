@@ -68,6 +68,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 ## Project-Specific Mandatory Rules
 
 - Read and follow `.agents/AGENTS.md` and `.agents/CHANGELOG.md` at the start and end of every session.
+- For UI/UX design, layout, and component work, follow `.agents/skills/apple-design/SKILL.md` and load the relevant Apple HIG pages from `.agents/skills/apple-design/references/hig/`.
 - Never run `git push` without explicit user approval.
 - Never use native browser popups (`alert()`, `confirm()`, `prompt()`).
 - Never insert fake/mock/seed fiscal data or generate fake ANAF PDFs.
