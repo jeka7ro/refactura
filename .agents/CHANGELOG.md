@@ -1,5 +1,18 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-22 21:08 — Integrare `andrej-karpathy-skills` (skill + reguli permanente `always_on`) în proiect
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. `.agents/skills/karpathy-guidelines/SKILL.md`:
+     - Instalat skill-ul `karpathy-guidelines` din `multica-ai/andrej-karpathy-skills` în workspace-ul proiectului.
+  2. `.agents/rules/karpathy-guidelines.md` & `.agents/AGENTS.md`:
+     - Adăugat regulă permanentă (`trigger: always_on`) cu cele 4 principii ale lui Andrej Karpathy (`1. Think Before Coding`, `2. Simplicity First`, `3. Surgical Changes`, `4. Goal-Driven Execution`), păstrând integral regulile existente de sincronizare Paperclip și regulile stricte ale proiectului.
+  3. `CLAUDE.md` & `.cursor/rules/karpathy-guidelines.mdc`:
+     - Adăugat fișierele echivalente pentru compatibilitate completă cu agenții Paperclip / Claude Code și Cursor, fără a atinge `.cursorrules` sau codul aplicației.
+- **Fișiere:** `.agents/skills/karpathy-guidelines/SKILL.md`, `.agents/rules/karpathy-guidelines.md`, `.agents/AGENTS.md`, `CLAUDE.md`, `.cursor/rules/karpathy-guidelines.mdc`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** Verificat frontmatter YAML valid pe skill și reguli (`always_on` / `alwaysApply`), păstrat intact codul sursă și regulile existente, fără `git push`.
+
 ### 2026-11-20 12:35 — Eliminare helper `URLSession` (`HTTP 500` la renegociere TLS 1.2 ANAF) și restaurare apel direct `chrome-spv-connector` fără blocaj de versiune
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
