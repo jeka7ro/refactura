@@ -278,7 +278,7 @@ export default function App() {
           </>
         ) : (
           <p style={{ fontSize: "1.2rem", opacity: 0.7 }}>
-            Nicio locație configurată. Adaugă <code>?loc=ID</code> în URL.
+            Nicio locație configurată. Adaugă <code className="font-sans tabular-nums">?loc=ID</code> în URL.
           </p>
         )}
       </div>

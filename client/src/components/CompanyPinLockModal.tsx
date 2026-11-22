@@ -956,7 +956,7 @@ export function CompanyPinLockModal({
 
       {/* Fereastră Unică stil Apple (Ceas + Securitate Firmă) Centrată fără contur strident */}
       <div
-        className={`w-full max-w-md z-10 my-auto py-6 bg-black/40 dark:bg-black/55 backdrop-blur-3xl rounded-[36px] shadow-[0_30px_70px_rgba(0,0,0,0.6)] p-6 sm:p-8 space-y-6 text-white transition-all ${
+        className={`w-full max-w-md z-10 my-auto py-6 lock-glass-backdrop bg-black/40 dark:bg-black/55 backdrop-blur-3xl rounded-[36px] shadow-[0_30px_70px_rgba(0,0,0,0.6)] p-6 sm:p-8 space-y-6 text-white transition-all ${
           isShaking ? "animate-apple-shake ring-2 ring-rose-500/50" : "animate-in fade-in zoom-in-95 duration-300"
         }`}
       >
@@ -968,7 +968,7 @@ export function CompanyPinLockModal({
             </div>
 
             {/* Ora mare BOLD stil Apple */}
-            <div className="text-6xl sm:text-7xl font-bold tracking-tight text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.5)] leading-none my-1 select-none font-sans">
+            <div className="text-6xl sm:text-7xl font-bold tracking-tight text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.5)] leading-none my-1 select-none font-sans tabular-nums">
               {formatAppleTime(currentTime)}
             </div>
           </div>
@@ -1117,14 +1117,14 @@ export function CompanyPinLockModal({
                 type="submit"
                 disabled={verifyPinMutation.isPending || pin.length !== 4 || lockoutRemaining > 0}
                 style={{ backgroundColor: lockoutRemaining > 0 ? "#475569" : effectiveThemeColor }}
-                className="w-full h-11 rounded-2xl hover:opacity-90 disabled:opacity-50 text-white font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2"
+                className="w-full h-11 rounded-full hover:opacity-90 disabled:opacity-50 text-white font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2"
               >
                 {verifyPinMutation.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : lockoutRemaining > 0 ? (
                   <>
                     <Timer className="w-4 h-4 animate-spin" />
-                    <span>Reîncercați în {lockoutRemaining}s</span>
+                    <span className="tabular-nums">Reîncercați în {lockoutRemaining}s</span>
                   </>
                 ) : (
                   <>
@@ -1165,7 +1165,7 @@ export function CompanyPinLockModal({
                   type="button"
                   onClick={handleSwitchToTrade}
                   disabled={isSwitching}
-                  className="w-full py-2.5 px-4 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/40 text-blue-200 text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  className="w-full py-2.5 px-4 rounded-full bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/40 text-blue-200 text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   {isSwitching ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1182,7 +1182,7 @@ export function CompanyPinLockModal({
                 <button
                   type="button"
                   onClick={() => onUnlocked()}
-                  className="w-full py-2 px-4 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/40 border border-emerald-500/30 text-emerald-300 text-xs font-medium flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  className="w-full py-2 px-4 rounded-full bg-emerald-600/20 hover:bg-emerald-600/40 border border-emerald-500/30 text-emerald-300 text-xs font-medium flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   <ShieldCheck className="w-3.5 h-3.5" />
                   <span>Acces Administrator (Bypass PIN)</span>
@@ -1255,7 +1255,7 @@ export function CompanyPinLockModal({
                       setResetSuccess(false);
                     }}
                     style={{ backgroundColor: effectiveThemeColor }}
-                    className="w-full h-9 rounded-lg text-white font-bold text-xs shadow-sm hover:opacity-90 transition-opacity"
+                    className="w-full h-9 rounded-full text-white font-bold text-xs shadow-sm hover:opacity-90 transition-opacity"
                   >
                     Înapoi la introducere PIN
                   </button>
@@ -1345,7 +1345,7 @@ export function CompanyPinLockModal({
                     <button
                       type="button"
                       onClick={() => setShowResetForm(false)}
-                      className="flex-1 h-10 rounded-xl border border-white/15 text-xs font-bold text-slate-200 hover:bg-white/10 hover:text-white transition-colors"
+                      className="flex-1 h-10 rounded-full border border-white/15 text-xs font-bold text-slate-200 hover:bg-white/10 hover:text-white transition-colors"
                     >
                       Anulează
                     </button>
@@ -1353,7 +1353,7 @@ export function CompanyPinLockModal({
                       type="submit"
                       disabled={requestResetMutation.isPending}
                       style={{ backgroundColor: effectiveThemeColor }}
-                      className="flex-1 h-10 rounded-xl text-white font-bold text-xs shadow-md hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2"
+                      className="flex-1 h-10 rounded-full text-white font-bold text-xs shadow-md hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2"
                     >
                       {requestResetMutation.isPending ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -1450,18 +1450,18 @@ export function CompanyPinLockModal({
               <div className="relative z-10 px-4 pt-4 pb-3">
                 {/* Antet central, ca în Apple Weather */}
                 <div className="text-center">
-                  <p className="text-[9px] font-semibold tracking-[0.14em] uppercase text-white/70 leading-none">
+                  <p className="text-[10px] font-semibold tracking-[0.14em] uppercase text-white/70 leading-none">
                     Live
                   </p>
                   <h3 className="text-[17px] font-medium leading-tight mt-1 [text-shadow:0_1px_6px_rgba(0,0,0,0.25)] truncate">
                     {weather.city}
                   </h3>
-                  <div className="text-[64px] font-extralight leading-[1] tracking-tight mt-0.5 [text-shadow:0_2px_10px_rgba(0,0,0,0.2)]">
+                  <div className="text-[64px] font-extralight leading-[1] tracking-tight mt-0.5 tabular-nums [text-shadow:0_2px_10px_rgba(0,0,0,0.2)]">
                     {weather.temp}°
                   </div>
                   <p className="text-[13px] font-medium text-white/90 leading-tight mt-0.5">{weather.condition}</p>
                   {weather.tempMax !== undefined && weather.tempMin !== undefined && (
-                    <p className="text-[12px] font-medium text-white/85 leading-tight mt-0.5">
+                    <p className="text-[12px] font-medium text-white/85 leading-tight mt-0.5 tabular-nums">
                       H:{weather.tempMax}° &nbsp;L:{weather.tempMin}°
                     </p>
                   )}
@@ -1469,7 +1469,7 @@ export function CompanyPinLockModal({
 
                 {/* Umiditate & vânt */}
                 {(weather.humidity !== undefined || weather.windSpeed !== undefined) && (
-                  <div className="flex items-center justify-center gap-4 text-[10px] text-white/80 mt-2">
+                  <div className="flex items-center justify-center gap-4 text-[10px] text-white/80 mt-2 tabular-nums">
                     {weather.humidity !== undefined && (
                       <span className="flex items-center gap-1"><Droplets className="w-3 h-3 text-sky-200" />{weather.humidity}%</span>
                     )}
@@ -1482,7 +1482,7 @@ export function CompanyPinLockModal({
                 {/* Card sticlă: prognoză cu bare de interval */}
                 {rows.length > 0 && (
                   <div className="mt-3 rounded-2xl bg-white/15 backdrop-blur-xl border border-white/10 px-2.5 py-1">
-                    <p className="text-[9px] font-semibold uppercase tracking-wider text-white/60 py-1">Prognoză</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-white/60 py-1">Prognoză</p>
                     {rows.map((r, idx) => {
                       const left = ((r.min - allMin) / span) * 100;
                       const width = Math.max(8, ((r.max - r.min) / span) * 100);
@@ -1492,17 +1492,17 @@ export function CompanyPinLockModal({
                           <div className="w-7 flex flex-col items-center shrink-0">
                             <Weather3DIcon code={r.code} className="w-4 h-4" />
                             {r.prob !== undefined && r.prob >= 15 && (
-                              <span className="text-[8px] font-semibold text-sky-300 leading-none mt-px">{r.prob}%</span>
+                              <span className="text-[10px] tabular-nums font-semibold text-sky-300 leading-none mt-px">{r.prob}%</span>
                             )}
                           </div>
-                          <span className="w-6 text-right text-[11px] text-white/55 shrink-0">{fmt(r.min)}</span>
+                          <span className="w-6 text-right text-[11px] text-white/55 shrink-0 tabular-nums">{fmt(r.min)}</span>
                           <div className="relative flex-1 h-1 rounded-full bg-black/20 min-w-0">
                             <div
                               className="absolute top-0 h-1 rounded-full bg-gradient-to-r from-cyan-300 to-teal-300"
                               style={{ left: `${left}%`, width: `${Math.min(width, 100 - left)}%` }}
                             />
                           </div>
-                          <span className="w-6 text-[11px] font-medium text-white shrink-0">{fmt(r.max)}</span>
+                          <span className="w-6 text-[11px] font-medium text-white shrink-0 tabular-nums">{fmt(r.max)}</span>
                         </div>
                       );
                     })}

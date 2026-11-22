@@ -230,7 +230,7 @@ export default function HorecaKitchenDisplay() {
             </p>
           </div>
         ) : (
-          kitchenOrders.map(order => {
+          kitchenOrders.map((order: any) => {
             const isPreparing = order.status === "preparing";
             // Timpul scurs de la creare
             const createdTime = order.createdAt

@@ -18,9 +18,11 @@ import {
   FileText,
   ExternalLink,
   ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { cleanErrorMessage } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -67,7 +69,10 @@ export default function ReInvoice() {
 
   const { data: currentTenantObj } = trpc.tenants.current.useQuery();
   const { data: tenantsData = [] } = trpc.tenants.list.useQuery();
-  const tenant = currentTenantObj || tenantsData[0]?.tenants;
+  const tenant =
+    currentTenantObj ||
+    (tenantsData as any[])[0]?.tenants ||
+    (tenantsData as any[])[0];
   const tenantSettings = useMemo(() => {
     try {
       return JSON.parse(tenant?.settings || "{}");
@@ -88,7 +93,7 @@ export default function ReInvoice() {
         currency: (singleData.currency || "RON") as Currency,
         status: singleData.status,
         lines: (singleData.lines && Array.isArray(singleData.lines) && singleData.lines.length > 0)
-          ? singleData.lines.map(l => {
+          ? singleData.lines.map((l: any) => {
               const defaultVat = parseFloat(String(singleData.totalVAT || "0")) === 0 ? 0 : 21;
               const lineVat = (l.vatRate !== undefined && l.vatRate !== null && String(l.vatRate).trim() !== "")
                 ? parseFloat(String(l.vatRate))
@@ -231,10 +236,13 @@ export default function ReInvoice() {
     quantity: number | string;
     unitPrice: number | string;
     markupPercent?: number | string;
-    currency?: string;
+    currency?: Currency | string;
     isCustom?: boolean;
+    nirLineId?: number;
+    devizCode?: string;
+    devizType?: string;
   }
-  const [lines, setLines] = useState<ReInvoiceLine[]>([]);
+  const [lines, setLines] = useState<EditableLine[]>([]);
   const [showNirModal, setShowNirModal] = useState(false);
   const [showCodes, setShowCodes] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -362,7 +370,7 @@ export default function ReInvoice() {
       due.setDate(due.getDate() + 7);
       setDueDate(due.toISOString().split("T")[0]);
       setLines(
-        invoice.lines.map(l => {
+        invoice.lines.map((l: any) => {
           const uPrice = parseFloat(String(l.unitPrice || 0));
           return {
             ...l,
@@ -457,18 +465,42 @@ export default function ReInvoice() {
       prev.map(l => {
         if (l.id === lineId) {
           const p = Number(price) || 0;
+          const orig = Number(l.originalUnitPrice) || 0;
           return {
             ...l,
             unitPrice: price,
-            markupPercent: +(
-              ((p - l.originalUnitPrice) / l.originalUnitPrice) *
-              100
-            ).toFixed(1),
+            markupPercent:
+              orig > 0 ? +(((p - orig) / orig) * 100).toFixed(1) : 0,
           };
         }
         return l;
       })
     );
+  };
+
+  const handleSelectFromCatalog = (lineId: string, item: any) => {
+    setLines(prev =>
+      prev.map(l => {
+        if (l.id !== lineId) return l;
+        const basePrice =
+          Number(item.salePrice ?? item.pret ?? item.price ?? l.originalUnitPrice ?? 0) || 0;
+        const m = Number(l.markupPercent) || 0;
+        const computedPrice =
+          basePrice > 0
+            ? +(basePrice * (1 + m / 100)).toFixed(2)
+            : Number(l.unitPrice) || 0;
+        return {
+          ...l,
+          description: item.denumire || item.description || item.name || l.description,
+          unit: item.um || item.unit || l.unit || "buc",
+          originalUnitPrice: basePrice > 0 ? basePrice : l.originalUnitPrice,
+          unitPrice: computedPrice,
+          devizCode: item.cod || item.code || l.devizCode,
+          devizType: item.tip || item.type || l.devizType,
+        };
+      })
+    );
+    setFocusedLineId(null);
   };
 
   const updateLineQty = (lineId: string, qty: string | number) => {
@@ -503,29 +535,38 @@ export default function ReInvoice() {
     ]);
   };
 
-  const subtotal = lines.reduce(
-    (s, l) => s + (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0),
-    0
-  );
-  const totalVAT = lines.reduce(
-    (s, l) =>
-      s +
-      (Number(l.quantity) || 0) *
-        (Number(l.unitPrice) || 0) *
-        ((Number(l.vatRate) || 0) / 100),
-    0
-  );
-  const total = subtotal + totalVAT;
+  const subtotal =
+    Math.round(
+      lines.reduce(
+        (s, l) => s + (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0),
+        0
+      ) * 100
+    ) / 100;
+  const totalVAT =
+    Math.round(
+      lines.reduce(
+        (s, l) =>
+          s +
+          (Number(l.quantity) || 0) *
+            (Number(l.unitPrice) || 0) *
+            ((Number(l.vatRate) || 0) / 100),
+        0
+      ) * 100
+    ) / 100;
+  const total = Math.round((subtotal + totalVAT) * 100) / 100;
   const originalTotal = invoice?.total || 0;
   const margin =
-    subtotal -
-    (invoice?.lines.reduce(
-      (s, l) => s + Number(l.quantity) * Number(l.unitPrice),
-      0
-    ) || 0);
+    Math.round(
+      (subtotal -
+        (invoice?.lines.reduce(
+          (s: number, l: any) => s + Number(l.quantity) * Number(l.unitPrice),
+          0
+        ) || 0)) *
+        100
+    ) / 100;
 
   const handleSave = async (asDraft: boolean) => {
-    if (!selectedClientId) {
+    if (!selectedClientId && !clientName.trim()) {
       toast.error("Selectează un client", {
         description: "Este necesar un client pentru re-facturare",
       });
@@ -539,10 +580,11 @@ export default function ReInvoice() {
     }
     setSaving(true);
     try {
-      const client = realClients.find(c => String(c.id) === selectedClientId);
-      if (!client) {
+      const client = selectedClientId
+        ? realClients.find(c => String(c.id) === selectedClientId)
+        : null;
+      if (selectedClientId && !client && !clientName.trim()) {
         toast.error("Clientul selectat nu a fost găsit");
-        setSaving(false);
         return;
       }
       const today = new Date().toISOString().split("T")[0];
@@ -555,12 +597,12 @@ export default function ReInvoice() {
         sourceInvoiceNumber: invoice?.number,
         sourceSupplierName: invoice?.supplierName,
         clientId: selectedClientId ? parseInt(selectedClientId) : undefined,
-        clientName: clientName,
-        clientCUI: clientCUI || undefined,
-        clientAddress: clientAddress || undefined,
-        clientCity: clientCity || undefined,
-        clientEmail: clientEmail || undefined,
-        clientPhone: clientPhone || undefined,
+        clientName: clientName || client?.name || "",
+        clientCUI: clientCUI || client?.cui || undefined,
+        clientAddress: clientAddress || client?.address || undefined,
+        clientCity: clientCity || client?.city || undefined,
+        clientEmail: clientEmail || client?.email || undefined,
+        clientPhone: clientPhone || client?.phone || undefined,
         issueDate: today,
         dueDate: dueDate || undefined,
         subtotal,
@@ -578,22 +620,45 @@ export default function ReInvoice() {
           vatRate: Number(l.vatRate) || 0,
           markupPercent: Number(l.markupPercent) || 0,
           total:
-            (Number(l.quantity) || 0) *
-            (Number(l.unitPrice) || 0) *
-            (1 + (Number(l.vatRate) || 0) / 100),
+            Math.round(
+              (Number(l.quantity) || 0) *
+                (Number(l.unitPrice) || 0) *
+                (1 + (Number(l.vatRate) || 0) / 100) *
+                100
+            ) / 100,
           lineOrder: idx,
         })),
       });
+
+      const stockLines = lines
+        .filter(l => l.nirLineId)
+        .map(l => ({ nirLineId: l.nirLineId!, qty: Number(l.quantity) || 0 }))
+        .filter(l => l.qty > 0);
+
+      let stockFailed = false;
+      if (stockLines.length > 0) {
+        try {
+          await consumeLineMutation.mutateAsync({ lines: stockLines });
+        } catch (stockErr) {
+          console.error("Failed to consume stock", stockErr);
+          stockFailed = true;
+        }
+      }
+
       await utils.reinvoice.list.invalidate();
-      toast.success(asDraft ? "Ciornă salvată" : "Re-factură generată!", {
-        description: asDraft
-          ? `Ciornă ${result.number} salvată. Poți continua editarea mai târziu.`
-          : `Re-factura ${result.number} a fost creată cu succes.`,
-      });
+      if (stockFailed) {
+        toast.warning("Re-factura a fost salvată, dar scăderea din stocul NIR a întâmpinat o eroare.");
+      } else {
+        toast.success(asDraft ? "Ciornă salvată" : "Re-factură generată!", {
+          description: asDraft
+            ? `Ciornă ${result.number} salvată. Poți continua editarea mai târziu.`
+            : `Re-factura ${result.number} a fost creată cu succes.`,
+        });
+      }
       navigate("/re-facturi");
     } catch (err: any) {
       toast.error("Eroare la salvare", {
-        description: err?.message ?? "A apărut o eroare neașteptată",
+        description: cleanErrorMessage(err, "A apărut o eroare neașteptată"),
       });
     } finally {
       setSaving(false);
@@ -656,13 +721,14 @@ export default function ReInvoice() {
           await consumeLineMutation.mutateAsync({ lines: stockLines });
         } catch (e) {
           console.error("Failed to consume stock", e);
+          toast.warning("Re-factura a fost generată, dar scăderea din stocul NIR a întâmpinat o eroare.");
         }
       }
 
       toast.success("Re-Factură generată cu succes!", { id: "save" });
       navigate(`/re-facturi/${res.id}`);
     } catch (e: any) {
-      toast.error("Eroare la salvare: " + e.message, { id: "save" });
+      toast.error("Eroare la salvare: " + cleanErrorMessage(e), { id: "save" });
     } finally {
       setSaving(false);
     }
@@ -699,22 +765,23 @@ export default function ReInvoice() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
           <Link href={`/facturi-primite/${invoice.id}`}>
-            <button className="flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-              <ArrowLeft className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+            <button className="flex items-center justify-center w-8 h-8 rounded-full apple-btn-glass border border-black/[0.06] dark:border-white/[0.09] hover:bg-black/[0.04] dark:hover:bg-white/[0.08] transition-colors cursor-pointer">
+              <ArrowLeft className="w-4 h-4 text-[#3a3a3c] dark:text-[#ebebf5]" />
             </button>
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+            <h1 className="text-xl font-bold text-[#1d1d1f] dark:text-white tracking-tight">
               Re-Facturare
             </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-              Bazat pe: <span className="">{invoice.number}</span> —{" "}
+            <p className="text-sm text-[#636366] dark:text-[#98989d] mt-0.5 tabular-nums">
+              Bazat pe: <span>{invoice.number}</span> —{" "}
               {invoice.supplierName}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={async () => {
               if (!selectedClientId) {
                 toast.error("Selectează un client", {
@@ -727,24 +794,33 @@ export default function ReInvoice() {
                 const client = realClients.find(
                   c => String(c.id) === selectedClientId
                 );
-                if (!client) return;
+                if (!client) {
+                  toast.error("Clientul selectat nu a fost găsit.");
+                  return;
+                }
 
-                const subtotal = lines.reduce(
-                  (s, l) =>
-                    s + (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0),
-                  0
-                );
-                const totalVAT = lines.reduce(
-                  (s, l) =>
-                    s +
-                    (Number(l.quantity) || 0) *
-                      (Number(l.unitPrice) || 0) *
-                      ((Number(l.vatRate) || 0) / 100),
-                  0
-                );
-                const total = subtotal + totalVAT;
+                const pdfSubtotal =
+                  Math.round(
+                    lines.reduce(
+                      (s, l) =>
+                        s + (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0),
+                      0
+                    ) * 100
+                  ) / 100;
+                const pdfTotalVAT =
+                  Math.round(
+                    lines.reduce(
+                      (s, l) =>
+                        s +
+                        (Number(l.quantity) || 0) *
+                          (Number(l.unitPrice) || 0) *
+                          ((Number(l.vatRate) || 0) / 100),
+                      0
+                    ) * 100
+                  ) / 100;
+                const pdfTotal = Math.round((pdfSubtotal + pdfTotalVAT) * 100) / 100;
 
-                await downloadPDF.mutateAsync({
+                const pdfRes: any = await downloadPDF.mutateAsync({
                   number: `RF-${new Date().getFullYear()}-0001`,
                   date: new Date().toISOString().split("T")[0],
                   dueDate,
@@ -789,25 +865,45 @@ export default function ReInvoice() {
                     unit: l.unit || "buc",
                     vatRate: Number(l.vatRate) || 0,
                     total:
-                      (Number(l.quantity) || 0) *
-                      (Number(l.unitPrice) || 0) *
-                      (1 + (Number(l.vatRate) || 0) / 100),
+                      Math.round(
+                        (Number(l.quantity) || 0) *
+                          (Number(l.unitPrice) || 0) *
+                          (1 + (Number(l.vatRate) || 0) / 100) *
+                          100
+                      ) / 100,
                   })),
-                  subtotal,
-                  totalVAT,
-                  total,
+                  subtotal: pdfSubtotal,
+                  totalVAT: pdfTotalVAT,
+                  total: pdfTotal,
                   currency,
                   notes,
                 });
+
+                if (pdfRes?.pdfBase64) {
+                  const byteCharacters = atob(pdfRes.pdfBase64);
+                  const byteNumbers = new Uint8Array(byteCharacters.length);
+                  for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                  }
+                  const blob = new Blob([byteNumbers], { type: "application/pdf" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = pdfRes.filename || `RF-${new Date().getFullYear()}-0001.pdf`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                }
                 toast.success("PDF descărcat cu succes!");
               } catch (error) {
-                toast.error("Eroare la descărcarea PDF");
+                toast.error(cleanErrorMessage(error, "Eroare la descărcarea PDF"));
               } finally {
                 setDownloadingPDF(false);
               }
             }}
             disabled={downloadingPDF}
-            className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-colors disabled:opacity-60"
+            className="flex items-center gap-1.5 px-3.5 h-8 rounded-full apple-btn-glass text-[#3a3a3c] dark:text-[#ebebf5] text-xs font-semibold transition-colors disabled:opacity-60 cursor-pointer"
           >
             {downloadingPDF ? (
               <span className="w-3.5 h-3.5 border-2 border-slate-300 border-t-slate-700 rounded-full animate-spin" />
@@ -817,16 +913,18 @@ export default function ReInvoice() {
             Descarcă PDF
           </button>
           <button
+            type="button"
             onClick={() => handleSave(true)}
             disabled={saving}
-            className="px-3 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-colors disabled:opacity-60"
+            className="px-3.5 h-8 rounded-full apple-btn-glass text-[#3a3a3c] dark:text-[#ebebf5] text-xs font-semibold transition-colors disabled:opacity-60 cursor-pointer"
           >
             Salvează ciornă
           </button>
           <button
+            type="button"
             onClick={() => handleSave(false)}
             disabled={saving}
-            className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.97] disabled:opacity-60"
+            className="flex items-center gap-1.5 px-4 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.97] disabled:opacity-60 cursor-pointer"
           >
             {saving ? (
               <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -860,7 +958,7 @@ export default function ReInvoice() {
         {/* Top: Lines editor */}
         <div className="w-full space-y-4">
           {/* Global markup */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 p-4">
+          <div className="bg-blue-50/80 dark:bg-blue-950/30 rounded-[22px] border border-blue-200/80 dark:border-blue-800/70 p-4">
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-2">
                 <Percent className="w-4 h-4 text-blue-600" />
@@ -873,7 +971,7 @@ export default function ReInvoice() {
                   type="number"
                   value={globalMarkup}
                   onChange={e => setGlobalMarkup(e.target.value)}
-                  className="w-20 h-9 px-3 text-sm rounded-lg border border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-center"
+                  className="w-20 h-9 px-3 text-sm tabular-nums rounded-full border border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-center"
                   min={0}
                   max={500}
                 />
@@ -882,15 +980,17 @@ export default function ReInvoice() {
                 </span>
               </div>
               <button
+                type="button"
                 onClick={applyGlobalMarkupToAll}
-                className="px-4 h-9 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all active:scale-[0.97]"
+                className="px-4 h-9 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all active:scale-[0.97] cursor-pointer"
               >
                 Aplică pe toate liniile
               </button>
               {lines.length > 1 && (
                 <button
+                  type="button"
                   onClick={mergeToOneLine}
-                  className="px-4 h-9 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all active:scale-[0.97] flex items-center gap-1.5"
+                  className="px-4 h-9 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all active:scale-[0.97] flex items-center gap-1.5 cursor-pointer"
                 >
                   <TrendingUp className="w-3.5 h-3.5" />
                   Unifică în 1 linie
@@ -904,22 +1004,24 @@ export default function ReInvoice() {
           </div>
 
           {/* Lines table */}
-          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
-            <div className="p-3 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
-              <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+          <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] shadow-sm border border-black/[0.06] dark:border-white/[0.09] overflow-hidden flex flex-col">
+            <div className="p-3.5 bg-[#f8f9fc]/90 dark:bg-white/[0.02] border-b border-black/[0.06] dark:border-white/[0.08] flex justify-between items-center">
+              <h3 className="text-sm font-semibold text-[#1d1d1f] dark:text-white">
                 Linii Re-Factură
               </h3>
               <div className="flex gap-2">
                 <button
+                  type="button"
                   onClick={() => setShowCodes(!showCodes)}
-                  className="flex items-center gap-1.5 px-3 h-8 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+                  className="flex items-center gap-1.5 px-3.5 h-8 rounded-full apple-btn-glass text-[#3a3a3c] dark:text-[#ebebf5] text-xs font-medium transition-colors cursor-pointer"
                 >
                   <Info className="w-3.5 h-3.5" />
                   {showCodes ? "Ascunde coduri" : "Arată coduri"}
                 </button>
                 <button
+                  type="button"
                   onClick={addLine}
-                  className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-colors"
+                  className="flex items-center gap-1.5 px-3.5 h-8 rounded-full apple-btn-glass text-[#3a3a3c] dark:text-[#ebebf5] text-xs font-semibold transition-colors cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Adaugă linie
@@ -928,33 +1030,33 @@ export default function ReInvoice() {
             </div>
 
             {/* Header Tabel */}
-            <div className="hidden md:grid grid-cols-12 gap-0 bg-[#1e1b4b] dark:bg-slate-800 text-white text-[10px] font-bold uppercase tracking-wider">
+            <div className="hidden md:grid grid-cols-12 gap-0 bg-[#f8f9fc]/90 dark:bg-white/[0.03] border-b border-black/[0.06] dark:border-white/[0.08] text-[#636366] dark:text-[#98989d] text-[10.5px] font-semibold uppercase tracking-wider">
               {showCodes ? (
                 <>
                   <div className="col-span-1 px-3 py-2.5">Cod</div>
-                  <div className="col-span-3 px-3 py-2.5 border-l border-slate-700">
+                  <div className="col-span-3 px-3 py-2.5 border-l border-black/[0.06] dark:border-white/[0.08]">
                     Denumire Serviciu
                   </div>
                 </>
               ) : (
                 <div className="col-span-4 px-3 py-2.5">Denumire Serviciu</div>
               )}
-              <div className="col-span-1 px-2 py-2.5 text-center border-l border-slate-700">
+              <div className="col-span-1 px-2 py-2.5 text-center border-l border-black/[0.06] dark:border-white/[0.08]">
                 U.M.
               </div>
-              <div className="col-span-1 px-2 py-2.5 text-center border-l border-slate-700">
+              <div className="col-span-1 px-2 py-2.5 text-center border-l border-black/[0.06] dark:border-white/[0.08]">
                 Cant.
               </div>
-              <div className="col-span-2 px-2 py-2.5 text-right border-l border-slate-700">
+              <div className="col-span-2 px-2 py-2.5 text-right border-l border-black/[0.06] dark:border-white/[0.08]">
                 Preț Orig.
               </div>
-              <div className="col-span-1 px-2 py-2.5 text-center border-l border-slate-700">
+              <div className="col-span-1 px-2 py-2.5 text-center border-l border-black/[0.06] dark:border-white/[0.08]">
                 Adaos %
               </div>
-              <div className="col-span-1 px-2 py-2.5 text-right border-l border-slate-700">
+              <div className="col-span-1 px-2 py-2.5 text-right border-l border-black/[0.06] dark:border-white/[0.08]">
                 Preț Nou
               </div>
-              <div className="col-span-1 px-2 py-2.5 text-right border-l border-slate-700">
+              <div className="col-span-1 px-2 py-2.5 text-right border-l border-black/[0.06] dark:border-white/[0.08]">
                 Total
               </div>
               <div className="col-span-1"></div>
@@ -1079,7 +1181,7 @@ export default function ReInvoice() {
                         className="w-full text-center text-xs bg-slate-50 dark:bg-slate-800 md:bg-transparent border border-slate-200 dark:border-slate-700 md:border-0 rounded md:rounded-none h-8 md:h-auto focus:outline-none focus:ring-1 focus:ring-blue-500 md:focus:ring-0"
                       />
                     </div>
-                    <div className="col-span-1 md:col-span-2 px-0 md:px-1 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 h-full flex flex-col justify-center md:items-end text-xs text-slate-500">
+                    <div className="col-span-1 md:col-span-2 px-0 md:px-1 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 h-full flex flex-col justify-center md:items-end text-xs text-slate-500 tabular-nums">
                       <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Preț Orig.</label>
                       <span className="mt-1 md:mt-0">{formatCurrency(line.originalUnitPrice, currency)}</span>
                     </div>
@@ -1089,9 +1191,9 @@ export default function ReInvoice() {
                         type="number"
                         value={line.markupPercent}
                         onChange={e =>
-                          updateLine(line.id, "markupPercent", e.target.value)
+                          updateLineMarkup(line.id, e.target.value)
                         }
-                        className="w-full text-center text-xs bg-white dark:bg-slate-800 md:bg-transparent border border-slate-200 dark:border-slate-700 md:border-0 rounded md:rounded-none h-8 md:h-auto focus:outline-none focus:ring-1 focus:ring-blue-500 md:focus:ring-0 text-amber-600 dark:text-amber-400 font-bold"
+                        className="w-full text-center text-xs tabular-nums bg-white dark:bg-slate-800 md:bg-transparent border border-slate-200 dark:border-slate-700 md:border-0 rounded md:rounded-none h-8 md:h-auto focus:outline-none focus:ring-1 focus:ring-blue-500 md:focus:ring-0 text-amber-600 dark:text-amber-400 font-bold"
                       />
                     </div>
                     <div className="col-span-1 md:col-span-1 px-0 md:px-1 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 h-full flex flex-col justify-center">
@@ -1100,19 +1202,21 @@ export default function ReInvoice() {
                         type="number"
                         value={line.unitPrice}
                         onChange={e =>
-                          updateLine(line.id, "unitPrice", e.target.value)
+                          updateLinePrice(line.id, e.target.value)
                         }
-                        className="w-full md:text-right text-xs bg-slate-50 dark:bg-slate-800 md:bg-transparent border border-slate-200 dark:border-slate-700 md:border-0 rounded md:rounded-none h-8 md:h-auto px-2 md:px-0 focus:outline-none focus:ring-1 focus:ring-blue-500 md:focus:ring-0 font-semibold text-blue-600"
+                        className="w-full md:text-right text-xs tabular-nums bg-slate-50 dark:bg-slate-800 md:bg-transparent border border-slate-200 dark:border-slate-700 md:border-0 rounded md:rounded-none h-8 md:h-auto px-2 md:px-0 focus:outline-none focus:ring-1 focus:ring-blue-500 md:focus:ring-0 font-semibold text-blue-600"
                       />
                     </div>
-                    <div className="col-span-1 md:col-span-1 px-0 md:px-1 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 h-full flex flex-col justify-center md:items-end">
+                    <div className="col-span-1 md:col-span-1 px-0 md:px-1 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 h-full flex flex-col justify-center md:items-end tabular-nums">
                       <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Total</label>
                       <span className="text-xs font-bold text-slate-900 dark:text-white mt-1 md:mt-0">{formatCurrency(lineTotal, currency)}</span>
                     </div>
                     <div className="col-span-2 md:col-span-1 px-0 md:px-1 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 flex items-end md:items-center justify-end md:justify-center">
                       <button
+                        type="button"
                         onClick={() => removeLine(line.id)}
-                        className="w-8 h-8 md:w-auto md:h-auto flex items-center justify-center rounded text-slate-400 hover:text-rose-500 hover:bg-rose-50 md:hover:bg-transparent dark:hover:bg-rose-900/30 md:dark:hover:bg-transparent transition-colors"
+                        aria-label="Șterge linia"
+                        className="w-8 h-8 md:w-7 md:h-7 flex items-center justify-center rounded-full text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors cursor-pointer"
                       >
                         <Trash2 className="w-4 h-4 md:w-3.5 md:h-3.5" />
                       </button>
@@ -1122,8 +1226,9 @@ export default function ReInvoice() {
               })}
             </div>
 
-            <div className="p-3 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex gap-2">
+            <div className="p-3 bg-[#f8f9fc]/80 dark:bg-white/[0.02] border-t border-black/[0.06] dark:border-white/[0.08] flex gap-2">
               <button
+                type="button"
                 onClick={() => {
                   setLines([
                     ...lines,
@@ -1140,13 +1245,14 @@ export default function ReInvoice() {
                     },
                   ]);
                 }}
-                className="flex items-center gap-1.5 px-3 h-8 text-xs font-semibold text-blue-600 border border-blue-200 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
+                className="flex items-center gap-1.5 px-3.5 h-8 text-xs font-semibold text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-full transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" /> Adaugă rând
               </button>
               <button
+                type="button"
                 onClick={() => setShowNirModal(true)}
-                className="flex items-center gap-1.5 px-3 h-8 text-xs font-semibold text-sky-700 border border-sky-200 bg-sky-50 hover:bg-sky-100 rounded transition-colors"
+                className="flex items-center gap-1.5 px-3.5 h-8 text-xs font-semibold text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/40 hover:bg-sky-100 dark:hover:bg-sky-900/50 rounded-full transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" /> Adaugă din Stoc
               </button>
@@ -1165,7 +1271,7 @@ export default function ReInvoice() {
         {/* Bottom: Config panels */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
           {/* Client selector */}
-          <div className="md:col-span-2 bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-5">
+          <div className="md:col-span-2 bg-white dark:bg-[#1c1c1e] rounded-[22px] shadow-sm border border-black/[0.06] dark:border-white/[0.09] p-5">
             <div className="flex items-center gap-2 mb-4">
               <Users className="w-4 h-4 text-slate-400" />
               <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -1327,7 +1433,7 @@ export default function ReInvoice() {
           </div>
 
           {/* Invoice settings */}
-          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-5 space-y-4">
+          <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] shadow-sm border border-black/[0.06] dark:border-white/[0.09] p-5 space-y-4">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
               Setări Re-Factură
             </span>
@@ -1407,7 +1513,7 @@ export default function ReInvoice() {
           </div>
 
           {/* Summary */}
-          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-5">
+          <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] shadow-sm border border-black/[0.06] dark:border-white/[0.09] p-5 tabular-nums">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-4">
               Sumar
             </span>
@@ -1417,7 +1523,7 @@ export default function ReInvoice() {
                 <span>
                   {formatCurrency(
                     invoice.lines.reduce(
-                      (s, l) => s + l.quantity * l.unitPrice,
+                      (s: number, l: any) => s + l.quantity * l.unitPrice,
                       0
                     ),
                     invoice.currency
@@ -1468,10 +1574,10 @@ export default function ReInvoice() {
                   className={`text-[11px] ${margin >= 0 ? "text-emerald-600" : "text-rose-600"}`}
                 >
                   {invoice.lines.reduce(
-                    (s, l) => s + l.quantity * l.unitPrice,
+                    (s: number, l: any) => s + l.quantity * l.unitPrice,
                     0
                   ) > 0
-                    ? `${((margin / invoice.lines.reduce((s, l) => s + l.quantity * l.unitPrice, 0)) * 100).toFixed(1)}% marjă`
+                    ? `${((margin / invoice.lines.reduce((s: number, l: any) => s + l.quantity * l.unitPrice, 0)) * 100).toFixed(1)}% marjă`
                     : ""}
                 </div>
               </div>
@@ -1484,11 +1590,12 @@ export default function ReInvoice() {
         <NirSelectorModal
           onClose={() => setShowNirModal(false)}
           onAdd={(selected) => {
-            const newLines = selected.map(s => ({
+            const newLines: EditableLine[] = selected.map(s => ({
               id: crypto.randomUUID(),
               description: s.description,
               quantity: s.quantity,
               unit: s.unit,
+              originalUnitPrice: s.unitPrice,
               unitPrice: s.unitPrice,
               markupPercent: 0,
               vatRate: s.vatRate || 21,

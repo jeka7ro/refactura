@@ -33,7 +33,7 @@ import {
 } from "lucide-react";
 import { formatCurrency, formatDate, type Currency } from "@/lib/store";
 import { trpc } from "@/lib/trpc";
-import { normalizeText } from "@/lib/utils";
+import { normalizeText, cleanErrorMessage } from "@/lib/utils";
 import { useTableSort } from "@/hooks/useTableSort";
 import { toast } from "sonner";
 import SpvDeadlineBadge from "@/components/SpvDeadlineBadge";
@@ -84,6 +84,7 @@ interface UnifiedRow {
   itemsText?: string;
   spvStatus?: string | null;
   spvIndex?: string | null;
+  spvSentAt?: string | Date | null;
   nirId?: number | null;
   nirNumber?: string | null;
   nirStatus?: string | null;
@@ -221,6 +222,8 @@ export default function AllInvoices() {
     return () => window.removeEventListener("beforeunload", clearOnRefresh);
   }, []);
   const [deleteTarget, setDeleteTarget] = useState<UnifiedRow | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const handleCardFilterClick = (type: InvoiceType, status: string) => {
@@ -432,7 +435,6 @@ export default function AllInvoices() {
     }
   }, [tenant]);
 
-  const downloadPDF = trpc.reinvoice.downloadPDF.useMutation();
   const syncOblio = trpc.integrations.syncOblio.useMutation({
     onSuccess: () => {
       r1();
@@ -513,6 +515,8 @@ export default function AllInvoices() {
   }, [archiveData]);
 
   const allRows: UnifiedRow[] = useMemo(() => {
+    const normDateStr = (v: unknown): string =>
+      v instanceof Date ? v.toISOString() : v ? String(v) : "";
     const rows: UnifiedRow[] = [];
     const emittedIndexByNumber = new Map<string, string>();
     (Array.isArray(emittedInvoices) ? emittedInvoices : []).forEach((i: any) => {
@@ -558,8 +562,8 @@ export default function AllInvoices() {
         type: isPrimit ? "primit" : "emis",
         number: i.invoiceNumber || `#${i.id}`,
         partnerName: isPrimit ? (i.supplierName || "—") : (i.customerName || i.supplierName || "—"),
-        date: i.issueDate || i.createdAt || "",
-        dueDate: i.dueDate || "",
+        date: normDateStr(i.issueDate || i.createdAt),
+        dueDate: normDateStr(i.dueDate),
         total: t,
         currency: i.currency || "RON",
         status: t < 0 ? "storno" : i.status || "pending",
@@ -571,6 +575,7 @@ export default function AllInvoices() {
           : (i.customerCUI || i.customerCui || i.supplierCUI || i.supplierCui || ""),
         spvStatus: i.spvStatus,
         spvIndex: spvIdx,
+        spvSentAt: i.spvSentAt || null,
         nirId,
         nirNumber,
         nirStatus,
@@ -584,8 +589,8 @@ export default function AllInvoices() {
         type: "emis",
         number: i.number || `RF-${i.id}`,
         partnerName: i.clientName || "—",
-        date: i.issueDate || i.createdAt || "",
-        dueDate: i.dueDate || "",
+        date: normDateStr(i.issueDate || i.createdAt),
+        dueDate: normDateStr(i.dueDate),
         total: t,
         currency: i.currency || "RON",
         status: t < 0 ? "storno" : i.status || "draft",
@@ -595,6 +600,7 @@ export default function AllInvoices() {
         partnerCui: i.clientCUI || i.clientCui || "",
         spvStatus: i.spvStatus,
         spvIndex: i.spvIndex || null,
+        spvSentAt: i.spvSentAt || null,
         isRead: true,
       });
     });
@@ -606,8 +612,8 @@ export default function AllInvoices() {
           type: "emis",
           number: i.number || `FACT-${i.id}`,
           partnerName: i.clientName || "—",
-          date: i.issueDate || i.createdAt || "",
-          dueDate: i.dueDate || "",
+          date: normDateStr(i.issueDate || i.createdAt),
+          dueDate: normDateStr(i.dueDate),
           total: t,
           currency: i.currency || "RON",
           status:
@@ -621,6 +627,7 @@ export default function AllInvoices() {
           itemsText: i.itemsText || "",
           spvStatus: i.spvStatus,
           spvIndex: i.spvIndex || null,
+          spvSentAt: i.spvSentAt || null,
           partnerCui: i.clientCUI || i.clientCui || "",
           clientCountry: i.clientCountry || "",
           isRead: true,
@@ -769,19 +776,52 @@ export default function AllInvoices() {
   }, [filtered, allRows.length]);
 
   const handleDownloadReInvoicePDF = async (row: UnifiedRow) => {
-    toast.loading("Se descarcă PDF...", { id: "pdf" });
-    try {
-      const blob = await downloadPDF.mutateAsync({ id: row.id });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${row.number}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      toast.dismiss("pdf");
-    } catch {
-      toast.error("Eroare download", { id: "pdf" });
+    await downloadFile(`/api/pdf/reinvoice/${row.id}?download=1`, `${row.number}.pdf`);
+  };
+
+  const confirmBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setIsBulkDeleting(true);
+    toast.loading(`Se șterg ${selectedIds.size} facturi selectate...`, { id: "bulk-del" });
+    let ok = 0;
+    let failed = 0;
+    let lastReason = "";
+    const remaining = new Set<string>();
+
+    for (const key of Array.from(selectedIds)) {
+      const [source, idStr] = key.split("-");
+      const id = Number(idStr);
+      try {
+        if (source === "refactura") await deleteReinvoice.mutateAsync({ id });
+        else if (source === "manual") await deleteEmitted.mutateAsync({ id });
+        else await deleteArchive.mutateAsync({ id });
+        ok++;
+      } catch (err) {
+        failed++;
+        remaining.add(key);
+        lastReason = cleanErrorMessage(err, "Eroare la ștergere.");
+      }
+    }
+
+    setSelectedIds(remaining);
+    setBulkDeleteOpen(false);
+    setIsBulkDeleting(false);
+    r1();
+    r2();
+    r3();
+
+    if (failed === 0) {
+      toast.success(`${ok} facturi șterse cu succes.`, { id: "bulk-del" });
+    } else if (ok > 0) {
+      toast.warning(`${ok} facturi șterse, ${failed} nu au putut fi șterse.`, {
+        id: "bulk-del",
+        description: lastReason,
+      });
+    } else {
+      toast.error(`Ștergerea a eșuat pentru ${failed} facturi.`, {
+        id: "bulk-del",
+        description: lastReason,
+      });
     }
   };
 
@@ -961,26 +1001,9 @@ export default function AllInvoices() {
               Descarcă selectate
             </button>
             <button
-              onClick={async () => {
-                toast.loading(`Se șterg ${selectedIds.size} facturi selectate...`, { id: "bulk-del" });
-                let ok = 0;
-                for (const key of Array.from(selectedIds)) {
-                  const [source, idStr] = key.split("-");
-                  const id = Number(idStr);
-                  try {
-                    if (source === "refactura")
-                      await deleteReinvoice.mutateAsync({ id });
-                    else if (source === "manual")
-                      await deleteEmitted.mutateAsync({ id });
-                    else await deleteArchive.mutateAsync({ id });
-                    ok++;
-                  } catch {}
-                }
-                setSelectedIds(new Set());
-                toast.success(`${ok} facturi șterse`, { id: "bulk-del" });
-                r1(); r2(); r3();
-              }}
-              className="px-3.5 h-8 rounded-full bg-[#ff3b30] text-white hover:bg-[#e0352b] text-xs font-semibold transition-colors shadow-sm"
+              type="button"
+              onClick={() => setBulkDeleteOpen(true)}
+              className="px-3.5 h-8 rounded-full bg-[#ff3b30] text-white hover:bg-[#e0352b] text-xs font-semibold transition-colors shadow-sm cursor-pointer"
             >
               Șterge selectate
             </button>
@@ -999,7 +1022,7 @@ export default function AllInvoices() {
                 className="w-3.5 h-3.5 text-[#636366] dark:text-[#98989d] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
               />
               <input
-                style={{ paddingLeft: 36, paddingRight: search ? 72 : 14 }}
+                style={{ paddingLeft: 36, paddingRight: search ? 80 : 14 }}
                 className="rounded-full w-full h-9 border border-black/[0.08] dark:border-white/[0.12] outline-none text-[13px] bg-white/90 dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white placeholder:text-[#636366] dark:placeholder:text-[#98989d] shadow-[inset_0_1px_2px_rgba(15,23,42,0.04),0_1px_0_rgba(255,255,255,0.9)] focus:bg-white dark:focus:bg-[#3a3a3c] transition-all"
                 placeholder="Caută factură..."
                 value={search}
@@ -1010,15 +1033,16 @@ export default function AllInvoices() {
               />
               {search && (
                 <>
-                  <div className="absolute right-8 top-1/2 -translate-y-1/2 bg-primary text-white rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums">
+                  <div className="absolute right-9 top-1/2 -translate-y-1/2 bg-primary text-white rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums">
                     {filtered.length}/{allRows.length}
                   </div>
                   <button
+                    type="button"
                     onClick={() => setSearch("")}
                     aria-label="Șterge căutarea"
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center hover:bg-black/[0.06] dark:hover:bg-white/[0.10]"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center hover:bg-black/[0.06] dark:hover:bg-white/[0.10] cursor-pointer"
                   >
-                    <X className="w-3 h-3 text-[#636366] hover:text-[#1d1d1f] dark:text-[#98989d] dark:hover:text-white" />
+                    <X className="w-3.5 h-3.5 text-[#636366] hover:text-[#1d1d1f] dark:text-[#98989d] dark:hover:text-white" />
                   </button>
                 </>
               )}
@@ -1183,13 +1207,28 @@ export default function AllInvoices() {
                 if (hasOblio || hasSpv) {
                   toast.loading("Sincronizare date în curs...", { id: "sync" });
                   let spvResult: any = null;
-                  const tasks = [];
-                  if (hasOblio)
-                    tasks.push(syncOblio.mutateAsync().catch(() => {}));
-                  if (hasSpv)
+                  let oblioErr: string | null = null;
+                  let spvErr: string | null = null;
+                  const tasks: Promise<unknown>[] = [];
+                  if (hasOblio) {
                     tasks.push(
-                      syncSpvManual.mutateAsync().then(r => { spvResult = r; }).catch(() => {})
+                      syncOblio.mutateAsync().catch((err: unknown) => {
+                        oblioErr = cleanErrorMessage(err, "Eroare la sincronizarea Oblio.");
+                      })
                     );
+                  }
+                  if (hasSpv) {
+                    tasks.push(
+                      syncSpvManual
+                        .mutateAsync()
+                        .then(r => {
+                          spvResult = r;
+                        })
+                        .catch((err: unknown) => {
+                          spvErr = cleanErrorMessage(err, "Eroare la sincronizarea SPV.");
+                        })
+                    );
+                  }
                   await Promise.all(tasks);
                   syncedAny = true;
 
@@ -1197,7 +1236,13 @@ export default function AllInvoices() {
                   r2();
                   r3();
 
-                  if (spvResult?.limitHit > 0) {
+                  if (oblioErr && spvErr) {
+                    toast.error(`Sincronizarea a eșuat: ${spvErr} · ${oblioErr}`, { id: "sync" });
+                  } else if (spvErr) {
+                    toast.error(`Eroare sincronizare SPV: ${spvErr}`, { id: "sync" });
+                  } else if (oblioErr) {
+                    toast.warning(`SPV sincronizat, dar Oblio a raportat o eroare: ${oblioErr}`, { id: "sync" });
+                  } else if (spvResult?.limitHit > 0) {
                     const facturiNoi = spvResult.imported === 1 ? "1 factură nouă importată" : `${spvResult.imported} facturi noi importate`;
                     const facturiLimita = spvResult.limitHit === 1 ? "1 factură" : `${spvResult.limitHit} facturi`;
                     toast.warning(
@@ -1208,13 +1253,19 @@ export default function AllInvoices() {
                     const facturiNoi = spvResult.imported === 1 ? "1 factură nouă importată" : `${spvResult.imported} facturi noi importate`;
                     toast.success(`Sync complet: ${facturiNoi} din SPV!`, { id: "sync" });
                   } else {
-                    toast.success("SPV sincronizat! Nicio factură nouă de importat.", { id: "sync" });
+                    toast.success("Sincronizare completă! Nicio factură nouă de importat.", { id: "sync" });
                   }
                 }
 
                 if (!syncedAny) {
                   toast.error(
-                    "Nicio integrare activă de sincronizat. Verificați Setările."
+                    "Nicio integrare activă de sincronizat.",
+                    {
+                      action: {
+                        label: "Configurează Integrări",
+                        onClick: () => navigate("/integrari"),
+                      },
+                    }
                   );
                 }
               }}
@@ -1233,7 +1284,7 @@ export default function AllInvoices() {
 
           {/* Arată input-urile doar dacă este pe "custom" */}
           {period === "custom" && (
-            <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 p-1 rounded-full border border-slate-200 dark:border-slate-700 w-fit mt-0.5">
+            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded-full border border-slate-200 dark:border-slate-700 w-fit mt-0.5">
               <input
                 type="date"
                 value={customFrom}
@@ -1241,7 +1292,7 @@ export default function AllInvoices() {
                   setCustomFrom(e.target.value);
                   setPage(1);
                 }}
-                className="h-6 px-1.5 text-xs bg-transparent text-slate-600 dark:text-slate-300 outline-none w-[100px]"
+                className="h-7 px-1.5 text-xs tabular-nums bg-transparent text-slate-600 dark:text-slate-300 outline-none w-[112px]"
               />
               <span className="text-[10px] text-slate-400 font-bold">-</span>
               <input
@@ -1251,7 +1302,7 @@ export default function AllInvoices() {
                   setCustomTo(e.target.value);
                   setPage(1);
                 }}
-                className="h-6 px-1.5 text-xs bg-transparent text-slate-600 dark:text-slate-300 outline-none w-[100px]"
+                className="h-7 px-1.5 text-xs tabular-nums bg-transparent text-slate-600 dark:text-slate-300 outline-none w-[112px]"
               />
             </div>
           )}
@@ -1676,7 +1727,6 @@ export default function AllInvoices() {
                               {row.source === "refactura" ? (
                                 <DropdownMenuItem
                                   onClick={() => handleDownloadReInvoicePDF(row)}
-                                  disabled={downloadPDF.isPending}
                                   className="cursor-pointer"
                                 >
                                   <FileDown className="w-4 h-4 mr-2" />
@@ -1859,7 +1909,6 @@ export default function AllInvoices() {
                           {row.source === "refactura" ? (
                             <DropdownMenuItem
                               onClick={() => handleDownloadReInvoicePDF(row)}
-                              disabled={downloadPDF.isPending}
                               className="cursor-pointer"
                             >
                               <FileDown className="w-4 h-4 mr-2" />
@@ -2022,7 +2071,7 @@ export default function AllInvoices() {
           if (!open) setDeleteTarget(null);
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-[22px]">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmă ștergerea</AlertDialogTitle>
             <AlertDialogDescription>
@@ -2032,12 +2081,46 @@ export default function AllInvoices() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Anulează</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-full">Anulează</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-red-600 hover:bg-red-700 text-white rounded-full"
             >
               Șterge definitiv
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk delete confirmation dialog */}
+      <AlertDialog
+        open={bulkDeleteOpen}
+        onOpenChange={open => {
+          if (!isBulkDeleting) setBulkDeleteOpen(open);
+        }}
+      >
+        <AlertDialogContent className="rounded-[22px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmă ștergerea multiplă</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ești sigur că vrei să ștergi definitiv cele{" "}
+              <strong className="tabular-nums">{selectedIds.size}</strong> facturi selectate?
+              Această acțiune nu poate fi anulată.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBulkDeleting} className="rounded-full">
+              Anulează
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isBulkDeleting}
+              onClick={e => {
+                e.preventDefault();
+                confirmBulkDelete();
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white rounded-full"
+            >
+              {isBulkDeleting ? "Se șterg..." : `Șterge ${selectedIds.size} facturi`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

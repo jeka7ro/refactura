@@ -1017,7 +1017,7 @@ export default function ContractCreate() {
             variant="ghost"
             size="icon"
             asChild
-            className="h-8 w-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             <Link href="/contracte">
               <ArrowLeft className="h-4 w-4" />
@@ -1029,19 +1029,19 @@ export default function ContractCreate() {
               <FileSignature className="h-4 w-4 text-slate-700 dark:text-slate-300" />
               Redactare & Semnare Contract
             </h1>
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+            <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
               {activeTenantName}
             </span>
           </div>
         </div>
 
         {/* Butoane comutare mod & Salvare in coltul din dreapta */}
-        <div className="flex items-center gap-2">
-          <div className="inline-flex items-center p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="inline-flex items-center p-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
             <button
               type="button"
               onClick={() => setActiveMode("editor")}
-              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors flex items-center gap-1.5 ${
+              className={`px-3 py-1 text-xs font-semibold rounded-full transition-colors flex items-center gap-1.5 ${
                 activeMode === "editor"
                   ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
@@ -1054,7 +1054,7 @@ export default function ContractCreate() {
             <button
               type="button"
               onClick={() => setActiveMode("upload")}
-              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors flex items-center gap-1.5 ${
+              className={`px-3 py-1 text-xs font-semibold rounded-full transition-colors flex items-center gap-1.5 ${
                 activeMode === "upload"
                   ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
@@ -1069,7 +1069,7 @@ export default function ContractCreate() {
             variant="outline"
             size="sm"
             asChild
-            className="h-8 rounded-lg text-xs border-slate-300 dark:border-slate-700"
+            className="h-8 rounded-full text-xs border-slate-300 dark:border-slate-700"
           >
             <Link href="/contracte">Anulează</Link>
           </Button>
@@ -1078,7 +1078,7 @@ export default function ContractCreate() {
             size="sm"
             onClick={handleSave}
             disabled={createMutation.isPending || isUploading}
-            className="h-8 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-xs dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
+            className="h-8 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-xs dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
           >
             {createMutation.isPending ? (
               <span className="flex items-center gap-1.5">
@@ -1097,14 +1097,14 @@ export default function ContractCreate() {
 
       {/* Mesaj de eroare inline */}
       {errorMsg && (
-        <div className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 p-2.5 rounded-xl text-xs text-rose-700 dark:text-rose-300 font-medium flex items-center gap-2">
+        <div className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 p-2.5 rounded-2xl text-xs text-rose-700 dark:text-rose-300 font-medium flex items-center gap-2">
           <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
           <span>{errorMsg}</span>
         </div>
       )}
 
       {/* 2. Panou Principal de Configurare (Curat, Modern, Aerisit) */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 shadow-xs space-y-3">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-[22px] p-4 shadow-xs space-y-3">
         {/* Rândul 1: Cele 2 alegeri primare - Model Contract & Client */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start [&>div]:min-w-0">
           {/* Col 1: Model Contract / Șablon */}
@@ -1115,11 +1115,11 @@ export default function ContractCreate() {
                 Model Contract (Șablon)
               </label>
               {/* Comutator Rapid Limbă: RO | EN | Bilingv */}
-              <div className="inline-flex items-center p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <div className="inline-flex items-center p-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                 <button
                   type="button"
                   onClick={() => handleLanguageChange("ro")}
-                  className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-colors ${
+                  className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full transition-colors ${
                     docLanguage === "ro"
                       ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
                       : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
@@ -1131,7 +1131,7 @@ export default function ContractCreate() {
                 <button
                   type="button"
                   onClick={() => handleLanguageChange("en")}
-                  className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-colors ${
+                  className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full transition-colors ${
                     docLanguage === "en"
                       ? "bg-blue-600 text-white shadow-xs"
                       : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
@@ -1143,7 +1143,7 @@ export default function ContractCreate() {
                 <button
                   type="button"
                   onClick={() => handleLanguageChange("ro_en")}
-                  className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-colors ${
+                  className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full transition-colors ${
                     docLanguage === "ro_en"
                       ? "bg-purple-600 text-white shadow-xs"
                       : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
@@ -1257,7 +1257,7 @@ export default function ContractCreate() {
             {/* Linia 1 din Bara de Opțiuni Wood Glass: 1. Data Contractului, 2. Fără valabilitate, 3. Nr. Contract Crescător, 4. Suma, 5. Valuta EUR/LEI, 6. Transport Inclus Da/Nu */}
             <div className="flex flex-wrap items-center gap-2 bg-slate-50/90 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200/90 dark:border-slate-700/80">
               {/* 3. Număr contract crescător */}
-              <div className="flex items-center gap-1 bg-white dark:bg-slate-900 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 shadow-2xs">
+              <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-2xs">
                 <span className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">Nr. Contract:</span>
                 <button
                   type="button"
@@ -1266,7 +1266,7 @@ export default function ContractCreate() {
                     const prev = !isNaN(n) && n > 1 ? String(n - 1) : docNumber;
                     handleCommercialChange({ docNumber: prev });
                   }}
-                  className="h-6 w-5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center"
+                  className="h-7 w-7 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center transition-colors"
                   title="Scade numărul contractului"
                 >
                   -
@@ -1275,7 +1275,7 @@ export default function ContractCreate() {
                   type="text"
                   value={docNumber}
                   onChange={(e) => handleCommercialChange({ docNumber: e.target.value })}
-                  className="h-6 w-16 rounded text-xs tabular-nums font-bold text-center px-1 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700"
+                  className="h-6 w-16 rounded-lg text-xs tabular-nums font-bold text-center px-1 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700"
                 />
                 <button
                   type="button"
@@ -1284,7 +1284,7 @@ export default function ContractCreate() {
                     const next = !isNaN(n) ? String(n + 1) : "365";
                     handleCommercialChange({ docNumber: next });
                   }}
-                  className="h-6 w-5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center"
+                  className="h-7 w-7 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center transition-colors"
                   title="Crește numărul contractului (+1)"
                 >
                   +
@@ -1292,31 +1292,31 @@ export default function ContractCreate() {
               </div>
 
               {/* 1. Data contractului (2. Fără valabilitate) */}
-              <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 shadow-2xs">
+              <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-2xs">
                 <span className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">Data Contract:</span>
                 <Input
                   type="date"
                   value={docDate}
                   onChange={(e) => handleCommercialChange({ docDate: e.target.value })}
-                  className="h-6 w-32 rounded text-xs px-1.5 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 font-medium"
+                  className="h-6 w-32 rounded-lg text-xs tabular-nums px-1.5 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 font-medium"
                 />
               </div>
 
               {/* 4. Suma & 5. Valuta EUR / LEI */}
-              <div className="flex items-center gap-1.5 bg-emerald-50/90 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800 shadow-2xs">
+              <div className="flex items-center gap-1.5 bg-emerald-50/90 dark:bg-emerald-950/40 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800 shadow-2xs">
                 <span className="text-[10px] font-bold uppercase text-emerald-800 dark:text-emerald-300">Suma:</span>
                 <Input
                   type="text"
                   value={docValue}
                   onChange={(e) => handleCommercialChange({ docValue: e.target.value })}
                   placeholder="ex: 28.305,71"
-                  className="h-6 w-28 rounded text-xs tabular-nums font-bold text-right px-1.5 bg-white dark:bg-slate-900 border-emerald-300 dark:border-emerald-700"
+                  className="h-6 w-28 rounded-lg text-xs tabular-nums font-bold text-right px-1.5 bg-white dark:bg-slate-900 border-emerald-300 dark:border-emerald-700"
                 />
-                <div className="inline-flex items-center p-0.5 rounded-md bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700">
+                <div className="inline-flex items-center p-0.5 rounded-full bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700">
                   <button
                     type="button"
                     onClick={() => handleCommercialChange({ docCurrency: "EUR" })}
-                    className={`px-2 py-0.5 text-[10px] font-bold rounded transition-colors ${
+                    className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full transition-colors ${
                       docCurrency === "EUR"
                         ? "bg-emerald-600 text-white"
                         : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
@@ -1327,7 +1327,7 @@ export default function ContractCreate() {
                   <button
                     type="button"
                     onClick={() => handleCommercialChange({ docCurrency: "LEI" })}
-                    className={`px-2 py-0.5 text-[10px] font-bold rounded transition-colors ${
+                    className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full transition-colors ${
                       docCurrency === "LEI" || docCurrency === "RON"
                         ? "bg-emerald-600 text-white"
                         : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
@@ -1339,13 +1339,13 @@ export default function ContractCreate() {
               </div>
 
               {/* 6. Transport inclus: Da / Nu */}
-              <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 shadow-2xs">
+              <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-2xs">
                 <span className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-400">Transport inclus:</span>
-                <div className="inline-flex items-center p-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                <div className="inline-flex items-center p-0.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                   <button
                     type="button"
                     onClick={() => handleCommercialChange({ wgTransportIncluded: "da" })}
-                    className={`px-2 py-0.5 text-[10px] font-bold rounded transition-colors ${
+                    className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full transition-colors ${
                       wgTransportIncluded === "da"
                         ? "bg-blue-600 text-white shadow-2xs"
                         : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
@@ -1356,7 +1356,7 @@ export default function ContractCreate() {
                   <button
                     type="button"
                     onClick={() => handleCommercialChange({ wgTransportIncluded: "nu" })}
-                    className={`px-2 py-0.5 text-[10px] font-bold rounded transition-colors ${
+                    className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full transition-colors ${
                       wgTransportIncluded === "nu"
                         ? "bg-amber-600 text-white shadow-2xs"
                         : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
@@ -1368,27 +1368,27 @@ export default function ContractCreate() {
               </div>
 
               {/* Ofertă de preț nr. / dată */}
-              <div className="flex items-center gap-1.5 bg-blue-50/70 dark:bg-blue-950/30 px-2.5 py-1 rounded-lg border border-blue-200/80 dark:border-blue-800">
+              <div className="flex items-center gap-1.5 bg-blue-50/70 dark:bg-blue-950/30 px-2.5 py-1 rounded-full border border-blue-200/80 dark:border-blue-800">
                 <span className="text-[10px] font-bold uppercase text-blue-800 dark:text-blue-300">Oferta (OFR):</span>
                 <Input
                   type="text"
                   value={offerNumber}
                   onChange={(e) => handleCommercialChange({ offerNumber: e.target.value })}
                   placeholder="4089"
-                  className="h-6 w-16 rounded text-xs tabular-nums px-1.5 bg-white dark:bg-slate-900 border-blue-300 dark:border-blue-700"
+                  className="h-6 w-16 rounded-lg text-xs tabular-nums px-1.5 bg-white dark:bg-slate-900 border-blue-300 dark:border-blue-700"
                 />
                 <span className="text-slate-400">/</span>
                 <Input
                   type="date"
                   value={offerDate}
                   onChange={(e) => handleCommercialChange({ offerDate: e.target.value })}
-                  className="h-6 w-30 rounded text-xs px-1 bg-white dark:bg-slate-900 border-blue-300 dark:border-blue-700"
+                  className="h-6 w-30 rounded-lg text-xs tabular-nums px-1 bg-white dark:bg-slate-900 border-blue-300 dark:border-blue-700"
                 />
               </div>
             </div>
 
             {/* Linia 2 din Bara de Opțiuni Wood Glass: 7. Tip Tâmplărie (Lemn A/B/C/D, Aluminiu + text, PVC cu geam termoizolant) & 8. Tip Intern/Extern + PF/PJ */}
-            <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50/90 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200/90 dark:border-slate-700/80">
+            <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50/90 dark:bg-slate-800/60 p-2.5 rounded-2xl border border-slate-200/90 dark:border-slate-700/80">
               {/* 7. Tip Tâmplărie */}
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300 mr-0.5">
@@ -1396,7 +1396,7 @@ export default function ContractCreate() {
                 </span>
 
                 {/* Selector Categorie: Lemn | Aluminiu | PVC */}
-                <div className="inline-flex items-center p-0.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                <div className="inline-flex items-center p-1 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
                   <button
                     type="button"
                     onClick={() => {
@@ -1415,7 +1415,7 @@ export default function ContractCreate() {
                           : mapPreset[wgWoodOption] || "Tâmplărie lemn stratificat, esență meranti, 68 mm";
                       handleCommercialChange({ woodEssence: nextEssence });
                     }}
-                    className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-colors ${
+                    className={`px-3 py-1 text-[11px] font-bold rounded-full transition-colors ${
                       wgCarpentryCategory === "lemn"
                         ? "bg-amber-700 text-white shadow-2xs"
                         : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
@@ -1435,7 +1435,7 @@ export default function ContractCreate() {
                         : "Tâmplărie aluminiu";
                       handleCommercialChange({ woodEssence: nextEssence });
                     }}
-                    className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-colors ${
+                    className={`px-3 py-1 text-[11px] font-bold rounded-full transition-colors ${
                       wgCarpentryCategory === "aluminiu"
                         ? "bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 shadow-2xs"
                         : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
@@ -1452,7 +1452,7 @@ export default function ContractCreate() {
                         : "Tâmplărie PVC cu geam termoizolant";
                       handleCommercialChange({ woodEssence: nextEssence });
                     }}
-                    className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-colors ${
+                    className={`px-3 py-1 text-[11px] font-bold rounded-full transition-colors ${
                       wgCarpentryCategory === "pvc"
                         ? "bg-sky-600 text-white shadow-2xs"
                         : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
@@ -1547,12 +1547,12 @@ export default function ContractCreate() {
               {/* 8. Tip: Intern sau Extern + Persoană Fizică (PF) sau Juridică (PJ) */}
               <div className="flex flex-wrap items-center gap-2">
                 {/* Intern / Extern */}
-                <div className="flex items-center gap-1 bg-white dark:bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-1 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700">
                   <span className="text-[10px] font-bold uppercase text-slate-500">Tip:</span>
                   <button
                     type="button"
                     onClick={() => handleCommercialChange({ wgMarketType: "intern", paymentTranches: "50-40-10" })}
-                    className={`px-2 py-0.5 text-[11px] font-bold rounded transition-colors ${
+                    className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full transition-colors ${
                       wgMarketType === "intern"
                         ? "bg-indigo-600 text-white shadow-2xs"
                         : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
@@ -1564,7 +1564,7 @@ export default function ContractCreate() {
                   <button
                     type="button"
                     onClick={() => handleCommercialChange({ wgMarketType: "extern", paymentTranches: "50-50" })}
-                    className={`px-2 py-0.5 text-[11px] font-bold rounded transition-colors ${
+                    className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full transition-colors ${
                       wgMarketType === "extern"
                         ? "bg-indigo-600 text-white shadow-2xs"
                         : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
@@ -1576,12 +1576,12 @@ export default function ContractCreate() {
                 </div>
 
                 {/* Persoană Fizică / Persoană Juridică */}
-                <div className="flex items-center gap-1 bg-white dark:bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-1 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700">
                   <span className="text-[10px] font-bold uppercase text-slate-500">Beneficiar:</span>
                   <button
                     type="button"
                     onClick={() => handleCommercialChange({ wgBeneficiaryType: "pf" })}
-                    className={`px-2 py-0.5 text-[11px] font-bold rounded transition-colors ${
+                    className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full transition-colors ${
                       wgBeneficiaryType === "pf"
                         ? "bg-violet-600 text-white shadow-2xs"
                         : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
@@ -1592,7 +1592,7 @@ export default function ContractCreate() {
                   <button
                     type="button"
                     onClick={() => handleCommercialChange({ wgBeneficiaryType: "pj" })}
-                    className={`px-2 py-0.5 text-[11px] font-bold rounded transition-colors ${
+                    className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full transition-colors ${
                       wgBeneficiaryType === "pj"
                         ? "bg-violet-600 text-white shadow-2xs"
                         : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
@@ -1603,7 +1603,7 @@ export default function ContractCreate() {
                 </div>
 
                 {/* Badge Regim Recepție & TVA */}
-                <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-slate-200/80 dark:bg-slate-700 text-slate-800 dark:text-slate-200">
+                <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-200/80 dark:bg-slate-700 text-slate-800 dark:text-slate-200">
                   {wgMarketType === "intern"
                     ? "Recepție: PV Predare-Primire • + TVA"
                     : wgBeneficiaryType === "pf"
@@ -1614,7 +1614,7 @@ export default function ContractCreate() {
                 <button
                   type="button"
                   onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
-                  className={`text-[11px] font-semibold flex items-center gap-1 px-2.5 py-1 rounded-lg border transition-all ${
+                  className={`text-[11px] font-semibold flex items-center gap-1 px-3 py-1 rounded-full border transition-all ${
                     showAdvancedSettings
                       ? "bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900"
                       : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50"
@@ -1631,34 +1631,34 @@ export default function ContractCreate() {
           <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
             {/* Rezumat Rapid pentru ceilalți tenanți */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="tabular-nums text-xs font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
+              <span className="tabular-nums text-xs font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700">
                 Nr. {docNumber}
               </span>
-              <span className="text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 px-2.5 py-1 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
+              <span className="tabular-nums text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 px-2.5 py-1 rounded-full border border-slate-200/60 dark:border-slate-700/60">
                 Data: {docDate}
               </span>
 
               {!selectedTemplateId.includes("saas") ? (
-                <div className="flex items-center gap-1.5 bg-emerald-50/80 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                <div className="flex items-center gap-1.5 bg-emerald-50/80 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
                   <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300">Valoare:</span>
                   <Input
                     type="text"
                     value={docValue}
                     onChange={(e) => handleCommercialChange({ docValue: e.target.value })}
                     placeholder="ex: 2.864,65"
-                    className="h-6 w-24 rounded text-xs tabular-nums font-bold text-right px-1.5 bg-white dark:bg-slate-900 border-emerald-300 dark:border-emerald-700"
+                    className="h-6 w-24 rounded-lg text-xs tabular-nums font-bold text-right px-1.5 bg-white dark:bg-slate-900 border-emerald-300 dark:border-emerald-700"
                   />
                   <select
                     value={docCurrency}
                     onChange={(e) => handleCommercialChange({ docCurrency: e.target.value })}
-                    className="h-6 rounded text-[11px] font-bold px-1 bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200"
+                    className="h-6 rounded-full text-[11px] font-bold px-2 bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200"
                   >
                     <option value="EUR">EUR</option>
                     <option value="RON">RON</option>
                   </select>
                 </div>
               ) : (
-                <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                <span className="tabular-nums text-xs font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">
                   {hasTrial ? `Probă ${trialMonths}m • ` : ""}
                   {hasPromo
                     ? `Promo €${promoPrice} (${promoMonths}m) + Bază €${basePrice} (${Math.max(1, totalDurationMonths - promoMonths)}m)`
@@ -1673,7 +1673,7 @@ export default function ContractCreate() {
                 <button
                   type="button"
                   onClick={() => handleApplyTemplate(selectedTemplateId)}
-                  className="text-[11px] text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-medium"
+                  className="text-[11px] text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 px-2.5 py-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-medium"
                   title="Reîncarcă șablonul original în editor"
                 >
                   <RefreshCw className="h-3 w-3" /> Reîncarcă
@@ -1683,7 +1683,7 @@ export default function ContractCreate() {
               <button
                 type="button"
                 onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
-                className={`text-xs font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all ${
+                className={`text-xs font-semibold flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border transition-all ${
                   showAdvancedSettings
                     ? "bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 shadow-xs"
                     : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
@@ -1949,7 +1949,7 @@ export default function ContractCreate() {
                   <button
                     type="button"
                     onClick={() => handleCommercialChange({})}
-                    className="text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 border border-slate-300 dark:border-slate-700 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 hover:bg-slate-50 transition-colors ml-auto shadow-xs"
+                    className="text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 border border-slate-300 dark:border-slate-700 px-3 py-1 rounded-full bg-white dark:bg-slate-900 hover:bg-slate-50 transition-colors ml-auto shadow-xs"
                     title="Sincronizează clauzele din contract cu noile valori"
                   >
                     <RefreshCw className="h-3 w-3" /> Sincronizează Clauze
@@ -2121,7 +2121,7 @@ export default function ContractCreate() {
           />
 
           {/* Notă Înregistrare Jurnal de Audit */}
-          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5 shadow-xs flex items-center gap-2">
+          <div className="rounded-[22px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 shadow-xs flex items-center gap-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 shrink-0">
               Notă Audit:
             </span>
@@ -2143,7 +2143,7 @@ export default function ContractCreate() {
             }}
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}
-            className={`rounded-xl border-2 border-dashed transition-all p-6 text-center ${
+            className={`rounded-[22px] border-2 border-dashed transition-all p-6 text-center ${
               isDragging
                 ? "border-slate-900 bg-slate-50 dark:bg-slate-800"
                 : uploadedFile
@@ -2177,16 +2177,16 @@ export default function ContractCreate() {
               </div>
             ) : uploadedFile ? (
               <div className="space-y-3 text-left">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 rounded-lg bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800">
                   <div className="flex items-center gap-3 min-w-0 text-left">
-                    <div className="h-9 w-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                    <div className="h-9 w-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
                       <FileCheck className="h-5 w-5" />
                     </div>
                     <div className="min-w-0">
                       <div className="font-bold text-xs text-slate-900 dark:text-white truncate">
                         {uploadedFile.fileName}
                       </div>
-                      <div className="text-[11px] text-slate-500 flex flex-wrap items-center gap-2 mt-0.5">
+                      <div className="text-[11px] text-slate-500 flex flex-wrap items-center gap-2 mt-0.5 tabular-nums">
                         <span>Dimensiune: {formatFileSize(uploadedFile.fileSize)}</span>
                         {uploadedFile.detectedPartnerName && (
                           <span className="text-blue-700 dark:text-blue-300 font-semibold">
@@ -2211,7 +2211,7 @@ export default function ContractCreate() {
                       variant="outline"
                       size="sm"
                       onClick={() => fileInputRef.current?.click()}
-                      className="rounded-lg text-xs"
+                      className="rounded-full text-xs"
                     >
                       Înlocuiește fișier
                     </Button>
@@ -2220,7 +2220,7 @@ export default function ContractCreate() {
                       size="sm"
                       onClick={handleSave}
                       disabled={createMutation.isPending}
-                      className="rounded-lg text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                      className="rounded-full text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
                     >
                       <Save className="h-3.5 w-3.5 mr-1.5" />
                       Salvează Contractul Importat
@@ -2229,7 +2229,7 @@ export default function ContractCreate() {
                 </div>
 
                 {uploadedFile.fileUrl && /\.pdf$/i.test(uploadedFile.fileName || "") && (
-                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-900">
+                  <div className="rounded-[22px] border border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-900">
                     <iframe
                       src={`${uploadedFile.fileUrl}#view=FitH`}
                       className="w-full h-[650px] border-0 bg-white"
@@ -2251,7 +2251,7 @@ export default function ContractCreate() {
                   type="button"
                   size="sm"
                   onClick={() => fileInputRef.current?.click()}
-                  className="rounded-lg text-xs bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 mt-2"
+                  className="rounded-full text-xs bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 mt-2"
                 >
                   Selectează Fișier PDF / Word
                 </Button>
@@ -2260,7 +2260,7 @@ export default function ContractCreate() {
           </div>
 
           {/* Notă Înregistrare Jurnal de Audit */}
-          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5 shadow-xs flex items-center gap-2">
+          <div className="rounded-[22px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 shadow-xs flex items-center gap-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 shrink-0">
               Notă Arhivare:
             </span>

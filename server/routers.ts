@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { COOKIE_NAME } from "@shared/const";
-import { tenantOf } from "./tenant";
+import { tenantOf, isValidBidirectionalPair, assertSafeWebhookUrl } from "./tenant";
+import { createSpvOAuthState } from "./spvAuth";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
@@ -116,6 +117,7 @@ const apiKeysRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {
     if (!ctx.user?.tenantId) return [];
     const db = await getDb();
+    if (!db) return [];
     const { eq } = await import("drizzle-orm");
     return db
       .select({
@@ -136,6 +138,7 @@ const apiKeysRouter = router({
     .mutation(async ({ input, ctx }) => {
       if (!ctx.user?.tenantId) throw new Error("No tenant");
       const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Baza de date indisponibilă" });
       const { raw, prefix, hash } = generateApiKey();
       await db.insert(apiKeys).values({
         tenantId: (tenantOf(ctx)),
@@ -152,6 +155,7 @@ const apiKeysRouter = router({
     .mutation(async ({ input, ctx }) => {
       if (!ctx.user?.tenantId) throw new Error("No tenant");
       const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Baza de date indisponibilă" });
       const { eq, and } = await import("drizzle-orm");
       await db.update(apiKeys)
         .set({ isActive: 0 })
@@ -164,6 +168,7 @@ const apiKeysRouter = router({
     .mutation(async ({ input, ctx }) => {
       if (!ctx.user?.tenantId) throw new Error("No tenant");
       const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Baza de date indisponibilă" });
       const { eq, and } = await import("drizzle-orm");
       await db.delete(apiKeys)
         .where(and(eq(apiKeys.id, input.id), eq(apiKeys.tenantId, (tenantOf(ctx)))));
@@ -206,7 +211,123 @@ function stripPinFromTenant<T extends { settings?: string | null }>(t: T): T {
   if (!t?.settings) return t;
   const parsed = parseTenantSettingsSafe(t.settings);
   delete parsed.accessPinHash;
+  delete parsed.pinHash;
+  if (parsed.accountantPortal && typeof parsed.accountantPortal === "object") {
+    parsed.accountantPortal = { ...parsed.accountantPortal };
+    delete parsed.accountantPortal.pinHash;
+  }
   return { ...t, settings: JSON.stringify(parsed) };
+}
+
+const _tenantPinAttempts = new Map<string, { count: number; resetAt: number }>();
+const TENANT_PIN_WINDOW_MS = 60_000;
+const TENANT_PIN_MAX_FAILS = 5;
+
+function getClientIp(req: any): string {
+  const xff = req?.headers?.["x-forwarded-for"];
+  if (typeof xff === "string" && xff.trim()) return xff.split(",")[0].trim();
+  return req?.socket?.remoteAddress || "unknown";
+}
+
+function checkTenantPinRateLimit(tenantId: number, ip: string): void {
+  const key = `${tenantId}:${ip}`;
+  const entry = _tenantPinAttempts.get(key);
+  if (!entry) return;
+  if (Date.now() > entry.resetAt) {
+    _tenantPinAttempts.delete(key);
+    return;
+  }
+  if (entry.count >= TENANT_PIN_MAX_FAILS) {
+    throw new TRPCError({
+      code: "TOO_MANY_REQUESTS",
+      message: "Prea multe încercări PIN eșuate. Încearcă din nou peste un minut.",
+    });
+  }
+}
+
+function recordTenantPinFailure(tenantId: number, ip: string): void {
+  const key = `${tenantId}:${ip}`;
+  const now = Date.now();
+  const entry = _tenantPinAttempts.get(key);
+  if (!entry || now > entry.resetAt) {
+    _tenantPinAttempts.set(key, { count: 1, resetAt: now + TENANT_PIN_WINDOW_MS });
+  } else {
+    entry.count += 1;
+  }
+}
+
+function clearTenantPinFailures(tenantId: number, ip: string): void {
+  _tenantPinAttempts.delete(`${tenantId}:${ip}`);
+}
+
+function requireSuperadmin(ctx: { user?: { role?: string | null } | null }): void {
+  if (ctx.user?.role !== "superadmin") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Acces permis exclusiv administratorului platformei (superadmin).",
+    });
+  }
+}
+
+function maskIntegrationRow<T extends { apiKey?: string | null; apiSecret?: string | null }>(row: T) {
+  const hasToken = Boolean(row.apiKey);
+  const hasSecret = Boolean(row.apiSecret);
+  let maskedSecret: string | null = null;
+  if (row.apiSecret) {
+    try {
+      const parsed = JSON.parse(row.apiSecret);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        const clone: Record<string, any> = { ...parsed };
+        for (const k of ["secret", "apiSecret", "token", "accessToken", "refreshToken", "password", "apiKey"]) {
+          if (clone[k]) clone[k] = "••••••••";
+        }
+        maskedSecret = JSON.stringify(clone);
+      } else {
+        maskedSecret = "••••••••";
+      }
+    } catch {
+      maskedSecret = "••••••••";
+    }
+  }
+  return {
+    ...row,
+    apiKey: row.apiKey ? "••••••••" : null,
+    apiSecret: maskedSecret,
+    hasToken,
+    hasSecret,
+  };
+}
+
+async function assertSafeInvoiceFileUrl(
+  db: any,
+  rawUrl: string | undefined | null,
+  tenantId: number
+): Promise<string> {
+  const clean = String(rawUrl || "").trim();
+  if (!clean || clean === "spv_import") return clean || "spv_import";
+  if (
+    clean.includes("..") ||
+    clean.includes("\0") ||
+    clean.includes("\\") ||
+    !/^\/uploads\/invoices\/[A-Za-z0-9._\- ()]+$/.test(clean)
+  ) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Calea fișierului facturii este invalidă.",
+    });
+  }
+  const [otherOwner] = await db
+    .select({ id: invoiceArchive.id })
+    .from(invoiceArchive)
+    .where(and(eq(invoiceArchive.fileUrl, clean), sql`${invoiceArchive.tenantId} != ${tenantId}`))
+    .limit(1);
+  if (otherOwner) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Fișierul aparține unei alte firme.",
+    });
+  }
+  return clean;
 }
 
 function isTenantPfRow(t: { cui?: string | null; settings?: string | null }): boolean {
@@ -245,7 +366,12 @@ async function resolveEntityPair(
         .from(tenants)
         .where(eq(tenants.id, Number(parsed.pairedPjTenantId)))
         .limit(1);
-      pjRow = foundPj || null;
+      if (foundPj) {
+        const foundPjSettings = parseTenantSettingsSafe(foundPj.settings);
+        if (Number(foundPjSettings.pairedPfTenantId) === activeT.id) {
+          pjRow = foundPj;
+        }
+      }
     }
     if (!pjRow && userId) {
       const linkedRows = await db
@@ -281,7 +407,12 @@ async function resolveEntityPair(
         .from(tenants)
         .where(eq(tenants.id, Number(parsed.pairedPfTenantId)))
         .limit(1);
-      pfRow = foundPf || null;
+      if (foundPf) {
+        const foundPfSettings = parseTenantSettingsSafe(foundPf.settings);
+        if (Number(foundPfSettings.pairedPjTenantId) === activeT.id) {
+          pfRow = foundPf;
+        }
+      }
     }
     if (!pfRow && userId && !(userRole === "superadmin" && activeT.id !== 1)) {
       const linkedRows = await db
@@ -713,11 +844,7 @@ export const appRouter = router({
         return { success: true, pfTenantId: pfId, token };
       }),
     getModules: protectedProcedure.query(async ({ ctx }) => {
-      const { getDefaultTenantForUser } = await import("./db");
-      const tenantId =
-        ctx.user?.tenantId ||
-        (ctx.user?.id ? await getDefaultTenantForUser(ctx.user.id, true) : null) ||
-        1;
+      const tenantId = tenantOf(ctx);
       const db = await getDb();
       if (!db)
         return {
@@ -753,15 +880,11 @@ export const appRouter = router({
       };
     }),
     getPinStatus: protectedProcedure.query(async ({ ctx }) => {
-      const { getDefaultTenantForUser } = await import("./db");
-      const tenantId =
-        ctx.user?.tenantId ||
-        (ctx.user?.id ? await getDefaultTenantForUser(ctx.user.id, true) : null) ||
-        1;
+      const tenantId = tenantOf(ctx);
       const db = await getDb();
       if (!db)
         return {
-          tenantId: 1,
+          tenantId,
           pinEnabled: false,
           companyName: "",
           logoUrl: "",
@@ -777,7 +900,7 @@ export const appRouter = router({
         .limit(1);
       if (!t)
         return {
-          tenantId: 1,
+          tenantId,
           pinEnabled: false,
           companyName: "",
           logoUrl: "",
@@ -853,11 +976,10 @@ export const appRouter = router({
     verifyPin: protectedProcedure
       .input(z.object({ pin: z.string().min(1) }))
       .mutation(async ({ input, ctx }) => {
-        const { getDefaultTenantForUser } = await import("./db");
-        const tenantId =
-          ctx.user?.tenantId ||
-          (ctx.user?.id ? await getDefaultTenantForUser(ctx.user.id, true) : null) ||
-          1;
+        const tenantId = tenantOf(ctx);
+        const ip = getClientIp(ctx.req);
+        checkTenantPinRateLimit(tenantId, ip);
+
         const db = await getDb();
         if (!db) throw new Error("Baza de date indisponibilă");
         const { tenants } = await import("../drizzle/schema");
@@ -871,6 +993,7 @@ export const appRouter = router({
 
         // Superadminul poate debloca oricând orice firmă
         if (ctx.user?.role === "superadmin") {
+          clearTenantPinFailures(tenantId, ip);
           return { success: true, tenantId };
         }
 
@@ -887,8 +1010,10 @@ export const appRouter = router({
           .update(input.pin.trim() + "_pin_salt_smart_invoice")
           .digest("hex");
         if (computedHash !== s.accessPinHash) {
+          recordTenantPinFailure(tenantId, ip);
           throw new Error("Cod PIN incorect.");
         }
+        clearTenantPinFailures(tenantId, ip);
         return { success: true, tenantId };
       }),
     setPin: protectedProcedure
@@ -899,11 +1024,7 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        const { getDefaultTenantForUser } = await import("./db");
-        const tenantId =
-          ctx.user?.tenantId ||
-          (ctx.user?.id ? await getDefaultTenantForUser(ctx.user.id, true) : null) ||
-          1;
+        const tenantId = tenantOf(ctx);
         const db = await getDb();
         if (!db) throw new Error("Baza de date indisponibilă");
         const { tenants } = await import("../drizzle/schema");
@@ -950,11 +1071,7 @@ export const appRouter = router({
     disablePin: protectedProcedure
       .input(z.object({ pin: z.string().min(1) }))
       .mutation(async ({ input, ctx }) => {
-        const { getDefaultTenantForUser } = await import("./db");
-        const tenantId =
-          ctx.user?.tenantId ||
-          (ctx.user?.id ? await getDefaultTenantForUser(ctx.user.id, true) : null) ||
-          1;
+        const tenantId = tenantOf(ctx);
         const db = await getDb();
         if (!db) throw new Error("Baza de date indisponibilă");
         const { tenants } = await import("../drizzle/schema");
@@ -1004,25 +1121,33 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        const tenantId = ctx.user?.tenantId;
-        if (!tenantId) throw new Error("No active tenant");
+        const tenantId = tenantOf(ctx);
         const db = await getDb();
         if (!db) throw new Error("No DB");
-        const { tenants } = await import("../drizzle/schema");
-        const { eq } = await import("drizzle-orm");
+        const { tenants, userTenants } = await import("../drizzle/schema");
+        const { eq, and } = await import("drizzle-orm");
 
         let effectiveTargetId = tenantId;
         if (input.targetTenantId && input.targetTenantId !== tenantId) {
-          const [activeRow] = await db
-            .select()
-            .from(tenants)
-            .where(eq(tenants.id, tenantId))
-            .limit(1);
-          const activeSettings = parseTenantSettingsSafe(activeRow?.settings);
-          const isPairedTarget =
-            Number(activeSettings.pairedPjTenantId) === input.targetTenantId ||
-            Number(activeSettings.pairedPfTenantId) === input.targetTenantId;
-          if (!isPairedTarget) {
+          let allowedTarget = ctx.user?.role === "superadmin";
+          if (!allowedTarget && ctx.user?.id) {
+            const [member] = await db
+              .select({ id: userTenants.id })
+              .from(userTenants)
+              .where(
+                and(
+                  eq(userTenants.userId, ctx.user.id),
+                  eq(userTenants.tenantId, input.targetTenantId),
+                  eq(userTenants.isActive, 1)
+                )
+              )
+              .limit(1);
+            if (member) allowedTarget = true;
+          }
+          if (!allowedTarget) {
+            allowedTarget = await isValidBidirectionalPair(db, tenantId, input.targetTenantId);
+          }
+          if (!allowedTarget) {
             throw new TRPCError({
               code: "FORBIDDEN",
               message: "Acces interzis la setările acestui profil.",
@@ -1053,6 +1178,13 @@ export const appRouter = router({
             .limit(1);
           const existingSettings = parseTenantSettingsSafe(currentT?.settings);
           const newSettings = parseTenantSettingsSafe(input.settings);
+          // Prevent users from forging PF/PJ tenant pairings or overwriting PIN hashes via updateSettings
+          delete newSettings.pairedPfTenantId;
+          delete newSettings.pairedPjTenantId;
+          delete newSettings.accessPinHash;
+          delete newSettings.accessPinEnabled;
+          delete newSettings.pinHash;
+
           const mergedSettings: any = { ...existingSettings, ...newSettings };
           if (existingSettings.accessPinHash) {
             mergedSettings.accessPinHash = existingSettings.accessPinHash;
@@ -1060,16 +1192,10 @@ export const appRouter = router({
           if (existingSettings.accessPinEnabled !== undefined) {
             mergedSettings.accessPinEnabled = existingSettings.accessPinEnabled;
           }
-          if (
-            existingSettings.pairedPfTenantId !== undefined &&
-            newSettings.pairedPfTenantId === undefined
-          ) {
+          if (existingSettings.pairedPfTenantId !== undefined) {
             mergedSettings.pairedPfTenantId = existingSettings.pairedPfTenantId;
           }
-          if (
-            existingSettings.pairedPjTenantId !== undefined &&
-            newSettings.pairedPjTenantId === undefined
-          ) {
+          if (existingSettings.pairedPjTenantId !== undefined) {
             mergedSettings.pairedPjTenantId = existingSettings.pairedPjTenantId;
           }
           updateData.settings = JSON.stringify(mergedSettings);
@@ -1086,23 +1212,15 @@ export const appRouter = router({
         if (!ctx.user) throw new Error("Neautentificat");
         const db = await getDb();
         if (!db) throw new Error("No DB");
-        const { accounts, tenants, userTenants } = await import("../drizzle/schema");
+        const { accounts, userTenants } = await import("../drizzle/schema");
         const { eq, and } = await import("drizzle-orm");
 
         let isPairedProfile = false;
         if (ctx.user.tenantId && ctx.user.tenantId !== input.tenantId) {
-          const [currentT] = await db
-            .select({ settings: tenants.settings })
-            .from(tenants)
-            .where(eq(tenants.id, ctx.user.tenantId))
-            .limit(1);
-          const s = parseTenantSettingsSafe(currentT?.settings);
-          isPairedProfile =
-            Number(s.pairedPfTenantId) === input.tenantId ||
-            Number(s.pairedPjTenantId) === input.tenantId;
+          isPairedProfile = await isValidBidirectionalPair(db, ctx.user.tenantId, input.tenantId);
         }
 
-        // Verificare strictă de securitate: tenant-ul trebuie să fie explicit asignat utilizatorului în userTenants, să fie profilul pereche PF/PJ sau utilizatorul e superadmin
+        // Verificare strictă de securitate: tenant-ul trebuie să fie explicit asignat utilizatorului în userTenants, să fie profilul pereche bidirecțional PF/PJ sau utilizatorul e superadmin
         const [hasAccess] = await db
           .select()
           .from(userTenants)
@@ -1115,7 +1233,10 @@ export const appRouter = router({
           );
 
         if (!hasAccess && !isPairedProfile && ctx.user.role !== "superadmin") {
-          throw new Error("Acces interzis: datele fiecărui tenant sunt strict confidențiale.");
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Acces interzis: datele fiecărui tenant sunt strict confidențiale.",
+          });
         }
 
         await db
@@ -1149,8 +1270,7 @@ export const appRouter = router({
       let portal = s.accountantPortal || {};
       if (!portal.token) {
         const crypto = await import("crypto");
-        const cleanCui = (t.cui || "").replace(/^RO/i, "").trim().toLowerCase();
-        portal.token = cleanCui || crypto.randomBytes(8).toString("hex");
+        portal.token = crypto.randomBytes(16).toString("hex");
         portal.enabled = portal.enabled ?? false;
         s.accountantPortal = portal;
         await db.update(tenants).set({ settings: JSON.stringify(s) }).where(eq(tenants.id, tenantId));
@@ -1192,11 +1312,8 @@ export const appRouter = router({
 
         portal.enabled = input.enabled;
 
-        if (input.regenerateToken) {
-          portal.token = crypto.randomBytes(8).toString("hex");
-        } else if (!portal.token) {
-          const cleanCui = (t.cui || "").replace(/^RO/i, "").trim().toLowerCase();
-          portal.token = cleanCui || crypto.randomBytes(8).toString("hex");
+        if (input.regenerateToken || !portal.token) {
+          portal.token = crypto.randomBytes(16).toString("hex");
         }
 
         if (input.customSlug !== undefined) {
@@ -1328,7 +1445,11 @@ export const appRouter = router({
         const insertedIds: number[] = [];
 
         for (const inv of input) {
-          let finalFileUrl = (inv as any).pdfUrl || "spv_import";
+          let finalFileUrl = await assertSafeInvoiceFileUrl(
+            db,
+            (inv as any).pdfUrl || "spv_import",
+            tenantId
+          );
 
           if (inv.xmlContent) {
             const pdfRes = await convertXmlToPdf(
@@ -1442,11 +1563,20 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        
-        const number = await getNextReInvoiceNumber((tenantOf(ctx)));
+        const tenantId = tenantOf(ctx);
+        if (input.clientId) {
+          const ownClient = await getClientById(input.clientId, tenantId);
+          if (!ownClient) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Clientul selectat nu aparține firmei curente.",
+            });
+          }
+        }
+        const number = await getNextReInvoiceNumber(tenantId);
 
         const res = await createReInvoice({
-          tenantId: (tenantOf(ctx)),
+          tenantId,
           number,
           ...input,
         });
@@ -1637,7 +1767,7 @@ export const appRouter = router({
             spvStatus: newStatus as any,
             spvError: errors.length > 0 ? errors.join("; ") : (newStatus === "eroare" ? stare : null),
           })
-          .where(eq(reInvoices.id, input.id));
+          .where(and(eq(reInvoices.id, input.id), eq(reInvoices.tenantId, tenantId)));
 
         return {
           status: newStatus,
@@ -1711,15 +1841,21 @@ export const appRouter = router({
           template: z.enum(["classic", "modern", "minimal"]).optional(),
         })
       )
-      .mutation(({ input, ctx }) => {
+      .mutation(async ({ input }) => {
         const pdfStream = generateReInvoicePDF(input);
-        ctx.res.setHeader("Content-Type", "application/pdf");
-        ctx.res.setHeader(
-          "Content-Disposition",
-          `attachment; filename="${input.number}.pdf"`
-        );
-        pdfStream.pipe(ctx.res);
-        return { success: true };
+        const buffer = await new Promise<Buffer>((resolve, reject) => {
+          const chunks: Buffer[] = [];
+          pdfStream.on("data", (chunk: any) =>
+            chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+          );
+          pdfStream.on("end", () => resolve(Buffer.concat(chunks)));
+          pdfStream.on("error", reject);
+        });
+        return {
+          success: true,
+          pdfBase64: buffer.toString("base64"),
+          filename: `${input.number}.pdf`,
+        };
       }),
   }),
   costCenters: router({
@@ -1781,8 +1917,8 @@ export const appRouter = router({
 
     // ─── Categories Nomenclator ───────────────────────────────
     listCategories: protectedProcedure.query(async ({ ctx }) => {
-      
       const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Baza de date indisponibilă" });
       const { costCenterCategories } = await import("../drizzle/schema");
       const { eq } = await import("drizzle-orm");
       return db.select().from(costCenterCategories)
@@ -1792,8 +1928,8 @@ export const appRouter = router({
     createCategory: protectedProcedure
       .input(z.object({ name: z.string().min(1).max(100), color: z.string().length(7).optional() }))
       .mutation(async ({ input, ctx }) => {
-        
         const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Baza de date indisponibilă" });
         const { costCenterCategories } = await import("../drizzle/schema");
         await db.insert(costCenterCategories).values({
           tenantId: (tenantOf(ctx)),
@@ -1805,8 +1941,8 @@ export const appRouter = router({
     updateCategory: protectedProcedure
       .input(z.object({ id: z.number(), name: z.string().min(1).max(100).optional(), color: z.string().length(7).optional() }))
       .mutation(async ({ input, ctx }) => {
-        
         const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Baza de date indisponibilă" });
         const { costCenterCategories } = await import("../drizzle/schema");
         const { eq, and } = await import("drizzle-orm");
         const { id, ...data } = input;
@@ -1817,8 +1953,8 @@ export const appRouter = router({
     deleteCategory: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
-        
         const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Baza de date indisponibilă" });
         const { costCenterCategories } = await import("../drizzle/schema");
         const { eq, and } = await import("drizzle-orm");
         await db.delete(costCenterCategories)
@@ -1826,8 +1962,8 @@ export const appRouter = router({
         return { success: true };
       }),
     listRules: protectedProcedure.query(async ({ ctx }) => {
-      
       const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Baza de date indisponibilă" });
       const { costCenterRules } = await import("../drizzle/schema");
       const { eq } = await import("drizzle-orm");
       return db.select().from(costCenterRules).where(eq(costCenterRules.tenantId, (tenantOf(ctx))));
@@ -1843,11 +1979,16 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        
         const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Baza de date indisponibilă" });
+        const tenantId = tenantOf(ctx);
+        const ownCc = await getCostCenterById(input.costCenterId, tenantId);
+        if (!ownCc) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Centrul de cost nu aparține firmei curente." });
+        }
         const { costCenterRules } = await import("../drizzle/schema");
         return db.insert(costCenterRules).values({
-          tenantId: (tenantOf(ctx)),
+          tenantId,
           conditionType: "MULTI",
           conditionValue: input.conditionValue || "",
           matchName: input.matchName || null,
@@ -1859,8 +2000,8 @@ export const appRouter = router({
     deleteRule: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
-        
         const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Baza de date indisponibilă" });
         const { costCenterRules } = await import("../drizzle/schema");
         const { eq, and } = await import("drizzle-orm");
         return db
@@ -1879,8 +2020,13 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        
         const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Baza de date indisponibilă" });
+        const tenantId = tenantOf(ctx);
+        const ownCc = await getCostCenterById(input.costCenterId, tenantId);
+        if (!ownCc) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Centrul de cost nu aparține firmei curente." });
+        }
         const { costCenterRules } = await import("../drizzle/schema");
         const { eq, and } = await import("drizzle-orm");
         const { id, ...data } = input;
@@ -1894,7 +2040,7 @@ export const appRouter = router({
             lineKeyword: data.lineKeyword || null,
             costCenterId: data.costCenterId,
           })
-          .where(and(eq(costCenterRules.id, id), eq(costCenterRules.tenantId, (tenantOf(ctx)))));
+          .where(and(eq(costCenterRules.id, id), eq(costCenterRules.tenantId, tenantId)));
       }),
     getInvoicesByCostCenter: protectedProcedure
       .input(z.object({
@@ -1904,8 +2050,8 @@ export const appRouter = router({
         dateTo: z.string().optional(),
       }))
       .query(async ({ input, ctx }) => {
-        
         const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Baza de date indisponibilă" });
         const { invoiceArchive } = await import("../drizzle/schema");
         const { eq, and, like, gte, lte, or } = await import("drizzle-orm");
 
@@ -1944,8 +2090,8 @@ export const appRouter = router({
           .limit(1000);
       }),
     getUniqueSuppliers: protectedProcedure.query(async ({ ctx }) => {
-      
       const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Baza de date indisponibilă" });
       const { invoiceArchive } = await import("../drizzle/schema");
       const { eq } = await import("drizzle-orm");
       
@@ -1963,22 +2109,23 @@ export const appRouter = router({
       return distinctSuppliers.filter(s => s.supplierCUI || s.supplierName);
     }),
     recalculateRules: protectedProcedure.mutation(async ({ ctx }) => {
-      
       const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Baza de date indisponibilă" });
+      const tenantId = tenantOf(ctx);
       const { invoiceArchive, costCenterRules, invoiceArchiveLines } = await import("../drizzle/schema");
       const { eq, and, inArray } = await import("drizzle-orm");
       
       const rules = await db
         .select()
         .from(costCenterRules)
-        .where(and(eq(costCenterRules.tenantId, (tenantOf(ctx))), eq(costCenterRules.isActive, 1)));
+        .where(and(eq(costCenterRules.tenantId, tenantId), eq(costCenterRules.isActive, 1)));
         
       if (rules.length === 0) return { updated: 0 };
       
       const invoices = await db
         .select()
         .from(invoiceArchive)
-        .where(eq(invoiceArchive.tenantId, (tenantOf(ctx))));
+        .where(eq(invoiceArchive.tenantId, tenantId));
 
       // Pre-load all lines for this tenant's invoices (batch, not per invoice)
       const invoiceIds = invoices.map(i => i.id);
@@ -1993,11 +2140,26 @@ export const appRouter = router({
           linesMap.get(l.invoiceArchiveId)!.push((l.description || "").toLowerCase());
         }
       }
+
+      const extractXmlAddressText = (rawXml?: string | null, notes?: string | null): string => {
+        const parts: string[] = [];
+        if (notes) parts.push(notes);
+        if (rawXml) {
+          const tagMatches = rawXml.matchAll(
+            /<(?:cbc:)?(?:StreetName|AdditionalStreetName|CityName|CountrySubentity|Line|PostalZone)[^>]*>([\s\S]*?)<\/(?:cbc:)?(?:StreetName|AdditionalStreetName|CityName|CountrySubentity|Line|PostalZone)>/gi
+          );
+          for (const m of tagMatches) {
+            if (m[1]) parts.push(m[1].trim());
+          }
+        }
+        return parts.join(" ").toLowerCase();
+      };
         
       let updatedCount = 0;
       for (const invoice of invoices) {
         let assignedCostCenterId = null;
         const invoiceLines = linesMap.get(invoice.id) || [];
+        const addrText = extractXmlAddressText(invoice.rawXml, invoice.notes);
 
         for (const rule of rules) {
           const hasCUI  = rule.conditionValue && rule.conditionValue.trim() !== "";
@@ -2009,7 +2171,7 @@ export const appRouter = router({
 
           const cuiOk  = !hasCUI  || (invoice.supplierCUI  && invoice.supplierCUI.toLowerCase().includes(rule.conditionValue!.toLowerCase()));
           const nameOk = !hasName || (invoice.supplierName && invoice.supplierName.toLowerCase().includes(rule.matchName!.toLowerCase()));
-          const addrOk = !hasAddr || (invoice.supplierAddress && invoice.supplierAddress.toLowerCase().includes(rule.addressKeyword!.toLowerCase()));
+          const addrOk = !hasAddr || (addrText.length > 0 && addrText.includes(rule.addressKeyword!.toLowerCase()));
           // lineKeyword: at least one line description must contain the keyword
           const lineOk = !hasLine || invoiceLines.some(desc => desc.includes(rule.lineKeyword!.toLowerCase()));
 
@@ -2023,7 +2185,7 @@ export const appRouter = router({
           await db
             .update(invoiceArchive)
             .set({ costCenterId: assignedCostCenterId })
-            .where(eq(invoiceArchive.id, invoice.id));
+            .where(and(eq(invoiceArchive.id, invoice.id), eq(invoiceArchive.tenantId, tenantId)));
           updatedCount++;
         }
       }
@@ -2475,18 +2637,16 @@ export const appRouter = router({
       }),
   }),
 
-  // ─── Admin-only endpoints ────────────────────────────────────────────────────
+  // ─── Admin-only endpoints (STRICTLY superadmin) ─────────────────────────────
   admin: router({
     // Stats overview
     stats: protectedProcedure.query(async ({ ctx }) => {
-      if (ctx.user?.role !== "superadmin" && ctx.user?.role !== "admin")
-        throw new Error("Forbidden");
+      requireSuperadmin(ctx);
       return getAdminStats();
     }),
     // All leads/registrations
     leads: protectedProcedure.query(async ({ ctx }) => {
-      if (ctx.user?.role !== "superadmin" && ctx.user?.role !== "admin")
-        throw new Error("Forbidden");
+      requireSuperadmin(ctx);
       return getAllLeads();
     }),
     updateLeadStatus: protectedProcedure
@@ -2497,27 +2657,23 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        if (ctx.user?.role !== "superadmin" && ctx.user?.role !== "admin")
-          throw new Error("Forbidden");
+        requireSuperadmin(ctx);
         return updateLeadStatus(input.id, input.status);
       }),
     deleteLead: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
-        if (ctx.user?.role !== "superadmin" && ctx.user?.role !== "admin")
-          throw new Error("Forbidden");
+        requireSuperadmin(ctx);
         return deleteLead(input.id);
       }),
     // Accounts list
     accounts: protectedProcedure.query(async ({ ctx }) => {
-      if (ctx.user?.role !== "superadmin" && ctx.user?.role !== "admin")
-        throw new Error("Forbidden");
+      requireSuperadmin(ctx);
       return getAllAccounts();
     }),
     // Tenants list
     tenants: protectedProcedure.query(async ({ ctx }) => {
-      if (ctx.user?.role !== "superadmin" && ctx.user?.role !== "admin")
-        throw new Error("Forbidden");
+      requireSuperadmin(ctx);
       return getAllTenants();
     }),
     updateTenantModules: protectedProcedure
@@ -2533,8 +2689,7 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        if (ctx.user?.role !== "superadmin" && ctx.user?.role !== "admin")
-          throw new Error("Forbidden");
+        requireSuperadmin(ctx);
         const db = await getDb();
         if (!db) throw new Error("No DB");
         const { tenants } = await import("../drizzle/schema");
@@ -2561,14 +2716,12 @@ export const appRouter = router({
       }),
     // User Activity & Logins list
     userActivity: protectedProcedure.query(async ({ ctx }) => {
-      if (ctx.user?.role !== "superadmin" && ctx.user?.role !== "admin")
-        throw new Error("Forbidden");
+      requireSuperadmin(ctx);
       return getAdminUserActivity();
     }),
     // Subscription plans CRUD
     plans: protectedProcedure.query(async ({ ctx }) => {
-      if (ctx.user?.role !== "superadmin" && ctx.user?.role !== "admin")
-        throw new Error("Forbidden");
+      requireSuperadmin(ctx);
       return getAllSubscriptionPlans();
     }),
     createPlan: protectedProcedure
@@ -2583,8 +2736,7 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        if (ctx.user?.role !== "superadmin" && ctx.user?.role !== "admin")
-          throw new Error("Forbidden");
+        requireSuperadmin(ctx);
         return createSubscriptionPlan(input);
       }),
     updatePlan: protectedProcedure
@@ -2601,24 +2753,21 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        if (ctx.user?.role !== "superadmin" && ctx.user?.role !== "admin")
-          throw new Error("Forbidden");
+        requireSuperadmin(ctx);
         const { id, ...data } = input;
         return updateSubscriptionPlan(id, data);
       }),
     deletePlan: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
-        if (ctx.user?.role !== "superadmin" && ctx.user?.role !== "admin")
-          throw new Error("Forbidden");
+        requireSuperadmin(ctx);
         return deleteSubscriptionPlan(input.id);
       }),
     // CMS settings
     getCmsSettings: protectedProcedure
       .input(z.object({ group: z.string().optional() }))
       .query(async ({ input, ctx }) => {
-        if (ctx.user?.role !== "superadmin" && ctx.user?.role !== "admin")
-          throw new Error("Forbidden");
+        requireSuperadmin(ctx);
         return getCmsSettings(input.group);
       }),
     upsertCmsSetting: protectedProcedure
@@ -2631,8 +2780,13 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        if (ctx.user?.role !== "superadmin" && ctx.user?.role !== "admin")
-          throw new Error("Forbidden");
+        requireSuperadmin(ctx);
+        if (
+          /webhook/i.test(input.key) ||
+          (/^https?:\/\//i.test(input.value.trim()) && /url|webhook|endpoint/i.test(input.key))
+        ) {
+          assertSafeWebhookUrl(input.value);
+        }
         return upsertCmsSetting(
           input.key,
           input.value,
@@ -2642,19 +2796,16 @@ export const appRouter = router({
       }),
     // Traffic stats
     trafficStats: protectedProcedure.query(async ({ ctx }) => {
-      if (ctx.user?.role !== "superadmin" && ctx.user?.role !== "admin")
-        throw new Error("Forbidden");
+      requireSuperadmin(ctx);
       return getPageVisitStats();
     }),
     // Modules CRUD
     modules: protectedProcedure.query(async ({ ctx }) => {
-      if (ctx.user?.role !== "superadmin" && ctx.user?.role !== "admin")
-        throw new Error("Forbidden");
+      requireSuperadmin(ctx);
       return getAllModules();
     }),
     modulesWithPricing: protectedProcedure.query(async ({ ctx }) => {
-      if (ctx.user?.role !== "superadmin" && ctx.user?.role !== "admin")
-        throw new Error("Forbidden");
+      requireSuperadmin(ctx);
       return getActiveModulesWithPricing();
     }),
     upsertModule: protectedProcedure
@@ -2673,15 +2824,13 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        if (ctx.user?.role !== "superadmin" && ctx.user?.role !== "admin")
-          throw new Error("Forbidden");
+        requireSuperadmin(ctx);
         return upsertModule(input);
       }),
     deleteModule: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
-        if (ctx.user?.role !== "superadmin" && ctx.user?.role !== "admin")
-          throw new Error("Forbidden");
+        requireSuperadmin(ctx);
         return deleteModule(input.id);
       }),
     upsertModulePricing: protectedProcedure
@@ -2697,15 +2846,13 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        if (ctx.user?.role !== "superadmin" && ctx.user?.role !== "admin")
-          throw new Error("Forbidden");
+        requireSuperadmin(ctx);
         return upsertModulePricing(input);
       }),
     deleteModulePricing: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
-        if (ctx.user?.role !== "superadmin" && ctx.user?.role !== "admin")
-          throw new Error("Forbidden");
+        requireSuperadmin(ctx);
         return deleteModulePricing(input.id);
       }),
   }),
@@ -2863,10 +3010,14 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Baza de date indisponibilă" });
+        const tenantId = tenantOf(ctx);
+        const safeFileUrl = await assertSafeInvoiceFileUrl(db, input.fileUrl, tenantId);
         return createInvoiceArchiveEntry({
           ...input,
-          tenantId: (tenantOf(ctx)),
+          fileUrl: safeFileUrl,
+          tenantId,
         });
       }),
 
@@ -2980,18 +3131,23 @@ export const appRouter = router({
             .where(eq(tenants.id, tenantId))
             .limit(1);
           const s = parseTenantSettingsSafe(t?.settings);
-          if (s.entityType === "pf" && s.pairedPjTenantId) {
-            const pairedList = await getIntegrations(Number(s.pairedPjTenantId));
+          const pairedPjId = Number(s.pairedPjTenantId);
+          if (
+            s.entityType === "pf" &&
+            pairedPjId > 0 &&
+            (await isValidBidirectionalPair(db, tenantId, pairedPjId))
+          ) {
+            const pairedList = await getIntegrations(pairedPjId);
             const pairedSpv = pairedList.find(
               (i) => i.provider === "spv" && i.status === "active" && i.apiKey
             );
             if (pairedSpv) {
-              return [...list, { ...pairedSpv, tenantId }];
+              return [...list, { ...pairedSpv, tenantId }].map(maskIntegrationRow);
             }
           }
         }
       }
-      return list;
+      return list.map(maskIntegrationRow);
     }),
     exportSaga: protectedProcedure
       .input(
@@ -3024,10 +3180,41 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        
-        await upsertIntegration((tenantOf(ctx)), input.provider, {
-          apiKey: input.apiKey,
-          apiSecret: input.apiSecret,
+        const tenantId = tenantOf(ctx);
+        const existingList = await getIntegrations(tenantId);
+        const existingIntg = existingList.find((i) => i.provider === input.provider);
+
+        let nextApiKey = input.apiKey;
+        if (nextApiKey === "••••••••") {
+          nextApiKey = existingIntg?.apiKey ?? undefined;
+        }
+
+        let nextApiSecret = input.apiSecret;
+        if (nextApiSecret === "••••••••") {
+          nextApiSecret = existingIntg?.apiSecret ?? undefined;
+        } else if (nextApiSecret && existingIntg?.apiSecret) {
+          try {
+            const parsedNew = JSON.parse(nextApiSecret);
+            const parsedOld = JSON.parse(existingIntg.apiSecret);
+            if (
+              parsedNew &&
+              typeof parsedNew === "object" &&
+              parsedOld &&
+              typeof parsedOld === "object"
+            ) {
+              for (const k of ["secret", "apiSecret", "token", "accessToken", "refreshToken", "password", "apiKey"]) {
+                if (parsedNew[k] === "••••••••" && parsedOld[k]) {
+                  parsedNew[k] = parsedOld[k];
+                }
+              }
+              nextApiSecret = JSON.stringify(parsedNew);
+            }
+          } catch {}
+        }
+
+        await upsertIntegration(tenantId, input.provider, {
+          apiKey: nextApiKey,
+          apiSecret: nextApiSecret,
           status: input.status,
         });
         return { success: true };
@@ -3116,14 +3303,16 @@ export const appRouter = router({
       authUrl.searchParams.append("client_id", clientId || "");
       authUrl.searchParams.append("redirect_uri", redirectUri);
       authUrl.searchParams.append("token_content_type", "jwt");
-      authUrl.searchParams.append("state", String((tenantOf(ctx))));
+      const tenantId = tenantOf(ctx);
+      authUrl.searchParams.append("state", createSpvOAuthState(tenantId));
       // Fetch tenant CUI
       const { tenants } = await import("../drizzle/schema");
       const db = await getDb();
-      const [tenant] = await db!
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Baza de date indisponibilă" });
+      const [tenant] = await db
         .select({ cui: tenants.cui, settings: tenants.settings })
         .from(tenants)
-        .where(eq(tenants.id, (tenantOf(ctx))));
+        .where(eq(tenants.id, tenantId));
       let parsedSettings: any = {};
       try {
         parsedSettings =
@@ -3423,11 +3612,22 @@ export const appRouter = router({
         const lines = await db
           .select()
           .from(emittedInvoiceLines)
-          .where(eq(emittedInvoiceLines.emittedInvoiceId, input.id))
+          .where(eq(emittedInvoiceLines.emittedInvoiceId, input.id));
+        let clientRecord: any = null;
+        if (inv.clientId) {
+          const { clients } = await import("../drizzle/schema");
+          const [c] = await db
+            .select()
+            .from(clients)
+            .where(and(eq(clients.id, inv.clientId), eq(clients.tenantId, tenantOf(ctx))));
+          clientRecord = c;
+        }
+        const effCountry = (inv.clientCountry || clientRecord?.country || "").trim().toUpperCase();
+        const effCui = (inv.clientCUI || clientRecord?.cui || "").trim().toUpperCase();
+        const cuiPrefix = effCui.match(/^([A-Z]{2})/)?.[1] || "";
         const isForeign = Boolean(
-          (inv.clientCountry && inv.clientCountry !== "RO") ||
-          (inv.clientCUI && !inv.clientCUI.startsWith("RO") && /^[A-Z]{2}/.test(inv.clientCUI)) ||
-          (inv.currency && inv.currency !== "RON" && inv.currency !== "LEI")
+          (effCountry && effCountry !== "RO" && effCountry !== "ROMANIA" && effCountry !== "ROMÂNIA") ||
+          (cuiPrefix && cuiPrefix !== "RO")
         );
         const { translateProductDescription } = await import("./invoiceTranslator");
         const linesWithTrans = await Promise.all(
@@ -3441,15 +3641,6 @@ export const appRouter = router({
             };
           })
         );
-        let clientRecord: any = null;
-        if (inv.clientId) {
-          const { clients } = await import("../drizzle/schema");
-          const [c] = await db
-            .select()
-            .from(clients)
-            .where(eq(clients.id, inv.clientId));
-          clientRecord = c;
-        }
 
         const isActuallySent =
           inv.status === "draft" &&
@@ -3746,6 +3937,13 @@ export const appRouter = router({
             console.error("Failed to auto-save client:", err);
           }
         } else if (assignedClientId) {
+          const ownClient = await getClientById(assignedClientId, tenantId);
+          if (!ownClient) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Clientul selectat nu aparține firmei curente.",
+            });
+          }
           try {
             const { clients } = await import("../drizzle/schema");
             const updateClientData: any = {};
@@ -4228,6 +4426,20 @@ export const appRouter = router({
           updateData.spvStatus = "extern";
           updateData.spvError = null;
         }
+        if (data.clientId !== undefined) {
+          if (data.clientId) {
+            const ownClient = await getClientById(data.clientId, tenantOf(ctx));
+            if (!ownClient) {
+              throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Clientul selectat nu aparține firmei curente.",
+              });
+            }
+            updateData.clientId = data.clientId;
+          } else {
+            updateData.clientId = null;
+          }
+        }
         if (Object.keys(updateData).length > 0) {
           await db
             .update(emittedInvoices)
@@ -4261,22 +4473,23 @@ export const appRouter = router({
         if (lines) {
           const { devize, devizeLines, bonuriConsum, bonuriConsumLines } =
             await import("../drizzle/schema");
+          const tenantId = tenantOf(ctx);
 
           await db
             .delete(emittedInvoiceLines)
             .where(eq(emittedInvoiceLines.emittedInvoiceId, id));
 
-          // Delete old devize & bonuri for this invoice to regenerate cleanly
+          // Delete old devize & bonuri for this invoice to regenerate cleanly (strictly tenant-scoped)
           const oldDevize = await db
             .select({ id: devize.id })
             .from(devize)
-            .where(eq(devize.invoiceId, id));
+            .where(and(eq(devize.invoiceId, id), eq(devize.tenantId, tenantId)));
           for (const od of oldDevize) {
             await db.delete(devizeLines).where(eq(devizeLines.devizId, od.id));
             const oldBonuri = await db
               .select({ id: bonuriConsum.id })
               .from(bonuriConsum)
-              .where(eq(bonuriConsum.devizId, od.id));
+              .where(and(eq(bonuriConsum.devizId, od.id), eq(bonuriConsum.tenantId, tenantId)));
             for (const ob of oldBonuri) {
               await db
                 .delete(bonuriConsumLines)
@@ -4284,9 +4497,9 @@ export const appRouter = router({
             }
             await db
               .delete(bonuriConsum)
-              .where(eq(bonuriConsum.devizId, od.id));
+              .where(and(eq(bonuriConsum.devizId, od.id), eq(bonuriConsum.tenantId, tenantId)));
           }
-          await db.delete(devize).where(eq(devize.invoiceId, id));
+          await db.delete(devize).where(and(eq(devize.invoiceId, id), eq(devize.tenantId, tenantId)));
 
           if (lines.length > 0) {
             let finalInvoiceLines = [...lines];
@@ -5635,20 +5848,25 @@ export const appRouter = router({
   // ─── GDPR Router ──────────────────────────────────────────────────────────────
   gdpr: router({
     exportData: protectedProcedure.mutation(async ({ ctx }) => {
-      
       const db = await getDb();
       if (!db) throw new Error("No DB");
       
-      const { emittedInvoices, clients, invoiceArchive, users } = await import("../drizzle/schema");
+      const { emittedInvoices, clients, invoiceArchive, accounts } = await import("../drizzle/schema");
       const { eq } = await import("drizzle-orm");
+      const tenantId = tenantOf(ctx);
 
-      const myInvoices = await db.select().from(emittedInvoices).where(eq(emittedInvoices.tenantId, (tenantOf(ctx))));
-      const myClients = await db.select().from(clients).where(eq(clients.tenantId, (tenantOf(ctx))));
-      const myArchive = await db.select().from(invoiceArchive).where(eq(invoiceArchive.tenantId, (tenantOf(ctx))));
-      const myUser = await db.select().from(users).where(eq(users.id, ctx.user.id));
+      const myInvoices = await db.select().from(emittedInvoices).where(eq(emittedInvoices.tenantId, tenantId));
+      const myClients = await db.select().from(clients).where(eq(clients.tenantId, tenantId));
+      const myArchive = await db.select().from(invoiceArchive).where(eq(invoiceArchive.tenantId, tenantId));
+      const [myAccount] = await db.select().from(accounts).where(eq(accounts.id, ctx.user.id));
+      let safeUser: Record<string, any> | null = null;
+      if (myAccount) {
+        const { passwordHash: _ph, ...rest } = myAccount as any;
+        safeUser = rest;
+      }
 
       const exportData = {
-        user: myUser[0],
+        user: safeUser,
         clients: myClients,
         emittedInvoices: myInvoices,
         invoiceArchive: myArchive,
@@ -5663,17 +5881,14 @@ export const appRouter = router({
       const db = await getDb();
       if (!db) throw new Error("No DB");
       
-      const { users, userTenants } = await import("../drizzle/schema");
+      const { accounts, userTenants } = await import("../drizzle/schema");
       const { eq } = await import("drizzle-orm");
 
-      // We only delete the user link to respect fiscal laws for the tenant's invoices.
-      // Soft delete or anonymize user
-      // 1. Remove user from userTenants to revoke access
+      // 1. Remove user from userTenants to revoke access while preserving tenant fiscal records
       await db.delete(userTenants).where(eq(userTenants.userId, ctx.user.id));
       
-      // 2. Anonymize user details to keep DB integrity if constraints exist, or delete if safe.
-      // In Drizzle, deleting the user might cascade or fail. Let's try to delete.
-      await db.delete(users).where(eq(users.id, ctx.user.id));
+      // 2. Delete user account from accounts table
+      await db.delete(accounts).where(eq(accounts.id, ctx.user.id));
 
       return { success: true };
     }),
@@ -5707,7 +5922,7 @@ export const appRouter = router({
               totalVAT: invoiceArchive.totalVAT,
             })
             .from(invoiceArchive)
-            .where(inArray(invoiceArchive.id, invIds))
+            .where(and(eq(invoiceArchive.tenantId, tenantId), inArray(invoiceArchive.id, invIds)))
         : [];
       const invoiceDataMap = new Map(invRows.map(r => [r.id, r]));
 
@@ -5897,7 +6112,7 @@ export const appRouter = router({
       // Preload invoiceArchive for spvIndex & invoiceDate
       const archiveIds = nirs.map(n => n.invoiceArchiveId).filter(Boolean) as number[];
       const archives = archiveIds.length > 0
-        ? await db.select().from(invoiceArchive).where(inArray(invoiceArchive.id, archiveIds))
+        ? await db.select().from(invoiceArchive).where(and(eq(invoiceArchive.tenantId, tenantId), inArray(invoiceArchive.id, archiveIds)))
         : [];
       const archiveMap = new Map<number, any>();
       archives.forEach(a => archiveMap.set(a.id, a));
@@ -5909,7 +6124,9 @@ export const appRouter = router({
         ? await db.select().from(invoiceArchive).where(and(eq(invoiceArchive.tenantId, tenantId), inArray(invoiceArchive.invoiceNumber, invoiceNums)))
         : [];
       const archiveNumMap = new Map<string, any>();
-      archivesByNum.forEach(a => archiveNumMap.set(a.invoiceNumber, a));
+      archivesByNum.forEach(a => {
+        if (a.invoiceNumber) archiveNumMap.set(a.invoiceNumber, a);
+      });
       
       return nirs.map(n => {
         const inv = (n.invoiceArchiveId ? archiveMap.get(n.invoiceArchiveId) : null) || (n.invoiceNumber ? archiveNumMap.get(n.invoiceNumber) : null);
@@ -6194,6 +6411,7 @@ export const appRouter = router({
         let invoiceCurrency = "RON";
         let exchangeRate = 1.0;
 
+        let verifiedArchiveId: number | null = null;
         if (input.invoiceArchiveId) {
           const { invoiceArchive } = await import("../drizzle/schema");
           const [inv] = await db
@@ -6201,6 +6419,7 @@ export const appRouter = router({
             .from(invoiceArchive)
             .where(and(eq(invoiceArchive.id, input.invoiceArchiveId), eq(invoiceArchive.tenantId, tenantId)));
           if (inv) {
+            verifiedArchiveId = inv.id;
             if (inv.currency && inv.currency.trim()) {
               invoiceCurrency = inv.currency.trim().toUpperCase();
             }
@@ -6240,7 +6459,7 @@ export const appRouter = router({
         // Factură cu TAXARE INVERSĂ (AE, TVA 0): NIR-ul nu are voie să calculeze TVA
         {
           const { isReverseChargeArchiveId } = await import("./nirVat");
-          if (await isReverseChargeArchiveId(db, tenantId, input.invoiceArchiveId)) {
+          if (await isReverseChargeArchiveId(db, tenantId, verifiedArchiveId)) {
             input.lines = input.lines.map(l => ({ ...l, vatRate: "0" }));
           }
         }
@@ -6267,7 +6486,7 @@ export const appRouter = router({
             const [result] = await db.insert(nir).values({
               tenantId,
               nirNumber: finalNirNumber,
-              invoiceArchiveId: input.invoiceArchiveId,
+              invoiceArchiveId: verifiedArchiveId,
               invoiceNumber: input.invoiceNumber,
               avizNumber: input.avizNumber,
               supplierName: input.supplierName,
@@ -6557,50 +6776,118 @@ export const appRouter = router({
             .set(filtered)
             .where(and(eq(nir.id, id), eq(nir.tenantId, tenantId)));
         }
+
+        const existingNirLines = await db
+          .select()
+          .from(nirLines)
+          .where(eq(nirLines.nirId, id))
+          .orderBy(nirLines.lineOrder);
+
         if (lines) {
+          const usedExistingIds = new Set<number>();
+          const normDesc = (s?: string | null) =>
+            String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
+
+          const matchConsumedQty = (l: any, idx: number): string => {
+            const order = l.lineOrder ?? idx;
+            let matched = l.id
+              ? existingNirLines.find(e => e.id === l.id && !usedExistingIds.has(e.id))
+              : undefined;
+            if (!matched && l.sagaArticleId) {
+              matched = existingNirLines.find(
+                e =>
+                  !usedExistingIds.has(e.id) &&
+                  e.sagaArticleId === l.sagaArticleId &&
+                  e.lineOrder === order
+              );
+            }
+            if (!matched) {
+              matched = existingNirLines.find(
+                e =>
+                  !usedExistingIds.has(e.id) &&
+                  normDesc(e.description) === normDesc(l.description) &&
+                  e.lineOrder === order
+              );
+            }
+            if (!matched && l.sagaArticleId) {
+              matched = existingNirLines.find(
+                e => !usedExistingIds.has(e.id) && e.sagaArticleId === l.sagaArticleId
+              );
+            }
+            if (!matched) {
+              matched = existingNirLines.find(
+                e =>
+                  !usedExistingIds.has(e.id) &&
+                  normDesc(e.description) === normDesc(l.description)
+              );
+            }
+            if (matched) {
+              usedExistingIds.add(matched.id);
+              return String(matched.consumedQty ?? "0");
+            }
+            return "0";
+          };
+
+          const linesWithConsumed = lines.map((l, idx) => ({
+            nirId: id,
+            description: l.description,
+            unit: l.unit || "buc",
+            cantitateComanda: l.cantitateComanda,
+            cantitateReceptionata: l.cantitateReceptionata,
+            consumedQty: matchConsumedQty(l, idx),
+            unitPrice: l.unitPrice,
+            vatRate: l.vatRate,
+            total: l.total,
+            observations: l.observations,
+            accountingType: l.accountingType || "Marfa",
+            accountingAccount: l.accountingAccount || "371",
+            lineOrder: l.lineOrder ?? idx,
+            sagaArticleId: l.sagaArticleId,
+          }));
+
           await db.delete(nirLines).where(eq(nirLines.nirId, id));
-          if (lines.length > 0) {
-            await db.insert(nirLines).values(
-              lines.map((l, idx) => ({
-                nirId: id,
-                description: l.description,
-                unit: l.unit || "buc",
-                cantitateComanda: l.cantitateComanda,
-                cantitateReceptionata: l.cantitateReceptionata,
-                unitPrice: l.unitPrice,
-                vatRate: l.vatRate,
-                total: l.total,
-                observations: l.observations,
-                accountingType: l.accountingType || "Marfa",
-                accountingAccount: l.accountingAccount || "371",
-                lineOrder: l.lineOrder ?? idx,
-                sagaArticleId: l.sagaArticleId,
-              }))
-            );
+          if (linesWithConsumed.length > 0) {
+            await db.insert(nirLines).values(linesWithConsumed);
           }
-          
-          // Also sync to sagaIntrari
-          const { sagaIntrari, sagaIntrariLinii, sagaArticles } = await import("../modules/saga/schema");
-          const { inArray } = await import("drizzle-orm");
-          
-          const existingSagaIntrari = await db.select().from(sagaIntrari).where(and(eq(sagaIntrari.nirId, id), eq(sagaIntrari.tenantId, tenantId)));
+        }
+
+        // Sync to sagaIntrari when lines, currency, or exchangeRate changed
+        if (lines || updateData.currency !== undefined || updateData.exchangeRate !== undefined) {
+          const existingSagaIntrari = await db
+            .select()
+            .from(sagaIntrari)
+            .where(and(eq(sagaIntrari.nirId, id), eq(sagaIntrari.tenantId, tenantId)));
           if (existingSagaIntrari.length > 0) {
             const intrareId = existingSagaIntrari[0].id;
             const existingHeader = existingSagaIntrari[0];
-            const isForeign = existingHeader.valuta && existingHeader.valuta !== "RON" && existingHeader.valuta !== "LEI";
-            const currentCurs = parseFloat(String(existingHeader.curs || "1")) || 1;
+            const effectiveCurrency = (
+              (updateData.currency && updateData.currency.trim()) ||
+              existingHeader.valuta ||
+              "RON"
+            ).toUpperCase();
+            const isForeign = effectiveCurrency !== "RON" && effectiveCurrency !== "LEI";
+            const parsedNewCurs =
+              updateData.exchangeRate !== undefined ? parseFloat(String(updateData.exchangeRate)) : NaN;
+            const currentCurs = isForeign
+              ? (Number.isFinite(parsedNewCurs) && parsedNewCurs > 0
+                  ? parsedNewCurs
+                  : (parseFloat(String(existingHeader.curs || "1")) || 1))
+              : 1;
 
+            const activeLines = lines || existingNirLines;
             let totalValoare = 0;
             let totalTvaSuma = 0;
-            lines.forEach(l => {
-              const v = parseFloat(l.total || "0") || 0;
+            activeLines.forEach((l: any) => {
+              const v = parseFloat(String(l.total || "0")) || 0;
               totalValoare += v;
-              totalTvaSuma += Math.round(((v * (parseFloat(l.vatRate ?? "21") || 0)) / 100) * 100) / 100;
+              totalTvaSuma += Math.round(((v * (parseFloat(String(l.vatRate ?? "21")) || 0)) / 100) * 100) / 100;
             });
+            totalValoare = Math.round(totalValoare * 100) / 100;
+            totalTvaSuma = Math.round(totalTvaSuma * 100) / 100;
 
             let valoareRon = totalValoare;
             let tvaRon = totalTvaSuma;
-            let totalRon = totalValoare + totalTvaSuma;
+            let totalRon = Math.round((totalValoare + totalTvaSuma) * 100) / 100;
             let valoareValuta: string | null = null;
             let tvaValuta: string | null = null;
             let totalValuta: string | null = null;
@@ -6614,8 +6901,11 @@ export const appRouter = router({
               tvaRon = Math.round(totalTvaSuma * currentCurs * 100) / 100;
               totalRon = Math.round((valoareRon + tvaRon) * 100) / 100;
             }
-            
+
             await db.update(sagaIntrari).set({
+              tip: isForeign ? "Factura valuta" : "Factura",
+              valuta: effectiveCurrency,
+              curs: currentCurs.toFixed(4),
               valoareValuta,
               tvaValuta,
               totalValuta,
@@ -6623,40 +6913,42 @@ export const appRouter = router({
               tva: tvaRon.toFixed(2),
               total: totalRon.toFixed(2),
               neachitat: totalRon.toFixed(2),
-            }).where(eq(sagaIntrari.id, intrareId));
-            
-            await db.delete(sagaIntrariLinii).where(eq(sagaIntrariLinii.intrareId, intrareId));
-            
-            if (lines.length > 0) {
-              const articleIds = lines.map(l => l.sagaArticleId).filter(Boolean) as number[];
-              const loadedArticles = articleIds.length > 0 
-                ? await db.select().from(sagaArticles).where(and(eq(sagaArticles.tenantId, tenantId), inArray(sagaArticles.id, articleIds)))
-                : [];
-                
-              await db.insert(sagaIntrariLinii).values(
-                lines.map((l, idx) => {
-                  const art = loadedArticles.find(a => a.id === l.sagaArticleId);
-                  const val = parseFloat(l.total || "0") || 0;
-                  const vatP = parseFloat(l.vatRate ?? "21") || 0;
-                  const tva = Math.round(((val * vatP) / 100) * 100) / 100;
-                  return {
-                    intrareId,
-                    tip: l.accountingType || "Marfa",
-                    articolId: l.sagaArticleId,
-                    cod: art?.code || undefined,
-                    denumire: l.description,
-                    um: l.unit || "buc",
-                    tvaPercent: (l.vatRate !== undefined && l.vatRate !== null && String(l.vatRate).trim() !== "") ? String(l.vatRate) : "21",
-                    cantitate: l.cantitateReceptionata,
-                    pretUnitar: l.unitPrice || "0",
-                    valoare: val.toString(),
-                    tvaSuma: tva.toString(),
-                    total: (val + tva).toString(),
-                    cont: l.accountingAccount || "371",
-                    lineOrder: l.lineOrder ?? idx,
-                  };
-                })
-              );
+            }).where(and(eq(sagaIntrari.id, intrareId), eq(sagaIntrari.tenantId, tenantId)));
+
+            if (lines) {
+              await db.delete(sagaIntrariLinii).where(eq(sagaIntrariLinii.intrareId, intrareId));
+
+              if (lines.length > 0) {
+                const articleIds = lines.map(l => l.sagaArticleId).filter(Boolean) as number[];
+                const loadedArticles = articleIds.length > 0
+                  ? await db.select().from(sagaArticles).where(and(eq(sagaArticles.tenantId, tenantId), inArray(sagaArticles.id, articleIds)))
+                  : [];
+
+                await db.insert(sagaIntrariLinii).values(
+                  lines.map((l, idx) => {
+                    const art = loadedArticles.find(a => a.id === l.sagaArticleId);
+                    const val = parseFloat(l.total || "0") || 0;
+                    const vatP = parseFloat(l.vatRate ?? "21") || 0;
+                    const tva = Math.round(((val * vatP) / 100) * 100) / 100;
+                    return {
+                      intrareId,
+                      tip: l.accountingType || "Marfa",
+                      articolId: l.sagaArticleId,
+                      cod: art?.code || undefined,
+                      denumire: l.description,
+                      um: l.unit || "buc",
+                      tvaPercent: (l.vatRate !== undefined && l.vatRate !== null && String(l.vatRate).trim() !== "") ? String(l.vatRate) : "21",
+                      cantitate: l.cantitateReceptionata,
+                      pretUnitar: l.unitPrice || "0",
+                      valoare: val.toString(),
+                      tvaSuma: tva.toString(),
+                      total: (val + tva).toString(),
+                      cont: l.accountingAccount || "371",
+                      lineOrder: l.lineOrder ?? idx,
+                    };
+                  })
+                );
+              }
             }
           }
         }
@@ -7089,14 +7381,14 @@ export const appRouter = router({
           const [emitted] = await db
             .select()
             .from(emittedInvoices)
-            .where(eq(emittedInvoices.id, deviz.invoiceId));
+            .where(and(eq(emittedInvoices.id, deviz.invoiceId), eq(emittedInvoices.tenantId, tenantId)));
           if (emitted) {
             invoice = emitted;
           } else {
             const [reInv] = await db
               .select()
               .from(reInvoices)
-              .where(eq(reInvoices.id, deviz.invoiceId));
+              .where(and(eq(reInvoices.id, deviz.invoiceId), eq(reInvoices.tenantId, tenantId)));
             if (reInv) {
               invoice = reInv;
             }
@@ -7203,10 +7495,31 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        
         const db = await getDb();
         if (!db) throw new Error("No DB");
-        const { devize, devizeLines } = await import("../drizzle/schema");
+        const { devize, devizeLines, emittedInvoices, reInvoices } = await import("../drizzle/schema");
+        const tenantId = tenantOf(ctx);
+
+        if (input.invoiceId) {
+          const [ownEmitted] = await db
+            .select({ id: emittedInvoices.id })
+            .from(emittedInvoices)
+            .where(and(eq(emittedInvoices.id, input.invoiceId), eq(emittedInvoices.tenantId, tenantId)))
+            .limit(1);
+          if (!ownEmitted) {
+            const [ownRe] = await db
+              .select({ id: reInvoices.id })
+              .from(reInvoices)
+              .where(and(eq(reInvoices.id, input.invoiceId), eq(reInvoices.tenantId, tenantId)))
+              .limit(1);
+            if (!ownRe) {
+              throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Factura asociată nu aparține firmei curente.",
+              });
+            }
+          }
+        }
 
         let totalMaterials = 0;
         let totalLabor = 0;
@@ -7270,7 +7583,6 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        
         const db = await getDb();
         if (!db) throw new Error("No DB");
         const { devize, devizeLines } = await import("../drizzle/schema");
@@ -7302,11 +7614,24 @@ export const appRouter = router({
           updateData.date = new Date(dStr);
         }
 
+        const tenantId = tenantOf(ctx);
+        const [ownDeviz] = await db
+          .select({ id: devize.id })
+          .from(devize)
+          .where(and(eq(devize.id, input.id), eq(devize.tenantId, tenantId)))
+          .limit(1);
+        if (!ownDeviz) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Devizul nu a fost găsit.",
+          });
+        }
+
         await db
           .update(devize)
           .set(updateData)
           .where(
-            and(eq(devize.id, input.id), eq(devize.tenantId, (tenantOf(ctx))))
+            and(eq(devize.id, input.id), eq(devize.tenantId, tenantId))
           );
 
         await db.delete(devizeLines).where(eq(devizeLines.devizId, input.id));
@@ -7330,15 +7655,23 @@ export const appRouter = router({
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
-        
         const db = await getDb();
         if (!db) throw new Error("No DB");
         const { devize, devizeLines } = await import("../drizzle/schema");
+        const tenantId = tenantOf(ctx);
+        const [ownDeviz] = await db
+          .select({ id: devize.id })
+          .from(devize)
+          .where(and(eq(devize.id, input.id), eq(devize.tenantId, tenantId)))
+          .limit(1);
+        if (!ownDeviz) {
+          return { success: false };
+        }
         await db.delete(devizeLines).where(eq(devizeLines.devizId, input.id));
         await db
           .delete(devize)
           .where(
-            and(eq(devize.id, input.id), eq(devize.tenantId, (tenantOf(ctx))))
+            and(eq(devize.id, input.id), eq(devize.tenantId, tenantId))
           );
         return { success: true };
       }),
@@ -7449,14 +7782,28 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        
         const db = await getDb();
         if (!db) throw new Error("No DB");
-        const { bonuriConsum, bonuriConsumLines } =
+        const { bonuriConsum, bonuriConsumLines, devize } =
           await import("../drizzle/schema");
+        const tenantId = tenantOf(ctx);
+
+        if (input.devizId) {
+          const [ownDeviz] = await db
+            .select({ id: devize.id })
+            .from(devize)
+            .where(and(eq(devize.id, input.devizId), eq(devize.tenantId, tenantId)))
+            .limit(1);
+          if (!ownDeviz) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Devizul asociat nu aparține firmei curente.",
+            });
+          }
+        }
 
         const [insertResult] = await db.insert(bonuriConsum).values({
-          tenantId: (tenantOf(ctx)),
+          tenantId,
           number: input.number,
           date: new Date(input.date),
           devizId: input.devizId,
@@ -7485,11 +7832,19 @@ export const appRouter = router({
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
-        
         const db = await getDb();
         if (!db) throw new Error("No DB");
         const { bonuriConsum, bonuriConsumLines } =
           await import("../drizzle/schema");
+        const tenantId = tenantOf(ctx);
+        const [ownBon] = await db
+          .select({ id: bonuriConsum.id })
+          .from(bonuriConsum)
+          .where(and(eq(bonuriConsum.id, input.id), eq(bonuriConsum.tenantId, tenantId)))
+          .limit(1);
+        if (!ownBon) {
+          return { success: false };
+        }
         await db
           .delete(bonuriConsumLines)
           .where(eq(bonuriConsumLines.bonId, input.id));
@@ -7498,7 +7853,7 @@ export const appRouter = router({
           .where(
             and(
               eq(bonuriConsum.id, input.id),
-              eq(bonuriConsum.tenantId, (tenantOf(ctx)))
+              eq(bonuriConsum.tenantId, tenantId)
             )
           );
         return { success: true };

@@ -477,13 +477,13 @@ export default function ClientDetails() {
         <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={handleOpenEdit}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 shadow-sm transition-all"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 shadow-sm transition-all"
           >
             <Edit3 className="w-3.5 h-3.5 text-slate-500" /> Editează Profil
           </button>
           <Link
             href={`/facturi-emise-nou/new?clientId=${client.id}`}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-primary text-white hover:opacity-95 shadow-sm transition-all whitespace-nowrap"
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-full bg-primary text-white hover:opacity-95 shadow-sm transition-all whitespace-nowrap"
           >
             <Plus className="w-4 h-4" /> Emite Factură Nouă
           </Link>
@@ -491,7 +491,7 @@ export default function ClientDetails() {
       </div>
 
       {/* Client Overview Card */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-[22px] p-5 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
           <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
             <div className="text-slate-400 font-medium mb-1 flex items-center gap-1.5">
@@ -552,7 +552,7 @@ export default function ClientDetails() {
       </div>
 
       {/* Period Filter & Search Bar (Identical to Evidență Facturi) */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900 rounded-[22px] p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         {/* Period Chips */}
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-xs font-bold text-slate-500 dark:text-slate-400 mr-1 flex items-center gap-1">
@@ -584,19 +584,19 @@ export default function ClientDetails() {
         {/* Search & Custom Date Inputs */}
         <div className="flex items-center gap-3 flex-wrap">
           {period === "custom" && (
-            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-xl border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700">
               <input
                 type="date"
                 value={customFrom}
                 onChange={(e) => setCustomFrom(e.target.value)}
-                className="h-7 text-xs bg-transparent text-slate-700 dark:text-slate-200 outline-none w-28"
+                className="h-7 text-xs tabular-nums bg-transparent text-slate-700 dark:text-slate-200 outline-none w-28"
               />
               <span className="text-xs text-slate-400 font-bold">-</span>
               <input
                 type="date"
                 value={customTo}
                 onChange={(e) => setCustomTo(e.target.value)}
-                className="h-7 text-xs bg-transparent text-slate-700 dark:text-slate-200 outline-none w-28"
+                className="h-7 text-xs tabular-nums bg-transparent text-slate-700 dark:text-slate-200 outline-none w-28"
               />
             </div>
           )}
@@ -608,7 +608,7 @@ export default function ClientDetails() {
               placeholder="Caută factură / sumă..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
         </div>
@@ -617,14 +617,14 @@ export default function ClientDetails() {
       {/* KPI Cards Section */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Facturat */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-[22px] p-4 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Facturat</span>
             <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 flex items-center justify-center">
               <DollarSign className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+          <div className="mt-2 text-xl sm:text-2xl font-black tabular-nums text-slate-900 dark:text-white">
             {kpis.totalInvoiced.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
             <span className="text-xs font-bold text-slate-500">{kpis.currency}</span>
           </div>
@@ -635,14 +635,14 @@ export default function ClientDetails() {
         </div>
 
         {/* Total Încasat */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-[22px] p-4 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Încasat</span>
             <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center">
               <CheckCircle2 className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400">
+          <div className="mt-2 text-xl sm:text-2xl font-black tabular-nums text-emerald-600 dark:text-emerald-400">
             {kpis.totalCollected.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
             <span className="text-xs font-bold text-emerald-600/70">{kpis.currency}</span>
           </div>
@@ -652,14 +652,14 @@ export default function ClientDetails() {
         </div>
 
         {/* Rest de Plată */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-[22px] p-4 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Rest de Plată</span>
             <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-600 flex items-center justify-center">
               <Clock className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400">
+          <div className="mt-2 text-xl sm:text-2xl font-black tabular-nums text-amber-600 dark:text-amber-400">
             {kpis.totalPending.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
             <span className="text-xs font-bold text-amber-600/70">{kpis.currency}</span>
           </div>
@@ -669,14 +669,14 @@ export default function ClientDetails() {
         </div>
 
         {/* Valoare Medie / Factură */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-[22px] p-4 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Valoare Medie / Factură</span>
             <div className="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 flex items-center justify-center">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+          <div className="mt-2 text-xl sm:text-2xl font-black tabular-nums text-slate-900 dark:text-white">
             {kpis.avgInvoice.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
             <span className="text-xs font-bold text-slate-500">{kpis.currency}</span>
           </div>
@@ -687,7 +687,7 @@ export default function ClientDetails() {
       </div>
 
       {/* Tabs: Facturi Emise | Produse / Servicii | Facturi Primite */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
         {/* Tab Headers */}
         <div className="flex items-center border-b border-slate-200 dark:border-slate-800 px-5 pt-3 gap-6 overflow-x-auto">
           <button
@@ -863,7 +863,7 @@ export default function ClientDetails() {
                             href={viewUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium text-[11px] transition-colors"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium text-[11px] transition-colors"
                           >
                             <Download className="w-3 h-3" />
                             PDF
@@ -899,14 +899,14 @@ export default function ClientDetails() {
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                     {topLines.map((line: any, idx: number) => (
                       <tr key={idx} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
-                        <td className="py-2.5 px-4 text-slate-400 font-medium">{idx + 1}</td>
+                        <td className="py-2.5 px-4 text-slate-400 font-medium tabular-nums">{idx + 1}</td>
                         <td className="py-2.5 px-4 font-bold text-slate-800 dark:text-slate-200">
                           {line.description}
                         </td>
-                        <td className="py-2.5 px-4 text-right text-slate-600 dark:text-slate-300 font-semibold">
+                        <td className="py-2.5 px-4 text-right tabular-nums text-slate-600 dark:text-slate-300 font-semibold">
                           {line.quantity}
                         </td>
-                        <td className="py-2.5 px-4 text-right font-black text-slate-900 dark:text-white">
+                        <td className="py-2.5 px-4 text-right tabular-nums font-black text-slate-900 dark:text-white">
                           {parseFloat(line.total || "0").toLocaleString("ro-RO", {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
@@ -946,8 +946,8 @@ export default function ClientDetails() {
                       <td className="py-3 px-4 font-bold text-purple-600 dark:text-purple-400">
                         {inv.invoiceNumber || inv.number || `#${inv.id}`}
                       </td>
-                      <td className="py-3 px-4 text-slate-600 dark:text-slate-300">{inv.issueDate || "—"}</td>
-                      <td className="py-3 px-4 text-right font-black text-slate-900 dark:text-white">
+                      <td className="py-3 px-4 tabular-nums text-slate-600 dark:text-slate-300">{inv.issueDate || "—"}</td>
+                      <td className="py-3 px-4 text-right tabular-nums font-black text-slate-900 dark:text-white">
                         {parseFloat(inv.total || "0").toLocaleString("ro-RO", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
@@ -964,7 +964,7 @@ export default function ClientDetails() {
                           href={`/api/pdf/archive/${inv.id}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium text-[11px]"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium text-[11px]"
                         >
                           <Download className="w-3 h-3" /> PDF
                         </a>
@@ -997,7 +997,7 @@ export default function ClientDetails() {
                 </p>
                 <button
                   onClick={handleOpenEdit}
-                  className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-primary text-white shadow-sm hover:opacity-95"
+                  className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-full bg-primary text-white shadow-sm hover:opacity-95"
                 >
                   <Edit3 className="w-3.5 h-3.5" /> Completează CUI Client
                 </button>
@@ -1026,13 +1026,13 @@ export default function ClientDetails() {
                 <div className="mt-4 flex items-center justify-center gap-2">
                   <button
                     onClick={handleRefreshFirmeApi}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-emerald-600 text-white shadow-sm hover:opacity-95"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-full bg-emerald-600 text-white shadow-sm hover:opacity-95"
                   >
                     <RefreshCw className="w-3.5 h-3.5" /> Reîncearcă interogarea
                   </button>
                   <button
                     onClick={handleOpenEdit}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
                   >
                     <Edit3 className="w-3.5 h-3.5" /> Editează CUI
                   </button>
@@ -1062,7 +1062,7 @@ export default function ClientDetails() {
                 return (
                   <div className="space-y-6">
                     {/* Header Bar with Legal & Official Info */}
-                    <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent border border-emerald-200/80 dark:border-emerald-800/50 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div className="p-4 sm:p-5 rounded-[22px] bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent border border-emerald-200/80 dark:border-emerald-800/50 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                       <div>
                         <div className="flex items-center gap-2 flex-wrap mb-1">
                           <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
@@ -1102,7 +1102,7 @@ export default function ClientDetails() {
                         <button
                           onClick={handleRefreshFirmeApi}
                           disabled={forceRefreshing}
-                          className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 shadow-xs transition-all disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 shadow-xs transition-all disabled:opacity-50"
                         >
                           <RefreshCw className={`w-3.5 h-3.5 text-emerald-600 ${forceRefreshing ? "animate-spin" : ""}`} />
                           Actualizează Dosar
@@ -1111,7 +1111,7 @@ export default function ClientDetails() {
                         <button
                           onClick={() => syncMutation.mutate({ clientId: id, cui: cleanCui })}
                           disabled={syncMutation.isPending}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm transition-all disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-full bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm transition-all disabled:opacity-50"
                         >
                           {syncMutation.isPending ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1126,7 +1126,7 @@ export default function ClientDetails() {
                     {/* Fiscal & Legal Details Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                       {/* Sediu Social */}
-                      <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+                      <div className="p-4 rounded-[22px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
                         <div className="text-slate-400 font-medium text-xs mb-1.5 flex items-center gap-1.5">
                           <MapPin className="w-3.5 h-3.5 text-emerald-600" /> Sediu Social Oficial
                         </div>
@@ -1140,7 +1140,7 @@ export default function ClientDetails() {
                       </div>
 
                       {/* Regim TVA & e-Factura */}
-                      <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+                      <div className="p-4 rounded-[22px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
                         <div className="text-slate-400 font-medium text-xs mb-1.5 flex items-center gap-1.5">
                           <CreditCard className="w-3.5 h-3.5 text-emerald-600" /> Regim Fiscal & TVA
                         </div>
@@ -1174,7 +1174,7 @@ export default function ClientDetails() {
                       </div>
 
                       {/* Stare Firmă & Inactivitate ANAF */}
-                      <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+                      <div className="p-4 rounded-[22px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
                         <div className="text-slate-400 font-medium text-xs mb-1.5 flex items-center gap-1.5">
                           <Building2 className="w-3.5 h-3.5 text-emerald-600" /> Stare Companie & ANAF
                         </div>
@@ -1195,7 +1195,7 @@ export default function ClientDetails() {
                       </div>
 
                       {/* Organ Fiscal Competent */}
-                      <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+                      <div className="p-4 rounded-[22px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
                         <div className="text-slate-400 font-medium text-xs mb-1.5 flex items-center gap-1.5">
                           <Briefcase className="w-3.5 h-3.5 text-emerald-600" /> Organ Fiscal & Proprietate
                         </div>
@@ -1209,7 +1209,7 @@ export default function ClientDetails() {
                     </div>
 
                     {/* Section 1: Financial Evolution & Balance Sheets (Bilanț Multianual) */}
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                    <div className="bg-white dark:bg-slate-900 rounded-[22px] p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-4">
                         <div>
                           <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -1663,12 +1663,31 @@ export default function ClientDetails() {
                                 </button>
 
                                 {isExpanded && entry.continut && (
-                                  <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-serif space-y-2">
-                                    <div
-                                      dangerouslySetInnerHTML={{
-                                        __html: entry.continut,
-                                      }}
-                                    />
+                                  <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 leading-relaxed space-y-2">
+                                    {String(entry.continut || "")
+                                      .replace(/<br\s*\/?>/gi, "\n")
+                                      .replace(/<\/p>/gi, "\n\n")
+                                      .replace(/<[^>]+>/g, "")
+                                      .replace(/&nbsp;/gi, " ")
+                                      .replace(/&amp;/gi, "&")
+                                      .replace(/&lt;/gi, "<")
+                                      .replace(/&gt;/gi, ">")
+                                      .replace(/&quot;/gi, '"')
+                                      .replace(/&#39;/gi, "'")
+                                      .split(/\n+/)
+                                      .map(p => p.trim())
+                                      .filter(Boolean)
+                                      .map((para, pIdx) => (
+                                        <p key={pIdx}>
+                                          {para.split(/(\*\*[^*]+\*\*)/g).map((chunk, cIdx) =>
+                                            chunk.startsWith("**") && chunk.endsWith("**") ? (
+                                              <strong key={cIdx}>{chunk.slice(2, -2)}</strong>
+                                            ) : (
+                                              chunk
+                                            )
+                                          )}
+                                        </p>
+                                      ))}
                                   </div>
                                 )}
                               </div>
@@ -1705,7 +1724,7 @@ export default function ClientDetails() {
               <div className="flex items-center gap-2">
                 <Link
                   href={`/contracte/new?partnerId=${id}&mode=upload`}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-xs"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-xs"
                 >
                   <Upload className="w-3.5 h-3.5 text-primary" />
                   Încarcă Contract Semnat (PDF)
@@ -1713,7 +1732,7 @@ export default function ClientDetails() {
 
                 <Link
                   href={`/contracte/new?partnerId=${id}&mode=generate`}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary hover:bg-primary/90 text-xs font-semibold text-white shadow-xs"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-primary hover:bg-primary/90 text-xs font-semibold text-white shadow-xs"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Generează Document Nou
@@ -1727,7 +1746,7 @@ export default function ClientDetails() {
                 Se încarcă contractele...
               </div>
             ) : partnerContracts.length === 0 ? (
-              <div className="py-12 text-center rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 p-6">
+              <div className="py-12 text-center rounded-[22px] border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 p-6">
                 <FileSignature className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
                 <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
                   Niciun contract înregistrat pentru acest partener
@@ -1738,7 +1757,7 @@ export default function ClientDetails() {
                 <div className="flex items-center justify-center gap-2">
                   <Link
                     href={`/contracte/new?partnerId=${id}&mode=upload`}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-semibold text-xs shadow-xs"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary hover:bg-primary/90 text-white font-semibold text-xs shadow-xs"
                   >
                     <Upload className="w-3.5 h-3.5" />
                     Încarcă Primul Contract Semnat
@@ -1746,7 +1765,7 @@ export default function ClientDetails() {
                 </div>
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+              <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 uppercase tracking-wider font-semibold text-[10px] border-b border-slate-200 dark:border-slate-800">
                     <tr>
@@ -1791,10 +1810,10 @@ export default function ClientDetails() {
                             </span>
                           )}
                         </td>
-                        <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300">
+                        <td className="py-2.5 px-3 tabular-nums text-slate-600 dark:text-slate-300">
                           {ctr.date}
                         </td>
-                        <td className="py-2.5 px-3 text-slate-500 text-[11px]">
+                        <td className="py-2.5 px-3 tabular-nums text-slate-500 text-[11px]">
                           {ctr.validUntil ? `Până la ${ctr.validUntil}` : "Nedeterminată"}
                         </td>
                         <td className="py-2.5 px-3 text-right tabular-nums font-bold text-slate-900 dark:text-white">
@@ -1819,11 +1838,11 @@ export default function ClientDetails() {
                         </td>
                         <td className="py-2.5 px-3 text-center">
                           {ctr.fileUrl ? (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] tabular-nums bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] tabular-nums bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                               PDF Fizic
                             </span>
                           ) : (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] tabular-nums bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] tabular-nums bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                               Digital
                             </span>
                           )}
@@ -1832,7 +1851,7 @@ export default function ClientDetails() {
                           <div className="flex items-center justify-end gap-1.5">
                             <Link
                               href={`/contracte/${ctr.id}`}
-                              className="p-1 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                              className="w-8 h-8 rounded-full inline-flex items-center justify-center text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                               title="Vezi Document PDF"
                             >
                               <ExternalLink className="w-3.5 h-3.5" />
@@ -1840,7 +1859,7 @@ export default function ClientDetails() {
 
                             <a
                               href={`/api/pdf/contract/${ctr.id}?download=1`}
-                              className="p-1 rounded-lg text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors"
+                              className="w-8 h-8 rounded-full inline-flex items-center justify-center text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors"
                               title="Descarcă PDF"
                             >
                               <Download className="w-3.5 h-3.5" />
@@ -1848,7 +1867,7 @@ export default function ClientDetails() {
 
                             <Link
                               href={`/contracte/new?partnerId=${id}&parentContractId=${ctr.id}&type=act_aditional`}
-                              className="p-1 rounded-lg text-slate-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/40 transition-colors"
+                              className="w-8 h-8 rounded-full inline-flex items-center justify-center text-slate-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/40 transition-colors"
                               title="Adaugă Act Adițional la acest Contract"
                             >
                               <Plus className="w-3.5 h-3.5" />
@@ -1868,7 +1887,7 @@ export default function ClientDetails() {
       {/* Visual Analytics Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Monthly Trend Area Chart */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[22px] p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -1936,7 +1955,7 @@ export default function ClientDetails() {
         </div>
 
         {/* Status Distribution Donut Chart */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-slate-900 rounded-[22px] p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
           <div>
             <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-500" />
@@ -1969,7 +1988,7 @@ export default function ClientDetails() {
                         return (
                           <div className="bg-slate-900 text-white text-xs p-2 rounded-lg shadow-md border border-slate-700">
                             <span className="font-semibold">{item.name}: </span>
-                            <span className="font-bold">
+                            <span className="font-bold tabular-nums">
                               {Number(item.value).toLocaleString("ro-RO", {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2,
@@ -1995,7 +2014,7 @@ export default function ClientDetails() {
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
               <span className="text-slate-600 dark:text-slate-400 truncate">Încasat:</span>
-              <span className="font-bold text-slate-900 dark:text-white ml-auto">
+              <span className="font-bold tabular-nums text-slate-900 dark:text-white ml-auto">
                 {kpis.totalInvoiced > 0
                   ? Math.round((kpis.totalCollected / kpis.totalInvoiced) * 100)
                   : 0}
@@ -2005,7 +2024,7 @@ export default function ClientDetails() {
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
               <span className="text-slate-600 dark:text-slate-400 truncate">Rest:</span>
-              <span className="font-bold text-slate-900 dark:text-white ml-auto">
+              <span className="font-bold tabular-nums text-slate-900 dark:text-white ml-auto">
                 {kpis.totalInvoiced > 0
                   ? Math.round((kpis.totalPending / kpis.totalInvoiced) * 100)
                   : 0}
@@ -2019,10 +2038,11 @@ export default function ClientDetails() {
       {/* Edit Client Profile Modal (In-App UI modal without browser alerts) */}
       {isEditModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 relative max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-[22px] max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setIsEditModalOpen(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1"
+              aria-label="Închide"
+              className="absolute top-4 right-4 w-8 h-8 rounded-full inline-flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -2123,14 +2143,14 @@ export default function ClientDetails() {
                 <button
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold"
+                  className="px-4 py-2 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold"
                 >
                   Anulează
                 </button>
                 <button
                   type="submit"
                   disabled={updateClientMutation.isPending}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-white font-semibold hover:opacity-95 shadow-sm disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-white font-semibold hover:opacity-95 shadow-sm disabled:opacity-50"
                 >
                   {updateClientMutation.isPending ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />

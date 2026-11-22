@@ -209,7 +209,7 @@ export default function SagaModule() {
           {/* Quick Direct Sync Button */}
           <Link
             href="/saga-sync"
-            className="ml-auto px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg flex items-center gap-1.5 transition-all shadow-sm bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
+            className="ml-auto h-9 px-4 text-xs font-bold uppercase tracking-wider rounded-full flex items-center gap-1.5 transition-all shadow-sm bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
           >
             <RefreshCw className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
             <span>Sincronizare Nomenclator</span>
@@ -218,7 +218,7 @@ export default function SagaModule() {
           {/* Quick Direct Export Button */}
           <button
             onClick={() => setActivePage("export")}
-            className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg flex items-center gap-1.5 transition-all shadow-sm ${
+            className={`h-9 px-4 text-xs font-bold uppercase tracking-wider rounded-full flex items-center gap-1.5 transition-all shadow-sm ${
               activePage === "export"
                 ? "bg-blue-600 text-white shadow-blue-500/20"
                 : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
@@ -382,19 +382,19 @@ function NomenclatorTab() {
         </div>
         <button
           onClick={() => { setForm({ ...form, code: nextCode || "ART-0001" }); setShowAdd(true); }}
-          className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition-colors"
+          className="flex items-center gap-2 h-9 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full text-sm font-medium transition-colors"
         >
           <Plus className="w-4 h-4" />
           Adaugă Articol
         </button>
         <Link
           href="/saga-sync"
-          className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-xl text-sm font-medium transition-colors"
+          className="flex items-center gap-2 h-9 px-4 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-full text-sm font-medium transition-colors"
         >
           <RefreshCw className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           Sincronizare Asistată (Ghid 1-2-3)
         </Link>
-        <label className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer">
+        <label className="flex items-center gap-2 h-9 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-medium transition-colors cursor-pointer">
           <Upload className="w-4 h-4" />
           Import Rapid
           <input type="file" accept=".xml,.csv,.txt,.dbf,.xlsx,.xls" className="hidden" onChange={handleFileImport} />
@@ -1448,7 +1448,7 @@ function ExportTab() {
                   </h4>
                   <p className="text-xs text-slate-500">
                     Cheia se generează în contul Saga Web din ecranul{" "}
-                    <code className="bg-slate-200 dark:bg-slate-700 px-1 py-0.5 rounded text-blue-700 dark:text-blue-300 tabular-nums">
+                    <code className="font-sans tabular-nums bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded text-blue-700 dark:text-blue-300">
                       Administrare &gt; Utilizatori &gt; Integrare API
                     </code>.
                   </p>
@@ -1606,7 +1606,66 @@ function ExportTab() {
 
 // ── Tab 4: Setări ─────────────────────────────────────────────────────────────
 function SetariTab() {
+  const utils = trpc.useUtils();
+  const { data: currentTenant } = trpc.tenants.current.useQuery();
   const { data: planConturi = [] } = trpc.saga.planConturi.useQuery({ stockOnly: true });
+
+  const [articlePrefix, setArticlePrefix] = useState("ART-");
+  const [defaultGestiune, setDefaultGestiune] = useState("Gestiune principală");
+  const [defaultAccount, setDefaultAccount] = useState("371");
+  const [defaultVatRate, setDefaultVatRate] = useState("21");
+
+  useEffect(() => {
+    if (currentTenant?.settings) {
+      try {
+        const parsed =
+          typeof currentTenant.settings === "string"
+            ? JSON.parse(currentTenant.settings)
+            : currentTenant.settings;
+        if (parsed?.sagaConfig) {
+          if (parsed.sagaConfig.articlePrefix !== undefined) {
+            setArticlePrefix(parsed.sagaConfig.articlePrefix);
+          }
+          if (parsed.sagaConfig.defaultGestiune !== undefined) {
+            setDefaultGestiune(parsed.sagaConfig.defaultGestiune);
+          }
+          if (parsed.sagaConfig.defaultAccount !== undefined) {
+            setDefaultAccount(parsed.sagaConfig.defaultAccount);
+          }
+          if (parsed.sagaConfig.defaultVatRate !== undefined) {
+            setDefaultVatRate(String(parsed.sagaConfig.defaultVatRate));
+          }
+        }
+      } catch {}
+    }
+  }, [currentTenant?.settings]);
+
+  const updateSettingsMut = trpc.tenants.updateSettings.useMutation({
+    onSuccess: () => {
+      utils.tenants.current.invalidate();
+      toast.success("Setările SAGA au fost salvate.");
+    },
+    onError: (e) => toast.error(e.message || "Eroare la salvare."),
+  });
+
+  const handleSaveSagaSettings = () => {
+    let parsed: Record<string, any> = {};
+    try {
+      if (currentTenant?.settings) {
+        parsed = JSON.parse(String(currentTenant.settings));
+      }
+    } catch {}
+    parsed.sagaConfig = {
+      articlePrefix: articlePrefix.trim() || "ART-",
+      defaultGestiune: defaultGestiune.trim() || "Gestiune principală",
+      defaultAccount,
+      defaultVatRate: Number(defaultVatRate) || 21,
+    };
+    updateSettingsMut.mutate({
+      settings: JSON.stringify(parsed),
+    });
+  };
+
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
       <h3 className="text-sm font-semibold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
@@ -1621,8 +1680,9 @@ function SetariTab() {
           </label>
           <input
             type="text"
-            defaultValue="ART-"
-            className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 dark:text-white"
+            value={articlePrefix}
+            onChange={(e) => setArticlePrefix(e.target.value)}
+            className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 dark:text-white tabular-nums"
           />
           <p className="text-xs text-slate-500 mt-1">
             Prefixul folosit la generarea automată a codurilor (ex: ART-0001)
@@ -1635,7 +1695,8 @@ function SetariTab() {
           </label>
           <input
             type="text"
-            defaultValue="Gestiune principală"
+            value={defaultGestiune}
+            onChange={(e) => setDefaultGestiune(e.target.value)}
             className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 dark:text-white"
           />
         </div>
@@ -1645,8 +1706,9 @@ function SetariTab() {
             Cont contabil implicit
           </label>
           <select
-            defaultValue="371"
-            className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 dark:text-white"
+            value={defaultAccount}
+            onChange={(e) => setDefaultAccount(e.target.value)}
+            className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 dark:text-white tabular-nums"
           >
             {planConturi.map((c: any) => (
               <option key={c.cod} value={c.cod}>{c.cod} — {c.denumire}</option>
@@ -1659,8 +1721,9 @@ function SetariTab() {
             Cotă TVA implicită
           </label>
           <select
-            defaultValue="21"
-            className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 dark:text-white"
+            value={defaultVatRate}
+            onChange={(e) => setDefaultVatRate(e.target.value)}
+            className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 dark:text-white tabular-nums"
           >
             <option value="21">21%</option>
             <option value="11">11%</option>
@@ -1673,8 +1736,12 @@ function SetariTab() {
 
         <div className="pt-2">
           <button
-            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition-colors"
+            type="button"
+            onClick={handleSaveSagaSettings}
+            disabled={updateSettingsMut.isPending}
+            className="h-9 px-5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-full text-sm font-medium transition-colors inline-flex items-center gap-2"
           >
+            {updateSettingsMut.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
             Salvează Setări
           </button>
         </div>
@@ -1689,9 +1756,11 @@ function GestiuniTab() {
   const { data: gestiuni = [], isLoading } = trpc.saga.gestiuni.list.useQuery();
   const createMut = trpc.saga.gestiuni.create.useMutation({
     onSuccess: () => { utils.saga.gestiuni.list.invalidate(); toast.success("Gestiune adăugată"); setShowForm(false); },
+    onError: (e) => toast.error(e.message || "Eroare la salvare."),
   });
   const deleteMut = trpc.saga.gestiuni.delete.useMutation({
     onSuccess: () => { utils.saga.gestiuni.list.invalidate(); toast.success("Gestiune ștearsă"); },
+    onError: (e) => toast.error(e.message || "Eroare la salvare."),
   });
 
   const [showForm, setShowForm] = useState(false);
@@ -1705,8 +1774,8 @@ function GestiuniTab() {
       {/* Toolbar */}
       <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
         <button onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium">
-          <Plus className="w-4 h-4" /> Adaug
+          className="flex items-center gap-1.5 h-9 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-medium">
+          <Plus className="w-4 h-4" /> Adaugă gestiune
         </button>
         <span className="ml-auto text-xs text-slate-500">{gestiuni.length} gestiuni</span>
       </div>
@@ -1787,7 +1856,7 @@ function GestiuniTab() {
               </tr>
             ))}
             {!isLoading && gestiuni.length === 0 && (
-              <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400">Nicio gestiune. Apasă „Adaug" pentru prima gestiune.</td></tr>
+              <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400">Nicio gestiune. Apasă „Adaugă gestiune” pentru prima gestiune.</td></tr>
             )}
           </tbody>
         </table>
@@ -1803,9 +1872,11 @@ function FurnizoriTab() {
   const { data: furnizori = [], isLoading } = trpc.saga.furnizori.list.useQuery();
   const createMut = trpc.saga.furnizori.create.useMutation({
     onSuccess: () => { utils.saga.furnizori.list.invalidate(); toast.success("Furnizor adăugat"); setShowForm(false); },
+    onError: (e) => toast.error(e.message || "Eroare la salvare."),
   });
   const deleteMut = trpc.saga.furnizori.delete.useMutation({
     onSuccess: () => { utils.saga.furnizori.list.invalidate(); toast.success("Furnizor șters"); },
+    onError: (e) => toast.error(e.message || "Eroare la salvare."),
   });
 
   const [showForm, setShowForm] = useState(false);
@@ -2168,9 +2239,11 @@ function IntrariTab({ mode = "ron" }: { mode?: "ron" | "valuta" }) {
   const intrari = allIntrari.filter((r: any) => (mode === "valuta" ? isValutaRow(r) : !isValutaRow(r)));
   const createMut = trpc.saga.intrari.create.useMutation({
     onSuccess: () => { utils.saga.intrari.list.invalidate(); toast.success("Intrare creată"); setShowForm(false); },
+    onError: (e) => toast.error(e.message || "Eroare la salvare."),
   });
   const deleteMut = trpc.saga.intrari.delete.useMutation({
     onSuccess: () => { utils.saga.intrari.list.invalidate(); toast.success("Intrare ștearsă"); },
+    onError: (e) => toast.error(e.message || "Eroare la salvare."),
   });
 
   const [showForm, setShowForm] = useState(false);
@@ -2363,9 +2436,11 @@ function ComenziTab() {
   const { data: comenzi = [], isLoading } = trpc.saga.comenzi.list.useQuery();
   const createMut = trpc.saga.comenzi.create.useMutation({
     onSuccess: () => { utils.saga.comenzi.list.invalidate(); toast.success("Comandă creată"); setShowForm(false); },
+    onError: (e) => toast.error(e.message || "Eroare la salvare."),
   });
   const deleteMut = trpc.saga.comenzi.delete.useMutation({
     onSuccess: () => { utils.saga.comenzi.list.invalidate(); toast.success("Comandă ștearsă"); },
+    onError: (e) => toast.error(e.message || "Eroare la salvare."),
   });
 
   const [showForm, setShowForm] = useState(false);
@@ -2442,28 +2517,28 @@ function ComenziTab() {
                 <td className="px-4 py-2 text-right tabular-nums font-semibold">{Number(cmd.total || 0).toFixed(2)}</td>
                 <td className="px-4 py-2 text-slate-500">{cmd.dataLivrarii || "—"}</td>
                 <td className="px-4 py-2">
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                    cmd.status === "facturat" ? "bg-green-100 text-green-700" :
-                    cmd.status === "productie" ? "bg-orange-100 text-orange-700" :
-                    cmd.status === "livrat" ? "bg-blue-100 text-blue-700" :
-                    "bg-yellow-100 text-yellow-700"
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    cmd.status === "facturat" ? "bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-300" :
+                    cmd.status === "productie" ? "bg-orange-100 text-orange-700 dark:bg-orange-950/50 dark:text-orange-300" :
+                    cmd.status === "livrat" ? "bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300" :
+                    "bg-yellow-100 text-yellow-700 dark:bg-yellow-950/50 dark:text-yellow-300"
                   }`}>{cmd.status}</span>
                 </td>
                 <td className="px-4 py-2 text-right">
                   {confirmDeleteId === cmd.id ? (
-                    <div className="inline-flex items-center gap-1">
+                    <div className="inline-flex items-center gap-1.5">
                       <button
                         onClick={() => {
                           deleteMut.mutate({ id: cmd.id });
                           setConfirmDeleteId(null);
                         }}
-                        className="px-2 py-0.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs"
+                        className="h-7 px-2.5 bg-red-600 hover:bg-red-700 text-white rounded-full text-xs font-medium"
                       >
                         Șterge
                       </button>
                       <button
                         onClick={() => setConfirmDeleteId(null)}
-                        className="px-2 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded text-xs"
+                        className="h-7 px-2.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full text-xs font-medium"
                       >
                         Nu
                       </button>
@@ -2471,7 +2546,7 @@ function ComenziTab() {
                   ) : (
                     <button
                       onClick={() => setConfirmDeleteId(cmd.id)}
-                      className="p-1 text-slate-400 hover:text-red-600 rounded"
+                      className="w-8 h-8 inline-flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
                       title="Șterge comanda"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -2492,16 +2567,114 @@ function ComenziTab() {
 
 // ── REȚETE TAB ────────────────────────────────────────────────────────────────
 function ReteteTab() {
+  const utils = trpc.useUtils();
   const { data: retete = [], isLoading } = trpc.saga.retete.list.useQuery();
+  const { data: articles = [] } = trpc.saga.articles.list.useQuery();
+  const [showForm, setShowForm] = useState(false);
+  const [recipeForm, setRecipeForm] = useState({
+    denumire: "",
+    articolProdusId: "",
+    cantitateRezultata: "1",
+    um: "buc",
+  });
+
+  const createRetetaMut = (trpc.saga.retete as any).create?.useMutation?.({
+    onSuccess: () => {
+      utils.saga.retete.list.invalidate();
+      toast.success("Rețetă creată cu succes.");
+      setShowForm(false);
+      setRecipeForm({ denumire: "", articolProdusId: "", cantitateRezultata: "1", um: "buc" });
+    },
+    onError: (e: any) => toast.error(e?.message || "Eroare la salvare."),
+  });
+
+  const handleCreateRecipe = () => {
+    if (!recipeForm.denumire.trim()) {
+      toast.error("Introduceți denumirea rețetei.");
+      return;
+    }
+    if (createRetetaMut?.mutate) {
+      createRetetaMut.mutate({
+        denumire: recipeForm.denumire.trim(),
+        articolProdusId: recipeForm.articolProdusId ? Number(recipeForm.articolProdusId) : undefined,
+        cantitateRezultata: recipeForm.cantitateRezultata,
+        um: recipeForm.um || "buc",
+      });
+    } else {
+      toast.info("Funcția de salvare rețetă nu este disponibilă pe acest profil.");
+    }
+  };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
-        <button className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium">
+        <button
+          type="button"
+          onClick={() => setShowForm(!showForm)}
+          className="flex items-center gap-1.5 h-9 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-medium transition-colors"
+        >
           <Plus className="w-4 h-4" /> Rețetă nouă
         </button>
         <span className="ml-auto text-xs text-slate-500">{retete.length} rețete</span>
       </div>
+
+      {showForm && (
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-blue-200 dark:border-blue-800 space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <input
+              placeholder="Denumire rețetă *"
+              value={recipeForm.denumire}
+              onChange={(e) => setRecipeForm({ ...recipeForm, denumire: e.target.value })}
+              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white md:col-span-2"
+            />
+            <select
+              value={recipeForm.articolProdusId}
+              onChange={(e) => setRecipeForm({ ...recipeForm, articolProdusId: e.target.value })}
+              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+            >
+              <option value="">— Produs finit asociat —</option>
+              {(articles as any[]).map((a: any) => (
+                <option key={a.id} value={a.id}>
+                  {a.code} — {a.name}
+                </option>
+              ))}
+            </select>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                step="0.01"
+                placeholder="Cant."
+                value={recipeForm.cantitateRezultata}
+                onChange={(e) => setRecipeForm({ ...recipeForm, cantitateRezultata: e.target.value })}
+                className="w-24 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm tabular-nums bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+              />
+              <input
+                placeholder="U/M"
+                value={recipeForm.um}
+                onChange={(e) => setRecipeForm({ ...recipeForm, um: e.target.value })}
+                className="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleCreateRecipe}
+              disabled={!recipeForm.denumire.trim() || createRetetaMut?.isPending}
+              className="h-9 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-full text-sm font-medium transition-colors"
+            >
+              {createRetetaMut?.isPending ? "Se salvează..." : "Salvează rețeta"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="h-9 px-4 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full text-sm font-medium transition-colors"
+            >
+              Anulează
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6">
         {isLoading ? (

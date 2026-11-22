@@ -155,7 +155,7 @@ export function BnrExchangeRateHeader() {
                 {eurRate}
               </span>
               <span
-                className={`text-[9px] font-bold leading-none ${
+                className={`text-[10px] tabular-nums font-bold leading-none ${
                   eurVar?.trend === "down"
                     ? "text-emerald-600 dark:text-emerald-400"
                     : eurVar?.trend === "up"
@@ -167,8 +167,9 @@ export function BnrExchangeRateHeader() {
               </span>
               <button
                 type="button"
+                aria-label={`Copiază curs EUR ${eurRate}`}
                 onClick={(e) => handleCopyRate(e, "EUR_HDR", "EUR", eurRate)}
-                className="p-1 -mr-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-90"
+                className="w-6 h-6 -mr-1 rounded-full inline-flex items-center justify-center hover:bg-black/[0.06] dark:hover:bg-white/[0.10] text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-90"
                 title={`Copiază curs EUR (${eurRate})`}
               >
                 {copiedKey === "EUR_HDR" ? (
@@ -196,7 +197,7 @@ export function BnrExchangeRateHeader() {
                 {usdRate}
               </span>
               <span
-                className={`text-[9px] font-bold leading-none ${
+                className={`text-[10px] tabular-nums font-bold leading-none ${
                   usdVar?.trend === "down"
                     ? "text-emerald-600 dark:text-emerald-400"
                     : usdVar?.trend === "up"
@@ -210,7 +211,7 @@ export function BnrExchangeRateHeader() {
                 type="button"
                 aria-label={`Copiază curs USD ${usdRate}`}
                 onClick={(e) => handleCopyRate(e, "USD_HDR", "USD", usdRate)}
-                className="p-1 -mr-0.5 rounded hover:bg-black/[0.06] dark:hover:bg-white/[0.10] text-[#636366] dark:text-[#98989d] hover:text-primary transition-all active:scale-90"
+                className="w-6 h-6 -mr-1 rounded-full inline-flex items-center justify-center hover:bg-black/[0.06] dark:hover:bg-white/[0.10] text-[#636366] dark:text-[#98989d] hover:text-primary transition-all active:scale-90"
                 title={`Copiază curs USD (${usdRate})`}
               >
                 {copiedKey === "USD_HDR" ? (
@@ -238,7 +239,7 @@ export function BnrExchangeRateHeader() {
       <PopoverContent
         align="end"
         sideOffset={6}
-        className="w-80 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl z-50 animate-in fade-in-50 zoom-in-95"
+        className="w-80 p-3 apple-glass rounded-[22px] border border-black/[0.08] dark:border-white/[0.12] shadow-xl z-50 animate-in fade-in-50 zoom-in-95"
       >
         {/* Header: Date included directly in Curs Valutar Oficial BNR */}
         <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100 dark:border-slate-800">
@@ -299,8 +300,9 @@ export function BnrExchangeRateHeader() {
                   ) : null}
                   <button
                     type="button"
+                    aria-label={`Copiază curs ${code} ${rate}`}
                     onClick={(e) => handleCopyRate(e, `POP_${code}`, code, rate)}
-                    className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-90 ml-0.5"
+                    className="w-6 h-6 rounded-full inline-flex items-center justify-center hover:bg-black/[0.06] dark:hover:bg-white/[0.10] text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all active:scale-90 ml-0.5"
                     title={`Copiază curs ${code} (${rate})`}
                   >
                     {copiedKey === `POP_${code}` ? (

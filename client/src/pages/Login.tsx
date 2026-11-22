@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/input-group";
 import { toast } from "sonner";
 import { GoogleLogin } from "@react-oauth/google";
+import { cleanErrorMessage } from "@/lib/utils";
 
 const LOGO_URL = "/gettsapp_logo_ver2.png";
 const APP_NAME = "GetApp Refactura";
@@ -50,10 +51,14 @@ export default function Login() {
     const saved = localStorage.getItem("savedCredentials");
     if (saved) {
       try {
-        const { email: e, password: p } = JSON.parse(saved);
-        setEmail(e || "");
-        setPassword(p || "");
-        setRememberMe(true);
+        const parsed = JSON.parse(saved);
+        const savedEmail = typeof parsed?.email === "string" ? parsed.email : "";
+        setEmail(savedEmail);
+        setRememberMe(Boolean(savedEmail));
+        // Clean up any legacy stored password immediately
+        if (parsed && "password" in parsed) {
+          localStorage.setItem("savedCredentials", JSON.stringify({ email: savedEmail }));
+        }
       } catch {}
     }
   }, [setLocation]);
@@ -70,7 +75,7 @@ export default function Login() {
         if (rememberMe) {
           localStorage.setItem(
             "savedCredentials",
-            JSON.stringify({ email, password })
+            JSON.stringify({ email })
           );
         } else {
           localStorage.removeItem("savedCredentials");
@@ -78,7 +83,7 @@ export default function Login() {
         window.location.href = "/dashboard";
       }
     } catch (err) {
-      setError((err as Error).message || "Autentificare eșuată");
+      setError(cleanErrorMessage(err, "Autentificare eșuată."));
     } finally {
       setIsLoading(false);
     }
@@ -101,7 +106,7 @@ export default function Login() {
         window.location.href = "/dashboard";
       }
     } catch (err) {
-      setError((err as Error).message || "Eroare la autentificarea cu Google");
+      setError(cleanErrorMessage(err, "Eroare la autentificarea cu Google."));
     } finally {
       setIsLoading(false);
     }
@@ -115,7 +120,7 @@ export default function Login() {
       await forgotPasswordMutation.mutateAsync({ email });
       setForgotPasswordSuccess(true);
     } catch (err) {
-      setError((err as Error).message || "A apărut o eroare");
+      setError(cleanErrorMessage(err, "A apărut o eroare."));
     } finally {
       setIsLoading(false);
     }
@@ -205,15 +210,15 @@ export default function Login() {
               : "Intră în contul tău pentru a continua."}
           </p>
 
-          <div className="bg-white p-8 rounded-lg shadow-xl shadow-slate-200/50 border border-slate-100">
+          <div className="bg-white p-8 rounded-[24px] shadow-xl shadow-slate-950/30 border border-slate-100">
             {error && (
-              <div className="mb-5 p-4 bg-red-50 border border-red-200 rounded-lg flex gap-3 items-start">
+              <div className="mb-5 p-4 bg-red-50 border border-red-200 rounded-2xl flex gap-3 items-start">
                 <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-red-700 font-medium">{error}</p>
               </div>
             )}
             {forgotPasswordSuccess && (
-              <div className="mb-5 p-4 bg-green-50 border border-green-200 rounded-lg flex gap-3 items-start">
+              <div className="mb-5 p-4 bg-green-50 border border-green-200 rounded-2xl flex gap-3 items-start">
                 <AlertCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-green-700 font-medium">Link-ul de resetare a fost trimis! Verifică-ți adresa de email.</p>
               </div>
@@ -246,7 +251,7 @@ export default function Login() {
                     onChange={e => setEmail(e.target.value)}
                     placeholder="email@companie.ro"
                     disabled={isLoading}
-                    className="py-6"
+                    className="py-6 rounded-full"
                   />
                 </InputGroup>
               </div>
@@ -285,13 +290,13 @@ export default function Login() {
                     onChange={e => setPassword(e.target.value)}
                     placeholder="••••••••"
                     disabled={isLoading}
-                    className="py-6"
+                    className="py-6 rounded-full"
                   />
                   <button
                     type="button"
+                    aria-label={showPassword ? "Ascunde parola" : "Arată parola"}
                     onClick={() => setShowPassword(!showPassword)}
-                    className="text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0 focus:outline-none px-2"
-                    tabIndex={-1}
+                    className="w-8 h-8 rounded-full inline-flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors flex-shrink-0 focus-visible:ring-2 focus-visible:ring-primary/40 outline-none"
                   >
                     {showPassword ? (
                       <EyeOff className="w-4 h-4" />
@@ -374,7 +379,7 @@ export default function Login() {
                       setError("Eroare la autentificarea cu Google (Client side)");
                     }}
                     useOneTap
-                    shape="rectangular"
+                    shape="pill"
                     text="signin_with"
                     theme="outline"
                   />
@@ -403,7 +408,7 @@ export default function Login() {
                     onChange={e => setEmail(e.target.value)}
                     placeholder="email@companie.ro"
                     disabled={isLoading || forgotPasswordSuccess}
-                    className="py-6"
+                    className="py-6 rounded-full"
                   />
                 </InputGroup>
               </div>

@@ -418,7 +418,7 @@ export default function HorecaDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {openOrders.slice(0, 10).map((order, idx) => (
+                {openOrders.slice(0, 10).map((order: any, idx: number) => (
                   <tr
                     key={order.id}
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"

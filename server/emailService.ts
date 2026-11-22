@@ -35,6 +35,8 @@ export async function generateEmittedInvoicePdfBuffer(invoiceId: number): Promis
   tenantLogoBase64?: string;
   representativeName?: string;
   tenantBrevoApiKey?: string;
+  isForeign?: boolean;
+  clientCountry?: string;
 }> {
   const db = await getDb();
   if (!db) {
@@ -42,7 +44,7 @@ export async function generateEmittedInvoicePdfBuffer(invoiceId: number): Promis
   }
 
   const { emittedInvoices, emittedInvoiceLines, tenants, clients } = await import("../drizzle/schema");
-  const { eq } = await import("drizzle-orm");
+  const { eq, and } = await import("drizzle-orm");
 
   const [inv] = await db
     .select()
@@ -58,7 +60,7 @@ export async function generateEmittedInvoicePdfBuffer(invoiceId: number): Promis
     const [c] = await db
       .select()
       .from(clients)
-      .where(eq(clients.id, inv.clientId));
+      .where(and(eq(clients.id, inv.clientId), eq(clients.tenantId, inv.tenantId)));
     clientRecord = c;
   }
 
@@ -112,10 +114,17 @@ export async function generateEmittedInvoicePdfBuffer(invoiceId: number): Promis
     }
   }
 
+  const effCountry = String(inv.clientCountry || clientRecord?.country || "").trim().toUpperCase();
+  const effCui = String(inv.clientCUI || clientRecord?.cui || "").trim().toUpperCase();
+  const isRoCountry =
+    effCountry === "RO" || effCountry === "ROMANIA" || effCountry === "ROMÂNIA" || effCountry === "ROU";
+  const isRoCui = Boolean(effCui) && (effCui.startsWith("RO") || /^\d{2,13}$/.test(effCui));
+  const isRoClient = isRoCountry || (!effCountry && isRoCui);
+
   const isForeign = Boolean(
-    (inv.clientCountry && inv.clientCountry !== "RO") ||
-    (inv.clientCUI && !inv.clientCUI.startsWith("RO") && /^[A-Z]{2}/.test(inv.clientCUI)) ||
-    (inv.currency && inv.currency !== "RON" && inv.currency !== "LEI")
+    (effCountry && !isRoCountry) ||
+    (effCui && !effCui.startsWith("RO") && /^[A-Z]{2}/.test(effCui)) ||
+    (inv.currency && inv.currency !== "RON" && inv.currency !== "LEI" && !isRoClient)
   );
 
   const translatedLines = await Promise.all(

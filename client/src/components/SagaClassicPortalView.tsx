@@ -1229,8 +1229,12 @@ export default function SagaClassicPortalView({
                           >
                             {/* Tip: Icon partener */}
                             <td className="py-0.5 px-1 text-center border-r border-[#D3D3D3]">
-                              <span className="text-[11px]">
-                                {activeTab === "received" ? "🏢" : "👥"}
+                              <span className="inline-flex items-center justify-center text-slate-700">
+                                {activeTab === "received" ? (
+                                  <Building2 className="w-3 h-3" />
+                                ) : (
+                                  <Users className="w-3 h-3" />
+                                )}
                               </span>
                             </td>
 
@@ -1434,7 +1438,9 @@ export default function SagaClassicPortalView({
                             style={{ height: "20px" }}
                           >
                             <td className="py-0.5 px-1 text-center border-r border-[#D3D3D3]">
-                              <span className="text-[11px] text-amber-800">🔒</span>
+                              <span className="inline-flex items-center justify-center text-amber-700">
+                                <Lock className="w-3 h-3" />
+                              </span>
                             </td>
                             <td className="py-0.5 px-1.5 text-center tabular-nums border-r border-[#D3D3D3] text-[10.5px]">
                               {internalNr}
@@ -1722,12 +1728,12 @@ export default function SagaClassicPortalView({
                             {/* Tip: Iconiță lacăt SAGA (blocat/validat) */}
                             <td className="py-0.5 px-1 text-center border-r border-[#D3D3D3]">
                               <span
-                                className={`inline-block text-[11px] ${
-                                  isSelected ? "text-amber-300" : "text-amber-800"
+                                className={`inline-flex items-center justify-center ${
+                                  isSelected ? "text-amber-300" : "text-amber-700"
                                 }`}
                                 title="Document recepționat și validat în contabilitate"
                               >
-                                🔒
+                                <Lock className="w-3 h-3" />
                               </span>
                             </td>
 
@@ -2215,7 +2221,7 @@ export default function SagaClassicPortalView({
                     type="button"
                     className="flex items-center gap-1 px-3 py-0.5 bg-[#ECE9D8] hover:bg-[#F5F2E6] border-t border-l border-white border-b border-r border-[#808080] text-black font-normal cursor-pointer shadow-2xs text-[11px]"
                   >
-                    <span>🔒</span>
+                    <Lock className="w-3 h-3 text-amber-700" />
                     <span>Validez</span>
                   </button>
 

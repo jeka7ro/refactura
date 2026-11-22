@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { tenantOf } from "../../server/tenant";
 import { router, protectedProcedure } from "../../server/_core/trpc";
 import { getDb } from "../../server/db";
@@ -10,7 +11,7 @@ import {
   sagaRetete, sagaReteteLinii,
   sagaArticoleContabile,
 } from "./schema";
-import { eq, and, desc, like, sql, count } from "drizzle-orm";
+import { eq, and, desc, like, sql, count, inArray } from "drizzle-orm";
 
 // Verifies that a parent row belongs to the caller's tenant (404-style error otherwise).
 async function assertOwned(db: any, table: any, id: number, tenantId: number) {
@@ -306,7 +307,10 @@ export const sagaRouter = router({
         .from(sagaArticleMappings)
         .leftJoin(
           sagaArticles,
-          eq(sagaArticleMappings.sagaArticleId, sagaArticles.id)
+          and(
+            eq(sagaArticleMappings.sagaArticleId, sagaArticles.id),
+            eq(sagaArticles.tenantId, tenantOf(ctx))
+          )
         )
         .where(eq(sagaArticleMappings.tenantId, (tenantOf(ctx))))
         .orderBy(desc(sagaArticleMappings.createdAt));
@@ -322,11 +326,27 @@ export const sagaRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        const tenantId = tenantOf(ctx);
+        const [ownArticle] = await db
+          .select({ id: sagaArticles.id })
+          .from(sagaArticles)
+          .where(
+            and(
+              eq(sagaArticles.id, input.sagaArticleId),
+              eq(sagaArticles.tenantId, tenantId)
+            )
+          )
+          .limit(1);
+        if (!ownArticle) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Articolul selectat nu aparține firmei curente.",
+          });
+        }
         await db.insert(sagaArticleMappings).values({
-          tenantId: (tenantOf(ctx)),
+          tenantId,
           sagaArticleId: input.sagaArticleId,
           externalName: input.externalName,
           supplierCUI: input.supplierCUI || null,
@@ -602,19 +622,21 @@ export const sagaRouter = router({
   getSagaWebConfig: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     const tenantId = tenantOf(ctx);
-    if (!db) return { sagaWebToken: "", sagaWebCui: "" };
+    if (!db) return { sagaWebToken: "", sagaWebCui: "", hasToken: false };
     const { tenants } = await import("../../drizzle/schema");
     const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
-    let sagaWebToken = "";
+    let rawToken = "";
     let sagaWebCui = tenant?.cui?.replace(/^RO/i, "").trim() || "";
     if (tenant?.settings) {
       try {
         const s = JSON.parse(tenant.settings);
-        if (s.sagaWebToken) sagaWebToken = s.sagaWebToken;
+        if (s.sagaWebToken) rawToken = String(s.sagaWebToken);
         if (s.sagaWebCui) sagaWebCui = s.sagaWebCui;
       } catch {}
     }
-    return { sagaWebToken, sagaWebCui };
+    const isAdmin = ctx.user?.role === "superadmin" || ctx.user?.role === "admin";
+    const sagaWebToken = rawToken ? (isAdmin ? rawToken : "••••••••") : "";
+    return { sagaWebToken, sagaWebCui, hasToken: Boolean(rawToken) };
   }),
 
   saveSagaWebConfig: protectedProcedure
@@ -636,7 +658,9 @@ export const sagaRouter = router({
           settings = JSON.parse(tenant.settings);
         } catch {}
       }
-      if (input.sagaWebToken !== undefined) settings.sagaWebToken = input.sagaWebToken.trim();
+      if (input.sagaWebToken !== undefined && input.sagaWebToken.trim() !== "••••••••") {
+        settings.sagaWebToken = input.sagaWebToken.trim();
+      }
       if (input.sagaWebCui !== undefined) settings.sagaWebCui = input.sagaWebCui.trim();
 
       await db
@@ -779,7 +803,13 @@ export const sagaRouter = router({
           clientCui: schema.clients.cui,
         })
         .from(schema.emittedInvoices)
-        .leftJoin(schema.clients, eq(schema.emittedInvoices.clientId, schema.clients.id))
+        .leftJoin(
+          schema.clients,
+          and(
+            eq(schema.emittedInvoices.clientId, schema.clients.id),
+            eq(schema.clients.tenantId, tenantId)
+          )
+        )
         .where(eq(schema.emittedInvoices.tenantId, tenantId))
         .orderBy(desc(schema.emittedInvoices.issueDate));
 
@@ -803,19 +833,34 @@ export const sagaRouter = router({
           archiveTotalVat: schema.invoiceArchive.totalVAT,
         })
         .from(schema.nir)
-        .leftJoin(schema.invoiceArchive, eq(schema.nir.invoiceArchiveId, schema.invoiceArchive.id))
+        .leftJoin(
+          schema.invoiceArchive,
+          and(
+            eq(schema.nir.invoiceArchiveId, schema.invoiceArchive.id),
+            eq(schema.invoiceArchive.tenantId, tenantId)
+          )
+        )
         .where(eq(schema.nir.tenantId, tenantId))
         .orderBy(desc(schema.nir.receiptDate));
 
-      const nirLines = await db
-        .select({
-          nirId: schema.nirLines.nirId,
-          total: schema.nirLines.total,
-          cantitateReceptionata: schema.nirLines.cantitateReceptionata,
-          unitPrice: schema.nirLines.unitPrice,
-          vatRate: schema.nirLines.vatRate,
-        })
-        .from(schema.nirLines);
+      const nirLines =
+        nirs.length > 0
+          ? await db
+              .select({
+                nirId: schema.nirLines.nirId,
+                total: schema.nirLines.total,
+                cantitateReceptionata: schema.nirLines.cantitateReceptionata,
+                unitPrice: schema.nirLines.unitPrice,
+                vatRate: schema.nirLines.vatRate,
+              })
+              .from(schema.nirLines)
+              .where(
+                inArray(
+                  schema.nirLines.nirId,
+                  nirs.map((n) => n.id)
+                )
+              )
+          : [];
 
       const nirTotals = new Map<number, { valoare: number; tva: number; total: number }>();
       for (const l of nirLines) {

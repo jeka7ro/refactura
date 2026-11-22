@@ -390,15 +390,21 @@ h1, h2, h3, .apple-display {
   .glass,
   .apple-glass,
   .glass-sm,
-  .glass-lg {
+  .glass-lg,
+  .apple-btn-glass,
+  .lock-glass-backdrop {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
+    background: #ffffff !important;
     background-color: #ffffff !important;
   }
   .dark .glass,
   .dark .apple-glass,
   .dark .glass-sm,
-  .dark .glass-lg {
+  .dark .glass-lg,
+  .dark .apple-btn-glass,
+  .dark .lock-glass-backdrop {
+    background: #1c1c1e !important;
     background-color: #1c1c1e !important;
   }
 }
@@ -468,16 +474,19 @@ h1, h2, h3, .apple-display {
 /* Capsule shape pe butoanele de acțiune (inclusiv cele cu rounded-lg/md vechi),
    excluzând cardurile mari interactive, tab-urile, dropdown items și checkbox-urile */
 [data-slot="button"],
+[data-slot="alert-dialog-action"],
+[data-slot="alert-dialog-cancel"],
 button.h-6,
 button.h-7,
 button.h-8,
 button.h-9,
 button.h-10,
 button.h-11,
+a.h-7,
 a.h-8,
 a.h-9,
 a.h-10,
-button:not(.btn-icon):not(.catalog-dropdown-item):not([role="combobox"]):not([role="option"]):not([role="menuitem"]):not([role="tab"]):not([role="checkbox"]):not([role="switch"]):not([data-slot="tabs-trigger"]):not([class*="rounded-none"]):not([class*="rounded-2xl"]):not([class*="rounded-xl"]):not([class*="w-full"]) {
+button:not(.btn-icon):not(.catalog-dropdown-item):not([role="combobox"]):not([role="option"]):not([role="menuitem"]):not([role="tab"]):not([role="checkbox"]):not([role="switch"]):not([data-slot="tabs-trigger"]):not([class*="rounded-none"]):not([class*="rounded-2xl"]):not([class*="rounded-[22px]"]):not([class*="rounded-xl"]):not([class*="w-full"]) {
   border-radius: 9999px !important;
 }
 
@@ -506,7 +515,8 @@ button.bg-primary,
 .glass-card,
 .glass-input,
 .modal,
-[data-slot="dialog-content"] {
+[data-slot="dialog-content"],
+[data-slot="alert-dialog-content"] {
   border-radius: 22px;
 }
 
@@ -826,7 +836,7 @@ html.dark[data-theme="navy"] {
  * REGULA GLOBALA: Câmpurile editabile folosesc rotunjirea
  * de la containere (8px / rounded-lg), NU de la butoane (pill)
  * ====================================================== */
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.rounded-full),
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.rounded-full):not([data-slot="input-group-control"]),
 textarea:not(.rounded-full),
 select:not(.rounded-full) {
   border-radius: 8px !important;

@@ -182,36 +182,36 @@ export default function Reports() {
         <KPICard
           title="Venituri Totale"
           value={formatCurrency(totalRevenue, selectedCurrency)}
-          icon={<DollarSign className="w-5 h-5 text-blue-600" />}
-          iconBg="bg-blue-50"
+          icon={<DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
+          iconBg="bg-blue-50 dark:bg-blue-950/50"
           sub={`${totalReInvoices} re-facturi + arhiva emise`}
         />
         <KPICard
           title="Facturi Primite"
           value={formatCurrency(totalExpenses, selectedCurrency)}
-          icon={<TrendingDown className="w-5 h-5 text-rose-600" />}
-          iconBg="bg-rose-50"
+          icon={<TrendingDown className="w-5 h-5 text-rose-600 dark:text-rose-400" />}
+          iconBg="bg-rose-50 dark:bg-rose-950/50"
           sub="Cheltuieli din SPV"
         />
         <KPICard
           title="Clienți Activi"
           value={activeClients.toString()}
-          icon={<Users className="w-5 h-5 text-violet-600" />}
-          iconBg="bg-violet-50"
+          icon={<Users className="w-5 h-5 text-violet-600 dark:text-violet-400" />}
+          iconBg="bg-violet-50 dark:bg-violet-950/50"
           sub={`${dbClients.length} total în BD`}
         />
         <KPICard
           title="Facturi Arhivă"
           value={archiveInvoices.length.toString()}
-          icon={<Percent className="w-5 h-5 text-amber-600" />}
-          iconBg="bg-amber-50"
+          icon={<Percent className="w-5 h-5 text-amber-600 dark:text-amber-400" />}
+          iconBg="bg-amber-50 dark:bg-amber-950/50"
           sub="Din toate sursele"
         />
       </div>
 
       {/* Chart evoluție lunară */}
       {monthlyData.length > 0 && (
-        <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+        <div className="bg-white dark:bg-slate-900 rounded-[22px] shadow-sm border border-slate-200 dark:border-slate-800 p-6">
           <div className="flex items-center gap-2 mb-6">
             <LineChartIcon className="w-5 h-5 text-blue-600" />
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
@@ -227,7 +227,7 @@ export default function Reports() {
                 contentStyle={{
                   backgroundColor: "#1e293b",
                   border: "1px solid #475569",
-                  borderRadius: "8px",
+                  borderRadius: "12px",
                   color: "#f1f5f9",
                 }}
               />
@@ -254,7 +254,7 @@ export default function Reports() {
       )}
 
       {/* Top Clienți */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+      <div className="bg-white dark:bg-slate-900 rounded-[22px] shadow-sm border border-slate-200 dark:border-slate-800 p-6">
         <div className="flex items-center gap-2 mb-6">
           <BarChart3 className="w-5 h-5 text-violet-600" />
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">
@@ -289,21 +289,21 @@ export default function Reports() {
                     key={c.clientId}
                     className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                   >
-                    <td className="py-3 px-4 text-slate-500">{i + 1}</td>
+                    <td className="py-3 px-4 tabular-nums text-slate-500">{i + 1}</td>
                     <td className="py-3 px-4 font-medium text-slate-900 dark:text-white">
                       {c.clientName}
                     </td>
-                    <td className="py-3 px-4 text-slate-900 dark:text-white">
+                    <td className="py-3 px-4 tabular-nums text-slate-900 dark:text-white">
                       {formatCurrency(c.totalRevenue, selectedCurrency)}
                     </td>
-                    <td className="py-3 px-4 text-slate-600 dark:text-slate-400">
+                    <td className="py-3 px-4 tabular-nums text-slate-600 dark:text-slate-400">
                       {c.reInvoiceCount}
                     </td>
-                    <td className="py-3 px-4 text-slate-900 dark:text-white">
+                    <td className="py-3 px-4 tabular-nums text-slate-900 dark:text-white">
                       {formatCurrency(c.averageMargin, selectedCurrency)}
                     </td>
                     <td className="py-3 px-4 text-right">
-                      <span className="px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-xs font-semibold tabular-nums">
                         {c.marginPercentage.toFixed(1)}%
                       </span>
                     </td>
@@ -325,13 +325,13 @@ export default function Reports() {
 
       {/* Facturi din arhivă */}
       {archiveInvoices.length > 0 && (
-        <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+        <div className="bg-white dark:bg-slate-900 rounded-[22px] shadow-sm border border-slate-200 dark:border-slate-800 p-6">
           <div className="flex items-center gap-2 mb-4">
             <Users className="w-5 h-5 text-blue-600" />
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
               Facturi în arhivă
             </h2>
-            <span className="ml-auto text-xs text-slate-500">
+            <span className="ml-auto text-xs text-slate-500 tabular-nums">
               {archiveInvoices.length} total
             </span>
           </div>
@@ -362,22 +362,22 @@ export default function Reports() {
                       <td className="py-2 px-4 font-medium text-slate-900 dark:text-white">
                         {inv.supplierName || "—"}
                       </td>
-                      <td className="py-2 px-4 text-slate-600">
+                      <td className="py-2 px-4 tabular-nums text-slate-600 dark:text-slate-300">
                         {inv.invoiceNumber}
                       </td>
-                      <td className="py-2 px-4 text-slate-500">
+                      <td className="py-2 px-4 tabular-nums text-slate-500 dark:text-slate-400">
                         {d && !isNaN(d.getTime())
                           ? d.toLocaleDateString("ro-RO")
                           : "—"}
                       </td>
-                      <td className="py-2 px-4 text-slate-900 dark:text-white">
+                      <td className="py-2 px-4 tabular-nums text-slate-900 dark:text-white">
                         {formatCurrency(
                           Number(inv.total || 0),
                           (inv.currency || "RON") as Currency
                         )}
                       </td>
                       <td className="py-2 px-4">
-                        <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700">
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300">
                           {inv.source}
                         </span>
                       </td>
@@ -407,19 +407,19 @@ function KPICard({
   sub?: string;
 }) {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-5 space-y-3">
+    <div className="bg-white dark:bg-slate-900 rounded-[22px] shadow-sm border border-slate-200 dark:border-slate-800 p-5 space-y-3">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             {title}
           </p>
-          <p className="text-2xl font-bold text-slate-900 dark:text-white mt-2">
+          <p className="text-2xl font-bold tabular-nums text-slate-900 dark:text-white mt-2">
             {value}
           </p>
-          {sub && <p className="text-xs text-slate-500 mt-1">{sub}</p>}
+          {sub && <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{sub}</p>}
         </div>
         <div
-          className={`w-10 h-10 rounded-lg ${iconBg} flex items-center justify-center flex-shrink-0`}
+          className={`w-10 h-10 rounded-2xl ${iconBg} flex items-center justify-center flex-shrink-0`}
         >
           {icon}
         </div>

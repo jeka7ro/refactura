@@ -26,6 +26,16 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const LOCATION_TYPES = [
   { value: "restaurant", label: "Restaurant" },
@@ -59,6 +69,7 @@ const BRAND_LOGOS: Record<string, string> = {
 export default function HorecaLocations() {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
+  const [locationToDelete, setLocationToDelete] = useState<any | null>(null);
   const [form, setForm] = useState({
     name: "",
     address: "",
@@ -166,6 +177,7 @@ export default function HorecaLocations() {
   const deleteMut = trpc.horeca.locations.delete.useMutation({
     onSuccess: () => {
       toast.success("Locație dezactivată");
+      setLocationToDelete(null);
       utils.horeca.locations.list.invalidate();
     },
     onError: e => toast.error(e.message),
@@ -284,7 +296,7 @@ export default function HorecaLocations() {
               >
                 {LOCATION_TYPES.map(t => (
                   <option key={t.value} value={t.value}>
-                    {TYPE_ICONS[t.value]} {t.label}
+                    {t.label}
                   </option>
                 ))}
               </select>
@@ -457,7 +469,7 @@ export default function HorecaLocations() {
                     </td>
                   </tr>
                 ) : (
-                  paginated.map((loc, idx) => (
+                  paginated.map((loc: any, idx: number) => (
                     <tr
                       key={loc.id}
                       className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
@@ -539,10 +551,7 @@ export default function HorecaLocations() {
                             <Pencil className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => {
-                              if (confirm(`Dezactivezi "${loc.name}"?`))
-                                deleteMut.mutate({ id: loc.id });
-                            }}
+                            onClick={() => setLocationToDelete(loc)}
                             className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-500/10 rounded-lg transition-colors"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -615,6 +624,33 @@ export default function HorecaLocations() {
           </div>
         </div>
       )}
+
+      <AlertDialog
+        open={!!locationToDelete}
+        onOpenChange={open => !open && setLocationToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Dezactivezi locația „{locationToDelete?.name}”?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Locația nu va mai apărea ca activă pentru preluarea comenzilor noi.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-full">Anulează</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() =>
+                locationToDelete && deleteMut.mutate({ id: locationToDelete.id })
+              }
+              className="rounded-full bg-red-600 hover:bg-red-700 text-white"
+            >
+              Dezactivează
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

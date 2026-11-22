@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { usePersistentRowsPerPage } from "@/hooks/usePersistentRowsPerPage";
-import { ChevronLeft, ChevronRight, Search, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, Loader2, X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -33,6 +33,7 @@ interface DataTableProps<T> {
   tableId?: string;
   searchFields?: string[];
   filterFn?: (row: T, search: string) => boolean;
+  initialSearch?: string;
 }
 
 export function DataTable<T extends Record<string, any>>({
@@ -49,6 +50,7 @@ export function DataTable<T extends Record<string, any>>({
   tableId,
   searchFields,
   filterFn,
+  initialSearch,
 }: DataTableProps<T>) {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = usePersistentRowsPerPage(
@@ -56,7 +58,14 @@ export function DataTable<T extends Record<string, any>>({
     15
   );
   const [selectedRows, setSelectedRows] = useState<Set<any>>(new Set());
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(initialSearch || "");
+
+  useEffect(() => {
+    if (initialSearch !== undefined) {
+      setSearch(initialSearch);
+      setPage(1);
+    }
+  }, [initialSearch]);
 
   // Filter data with diacritics normalization, custom searchFields, and auto country/name matching
   const filteredData = useMemo(() => {
@@ -150,7 +159,7 @@ export function DataTable<T extends Record<string, any>>({
     <div className="space-y-2.5">
       {/* Search & Header Content */}
       {(searchable || headerContent) && (
-        <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_16px_-4px_rgba(0,0,0,0.04)] px-4 py-2.5 flex flex-col sm:flex-row gap-3 justify-between items-center">
+        <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_16px_-4px_rgba(0,0,0,0.04)] px-4 py-2.5 flex flex-col sm:flex-row gap-3 justify-between items-center">
           {searchable ? (
             <div className="relative w-full max-w-[340px]">
               <Search
@@ -159,7 +168,7 @@ export function DataTable<T extends Record<string, any>>({
               <input
                 style={{
                   borderRadius: 9999,
-                  paddingRight: search ? 72 : 12,
+                  paddingRight: search ? 40 : 12,
                 }}
                 className="w-full h-9 pl-8.5 text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white placeholder:text-[#636366] dark:placeholder:text-[#98989d] border border-black/[0.06] dark:border-white/[0.08] focus:bg-white dark:focus:bg-[#3a3a3c] transition-colors outline-none rounded-full"
                 placeholder="Caută număr, partener..."
@@ -169,6 +178,19 @@ export function DataTable<T extends Record<string, any>>({
                   setPage(1);
                 }}
               />
+              {search && (
+                <button
+                  type="button"
+                  aria-label="Șterge căutarea"
+                  onClick={() => {
+                    setSearch("");
+                    setPage(1);
+                  }}
+                  className="w-7 h-7 right-1 top-1/2 -translate-y-1/2 absolute rounded-full inline-flex items-center justify-center text-[#636366] dark:text-[#98989d] hover:bg-black/[0.06] dark:hover:bg-white/[0.10] transition-colors cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           ) : (
             <div />
@@ -183,7 +205,7 @@ export function DataTable<T extends Record<string, any>>({
       )}
 
       {/* Table card */}
-      <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_16px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
+      <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_16px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
             <thead>
@@ -342,7 +364,7 @@ export function DataTable<T extends Record<string, any>>({
                 aria-label="Pagina anterioară"
                 disabled={page === 1}
                 onClick={() => setPage(p => Math.max(1, p - 1))}
-                className="w-7 h-7 flex items-center justify-center rounded-lg border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5] hover:bg-black/[0.04] dark:hover:bg-white/[0.08] disabled:opacity-35 transition-colors"
+                className="w-7 h-7 flex items-center justify-center rounded-full border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5] hover:bg-black/[0.04] dark:hover:bg-white/[0.08] disabled:opacity-35 transition-colors cursor-pointer"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
@@ -351,7 +373,7 @@ export function DataTable<T extends Record<string, any>>({
                 aria-label="Pagina următoare"
                 disabled={page >= totalPages}
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                className="w-7 h-7 flex items-center justify-center rounded-lg border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5] hover:bg-black/[0.04] dark:hover:bg-white/[0.08] disabled:opacity-35 transition-colors"
+                className="w-7 h-7 flex items-center justify-center rounded-full border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5] hover:bg-black/[0.04] dark:hover:bg-white/[0.08] disabled:opacity-35 transition-colors cursor-pointer"
               >
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>

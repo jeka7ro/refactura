@@ -80,13 +80,13 @@ export default function SpvDeadlineBadge({
   if (detailed) {
     return (
       <div
-        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs ${info.badgeClass} ${className}`}
+        className={`flex items-center gap-2 px-3 py-1.5 rounded-2xl border text-xs tabular-nums ${info.badgeClass} ${className}`}
         title={`Termen legal conform OUG 120/2021: 5 zile lucrătoare (fără weekend/sărbători). Dată limită: ${formattedDeadline}`}
       >
         {showIcon && icon}
         <div className="flex flex-col">
           <span className="font-bold">{info.label}</span>
-          <span className="text-[10px] opacity-80">
+          <span className="text-[10.5px] opacity-80 tabular-nums">
             Dată limită SPV: {formattedDeadline}
           </span>
         </div>
@@ -96,7 +96,7 @@ export default function SpvDeadlineBadge({
 
   return (
     <span
-      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] border tracking-tight ${info.badgeClass} ${className}`}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] border tracking-tight tabular-nums ${info.badgeClass} ${className}`}
       title={`Termen legal SPV: 5 zile lucrătoare. Dată limită: ${formattedDeadline}`}
     >
       {showIcon && icon}

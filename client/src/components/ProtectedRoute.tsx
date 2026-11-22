@@ -49,17 +49,17 @@ export default function ProtectedRoute({
 
     if (!hasRole(user.role, requiredRole)) {
       // Insufficient permissions - redirect to dashboard
-      setLocation("/");
+      setLocation("/dashboard");
       return;
     }
   }, [user, loading, requiredRole, setLocation]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen apple-canvas">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-slate-600 dark:text-slate-400">Loading...</p>
+          <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+          <p className="mt-4 text-sm text-[#636366] dark:text-[#98989d]">Se încarcă...</p>
         </div>
       </div>
     );
@@ -71,19 +71,20 @@ export default function ProtectedRoute({
 
   if (!hasRole(user.role, requiredRole)) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-            Access Denied
+      <div className="flex items-center justify-center min-h-screen p-6 apple-canvas">
+        <div className="text-center apple-glass rounded-[22px] p-8 max-w-md w-full border border-black/[0.06] dark:border-white/[0.09]">
+          <h1 className="text-2xl font-bold text-[#1d1d1f] dark:text-white mb-2">
+            Acces restricționat
           </h1>
-          <p className="text-slate-600 dark:text-slate-400 mb-6">
-            You don't have permission to access this page.
+          <p className="text-sm text-[#636366] dark:text-[#98989d] mb-6">
+            Nu aveți permisiunea necesară pentru a accesa această pagină.
           </p>
           <button
-            onClick={() => setLocation("/")}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            type="button"
+            onClick={() => setLocation("/dashboard")}
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-full transition-colors cursor-pointer"
           >
-            Go to Dashboard
+            Mergi la Dashboard
           </button>
         </div>
       </div>

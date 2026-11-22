@@ -621,6 +621,7 @@ export default function AccountantPortal() {
     const nirFolder = zip.folder("NIR_PDF");
 
     let count = 0;
+    let addedFiles = 0;
     const total = targets.length;
 
     try {
@@ -632,11 +633,15 @@ export default function AccountantPortal() {
         if (invPdfUrl) {
           try {
             const pdfRes = await fetch(invPdfUrl, { credentials: "include" });
-            if (pdfRes.ok) {
+            const contentType = pdfRes.headers.get("content-type") || "";
+            if (pdfRes.ok && !contentType.includes("text/html")) {
               const blob = await pdfRes.blob();
-              const safeNum = (inv.invoiceNumber || String(inv.id)).replace(/[^a-zA-Z0-9-_]/g, "_");
-              const safeSupp = (inv.supplierName || "FURNIZ").replace(/[^a-zA-Z0-9-_]/g, "_").slice(0, 20);
-              invoicesFolder?.file(`Factura_${safeSupp}_${safeNum}.pdf`, blob);
+              if (blob.size > 0) {
+                const safeNum = (inv.invoiceNumber || String(inv.id)).replace(/[^a-zA-Z0-9-_]/g, "_");
+                const safeSupp = (inv.supplierName || "FURNIZ").replace(/[^a-zA-Z0-9-_]/g, "_").slice(0, 20);
+                invoicesFolder?.file(`Factura_${safeSupp}_${safeNum}.pdf`, blob);
+                addedFiles++;
+              }
             }
           } catch {}
         }
@@ -646,14 +651,23 @@ export default function AccountantPortal() {
             const nirUrl = getAuthenticatedPdfUrl(`/api/pdf/nir/${inv.nirId}?download=1`);
             if (nirUrl) {
               const nirRes = await fetch(nirUrl, { credentials: "include" });
-              if (nirRes.ok) {
+              const contentType = nirRes.headers.get("content-type") || "";
+              if (nirRes.ok && !contentType.includes("text/html")) {
                 const blob = await nirRes.blob();
-                const safeNirNum = (inv.nirNumber || String(inv.nirId)).replace(/[^a-zA-Z0-9-_]/g, "_");
-                nirFolder?.file(`NIR_${safeNirNum}.pdf`, blob);
+                if (blob.size > 0) {
+                  const safeNirNum = (inv.nirNumber || String(inv.nirId)).replace(/[^a-zA-Z0-9-_]/g, "_");
+                  nirFolder?.file(`NIR_${safeNirNum}.pdf`, blob);
+                  addedFiles++;
+                }
               }
             }
           } catch {}
         }
+      }
+
+      if (addedFiles === 0) {
+        toast.error("Niciun document PDF disponibil pentru descărcare în arhivă.", { id: "zip-bundle" });
+        return;
       }
 
       setZipProgress("Comprimare arhivă ZIP...");
@@ -695,7 +709,7 @@ export default function AccountantPortal() {
   if (!publicInfo?.found || !publicInfo.isEnabled) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 text-center text-slate-800 dark:text-white shadow-sm">
+        <div className="max-w-md w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[22px] p-8 text-center text-slate-800 dark:text-white shadow-sm">
           <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 text-amber-600 mx-auto flex items-center justify-center mb-4">
             <AlertCircle className="w-7 h-7" />
           </div>
@@ -851,7 +865,7 @@ export default function AccountantPortal() {
           <button
             type="button"
             onClick={() => setActiveTab("received")}
-            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-full text-xs font-semibold transition-colors ${
               activeTab === "received"
                 ? "bg-blue-600 text-white shadow-xs"
                 : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -862,7 +876,7 @@ export default function AccountantPortal() {
               <span>Facturi Primite</span>
             </div>
             <span
-              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+              className={`px-2 py-0.5 rounded-full text-[10px] font-bold tabular-nums ${
                 activeTab === "received"
                   ? "bg-white/20 text-white"
                   : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
@@ -876,7 +890,7 @@ export default function AccountantPortal() {
           <button
             type="button"
             onClick={() => setActiveTab("emitted")}
-            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-full text-xs font-semibold transition-colors ${
               activeTab === "emitted"
                 ? "bg-blue-600 text-white shadow-xs"
                 : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -887,7 +901,7 @@ export default function AccountantPortal() {
               <span>Facturi Emise</span>
             </div>
             <span
-              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+              className={`px-2 py-0.5 rounded-full text-[10px] font-bold tabular-nums ${
                 activeTab === "emitted"
                   ? "bg-white/20 text-white"
                   : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
@@ -903,7 +917,7 @@ export default function AccountantPortal() {
           <button
             type="button"
             onClick={handleLockPortal}
-            className="w-full flex items-center justify-center gap-2 h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 text-slate-700 dark:text-slate-300 text-xs font-semibold transition-colors"
+            className="w-full flex items-center justify-center gap-2 h-9 px-3 rounded-full border border-slate-200 dark:border-slate-700 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 dark:hover:bg-rose-950/40 dark:hover:text-rose-300 dark:hover:border-rose-800 text-slate-700 dark:text-slate-300 text-xs font-semibold transition-colors"
           >
             <Lock className="w-3.5 h-3.5" />
             <span>Închide sesiunea</span>
@@ -914,7 +928,7 @@ export default function AccountantPortal() {
       {/* ZONA PRINCIPALĂ DE CONȚINUT */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Antet Pagină */}
-        <header className="sticky top-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 flex items-center justify-between">
+        <header className="sticky top-0 z-10 apple-glass bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h2 className="text-base font-bold text-slate-900 dark:text-white">
               {activeTab === "received" ? "Facturi Primite & NIR-uri" : "Facturi Emise (Vânzări)"}
@@ -955,70 +969,70 @@ export default function AccountantPortal() {
             <>
               {/* Top KPI Cards Primite */}
               <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-[22px] p-4 shadow-xs flex items-center justify-between">
                   <div>
                     <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Facturi Primite</span>
-                    <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1 leading-tight">{currentKpis.totalCount}</div>
+                    <div className="text-xl sm:text-2xl font-black tabular-nums text-slate-900 dark:text-white mt-1 leading-tight">{currentKpis.totalCount}</div>
                     <div className="text-[11px] text-slate-400 mt-0.5">în selecția activă</div>
                   </div>
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 text-blue-600 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/60 text-blue-600 flex items-center justify-center shrink-0">
                     <FileText className="w-4 h-4" />
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-[22px] p-4 shadow-xs flex items-center justify-between">
                   <div>
                     <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Bază Impozabilă</span>
-                    <div className="text-lg sm:text-xl font-black text-slate-900 dark:text-white mt-1 leading-tight">{formatCurrency(currentKpis.totalBase)}</div>
+                    <div className="text-lg sm:text-xl font-black tabular-nums text-slate-900 dark:text-white mt-1 leading-tight">{formatCurrency(currentKpis.totalBase)}</div>
                     <div className="text-[11px] text-slate-400 mt-0.5">valoare fără TVA</div>
                   </div>
-                  <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 text-emerald-600 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60 text-emerald-600 flex items-center justify-center shrink-0">
                     <Coins className="w-4 h-4" />
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-[22px] p-4 shadow-xs flex items-center justify-between">
                   <div>
                     <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">TVA Deductibil</span>
-                    <div className="text-lg sm:text-xl font-black text-amber-600 mt-1 leading-tight">{formatCurrency(currentKpis.totalVat)}</div>
+                    <div className="text-lg sm:text-xl font-black tabular-nums text-amber-600 dark:text-amber-400 mt-1 leading-tight">{formatCurrency(currentKpis.totalVat)}</div>
                     <div className="text-[11px] text-slate-400 mt-0.5">sumă totală TVA</div>
                   </div>
-                  <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 text-amber-600 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/60 text-amber-600 flex items-center justify-center shrink-0">
                     <Percent className="w-4 h-4" />
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-[22px] p-4 shadow-xs flex items-center justify-between">
                   <div>
                     <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Total de Plată</span>
-                    <div className="text-lg sm:text-xl font-black text-slate-900 dark:text-white mt-1 leading-tight">{formatCurrency(currentKpis.totalGross)}</div>
+                    <div className="text-lg sm:text-xl font-black tabular-nums text-slate-900 dark:text-white mt-1 leading-tight">{formatCurrency(currentKpis.totalGross)}</div>
                     <div className="text-[11px] text-slate-400 mt-0.5">valoare brută cu TVA</div>
                   </div>
-                  <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 text-indigo-600 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/60 text-indigo-600 flex items-center justify-center shrink-0">
                     <Receipt className="w-4 h-4" />
                   </div>
                 </div>
 
-                <div className="col-span-2 lg:col-span-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+                <div className="col-span-2 lg:col-span-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-[22px] p-4 shadow-xs flex items-center justify-between">
                   <div className="flex-1 mr-2">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Recepții NIR</span>
-                    <div className="flex items-baseline gap-1.5 mt-1">
+                    <div className="flex items-baseline gap-1.5 mt-1 tabular-nums">
                       <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-tight">{currentKpis.withNirCount}</span>
                       <span className="text-xs text-slate-500">/ {currentKpis.totalCount}</span>
-                      <span className="text-xs font-bold text-teal-600 ml-auto">{currentKpis.nirCoveragePercent}%</span>
+                      <span className="text-xs font-bold text-teal-600 dark:text-teal-400 ml-auto">{currentKpis.nirCoveragePercent}%</span>
                     </div>
                     <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mt-1.5">
                       <div className="bg-teal-500 h-full rounded-full transition-all duration-300" style={{ width: `${currentKpis.nirCoveragePercent}%` }} />
                     </div>
                   </div>
-                  <div className="w-9 h-9 rounded-xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200/60 text-teal-600 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200/60 dark:border-teal-800/60 text-teal-600 flex items-center justify-center shrink-0">
                     <ClipboardCheck className="w-4 h-4" />
                   </div>
                 </div>
               </div>
 
               {/* Filtre Primite */}
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs p-3.5 space-y-3">
+              <div className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 shadow-xs p-3.5 space-y-3">
                 <div className="flex items-center gap-2.5 w-full flex-wrap xl:flex-nowrap">
                   <div className="relative flex-1 min-w-[220px]">
                     <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -1082,23 +1096,23 @@ export default function AccountantPortal() {
                       type="date"
                       value={customStartDate}
                       onChange={(e) => setCustomStartDate(e.target.value)}
-                      className="h-8 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white outline-none"
+                      className="h-8 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs tabular-nums text-slate-900 dark:text-white outline-none"
                     />
                     <span className="text-xs font-medium text-slate-500">Până la:</span>
                     <input
                       type="date"
                       value={customEndDate}
                       onChange={(e) => setCustomEndDate(e.target.value)}
-                      className="h-8 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white outline-none"
+                      className="h-8 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs tabular-nums text-slate-900 dark:text-white outline-none"
                     />
                   </div>
                 )}
 
                 <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <div className="text-xs text-slate-500">
+                  <div className="text-xs text-slate-500 tabular-nums">
                     Afișare <span className="font-bold text-slate-900 dark:text-white">{filteredInvoices.length}</span> facturi găsite
                     {selectedIds.size > 0 && (
-                      <span className="ml-2 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 font-bold border border-blue-200">
+                      <span className="ml-2 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 font-bold border border-blue-200 dark:border-blue-800">
                         {selectedIds.size} selectate
                       </span>
                     )}
@@ -1145,7 +1159,7 @@ export default function AccountantPortal() {
               </div>
 
               {/* Tabel Facturi Primite */}
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
+              <div className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
@@ -1178,7 +1192,7 @@ export default function AccountantPortal() {
                         </tr>
                       ) : paginatedItems.length === 0 ? (
                         <tr>
-                          <td colSpan={10} className="py-10 text-center text-slate-500 bg-slate-50/50">
+                          <td colSpan={10} className="py-10 text-center text-slate-500 bg-slate-50/50 dark:bg-slate-900/40">
                             Nu a fost găsită nicio factură conform filtrelor selectate.
                           </td>
                         </tr>
@@ -1190,18 +1204,18 @@ export default function AccountantPortal() {
                           return (
                             <tr
                               key={inv.id}
-                              className={`hover:bg-slate-50/80 transition-colors ${isSelected ? "bg-blue-50/50" : ""}`}
+                              className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors ${isSelected ? "bg-blue-50/50 dark:bg-blue-950/30" : ""}`}
                             >
                               <td className="px-2.5 py-2 text-center">
                                 <input
                                   type="checkbox"
                                   checked={isSelected}
                                   onChange={() => handleToggleSelect(inv.id)}
-                                  className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                  className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
                                 />
                               </td>
-                              <td className="px-1.5 py-2 text-center font-bold text-xs text-slate-400">{rowNumber}</td>
-                              <td className="px-2.5 py-2 whitespace-nowrap">
+                              <td className="px-1.5 py-2 text-center tabular-nums font-bold text-xs text-slate-400">{rowNumber}</td>
+                              <td className="px-2.5 py-2 whitespace-nowrap tabular-nums">
                                 <div className="font-semibold text-slate-900 dark:text-white leading-tight">{formatDate(inv.issueDate)}</div>
                                 {inv.dueDate && <div className="text-[10px] text-slate-400 mt-0.5">Scad: {formatDate(inv.dueDate)}</div>}
                               </td>
@@ -1210,8 +1224,8 @@ export default function AccountantPortal() {
                                 {inv.supplierCUI && (
                                   <div className="flex items-center gap-1 mt-0.5">
                                     <span className="text-[10px] tabular-nums text-slate-500">{inv.supplierCUI}</span>
-                                    <button onClick={(e) => handleCopyCui(inv.supplierCUI, e)} title="Copiază CUI" className="text-slate-400 hover:text-blue-600 transition">
-                                      {copiedCui === inv.supplierCUI ? <Check className="w-2.5 h-2.5 text-emerald-500" /> : <Copy className="w-2.5 h-2.5" />}
+                                    <button onClick={(e) => handleCopyCui(inv.supplierCUI, e)} title="Copiază CUI" aria-label="Copiază CUI" className="w-6 h-6 rounded-full inline-flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                                      {copiedCui === inv.supplierCUI ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
                                     </button>
                                   </div>
                                 )}
@@ -1238,7 +1252,7 @@ export default function AccountantPortal() {
                                     className="text-[10px] tabular-nums text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5"
                                     title={`Index încărcare SPV: ${inv.spvIndex}`}
                                   >
-                                    <span className="text-[9px] uppercase font-bold text-slate-400">SPV:</span>
+                                    <span className="text-[10px] uppercase font-bold text-slate-400">SPV:</span>
                                     <span>{inv.spvIndex}</span>
                                   </div>
                                 ) : null}
@@ -1263,9 +1277,9 @@ export default function AccountantPortal() {
                                       });
                                     }}
                                     title="Deschide NIR în fereastră"
-                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200 transition-colors cursor-pointer"
+                                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/50 border border-teal-200 dark:border-teal-800 transition-colors cursor-pointer"
                                   >
-                                    <ClipboardCheck className="w-3 h-3 text-teal-600 shrink-0" />
+                                    <ClipboardCheck className="w-3 h-3 text-teal-600 dark:text-teal-400 shrink-0" />
                                     <span>{inv.nirNumber ? (String(inv.nirNumber).startsWith("NIR") ? inv.nirNumber : `NIR #${inv.nirNumber}`) : "Recepție"}</span>
                                   </button>
                                 ) : (
@@ -1274,7 +1288,7 @@ export default function AccountantPortal() {
                               </td>
                               {/* Butoane Documente — Iconițe compacte */}
                               <td className="px-2 py-2 text-center whitespace-nowrap">
-                                <div className="flex items-center justify-center gap-1">
+                                <div className="flex items-center justify-center gap-1.5">
                                   <button
                                     type="button"
                                     onClick={() =>
@@ -1287,7 +1301,8 @@ export default function AccountantPortal() {
                                       })
                                     }
                                     title="Deschide factura în fereastră"
-                                    className="w-7 h-7 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 flex items-center justify-center transition-colors shadow-2xs"
+                                    aria-label="Deschide factura"
+                                    className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 flex items-center justify-center transition-colors shadow-2xs"
                                   >
                                     <FileText className="w-3.5 h-3.5" />
                                   </button>
@@ -1308,7 +1323,8 @@ export default function AccountantPortal() {
                                         });
                                       }}
                                       title="Deschide NIR în fereastră"
-                                      className="w-7 h-7 rounded-lg bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200 flex items-center justify-center transition-colors shadow-2xs"
+                                      aria-label="Deschide NIR"
+                                      className="w-8 h-8 rounded-full bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/50 border border-teal-200 dark:border-teal-800 flex items-center justify-center transition-colors shadow-2xs"
                                     >
                                       <ClipboardCheck className="w-3.5 h-3.5" />
                                     </button>
@@ -1330,14 +1346,14 @@ export default function AccountantPortal() {
                     <select
                       value={pageSize}
                       onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
-                      className="h-7 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none cursor-pointer text-xs"
+                      className="h-7 px-2.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none cursor-pointer text-xs"
                     >
                       <option value={10}>10</option>
                       <option value={25}>25</option>
                       <option value={50}>50</option>
                       <option value={100}>100</option>
                     </select>
-                    <span className="text-slate-400 ml-2">
+                    <span className="text-slate-400 ml-2 tabular-nums">
                       Afișare {filteredInvoices.length > 0 ? (page - 1) * pageSize + 1 : 0}-{Math.min(page * pageSize, filteredInvoices.length)} din {filteredInvoices.length}
                     </span>
                   </div>
@@ -1346,15 +1362,15 @@ export default function AccountantPortal() {
                     <button
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={page <= 1}
-                      className="h-7 px-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-40 transition font-medium"
+                      className="h-7 px-3 rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 transition font-medium"
                     >
                       Anterior
                     </button>
-                    <span className="font-bold text-slate-700 px-1">{page} / {totalPages}</span>
+                    <span className="font-bold tabular-nums text-slate-700 dark:text-slate-200 px-1">{page} / {totalPages}</span>
                     <button
                       onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                       disabled={page >= totalPages}
-                      className="h-7 px-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-40 transition font-medium"
+                      className="h-7 px-3 rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 transition font-medium"
                     >
                       Următor
                     </button>
@@ -1369,53 +1385,53 @@ export default function AccountantPortal() {
             <>
               {/* Top KPI Cards Emise */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-[22px] p-4 shadow-xs flex items-center justify-between">
                   <div>
                     <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Facturi Emise</span>
-                    <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1 leading-tight">{currentEmittedKpis.totalCount}</div>
+                    <div className="text-xl sm:text-2xl font-black tabular-nums text-slate-900 dark:text-white mt-1 leading-tight">{currentEmittedKpis.totalCount}</div>
                     <div className="text-[11px] text-slate-400 mt-0.5">vânzări către clienți</div>
                   </div>
-                  <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 text-emerald-600 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60 text-emerald-600 flex items-center justify-center shrink-0">
                     <FileOutput className="w-4 h-4" />
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-[22px] p-4 shadow-xs flex items-center justify-between">
                   <div>
                     <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Bază Facturată</span>
-                    <div className="text-lg sm:text-xl font-black text-slate-900 dark:text-white mt-1 leading-tight">{formatCurrency(currentEmittedKpis.totalBase)}</div>
+                    <div className="text-lg sm:text-xl font-black tabular-nums text-slate-900 dark:text-white mt-1 leading-tight">{formatCurrency(currentEmittedKpis.totalBase)}</div>
                     <div className="text-[11px] text-slate-400 mt-0.5">venituri nete (fără TVA)</div>
                   </div>
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 text-blue-600 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/60 text-blue-600 flex items-center justify-center shrink-0">
                     <Coins className="w-4 h-4" />
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-[22px] p-4 shadow-xs flex items-center justify-between">
                   <div>
                     <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">TVA Colectat</span>
-                    <div className="text-lg sm:text-xl font-black text-amber-600 mt-1 leading-tight">{formatCurrency(currentEmittedKpis.totalVat)}</div>
+                    <div className="text-lg sm:text-xl font-black tabular-nums text-amber-600 dark:text-amber-400 mt-1 leading-tight">{formatCurrency(currentEmittedKpis.totalVat)}</div>
                     <div className="text-[11px] text-slate-400 mt-0.5">sumă totală TVA emis</div>
                   </div>
-                  <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 text-amber-600 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/60 text-amber-600 flex items-center justify-center shrink-0">
                     <Percent className="w-4 h-4" />
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-[22px] p-4 shadow-xs flex items-center justify-between">
                   <div>
                     <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Total General Emis</span>
-                    <div className="text-lg sm:text-xl font-black text-slate-900 dark:text-white mt-1 leading-tight">{formatCurrency(currentEmittedKpis.totalGross)}</div>
+                    <div className="text-lg sm:text-xl font-black tabular-nums text-slate-900 dark:text-white mt-1 leading-tight">{formatCurrency(currentEmittedKpis.totalGross)}</div>
                     <div className="text-[11px] text-slate-400 mt-0.5">total de încasat</div>
                   </div>
-                  <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 text-indigo-600 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/60 text-indigo-600 flex items-center justify-center shrink-0">
                     <Receipt className="w-4 h-4" />
                   </div>
                 </div>
               </div>
 
               {/* Filtre Emise */}
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs p-3.5 space-y-3">
+              <div className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 shadow-xs p-3.5 space-y-3">
                 <div className="flex items-center gap-2.5 w-full flex-wrap xl:flex-nowrap">
                   <div className="relative flex-1 min-w-[220px]">
                     <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -1464,7 +1480,7 @@ export default function AccountantPortal() {
               </div>
 
               {/* Tabel Facturi Emise */}
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
+              <div className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
@@ -1489,7 +1505,7 @@ export default function AccountantPortal() {
                         </tr>
                       ) : paginatedItems.length === 0 ? (
                         <tr>
-                          <td colSpan={9} className="py-10 text-center text-slate-500 bg-slate-50/50">
+                          <td colSpan={9} className="py-10 text-center text-slate-500 bg-slate-50/50 dark:bg-slate-900/40">
                             Nu a fost găsită nicio factură emisă conform filtrelor.
                           </td>
                         </tr>
@@ -1498,9 +1514,9 @@ export default function AccountantPortal() {
                           const rowNumber = (page - 1) * pageSize + idx + 1;
 
                           return (
-                            <tr key={`${inv.source}-${inv.id}`} className="hover:bg-slate-50/80 transition-colors">
-                              <td className="px-1.5 py-2 text-center font-bold text-xs text-slate-400">{rowNumber}</td>
-                              <td className="px-2.5 py-2 whitespace-nowrap">
+                            <tr key={`${inv.source}-${inv.id}`} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
+                              <td className="px-1.5 py-2 text-center tabular-nums font-bold text-xs text-slate-400">{rowNumber}</td>
+                              <td className="px-2.5 py-2 whitespace-nowrap tabular-nums">
                                 <div className="font-semibold text-slate-900 dark:text-white leading-tight">{formatDate(inv.issueDate)}</div>
                                 {inv.dueDate && <div className="text-[10px] text-slate-400 mt-0.5">Scad: {formatDate(inv.dueDate)}</div>}
                               </td>
@@ -1509,8 +1525,8 @@ export default function AccountantPortal() {
                                 {inv.clientCUI && (
                                   <div className="flex items-center gap-1 mt-0.5">
                                     <span className="text-[10px] tabular-nums text-slate-500">{inv.clientCUI}</span>
-                                    <button onClick={(e) => handleCopyCui(inv.clientCUI, e)} title="Copiază CUI" className="text-slate-400 hover:text-blue-600 transition">
-                                      {copiedCui === inv.clientCUI ? <Check className="w-2.5 h-2.5 text-emerald-500" /> : <Copy className="w-2.5 h-2.5" />}
+                                    <button onClick={(e) => handleCopyCui(inv.clientCUI, e)} title="Copiază CUI" aria-label="Copiază CUI" className="w-6 h-6 rounded-full inline-flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                                      {copiedCui === inv.clientCUI ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
                                     </button>
                                   </div>
                                 )}
@@ -1537,7 +1553,7 @@ export default function AccountantPortal() {
                                     className="text-[10px] tabular-nums text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5"
                                     title={`Index încărcare SPV: ${inv.spvIndex}`}
                                   >
-                                    <span className="text-[9px] uppercase font-bold text-slate-400">SPV:</span>
+                                    <span className="text-[10px] uppercase font-bold text-slate-400">SPV:</span>
                                     <span>{inv.spvIndex}</span>
                                   </div>
                                 ) : null}
@@ -1546,7 +1562,7 @@ export default function AccountantPortal() {
                               <td className="px-2 py-2 text-right tabular-nums text-slate-500 whitespace-nowrap">{formatCurrency(inv.totalVAT, inv.currency)}</td>
                               <td className="px-2.5 py-2 text-right tabular-nums font-bold text-slate-900 dark:text-white whitespace-nowrap">{formatCurrency(inv.total, inv.currency)}</td>
                               <td className="px-2.5 py-2 text-center whitespace-nowrap">
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                                   {inv.status || "emis"}
                                 </span>
                               </td>
@@ -1563,7 +1579,8 @@ export default function AccountantPortal() {
                                     })
                                   }
                                   title="Deschide factura în fereastră"
-                                  className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 inline-flex items-center justify-center transition-colors shadow-2xs"
+                                  aria-label="Deschide factura"
+                                  className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800 inline-flex items-center justify-center transition-colors shadow-2xs"
                                 >
                                   <FileText className="w-3.5 h-3.5" />
                                 </button>
@@ -1583,14 +1600,14 @@ export default function AccountantPortal() {
                     <select
                       value={pageSize}
                       onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
-                      className="h-7 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none cursor-pointer text-xs"
+                      className="h-7 px-2.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none cursor-pointer text-xs"
                     >
                       <option value={10}>10</option>
                       <option value={25}>25</option>
                       <option value={50}>50</option>
                       <option value={100}>100</option>
                     </select>
-                    <span className="text-slate-400 ml-2">
+                    <span className="text-slate-400 ml-2 tabular-nums">
                       Afișare {filteredEmittedInvoices.length > 0 ? (page - 1) * pageSize + 1 : 0}-{Math.min(page * pageSize, filteredEmittedInvoices.length)} din {filteredEmittedInvoices.length}
                     </span>
                   </div>
@@ -1599,15 +1616,15 @@ export default function AccountantPortal() {
                     <button
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={page <= 1}
-                      className="h-7 px-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-40 transition font-medium"
+                      className="h-7 px-3 rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 transition font-medium"
                     >
                       Anterior
                     </button>
-                    <span className="font-bold text-slate-700 px-1">{page} / {totalPages}</span>
+                    <span className="font-bold tabular-nums text-slate-700 dark:text-slate-200 px-1">{page} / {totalPages}</span>
                     <button
                       onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                       disabled={page >= totalPages}
-                      className="h-7 px-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-40 transition font-medium"
+                      className="h-7 px-3 rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 transition font-medium"
                     >
                       Următor
                     </button>

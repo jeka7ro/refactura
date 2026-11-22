@@ -22,6 +22,41 @@ import {
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/store";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+const HORECA_AI_BASE_URL =
+  import.meta.env.VITE_HORECA_AI_URL ||
+  (typeof window !== "undefined" ? window.location.origin : "");
+
+function getProxiedHorecaImageUrl(imageUrl?: string | null): string {
+  if (!imageUrl) return "";
+  if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
+    return imageUrl;
+  }
+  return `${HORECA_AI_BASE_URL}/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
+}
+
+function formatSafeDescriptionHtml(raw?: string | null): string {
+  if (!raw) return "";
+  const escaped = String(raw)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+  return escaped
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\r?\n/g, "<br />");
+}
 
 export default function HorecaMenu() {
   const [activeTab, setActiveTab] = useState<
@@ -169,11 +204,7 @@ export default function HorecaMenu() {
                     {selectedSyrveProduct.image ? (
                       <>
                         <img
-                          src={
-                            selectedSyrveProduct.image?.startsWith("http")
-                              ? selectedSyrveProduct.image
-                              : `http://localhost:4000/api/image-proxy?url=${encodeURIComponent(selectedSyrveProduct.image)}`
-                          }
+                          src={getProxiedHorecaImageUrl(selectedSyrveProduct.image)}
                           alt={selectedSyrveProduct.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
@@ -205,7 +236,7 @@ export default function HorecaMenu() {
                         <h3 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">Ingrediente / Descriere</h3>
                         <div 
                           className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed font-medium"
-                          dangerouslySetInnerHTML={{ __html: selectedSyrveProduct.description }} 
+                          dangerouslySetInnerHTML={{ __html: formatSafeDescriptionHtml(selectedSyrveProduct.description) }} 
                         />
                       </div>
                     )}
@@ -295,11 +326,7 @@ export default function HorecaMenu() {
                           <td className="px-4 py-2.5">
                             {p.image ? (
                               <img
-                                src={
-                                  p.image?.startsWith("http")
-                                    ? p.image
-                                    : `http://localhost:4000/api/image-proxy?url=${encodeURIComponent(p.image)}`
-                                }
+                                src={getProxiedHorecaImageUrl(p.image)}
                                 alt={p.name}
                                 className="w-10 h-10 rounded-lg object-cover bg-slate-100"
                                 onError={e => {
@@ -320,7 +347,7 @@ export default function HorecaMenu() {
                             {p.description && (
                               <p 
                                 className="text-xs text-slate-400 mt-0.5 line-clamp-1" 
-                                dangerouslySetInnerHTML={{ __html: p.description }} 
+                                dangerouslySetInnerHTML={{ __html: formatSafeDescriptionHtml(p.description) }} 
                               />
                             )}
                           </td>
@@ -371,11 +398,7 @@ export default function HorecaMenu() {
               <X className="w-6 h-6" />
             </button>
             <img
-              src={
-                fullscreenImage.startsWith("http")
-                  ? fullscreenImage
-                  : `http://localhost:4000/api/image-proxy?url=${encodeURIComponent(fullscreenImage)}`
-              }
+              src={getProxiedHorecaImageUrl(fullscreenImage)}
               alt="Fullscreen View"
               className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
               onClick={(e) => e.stopPropagation()}
@@ -395,6 +418,7 @@ export default function HorecaMenu() {
 
 function CategoriesTab({ locationId }: { locationId: number }) {
   const [showForm, setShowForm] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<any | null>(null);
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -420,6 +444,7 @@ function CategoriesTab({ locationId }: { locationId: number }) {
   const deleteMut = trpc.horeca.menu.deleteCategory.useMutation({
     onSuccess: () => {
       toast.success("Categorie ștearsă");
+      setCategoryToDelete(null);
       utils.horeca.menu.listCategories.invalidate();
     },
     onError: e => toast.error(e.message),
@@ -456,7 +481,7 @@ function CategoriesTab({ locationId }: { locationId: number }) {
             </div>
             <div>
               <label className="block text-slate-600 dark:text-slate-400 text-sm font-semibold mb-1">
-                Icon (Emoji)
+                Simbol / Etichetă
               </label>
               <input
                 value={form.icon}
@@ -543,9 +568,7 @@ function CategoriesTab({ locationId }: { locationId: number }) {
                 </td>
                 <td className="px-4 py-3 text-right">
                   <button
-                    onClick={() => {
-                      if (confirm("Ștergi?")) deleteMut.mutate({ id: c.id });
-                    }}
+                    onClick={() => setCategoryToDelete(c)}
                     className="p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -556,12 +579,40 @@ function CategoriesTab({ locationId }: { locationId: number }) {
           </tbody>
         </table>
       )}
+
+      <AlertDialog
+        open={!!categoryToDelete}
+        onOpenChange={open => !open && setCategoryToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Ștergi categoria „{categoryToDelete?.name}”?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Categoria va fi eliminată din meniul locației.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-full">Anulează</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() =>
+                categoryToDelete && deleteMut.mutate({ id: categoryToDelete.id })
+              }
+              className="rounded-full bg-red-600 hover:bg-red-700 text-white"
+            >
+              Șterge categoria
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
 
 function ItemsTab({ locationId }: { locationId: number }) {
   const [showForm, setShowForm] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<any | null>(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const rowsPerPage = 15;
@@ -600,6 +651,7 @@ function ItemsTab({ locationId }: { locationId: number }) {
   const deleteMut = trpc.horeca.menu.deleteItem.useMutation({
     onSuccess: () => {
       toast.success("Produs șters");
+      setItemToDelete(null);
       utils.horeca.menu.listItems.invalidate();
     },
     onError: e => toast.error(e.message),
@@ -844,9 +896,7 @@ function ItemsTab({ locationId }: { locationId: number }) {
                 </td>
                 <td className="px-4 py-3 text-right">
                   <button
-                    onClick={() => {
-                      if (confirm("Ștergi?")) deleteMut.mutate({ id: item.id });
-                    }}
+                    onClick={() => setItemToDelete(item)}
                     className="p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -857,6 +907,33 @@ function ItemsTab({ locationId }: { locationId: number }) {
           </tbody>
         </table>
       )}
+
+      <AlertDialog
+        open={!!itemToDelete}
+        onOpenChange={open => !open && setItemToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Ștergi produsul „{itemToDelete?.name}”?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Produsul va fi eliminat din lista de produse și prețuri a locației.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-full">Anulează</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() =>
+                itemToDelete && deleteMut.mutate({ id: itemToDelete.id })
+              }
+              className="rounded-full bg-red-600 hover:bg-red-700 text-white"
+            >
+              Șterge produsul
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Footer paginare */}
       <div className="px-5 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-slate-900/80">
@@ -990,6 +1067,7 @@ function RecipeBuilder({
   const { data: horecaIngredients = [] } = trpc.horeca.inventory.listIngredients.useQuery({ locationId });
 
   const [lines, setLines] = useState<any[]>([]);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
   // Sync state when data loads
   useEffect(() => {
@@ -1232,11 +1310,7 @@ function RecipeBuilder({
 
       <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-end gap-3">
         <button
-          onClick={() => {
-            if (confirm("Anulezi modificările?")) {
-              setLines(recipeLines || []);
-            }
-          }}
+          onClick={() => setShowDiscardConfirm(true)}
           className="px-4 py-2 rounded-lg text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
         >
           Anulează
@@ -1254,6 +1328,32 @@ function RecipeBuilder({
           Salvează Rețeta
         </button>
       </div>
+
+      <AlertDialog
+        open={showDiscardConfirm}
+        onOpenChange={setShowDiscardConfirm}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Anulezi modificările nesalvate?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Modificările neaplicate la rețeta produsului <strong>{item.name}</strong> vor fi revenite la ultima versiune salvată.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-full">Păstrează</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setLines(recipeLines || []);
+                setShowDiscardConfirm(false);
+              }}
+              className="rounded-full bg-red-600 hover:bg-red-700 text-white"
+            >
+              Anulează modificările
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -554,7 +554,7 @@ export default function NIRList() {
             title={selectedIds.size > 0 
               ? `Exportă cele ${selectedIds.size} recepții selectate în format SAGA C (FACTURI.XML)` 
               : `Exportă cele ${filtered.length} recepții filtrate în format SAGA C (FACTURI.XML)`}
-            className="flex items-center gap-1.5 px-3.5 h-9 rounded-lg bg-slate-700 hover:bg-slate-800 text-white text-sm font-bold transition-all shadow-sm disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3.5 h-9 rounded-full bg-slate-700 hover:bg-slate-800 text-white text-sm font-bold transition-all shadow-sm disabled:opacity-50"
           >
             {exportNirMut.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -568,7 +568,7 @@ export default function NIRList() {
           <button
             onClick={() => navigate("/nir/nou")}
             style={{ backgroundColor: "var(--tenant-theme-color, #16a34a)" }}
-            className="flex items-center gap-1.5 px-4 h-9 rounded-lg text-white text-sm font-bold transition-all shadow-sm hover:brightness-90 active:brightness-75"
+            className="flex items-center gap-1.5 px-4 h-9 rounded-full text-white text-sm font-bold transition-all shadow-sm hover:brightness-90 active:brightness-75"
           >
             <Plus className="w-4 h-4" /> NIR Nou
           </button>
@@ -591,17 +591,17 @@ export default function NIRList() {
           {
             label: "Ciorne",
             value: statusCounts.draft,
-            cls: "text-amber-600",
+            cls: "text-amber-600 dark:text-amber-400",
           },
         ].map((k) => (
           <div
             key={k.label}
-            className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4"
+            className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 p-4 shadow-sm"
           >
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
               {k.label}
             </p>
-            <p className={`text-xl font-black ${k.cls || ""}`} style={k.style}>
+            <p className={`text-xl font-black tabular-nums ${k.cls || ""}`} style={k.style}>
               {k.value}
             </p>
           </div>
@@ -610,9 +610,9 @@ export default function NIRList() {
 
       {/* Banner selecție multiplă (Bulk Operations) */}
       {selectedIds.size > 0 && (
-        <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl shadow-md border bg-slate-900 text-white dark:bg-slate-800 dark:border-slate-700 animate-in fade-in duration-200 flex-wrap">
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-[22px] shadow-md border bg-slate-900 text-white dark:bg-slate-800 dark:border-slate-700 animate-in fade-in duration-200 flex-wrap">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white/20 text-xs font-bold">
+            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white/20 text-xs font-bold tabular-nums">
               {selectedIds.size}
             </span>
             <span className="text-sm font-semibold">
@@ -622,7 +622,7 @@ export default function NIRList() {
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setSelectedIds(new Set())}
-              className="px-3 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-colors"
+              className="px-3.5 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-colors"
             >
               Deselectează
             </button>
@@ -633,7 +633,7 @@ export default function NIRList() {
                 setBulkAccount("");
                 setBulkEditOpen(true);
               }}
-              className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-colors shadow-sm"
+              className="flex items-center gap-1.5 px-3.5 h-8 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-colors shadow-sm"
             >
               <Edit className="w-3.5 h-3.5" />
               Bulk Edit
@@ -642,7 +642,7 @@ export default function NIRList() {
               onClick={() =>
                 handleExportExcel(nirList.filter((n) => selectedIds.has(n.id)))
               }
-              className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#107c41] hover:bg-[#0b5c30] text-white text-xs font-bold transition-colors shadow-sm"
+              className="flex items-center gap-1.5 px-3.5 h-8 rounded-full bg-[#107c41] hover:bg-[#0b5c30] text-white text-xs font-bold transition-colors shadow-sm"
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
               Export Excel .xlsx ({selectedIds.size})
@@ -652,7 +652,7 @@ export default function NIRList() {
                 handleSaveSagaXml({ nirIds: Array.from(selectedIds) })
               }
               disabled={exportNirMut.isPending}
-              className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold transition-colors shadow-sm disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3.5 h-8 rounded-full bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold transition-colors shadow-sm disabled:opacity-50"
             >
               {exportNirMut.isPending ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -663,7 +663,7 @@ export default function NIRList() {
             </button>
             <button
               onClick={() => setBulkDeleteOpen(true)}
-              className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors shadow-sm"
+              className="flex items-center gap-1.5 px-3.5 h-8 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors shadow-sm"
             >
               <Trash2 className="w-3.5 h-3.5" />
               Șterge ({selectedIds.size})
@@ -672,8 +672,8 @@ export default function NIRList() {
         </div>
       )}
 
-      {/* Card tabel cu filtre integrate sus și paginare jos (ca în AllInvoices / Screenshot 1 & 2) */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-2">
+      {/* Card tabel cu filtre integrate sus și paginare jos */}
+      <div className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-2">
         {/* Search & Filtre afarente pe un singur rând compact */}
         <div className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800/50 flex flex-col gap-2 bg-white dark:bg-slate-900">
           <div className="flex items-center gap-2 w-full flex-wrap xl:flex-nowrap">
@@ -681,7 +681,7 @@ export default function NIRList() {
             <div className="relative flex-1 min-w-[200px]">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
-                style={{ paddingLeft: 34, paddingRight: search ? 68 : 14 }}
+                style={{ paddingLeft: 34, paddingRight: search ? 76 : 14 }}
                 className="rounded-full w-full h-8 border border-slate-200 dark:border-slate-700 outline-none text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-teal-500 transition-all shadow-none"
                 placeholder="Caută NIR, furnizor, factură, cont, articol..."
                 value={search}
@@ -692,14 +692,15 @@ export default function NIRList() {
               />
               {search && (
                 <>
-                  <div className="absolute right-7 top-1/2 -translate-y-1/2 bg-teal-600 text-white rounded-full px-1.5 py-0.5 text-[9px] font-bold">
+                  <div className="absolute right-8 top-1/2 -translate-y-1/2 bg-teal-600 text-white rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums">
                     {filtered.length}/{nirList.length}
                   </div>
                   <button
                     onClick={() => setSearch("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2"
+                    aria-label="Șterge căutarea"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full inline-flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                   >
-                    <X className="w-3 h-3 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" />
+                    <X className="w-3.5 h-3.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" />
                   </button>
                 </>
               )}
@@ -1074,19 +1075,19 @@ export default function NIRList() {
                         {row.linesCount === 1 ? "articol" : "articole"}
                       </div>
                     </td>
-                    {/* STATUS (Pill rotunjit ca în Screenshot 1) */}
+                    {/* STATUS */}
                     <td className="px-3 py-3 text-center">
                       {row.status === "finalizat" ? (
-                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold border bg-emerald-50 text-emerald-700 border-emerald-200">
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold border bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">
                           Finalizat
                         </span>
                       ) : (
-                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold border bg-amber-50 text-amber-700 border-amber-200">
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold border bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800">
                           Draft
                         </span>
                       )}
                     </td>
-                    {/* ACȚIUNI (4 butoane circulare ca în Screenshot 1) */}
+                    {/* ACȚIUNI */}
                     <td className="px-3 py-3">
                       <div
                         className="flex items-center gap-1.5 justify-end"
@@ -1096,7 +1097,8 @@ export default function NIRList() {
                           type="button"
                           onClick={() => setPdfViewer({ id: row.id, nirNumber: row.nirNumber })}
                           title="Vizualizează PDF"
-                          className="w-7 h-7 rounded-full flex items-center justify-center bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 transition-colors"
+                          aria-label="Vizualizează PDF"
+                          className="w-8 h-8 rounded-full flex items-center justify-center bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-600 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 transition-colors"
                         >
                           <Eye className="w-3.5 h-3.5" />
                         </button>
@@ -1104,7 +1106,8 @@ export default function NIRList() {
                           type="button"
                           onClick={() => handleSavePdfNir(row.id, row.nirNumber)}
                           title="Salvează PDF NIR (alege calea de salvare)"
-                          className="w-7 h-7 rounded-full flex items-center justify-center bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 transition-colors"
+                          aria-label="Salvează PDF NIR"
+                          className="w-8 h-8 rounded-full flex items-center justify-center bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800 transition-colors"
                         >
                           <FileDown className="w-3.5 h-3.5" />
                         </button>
@@ -1112,7 +1115,8 @@ export default function NIRList() {
                           type="button"
                           onClick={() => handleSimulateSaga({ nirId: row.id })}
                           title={`Simulează și verifică NIR ${row.nirNumber} pentru SAGA C`}
-                          className="w-7 h-7 rounded-full flex items-center justify-center bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 transition-colors"
+                          aria-label="Simulează SAGA"
+                          className="w-8 h-8 rounded-full flex items-center justify-center bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/40 dark:hover:bg-sky-900/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 transition-colors"
                         >
                           <Sparkles className="w-3.5 h-3.5" />
                         </button>
@@ -1125,14 +1129,16 @@ export default function NIRList() {
                             })
                           }
                           title={`Salvează NIR ${row.nirNumber} în SAGA C (.xml)`}
-                          className="w-7 h-7 rounded-full flex items-center justify-center bg-teal-50 hover:bg-teal-100 text-teal-600 border border-teal-200 transition-colors"
+                          aria-label="Salvează SAGA XML"
+                          className="w-8 h-8 rounded-full flex items-center justify-center bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/40 dark:hover:bg-teal-900/60 text-teal-600 dark:text-teal-300 border border-teal-200 dark:border-teal-800 transition-colors"
                         >
                           <FileCode className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => setDeleteTarget(row.id)}
                           title="Șterge NIR"
-                          className="w-7 h-7 rounded-full flex items-center justify-center bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-colors"
+                          aria-label="Șterge NIR"
+                          className="w-8 h-8 rounded-full flex items-center justify-center bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/60 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 transition-colors"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -1145,7 +1151,7 @@ export default function NIRList() {
           </table>
         </div>
 
-        {/* Footer paginare (Interiorul cardului conform Screenshot 1) */}
+        {/* Footer paginare */}
         <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4 flex-wrap text-xs text-slate-500 bg-white dark:bg-slate-900">
           <div className="flex items-center gap-2">
             <span>Afișează</span>
@@ -1164,27 +1170,29 @@ export default function NIRList() {
               ))}
               <option value={9999}>Toți</option>
             </select>
-            <span>
+            <span className="tabular-nums">
               Total înregistrări: <strong>{filtered.length}</strong>
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span>
+            <span className="tabular-nums">
               Pg. {page} / {totalPages}
             </span>
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="flex items-center justify-center w-7 h-7 rounded-full border border-slate-200 dark:border-slate-700 disabled:opacity-30 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              aria-label="Pagina anterioară"
+              className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 disabled:opacity-30 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
-              <ChevronLeft className="w-3.5 h-3.5" />
+              <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="flex items-center justify-center w-7 h-7 rounded-full border border-slate-200 dark:border-slate-700 disabled:opacity-30 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              aria-label="Pagina următoare"
+              className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 disabled:opacity-30 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
-              <ChevronRight className="w-3.5 h-3.5" />
+              <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -1201,7 +1209,7 @@ export default function NIRList() {
         open={!!deleteTarget}
         onOpenChange={() => setDeleteTarget(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-[22px]">
           <AlertDialogHeader>
             <AlertDialogTitle>Ștergi NIR-ul?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1209,12 +1217,12 @@ export default function NIRList() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Anulează</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-full">Anulează</AlertDialogCancel>
             <AlertDialogAction
               onClick={() =>
                 deleteTarget && deleteNir.mutate({ id: deleteTarget })
               }
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="rounded-full bg-red-600 hover:bg-red-700 text-white"
             >
               Șterge
             </AlertDialogAction>
@@ -1227,7 +1235,7 @@ export default function NIRList() {
         open={bulkDeleteOpen}
         onOpenChange={setBulkDeleteOpen}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-[22px]">
           <AlertDialogHeader>
             <AlertDialogTitle>
               Ștergi {selectedIds.size} NIR-uri selectate?
@@ -1237,12 +1245,12 @@ export default function NIRList() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Anulează</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-full">Anulează</AlertDialogCancel>
             <AlertDialogAction
               onClick={() =>
                 bulkDeleteMut.mutate({ ids: Array.from(selectedIds) })
               }
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="rounded-full bg-red-600 hover:bg-red-700 text-white"
               disabled={bulkDeleteMut.isPending}
             >
               {bulkDeleteMut.isPending ? "Se șterge..." : `Șterge ${selectedIds.size} NIR-uri`}
@@ -1253,7 +1261,7 @@ export default function NIRList() {
 
       {/* Bulk Edit Dialog */}
       <Dialog open={bulkEditOpen} onOpenChange={setBulkEditOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md rounded-[22px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Edit className="w-5 h-5 text-amber-500" />
@@ -1268,7 +1276,7 @@ export default function NIRList() {
               <select
                 value={bulkStatus}
                 onChange={(e) => setBulkStatus(e.target.value)}
-                className="w-full h-9 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-amber-500"
               >
                 <option value="keep">— Păstrează neschimbat —</option>
                 <option value="finalizat">Finalizat</option>
@@ -1283,7 +1291,7 @@ export default function NIRList() {
                 value={bulkGestiune}
                 onChange={(e) => setBulkGestiune(e.target.value)}
                 placeholder="Lasă gol pentru a nu schimba"
-                className="w-full h-9 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
             </div>
             <div>
@@ -1294,7 +1302,7 @@ export default function NIRList() {
                 value={bulkAccount}
                 onChange={(e) => setBulkAccount(e.target.value)}
                 placeholder="Ex: 371, 301, 3028 (lasă gol pentru a nu schimba)"
-                className="w-full h-9 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-amber-500 tabular-nums"
               />
             </div>
           </div>
@@ -1302,7 +1310,7 @@ export default function NIRList() {
             <button
               type="button"
               onClick={() => setBulkEditOpen(false)}
-              className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              className="px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             >
               Anulează
             </button>
@@ -1321,7 +1329,7 @@ export default function NIRList() {
                   !bulkGestiune.trim() &&
                   !bulkAccount.trim())
               }
-              className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-sm font-bold transition-colors shadow-sm"
+              className="px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-sm font-bold transition-colors shadow-sm"
             >
               {bulkUpdateMut.isPending ? "Se salvează..." : "Aplică modificările"}
             </button>

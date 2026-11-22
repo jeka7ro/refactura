@@ -4,6 +4,15 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -94,6 +103,9 @@ export default function InvoiceArchive() {
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
   const [showMetaModal, setShowMetaModal] = useState(false);
   const [metaForm, setMetaForm] = useState<any>({});
+  const [singleDeleteItem, setSingleDeleteItem] = useState<any | null>(null);
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const LIMIT = 20;
 
@@ -107,13 +119,50 @@ export default function InvoiceArchive() {
 
   const { data: stats } = trpc.invoiceArchive.stats.useQuery();
 
-  const deleteMutation = trpc.invoiceArchive.delete.useMutation({
-    onSuccess: () => {
+  const deleteMutation = trpc.invoiceArchive.delete.useMutation();
+
+  const handleConfirmSingleDelete = async () => {
+    if (!singleDeleteItem) return;
+    try {
+      await deleteMutation.mutateAsync({ id: singleDeleteItem.id });
       toast.success("Factură ștearsă");
+      setSingleDeleteItem(null);
       refetch();
-    },
-    onError: e => toast.error(e.message),
-  });
+    } catch (e: any) {
+      toast.error(e?.message || "Eroare la ștergerea facturii");
+    }
+  };
+
+  const handleConfirmBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setBulkDeleting(true);
+    let ok = 0;
+    let failed = 0;
+    let lastError = "";
+    const failedIds = new Set<number>();
+    for (const id of ids) {
+      try {
+        await deleteMutation.mutateAsync({ id });
+        ok++;
+      } catch (e: any) {
+        failed++;
+        failedIds.add(id);
+        lastError = e?.message || "Eroare la ștergere";
+      }
+    }
+    setBulkDeleting(false);
+    setShowBulkDeleteDialog(false);
+    setSelectedIds(failedIds);
+    refetch();
+    if (ok === 0) {
+      toast.error(lastError || `Nu s-a putut șterge nicio factură (${failed} eșuate).`);
+    } else if (failed > 0) {
+      toast.warning(`${ok} facturi șterse, ${failed} nu au putut fi șterse.`);
+    } else {
+      toast.success(`${ok} facturi șterse`);
+    }
+  };
 
   const updateMutation = trpc.invoiceArchive.update.useMutation({
     onSuccess: () => {
@@ -235,14 +284,14 @@ export default function InvoiceArchive() {
             variant="outline"
             size="sm"
             onClick={() => refetch()}
-            className="gap-1.5 border-slate-200 dark:border-slate-700"
+            className="gap-1.5 rounded-full border-slate-200 dark:border-slate-700"
           >
             <RefreshCw className="w-3.5 h-3.5" /> Reîncarcă
           </Button>
           <Button
             size="sm"
             onClick={() => fileInputRef.current?.click()}
-            className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+            className="gap-1.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
           >
             <Upload className="w-3.5 h-3.5" /> Încarcă Facturi
           </Button>
@@ -291,10 +340,10 @@ export default function InvoiceArchive() {
         ].map(s => (
           <div
             key={s.label}
-            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex items-center gap-4 transition-all hover:shadow-md"
+            className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-[22px] p-4 shadow-sm flex items-center gap-4 transition-all hover:shadow-md"
           >
             <div
-              className={`w-10 h-10 flex items-center justify-center rounded-lg ${s.color}`}
+              className={`w-10 h-10 flex items-center justify-center rounded-xl ${s.color}`}
             >
               <s.icon className="w-5 h-5" />
             </div>
@@ -302,7 +351,7 @@ export default function InvoiceArchive() {
               <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
                 {s.label}
               </div>
-              <div className="text-xl font-bold text-slate-900 dark:text-white">
+              <div className="text-xl font-bold tabular-nums text-slate-900 dark:text-white">
                 {s.value}
               </div>
             </div>
@@ -311,11 +360,11 @@ export default function InvoiceArchive() {
       </div>
 
       {/* Filters and Table in a single card */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-6">
+      <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] shadow-sm overflow-hidden mt-6">
         {/* Filters */}
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-wrap gap-3">
           <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input
               placeholder="Caută furnizor, număr factură..."
               value={search}
@@ -323,7 +372,7 @@ export default function InvoiceArchive() {
                 setSearch(e.target.value);
                 setPage(0);
               }}
-              className="!pl-9 h-9 text-sm border-slate-200 dark:border-slate-700 bg-transparent"
+              className="!pl-9 h-9 rounded-full text-sm border-slate-200 dark:border-slate-700 bg-transparent"
             />
           </div>
           <Select
@@ -333,7 +382,7 @@ export default function InvoiceArchive() {
               setPage(0);
             }}
           >
-            <SelectTrigger className="w-36 h-9 text-sm border-slate-200 dark:border-slate-700">
+            <SelectTrigger className="w-36 h-9 rounded-full text-sm border-slate-200 dark:border-slate-700">
               <SelectValue placeholder="Sursă" />
             </SelectTrigger>
             <SelectContent>
@@ -352,7 +401,7 @@ export default function InvoiceArchive() {
               setPage(0);
             }}
           >
-            <SelectTrigger className="w-36 h-9 text-sm border-slate-200 dark:border-slate-700">
+            <SelectTrigger className="w-36 h-9 rounded-full text-sm border-slate-200 dark:border-slate-700">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -374,7 +423,7 @@ export default function InvoiceArchive() {
                 setFilterStatus("all");
                 setPage(0);
               }}
-              className="h-9 gap-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white"
+              className="h-9 rounded-full gap-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white"
             >
               <X className="w-3.5 h-3.5" /> Resetează
             </Button>
@@ -385,35 +434,19 @@ export default function InvoiceArchive() {
         <div>
           {selectedIds.size > 0 && (
             <div className="flex items-center justify-between gap-3 px-4 py-2 bg-blue-600 text-white shadow-md">
-              <span className="text-sm font-semibold">
+              <span className="text-sm font-semibold tabular-nums">
                 {selectedIds.size} facturi selectate
               </span>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setSelectedIds(new Set())}
-                  className="px-3 h-7 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-semibold transition-colors"
+                  className="px-3.5 h-7 rounded-full bg-white/20 hover:bg-white/30 text-white text-xs font-semibold transition-colors"
                 >
                   Anulează
                 </button>
                 <button
-                  onClick={async () => {
-                    if (
-                      !window.confirm(
-                        `Ștergi ${selectedIds.size} facturi selectate?`
-                      )
-                    )
-                      return;
-                    let ok = 0;
-                    for (const id of Array.from(selectedIds)) {
-                      try {
-                        await deleteMutation.mutateAsync({ id });
-                        ok++;
-                      } catch {}
-                    }
-                    setSelectedIds(new Set());
-                    toast.success(`${ok} facturi șterse`);
-                  }}
-                  className="px-3 h-7 rounded-lg bg-red-600 text-white hover:bg-red-700 text-xs font-bold transition-colors shadow-sm"
+                  onClick={() => setShowBulkDeleteDialog(true)}
+                  className="px-3.5 h-7 rounded-full bg-red-600 text-white hover:bg-red-700 text-xs font-bold transition-colors shadow-sm"
                 >
                   Șterge selectate
                 </button>
@@ -549,7 +582,7 @@ export default function InvoiceArchive() {
                           className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 bg-white"
                         />
                       </td>
-                      <td className="px-4 py-3 text-[11px] font-medium text-slate-500">
+                      <td className="px-4 py-3 text-[11px] font-medium tabular-nums text-slate-500">
                         {page * LIMIT + index + 1}
                       </td>
                       <td className="px-4 py-3">
@@ -584,7 +617,7 @@ export default function InvoiceArchive() {
                                 if (isUnread) markAsRead.mutate({ id: item.id });
                                 setLocation(`/facturi-primite/${item.id}`);
                               }}
-                              className={`text-sm hover:underline cursor-pointer ${
+                              className={`text-sm tabular-nums hover:underline cursor-pointer ${
                                 isUnread
                                   ? "font-bold text-blue-700 dark:text-blue-400"
                                   : "font-normal text-blue-600 dark:text-blue-500"
@@ -599,10 +632,10 @@ export default function InvoiceArchive() {
                           </span>
                         )}
                       </td>
-                      <td className={`px-4 py-3 ${isUnread ? "font-bold text-slate-900 dark:text-white" : "text-slate-600 dark:text-slate-400 font-normal"}`}>
+                      <td className={`px-4 py-3 tabular-nums ${isUnread ? "font-bold text-slate-900 dark:text-white" : "text-slate-600 dark:text-slate-400 font-normal"}`}>
                         {formatDate(item.issueDate)}
                       </td>
-                      <td className={`px-4 py-3 text-right ${isUnread ? "font-bold text-slate-900 dark:text-white" : "text-slate-700 dark:text-slate-300 font-normal"}`}>
+                      <td className={`px-4 py-3 text-right tabular-nums ${isUnread ? "font-bold text-slate-900 dark:text-white" : "text-slate-700 dark:text-slate-300 font-normal"}`}>
                         {formatAmount(item.total, item.currency)}
                       </td>
                       <td className="px-4 py-3">
@@ -625,29 +658,21 @@ export default function InvoiceArchive() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center justify-center gap-1">
+                        <div className="flex items-center justify-center gap-1.5">
                           {(item.fileUrl || item.source === "spv_anaf") && (
                             <a
                               href={item.source === "spv_anaf" || item.fileUrl === "spv_import" ? `/api/pdf/archive/${item.id}` : item.fileUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-slate-500 dark:text-slate-400"
+                              className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-slate-500 dark:text-slate-400"
                               title="Descarcă"
                             >
                               <Download className="w-3.5 h-3.5" />
                             </a>
                           )}
                           <button
-                            onClick={() => {
-                              if (
-                                window.confirm(
-                                  "Sigur ștergi această înregistrare?"
-                                )
-                              ) {
-                                deleteMutation.mutate({ id: item.id });
-                              }
-                            }}
-                            className="w-7 h-7 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/30 hover:border-red-200 dark:hover:border-red-800 hover:text-red-600 dark:hover:text-red-400 transition-colors text-slate-500 dark:text-slate-400"
+                            onClick={() => setSingleDeleteItem(item)}
+                            className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/30 hover:border-red-200 dark:hover:border-red-800 hover:text-red-600 dark:hover:text-red-400 transition-colors text-slate-500 dark:text-slate-400"
                             title="Șterge"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -666,7 +691,7 @@ export default function InvoiceArchive() {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-4">
-          <p className="text-xs text-slate-500">
+          <p className="text-xs tabular-nums text-slate-500">
             {page * LIMIT + 1}–{Math.min((page + 1) * LIMIT, total)} din {total}{" "}
             înregistrări
           </p>
@@ -676,11 +701,11 @@ export default function InvoiceArchive() {
               size="sm"
               onClick={() => setPage(p => Math.max(0, p - 1))}
               disabled={page === 0}
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 rounded-full"
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
-            <span className="text-xs text-slate-600 px-2">
+            <span className="text-xs tabular-nums text-slate-600 dark:text-slate-300 px-2">
               Pagina {page + 1} din {totalPages}
             </span>
             <Button
@@ -688,7 +713,7 @@ export default function InvoiceArchive() {
               size="sm"
               onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
               disabled={page >= totalPages - 1}
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 rounded-full"
             >
               <ChevronRight className="w-4 h-4" />
             </Button>
@@ -696,10 +721,74 @@ export default function InvoiceArchive() {
         </div>
       )}
 
+      {/* Single Delete Confirmation */}
+      <AlertDialog
+        open={!!singleDeleteItem}
+        onOpenChange={open => !open && setSingleDeleteItem(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ștergi această factură din arhivă?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Înregistrarea{" "}
+              <strong>
+                {singleDeleteItem?.invoiceNumber ||
+                  singleDeleteItem?.fileName ||
+                  `#${singleDeleteItem?.id}`}
+              </strong>{" "}
+              va fi eliminată definitiv din arhivă.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-full">Anulează</AlertDialogCancel>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={deleteMutation.isPending}
+              onClick={handleConfirmSingleDelete}
+              className="rounded-full bg-red-600 hover:bg-red-700 text-white"
+            >
+              {deleteMutation.isPending ? "Se șterge..." : "Șterge"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog
+        open={showBulkDeleteDialog}
+        onOpenChange={open => !bulkDeleting && setShowBulkDeleteDialog(open)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Ștergi {selectedIds.size} facturi selectate?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Cele {selectedIds.size} înregistrări selectate vor fi șterse definitiv din arhivă. Această acțiune nu poate fi anulată.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkDeleting} className="rounded-full">
+              Anulează
+            </AlertDialogCancel>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={bulkDeleting}
+              onClick={handleConfirmBulkDelete}
+              className="rounded-full bg-red-600 hover:bg-red-700 text-white"
+            >
+              {bulkDeleting ? "Se șterg..." : "Șterge selectate"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Meta Edit Modal */}
       {showMetaModal && selectedEntry && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] shadow-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto border border-black/[0.08] dark:border-white/[0.12]">
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
               <h2 className="text-base font-semibold text-slate-900">
                 Editează Metadate
@@ -869,7 +958,7 @@ export default function InvoiceArchive() {
               <Button
                 variant="outline"
                 onClick={() => setShowMetaModal(false)}
-                className="flex-1"
+                className="flex-1 rounded-full"
               >
                 Anulează
               </Button>
@@ -878,7 +967,7 @@ export default function InvoiceArchive() {
                   updateMutation.mutate({ id: selectedEntry.id, ...metaForm })
                 }
                 disabled={updateMutation.isPending}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                className="flex-1 rounded-full bg-blue-600 hover:bg-blue-700 text-white"
               >
                 {updateMutation.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

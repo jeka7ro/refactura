@@ -1,6 +1,7 @@
 import { getDb } from "./db";
 import { integrations, reInvoices, tenants } from "../drizzle/schema";
 import { eq, and, or } from "drizzle-orm";
+import { isValidBidirectionalPair } from "./tenant";
 
 const ANAF_UPLOAD_URL =
   "https://api.anaf.ro/prod/FCTEL/rest/upload?standard=UBL&cif=";
@@ -93,7 +94,10 @@ export async function getValidSpvToken(
         s = t?.settings ? JSON.parse(t.settings) : {};
       } catch {}
       if (s?.entityType === "pf" && s?.pairedPjTenantId) {
-        return getValidSpvToken(Number(s.pairedPjTenantId), false);
+        const pairedId = Number(s.pairedPjTenantId);
+        if (await isValidBidirectionalPair(db, tenantId, pairedId)) {
+          return getValidSpvToken(pairedId, false);
+        }
       }
     }
     return null;
@@ -206,7 +210,7 @@ export async function uploadInvoiceToSPV(
           spvSentAt: new Date(),
           rawXml: xmlContent,
         })
-        .where(eq(reInvoices.id, invoiceId));
+        .where(and(eq(reInvoices.id, invoiceId), eq(reInvoices.tenantId, tenantId)));
 
       return { success: true, index_incarcare: spvIndex };
     } else {
@@ -220,7 +224,7 @@ export async function uploadInvoiceToSPV(
           spvSentAt: new Date(),
           rawXml: xmlContent,
         })
-        .where(eq(reInvoices.id, invoiceId));
+        .where(and(eq(reInvoices.id, invoiceId), eq(reInvoices.tenantId, tenantId)));
 
       return { success: false, error: `Răspuns invalid ANAF: ${errMsg}` };
     }

@@ -256,7 +256,7 @@ export function SagaImportSimulatorModal({
               </span>
               <span>{data.xml.length.toLocaleString("ro-RO")} caractere</span>
             </div>
-            <pre className="flex-1 overflow-auto tabular-nums text-xs leading-relaxed text-emerald-300 bg-slate-950 p-4 rounded border border-slate-800 select-all">
+            <pre className="flex-1 overflow-auto font-sans tabular-nums text-xs leading-relaxed text-emerald-300 bg-slate-950 p-4 rounded border border-slate-800 select-all">
               {data.xml}
             </pre>
           </div>

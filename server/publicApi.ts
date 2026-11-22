@@ -24,6 +24,7 @@ async function resolveApiKey(
   if (!raw) return null;
   const hash = hashKey(raw);
   const db = await getDb();
+  if (!db) return null;
   const rows = await db
     .select({ id: apiKeys.id, tenantId: apiKeys.tenantId, isActive: apiKeys.isActive, expiresAt: apiKeys.expiresAt })
     .from(apiKeys)
@@ -33,7 +34,11 @@ async function resolveApiKey(
   if (!key || !key.isActive) return null;
   if (key.expiresAt && new Date(key.expiresAt) < new Date()) return null;
   // Update lastUsedAt async (no await — don't block)
-  db.update(apiKeys).set({ lastUsedAt: new Date() }).where(eq(apiKeys.id, key.id)).execute();
+  db.update(apiKeys)
+    .set({ lastUsedAt: new Date() })
+    .where(eq(apiKeys.id, key.id))
+    .execute()
+    .catch(() => {});
   return { tenantId: key.tenantId, keyId: key.id };
 }
 
@@ -41,10 +46,11 @@ async function resolveApiKey(
 export function registerPublicApi(app: Express) {
   // ── GET /api/v1/cost-centers ─────────────────────────────
   app.get("/api/v1/cost-centers", async (req: Request, res: Response) => {
-    const auth = await resolveApiKey(req.headers.authorization);
-    if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
     try {
+      const auth = await resolveApiKey(req.headers.authorization);
+      if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
       const db = await getDb();
+      if (!db) return res.status(500).json({ error: "Database unavailable" });
       const centers = await db
         .select({
           id: costCenters.id,
@@ -66,12 +72,13 @@ export function registerPublicApi(app: Express) {
 
   // ── GET /api/v1/cost-centers/:id ─────────────────────────
   app.get("/api/v1/cost-centers/:id", async (req: Request, res: Response) => {
-    const auth = await resolveApiKey(req.headers.authorization);
-    if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
-    const centerId = parseInt(req.params.id);
-    if (isNaN(centerId)) return res.status(400).json({ error: "Invalid id" });
     try {
+      const auth = await resolveApiKey(req.headers.authorization);
+      if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
+      const centerId = parseInt(req.params.id);
+      if (isNaN(centerId)) return res.status(400).json({ error: "Invalid id" });
       const db = await getDb();
+      if (!db) return res.status(500).json({ error: "Database unavailable" });
       const rows = await db
         .select()
         .from(costCenters)
@@ -87,14 +94,15 @@ export function registerPublicApi(app: Express) {
   // ── GET /api/v1/cost-centers/:id/invoices ────────────────
   // Query params: from, to, supplier, limit (max 500)
   app.get("/api/v1/cost-centers/:id/invoices", async (req: Request, res: Response) => {
-    const auth = await resolveApiKey(req.headers.authorization);
-    if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
-    const centerId = parseInt(req.params.id);
-    if (isNaN(centerId)) return res.status(400).json({ error: "Invalid id" });
-    const { from, to, supplier } = req.query as Record<string, string>;
-    const limit = Math.min(parseInt((req.query.limit as string) || "200"), 500);
     try {
+      const auth = await resolveApiKey(req.headers.authorization);
+      if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
+      const centerId = parseInt(req.params.id);
+      if (isNaN(centerId)) return res.status(400).json({ error: "Invalid id" });
+      const { from, to, supplier } = req.query as Record<string, string>;
+      const limit = Math.min(parseInt((req.query.limit as string) || "200"), 500);
       const db = await getDb();
+      if (!db) return res.status(500).json({ error: "Database unavailable" });
       // Verify center belongs to tenant
       const centerRows = await db.select({ id: costCenters.id })
         .from(costCenters)
@@ -105,6 +113,7 @@ export function registerPublicApi(app: Express) {
       const conditions: any[] = [
         eq(invoiceArchive.tenantId, auth.tenantId),
         eq(invoiceArchive.costCenterId, centerId),
+        eq(invoiceArchive.direction, "in"),
       ];
       if (from) conditions.push(gte(invoiceArchive.issueDate, from));
       if (to)   conditions.push(lte(invoiceArchive.issueDate, to));
@@ -152,12 +161,13 @@ export function registerPublicApi(app: Express) {
 
   // ── GET /api/v1/cost-centers/:id/summary ─────────────────
   app.get("/api/v1/cost-centers/:id/summary", async (req: Request, res: Response) => {
-    const auth = await resolveApiKey(req.headers.authorization);
-    if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
-    const centerId = parseInt(req.params.id);
-    if (isNaN(centerId)) return res.status(400).json({ error: "Invalid id" });
     try {
+      const auth = await resolveApiKey(req.headers.authorization);
+      if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
+      const centerId = parseInt(req.params.id);
+      if (isNaN(centerId)) return res.status(400).json({ error: "Invalid id" });
       const db = await getDb();
+      if (!db) return res.status(500).json({ error: "Database unavailable" });
       const centerRows = await db.select()
         .from(costCenters)
         .where(and(eq(costCenters.id, centerId), eq(costCenters.tenantId, auth.tenantId)))
@@ -167,7 +177,13 @@ export function registerPublicApi(app: Express) {
       const invoices = await db
         .select({ total: invoiceArchive.total, totalVAT: invoiceArchive.totalVAT, supplierCUI: invoiceArchive.supplierCUI })
         .from(invoiceArchive)
-        .where(and(eq(invoiceArchive.tenantId, auth.tenantId), eq(invoiceArchive.costCenterId, centerId)));
+        .where(
+          and(
+            eq(invoiceArchive.tenantId, auth.tenantId),
+            eq(invoiceArchive.costCenterId, centerId),
+            eq(invoiceArchive.direction, "in")
+          )
+        );
 
       const totalSpend = invoices.reduce((s, i) => s + (Number(i.total) || 0), 0);
       const totalVAT   = invoices.reduce((s, i) => s + (Number(i.totalVAT) || 0), 0);
@@ -197,13 +213,17 @@ export function registerPublicApi(app: Express) {
   // ── GET /api/v1/facturi-primite ───────────────────────────
   // Filtre: from, to, supplier, status, costCenterId, limit
   app.get("/api/v1/facturi-primite", async (req: Request, res: Response) => {
-    const auth = await resolveApiKey(req.headers.authorization);
-    if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
-    const { from, to, supplier, status, costCenterId } = req.query as Record<string, string>;
-    const limit = Math.min(parseInt((req.query.limit as string) || "200"), 1000);
     try {
+      const auth = await resolveApiKey(req.headers.authorization);
+      if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
+      const { from, to, supplier, status, costCenterId } = req.query as Record<string, string>;
+      const limit = Math.min(parseInt((req.query.limit as string) || "200"), 1000);
       const db = await getDb();
-      const conditions: any[] = [eq(invoiceArchive.tenantId, auth.tenantId)];
+      if (!db) return res.status(500).json({ error: "Database unavailable" });
+      const conditions: any[] = [
+        eq(invoiceArchive.tenantId, auth.tenantId),
+        eq(invoiceArchive.direction, "in"),
+      ];
       if (from) conditions.push(gte(invoiceArchive.issueDate, from));
       if (to)   conditions.push(lte(invoiceArchive.issueDate, to));
       if (status) conditions.push(eq(invoiceArchive.status, status as any));
@@ -246,16 +266,23 @@ export function registerPublicApi(app: Express) {
 
   // ── GET /api/v1/facturi-primite/:id ──────────────────────
   app.get("/api/v1/facturi-primite/:id", async (req: Request, res: Response) => {
-    const auth = await resolveApiKey(req.headers.authorization);
-    if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
-    const id = parseInt(req.params.id);
-    if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
     try {
+      const auth = await resolveApiKey(req.headers.authorization);
+      if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
       const db = await getDb();
+      if (!db) return res.status(500).json({ error: "Database unavailable" });
       const rows = await db
         .select()
         .from(invoiceArchive)
-        .where(and(eq(invoiceArchive.id, id), eq(invoiceArchive.tenantId, auth.tenantId)))
+        .where(
+          and(
+            eq(invoiceArchive.id, id),
+            eq(invoiceArchive.tenantId, auth.tenantId),
+            eq(invoiceArchive.direction, "in")
+          )
+        )
         .limit(1);
       if (!rows[0]) return res.status(404).json({ error: "Invoice not found" });
       return res.json({ data: rows[0] });
@@ -271,12 +298,13 @@ export function registerPublicApi(app: Express) {
   // ── GET /api/v1/facturi-emise ─────────────────────────────
   // Filtre: from, to, client, status, limit
   app.get("/api/v1/facturi-emise", async (req: Request, res: Response) => {
-    const auth = await resolveApiKey(req.headers.authorization);
-    if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
-    const { from, to, client, status } = req.query as Record<string, string>;
-    const limit = Math.min(parseInt((req.query.limit as string) || "200"), 1000);
     try {
+      const auth = await resolveApiKey(req.headers.authorization);
+      if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
+      const { from, to, client, status } = req.query as Record<string, string>;
+      const limit = Math.min(parseInt((req.query.limit as string) || "200"), 1000);
       const db = await getDb();
+      if (!db) return res.status(500).json({ error: "Database unavailable" });
       const conditions: any[] = [eq(emittedInvoices.tenantId, auth.tenantId)];
       if (from) conditions.push(gte(emittedInvoices.issueDate, from));
       if (to)   conditions.push(lte(emittedInvoices.issueDate, to));
@@ -321,12 +349,13 @@ export function registerPublicApi(app: Express) {
 
   // ── GET /api/v1/facturi-emise/:id ────────────────────────
   app.get("/api/v1/facturi-emise/:id", async (req: Request, res: Response) => {
-    const auth = await resolveApiKey(req.headers.authorization);
-    if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
-    const id = parseInt(req.params.id);
-    if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
     try {
+      const auth = await resolveApiKey(req.headers.authorization);
+      if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
       const db = await getDb();
+      if (!db) return res.status(500).json({ error: "Database unavailable" });
       const rows = await db
         .select()
         .from(emittedInvoices)
@@ -342,10 +371,10 @@ export function registerPublicApi(app: Express) {
   // ── POST /api/v1/facturi-emise ───────────────────────────
   // Salvează factura trimisă din QR Pontaj (sau alt serviciu) cu seria QRP și fără SPV
   app.post("/api/v1/facturi-emise", async (req: Request, res: Response) => {
-    const auth = await resolveApiKey(req.headers.authorization);
-    if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
-
     try {
+      const auth = await resolveApiKey(req.headers.authorization);
+      if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
+
       const db = await getDb();
       if (!db) throw new Error("Database unavailable");
 
@@ -429,8 +458,18 @@ export function registerPublicApi(app: Express) {
         }
       }
 
-      // Asociere automată clientId dacă există în tabela clients
+      // Asociere automată clientId dacă există în tabela clients (cu verificare apartenență tenant)
       let clientId = body.clientId ? parseInt(String(body.clientId)) : null;
+      if (clientId) {
+        const [ownClient] = await db
+          .select({ id: clients.id })
+          .from(clients)
+          .where(and(eq(clients.id, clientId), eq(clients.tenantId, tenantId)))
+          .limit(1);
+        if (!ownClient) {
+          clientId = null;
+        }
+      }
       if (!clientId && (clientCUI || clientName)) {
         const conds: any[] = [eq(clients.tenantId, tenantId)];
         if (clientCUI) {

@@ -23,6 +23,16 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const STATUS_CONFIG = {
   free: {
@@ -64,6 +74,7 @@ export default function HorecaTables() {
   const [viewMode, setViewMode] = useState<"plan" | "list">("plan");
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
+  const [tableToDelete, setTableToDelete] = useState<any | null>(null);
   const [form, setForm] = useState({
     number: "",
     capacity: 4,
@@ -101,6 +112,7 @@ export default function HorecaTables() {
   const deleteMut = trpc.horeca.tables.delete.useMutation({
     onSuccess: () => {
       toast.success("Masă dezactivată");
+      setTableToDelete(null);
       utils.horeca.tables.list.invalidate();
     },
     onError: e => toast.error(e.message),
@@ -543,14 +555,7 @@ export default function HorecaTables() {
                             <td className="px-4 py-3">
                               <div className="flex justify-end">
                                 <button
-                                  onClick={() => {
-                                    if (
-                                      confirm(
-                                        `Dezactivezi masa ${table.number}?`
-                                      )
-                                    )
-                                      deleteMut.mutate({ id: table.id });
-                                  }}
+                                  onClick={() => setTableToDelete(table)}
                                   className="p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
                                 >
                                   <Trash2 className="w-4 h-4" />
@@ -619,6 +624,33 @@ export default function HorecaTables() {
           )}
         </>
       )}
+
+      <AlertDialog
+        open={!!tableToDelete}
+        onOpenChange={open => !open && setTableToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Dezactivezi masa {tableToDelete?.number}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Masa {tableToDelete?.number} ({tableToDelete?.zone || "Sală"}) va fi scoasă din planul sălii.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-full">Anulează</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() =>
+                tableToDelete && deleteMut.mutate({ id: tableToDelete.id })
+              }
+              className="rounded-full bg-red-600 hover:bg-red-700 text-white"
+            >
+              Dezactivează
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

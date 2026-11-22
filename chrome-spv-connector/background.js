@@ -734,6 +734,7 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (!sender || sender.id !== chrome.runtime.id) return false;
   if (!message || message.action !== "SYNC_SPVWS2") return false;
 
   (async () => {

@@ -47,6 +47,7 @@ export async function createContext(
             openId: `account_${account.id}`,
             name: account.email,
             email: account.email,
+            phone: account.phone ?? null,
             loginMethod: "email",
             role: account.role as any,
             createdAt: account.createdAt,

@@ -102,6 +102,15 @@ function parsePdfToUnicodeCmap(s: string): Map<number, string> {
   return cmap;
 }
 
+function escapeHtmlText(str: string): string {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function extractContractTextAndHtml(buf: Buffer, originalName: string): { text: string; html: string } {
   const ext = path.extname(originalName).toLowerCase();
   if (ext === ".docx") {
@@ -126,10 +135,11 @@ function extractContractTextAndHtml(buf: Buffer, originalName: string): { text: 
             .trim();
           if (clean) {
             lines.push(clean);
+            const escapedClean = escapeHtmlText(clean);
             if (/^(?:CONTRACT|PĂRȚILE|PARTILE|[A-I]\.\s+[A-ZĂÂÎȘȚ])/i.test(clean)) {
-              htmlParts.push(`<h3 style="font-size:13px;font-weight:bold;margin:12px 0 6px 0;">${clean}</h3>`);
+              htmlParts.push(`<h3 style="font-size:13px;font-weight:bold;margin:12px 0 6px 0;">${escapedClean}</h3>`);
             } else {
-              htmlParts.push(`<p style="font-size:12px;margin:4px 0;line-height:1.5;">${clean}</p>`);
+              htmlParts.push(`<p style="font-size:12px;margin:4px 0;line-height:1.5;">${escapedClean}</p>`);
             }
           }
         }
@@ -212,11 +222,12 @@ function extractContractTextAndHtml(buf: Buffer, originalName: string): { text: 
           .split(/\n+/)
           .map((line) => line.trim())
           .filter(Boolean)
-          .map((line) =>
-            /^(?:CONTRACT|PĂRȚILE|[A-I]\.\s+)/i.test(line)
-              ? `<h3 style="font-size:13px;font-weight:bold;margin:12px 0 6px 0;">${line}</h3>`
-              : `<p style="font-size:12px;margin:4px 0;line-height:1.5;">${line}</p>`
-          )
+          .map((line) => {
+            const escapedLine = escapeHtmlText(line);
+            return /^(?:CONTRACT|PĂRȚILE|[A-I]\.\s+)/i.test(line)
+              ? `<h3 style="font-size:13px;font-weight:bold;margin:12px 0 6px 0;">${escapedLine}</h3>`
+              : `<p style="font-size:12px;margin:4px 0;line-height:1.5;">${escapedLine}</p>`;
+          })
           .join("\n");
         return { text: normalized, html };
       }
@@ -875,9 +886,21 @@ export function registerUploadRoute(app: Express) {
         if (!db) return res.status(500).json({ error: "Baza de date indisponibilă" });
 
         const [tenantRows]: any = await (db as any).execute(
-          sql`SELECT cui, name FROM tenants WHERE id = ${tenantId}`
+          sql`SELECT cui, name, settings FROM tenants WHERE id = ${tenantId}`
         );
-        const cleanCui = (tenantRows?.[0]?.cui || "").replace(/^RO/i, "").trim() || "42322117";
+        let settingsCui = "";
+        try {
+          const parsedS = JSON.parse(tenantRows?.[0]?.settings || "{}");
+          settingsCui = String(parsedS.companyCui || parsedS.cui || "");
+        } catch {}
+        const cleanCui = String(tenantRows?.[0]?.cui || settingsCui || "")
+          .replace(/^RO/i, "")
+          .trim();
+        if (!cleanCui) {
+          return res.status(400).json({
+            error: "Profilul activ nu are CUI / CNP configurat în Setări.",
+          });
+        }
 
         const uploadDirDist = path.join(process.cwd(), "dist", "public", "uploads", "spv_documents");
         const uploadDirClient = path.join(process.cwd(), "client", "public", "uploads", "spv_documents");
@@ -903,6 +926,15 @@ export function registerUploadRoute(app: Express) {
             actualOriginalName =
               path.basename(pdfEntry.entryName) ||
               `${path.basename(file.originalname, ".zip")}.pdf`;
+          }
+
+          if (
+            actualOriginalName.toLowerCase().endsWith(".pdf") &&
+            (fileBuf.length < 5 || fileBuf.subarray(0, 5).toString("ascii") !== "%PDF-")
+          ) {
+            return res.status(400).json({
+              error: `Fișierul ${actualOriginalName} nu este un document PDF valid (semnătura magică %PDF- lipsește).`,
+            });
           }
 
           const lowerName = actualOriginalName.toLowerCase();

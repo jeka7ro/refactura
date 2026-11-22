@@ -117,12 +117,12 @@ export default function DevizeList() {
         ].map(k => (
           <div
             key={k.label}
-            className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm"
+            className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 p-4 shadow-sm"
           >
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
               {k.label}
             </p>
-            <p className={`text-xl font-black ${k.cls}`}>{k.value}</p>
+            <p className={`text-xl font-black tabular-nums ${k.cls}`}>{k.value}</p>
           </div>
         ))}
       </div>
@@ -133,7 +133,7 @@ export default function DevizeList() {
             className="w-3.5 h-3.5 text-slate-400"
             style={{
               position: "absolute",
-              left: 10,
+              left: 12,
               top: "50%",
               transform: "translateY(-50%)",
               pointerEvents: "none",
@@ -146,16 +146,16 @@ export default function DevizeList() {
               setPage(1);
             }}
             placeholder="Caută nr. deviz, client, CUI, nr. factură..."
-            className="w-full h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
-            style={{ paddingLeft: 32, paddingRight: 12 }}
+            className="w-full h-9 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+            style={{ paddingLeft: 34, paddingRight: 14 }}
           />
         </div>
-        <span className="text-xs text-slate-500 font-medium">
+        <span className="text-xs text-slate-500 font-medium tabular-nums">
           Total înregistrări: <strong>{filtered.length}</strong>
         </span>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-[22px] shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
@@ -293,7 +293,7 @@ export default function DevizeList() {
                           {row.number}
                         </button>
                       </td>
-                      <td className="px-3 py-2.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                      <td className="px-3 py-2.5 tabular-nums text-slate-600 dark:text-slate-300 whitespace-nowrap">
                         {formatDate(String(row.date))}
                       </td>
                       <td className="px-3 py-2.5">
@@ -309,7 +309,7 @@ export default function DevizeList() {
                       <td className="px-3 py-2.5 whitespace-nowrap">
                         {row.invoiceId ? (
                           <Link
-                            href={`/facturi-emise-nou/${row.invoiceId}`}
+                            href={`/facturi-emise-nou/view/${row.invoiceId}`}
                             className="tabular-nums font-medium text-sky-600 dark:text-sky-400 hover:underline"
                             title="Deschide factura"
                           >
@@ -330,24 +330,26 @@ export default function DevizeList() {
                       </td>
                       <td className="px-3 py-2.5 text-center whitespace-nowrap">
                         <span
-                          className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${STATUS_CLS[row.status || "draft"] || "bg-slate-100 text-slate-600 border-slate-200"}`}
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${STATUS_CLS[row.status || "draft"] || "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"}`}
                         >
                           {row.status}
                         </span>
                       </td>
                       <td className="px-3 py-2.5 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1">
+                        <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => setEditDevizId(row.id)}
                             title="Editează Deviz"
-                            className="p-1.5 text-slate-400 hover:text-sky-600 rounded bg-slate-50 hover:bg-sky-50 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
+                            aria-label="Editează Deviz"
+                            className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-slate-500 hover:text-sky-600 dark:text-slate-300 dark:hover:text-sky-400 transition-colors"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => navigate(`/devize/${row.id}`)}
                             title="Vizualizează"
-                            className="p-1.5 text-slate-400 hover:text-sky-600 rounded bg-slate-50 hover:bg-sky-50 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
+                            aria-label="Vizualizează"
+                            className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-slate-500 hover:text-sky-600 dark:text-slate-300 dark:hover:text-sky-400 transition-colors"
                           >
                             <Eye className="w-3.5 h-3.5" />
                           </button>
@@ -356,14 +358,16 @@ export default function DevizeList() {
                             target="_blank"
                             rel="noreferrer"
                             title="Descarcă PDF"
-                            className="p-1.5 text-slate-400 hover:text-sky-600 rounded bg-slate-50 hover:bg-sky-50 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
+                            aria-label="Descarcă PDF"
+                            className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-slate-500 hover:text-sky-600 dark:text-slate-300 dark:hover:text-sky-400 transition-colors"
                           >
                             <FileDown className="w-3.5 h-3.5" />
                           </a>
                           <button
                             onClick={() => setDeleteTarget(row.id)}
                             title="Șterge"
-                            className="p-1.5 text-slate-400 hover:text-red-600 rounded bg-slate-50 hover:bg-red-50 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
+                            aria-label="Șterge"
+                            className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-slate-500 hover:text-red-600 dark:text-slate-300 dark:hover:text-red-400 transition-colors"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -404,24 +408,26 @@ export default function DevizeList() {
                 <option value={9999}>Toate</option>
               </select>
             </span>
-            <span className="hidden sm:inline">
+            <span className="hidden sm:inline tabular-nums">
               Afișare {Math.min((page - 1) * rowsPerPage + 1, filtered.length)}{" "}
               - {Math.min(page * rowsPerPage, filtered.length)} din{" "}
               {filtered.length}
             </span>
           </div>
-          <div className="flex gap-1">
+          <div className="flex gap-1.5">
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="p-1 rounded text-slate-400 hover:text-slate-900 disabled:opacity-50"
+              aria-label="Pagina anterioară"
+              className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white disabled:opacity-40"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="p-1 rounded text-slate-400 hover:text-slate-900 disabled:opacity-50"
+              aria-label="Pagina următoare"
+              className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white disabled:opacity-40"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -433,7 +439,7 @@ export default function DevizeList() {
         open={!!deleteTarget}
         onOpenChange={open => !open && setDeleteTarget(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-[22px]">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmați ștergerea</AlertDialogTitle>
             <AlertDialogDescription>
@@ -441,12 +447,12 @@ export default function DevizeList() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Renunță</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-full">Renunță</AlertDialogCancel>
             <AlertDialogAction
               onClick={() =>
                 deleteTarget && deleteMutation.mutate({ id: deleteTarget })
               }
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="rounded-full bg-red-600 hover:bg-red-700 text-white"
             >
               {deleteMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

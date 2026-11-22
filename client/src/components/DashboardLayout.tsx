@@ -3,7 +3,7 @@
 // Design: slate-900 sidebar, white content, blue-600 accents
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -66,6 +66,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { BnrExchangeRateHeader } from "./BnrExchangeRateHeader";
 import { CompanyPinLockModal } from "./CompanyPinLockModal";
 
@@ -215,8 +220,10 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const [forceMainMenu, setForceMainMenu] = useState(false);
   const [location, setLocation] = useLocation();
+  const searchString = useSearch();
   const { theme, toggleTheme } = useTheme();
   const { user, loading, logout } = useAuth();
 
@@ -573,15 +580,78 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     );
   }
 
-  const isActive = (href: string) => {
-    if (href === "/dashboard") return location === "/dashboard";
-    // /devize is active ONLY if we're exactly on /devize or /devize/<numeric id>, NOT on /devize/catalog
-    if (href === "/devize")
+  const cleanSearch = searchString.replace(/^\?/, "");
+  const activeTabParam = new URLSearchParams(cleanSearch).get("tab");
+
+  const isSubItemActive = (subHref: string) => {
+    if (subHref === "/facturi") {
+      return (
+        location === "/facturi" ||
+        location === "/facturi-primite" ||
+        location.startsWith("/facturi/") ||
+        location.startsWith("/factura/") ||
+        location.startsWith("/facturi-primite/")
+      );
+    }
+    if (subHref === "/facturi-emise-nou") {
+      return (
+        location === "/facturi-emise-nou" ||
+        location.startsWith("/facturi-emise-nou/") ||
+        location.startsWith("/facturi-emise/")
+      );
+    }
+    if (subHref === "/re-facturi") {
+      return (
+        location === "/re-facturi" ||
+        location.startsWith("/re-facturi/") ||
+        location.startsWith("/re-facturare/") ||
+        location === "/re-factura"
+      );
+    }
+    if (subHref === "/bonuri-consum") {
+      return location === "/bonuri-consum" || location.startsWith("/bonuri-consum/");
+    }
+    if (subHref === "/devize") {
       return (
         location === "/devize" ||
         (location.startsWith("/devize/") && location !== "/devize/catalog")
       );
-    // Exact match OR starts with href/ for other paths
+    }
+    if (subHref === "/devize/catalog") {
+      return location === "/devize/catalog" || location.startsWith("/devize/catalog/");
+    }
+    if (subHref === "/contracte") {
+      return (
+        location === "/contracte" ||
+        (location.startsWith("/contracte/") && location !== "/contracte/new")
+      );
+    }
+    if (subHref === "/nir") {
+      return location === "/nir" || location.startsWith("/nir/");
+    }
+    return location === subHref || location.startsWith(subHref + "/");
+  };
+
+  const isActive = (href: string) => {
+    if (href.includes("?")) {
+      const [basePath, qs] = href.split("?");
+      if (location !== basePath) return false;
+      const targetParams = new URLSearchParams(qs);
+      const currentParams = new URLSearchParams(cleanSearch);
+      return Array.from(targetParams.entries()).every(
+        ([k, v]) => currentParams.get(k) === v
+      );
+    }
+    if (href === "/setari") {
+      return location === "/setari" && activeTabParam !== "accountant";
+    }
+    if (href === "/dashboard") return location === "/dashboard";
+    if (href === "/devize") {
+      return (
+        location === "/devize" ||
+        (location.startsWith("/devize/") && location !== "/devize/catalog")
+      );
+    }
     return location === href || location.startsWith(href + "/");
   };
 
@@ -595,7 +665,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           const hasExpandedSubs =
             !collapsed &&
             item.subItems &&
-            item.subItems.some(s => location === s.href);
+            item.subItems.some(s => isSubItemActive(s.href));
           return (
             <div key={item.href}>
               <Link href={item.href} onClick={() => setMobileOpen(false)}>
@@ -641,7 +711,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <div className="ml-4 mt-1 pl-3 border-l border-black/[0.08] dark:border-white/[0.10] space-y-0.5 py-0.5">
                   {item.subItems.map(sub => {
                     const SubIcon = sub.icon;
-                    const subActive = location === sub.href;
+                    const subActive = isSubItemActive(sub.href);
                     return (
                       <Link
                         key={sub.href}
@@ -700,7 +770,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 >
                   <div
                     className={cn(
-                      "flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13.5px] transition-all duration-150 cursor-pointer group",
+                      "flex items-center gap-2.5 px-3.5 py-2 rounded-full text-[13.5px] transition-all duration-150 cursor-pointer group",
                       active
                         ? "bg-purple-600 text-white shadow-sm font-semibold"
                         : "text-[#3a3a3c] font-medium hover:text-[#1d1d1f] hover:bg-black/[0.045] dark:text-[#ebebf5]/80 dark:hover:text-white dark:hover:bg-white/[0.06]",
@@ -770,7 +840,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           title={collapsed ? "Extinde sidebar" : "Restrânge sidebar"}
           aria-label={collapsed ? "Extinde bara laterală" : "Restrânge bara laterală"}
           className={cn(
-            "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all duration-150 group",
+            "w-full flex items-center gap-2.5 px-3 py-2 rounded-full transition-all duration-150 group",
             "text-[#636366] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white",
             "hover:bg-black/[0.045] dark:hover:bg-white/[0.06]",
             collapsed && "justify-center"
@@ -862,13 +932,73 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
 
         {/* Notifications — fără count hardcodat */}
-        <button
-          aria-label="Notificări"
-          title="Notificări"
-          className="relative w-9 h-9 rounded-full apple-btn-glass flex items-center justify-center transition-all"
-        >
-          <Bell className="w-4 h-4 text-[#3a3a3c] dark:text-[#ebebf5]" />
-        </button>
+        <Popover open={notifOpen} onOpenChange={setNotifOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              aria-label="Notificări"
+              title="Notificări"
+              className="relative w-9 h-9 rounded-full apple-btn-glass flex items-center justify-center transition-all cursor-pointer"
+            >
+              <Bell className="w-4 h-4 text-[#3a3a3c] dark:text-[#ebebf5]" />
+              {pendingCount > 0 && (
+                <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-blue-600 ring-2 ring-white dark:ring-[#1c1c1e]" />
+              )}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="end"
+            sideOffset={8}
+            className="w-80 p-3.5 apple-glass rounded-[22px] border border-black/[0.08] dark:border-white/[0.12] shadow-xl z-50"
+          >
+            <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-black/[0.06] dark:border-white/[0.08]">
+              <span className="text-[13px] font-semibold text-[#1d1d1f] dark:text-white">
+                Notificări & Alerte
+              </span>
+              {pendingCount > 0 && (
+                <Badge className="rounded-full px-2 py-0.5 text-[10.5px] font-semibold bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800 tabular-nums">
+                  {pendingCount} în așteptare
+                </Badge>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <div className="px-3 py-2.5 rounded-2xl bg-black/[0.03] dark:bg-white/[0.05] border border-black/[0.05] dark:border-white/[0.07]">
+                {pendingCount > 0 ? (
+                  <p className="text-xs text-[#3a3a3c] dark:text-[#ebebf5] leading-relaxed tabular-nums">
+                    Aveți <strong className="font-semibold text-[#1d1d1f] dark:text-white">{pendingCount}</strong>{" "}
+                    {pendingCount === 1 ? "factură primită" : "facturi primite"} în așteptare de procesare.
+                  </p>
+                ) : (
+                  <p className="text-xs text-[#636366] dark:text-[#98989d] leading-relaxed">
+                    Nu există alerte noi. Toate documentele sunt la zi.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-1.5 pt-1">
+                <Link href="/spv" onClick={() => setNotifOpen(false)}>
+                  <div className="w-full flex items-center justify-between px-3 py-2 rounded-full apple-btn-glass text-xs font-semibold text-[#1d1d1f] dark:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors cursor-pointer">
+                    <span className="flex items-center gap-2">
+                      <Inbox className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                      Mesaje & Recipise SPV ANAF
+                    </span>
+                    <ChevronRight className="w-3.5 h-3.5 text-[#636366] dark:text-[#98989d]" />
+                  </div>
+                </Link>
+                <Link href="/setari?tab=notifications" onClick={() => setNotifOpen(false)}>
+                  <div className="w-full flex items-center justify-between px-3 py-2 rounded-full apple-btn-glass text-xs font-medium text-[#3a3a3c] dark:text-[#ebebf5] hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors cursor-pointer">
+                    <span className="flex items-center gap-2">
+                      <Settings className="w-3.5 h-3.5 text-[#636366] dark:text-[#98989d]" />
+                      Setări notificări
+                    </span>
+                    <ChevronRight className="w-3.5 h-3.5 text-[#636366] dark:text-[#98989d]" />
+                  </div>
+                </Link>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
 
         {/* Theme toggle */}
         <button
@@ -1110,7 +1240,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           const activeParent = navItems.find(
             item =>
               isActive(item.href) ||
-              (item.subItems && item.subItems.some(sub => location === sub.href))
+              (item.subItems && item.subItems.some(sub => isSubItemActive(sub.href)))
           );
           const showSubNav =
             activeParent &&
@@ -1133,7 +1263,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 
                 {activeParent.subItems!.map(sub => {
                   const SubIcon = sub.icon;
-                  const subActive = location === sub.href;
+                  const subActive = isSubItemActive(sub.href);
                   return (
                     <Link key={sub.href} href={sub.href} onClick={() => setForceMainMenu(false)}>
                       <div

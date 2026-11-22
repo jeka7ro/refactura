@@ -24,7 +24,7 @@ import {
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { formatCurrency, currencies, type Currency } from "@/lib/store";
-import { cn } from "@/lib/utils";
+import { cn, cleanErrorMessage } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { InvoiceCurrencyCalculator } from "@/components/InvoiceCurrencyCalculator";
 import { BnrInvoiceRateToggle } from "@/components/BnrInvoiceRateToggle";
@@ -81,6 +81,9 @@ interface Line {
   devizCode?: string;
   devizType?: string;
   maxQuantity?: number; // cantitate maximă din NIR
+  nirLineId?: number;
+  total?: number;
+  lineOrder?: number;
 }
 
 const defaultLine = (): Line => ({
@@ -173,6 +176,7 @@ export default function EmitInvoice() {
   const [sendEmailToClient, setSendEmailToClient] = useState(false);
   const [isReverseCharge, setIsReverseCharge] = useState(false);
   const userManualReverseChargeRef = useRef(false);
+  const autoReverseChargeRef = useRef(false);
   const [isQrPontajActive, setIsQrPontajActive] = useState(false);
   const [loadingQrPontaj, setLoadingQrPontaj] = useState(false);
   const [qrDevizNominal, setQrDevizNominal] = useState<any[]>([]);
@@ -280,7 +284,10 @@ export default function EmitInvoice() {
     );
   const { data: currentTenantObj } = trpc.tenants.current.useQuery();
   const { data: tenantsData = [] } = trpc.tenants.list.useQuery();
-  const tenant = currentTenantObj || tenantsData[0]?.tenants;
+  const tenant =
+    currentTenantObj ||
+    (tenantsData as any[])[0]?.tenants ||
+    (tenantsData as any[])[0];
 
   const sourceId = stornoId || editId;
   const { data: originalInvoice } = trpc.emittedInvoice.getById.useQuery(
@@ -322,6 +329,7 @@ export default function EmitInvoice() {
           await consumeLineMutation.mutateAsync({ lines: stockLines });
         } catch (e) {
           console.error("Failed to consume stock", e);
+          toast.warning("Factura a fost emisă, dar actualizarea stocului NIR a întâmpinat o eroare.");
         }
       }
 
@@ -335,17 +343,9 @@ export default function EmitInvoice() {
       }
       navigate("/facturi-emise-nou");
     },
-    onError: err => toast.error("Eroare la creare: " + err.message),
   });
 
-  const updateMutation = trpc.emittedInvoice.update.useMutation({
-    onSuccess: () => {
-      utils.emittedInvoice.list.invalidate();
-      toast.success("Factura a fost actualizată!");
-      navigate("/facturi-emise-nou");
-    },
-    onError: err => toast.error("Eroare la actualizare: " + err.message),
-  });
+  const updateMutation = trpc.emittedInvoice.update.useMutation();
 
   const devizeUpdateMutation = trpc.devize.update.useMutation();
 
@@ -675,23 +675,38 @@ export default function EmitInvoice() {
     }
   }, [mentiuni, isReverseCharge]);
 
-  // Auto-enable Reverse Charge for EUR currency or EU foreign clients (unless manually toggled)
+  // Auto-enable Reverse Charge ONLY for EU foreign clients (unless manually toggled)
   useEffect(() => {
     if (userManualReverseChargeRef.current) return;
 
-    const isEuForeign = !!(clientCountry && clientCountry !== "RO" && EU_COUNTRIES.has(clientCountry));
-    const shouldEnable = currency === "EUR" || isEuForeign;
+    const normalizedCountry = (clientCountry || "RO").trim().toUpperCase();
+    const isEuForeign =
+      normalizedCountry !== "RO" && EU_COUNTRIES.has(normalizedCountry);
 
-    if (shouldEnable && !isReverseCharge) {
+    if (isEuForeign && !isReverseCharge) {
+      autoReverseChargeRef.current = true;
       setIsReverseCharge(true);
       setMentiuni(prev => addReverseChargeNote(prev));
       setLines(prev =>
-        prev.map(l => (l.vatRate === 21 || l.vatRate === 19 || l.vatRate === 11 ? { ...l, vatRate: 0 } : l))
+        prev.map(l =>
+          l.vatRate === 21 || l.vatRate === 19 || l.vatRate === 11
+            ? { ...l, vatRate: 0 }
+            : l
+        )
       );
-    } else if (!shouldEnable && isReverseCharge && !isReverseChargeNotePresent(mentiuni)) {
-      setIsReverseCharge(false);
+    } else if (!isEuForeign && isReverseCharge) {
+      if (autoReverseChargeRef.current) {
+        autoReverseChargeRef.current = false;
+        setIsReverseCharge(false);
+        setMentiuni(prev => removeReverseChargeNote(prev));
+        setLines(prev =>
+          prev.map(l => (l.vatRate === 0 ? { ...l, vatRate: 21 } : l))
+        );
+      } else if (!isReverseChargeNotePresent(mentiuni)) {
+        setIsReverseCharge(false);
+      }
     }
-  }, [currency, clientCountry, isReverseCharge, mentiuni]);
+  }, [clientCountry, isReverseCharge, mentiuni]);
 
   const [cuiLoading, setCuiLoading] = useState(false);
 
@@ -942,7 +957,10 @@ export default function EmitInvoice() {
           exchangeRate: rateToUse,
         });
         data = trpcRes;
-      } catch {
+      } catch (trpcErr) {
+        if (!import.meta.env.DEV) {
+          throw trpcErr;
+        }
         let directUrl = `http://localhost:5001/api/billing/deviz?tenant_id=${tenantId}&month=${month}&year=${year}`;
         if (rateToUse) {
           directUrl += `&exchange_rate=${rateToUse}`;
@@ -1041,7 +1059,7 @@ export default function EmitInvoice() {
     const q = (catalogQuery || "").trim().toLowerCase();
     if (!q) return products;
     return products.filter(
-      p =>
+      (p: any) =>
         (p.name && p.name.toLowerCase().includes(q)) ||
         (p.unit && p.unit.toLowerCase().includes(q)) ||
         (p.category && p.category.toLowerCase().includes(q))
@@ -1212,7 +1230,7 @@ export default function EmitInvoice() {
         (clientCUI.trim().match(/^([A-Za-z]{2})/)?.[1]?.toUpperCase() || "RO");
 
       let finalClientCui = clientCUI.trim().toUpperCase();
-      const clientObj = clientsData?.find((c: any) => String(c.id) === selectedClientId);
+      const clientObj: any = clientsData?.find((c: any) => String(c.id) === selectedClientId);
       const isClientVatPayer = clientObj?.tva === 1 || clientObj?.tva === true;
       if (detectedCountry === "RO" && (isClientVatPayer || totalVAT > 0)) {
         const cleanDigits = finalClientCui.replace(/^RO/i, "");
@@ -1264,7 +1282,7 @@ export default function EmitInvoice() {
 
       if (editId) {
         await updateMutation.mutateAsync({ id: parseInt(editId), ...payload });
-        // Sincroniezăm devizul linked dacă există
+        // Sincronizăm devizul linked dacă există
         if (linkedDevizForEdit?.deviz?.id) {
           const devizLines = lines.map(l => ({
             type: (l.devizType === "MANOPERA"
@@ -1284,9 +1302,19 @@ export default function EmitInvoice() {
             lines: devizLines,
           });
         }
+        await utils.emittedInvoice.list.invalidate();
+        toast.success("Factura a fost actualizată!");
+        navigate("/facturi-emise-nou");
       } else {
         await createMutation.mutateAsync(payload);
       }
+    } catch (err) {
+      toast.error(
+        cleanErrorMessage(
+          err,
+          editId ? "Eroare la actualizarea facturii." : "Eroare la crearea facturii."
+        )
+      );
     } finally {
       setSaving(false);
     }
@@ -1297,10 +1325,11 @@ export default function EmitInvoice() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={() => navigate("/facturi-emise-nou")}
-            className="w-8 h-8 flex items-center justify-center rounded-md border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-full apple-btn-glass border border-black/[0.06] dark:border-white/[0.09] hover:bg-black/[0.04] dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
           >
-            <ArrowLeft className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+            <ArrowLeft className="w-4 h-4 text-[#3a3a3c] dark:text-[#ebebf5]" />
           </button>
           <div>
             <h1 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">
@@ -1351,7 +1380,7 @@ export default function EmitInvoice() {
         </div>
       )}
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4 space-y-4 shadow-xs">
+      <div className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-[22px] p-4 sm:p-5 space-y-4 shadow-xs">
         {/* Date Factură: Serie, Număr, Data Emiterii, Data Scadenței, Monedă, Cont Bancar */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end pb-3.5 border-b border-slate-100 dark:border-slate-800">
           <div className="lg:col-span-1">
@@ -1749,9 +1778,9 @@ export default function EmitInvoice() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xs overflow-visible">
-        <div className="p-3 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
-          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+      <div className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-[22px] shadow-xs overflow-visible">
+        <div className="p-3.5 bg-[#f8f9fc]/90 dark:bg-white/[0.02] rounded-t-[22px] border-b border-black/[0.06] dark:border-white/[0.08] flex justify-between items-center">
+          <h3 className="text-sm font-semibold text-[#1d1d1f] dark:text-white">
             Linii Factură
           </h3>
           <div className="flex items-center gap-2">
@@ -1789,7 +1818,7 @@ export default function EmitInvoice() {
               trigger={
                 <button
                   type="button"
-                  className="flex items-center gap-1.5 px-3 h-8 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-xs cursor-pointer"
+                  className="flex items-center gap-1.5 px-3.5 h-8 rounded-full apple-btn-glass text-[#3a3a3c] dark:text-[#ebebf5] text-xs font-medium transition-colors cursor-pointer"
                   title="Calculator Valutar BNR"
                 >
                   <Calculator className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
@@ -1800,7 +1829,7 @@ export default function EmitInvoice() {
             <button
               type="button"
               onClick={() => setShowCodes(!showCodes)}
-              className="flex items-center gap-1.5 px-3 h-8 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-xs cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 h-8 rounded-full apple-btn-glass text-[#3a3a3c] dark:text-[#ebebf5] text-xs font-medium transition-colors cursor-pointer"
             >
               {showCodes ? (
                 <EyeOff className="w-3.5 h-3.5" />
@@ -1811,11 +1840,11 @@ export default function EmitInvoice() {
             </button>
           </div>
         </div>
-        <div className="hidden md:grid grid-cols-12 gap-0 bg-[#1e1b4b] dark:bg-slate-800 text-white text-[11px] font-bold uppercase tracking-wider">
+        <div className="hidden md:grid grid-cols-12 gap-0 bg-[#f8f9fc]/90 dark:bg-white/[0.03] border-b border-black/[0.06] dark:border-white/[0.08] text-[#636366] dark:text-[#98989d] text-[11px] font-semibold uppercase tracking-wider">
           {showCodes ? (
             <>
               <div className="col-span-1 px-3 py-2.5">Cod</div>
-              <div className="col-span-3 px-3 py-2.5 border-l border-slate-700">
+              <div className="col-span-3 px-3 py-2.5 border-l border-black/[0.06] dark:border-white/[0.08]">
                 Denumire Produs sau Serviciu
               </div>
             </>
@@ -1824,22 +1853,22 @@ export default function EmitInvoice() {
               Denumire Produs sau Serviciu
             </div>
           )}
-          <div className="col-span-1 px-2 py-2.5 text-center border-l border-slate-700">
+          <div className="col-span-1 px-2 py-2.5 text-center border-l border-black/[0.06] dark:border-white/[0.08]">
             U.M.
           </div>
-          <div className="col-span-1 px-2 py-2.5 text-center border-l border-slate-700">
+          <div className="col-span-1 px-2 py-2.5 text-center border-l border-black/[0.06] dark:border-white/[0.08]">
             Cant.
           </div>
-          <div className="col-span-1 px-2 py-2.5 text-center border-l border-slate-700">
+          <div className="col-span-1 px-2 py-2.5 text-center border-l border-black/[0.06] dark:border-white/[0.08]">
             Cotă TVA
           </div>
-          <div className="col-span-2 px-3 py-2.5 text-right border-l border-slate-700">
+          <div className="col-span-2 px-3 py-2.5 text-right border-l border-black/[0.06] dark:border-white/[0.08]">
             Preț (fără TVA)
           </div>
-          <div className="col-span-2 px-3 py-2.5 text-right border-l border-slate-700">
+          <div className="col-span-2 px-3 py-2.5 text-right border-l border-black/[0.06] dark:border-white/[0.08]">
             Valoare
           </div>
-          <div className="col-span-1 px-2 py-2.5 text-center border-l border-slate-700"></div>
+          <div className="col-span-1 px-2 py-2.5 text-center border-l border-black/[0.06] dark:border-white/[0.08]"></div>
         </div>
 
         <div className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -2039,7 +2068,7 @@ export default function EmitInvoice() {
                               className="w-full text-left px-3.5 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                             >
                               <div className="flex items-center gap-2 mb-0.5">
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                                   {item.tip}
                                 </span>
                                 <span className="text-xs font-medium text-slate-500">
@@ -2110,7 +2139,7 @@ export default function EmitInvoice() {
                     }
                     updateLine(line.id, "quantity", e.target.value);
                   }}
-                  className="w-full h-8 px-2 text-sm text-center md:text-center border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full h-8 px-2 text-sm tabular-nums text-center md:text-center border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
               <div className="col-span-1 md:col-span-1 px-0 md:px-2 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 flex flex-col justify-center">
@@ -2124,7 +2153,7 @@ export default function EmitInvoice() {
                   onChange={e =>
                     updateLine(line.id, "vatRate", parseFloat(e.target.value))
                   }
-                  className="w-full h-8 px-1 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full h-8 px-1 text-xs tabular-nums border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                 >
                   {VAT_RATES.map(r => (
                     <option key={r} value={r}>
@@ -2143,20 +2172,22 @@ export default function EmitInvoice() {
                   onChange={e =>
                     updateLine(line.id, "unitPrice", e.target.value)
                   }
-                  className="w-full h-8 px-2 text-sm text-left md:text-right border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full h-8 px-2 text-sm tabular-nums text-left md:text-right border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
               <div className="col-span-1 md:col-span-2 px-0 md:px-3 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 flex flex-col justify-center md:items-end">
                 <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Valoare</label>
-                <span className="text-sm font-semibold text-slate-900 dark:text-white h-8 flex items-center justify-end whitespace-nowrap text-right">
+                <span className="text-sm font-semibold tabular-nums text-slate-900 dark:text-white h-8 flex items-center justify-end whitespace-nowrap text-right">
                   {formatCurrency(computeLineTotal(line), currency)}
                 </span>
               </div>
               <div className="col-span-1 md:col-span-1 px-0 md:px-2 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 flex items-center justify-end md:justify-center">
                 {lines.length > 1 && (
                   <button
+                    type="button"
+                    aria-label="Șterge linia"
                     onClick={() => removeLine(line.id)}
-                    className="w-8 h-8 md:w-7 md:h-7 flex items-center justify-center rounded text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 hover:text-rose-600 transition-colors"
+                    className="w-8 h-8 md:w-7 md:h-7 flex items-center justify-center rounded-full text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 hover:text-rose-600 transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4 md:w-3.5 md:h-3.5" />
                   </button>
@@ -2166,12 +2197,13 @@ export default function EmitInvoice() {
           ))}
         </div>
 
-        <div className="border-t border-slate-200 dark:border-slate-700 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-0">
+        <div className="border-t border-black/[0.06] dark:border-white/[0.08] grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-0">
           <div className="lg:col-span-7 px-4 py-3 flex flex-col justify-between">
             <div className="flex gap-2 flex-wrap">
               <button
+                type="button"
                 onClick={addLine}
-                className="flex items-center gap-1.5 px-3 h-8 text-xs font-semibold text-blue-600 border border-blue-200 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
+                className="flex items-center gap-1.5 px-3.5 h-8 text-xs font-semibold text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-full transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" /> Adaugă rând
               </button>
@@ -2197,7 +2229,7 @@ export default function EmitInvoice() {
               </div>
             )}
           </div>
-          <div className="lg:col-span-5 px-4 py-3 lg:border-l border-slate-200 dark:border-slate-700 space-y-1 bg-slate-50/50 dark:bg-slate-800/20 lg:bg-transparent">
+          <div className="lg:col-span-5 px-4 py-3 lg:border-l border-black/[0.06] dark:border-white/[0.08] space-y-1 bg-slate-50/50 dark:bg-slate-800/20 lg:bg-transparent tabular-nums">
             {vatBreakdown.map(({ rate, base, vat }) => (
               <div
                 key={rate}
@@ -2263,7 +2295,7 @@ export default function EmitInvoice() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded overflow-hidden">
+      <div className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-[22px] overflow-hidden">
         <button
           onClick={() => setShowOptional(o => !o)}
           className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
@@ -2383,7 +2415,7 @@ export default function EmitInvoice() {
       {/* Panou Opțiuni & Acțiuni Salvare Factură */}
       <div className="space-y-4 pt-2">
         {/* Card Toggles & Opțiuni (Curs BNR, Taxare Inversă, Email, Deviz, Smart QR) */}
-        <div className="p-3 sm:p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col gap-3">
+        <div className="p-3.5 sm:p-4 bg-white dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] shadow-xs flex flex-col gap-3">
           {/* Rând Unificat de Comutatoare (Toggles) */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5 text-xs">
             {/* Toggle Curs BNR */}
@@ -2569,12 +2601,13 @@ export default function EmitInvoice() {
 
                 <button
                   type="button"
+                  aria-label="Reîncarcă datele din Smart QR"
                   onClick={() => fetchAndApplyQrData(qrTenantId, qrMonth, qrYear)}
                   disabled={loadingQrPontaj}
                   title="Reîncarcă datele din Smart QR"
-                  className="ml-1 p-0.5 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 rounded transition-colors cursor-pointer"
+                  className="ml-1 w-7 h-7 rounded-full inline-flex items-center justify-center text-blue-600 hover:text-blue-800 hover:bg-blue-100/70 dark:text-blue-400 dark:hover:text-blue-200 dark:hover:bg-blue-900/40 transition-colors cursor-pointer"
                 >
-                  <RotateCcw className={`w-3 h-3 ${loadingQrPontaj ? "animate-spin" : ""}`} />
+                  <RotateCcw className={`w-3.5 h-3.5 ${loadingQrPontaj ? "animate-spin" : ""}`} />
                 </button>
               </div>
             </div>

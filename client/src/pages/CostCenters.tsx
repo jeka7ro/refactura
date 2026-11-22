@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { DataTable, DataTableColumn } from "@/components/DataTable";
 import { MapPin, Edit2, Trash2, Plus, FileText, X } from "lucide-react";
+import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog,
@@ -158,8 +159,20 @@ export default function CostCenters() {
 
   // Fetch categories nomenclator
   const { data: categories = [], refetch: refetchCategories } = trpc.costCenters.listCategories.useQuery();
-  const createCategoryMut = trpc.costCenters.createCategory.useMutation({ onSuccess: () => refetchCategories() });
-  const deleteCategoryMut = trpc.costCenters.deleteCategory.useMutation({ onSuccess: () => refetchCategories() });
+  const createCategoryMut = trpc.costCenters.createCategory.useMutation({
+    onSuccess: () => {
+      refetchCategories();
+      toast.success("Categoria a fost adăugată.");
+    },
+    onError: e => toast.error("Eroare la adăugarea categoriei: " + e.message),
+  });
+  const deleteCategoryMut = trpc.costCenters.deleteCategory.useMutation({
+    onSuccess: () => {
+      refetchCategories();
+      toast.success("Categoria a fost ștearsă.");
+    },
+    onError: e => toast.error("Eroare la ștergerea categoriei: " + e.message),
+  });
   const [newCatName, setNewCatName] = useState("");
   const [newCatColor, setNewCatColor] = useState("#6366f1");
   const [showCatPanel, setShowCatPanel] = useState(false);
@@ -168,6 +181,7 @@ export default function CostCenters() {
   const createMutation = trpc.costCenters.create.useMutation({
     onSuccess: () => {
       refetch();
+      toast.success("Centrul de cost a fost adăugat.");
       setFormData({
         name: "",
         address: "",
@@ -180,12 +194,14 @@ export default function CostCenters() {
       });
       setShowForm(false);
     },
+    onError: e => toast.error("Eroare la adăugarea centrului: " + e.message),
   });
 
   // Update mutation
   const updateMutation = trpc.costCenters.update.useMutation({
     onSuccess: () => {
       refetch();
+      toast.success("Centrul de cost a fost actualizat.");
       setFormData({
         name: "",
         address: "",
@@ -199,13 +215,16 @@ export default function CostCenters() {
       setEditingId(null);
       setShowForm(false);
     },
+    onError: e => toast.error("Eroare la actualizarea centrului: " + e.message),
   });
 
   // Delete mutation
   const deleteMutation = trpc.costCenters.delete.useMutation({
     onSuccess: () => {
       refetch();
+      toast.success("Centrul de cost a fost șters.");
     },
+    onError: e => toast.error("Eroare la ștergerea centrului: " + e.message),
   });
 
   // Rule mutations
@@ -218,26 +237,35 @@ export default function CostCenters() {
   const createRuleMutation = trpc.costCenters.createRule.useMutation({
     onSuccess: () => {
       refetchRules();
+      toast.success("Regula de rutare a fost adăugată.");
       setRuleFormData({ ...EMPTY_RULE });
       setShowRuleForm(false);
-    }
+    },
+    onError: e => toast.error("Eroare la adăugarea regulii: " + e.message),
   });
 
   const updateRuleMutation = trpc.costCenters.updateRule.useMutation({
     onSuccess: () => {
       refetchRules();
+      toast.success("Regula de rutare a fost actualizată.");
       setRuleFormData({ ...EMPTY_RULE });
       setEditingRuleId(null);
       setShowRuleForm(false);
-    }
+    },
+    onError: e => toast.error("Eroare la actualizarea regulii: " + e.message),
   });
 
   const deleteRuleMutation = trpc.costCenters.deleteRule.useMutation({
-    onSuccess: () => refetchRules()
+    onSuccess: () => {
+      refetchRules();
+      toast.success("Regula de rutare a fost ștearsă.");
+    },
+    onError: e => toast.error("Eroare la ștergerea regulii: " + e.message),
   });
 
   const recalculateMutation = trpc.costCenters.recalculateRules.useMutation({
     onSuccess: (data) => {
+      toast.success(`S-au actualizat ${data.updated} facturi conform regulilor active.`);
       setConfirmDialog({
         isOpen: true,
         title: "Recalculare finalizată",
@@ -245,7 +273,8 @@ export default function CostCenters() {
         onConfirm: () => {},
       });
       refetchRules();
-    }
+    },
+    onError: e => toast.error("Eroare la recalculare: " + e.message),
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -431,10 +460,11 @@ export default function CostCenters() {
                   phone: "",
                   city: "",
                   country: "",
+                  categoryId: null,
                 });
                 setShowForm(!showForm);
               }}
-              className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors shadow-sm"
+              className="flex items-center gap-1.5 px-3.5 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors shadow-sm"
             >
               <Plus className="w-3.5 h-3.5" />
               Adaugă Centru
@@ -442,15 +472,15 @@ export default function CostCenters() {
           </div>
 
           {/* KPI pills */}
-          <div className="flex flex-wrap gap-1.5">
-            <span className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-xs font-semibold border bg-blue-50 text-blue-700 border-blue-200">
+          <div className="flex flex-wrap gap-1.5 tabular-nums">
+            <span className="flex items-center gap-1.5 px-3 h-7 rounded-full text-xs font-semibold border bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800">
               <MapPin className="w-3 h-3" /> Centre{" "}
               <strong>{costCenters.length}</strong>
             </span>
-            <span className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-xs font-semibold border bg-emerald-50 text-emerald-700 border-emerald-200">
+            <span className="flex items-center gap-1.5 px-3 h-7 rounded-full text-xs font-semibold border bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800">
               Activ <strong>{activeCount}</strong>
             </span>
-            <span className="flex items-center gap-1.5 px-3 h-7 rounded-lg text-xs font-semibold border bg-purple-50 text-purple-700 border-purple-200">
+            <span className="flex items-center gap-1.5 px-3 h-7 rounded-full text-xs font-semibold border bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800">
               Orașe{" "}
               <strong>
                 {new Set(costCenters.map((c: any) => c.city).filter(Boolean)).size}
@@ -460,7 +490,7 @@ export default function CostCenters() {
 
           {/* Form */}
           {showForm && (
-            <div className="p-6 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-4">
+            <div className="p-6 rounded-[22px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                 {editingId ? "Editează Centru" : "Adaugă Centru de Cost"}
               </h3>
@@ -634,6 +664,7 @@ export default function CostCenters() {
                   <Button
                     type="button"
                     variant="outline"
+                    className="rounded-full"
                     onClick={() => {
                       setShowForm(false);
                       setEditingId(null);
@@ -643,6 +674,7 @@ export default function CostCenters() {
                   </Button>
                   <Button
                     type="submit"
+                    className="rounded-full"
                     disabled={createMutation.isPending || updateMutation.isPending}
                   >
                     {editingId ? "Actualizează" : "Adaugă"}
@@ -660,25 +692,30 @@ export default function CostCenters() {
             isLoading={isLoading}
             onRowClick={(row) => navigate(`/centre-cost/${row.id}`)}
             actions={row => (
-              <div className="flex gap-1 justify-end">
+              <div className="flex gap-1.5 justify-end">
                 <button
                   onClick={() => setInvoicesModal({ open: true, center: row })}
-                  className="w-6 h-6 rounded-lg border border-slate-200 bg-white hover:bg-purple-50 text-purple-600 transition-colors flex items-center justify-center"
+                  className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors"
                   title="Vezi Facturi"
+                  aria-label="Vezi Facturi"
                 >
-                  <FileText className="w-3 h-3" />
+                  <FileText className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => handleEdit(row)}
-                  className="w-6 h-6 rounded-lg border border-slate-200 bg-white hover:bg-blue-50 text-blue-600 transition-colors flex items-center justify-center"
+                  className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                  title="Editează"
+                  aria-label="Editează"
                 >
-                  <Edit2 className="w-3 h-3" />
+                  <Edit2 className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => handleDelete(row.id)}
-                  className="w-6 h-6 rounded-lg border border-slate-200 bg-white hover:bg-red-50 text-red-600 transition-colors flex items-center justify-center"
+                  className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+                  title="Șterge"
+                  aria-label="Șterge"
                 >
-                  <Trash2 className="w-3 h-3" />
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
             )}
@@ -691,7 +728,7 @@ export default function CostCenters() {
               <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
                 Reguli de Rutare SPV
               </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
                 Total: <strong>{rules.length}</strong> reguli (Afișează "Nr. Crt.", date și per pagină)
               </p>
             </div>
@@ -708,7 +745,7 @@ export default function CostCenters() {
                   });
                 }}
                 disabled={recalculateMutation.isPending}
-                className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-sm disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3.5 h-8 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-sm disabled:opacity-50"
               >
                 Recalculează Facturile Vechi
               </button>
@@ -718,7 +755,7 @@ export default function CostCenters() {
                   setEditingRuleId(null);
                   setShowRuleForm(!showRuleForm);
                 }}
-                className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors shadow-sm"
+                className="flex items-center gap-1.5 px-3.5 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors shadow-sm"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Adaugă Regulă
@@ -727,7 +764,7 @@ export default function CostCenters() {
           </div>
 
           {showRuleForm && (
-            <div className="p-6 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-4">
+            <div className="p-6 rounded-[22px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
               <h3 className="text-base font-semibold text-slate-900 dark:text-white">
                 {editingRuleId ? "Editează Regulă" : "Adaugă Regulă Nouă"}
               </h3>
@@ -783,8 +820,8 @@ export default function CostCenters() {
                   </div>
                 </div>
                 <div className="flex gap-2 justify-end pt-2">
-                  <Button type="button" variant="outline" onClick={() => { setShowRuleForm(false); setEditingRuleId(null); setRuleFormData({ ...EMPTY_RULE }); }}>Anulează</Button>
-                  <Button type="submit" disabled={createRuleMutation.isPending || updateRuleMutation.isPending || !ruleFormData.costCenterId || (!ruleFormData.conditionValue.trim() && !ruleFormData.matchName.trim() && !(ruleFormData as any).lineKeyword?.trim())}>
+                  <Button type="button" variant="outline" className="rounded-full" onClick={() => { setShowRuleForm(false); setEditingRuleId(null); setRuleFormData({ ...EMPTY_RULE }); }}>Anulează</Button>
+                  <Button type="submit" className="rounded-full" disabled={createRuleMutation.isPending || updateRuleMutation.isPending || !ruleFormData.costCenterId || (!ruleFormData.conditionValue.trim() && !ruleFormData.matchName.trim() && !(ruleFormData as any).lineKeyword?.trim())}>
                     {editingRuleId ? "Actualizează" : "Adaugă Regulă"}
                   </Button>
                 </div>
@@ -798,12 +835,14 @@ export default function CostCenters() {
             rowKey="id"
             isLoading={isLoadingRules}
             actions={row => (
-              <div className="flex gap-1 justify-end">
+              <div className="flex gap-1.5 justify-end">
                 <button
                   onClick={() => handleRuleEdit(row)}
-                  className="w-6 h-6 rounded-lg border border-slate-200 bg-white hover:bg-blue-50 text-blue-600 transition-colors flex items-center justify-center"
+                  title="Editează regulă"
+                  aria-label="Editează regulă"
+                  className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
                 >
-                  <Edit2 className="w-3 h-3" />
+                  <Edit2 className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => {
@@ -816,9 +855,11 @@ export default function CostCenters() {
                       },
                     });
                   }}
-                  className="w-6 h-6 rounded-lg border border-slate-200 bg-white hover:bg-red-50 text-red-600 transition-colors flex items-center justify-center"
+                  title="Șterge regulă"
+                  aria-label="Șterge regulă"
+                  className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
                 >
-                  <Trash2 className="w-3 h-3" />
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
             )}
@@ -827,14 +868,14 @@ export default function CostCenters() {
       </Tabs>
 
       <AlertDialog open={confirmDialog.isOpen} onOpenChange={(open) => !open && setConfirmDialog({ ...confirmDialog, isOpen: false })}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-[22px]">
           <AlertDialogHeader>
             <AlertDialogTitle>{confirmDialog.title}</AlertDialogTitle>
             <AlertDialogDescription>{confirmDialog.description}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Anulează</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDialog.onConfirm}>Confirmă</AlertDialogAction>
+            <AlertDialogCancel className="rounded-full">Anulează</AlertDialogCancel>
+            <AlertDialogAction className="rounded-full" onClick={confirmDialog.onConfirm}>Confirmă</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -843,21 +884,21 @@ export default function CostCenters() {
       {invoicesModal.open && invoicesModal.center && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setInvoicesModal({ open: false, center: null })}>
           <div
-            className="bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[85vh] rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+            className="apple-glass bg-white/95 dark:bg-slate-900/95 w-full max-w-4xl max-h-[85vh] rounded-t-[22px] sm:rounded-[22px] shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/80">
               <div>
                 <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <FileText className="w-4 h-4 text-purple-600" />
                   Facturi — {invoicesModal.center.name}
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums">
                   {isLoadingCenterInvoices ? "Se încarcă..." : `${centerInvoices.length} facturi alocate acestui centru`}
                 </p>
               </div>
-              <button onClick={() => setInvoicesModal({ open: false, center: null })} className="w-8 h-8 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center text-slate-500">
+              <button onClick={() => setInvoicesModal({ open: false, center: null })} aria-label="Închide" className="w-8 h-8 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center text-slate-500 transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -887,22 +928,22 @@ export default function CostCenters() {
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {centerInvoices.map((inv: any, idx: number) => (
                       <tr key={inv.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                        <td className="px-4 py-2.5 text-slate-500 text-xs">{idx + 1}</td>
+                        <td className="px-4 py-2.5 tabular-nums text-slate-500 text-xs">{idx + 1}</td>
                         <td className="px-4 py-2.5 font-medium text-slate-900 dark:text-white max-w-[200px] truncate">{inv.supplierName || "-"}</td>
-                        <td className="px-4 py-2.5 text-slate-500 text-xs">{inv.supplierCUI || "-"}</td>
-                        <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300">{inv.invoiceNumber}</td>
-                        <td className="px-4 py-2.5 text-right font-semibold text-slate-900 dark:text-white">
+                        <td className="px-4 py-2.5 tabular-nums text-slate-500 text-xs">{inv.supplierCUI || "-"}</td>
+                        <td className="px-4 py-2.5 tabular-nums text-slate-700 dark:text-slate-300">{inv.invoiceNumber}</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-slate-900 dark:text-white">
                           {inv.total != null ? Number(inv.total).toLocaleString("ro-RO", { minimumFractionDigits: 2 }) : "-"}
                           <span className="text-xs text-slate-400 ml-1">{inv.currency || "RON"}</span>
                         </td>
-                        <td className="px-4 py-2.5 text-slate-500 text-xs">{inv.issueDate ? String(inv.issueDate).slice(0, 10) : "-"}</td>
+                        <td className="px-4 py-2.5 tabular-nums text-slate-500 text-xs">{inv.issueDate ? String(inv.issueDate).slice(0, 10) : "-"}</td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot className="bg-slate-50 dark:bg-slate-800 sticky bottom-0 border-t border-slate-200 dark:border-slate-700">
                     <tr>
-                      <td colSpan={4} className="px-4 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-300">TOTAL ({centerInvoices.length} facturi)</td>
-                      <td className="px-4 py-2.5 text-right font-bold text-slate-900 dark:text-white">
+                      <td colSpan={4} className="px-4 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-300 tabular-nums">TOTAL ({centerInvoices.length} facturi)</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums font-bold text-slate-900 dark:text-white">
                         {centerInvoices.reduce((sum: number, inv: any) => sum + (Number(inv.total) || 0), 0).toLocaleString("ro-RO", { minimumFractionDigits: 2 })}
                         <span className="text-xs text-slate-400 ml-1">RON</span>
                       </td>

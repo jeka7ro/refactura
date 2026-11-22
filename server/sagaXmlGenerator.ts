@@ -524,12 +524,70 @@ export function resolveSagaLineTip(
   return rawType || "Materii prime";
 }
 
+const EU_COUNTRIES_NO_RO = new Set([
+  "AT", "BE", "BG", "CY", "CZ", "DE", "DK", "EE", "EL", "ES", "FI", "FR",
+  "GR", "HR", "HU", "IE", "IT", "LT", "LU", "LV", "MT", "NL", "PL", "PT",
+  "SE", "SI", "SK",
+]);
+
+function detectReverseChargeFlag(opts: {
+  notes?: string | null;
+  rawXml?: string | null;
+  totalTva?: number;
+  partnerCountry?: string | null;
+  partnerCui?: string | null;
+}): boolean {
+  const txt = String(opts.notes || "");
+  if (/taxare\s*invers|reverse\s*charge|autolichidare|art\.?\s*(?:331|196|307)|vatex-eu-ae/i.test(txt)) {
+    return true;
+  }
+  const xml = String(opts.rawXml || "");
+  if (xml && (/<(?:cbc:)?ID>\s*AE\s*<\/(?:cbc:)?ID>/i.test(xml) || /VATEX-EU-AE/i.test(xml))) {
+    return true;
+  }
+  if (opts.totalTva !== undefined && Math.abs(opts.totalTva) < 0.005) {
+    const c = (opts.partnerCountry || detectCountryFromCui(opts.partnerCui)).trim().toUpperCase();
+    const cui = (opts.partnerCui || "").trim();
+    if (EU_COUNTRIES_NO_RO.has(c) && cui.length >= 4) {
+      return true;
+    }
+  }
+  return false;
+}
+
+async function resolveSagaExchangeRate(
+  docDate?: string | null,
+  currency?: string | null,
+  explicitRate?: any,
+  notes?: string | null
+): Promise<number> {
+  const cur = String(currency || "RON").trim().toUpperCase();
+  if (!cur || cur === "RON" || cur === "LEI") return 1;
+  const parsedExplicit = parseFloat(String(explicitRate || ""));
+  if (Number.isFinite(parsedExplicit) && parsedExplicit > 1) return parsedExplicit;
+  if (notes) {
+    const m = String(notes).match(/(?:curs(?:\s+valutar|\s+bnr)?|rata\s+de\s+schimb)[:\s=]+(\d+[.,]\d{2,6})/i);
+    if (m) {
+      const nRate = parseFloat(m[1].replace(",", "."));
+      if (Number.isFinite(nRate) && nRate > 0) return nRate;
+    }
+  }
+  try {
+    const { getBnrRateForDate } = await import("./bnrService");
+    const cleanDate = String(docDate || new Date().toISOString().slice(0, 10)).slice(0, 10);
+    const bnr = await getBnrRateForDate(cleanDate, cur);
+    if (bnr?.rate && bnr.rate > 0) return bnr.rate;
+  } catch {}
+  return Number.isFinite(parsedExplicit) && parsedExplicit > 0 ? parsedExplicit : 1;
+}
+
 export async function resolveNirSpvData(db: any, n: any) {
   let spvIndex = "";
   let docDate = n.receiptDate;
   let dueDate = "";
   let archiveTotal: number | null = null;
   let archiveTotalVat: number | null = null;
+  let isReverseCharge = detectReverseChargeFlag({ notes: n.notes, partnerCui: n.supplierCUI });
 
   let currency = n.currency || "RON";
   let exchangeRate = parseFloat(String(n.exchangeRate || "1")) || 1;
@@ -538,13 +596,28 @@ export async function resolveNirSpvData(db: any, n: any) {
     const [inv] = await db
       .select()
       .from(schema.invoiceArchive)
-      .where(eq(schema.invoiceArchive.id, n.invoiceArchiveId));
+      .where(
+        and(
+          eq(schema.invoiceArchive.id, n.invoiceArchiveId),
+          eq(schema.invoiceArchive.tenantId, n.tenantId)
+        )
+      );
     if (inv) {
       if (inv.currency && inv.currency.trim()) currency = inv.currency.trim().toUpperCase();
       if (inv.issueDate) docDate = inv.issueDate;
       if (inv.dueDate) dueDate = inv.dueDate;
       if (inv.total) archiveTotal = parseFloat(String(inv.total));
       if (inv.totalVAT) archiveTotalVat = parseFloat(String(inv.totalVAT));
+      if (
+        detectReverseChargeFlag({
+          notes: inv.notes,
+          rawXml: inv.rawXml,
+          totalTva: archiveTotalVat ?? undefined,
+          partnerCui: inv.supplierCUI || n.supplierCUI,
+        })
+      ) {
+        isReverseCharge = true;
+      }
       if (inv.spvIndex) {
         spvIndex = inv.spvIndex;
       } else if (inv.notes) {
@@ -618,7 +691,7 @@ export async function resolveNirSpvData(db: any, n: any) {
     if (m) spvIndex = m[1];
   }
 
-  return { spvIndex, docDate, dueDate, archiveTotal, archiveTotalVat, currency, exchangeRate };
+  return { spvIndex, docDate, dueDate, archiveTotal, archiveTotalVat, currency, exchangeRate, isReverseCharge };
 }
 
 /**
@@ -675,8 +748,14 @@ export async function generateSagaExportXML(
     .where(eq(schema.clients.tenantId, tenantId));
   const clientsMap = new Map();
   allClients.forEach((c) => clientsMap.set(c.id, c));
+  const exportedOutNumbers = new Set<string>();
+  const normInvKey = (s?: string | null) => String(s || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
 
   for (const inv of monthInvoices) {
+    if (inv.number) {
+      exportedOutNumbers.add(normInvKey(inv.number));
+      if (inv.series) exportedOutNumbers.add(normInvKey(`${inv.series}${inv.number}`));
+    }
     const lines = await db
       .select()
       .from(schema.emittedInvoiceLines)
@@ -756,6 +835,19 @@ export async function generateSagaExportXML(
       totalFactura = rawInvTotal;
     }
 
+    const isOutRevCharge = detectReverseChargeFlag({
+      notes: inv.notes,
+      rawXml: (inv as any).rawXml,
+      totalTva,
+      partnerCountry: clientCountry,
+      partnerCui: clientCif,
+    });
+    const invCurrency = (inv.currency || "RON").trim().toUpperCase();
+    const invCurs =
+      invCurrency !== "RON" && invCurrency !== "LEI"
+        ? await resolveSagaExchangeRate(inv.issueDate, invCurrency, (inv as any).exchangeRate, inv.notes)
+        : 1;
+
     if (inv.series) {
       xml += `      <FacturaSerie>${escapeXml(inv.series)}</FacturaSerie>\n`;
     }
@@ -764,10 +856,13 @@ export async function generateSagaExportXML(
     if (inv.dueDate) {
       xml += `      <FacturaScadenta>${formatDate(inv.dueDate)}</FacturaScadenta>\n`;
     }
-    xml += `      <FacturaTaxareInversa>Nu</FacturaTaxareInversa>\n`;
+    xml += `      <FacturaTaxareInversa>${isOutRevCharge ? "Da" : "Nu"}</FacturaTaxareInversa>\n`;
     xml += `      <FacturaTVAIncasare>Nu</FacturaTVAIncasare>\n`;
     xml += `      <FacturaTip></FacturaTip>\n`;
-    xml += `      <FacturaMoneda>${escapeXml(inv.currency || "RON")}</FacturaMoneda>\n`;
+    xml += `      <FacturaMoneda>${escapeXml(invCurrency)}</FacturaMoneda>\n`;
+    if (invCurrency !== "RON" && invCurrency !== "LEI" && invCurs > 0) {
+      xml += `      <FacturaCurs>${invCurs.toFixed(4)}</FacturaCurs>\n`;
+    }
     xml += `      <FacturaTotalValoare>${totalValoare.toFixed(2)}</FacturaTotalValoare>\n`;
     xml += `      <FacturaTotalTVA>${totalTva.toFixed(2)}</FacturaTotalTVA>\n`;
     xml += `      <FacturaTotal>${totalFactura.toFixed(2)}</FacturaTotal>\n`;
@@ -799,6 +894,138 @@ export async function generateSagaExportXML(
     xml += `      </Continut>\n`;
     xml += `    </Detalii>\n`;
     xml += `  </Factura>\n`;
+  }
+
+  // 1b. Export Re-Facturi Emise (reInvoices) neincluse deja în emittedInvoices
+  if (options?.invoiceIds === undefined) {
+    const allReInvoices = await db
+      .select()
+      .from(schema.reInvoices)
+      .where(eq(schema.reInvoices.tenantId, tenantId));
+
+    const monthReInvoices = allReInvoices.filter((ri) => {
+      if (ri.status === "cancelled") return false;
+      if (!ri.issueDate) return false;
+      const d = ri.issueDate.substring(0, 10);
+      if (d < startDateStr || d > endDateStr) return false;
+      const k = normInvKey(ri.number);
+      return !(k && exportedOutNumbers.has(k));
+    });
+
+    for (const ri of monthReInvoices) {
+      if (ri.number) exportedOutNumbers.add(normInvKey(ri.number));
+      const riLines = await db
+        .select()
+        .from(schema.reInvoiceLines)
+        .where(eq(schema.reInvoiceLines.reInvoiceId, ri.id));
+      const client = ri.clientId ? clientsMap.get(ri.clientId) : undefined;
+
+      xml += `  <Factura>\n`;
+      xml += `    <Antet>\n`;
+      xml += `      <FurnizorNume>${escapeXml(company.name)}</FurnizorNume>\n`;
+      xml += `      <FurnizorCIF>${escapeXml(company.cui)}</FurnizorCIF>\n`;
+      if (company.regCom) xml += `      <FurnizorNrRegCom>${escapeXml(company.regCom)}</FurnizorNrRegCom>\n`;
+      xml += `      <FurnizorTara>${escapeXml(company.country || "RO")}</FurnizorTara>\n`;
+      if (company.county) xml += `      <FurnizorJudet>${escapeXml(company.county)}</FurnizorJudet>\n`;
+      if (company.city) xml += `      <FurnizorLocalitate>${escapeXml(company.city)}</FurnizorLocalitate>\n`;
+      if (company.address) xml += `      <FurnizorAdresa>${escapeXml(company.address)}</FurnizorAdresa>\n`;
+      if (company.phone) xml += `      <FurnizorTelefon>${escapeXml(company.phone)}</FurnizorTelefon>\n`;
+      if (company.email) xml += `      <FurnizorMail>${escapeXml(company.email)}</FurnizorMail>\n`;
+      if (company.bank) xml += `      <FurnizorBanca>${escapeXml(company.bank)}</FurnizorBanca>\n`;
+      if (company.iban) xml += `      <FurnizorIBAN>${escapeXml(company.iban)}</FurnizorIBAN>\n`;
+
+      const clientName = ri.clientName || client?.name || "Client";
+      const clientCif = ri.clientCUI || client?.cui || "";
+      const clientRegCom = client?.regCom || "";
+      const clientCounty = (client as any)?.county || "";
+      const clientCountry = (ri as any).clientCountry || (client as any)?.country || detectCountryFromCui(clientCif);
+      const clientCity = ri.clientCity || client?.city || "";
+      const clientAddress = ri.clientAddress || client?.address || "";
+      const clientPhone = ri.clientPhone || client?.phone || "";
+      const clientMail = ri.clientEmail || client?.email || "";
+      const clientCode = (client?.sagaCode && client.sagaCode !== "null" ? client.sagaCode : null) || client?.id;
+
+      if (clientCode) xml += `      <ClientCod>${escapeXml(clientCode)}</ClientCod>\n`;
+      xml += `      <ClientNume>${escapeXml(clientName)}</ClientNume>\n`;
+      xml += `      <ClientCIF>${escapeXml(clientCif)}</ClientCIF>\n`;
+      if (clientRegCom) xml += `      <ClientNrRegCom>${escapeXml(clientRegCom)}</ClientNrRegCom>\n`;
+      if (clientCounty) xml += `      <ClientJudet>${escapeXml(clientCounty)}</ClientJudet>\n`;
+      xml += `      <ClientTara>${escapeXml(clientCountry || "RO")}</ClientTara>\n`;
+      if (clientCity) xml += `      <ClientLocalitate>${escapeXml(clientCity)}</ClientLocalitate>\n`;
+      if (clientAddress) xml += `      <ClientAdresa>${escapeXml(clientAddress)}</ClientAdresa>\n`;
+      if (clientPhone) xml += `      <ClientTelefon>${escapeXml(clientPhone)}</ClientTelefon>\n`;
+      if (clientMail) xml += `      <ClientMail>${escapeXml(clientMail)}</ClientMail>\n`;
+
+      let totalValoare = 0;
+      let totalTva = 0;
+      const processedRiLines = riLines.map((line) => {
+        const qty = parseFloat(String(line.quantity)) || 0;
+        const price = parseFloat(String(line.unitPrice)) || 0;
+        const rate = parseFloat(String(line.vatRate ?? 21)) || 0;
+        const rawTotal = parseFloat(String(line.total));
+        const lineVal = (!isNaN(rawTotal) && rawTotal !== 0) ? rawTotal : Math.round(qty * price * 100) / 100;
+        const lineVat = Math.round(lineVal * (rate / 100) * 100) / 100;
+        totalValoare += lineVal;
+        totalTva += lineVat;
+        return { line, qty, price, rate, lineVal, lineVat };
+      });
+      totalValoare = Math.round(totalValoare * 100) / 100;
+      totalTva = Math.round(totalTva * 100) / 100;
+      let totalFactura = Math.round((totalValoare + totalTva) * 100) / 100;
+      const rawRiTotal = parseFloat(String(ri.total));
+      if (!isNaN(rawRiTotal) && rawRiTotal !== 0) totalFactura = rawRiTotal;
+
+      const riCurrency = (ri.currency || "RON").trim().toUpperCase();
+      const riCurs =
+        riCurrency !== "RON" && riCurrency !== "LEI"
+          ? await resolveSagaExchangeRate(ri.issueDate, riCurrency, (ri as any).exchangeRate, ri.notes)
+          : 1;
+      const isRiRevCharge = detectReverseChargeFlag({
+        notes: ri.notes,
+        totalTva,
+        partnerCountry: clientCountry,
+        partnerCui: clientCif,
+      });
+
+      xml += `      <FacturaNumar>${escapeXml(ri.number)}</FacturaNumar>\n`;
+      xml += `      <FacturaData>${formatDate(ri.issueDate)}</FacturaData>\n`;
+      if (ri.dueDate) xml += `      <FacturaScadenta>${formatDate(ri.dueDate)}</FacturaScadenta>\n`;
+      xml += `      <FacturaTaxareInversa>${isRiRevCharge ? "Da" : "Nu"}</FacturaTaxareInversa>\n`;
+      xml += `      <FacturaTVAIncasare>Nu</FacturaTVAIncasare>\n`;
+      xml += `      <FacturaTip></FacturaTip>\n`;
+      xml += `      <FacturaMoneda>${escapeXml(riCurrency)}</FacturaMoneda>\n`;
+      if (riCurrency !== "RON" && riCurrency !== "LEI" && riCurs > 0) {
+        xml += `      <FacturaCurs>${riCurs.toFixed(4)}</FacturaCurs>\n`;
+      }
+      xml += `      <FacturaTotalValoare>${totalValoare.toFixed(2)}</FacturaTotalValoare>\n`;
+      xml += `      <FacturaTotalTVA>${totalTva.toFixed(2)}</FacturaTotalTVA>\n`;
+      xml += `      <FacturaTotal>${totalFactura.toFixed(2)}</FacturaTotal>\n`;
+      if (ri.spvIndex) xml += formatSpvTags(ri.spvIndex);
+      xml += `    </Antet>\n`;
+      xml += `    <Detalii>\n`;
+      xml += `      <Continut>\n`;
+      let riLineIdx = 1;
+      for (const item of processedRiLines) {
+        xml += `        <Linie>\n`;
+        xml += `          <LinieNrCrt>${riLineIdx++}</LinieNrCrt>\n`;
+        xml += `          <Tip>Servicii</Tip>\n`;
+        xml += `          <Descriere>${escapeXml(item.line.description)}</Descriere>\n`;
+        if ((item.line as any).devizCode) {
+          xml += `          <CodArticolClient>${escapeXml((item.line as any).devizCode)}</CodArticolClient>\n`;
+        }
+        xml += `          <UM>${escapeXml(normalizeSagaUm(item.line.unit))}</UM>\n`;
+        xml += `          <Cantitate>${item.qty}</Cantitate>\n`;
+        xml += `          <Pret>${item.price.toFixed(4)}</Pret>\n`;
+        xml += `          <Valoare>${item.lineVal.toFixed(2)}</Valoare>\n`;
+        xml += `          <ProcTVA>${item.rate}</ProcTVA>\n`;
+        xml += `          <TVA>${item.lineVat.toFixed(2)}</TVA>\n`;
+        xml += `          <Cont>704</Cont>\n`;
+        xml += `        </Linie>\n`;
+      }
+      xml += `      </Continut>\n`;
+      xml += `    </Detalii>\n`;
+      xml += `  </Factura>\n`;
+    }
   }
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -851,7 +1078,7 @@ export async function generateSagaExportXML(
       .where(eq(schema.nirLines.nirId, n.id));
 
     // Preia datele reale ale facturii (data emiterii furnizorului și index SPV)
-    const { spvIndex, docDate, dueDate, archiveTotal, archiveTotalVat, currency, exchangeRate } = await resolveNirSpvData(db, n);
+    const { spvIndex, docDate, dueDate, archiveTotal, archiveTotalVat, currency, exchangeRate, isReverseCharge } = await resolveNirSpvData(db, n);
 
     let totalValoare = 0;
     let totalTva = 0;
@@ -974,7 +1201,7 @@ export async function generateSagaExportXML(
     if (dueDate) {
       xml += `      <FacturaScadenta>${formatDate(dueDate)}</FacturaScadenta>\n`;
     }
-    xml += `      <FacturaTaxareInversa>Nu</FacturaTaxareInversa>\n`;
+    xml += `      <FacturaTaxareInversa>${isReverseCharge ? "Da" : "Nu"}</FacturaTaxareInversa>\n`;
     xml += `      <FacturaTVAIncasare>Nu</FacturaTVAIncasare>\n`;
     xml += `      <FacturaTip></FacturaTip>\n`;
     xml += `      <FacturaMoneda>${escapeXml(currency || "RON")}</FacturaMoneda>\n`;
@@ -1141,7 +1368,13 @@ export async function generateSagaExportXML(
     if (n.scadent) {
       xml += `      <FacturaScadenta>${formatDate(n.scadent)}</FacturaScadenta>\n`;
     }
-    xml += `      <FacturaTaxareInversa>Nu</FacturaTaxareInversa>\n`;
+    const isSagaRevCharge = detectReverseChargeFlag({
+      notes: (n as any).observatii || "",
+      totalTva,
+      partnerCountry: supplierCountry,
+      partnerCui: n.cuiFurnizor,
+    });
+    xml += `      <FacturaTaxareInversa>${isSagaRevCharge ? "Da" : "Nu"}</FacturaTaxareInversa>\n`;
     xml += `      <FacturaTVAIncasare>Nu</FacturaTVAIncasare>\n`;
     const curr = (n as any).valuta || "RON";
     const curs = parseFloat(String((n as any).curs || "1")) || 1;
@@ -1264,7 +1497,7 @@ export async function generateSagaNirXML(
       .where(eq(schema.nirLines.nirId, n.id));
 
     // Preia datele reale ale facturii (data emiterii furnizorului și index SPV)
-    const { spvIndex, docDate, dueDate, archiveTotal, archiveTotalVat, currency, exchangeRate } = await resolveNirSpvData(db, n);
+    const { spvIndex, docDate, dueDate, archiveTotal, archiveTotalVat, currency, exchangeRate, isReverseCharge } = await resolveNirSpvData(db, n);
 
     let totalValoare = 0;
     let totalTva = 0;
@@ -1387,7 +1620,7 @@ export async function generateSagaNirXML(
     if (dueDate) {
       xml += `      <FacturaScadenta>${formatDate(dueDate)}</FacturaScadenta>\n`;
     }
-    xml += `      <FacturaTaxareInversa>Nu</FacturaTaxareInversa>\n`;
+    xml += `      <FacturaTaxareInversa>${isReverseCharge ? "Da" : "Nu"}</FacturaTaxareInversa>\n`;
     xml += `      <FacturaTVAIncasare>Nu</FacturaTVAIncasare>\n`;
     xml += `      <FacturaTip></FacturaTip>\n`;
     xml += `      <FacturaMoneda>${escapeXml(currency || "RON")}</FacturaMoneda>\n`;
@@ -2161,7 +2394,7 @@ export async function simulateSagaNirImport(
     if (dueDate) {
       xml += `      <FacturaScadenta>${formatDate(dueDate)}</FacturaScadenta>\n`;
     }
-    xml += `      <FacturaTaxareInversa>Nu</FacturaTaxareInversa>\n`;
+    xml += `      <FacturaTaxareInversa>${spvResolved.isReverseCharge ? "Da" : "Nu"}</FacturaTaxareInversa>\n`;
     xml += `      <FacturaTVAIncasare>Nu</FacturaTVAIncasare>\n`;
     xml += `      <FacturaTip></FacturaTip>\n`;
     xml += `      <FacturaMoneda>${escapeXml(currency || "RON")}</FacturaMoneda>\n`;

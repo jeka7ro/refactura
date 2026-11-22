@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { usePersistentRowsPerPage } from "@/hooks/usePersistentRowsPerPage";
 import { trpc } from "@/lib/trpc";
 import {
@@ -20,7 +20,7 @@ export default function Catalog() {
       limit: rowsPerPage,
       offset: (page - 1) * rowsPerPage,
     },
-    { keepPreviousData: true }
+    { placeholderData: (prev: any) => prev }
   );
 
   const items = rawData?.items || [];
@@ -31,7 +31,7 @@ export default function Catalog() {
     <div className="p-3 sm:p-5 max-w-full space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center text-sky-600 dark:text-sky-400">
+          <div className="w-10 h-10 rounded-2xl bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center text-sky-600 dark:text-sky-400">
             <PackageOpen className="w-5 h-5" />
           </div>
           <div>
@@ -45,26 +45,14 @@ export default function Catalog() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[22px] overflow-hidden shadow-sm">
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-          {/* SEARCH BAR conform regulilor UI */}
-          <div style={{ position: "relative" }} className="w-full max-w-md">
-            <Search
-              className="w-4 h-4 text-slate-400"
-              style={{
-                position: "absolute",
-                left: 12,
-                top: "50%",
-                transform: "translateY(-50%)",
-                zIndex: 1,
-              }}
-            />
+          <div className="relative w-full max-w-md">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
-              className="w-full h-10 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-slate-900 dark:text-slate-100"
+              className="w-full h-10 rounded-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-slate-900 dark:text-slate-100 pl-9"
               style={{
-                paddingLeft: 36,
-                paddingRight: search ? 80 : 16,
-                borderRadius: 9999,
+                paddingRight: search ? 84 : 16,
               }}
               placeholder="Caută după cod sau denumire..."
               value={search}
@@ -74,21 +62,7 @@ export default function Catalog() {
               }}
             />
             {search && (
-              <div
-                style={{
-                  position: "absolute",
-                  right: 10,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  background: "#2563eb",
-                  color: "white",
-                  borderRadius: 9999,
-                  padding: "2px 10px",
-                  fontSize: 11,
-                  fontWeight: 600,
-                  whiteSpace: "nowrap",
-                }}
-              >
+              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 bg-blue-600 text-white rounded-full px-2.5 py-0.5 text-[11px] font-semibold tabular-nums whitespace-nowrap">
                 {items.length} / {total}
               </div>
             )}
@@ -97,12 +71,9 @@ export default function Catalog() {
 
         <div className="overflow-x-auto min-h-[400px]">
           <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium">
+            <thead className="bg-slate-50 dark:bg-slate-800/50 text-[#636366] dark:text-[#98989d] uppercase text-[10px] font-bold tracking-wider">
               <tr>
-                <th
-                  style={{ width: 50, textAlign: "center" }}
-                  className="px-4 py-3"
-                >
+                <th className="px-4 py-3 w-[50px] text-center">
                   Nr.
                 </th>
                 <th className="px-4 py-3">Cod</th>
@@ -130,17 +101,10 @@ export default function Catalog() {
                     key={`${item.cod}-${index}`}
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
                   >
-                    <td
-                      style={{
-                        textAlign: "center",
-                        color: "var(--text-secondary)",
-                        fontSize: 13,
-                      }}
-                      className="px-4 py-3"
-                    >
+                    <td className="px-4 py-3 text-center tabular-nums text-[13px] text-slate-500 dark:text-slate-400">
                       {(page - 1) * rowsPerPage + index + 1}
                     </td>
-                    <td className="px-4 py-3 text-slate-500 text-xs">
+                    <td className="px-4 py-3 tabular-nums text-slate-500 dark:text-slate-400 text-xs">
                       {item.cod}
                     </td>
                     <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100 whitespace-normal min-w-[300px]">
@@ -148,7 +112,7 @@ export default function Catalog() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <span
-                        className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide
+                        className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wide
                         ${
                           item.tip === "Materiale"
                             ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
@@ -168,24 +132,9 @@ export default function Catalog() {
         </div>
 
         {/* FOOTER PAGINARE */}
-        <div
-          style={{
-            padding: "12px 20px",
-            borderTop: "1px solid var(--border-color)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            background: "var(--bg-secondary)",
-            borderBottomLeftRadius: 12,
-            borderBottomRightRadius: 12,
-          }}
-          className="bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800"
-        >
-          <div
-            style={{ display: "flex", alignItems: "center", gap: 16 }}
-            className="text-sm text-slate-600 dark:text-slate-400"
-          >
-            <span style={{ whiteSpace: "nowrap" }}>
+        <div className="px-5 py-3 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
+            <span className="whitespace-nowrap">
               Afișează&nbsp;
               <select
                 value={rowsPerPage}
@@ -193,8 +142,7 @@ export default function Catalog() {
                   setRowsPerPage(Number(e.target.value));
                   setPage(1);
                 }}
-                style={{ borderRadius: 9999, padding: "2px 8px" }}
-                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="rounded-full px-2.5 py-0.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
               >
                 <option value={10}>10</option>
                 <option value={15}>15</option>
@@ -204,33 +152,32 @@ export default function Catalog() {
                 <option value={9999}>Toți</option>
               </select>
             </span>
-            <span style={{ whiteSpace: "nowrap" }}>
+            <span className="whitespace-nowrap tabular-nums">
               Total înregistrări:{" "}
               <strong className="text-slate-900 dark:text-slate-100">
                 {total}
               </strong>
             </span>
           </div>
-          <div
-            style={{ display: "flex", alignItems: "center", gap: 8 }}
-            className="text-sm text-slate-600 dark:text-slate-400"
-          >
-            <span style={{ whiteSpace: "nowrap" }}>
+          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+            <span className="whitespace-nowrap tabular-nums">
               Pagina {page} din {totalPages}
             </span>
             <button
-              className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 disabled:opacity-50 transition-colors"
+              aria-label="Pagina anterioară"
+              className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors"
               onClick={() => setPage(p => p - 1)}
               disabled={page === 1}
             >
-              <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+              <ChevronLeft className="w-4 h-4 text-slate-600 dark:text-slate-300" />
             </button>
             <button
-              className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 disabled:opacity-50 transition-colors"
+              aria-label="Pagina următoare"
+              className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors"
               onClick={() => setPage(p => p + 1)}
               disabled={page >= totalPages}
             >
-              <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+              <ChevronRight className="w-4 h-4 text-slate-600 dark:text-slate-300" />
             </button>
           </div>
         </div>

@@ -7,9 +7,25 @@ import { Router, type Request, type Response } from "express";
 import fs from "fs";
 import path from "path";
 import { generateReInvoicePDF } from "./pdf";
-import { formatCurrency } from "../client/src/lib/utils";
 import { translateProductDescription } from "./invoiceTranslator";
 import { requirePdfAccess } from "./fileAuth";
+
+function isNonRomanianClient(country?: string | null, cui?: string | null): boolean {
+  const c = (country || "").trim().toUpperCase();
+  const cleanCui = (cui || "").trim().toUpperCase();
+  const cuiPrefix = cleanCui.match(/^([A-Z]{2})/)?.[1] || "";
+  if (c && c !== "RO" && c !== "ROMANIA" && c !== "ROMÂNIA") return true;
+  if (cuiPrefix && cuiPrefix !== "RO") return true;
+  return false;
+}
+
+function isPathWithinAllowedDirs(candidatePath: string, allowedDirs: string[]): boolean {
+  const resolved = path.resolve(candidatePath);
+  return allowedDirs.some((dir) => {
+    const base = path.resolve(dir);
+    return resolved.startsWith(base + path.sep);
+  });
+}
 
 const THEME_MAP: Record<string, string> = {
   blue: "#2563eb",
@@ -118,11 +134,16 @@ export function registerPdfRoute(app: any) {
       let logoBgColor = settings.logoBgColor || "#0f172a";
       let themeColor = settings.themeColor || (settings.theme && THEME_MAP[settings.theme]) || "#2563eb";
 
-      const isForeign = Boolean(
-        ((ri as any).clientCountry && (ri as any).clientCountry !== "RO") ||
-        (ri.clientCUI && !ri.clientCUI.startsWith("RO") && /^[A-Z]{2}/.test(ri.clientCUI)) ||
-        (ri.currency && ri.currency !== "RON" && ri.currency !== "LEI")
-      );
+      let riClientCountry: string | null = (ri as any).clientCountry || null;
+      if (!riClientCountry && ri.clientId) {
+        const { clients } = await import("../drizzle/schema");
+        const [riClient] = await db
+          .select({ country: clients.country })
+          .from(clients)
+          .where(and(eq(clients.id, ri.clientId), eq(clients.tenantId, ri.tenantId)));
+        riClientCountry = riClient?.country || null;
+      }
+      const isForeign = isNonRomanianClient(riClientCountry, ri.clientCUI);
 
       const translatedLines = await Promise.all(
         lines.map(async l => ({
@@ -430,9 +451,19 @@ export function registerPdfRoute(app: any) {
         }
       }
 
+      const docCurrency = getXmlText(
+        invoiceObj["cbc:DocumentCurrencyCode"] || invoiceObj["DocumentCurrencyCode"],
+        inv.currency || "RON"
+      ).toUpperCase();
       const legalTotal = invoiceObj["cac:LegalMonetaryTotal"] || invoiceObj["LegalMonetaryTotal"];
       const taxTotal = invoiceObj["cac:TaxTotal"] || invoiceObj["TaxTotal"];
-      const taxTotalObj = Array.isArray(taxTotal) ? taxTotal[0] : taxTotal;
+      const taxTotalArr = Array.isArray(taxTotal) ? taxTotal : (taxTotal ? [taxTotal] : []);
+      const taxTotalObj =
+        taxTotalArr.find((tt: any) => {
+          const ta = tt?.["cbc:TaxAmount"] ?? tt?.["TaxAmount"];
+          const curAttr = String(ta?.["@_currencyID"] || "").trim().toUpperCase();
+          return curAttr === docCurrency;
+        }) || taxTotalArr[0];
 
       let subtotal = parseXmlNumber(
         legalTotal?.["cbc:TaxExclusiveAmount"] ??
@@ -644,6 +675,7 @@ export function registerPdfRoute(app: any) {
           .from(emittedInvoices)
           .where(
             and(
+              eq(emittedInvoices.tenantId, inv.tenantId),
               sql`REPLACE(REPLACE(${emittedInvoices.number}, '-', ''), ' ', '') = ${cleanInvNum}`,
               sql`${emittedInvoices.spvIndex} IS NOT NULL`
             )
@@ -763,7 +795,7 @@ export function registerPdfRoute(app: any) {
         const [c] = await db
           .select()
           .from(clients)
-          .where(eq(clients.id, inv.clientId));
+          .where(and(eq(clients.id, inv.clientId), eq(clients.tenantId, inv.tenantId)));
         clientRecord = c;
       }
 
@@ -823,10 +855,9 @@ export function registerPdfRoute(app: any) {
         }
       }
 
-      const isForeign = Boolean(
-        (inv.clientCountry && inv.clientCountry !== "RO") ||
-        (inv.clientCUI && !inv.clientCUI.startsWith("RO") && /^[A-Z]{2}/.test(inv.clientCUI)) ||
-        (inv.currency && inv.currency !== "RON" && inv.currency !== "LEI")
+      const isForeign = isNonRomanianClient(
+        inv.clientCountry || clientRecord?.country,
+        inv.clientCUI || clientRecord?.cui
       );
 
       const translatedLines = await Promise.all(
@@ -1266,10 +1297,10 @@ export function registerPdfRoute(app: any) {
 
         let xc = 40;
 
-        const cells = [
-          { val: String(idx + 1), align: "left" as const },
-          { val: (line as any).articleCode || "—", align: "left" as const },
-          { val: line.description, align: "left" as const },
+        const cells: Array<{ val: string; align: "left" | "center" | "right" }> = [
+          { val: String(idx + 1), align: "left" },
+          { val: (line as any).articleCode || "—", align: "left" },
+          { val: line.description, align: "left" },
         ];
         
         if (showAccounting) {
@@ -1581,7 +1612,7 @@ export function registerPdfRoute(app: any) {
               .select()
               .from(nir)
               .where(
-                andOp(
+                and(
                   eqOp(nir.tenantId, invArchive.tenantId),
                   eqOp(nir.invoiceNumber, invArchive.invoiceNumber)
                 )
@@ -1629,7 +1660,12 @@ export function registerPdfRoute(app: any) {
         const [inv] = await db
           .select()
           .from(invoiceArchive)
-          .where(eqOp(invoiceArchive.id, nirRow.invoiceArchiveId));
+          .where(
+            andOp(
+              eqOp(invoiceArchive.id, nirRow.invoiceArchiveId),
+              eqOp(invoiceArchive.tenantId, nirRow.tenantId)
+            )
+          );
         if (inv) {
           linkedInvoice = inv;
           if (inv.spvIndex) spvIndex = inv.spvIndex;
@@ -1838,6 +1874,12 @@ export function registerPdfRoute(app: any) {
         return;
       }
 
+      const extractNoteField = (notesStr: string | null | undefined, pattern: RegExp): string => {
+        if (!notesStr) return "";
+        const m = String(notesStr).match(pattern);
+        return m?.[1]?.trim() || "";
+      };
+
       let invoice: any = null;
       if (deviz.invoiceId) {
         const [emitted] = await db
@@ -1853,9 +1895,11 @@ export function registerPdfRoute(app: any) {
             clientCUI: emitted.clientCUI,
             clientAddress: emitted.clientAddress,
             clientCity: emitted.clientCity,
-            clientRegCom: (emitted as any).clientRegCom || "",
-            intocmitDe: emitted.intocmitDe,
-            delegat: emitted.delegat,
+            clientRegCom: emitted.clientRegCom || "",
+            companyIBAN: emitted.companyIBAN || "",
+            companyBank: emitted.companyBank || "",
+            intocmitDe: extractNoteField(emitted.notes, /(?:întocmit\s*de|intocmit\s*de|reprezentant)\s*[:\-]\s*([^\n|]+)/i),
+            delegat: extractNoteField(emitted.notes, /delegat\s*[:\-]\s*([^\n|]+)/i),
             totalVAT: emitted.totalVAT,
             total: emitted.total,
             currency: emitted.currency,
@@ -1873,8 +1917,8 @@ export function registerPdfRoute(app: any) {
               clientCUI: re.clientCUI,
               clientAddress: re.clientAddress,
               clientCity: re.clientCity,
-              intocmitDe: (re as any).intocmitDe || "",
-              delegat: (re as any).delegat || "",
+              intocmitDe: extractNoteField(re.notes, /(?:întocmit\s*de|intocmit\s*de|reprezentant)\s*[:\-]\s*([^\n|]+)/i),
+              delegat: extractNoteField(re.notes, /delegat\s*[:\-]\s*([^\n|]+)/i),
               totalVAT: re.totalVAT,
               total: re.total,
               currency: re.currency,
@@ -2045,14 +2089,22 @@ export function registerPdfRoute(app: any) {
       doc.fontSize(7.5).font("Roboto-Bold").fillColor(GRAY).text("PRESTATOR / EMITENT", 48, y + 6);
       doc.fontSize(8.5).font("Roboto-Bold").fillColor("#0f172a").text(tenant?.name || "Companie Emitentă", 48, y + 17, { width: boxW - 16 });
       doc.fontSize(7).font("Roboto").fillColor(GRAY);
-      doc.text(`CUI/CIF: ${tenant?.cui || "—"}${tenant?.regCom ? ` | Reg. Com: ${tenant.regCom}` : ""}`, 48, y + 29, { width: boxW - 16 });
+      const issuerRegCom = settings.regCom || "";
+      const issuerIban = invoice?.companyIBAN || settings.iban || "";
+      const issuerBank = invoice?.companyBank || settings.bank || "";
+      doc.text(`CUI/CIF: ${tenant?.cui || "—"}${issuerRegCom ? ` | Reg. Com: ${issuerRegCom}` : ""}`, 48, y + 29, { width: boxW - 16 });
       if (tenant?.address) {
         doc.text(`Adresă: ${tenant.address}`, 48, y + 39, { width: boxW - 16, lineBreak: false });
       }
-      if (tenant?.iban) {
-        doc.text(`IBAN: ${tenant.iban}${tenant.bank ? ` (${tenant.bank})` : ""}`, 48, y + 49, { width: boxW - 16, lineBreak: false });
+      if (issuerIban) {
+        doc.text(`IBAN: ${issuerIban}${issuerBank ? ` (${issuerBank})` : ""}`, 48, y + 49, { width: boxW - 16, lineBreak: false });
       }
-      const intocmitNume = invoice?.intocmitDe || settings.representativeName || "Administrator";
+      const intocmitNume =
+        invoice?.intocmitDe ||
+        extractNoteField(deviz.notes, /(?:întocmit\s*de|intocmit\s*de|reprezentant)\s*[:\-]\s*([^\n|]+)/i) ||
+        settings.intocmitDe ||
+        settings.representativeName ||
+        "Administrator";
       doc.text(`Întocmit de: ${intocmitNume}`, 48, y + 59, { width: boxW - 16, lineBreak: false });
 
       // Beneficiar Card
@@ -2061,8 +2113,8 @@ export function registerPdfRoute(app: any) {
       doc.rect(box2X, y, boxW, boxH).strokeColor(BORDER).lineWidth(0.5).stroke();
 
       doc.fontSize(7.5).font("Roboto-Bold").fillColor(GRAY).text("BENEFICIAR / CLIENT", box2X + 8, y + 6);
-      const clientNume = invoice?.clientName || deviz.clientName || "—";
-      const clientCuiVal = invoice?.clientCUI || deviz.clientCUI || "—";
+      const clientNume = invoice?.clientName || "—";
+      const clientCuiVal = invoice?.clientCUI || "—";
       doc.fontSize(8.5).font("Roboto-Bold").fillColor("#0f172a").text(clientNume, box2X + 8, y + 17, { width: boxW - 16 });
       doc.fontSize(7).font("Roboto").fillColor(GRAY);
       doc.text(`CUI/CIF: ${clientCuiVal}${invoice?.clientRegCom ? ` | Reg. Com: ${invoice.clientRegCom}` : ""}`, box2X + 8, y + 29, { width: boxW - 16 });
@@ -2661,7 +2713,13 @@ export function registerPdfRoute(app: any) {
           partnerEmail: clients.email,
         })
         .from(contracts)
-        .leftJoin(clients, eq(contracts.partnerId, clients.id))
+        .leftJoin(
+          clients,
+          and(
+            eq(contracts.partnerId, clients.id),
+            eq(clients.tenantId, contracts.tenantId)
+          )
+        )
         .where(eq(contracts.id, id));
 
       if (!contract) {
@@ -2672,32 +2730,38 @@ export function registerPdfRoute(app: any) {
       const isDownload = req.query.download === "1";
       const isWord = req.query.format === "word" || req.query.docx === "1";
       const safeFilename = `${contract.type.toUpperCase()}_${contract.number.replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`;
+      const allowedContractDirs = [
+        path.resolve(process.cwd(), "dist", "public", "uploads", "contracts"),
+        path.resolve(process.cwd(), "client", "public", "uploads", "contracts"),
+        path.resolve(process.cwd(), "public", "uploads", "contracts"),
+        path.resolve(process.cwd(), "uploads", "contracts"),
+        path.resolve(process.cwd(), "contracte"),
+      ];
 
       // 0. Daca s-a cerut format Word (.docx)
       if (isWord) {
         const safeDocxFilename = `${contract.type.toUpperCase()}_${contract.number.replace(/[^a-zA-Z0-9_-]/g, "_")}.docx`;
-        const docxPath = contract.fileUrl?.replace(/\.pdf$/i, ".docx");
-        const relativeDocx = docxPath ? (docxPath.startsWith("/") ? docxPath.slice(1) : docxPath) : null;
+        const docxPath = contract.fileUrl?.trim().replace(/\.pdf$/i, ".docx");
+        const hasTraversal = Boolean(docxPath && (docxPath.includes("..") || docxPath.includes("\0")));
+        const relativeDocx =
+          docxPath && !hasTraversal
+            ? docxPath.startsWith("/")
+              ? docxPath.slice(1)
+              : docxPath
+            : null;
 
         const docxCandidates = [
           relativeDocx ? path.resolve(process.cwd(), relativeDocx) : null,
           relativeDocx ? path.resolve(process.cwd(), "dist", "public", relativeDocx) : null,
+          relativeDocx ? path.resolve(process.cwd(), "client", "public", relativeDocx) : null,
           relativeDocx ? path.resolve(process.cwd(), "public", relativeDocx) : null,
         ].filter(Boolean) as string[];
 
         let foundDocx: string | null = null;
         for (const c of docxCandidates) {
-          if (fs.existsSync(c)) {
+          if (isPathWithinAllowedDirs(c, allowedContractDirs) && fs.existsSync(c)) {
             foundDocx = c;
             break;
-          }
-        }
-        if (!foundDocx) {
-          const dir = path.resolve(process.cwd(), "contracte");
-          if (fs.existsSync(dir)) {
-            const files = fs.readdirSync(dir);
-            const match = files.find(f => f.includes(String(contract.number)) && f.endsWith(".docx"));
-            if (match) foundDocx = path.join(dir, match);
           }
         }
 
@@ -2715,41 +2779,43 @@ export function registerPdfRoute(app: any) {
       // 1. Daca exista fisier uploadat direct, il servim
       if (contract.fileUrl) {
         const cleanFileUrl = contract.fileUrl.trim();
-        const relativePath = cleanFileUrl.startsWith("/") ? cleanFileUrl.slice(1) : cleanFileUrl;
-        const baseName = path.basename(cleanFileUrl);
-        const baseWithSpaces = baseName.replace(/_/g, " ");
-        const baseWithUnderscores = baseName.replace(/\s+/g, "_");
+        if (!cleanFileUrl.includes("..") && !cleanFileUrl.includes("\0")) {
+          const relativePath = cleanFileUrl.startsWith("/") ? cleanFileUrl.slice(1) : cleanFileUrl;
+          const baseName = path.basename(cleanFileUrl);
+          const baseWithSpaces = baseName.replace(/_/g, " ");
+          const baseWithUnderscores = baseName.replace(/\s+/g, "_");
 
-        const candidates = [
-          path.resolve(process.cwd(), "dist", "public", relativePath),
-          path.resolve(process.cwd(), "client", "public", relativePath),
-          path.resolve(process.cwd(), relativePath),
-          path.resolve(process.cwd(), "public", relativePath),
-          path.resolve(process.cwd(), "client", "public", "uploads", "contracts", baseName),
-          path.resolve(process.cwd(), "client", "public", "uploads", "contracts", baseWithUnderscores),
-          path.resolve(process.cwd(), "dist", "public", "uploads", "contracts", baseName),
-          path.resolve(process.cwd(), "dist", "public", "uploads", "contracts", baseWithUnderscores),
-          path.resolve(process.cwd(), "contracte", baseName),
-          path.resolve(process.cwd(), "contracte", baseWithSpaces),
-          path.resolve(process.cwd(), "contracte", baseWithUnderscores),
-        ];
+          const candidates = [
+            path.resolve(process.cwd(), "dist", "public", relativePath),
+            path.resolve(process.cwd(), "client", "public", relativePath),
+            path.resolve(process.cwd(), relativePath),
+            path.resolve(process.cwd(), "public", relativePath),
+            path.resolve(process.cwd(), "client", "public", "uploads", "contracts", baseName),
+            path.resolve(process.cwd(), "client", "public", "uploads", "contracts", baseWithUnderscores),
+            path.resolve(process.cwd(), "dist", "public", "uploads", "contracts", baseName),
+            path.resolve(process.cwd(), "dist", "public", "uploads", "contracts", baseWithUnderscores),
+            path.resolve(process.cwd(), "contracte", baseName),
+            path.resolve(process.cwd(), "contracte", baseWithSpaces),
+            path.resolve(process.cwd(), "contracte", baseWithUnderscores),
+          ];
 
-        let foundPath: string | null = null;
-        for (const p of candidates) {
-          if (fs.existsSync(p)) {
-            foundPath = p;
-            break;
+          let foundPath: string | null = null;
+          for (const p of candidates) {
+            if (isPathWithinAllowedDirs(p, allowedContractDirs) && fs.existsSync(p)) {
+              foundPath = p;
+              break;
+            }
           }
-        }
 
-        if (foundPath) {
-          res.setHeader("Content-Type", "application/pdf");
-          res.setHeader(
-            "Content-Disposition",
-            `${isDownload ? "attachment" : "inline"}; filename="${safeFilename}"`
-          );
-          fs.createReadStream(foundPath).pipe(res);
-          return;
+          if (foundPath) {
+            res.setHeader("Content-Type", "application/pdf");
+            res.setHeader(
+              "Content-Disposition",
+              `${isDownload ? "attachment" : "inline"}; filename="${safeFilename}"`
+            );
+            fs.createReadStream(foundPath).pipe(res);
+            return;
+          }
         }
       }
 
@@ -2973,26 +3039,35 @@ export function registerPdfRoute(app: any) {
 
       // Servire strictă a fișierului fizic real semnat de ANAF/MF aflat pe disc
       if (spvDoc.fileUrl) {
-        const relativePath = spvDoc.fileUrl.replace(/^\//, "");
-        const candidates = [
-          path.resolve(process.cwd(), "dist", "public", relativePath),
-          path.resolve(process.cwd(), "client", "public", relativePath),
-          path.resolve(process.cwd(), relativePath),
-          path.resolve(process.cwd(), "public", relativePath),
-        ];
-        for (const p of candidates) {
-          if (fs.existsSync(p)) {
-            const isZipFile = p.toLowerCase().endsWith(".zip");
-            res.setHeader(
-              "Content-Type",
-              isZipFile ? "application/zip" : "application/pdf"
-            );
-            res.setHeader(
-              "Content-Disposition",
-              `${isZipFile || isDownload ? "attachment" : "inline"}; filename="${safeFilename}"`
-            );
-            fs.createReadStream(p).pipe(res);
-            return;
+        const rawFileUrl = String(spvDoc.fileUrl).trim();
+        if (!rawFileUrl.includes("..") && !rawFileUrl.includes("\0")) {
+          const allowedSpvDirs = [
+            path.resolve(process.cwd(), "dist", "public", "uploads", "spv_documents"),
+            path.resolve(process.cwd(), "client", "public", "uploads", "spv_documents"),
+            path.resolve(process.cwd(), "public", "uploads", "spv_documents"),
+            path.resolve(process.cwd(), "uploads", "spv_documents"),
+          ];
+          const relativePath = rawFileUrl.replace(/^\//, "");
+          const candidates = [
+            path.resolve(process.cwd(), "dist", "public", relativePath),
+            path.resolve(process.cwd(), "client", "public", relativePath),
+            path.resolve(process.cwd(), relativePath),
+            path.resolve(process.cwd(), "public", relativePath),
+          ];
+          for (const p of candidates) {
+            if (isPathWithinAllowedDirs(p, allowedSpvDirs) && fs.existsSync(p)) {
+              const isZipFile = p.toLowerCase().endsWith(".zip");
+              res.setHeader(
+                "Content-Type",
+                isZipFile ? "application/zip" : "application/pdf"
+              );
+              res.setHeader(
+                "Content-Disposition",
+                `${isZipFile || isDownload ? "attachment" : "inline"}; filename="${safeFilename}"`
+              );
+              fs.createReadStream(p).pipe(res);
+              return;
+            }
           }
         }
       }

@@ -262,21 +262,21 @@ export default function DocumentModalPreview({
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent
         showCloseButton={false}
-        className="w-[96vw] max-w-6xl sm:max-w-6xl xl:max-w-7xl xl:sm:max-w-7xl h-[94vh] flex flex-col p-0 gap-0 overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl"
+        className="w-[96vw] max-w-6xl sm:max-w-6xl xl:max-w-7xl xl:sm:max-w-7xl h-[94vh] flex flex-col p-0 gap-0 overflow-hidden bg-white/96 dark:bg-[#1c1c1e]/96 backdrop-blur-2xl border border-black/[0.08] dark:border-white/[0.12] rounded-[22px] shadow-2xl"
       >
         {/* Header Modal */}
-        <DialogHeader className="px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900 flex flex-row items-center justify-between space-y-0 gap-3">
+        <DialogHeader className="px-5 py-3 border-b border-black/[0.06] dark:border-white/[0.08] bg-[#f5f7fb]/85 dark:bg-white/[0.03] backdrop-blur-md flex flex-row items-center justify-between space-y-0 gap-3">
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
             {type === "nir" ? (
-              <div className="w-8 h-8 rounded-xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 flex items-center justify-center text-teal-600 shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-teal-500/12 dark:bg-teal-500/20 border border-teal-500/20 flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0">
                 <CheckCircle2 className="w-4 h-4" />
               </div>
             ) : (
-              <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 flex items-center justify-center text-blue-600 shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-blue-500/12 dark:bg-blue-500/20 border border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
                 <FileText className="w-4 h-4" />
               </div>
             )}
-            <DialogTitle className="text-sm font-bold text-slate-900 dark:text-white truncate">
+            <DialogTitle className="text-sm font-bold text-[#1d1d1f] dark:text-white truncate">
               {title}
             </DialogTitle>
           </div>
@@ -286,7 +286,7 @@ export default function DocumentModalPreview({
               type="button"
               onClick={handleDownload}
               disabled={loading || Boolean(error)}
-              className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-full text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition shadow-2xs disabled:opacity-50 shrink-0 cursor-pointer"
+              className="apple-btn-prominent inline-flex items-center gap-1.5 h-8 px-3.5 rounded-full text-xs font-semibold text-white transition disabled:opacity-50 shrink-0 cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Descarcă PDF</span>
@@ -295,7 +295,7 @@ export default function DocumentModalPreview({
               type="button"
               onClick={onClose}
               aria-label="Închide fereastra"
-              className="w-8 h-8 rounded-full shrink-0 aspect-square border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white flex items-center justify-center transition shadow-2xs cursor-pointer"
+              className="apple-btn-glass w-8 h-8 rounded-full shrink-0 aspect-square text-[#3a3a3c] dark:text-[#ebebf5] flex items-center justify-center transition cursor-pointer"
             >
               <X className="w-4 h-4 shrink-0" />
             </button>
@@ -303,23 +303,23 @@ export default function DocumentModalPreview({
         </DialogHeader>
 
         {/* Content: Embedded PDF iframe or loading/error */}
-        <div className="flex-1 w-full h-full relative bg-slate-100 dark:bg-slate-950">
+        <div className="flex-1 w-full h-full relative bg-[#f2f2f7] dark:bg-black">
           {loading && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 dark:bg-slate-900/90 z-10 text-slate-500">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-2" />
-              <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Se încarcă documentul...</p>
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 dark:bg-[#1c1c1e]/90 z-10 text-[#636366] dark:text-[#98989d]">
+              <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
+              <p className="text-xs font-semibold text-[#1d1d1f] dark:text-white">Se încarcă documentul...</p>
             </div>
           )}
 
           {error && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center bg-white dark:bg-slate-900">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center bg-white dark:bg-[#1c1c1e]">
               <AlertTriangle className="w-9 h-9 text-amber-500" />
-              <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Nu s-a putut previzualiza documentul</p>
-              <p className="text-xs text-slate-500 max-w-md">{error}</p>
+              <p className="text-sm font-bold text-[#1d1d1f] dark:text-white">Nu s-a putut previzualiza documentul</p>
+              <p className="text-xs text-[#636366] dark:text-[#98989d] max-w-md">{error}</p>
               <button
                 type="button"
                 onClick={fetchPdf}
-                className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+                className="apple-btn-glass mt-2 inline-flex items-center gap-1.5 h-8 px-3.5 rounded-full text-xs font-semibold text-[#1d1d1f] dark:text-white transition"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>Reîncearcă</span>

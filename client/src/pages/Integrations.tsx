@@ -539,6 +539,7 @@ export default function Integrations() {
   }, [refetch]);
   const upsertMutation = trpc.integrations.upsert.useMutation({
     onSuccess: () => refetch(),
+    onError: e => toast.error("Eroare la salvare: " + e.message),
   });
 
   const exportSagaMutation = trpc.integrations.exportSaga.useMutation({
@@ -645,14 +646,18 @@ export default function Integrations() {
   });
 
   const saveOblioConfig = async (config: Record<string, string>) => {
-    await upsertMutation.mutateAsync({
-      provider: "oblio",
-      apiKey: config.apiSecret,
-      apiSecret: JSON.stringify({ email: config.email, cif: config.cif }),
-      status: "active",
-    });
-    toast.success("Oblio configurat cu succes!");
-    setConfiguringId(null);
+    try {
+      await upsertMutation.mutateAsync({
+        provider: "oblio",
+        apiKey: config.apiSecret,
+        apiSecret: JSON.stringify({ email: config.email, cif: config.cif }),
+        status: "active",
+      });
+      toast.success("Oblio configurat cu succes!");
+      setConfiguringId(null);
+    } catch {
+      // Eroarea este afișată de onError pe upsertMutation
+    }
   };
 
   const handleSyncOblio = () => {
@@ -666,14 +671,18 @@ export default function Integrations() {
   };
 
   const saveSmartBillConfig = async (config: Record<string, string>) => {
-    await upsertMutation.mutateAsync({
-      provider: "smartbill",
-      apiKey: config.token,
-      apiSecret: JSON.stringify({ email: config.email, cif: config.cif }),
-      status: "active",
-    });
-    toast.success("SmartBill configurat cu succes!");
-    setConfiguringId(null);
+    try {
+      await upsertMutation.mutateAsync({
+        provider: "smartbill",
+        apiKey: config.token,
+        apiSecret: JSON.stringify({ email: config.email, cif: config.cif }),
+        status: "active",
+      });
+      toast.success("SmartBill configurat cu succes!");
+      setConfiguringId(null);
+    } catch {
+      // Eroarea este afișată de onError pe upsertMutation
+    }
   };
 
   // AI setup assistant
@@ -795,14 +804,14 @@ export default function Integrations() {
         </div>
         <button
           onClick={() => setShowAI(v => !v)}
-          className="flex items-center gap-1.5 px-3 h-8 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-xs font-medium transition-all"
+          className="flex items-center gap-1.5 px-3.5 h-8 rounded-full bg-violet-600 hover:bg-violet-700 text-white text-xs font-medium transition-all"
         >
-          <Bot className="w-3 h-3" />
+          <Bot className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Asistent AI Setup</span>
         </button>
       </div>
 
-      {/* Stats row — identic cu Facturi */}
+      {/* Stats row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           {
@@ -846,13 +855,13 @@ export default function Integrations() {
         ].map(s => (
           <div
             key={s.label}
-            className="bg-white dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700 p-3"
+            className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 p-4 shadow-sm"
           >
             <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1">
               {s.label}
             </p>
             <p
-              className={`${(s as any).small ? "text-base" : "text-2xl"} font-bold ${s.color}`}
+              className={`${(s as any).small ? "text-base" : "text-2xl"} font-bold tabular-nums ${s.color}`}
             >
               {s.value}
             </p>
@@ -862,7 +871,7 @@ export default function Integrations() {
 
       {/* AI Assistant Panel */}
       {showAI && (
-        <div className="bg-white dark:bg-slate-900 rounded-lg border border-violet-200 dark:border-violet-800 shadow-lg overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-[22px] border border-violet-200 dark:border-violet-800 shadow-lg overflow-hidden">
           <div className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-violet-600 to-blue-600">
             <Bot className="w-4 h-4 text-white" />
             <span className="text-sm font-bold text-white">
@@ -925,7 +934,7 @@ export default function Integrations() {
 
       {/* Eroare OAuth SPV ANAF */}
       {spvAuthError && (
-        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-4 text-xs text-red-950 dark:text-red-100 flex items-start justify-between gap-3">
+        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-[22px] p-4 text-xs text-red-950 dark:text-red-100 flex items-start justify-between gap-3">
           <div className="flex items-start gap-2.5">
             <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
             <div className="space-y-1.5">
@@ -952,7 +961,7 @@ export default function Integrations() {
           <button
             type="button"
             onClick={() => setSpvAuthError(null)}
-            className="rounded-lg p-1 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/40 shrink-0 cursor-pointer"
+            className="w-7 h-7 rounded-full inline-flex items-center justify-center text-red-600 hover:bg-red-100 dark:hover:bg-red-900/40 shrink-0 cursor-pointer"
             title="Închide mesajul"
           >
             <X className="w-4 h-4" />
@@ -960,11 +969,11 @@ export default function Integrations() {
         </div>
       )}
 
-      {/* Integrations Table — stilul tabelului din Facturi */}
-      <div className="bg-white dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+      {/* Integrations Table */}
+      <div className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
+            <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
               <th className="text-left px-4 py-2.5 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide text-[10px] w-10">
                 NR.
               </th>
@@ -1005,10 +1014,10 @@ export default function Integrations() {
                 <>
                   <tr
                     key={provider.id}
-                    className="border-b border-slate-100 dark:border-slate-700/60 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors"
+                    className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
                   >
                     {/* Nr */}
-                    <td className="px-4 py-3 text-slate-400 dark:text-slate-500 text-[11px]">
+                    <td className="px-4 py-3 tabular-nums text-slate-400 dark:text-slate-500 text-[11px]">
                       {idx + 1}
                     </td>
 
@@ -1016,26 +1025,25 @@ export default function Integrations() {
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-2.5">
                         <div
-                          className="rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0"
-                          style={{
-                            width: (provider as any).logoUrl ? 64 : 36,
-                            height: 36,
-                            backgroundColor:
-                              (provider as any).logoBg ||
-                              ((provider as any).logoUrl
-                                ? "#f8fafc"
-                                : provider.logoColor),
-                            border: (provider as any).logoUrl
-                              ? "1px solid #e2e8f0"
-                              : "none",
-                          }}
+                          className={`rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 ${
+                            (provider as any).logoUrl
+                              ? "w-16 h-9 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-white/95"
+                              : "w-9 h-9"
+                          }`}
+                          style={
+                            (provider as any).logoBg || !(provider as any).logoUrl
+                              ? {
+                                  backgroundColor:
+                                    (provider as any).logoBg || provider.logoColor,
+                                }
+                              : undefined
+                          }
                         >
                           {(provider as any).logoUrl ? (
                             <img
                               src={(provider as any).logoUrl}
                               alt={provider.name}
-                              className="w-full h-full object-contain"
-                              style={{ padding: 4 }}
+                              className="w-full h-full object-contain p-1"
                               onError={e => {
                                 (e.target as HTMLImageElement).style.display =
                                   "none";
@@ -1094,30 +1102,30 @@ export default function Integrations() {
                           }}
                           disabled={
                             disconnectOblioMutation.isPending ||
-                            disconnectSpvMutation.isPending
+                            disconnectSpvMutation.isPending ||
+                            upsertMutation.isPending
                           }
                           title={isActive ? "Dezactivează" : "Activează"}
-                          className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-60"
-                          style={{
-                            backgroundColor: isActive
-                              ? "var(--color-primary)"
-                              : "#cbd5e1",
-                          }}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-60 ${
+                            isActive ? "" : "bg-slate-300 dark:bg-slate-600"
+                          }`}
+                          style={
+                            isActive
+                              ? { backgroundColor: "var(--color-primary)" }
+                              : undefined
+                          }
                         >
                           <span
-                            className="inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-200"
-                            style={{
-                              transform: isActive
-                                ? "translateX(22px)"
-                                : "translateX(2px)",
-                            }}
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-200 ${
+                              isActive ? "translate-x-[22px]" : "translate-x-[2px]"
+                            }`}
                           />
                         </button>
                       )}
                     </td>
 
                     {/* Ultima sync */}
-                    <td className="px-3 py-3 text-slate-500 dark:text-slate-400 text-[11px]">
+                    <td className="px-3 py-3 tabular-nums text-slate-500 dark:text-slate-400 text-[11px]">
                       {db?.lastSyncAt
                         ? new Date(db.lastSyncAt).toLocaleString("ro-RO", {
                             dateStyle: "short",
@@ -1127,7 +1135,7 @@ export default function Integrations() {
                     </td>
 
                     {/* Facturi importate */}
-                    <td className="px-3 py-3 font-bold text-slate-700 dark:text-slate-300 text-[11px]">
+                    <td className="px-3 py-3 tabular-nums font-bold text-slate-700 dark:text-slate-300 text-[11px]">
                       {(db?.syncCount || 0) > 0 ? db?.syncCount : "—"}
                     </td>
 
@@ -1152,7 +1160,7 @@ export default function Integrations() {
                                       }
                                       disabled={!spvConfigured}
                                     >
-                                      <SelectTrigger className="h-7 w-24 text-[11px] rounded-md border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 disabled:opacity-50">
+                                      <SelectTrigger className="h-8 w-24 text-[11px] rounded-full border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 disabled:opacity-50">
                                         <SelectValue />
                                       </SelectTrigger>
                                       <SelectContent>
@@ -1191,7 +1199,7 @@ export default function Integrations() {
                                         syncSpvMutation.mutate({ zile });
                                       }}
                                       disabled={syncSpvMutation.isPending}
-                                      className="flex items-center gap-1 px-2 h-7 rounded-md bg-[var(--color-primary)] hover:opacity-90 text-white text-[11px] font-semibold transition-all disabled:opacity-60"
+                                      className="flex items-center gap-1 px-3 h-8 rounded-full bg-[var(--color-primary)] hover:opacity-90 text-white text-[11px] font-semibold transition-all disabled:opacity-60"
                                       title={
                                         !spvConfigured
                                           ? "Configurați mai întâi SPV"
@@ -1215,7 +1223,7 @@ export default function Integrations() {
                                   isConfiguring ? null : provider.id
                                 )
                               }
-                              className="flex items-center gap-1 px-2 h-7 rounded-md bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 text-[11px] font-semibold transition-colors"
+                              className="flex items-center gap-1 px-3 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-semibold transition-colors"
                             >
                               <Settings className="w-3 h-3" />
                               {isConfiguring ? "Închide" : "Configurare"}
@@ -1227,7 +1235,7 @@ export default function Integrations() {
                                   ?.click()
                               }
                               disabled={importSpvMutation.isPending}
-                              className="flex items-center gap-1 px-2 h-7 rounded-md bg-slate-600 hover:bg-slate-700 text-white text-[11px] font-semibold transition-all"
+                              className="flex items-center gap-1 px-3 h-8 rounded-full bg-slate-600 hover:bg-slate-700 text-white text-[11px] font-semibold transition-all"
                             >
                               {importSpvMutation.isPending ? (
                                 <Loader2 className="w-3 h-3 animate-spin" />
@@ -1246,7 +1254,7 @@ export default function Integrations() {
                               <button
                                 onClick={handleSyncOblio}
                                 disabled={syncing === "oblio"}
-                                className="flex items-center gap-1 px-2 h-7 rounded-md bg-[var(--color-primary)] hover:opacity-90 text-white text-[11px] font-semibold transition-all disabled:opacity-60"
+                                className="flex items-center gap-1 px-3 h-8 rounded-full bg-[var(--color-primary)] hover:opacity-90 text-white text-[11px] font-semibold transition-all disabled:opacity-60"
                               >
                                 {syncing === "oblio" ? (
                                   <Loader2 className="w-3 h-3 animate-spin" />
@@ -1262,7 +1270,7 @@ export default function Integrations() {
                                   isConfiguring ? null : provider.id
                                 )
                               }
-                              className="flex items-center gap-1 px-2 h-7 rounded-md bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 text-[11px] font-semibold transition-colors"
+                              className="flex items-center gap-1 px-3 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-semibold transition-colors"
                             >
                               <Settings className="w-3 h-3" />
                               {isConfiguring ? "Închide" : "Configurare"}
@@ -1278,7 +1286,7 @@ export default function Integrations() {
                                 <button
                                   onClick={handleSyncSmartBill}
                                   disabled={syncing === "smartbill"}
-                                  className="flex items-center gap-1 px-2 h-7 rounded-md bg-[var(--color-primary)] hover:opacity-90 text-white text-[11px] font-semibold transition-all disabled:opacity-60"
+                                  className="flex items-center gap-1 px-3 h-8 rounded-full bg-[var(--color-primary)] hover:opacity-90 text-white text-[11px] font-semibold transition-all disabled:opacity-60"
                                 >
                                   {syncing === "smartbill" ? (
                                     <Loader2 className="w-3 h-3 animate-spin" />
@@ -1294,7 +1302,7 @@ export default function Integrations() {
                                     isConfiguring ? null : provider.id
                                   )
                                 }
-                                className="flex items-center gap-1 px-2 h-7 rounded-md bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 text-[11px] font-semibold transition-colors"
+                                className="flex items-center gap-1 px-3 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-semibold transition-colors"
                               >
                                 <Settings className="w-3 h-3" />
                                 {isConfiguring ? "Închide" : "Configurare"}
@@ -1312,7 +1320,7 @@ export default function Integrations() {
                               exportSagaMutation.mutate({ month, year });
                             }}
                             disabled={exportSagaMutation.isPending}
-                            className="flex items-center gap-1 px-2 h-7 rounded-md bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-semibold transition-colors disabled:opacity-60"
+                            className="flex items-center gap-1 px-3 h-8 rounded-full bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-semibold transition-colors disabled:opacity-60"
                           >
                             <Download className="w-3 h-3" />
                             {exportSagaMutation.isPending ? "Generare..." : "Descarcă XML"}
@@ -1396,7 +1404,7 @@ export default function Integrations() {
         open={!!deleteProviderId}
         onOpenChange={o => !o && setDeleteProviderId(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-[22px]">
           <AlertDialogHeader>
             <AlertDialogTitle>Dezactivează integrarea?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1413,15 +1421,31 @@ export default function Integrations() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Anulează</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-full">Anulează</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (deleteProviderId === "oblio")
+                if (deleteProviderId === "oblio") {
                   disconnectOblioMutation.mutate();
-                else if (deleteProviderId === "spv")
+                } else if (deleteProviderId === "spv") {
                   disconnectSpvMutation.mutate();
+                } else if (deleteProviderId === "smartbill") {
+                  upsertMutation.mutate(
+                    {
+                      provider: "smartbill",
+                      apiKey: "",
+                      apiSecret: "",
+                      status: "inactive",
+                    },
+                    {
+                      onSuccess: () => {
+                        toast.success("Integrarea SmartBill a fost deconectată");
+                        setDeleteProviderId(null);
+                      },
+                    }
+                  );
+                }
               }}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="rounded-full bg-red-600 hover:bg-red-700 text-white"
             >
               Da, dezactivează
             </AlertDialogAction>

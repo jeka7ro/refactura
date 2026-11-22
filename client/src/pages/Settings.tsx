@@ -2,7 +2,18 @@
 // Company profile, multi-currency, multi-language, multi-country, invoice defaults
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Building2,
   User,
@@ -87,9 +98,10 @@ function parseBankAccountsFromSettings(parsedSettings: any): BankAccount[] {
 
 export default function Settings() {
   const [location] = useLocation();
+  const search = useSearch();
   const [activeTab, setActiveTab] = useState(() => {
     try {
-      const qTab = new URLSearchParams(window.location.search).get("tab");
+      const qTab = new URLSearchParams(search || window.location.search).get("tab");
       if (qTab && tabs.some((t) => t.id === qTab)) return qTab;
     } catch {}
     return "company";
@@ -97,12 +109,12 @@ export default function Settings() {
 
   useEffect(() => {
     try {
-      const qTab = new URLSearchParams(window.location.search).get("tab");
+      const qTab = new URLSearchParams(search || window.location.search).get("tab");
       if (qTab && tabs.some((t) => t.id === qTab)) {
         setActiveTab(qTab);
       }
     } catch {}
-  }, [location]);
+  }, [location, search]);
   const { data: currentTenantData, isLoading: isLoadingTenants } =
     trpc.tenants.current.useQuery();
   const { data: entityPair } = trpc.tenants.getEntityPair.useQuery();
@@ -542,7 +554,15 @@ export default function Settings() {
       const primaryRon = bankAccounts.find(a => a.currency === "RON") || bankAccounts[0];
       const primaryEur = bankAccounts.find(a => a.currency === "EUR");
 
+      let existingParsed: Record<string, any> = {};
+      try {
+        if (firmData?.settings) {
+          existingParsed = JSON.parse(String(firmData.settings));
+        }
+      } catch {}
+
       const settingsStr = JSON.stringify({
+        ...existingParsed,
         entityType: "pj",
         regCom: settings.regCom,
         city: settings.city,
@@ -673,18 +693,21 @@ export default function Settings() {
     }
   };
 
+  const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+
   const handleDeleteAccount = async () => {
-    const confirm = window.prompt("Ești sigur că vrei să-ți ștergi definitiv contul? Acest proces este ireversibil.\n\nScrie cuvântul STERGE pentru a confirma.");
-    if (confirm === "STERGE") {
-      try {
-        await deleteAccountMutation.mutateAsync();
-        localStorage.removeItem("authToken");
-        window.location.href = "/";
-      } catch (e: any) {
-        toast.error("A apărut o eroare la ștergerea contului.");
-      }
-    } else if (confirm !== null) {
+    if (deleteConfirmText !== "STERGE") {
       toast.error("Confirmare incorectă. Contul NU a fost șters.");
+      return;
+    }
+    try {
+      await deleteAccountMutation.mutateAsync();
+      setShowDeleteAccountDialog(false);
+      localStorage.removeItem("authToken");
+      window.location.href = "/";
+    } catch (e: any) {
+      toast.error(e?.message || "A apărut o eroare la ștergerea contului.");
     }
   };
 
@@ -877,7 +900,7 @@ export default function Settings() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   style={activeTab === tab.id ? { backgroundColor: themeColor || "#2563eb" } : undefined}
-                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                  className={`w-full flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-medium transition-all ${
                     activeTab === tab.id
                       ? "text-white shadow-sm font-bold"
                       : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -895,7 +918,7 @@ export default function Settings() {
         <div className="flex-1 space-y-3 min-w-0">
           {/* Company tab */}
           {activeTab === "company" && (
-            <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 space-y-3">
+            <div className="bg-white/96 dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] p-5 space-y-3 shadow-xs">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-xs font-bold text-slate-700 dark:text-white uppercase tracking-wide">
                   Date Firmă
@@ -1072,10 +1095,10 @@ export default function Settings() {
                       <button
                         type="button"
                         onClick={() => setLogoBase64("")}
-                        className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 shadow transition-colors"
+                        className="absolute -top-2.5 -right-2.5 w-7 h-7 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 shadow transition-colors"
                         title="Șterge logo"
                       >
-                        <X className="w-3 h-3" />
+                        <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ) : (
@@ -1181,7 +1204,7 @@ export default function Settings() {
                                 type="button"
                                 onClick={() => setLogoBgColor(c.color)}
                                 title={`${c.label} (${c.color})`}
-                                className={`w-5 h-5 rounded-full border transition-all ${
+                                className={`w-7 h-7 rounded-full border transition-all ${
                                   logoBgColor.toLowerCase() === c.color.toLowerCase()
                                     ? "ring-2 ring-blue-500 scale-110 border-white"
                                     : "border-slate-300 dark:border-slate-600 hover:scale-105"
@@ -1201,7 +1224,7 @@ export default function Settings() {
 
           {/* Persoană Fizică tab (profil separat pe CNP, izolat de datele firmei) */}
           {activeTab === "pf" && (
-            <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 space-y-3">
+            <div className="bg-white/96 dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] p-5 space-y-3 shadow-xs">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <h2 className="text-xs font-bold text-slate-700 dark:text-white uppercase tracking-wide">
@@ -1350,7 +1373,7 @@ export default function Settings() {
           {activeTab === "appearance" && (
             <div className="space-y-4">
               {/* Tema culori */}
-              <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-5 space-y-4">
+              <div className="bg-white/96 dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] p-5 space-y-4 shadow-xs">
                 <div>
                   <h2 className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wide">
                     Culoare temă & accent factură
@@ -1438,25 +1461,25 @@ export default function Settings() {
                   <div className="max-w-xs bg-white dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-1.5">
                     <div className="flex justify-between text-xs text-slate-500">
                       <span>Total fără TVA:</span>
-                      <span className="font-semibold text-slate-700 dark:text-slate-300">733.44 RON</span>
+                      <span className="font-semibold tabular-nums text-slate-700 dark:text-slate-300">733.44 RON</span>
                     </div>
                     <div className="flex justify-between text-xs text-slate-500">
                       <span>Total TVA:</span>
-                      <span className="font-semibold text-slate-700 dark:text-slate-300">154.02 RON</span>
+                      <span className="font-semibold tabular-nums text-slate-700 dark:text-slate-300">154.02 RON</span>
                     </div>
                     <div
                       className="flex justify-between py-2 px-3 text-sm font-black text-white rounded-lg shadow-sm transition-colors"
                       style={{ backgroundColor: themeColor }}
                     >
                       <span>TOTAL DE PLATĂ:</span>
-                      <span>887.46 RON</span>
+                      <span className="tabular-nums">887.46 RON</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Sablon factura */}
-              <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-5">
+              <div className="bg-white/96 dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] p-5 shadow-xs">
                 <h2 className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wide mb-3">
                   Model factură PDF
                 </h2>
@@ -1507,7 +1530,7 @@ export default function Settings() {
 
           {/* Invoicing tab */}
           {activeTab === "invoicing" && (
-            <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-5">
+            <div className="bg-white/96 dark:bg-[#1c1c1e] rounded-[22px] shadow-xs border border-black/[0.06] dark:border-white/[0.09] p-6 space-y-5">
               <h2 className="text-sm font-bold text-slate-900 dark:text-white">
                 Setări Facturare
               </h2>
@@ -1579,8 +1602,8 @@ export default function Settings() {
                 <div className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
                   Previzualizare numerotare
                 </div>
-                <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                  <span className="text-sm font-bold text-slate-900 dark:text-white">
+                <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                  <span className="text-sm font-bold tabular-nums text-slate-900 dark:text-white">
                     {settings.invoicePrefix}-2024-
                     {String(settings.invoiceStartNumber).padStart(4, "0")}
                   </span>
@@ -1594,7 +1617,7 @@ export default function Settings() {
 
           {/* Localization tab */}
           {activeTab === "localization" && (
-            <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-5">
+            <div className="bg-white/96 dark:bg-[#1c1c1e] rounded-[22px] shadow-xs border border-black/[0.06] dark:border-white/[0.09] p-6 space-y-5">
               <h2 className="text-sm font-bold text-slate-900 dark:text-white">
                 Localizare & Multi-Currency
               </h2>
@@ -1648,7 +1671,7 @@ export default function Settings() {
                       key={c}
                       className={`px-3 py-1.5 rounded-full text-xs font-bold border ${
                         c === settings.defaultCurrency
-                          ? "bg-blue-50 text-blue-600 border-blue-200"
+                          ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800"
                           : "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
                       }`}
                     >
@@ -1687,7 +1710,7 @@ export default function Settings() {
                       key={l.code}
                       className={`px-3 py-1.5 rounded-full text-xs font-bold border ${
                         l.code === settings.defaultLanguage
-                          ? "bg-blue-50 text-blue-600 border-blue-200"
+                          ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800"
                           : "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
                       }`}
                     >
@@ -1701,7 +1724,7 @@ export default function Settings() {
 
           {/* Notifications tab */}
           {activeTab === "notifications" && (
-            <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-4">
+            <div className="bg-white/96 dark:bg-[#1c1c1e] rounded-[22px] shadow-xs border border-black/[0.06] dark:border-white/[0.09] p-6 space-y-4">
               <h2 className="text-sm font-bold text-slate-900 dark:text-white">
                 Notificări
               </h2>
@@ -1759,7 +1782,7 @@ export default function Settings() {
 
           {/* Security tab */}
           {activeTab === "security" && (
-            <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-4">
+            <div className="bg-white/96 dark:bg-[#1c1c1e] rounded-[22px] shadow-xs border border-black/[0.06] dark:border-white/[0.09] p-6 space-y-4">
               <h2 className="text-sm font-bold text-slate-900 dark:text-white">
                 Securitate
               </h2>
@@ -2093,7 +2116,7 @@ export default function Settings() {
 
           {/* Portal Contabil tab */}
           {activeTab === "accountant" && (
-            <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-6">
+            <div className="bg-white/96 dark:bg-[#1c1c1e] rounded-[22px] shadow-xs border border-black/[0.06] dark:border-white/[0.09] p-6 space-y-6">
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-sm font-bold text-slate-900 dark:text-white">
@@ -2156,7 +2179,7 @@ export default function Settings() {
                       toast.success("Link-ul portalului a fost copiat în clipboard!");
                       setTimeout(() => setIsCopiedPortalLink(false), 2000);
                     }}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition shrink-0"
+                    className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition shrink-0"
                   >
                     {isCopiedPortalLink ? (
                       <>
@@ -2174,10 +2197,10 @@ export default function Settings() {
                     href={portalShareUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:hover:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold transition shrink-0"
+                    className="h-9 px-4 rounded-full apple-btn-prominent inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition shrink-0"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
-                    <span>Deschide</span>
+                    <span>Deschide Portalul</span>
                   </a>
                 </div>
               </div>
@@ -2188,7 +2211,7 @@ export default function Settings() {
                   Identificator URL Personalizat (Codul din link)
                 </label>
                 <p className="text-[11px] text-slate-500">
-                  Puteți personaliza codul din link cu denumirea firmei sau orice text doriți (ex: <code>wood-glass</code>, <code>contabilitate-wood</code>).
+                  Puteți personaliza codul din link cu denumirea firmei sau orice text doriți (ex: <code className="font-sans font-semibold tabular-nums px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">wood-glass</code>, <code className="font-sans font-semibold tabular-nums px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">contabilitate-wood</code>).
                 </p>
                 <div className="flex items-center gap-2 max-w-md">
                   <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums select-none px-3 py-2 rounded-l-lg bg-slate-100 dark:bg-slate-800 border border-r-0 border-slate-200 dark:border-slate-700">
@@ -2289,7 +2312,7 @@ export default function Settings() {
 
           {/* GDPR tab */}
           {activeTab === "gdpr" && (
-            <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-6">
+            <div className="bg-white/96 dark:bg-[#1c1c1e] rounded-[22px] shadow-xs border border-black/[0.06] dark:border-white/[0.09] p-6 space-y-6">
               <div>
                 <h2 className="text-sm font-bold text-slate-900 dark:text-white">
                   Confidențialitate & Date Personale
@@ -2312,7 +2335,7 @@ export default function Settings() {
                   <button
                     onClick={handleExportData}
                     disabled={exportDataMutation.isPending}
-                    className="flex items-center justify-center gap-1.5 px-4 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs font-bold transition-colors whitespace-nowrap shrink-0"
+                    className="flex items-center justify-center gap-1.5 px-4 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-950/50 dark:text-blue-300 dark:hover:bg-blue-900/60 border border-blue-200/70 dark:border-blue-800/70 text-xs font-bold transition-colors whitespace-nowrap shrink-0"
                   >
                     {exportDataMutation.isPending ? "Se descarcă..." : "Exportă JSON"}
                   </button>
@@ -2328,9 +2351,12 @@ export default function Settings() {
                     </div>
                   </div>
                   <button
-                    onClick={handleDeleteAccount}
+                    onClick={() => {
+                      setDeleteConfirmText("");
+                      setShowDeleteAccountDialog(true);
+                    }}
                     disabled={deleteAccountMutation.isPending}
-                    className="flex items-center justify-center gap-1.5 px-4 h-8 rounded-full bg-red-50 text-red-600 hover:bg-red-100 text-xs font-bold transition-colors whitespace-nowrap shrink-0"
+                    className="flex items-center justify-center gap-1.5 px-4 h-8 rounded-full bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/50 dark:text-red-400 dark:hover:bg-red-900/60 border border-red-200/70 dark:border-red-800/70 text-xs font-bold transition-colors whitespace-nowrap shrink-0"
                   >
                     {deleteAccountMutation.isPending ? "Se șterge..." : "Șterge Contul"}
                   </button>
@@ -2338,6 +2364,48 @@ export default function Settings() {
               </div>
             </div>
           )}
+
+          <AlertDialog
+            open={showDeleteAccountDialog}
+            onOpenChange={(open) => {
+              setShowDeleteAccountDialog(open);
+              if (!open) setDeleteConfirmText("");
+            }}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Șterge definitiv contul?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Ești sigur că vrei să-ți ștergi definitiv contul? Acest proces este ireversibil.
+                  Scrie cuvântul <strong>STERGE</strong> pentru a confirma.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <Input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="STERGE"
+                autoComplete="off"
+                className="tabular-nums"
+              />
+              <AlertDialogFooter>
+                <AlertDialogCancel
+                  onClick={() => setDeleteConfirmText("")}
+                  className="rounded-full"
+                >
+                  Anulează
+                </AlertDialogCancel>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={deleteConfirmText !== "STERGE" || deleteAccountMutation.isPending}
+                  onClick={handleDeleteAccount}
+                  className="rounded-full bg-red-600 hover:bg-red-700 text-white"
+                >
+                  {deleteAccountMutation.isPending ? "Se șterge..." : "Șterge definitiv contul"}
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           {/* Save button */}
           {(activeTab === "company" ||
@@ -2349,7 +2417,7 @@ export default function Settings() {
                 onClick={activeTab === "pf" ? handleSavePf : handleSave}
                 disabled={activeTab === "pf" ? savingPf : saving}
                 style={{ backgroundColor: themeColor }}
-                className="flex items-center gap-1.5 px-4 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all disabled:opacity-60"
+                className="flex items-center gap-1.5 px-5 h-9 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all disabled:opacity-60"
               >
                 {(activeTab === "pf" ? savingPf : saving) ? (
                   <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -2412,7 +2480,7 @@ function BankAccountsSection({
                   Cont {idx + 1}
                 </span>
                 {idx === 0 && (
-                  <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300">
+                  <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase rounded bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300">
                     Principal
                   </span>
                 )}

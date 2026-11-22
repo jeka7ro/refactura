@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
+import fs from "fs";
 import path from "path";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
@@ -24,6 +25,12 @@ import { registerSagaSyncRoute } from "../sagaSyncRoute";
 async function startServer() {
   const app = express();
   const server = createServer(app);
+  app.use((_req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "SAMEORIGIN");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    next();
+  });
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
@@ -65,11 +72,73 @@ async function startServer() {
     })
   );
 
-  // Serve local uploads (facturi și contracte doar pentru utilizatori autentificați)
+  // Serve local uploads strictly behind authentication & tenant ownership checks
+  // (placed BEFORE setupVite / serveStatic and never calling next() out of /uploads so static middlewares cannot bypass auth)
   const uploadsDir = path.resolve(process.cwd(), "dist/public/uploads");
-  app.use("/uploads/invoices", requireUploadAccess("invoices"), express.static(path.join(uploadsDir, "invoices")));
-  app.use("/uploads/contracts", requireUploadAccess("contracts"), express.static(path.join(uploadsDir, "contracts")));
-  app.use("/uploads", express.static(uploadsDir));
+  const clientUploadsDir = path.resolve(process.cwd(), "client/public/uploads");
+  const uploadsRouter = express.Router();
+
+  uploadsRouter.use((req, res, next) => {
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(req.path);
+    } catch {
+      res.status(400).json({ error: "Cale invalidă" });
+      return;
+    }
+    if (decoded.includes("\0") || decoded.includes("\\")) {
+      res.status(400).json({ error: "Cale invalidă" });
+      return;
+    }
+    const normalized = decoded.replace(/\/+/g, "/");
+    if (normalized.split("/").some(seg => seg === "..")) {
+      res.status(400).json({ error: "Cale invalidă" });
+      return;
+    }
+    const qIdx = req.url.indexOf("?");
+    const qs = qIdx >= 0 ? req.url.slice(qIdx) : "";
+    req.url = normalized + qs;
+    next();
+  });
+
+  const serveProtectedSubdir = (sub: "invoices" | "contracts" | "spv_documents") => {
+    const primaryRoot = path.resolve(uploadsDir, sub);
+    const fallbackRoot = path.resolve(clientUploadsDir, sub);
+    const staticPrimary = express.static(primaryRoot, { fallthrough: true });
+    const staticFallback = express.static(fallbackRoot, { fallthrough: true });
+
+    uploadsRouter.use(
+      `/${sub}`,
+      requireUploadAccess(sub),
+      staticPrimary,
+      staticFallback,
+      (_req, res) => {
+        res.status(404).json({ error: "Fișierul nu a fost găsit" });
+      }
+    );
+  };
+
+  serveProtectedSubdir("invoices");
+  serveProtectedSubdir("contracts");
+  serveProtectedSubdir("spv_documents");
+
+  uploadsRouter.use(requireFileAuth, (req, res) => {
+    const rel = req.path.replace(/^\/+/, "");
+    if (!rel) {
+      res.status(404).json({ error: "Fișierul nu a fost găsit" });
+      return;
+    }
+    for (const root of [uploadsDir, clientUploadsDir]) {
+      const candidate = path.resolve(root, rel);
+      if (candidate.startsWith(root + path.sep) && fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+        res.sendFile(candidate);
+        return;
+      }
+    }
+    res.status(404).json({ error: "Fișierul nu a fost găsit" });
+  });
+
+  app.use("/uploads", uploadsRouter);
 
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {

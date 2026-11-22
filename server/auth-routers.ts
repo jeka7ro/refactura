@@ -1,4 +1,5 @@
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { COOKIE_NAME } from "../shared/const";
 import { z } from "zod";
 import { authenticateAccount, createAccount, getAccountByEmail, generatePasswordResetToken, resetPasswordWithToken, changePassword, createGoogleAccount, getAccountById } from "./auth";
 import { createSessionToken, extractTokenFromHeader } from "./session";
@@ -214,9 +215,19 @@ export const authRouter = router({
   }),
 
   /**
-   * Logout (client-side only, just clear token)
+   * Logout — clear session cookie on server & client
    */
-  logout: publicProcedure.mutation(() => {
+  logout: publicProcedure.mutation(({ ctx }) => {
+    const isSecure =
+      ctx.req?.protocol === "https" ||
+      String(ctx.req?.headers?.["x-forwarded-proto"] || "").includes("https");
+    ctx.res?.clearCookie?.(COOKIE_NAME, {
+      maxAge: -1,
+      secure: isSecure,
+      sameSite: "none",
+      httpOnly: true,
+      path: "/",
+    });
     return { success: true };
   }),
 
@@ -229,7 +240,7 @@ export const authRouter = router({
       const token = await generatePasswordResetToken(input.email);
       if (token) {
         const resetLink = `${APP_URL}/reset-password?token=${token}`;
-        console.log(`[AUTH] Password reset requested for ${input.email}. Token: ${token}`);
+        console.log(`[AUTH] Password reset requested for ${input.email}.`);
         
         try {
           await resend.emails.send({
@@ -300,8 +311,8 @@ export const authRouter = router({
         });
         const payload = ticket.getPayload();
         
-        if (!payload || !payload.email) {
-          throw new Error("Invalid Google token or email missing");
+        if (!payload || !payload.email || !payload.email_verified) {
+          throw new Error("Invalid Google token or unverified email");
         }
         
         const email = payload.email;
@@ -309,8 +320,8 @@ export const authRouter = router({
         
         if (!account) {
           // Create new account if it doesn't exist
-          const newAccountId = await createGoogleAccount(email);
-          account = await getAccountById(Number(newAccountId));
+          const newAccountId = Number(await createGoogleAccount(email));
+          account = await getAccountById(newAccountId);
         }
         
         if (!account) {

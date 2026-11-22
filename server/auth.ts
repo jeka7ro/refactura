@@ -92,15 +92,7 @@ export async function createGoogleAccount(email: string) {
 export async function authenticateAccount(email: string, password: string) {
   const db = await getDb();
   if (!db) {
-    console.warn("Database not available. Simulating login for local testing.");
-    return {
-      id: 1,
-      email: email,
-      passwordHash: "mock",
-      tenantId: 1,
-      role: "admin" as const,
-      isActive: 1,
-    };
+    throw new Error("Database not available");
   }
 
   const result = await db
@@ -167,19 +159,7 @@ export async function getAccountByEmail(email: string) {
 export async function getAccountById(id: number) {
   let db = await getDb();
   if (!db) {
-    // Fără DB (local testing) — returnăm un cont mock cu ID-ul cerut
-    return {
-      id,
-      email: "local@refactura.ro",
-      passwordHash: "",
-      tenantId: 1,
-      role: "admin",
-      isActive: true,
-      phone: null,
-      lastLoginAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    return null;
   }
 
   try {

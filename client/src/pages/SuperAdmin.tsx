@@ -2,6 +2,17 @@ import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   LayoutDashboard,
   Users,
@@ -330,11 +341,18 @@ function OverviewTab() {
 function RegistrationsTab() {
   const utils = trpc.useUtils();
   const { data: leads = [], isLoading } = trpc.admin.leads.useQuery();
+  const [leadToDelete, setLeadToDelete] = useState<any | null>(null);
   const updateStatus = trpc.admin.updateLeadStatus.useMutation({
     onSuccess: () => utils.admin.leads.invalidate(),
+    onError: (e) => toast.error(e.message || "Eroare la salvare"),
   });
   const deleteLead = trpc.admin.deleteLead.useMutation({
-    onSuccess: () => utils.admin.leads.invalidate(),
+    onSuccess: () => {
+      utils.admin.leads.invalidate();
+      setLeadToDelete(null);
+      toast.success("Lead șters.");
+    },
+    onError: (e) => toast.error(e.message || "Eroare la salvare"),
   });
 
   const statusLabels: Record<string, string> = {
@@ -425,10 +443,7 @@ function RegistrationsTab() {
                   ))}
                 </select>
                 <button
-                  onClick={() => {
-                    if (confirm("Ștergi acest lead?"))
-                      deleteLead.mutate({ id: lead.id });
-                  }}
+                  onClick={() => setLeadToDelete(lead)}
                   className="p-1.5 rounded-lg border border-slate-200 hover:border-red-300 hover:bg-red-50 text-slate-400 hover:text-red-500 transition-all"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -438,6 +453,26 @@ function RegistrationsTab() {
           </div>
         </div>
       )}
+
+      <AlertDialog open={!!leadToDelete} onOpenChange={(open) => !open && setLeadToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ștergi acest lead?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Solicitarea de la <strong>{leadToDelete?.name || leadToDelete?.email}</strong> va fi eliminată definitiv.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-full">Anulează</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => leadToDelete && deleteLead.mutate({ id: leadToDelete.id })}
+              className="rounded-full bg-red-600 hover:bg-red-700 text-white"
+            >
+              Șterge lead
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -471,6 +506,7 @@ function UsersTab() {
         setModuleSaveSuccess(false);
       }, 800);
     },
+    onError: (e) => toast.error(e.message || "Eroare la salvare"),
   });
 
   const openModuleConfig = (tenant: any) => {
@@ -1372,15 +1408,22 @@ function PricingTab() {
   const utils = trpc.useUtils();
   const { data: modulesWithPricing = [], isLoading } =
     trpc.admin.modulesWithPricing.useQuery();
+  const [moduleToDelete, setModuleToDelete] = useState<any | null>(null);
   const upsertModule = trpc.admin.upsertModule.useMutation({
     onSuccess: () => {
       utils.admin.modulesWithPricing.invalidate();
       setEditingModule(null);
       setShowNewModule(false);
     },
+    onError: (e) => toast.error(e.message || "Eroare la salvare"),
   });
   const deleteModule = trpc.admin.deleteModule.useMutation({
-    onSuccess: () => utils.admin.modulesWithPricing.invalidate(),
+    onSuccess: () => {
+      utils.admin.modulesWithPricing.invalidate();
+      setModuleToDelete(null);
+      toast.success("Modul șters.");
+    },
+    onError: (e) => toast.error(e.message || "Eroare la salvare"),
   });
   const upsertPricing = trpc.admin.upsertModulePricing.useMutation({
     onSuccess: () => {
@@ -1388,9 +1431,11 @@ function PricingTab() {
       setEditingPrice(null);
       setNewPriceFor(null);
     },
+    onError: (e) => toast.error(e.message || "Eroare la salvare"),
   });
   const deletePricing = trpc.admin.deleteModulePricing.useMutation({
     onSuccess: () => utils.admin.modulesWithPricing.invalidate(),
+    onError: (e) => toast.error(e.message || "Eroare la salvare"),
   });
 
   const [editingModule, setEditingModule] = useState<any>(null);
@@ -1725,10 +1770,7 @@ function PricingTab() {
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
                   <button
-                    onClick={() => {
-                      if (confirm(`Ștergi modulul "${mod.name}"?`))
-                        deleteModule.mutate({ id: mod.id });
-                    }}
+                    onClick={() => setModuleToDelete(mod)}
                     className="p-1.5 rounded-lg border border-slate-200 hover:border-red-300 hover:bg-red-50 text-slate-400 hover:text-red-500 transition-all"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -1810,6 +1852,26 @@ function PricingTab() {
           )}
         </div>
       )}
+
+      <AlertDialog open={!!moduleToDelete} onOpenChange={(open) => !open && setModuleToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ștergi modulul „{moduleToDelete?.name}”?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Modulul și tarifele asociate lui vor fi șterse definitiv de pe landing page.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-full">Anulează</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => moduleToDelete && deleteModule.mutate({ id: moduleToDelete.id })}
+              className="rounded-full bg-red-600 hover:bg-red-700 text-white"
+            >
+              Șterge modulul
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -1822,8 +1884,10 @@ function SeoTab() {
   );
   const upsert = trpc.admin.upsertCmsSetting.useMutation({
     onSuccess: () => utils.admin.getCmsSettings.invalidate(),
+    onError: (e) => toast.error(e.message || "Eroare la salvare"),
   });
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
 
   const fields = [
@@ -1869,18 +1933,26 @@ function SeoTab() {
     (settings as any[]).find(s => s.key === key)?.value || "";
 
   const handleSave = async () => {
-    for (const s of fields) {
-      const val = form[s.key] ?? getValue(s.key);
-      if (val)
-        await upsert.mutateAsync({
-          key: s.key,
-          value: val,
-          label: s.label,
-          group: s.group,
-        });
+    setSaving(true);
+    try {
+      for (const s of fields) {
+        const val = form[s.key] ?? getValue(s.key);
+        if (val)
+          await upsert.mutateAsync({
+            key: s.key,
+            value: val,
+            label: s.label,
+            group: s.group,
+          });
+      }
+      setSaved(true);
+      toast.success("Setările SEO au fost salvate.");
+      setTimeout(() => setSaved(false), 2500);
+    } catch (e: any) {
+      toast.error(e?.message || "Eroare la salvare");
+    } finally {
+      setSaving(false);
     }
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
   };
 
   const inputCls =
@@ -1929,10 +2001,14 @@ function SeoTab() {
           <div className="mt-5 flex items-center gap-3">
             <button
               onClick={handleSave}
-              disabled={upsert.isPending}
+              disabled={saving || upsert.isPending}
               className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-60 transition-colors"
             >
-              {saved ? (
+              {saving ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Se salvează...
+                </>
+              ) : saved ? (
                 <>
                   <Check className="w-3.5 h-3.5" /> Salvat!
                 </>

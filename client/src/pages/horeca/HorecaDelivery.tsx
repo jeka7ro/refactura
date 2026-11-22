@@ -250,11 +250,11 @@ export default function HorecaDelivery() {
 
   // KPI
   const totalDelivered = deliveryOrders
-    .filter(o => o.status === "delivered")
-    .reduce((s, o) => s + Number(o.total || 0), 0);
+    .filter((o: any) => o.status === "delivered")
+    .reduce((s: number, o: any) => s + Number(o.total || 0), 0);
   const totalCommission = deliveryOrders
-    .filter(o => o.status === "delivered")
-    .reduce((s, o) => s + Number(o.commission || 0), 0);
+    .filter((o: any) => o.status === "delivered")
+    .reduce((s: number, o: any) => s + Number(o.commission || 0), 0);
   const netRevenue = totalDelivered - totalCommission;
 
   function handleSubmit(e: React.FormEvent) {

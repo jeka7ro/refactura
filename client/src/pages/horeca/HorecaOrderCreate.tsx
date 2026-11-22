@@ -88,17 +88,10 @@ export default function HorecaOrderCreate() {
   );
 
   const utils = trpc.useUtils();
-  const createMut = trpc.horeca.orders.create.useMutation({
-    onSuccess: data => {
-      toast.success(
-        `Comandă ${(data as any).orderNumber} creată și trimisă la bucătărie!`
-      );
-      utils.horeca.orders.list.invalidate();
-      utils.horeca.tables.list.invalidate();
-      setLocation("/horeca/comenzi");
-    },
-    onError: e => toast.error(e.message),
-  });
+  const [submitting, setSubmitting] = useState(false);
+  const createMut = trpc.horeca.orders.create.useMutation();
+  const addLineMut = trpc.horeca.orders.addLine.useMutation();
+  const updateStatusMut = trpc.horeca.orders.updateStatus.useMutation();
 
   // Filtrare meniu după search
   const filteredItems = useMemo(() => {
@@ -175,7 +168,7 @@ export default function HorecaOrderCreate() {
   }, 0);
   const total = subtotal;
 
-  function handleSubmit(sendToKitchen: boolean) {
+  async function handleSubmit(sendToKitchen: boolean) {
     if (cart.length === 0) {
       toast.error("Adaugă cel puțin un produs în comandă");
       return;
@@ -184,23 +177,52 @@ export default function HorecaOrderCreate() {
       toast.error("Selectează masa pentru comanda dine-in");
       return;
     }
-    createMut.mutate({
-      locationId,
-      type: orderType,
-      tableNumber: selectedTableNumber || undefined,
-      staffName: staffName || undefined,
-      notes: orderNotes || undefined,
-      paymentMethod: showPayment ? paymentMethod : undefined,
-      status: showPayment ? "paid" : sendToKitchen ? "sent" : "draft",
-      lines: cart.map(ci => ({
-        menuItemId: ci.menuItemId,
-        name: ci.name,
-        quantity: ci.quantity,
-        unitPrice: ci.price,
-        vatRate: ci.vatRate,
-        notes: ci.notes || undefined,
-      })),
-    });
+    setSubmitting(true);
+    try {
+      const order = await createMut.mutateAsync({
+        locationId,
+        type: orderType,
+        tableNumber: selectedTableNumber || undefined,
+        staffName: staffName || undefined,
+        notes: orderNotes || undefined,
+      });
+
+      for (const ci of cart) {
+        await addLineMut.mutateAsync({
+          orderId: (order as any).id,
+          menuItemId: ci.menuItemId,
+          name: ci.name,
+          quantity: String(ci.quantity),
+          unitPrice: String(ci.price),
+          vatRate: ci.vatRate,
+          notes: ci.notes || undefined,
+        });
+      }
+
+      const targetStatus = showPayment
+        ? "paid"
+        : sendToKitchen
+          ? "sent"
+          : "draft";
+      if (targetStatus !== "draft" || showPayment) {
+        await updateStatusMut.mutateAsync({
+          id: (order as any).id,
+          status: targetStatus,
+          paymentMethod: showPayment ? paymentMethod : undefined,
+        });
+      }
+
+      toast.success(
+        `Comandă ${(order as any).orderNumber || `#${(order as any).id}`} creată${sendToKitchen ? " și trimisă la bucătărie" : ""}!`
+      );
+      utils.horeca.orders.list.invalidate();
+      utils.horeca.tables.list.invalidate();
+      setLocation("/horeca/comenzi");
+    } catch (e: any) {
+      toast.error(e?.message || "Eroare la salvarea comenzii");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
@@ -521,10 +543,10 @@ export default function HorecaOrderCreate() {
               <div className="flex flex-col gap-2.5">
                 <button
                   onClick={() => handleSubmit(true)}
-                  disabled={createMut.isPending}
+                  disabled={submitting}
                   className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-3 rounded-xl font-bold text-base transition-colors shadow-sm"
                 >
-                  {createMut.isPending ? (
+                  {submitting ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
                     <Send className="w-5 h-5" />
@@ -542,7 +564,7 @@ export default function HorecaOrderCreate() {
                   {showPayment && (
                     <button
                       onClick={() => handleSubmit(false)}
-                      disabled={createMut.isPending}
+                      disabled={submitting}
                       className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm"
                     >
                       <Check className="w-4 h-4" /> Confirmă

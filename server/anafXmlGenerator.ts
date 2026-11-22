@@ -11,7 +11,7 @@ const EU_COUNTRIES = new Set([
  * Supports standard VAT, exemptions, reverse charge (AE), foreign EU/non-EU clients, and foreign currencies (EUR, USD, etc.).
  */
 export function generateUblXml(
-  invoice: ReInvoice,
+  invoice: ReInvoice & { clientCountry?: string | null },
   lines: ReInvoiceLine[],
   tenant: Tenant,
   exchangeRate?: number
@@ -37,7 +37,7 @@ export function generateUblXml(
   const isSellerVatPayer =
     tenantSettings.isVatPayer !== false &&
     tenantSettings.tva !== false &&
-    (rawSellerCui.startsWith("RO") || hasVatLines || cleanSellerDigits.length > 0);
+    (rawSellerCui.startsWith("RO") || hasVatLines);
 
   const supplierVatId = isSellerVatPayer ? `RO${cleanSellerDigits}` : cleanSellerDigits;
 
@@ -208,7 +208,7 @@ export function generateUblXml(
       // Negative signs for storno/discounts belong strictly on the quantity.
       const unitPrice = Math.abs(rawUnitPrice);
       const qty = lineTotal < 0 ? -Math.abs(rawQty) : Math.abs(rawQty);
-      const vatRate = parseFloat(String(line.vatRate || "0"));
+      const vatRate = isSellerVatPayer ? parseFloat(String(line.vatRate || "0")) : 0;
       const lineVat = Math.round(lineTotal * (vatRate / 100) * 100) / 100;
 
       if (!taxGroups.has(vatRate)) {
@@ -219,7 +219,9 @@ export function generateUblXml(
       group.taxAmount += lineVat;
 
       let taxCategoryId = "S";
-      if (vatRate === 0) {
+      if (!isSellerVatPayer) {
+        taxCategoryId = "O";
+      } else if (vatRate === 0) {
         taxCategoryId = isReverseCharge ? "AE" : "E";
       }
 
@@ -231,8 +233,8 @@ export function generateUblXml(
         <cac:Item>
             <cbc:Name>${escapeXml(line.description)}</cbc:Name>
             <cac:ClassifiedTaxCategory>
-                <cbc:ID>${taxCategoryId}</cbc:ID>
-                <cbc:Percent>${vatRate.toFixed(2)}</cbc:Percent>
+                <cbc:ID>${taxCategoryId}</cbc:ID>${taxCategoryId !== "O" ? `
+                <cbc:Percent>${vatRate.toFixed(2)}</cbc:Percent>` : ""}
                 <cac:TaxScheme>
                     <cbc:ID>VAT</cbc:ID>
                 </cac:TaxScheme>
@@ -247,19 +249,25 @@ export function generateUblXml(
 
   sumLineExtension = Math.round(sumLineExtension * 100) / 100;
 
-  // Generate tax subtotals
+  // Generate tax subtotals (BR-S-09: TaxAmount = round(TaxableAmount * rate / 100, 2))
   let sumTaxAmount = 0;
   const xmlTaxSubtotals = Array.from(taxGroups.entries())
     .map(([rate, group]) => {
       const taxable = Math.round(group.taxableAmount * 100) / 100;
-      const tax = Math.round(group.taxAmount * 100) / 100;
+      const tax = !isSellerVatPayer || rate === 0
+        ? 0
+        : Math.round(taxable * (rate / 100) * 100) / 100;
       sumTaxAmount += tax;
 
       let taxCategoryId = "S";
       let exemptionCode = "";
       let exemptionReason = "";
 
-      if (rate === 0) {
+      if (!isSellerVatPayer) {
+        taxCategoryId = "O";
+        exemptionCode = "VATEX-EU-O";
+        exemptionReason = invoice.notes?.trim() || "Entitate neinregistrata in scopuri de TVA";
+      } else if (rate === 0) {
         if (isReverseCharge) {
           taxCategoryId = "AE";
           exemptionCode = "VATEX-EU-AE";
@@ -276,9 +284,9 @@ export function generateUblXml(
             <cbc:TaxableAmount currencyID="${invoice.currency}">${taxable.toFixed(2)}</cbc:TaxableAmount>
             <cbc:TaxAmount currencyID="${invoice.currency}">${tax.toFixed(2)}</cbc:TaxAmount>
             <cac:TaxCategory>
-                <cbc:ID>${taxCategoryId}</cbc:ID>
-                <cbc:Percent>${rate.toFixed(2)}</cbc:Percent>
-                ${rate === 0 ? `<cbc:TaxExemptionReasonCode>${exemptionCode}</cbc:TaxExemptionReasonCode>
+                <cbc:ID>${taxCategoryId}</cbc:ID>${taxCategoryId !== "O" ? `
+                <cbc:Percent>${rate.toFixed(2)}</cbc:Percent>` : ""}
+                ${rate === 0 || !isSellerVatPayer ? `<cbc:TaxExemptionReasonCode>${exemptionCode}</cbc:TaxExemptionReasonCode>
                 <cbc:TaxExemptionReason>${escapeXml(exemptionReason)}</cbc:TaxExemptionReason>` : ""}
                 <cac:TaxScheme>
                     <cbc:ID>VAT</cbc:ID>

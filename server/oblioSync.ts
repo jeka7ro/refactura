@@ -12,15 +12,17 @@ import { eq, and } from "drizzle-orm";
 const OBLIO_TOKEN_URL = "https://www.oblio.eu/api/authorize/token";
 const OBLIO_INVOICE_LIST_URL = "https://www.oblio.eu/api/docs/invoice/list";
 
-let cachedToken: { token: string; expiresAt: number } | null = null;
+const cachedTokens = new Map<string, { token: string; expiresAt: number }>();
 
-async function getOblioToken(email: string, secret: string): Promise<string> {
+async function getOblioToken(tenantId: number, email: string, secret: string): Promise<string> {
   if (!email || !secret) {
     throw new Error("OBLIO_EMAIL sau OBLIO_API_SECRET lipsesc din DB");
   }
 
-  if (cachedToken && Date.now() < cachedToken.expiresAt - 60_000) {
-    return cachedToken.token;
+  const cacheKey = `${tenantId}:${email}`;
+  const cached = cachedTokens.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt - 60_000) {
+    return cached.token;
   }
 
   const res = await fetch(OBLIO_TOKEN_URL, {
@@ -39,12 +41,13 @@ async function getOblioToken(email: string, secret: string): Promise<string> {
   }
 
   const data = await res.json();
-  cachedToken = {
+  const entry = {
     token: data.access_token,
     expiresAt: Date.now() + (parseInt(data.expires_in) || 3600) * 1000,
   };
+  cachedTokens.set(cacheKey, entry);
 
-  return cachedToken.token;
+  return entry.token;
 }
 
 export async function syncOblioInvoices(tenantId: number): Promise<{
@@ -89,7 +92,7 @@ export async function syncOblioInvoices(tenantId: number): Promise<{
 
     if (!cif) throw new Error("CIF firmă lipsește din configurarea Oblio");
 
-    const token = await getOblioToken(email, secret);
+    const token = await getOblioToken(tenantId, email, secret);
     console.log("[Oblio] Token obtained OK");
 
     let offset = 0;
@@ -195,6 +198,19 @@ export async function syncOblioInvoices(tenantId: number): Promise<{
           const isCanceled = inv.canceled === "1";
           const total = isStorno ? -Math.abs(totalRaw) : Math.abs(totalRaw);
 
+          const explicitVatRaw = inv.totalVat ?? inv.vat ?? inv.tva;
+          let computedVat = 0;
+          if (explicitVatRaw !== undefined && explicitVatRaw !== null && String(explicitVatRaw).trim() !== "") {
+            const parsedVat = parseFloat(String(explicitVatRaw)) || 0;
+            computedVat = parsedVat === 0 ? 0 : (isStorno ? -Math.abs(parsedVat) : Math.abs(parsedVat));
+          } else if (Array.isArray(inv.products) && inv.products.length > 0) {
+            const sumLineVat = inv.products.reduce((acc: number, p: any) => {
+              const pVat = parseFloat(String(p.vat ?? p.vatAmount ?? "0")) || 0;
+              return acc + pVat;
+            }, 0);
+            computedVat = sumLineVat === 0 ? 0 : (isStorno ? -Math.abs(sumLineVat) : Math.abs(sumLineVat));
+          }
+
           await createInvoiceArchiveEntry({
             tenantId,
             source: "oblio",
@@ -208,11 +224,7 @@ export async function syncOblioInvoices(tenantId: number): Promise<{
             issueDate: inv.issueDate || "",
             dueDate: inv.dueDate || "",
             total: String(total),
-            totalVAT: String(
-              // Oblio nu trimite TVA separat în listă: estimare din total (cotă standard 21%)
-              (Math.round(((Math.abs(total) * 21) / 121) * 100) / 100) *
-                (isStorno ? -1 : 1)
-            ),
+            totalVAT: String(Math.round(computedVat * 100) / 100),
             currency: inv.currency || "RON",
             status: isCanceled ? "archived" : "pending",
             notes: [

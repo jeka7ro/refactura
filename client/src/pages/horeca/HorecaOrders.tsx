@@ -222,7 +222,7 @@ export default function HorecaOrders() {
           />
 
           <Link
-            href="/horeca/pos"
+            href="/horeca/comenzi/nou"
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-sm font-bold transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" /> Comandă Nouă
@@ -241,7 +241,7 @@ export default function HorecaOrders() {
             Toate ({orders.length})
           </button>
           {Object.entries(STATUS_OPTS).map(([k, v]) => {
-            const count = orders.filter(o => o.status === k).length;
+            const count = orders.filter((o: any) => o.status === k).length;
             if (count === 0 && statusFilter !== k) return null;
             return (
               <button
@@ -327,7 +327,7 @@ export default function HorecaOrders() {
                     </td>
                   </tr>
                 ) : (
-                  paginated.map((order, idx) => {
+                  paginated.map((order: any, idx: number) => {
                     const typeOpt = TYPE_OPTS[
                       order.type as keyof typeof TYPE_OPTS
                     ] || { label: order.type, icon: "" };

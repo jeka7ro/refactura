@@ -57,14 +57,47 @@ export function parseEfacturaXML(xmlText: string): ParsedEfactura {
     }
   }
 
+  const rootTag = (doc.documentElement?.tagName || "").split(":").pop() || "";
+  const typeCode = find(doc, ["InvoiceTypeCode", "CreditNoteTypeCode"]);
+  const isCreditNote = rootTag === "CreditNote" || typeCode === "381" || Boolean(find(doc, ["CreditNoteTypeCode"]));
+
   let totalVAT = 0;
+  let foundVat = false;
+  const rootChildren = Array.from(doc.documentElement?.children || []);
+  const topTaxTotals = rootChildren.filter(
+    (el) => (el.tagName.split(":").pop() || "") === "TaxTotal"
+  );
+  for (const tt of topTaxTotals) {
+    const taxAmtEl = Array.from(tt.children).find(
+      (c) => (c.tagName.split(":").pop() || "") === "TaxAmount"
+    );
+    if (!taxAmtEl) continue;
+    const val = parseFloat(taxAmtEl.textContent?.trim() || "0");
+    if (!Number.isFinite(val)) continue;
+    const attrCur = (taxAmtEl.getAttribute("currencyID") || "").trim().toUpperCase();
+    if (!foundVat || (attrCur && attrCur === currency.toUpperCase())) {
+      totalVAT = val;
+      foundVat = true;
+      if (attrCur && attrCur === currency.toUpperCase()) break;
+    }
+  }
+
   let total = 0;
-  for (const el of Array.from(doc.querySelectorAll("*"))) {
-    const tag = el.tagName.split(":").pop() || "";
-    const val = parseFloat(el.textContent || "0");
-    if (tag === "TaxAmount") totalVAT = Math.max(totalVAT, val);
-    if (tag === "PayableAmount" || tag === "DuePayableAmount")
-      total = Math.max(total, val);
+  const legalMonetaryTotal = rootChildren.find(
+    (el) => (el.tagName.split(":").pop() || "") === "LegalMonetaryTotal"
+  );
+  if (legalMonetaryTotal) {
+    const rawTotalStr =
+      find(legalMonetaryTotal, ["TaxInclusiveAmount", "PayableAmount", "DuePayableAmount"]) || "0";
+    const parsedTotal = parseFloat(rawTotalStr);
+    if (Number.isFinite(parsedTotal)) {
+      total = parsedTotal;
+    }
+  }
+
+  if (isCreditNote) {
+    if (totalVAT > 0) totalVAT = -totalVAT;
+    if (total > 0) total = -total;
   }
 
   const lines: ParsedEfacturaLine[] = [];
@@ -74,8 +107,14 @@ export function parseEfacturaXML(xmlText: string): ParsedEfactura {
       const desc =
         find(el, ["Name", "Description", "ItemName", "ItemDescription"]) ||
         "Linie";
-      const qty = parseFloat(find(el, ["InvoicedQuantity", "CreditedQuantity", "Quantity"]) || "1");
+      let qty = parseFloat(find(el, ["InvoicedQuantity", "CreditedQuantity", "Quantity"]) || "1");
       const price = parseFloat(find(el, ["PriceAmount", "UnitPrice"]) || "0");
+      const lineExtRaw = parseFloat(find(el, ["LineExtensionAmount"]) || "");
+      if (isCreditNote && qty > 0) {
+        qty = -qty;
+      } else if (Number.isFinite(lineExtRaw) && lineExtRaw < 0 && qty > 0 && price > 0) {
+        qty = -qty;
+      }
       const vatRaw = parseFloat(find(el, ["Percent", "TaxPercent"]) || "");
       const vat = Number.isFinite(vatRaw) ? vatRaw : 0;
       if (qty !== 0 && Number.isFinite(price)) {

@@ -82,7 +82,7 @@ export default function BonuriConsumList() {
         </div>
         <button
           onClick={() => navigate("/bonuri-consum/new")}
-          className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold rounded-xl transition-colors shadow-sm shadow-amber-600/20"
+          className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold rounded-full transition-colors shadow-sm shadow-amber-600/20"
         >
           <PackageOpen className="w-4 h-4" />
           Adaugă Bon Consum
@@ -100,22 +100,22 @@ export default function BonuriConsumList() {
           {
             label: "Finalizate",
             value: list.filter(n => n.status !== "draft").length,
-            cls: "text-emerald-600",
+            cls: "text-emerald-600 dark:text-emerald-400",
           },
           {
             label: "Ciorne",
             value: list.filter(n => n.status === "draft").length,
-            cls: "text-amber-600",
+            cls: "text-amber-600 dark:text-amber-400",
           },
         ].map(k => (
           <div
             key={k.label}
-            className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4"
+            className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 p-4 shadow-sm"
           >
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
               {k.label}
             </p>
-            <p className={`text-xl font-black ${k.cls}`}>{k.value}</p>
+            <p className={`text-xl font-black tabular-nums ${k.cls}`}>{k.value}</p>
           </div>
         ))}
       </div>
@@ -126,7 +126,7 @@ export default function BonuriConsumList() {
             className="w-3.5 h-3.5 text-slate-400"
             style={{
               position: "absolute",
-              left: 10,
+              left: 12,
               top: "50%",
               transform: "translateY(-50%)",
               pointerEvents: "none",
@@ -139,16 +139,16 @@ export default function BonuriConsumList() {
               setPage(1);
             }}
             placeholder="Caută nr. bon, gestiune, ID deviz..."
-            className="w-full h-9 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-            style={{ paddingLeft: 32, paddingRight: 12 }}
+            className="w-full h-9 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+            style={{ paddingLeft: 34, paddingRight: 14 }}
           />
         </div>
-        <span className="text-xs text-slate-500 font-medium">
+        <span className="text-xs text-slate-500 font-medium tabular-nums">
           Total înregistrări: <strong>{filtered.length}</strong>
         </span>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-[22px] shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -237,41 +237,49 @@ export default function BonuriConsumList() {
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
                     onClick={() => navigate(`/bonuri-consum/${row.id}`)}
                   >
-                    <td className="px-3 py-2 text-slate-400 text-xs">
+                    <td className="px-3 py-2 tabular-nums text-slate-400 text-xs">
                       {(page - 1) * rowsPerPage + i + 1}
                     </td>
-                    <td className="px-3 py-2 font-medium text-amber-600 hover:underline">
+                    <td className="px-3 py-2 font-medium text-amber-600 dark:text-amber-400 hover:underline">
                       {row.number}
                     </td>
-                    <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
+                    <td className="px-3 py-2 tabular-nums text-slate-600 dark:text-slate-300">
                       {formatDate(String(row.date))}
                     </td>
                     <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
                       {row.gestiune || "—"}
                     </td>
-                    <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
+                    <td className="px-3 py-2 tabular-nums text-slate-600 dark:text-slate-300">
                       {row.devizId ? `#${row.devizId}` : "—"}
                     </td>
                     <td className="px-3 py-2 text-center">
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border bg-emerald-50 text-emerald-700 border-emerald-200">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                          row.status === "draft"
+                            ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                            : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                        }`}
+                      >
                         {row.status || "finalizat"}
                       </span>
                     </td>
-                    <td className="px-3 py-2 text-right">
-                      <div className="flex items-center justify-end gap-1">
+                    <td className="px-3 py-2 text-right" onClick={e => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-1.5">
                         <a
                           href={`/api/pdf/bon-consum/${row.id}?download=1`}
                           target="_blank"
                           rel="noreferrer"
                           title="Descarcă PDF"
-                          className="p-1.5 text-slate-400 hover:text-amber-600 rounded bg-slate-50 hover:bg-amber-50 transition-colors"
+                          aria-label="Descarcă PDF"
+                          className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-slate-500 hover:text-amber-600 dark:text-slate-300 dark:hover:text-amber-400 transition-colors"
                         >
                           <FileDown className="w-3.5 h-3.5" />
                         </a>
                         <button
                           onClick={() => setDeleteTarget(row.id)}
                           title="Șterge"
-                          className="p-1.5 text-slate-400 hover:text-red-600 rounded bg-slate-50 hover:bg-red-50 transition-colors"
+                          aria-label="Șterge"
+                          className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-slate-500 hover:text-red-600 dark:text-slate-300 dark:hover:text-red-400 transition-colors"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -287,7 +295,7 @@ export default function BonuriConsumList() {
         {/* Pagination */}
         <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-slate-500 tabular-nums">
               Pagina {page} din {totalPages}
             </span>
             <select
@@ -312,18 +320,20 @@ export default function BonuriConsumList() {
               <option value={9999}>Toți</option>
             </select>
           </div>
-          <div className="flex gap-1">
+          <div className="flex gap-1.5">
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="p-1 rounded text-slate-400 hover:text-slate-900 disabled:opacity-50"
+              aria-label="Pagina anterioară"
+              className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white disabled:opacity-40"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="p-1 rounded text-slate-400 hover:text-slate-900 disabled:opacity-50"
+              aria-label="Pagina următoare"
+              className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white disabled:opacity-40"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -335,7 +345,7 @@ export default function BonuriConsumList() {
         open={!!deleteTarget}
         onOpenChange={open => !open && setDeleteTarget(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-[22px]">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmați ștergerea</AlertDialogTitle>
             <AlertDialogDescription>
@@ -343,12 +353,12 @@ export default function BonuriConsumList() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Renunță</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-full">Renunță</AlertDialogCancel>
             <AlertDialogAction
               onClick={() =>
                 deleteTarget && deleteMutation.mutate({ id: deleteTarget })
               }
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="rounded-full bg-red-600 hover:bg-red-700 text-white"
             >
               {deleteMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

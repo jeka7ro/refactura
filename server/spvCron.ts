@@ -790,15 +790,15 @@ export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
               );
 
             if (!existingClient) {
-              const party = targetParty?.["cac:Party"];
-              const address =
-                party?.["cac:PostalAddress"]?.["cbc:StreetName"] || "";
-              const city = party?.["cac:PostalAddress"]?.["cbc:CityName"] || "";
-              const county =
-                party?.["cac:PostalAddress"]?.["cbc:CountrySubentity"] || "";
-              const email =
-                party?.["cac:Contact"]?.["cbc:ElectronicMail"] || "";
-              const phone = party?.["cac:Contact"]?.["cbc:Telephone"] || "";
+              const party = xmlPick(targetParty, "Party") || targetParty;
+              const postalAddr = xmlPick(party, "PostalAddress");
+              const contact = xmlPick(party, "Contact");
+              const xmlTextOf = (v: any) => String(v?.["#text"] ?? v ?? "").trim();
+              const address = xmlTextOf(xmlPick(postalAddr, "StreetName"));
+              const city = xmlTextOf(xmlPick(postalAddr, "CityName"));
+              const county = xmlTextOf(xmlPick(postalAddr, "CountrySubentity"));
+              const email = xmlTextOf(xmlPick(contact, "ElectronicMail"));
+              const phone = xmlTextOf(xmlPick(contact, "Telephone"));
               const tva = String(supplierCUI).toUpperCase().startsWith("RO");
 
               await db.insert(clients).values({

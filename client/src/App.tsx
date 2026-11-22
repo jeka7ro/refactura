@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
@@ -7,12 +8,13 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import DashboardLayout from "./components/DashboardLayout";
 import Dashboard from "./pages/Dashboard";
 import AllInvoices from "./pages/AllInvoices";
-import InvoicesEmitted from "./pages/InvoicesEmitted";
 
 // Simple redirect component — must be a real component so hooks work
 function RedirectTo({ to }: { to: string }) {
   const [, navigate] = useLocation();
-  navigate(to);
+  useEffect(() => {
+    navigate(to, { replace: true });
+  }, [to, navigate]);
   return null;
 }
 import InvoiceDetail from "./pages/InvoiceDetail";
@@ -36,7 +38,6 @@ import AccountantPortal from "./pages/AccountantPortal";
 import SuperAdmin from "./pages/SuperAdmin";
 import InvoiceArchive from "./pages/InvoiceArchive";
 import ClientDetails from "./pages/ClientDetails";
-import InvoicesReceived from "@/pages/InvoicesReceived";
 import EmittedInvoices from "@/pages/EmittedInvoices";
 import EmitInvoice from "./pages/EmitInvoice";
 import PrintInvoice from "@/pages/PrintInvoice";
@@ -131,7 +132,7 @@ function Router() {
       </Route>
       <Route path="/facturi-emise/:id">
         <DashboardLayout>
-          <InvoiceDetail />
+          <EmittedInvoiceDetail />
         </DashboardLayout>
       </Route>
       <Route path="/facturi-emise-nou">

@@ -47,9 +47,13 @@ export default function PaymentScreen() {
   const [txInfo, setTxInfo] = useState(null);
   const [qrUrl, setQrUrl] = useState("");
   const [qrLoading, setQrLoading] = useState(false);
+  const [orderSyncError, setOrderSyncError] = useState("");
+  const [retryingOrderSync, setRetryingOrderSync] = useState(false);
 
   const qrOrderIdRef = useRef(null);
   const qrSocketRef = useRef(null);
+  const createdOrderRef = useRef(null);
+  const addedLinesCountRef = useRef(0);
 
   useEffect(() => {
     // cleanup card socket on unmount
@@ -81,8 +85,16 @@ export default function PaymentScreen() {
           if (!cancelled && result.paid) {
             setTxInfo(result);
             setPayState(STATE.APPROVED);
-            await sendOrder(result);
-            setTimeout(() => goTo("confirmation"), 2200);
+            const syncRes = await sendOrder(result);
+            if (syncRes.ok) {
+              setOrderSyncError("");
+              setTimeout(() => goTo("confirmation"), 2200);
+            } else {
+              setOrderSyncError(
+                syncRes.error ||
+                  "Comanda nu a putut fi înregistrată automat în sistem."
+              );
+            }
           }
         });
 
@@ -112,15 +124,20 @@ export default function PaymentScreen() {
       try {
         const locId = parseInt(localStorage.getItem("kiosk_loc_id") || "1", 10);
 
-        const order = await createOrder.mutateAsync({
-          locationId: locId,
-          tableNumber: tableNumber ? String(tableNumber) : undefined,
-          customerName: "Client Kiosk",
-          customerPhone: "",
-          type: orderType === "togo" ? "togo" : "dine_in",
-        });
+        let order = createdOrderRef.current;
+        if (!order) {
+          order = await createOrder.mutateAsync({
+            locationId: locId,
+            tableNumber: tableNumber ? String(tableNumber) : undefined,
+            customerName: "Client Kiosk",
+            customerPhone: "",
+            type: orderType === "togo" ? "togo" : "dine_in",
+          });
+          createdOrderRef.current = order;
+        }
 
-        for (const item of cartItems) {
+        for (let i = addedLinesCountRef.current; i < cartItems.length; i++) {
+          const item = cartItems[i];
           await addLine.mutateAsync({
             orderId: order.id,
             menuItemId: Number(item.productId) || undefined, // Kiosk ids might be string promo
@@ -128,6 +145,7 @@ export default function PaymentScreen() {
             unitPrice: String(item.unitPrice),
             notes: item.selectedModifiers?.map(m => m.name).join(", ") || "",
           });
+          addedLinesCountRef.current = i + 1;
         }
 
         await updateStatus.mutateAsync({
@@ -135,16 +153,40 @@ export default function PaymentScreen() {
           status: "paid",
           paymentMethod: "card",
         });
+
+        return { ok: true, order, error: null };
       } catch (err) {
         console.error("[PaymentScreen] sendOrder failed:", err);
+        return {
+          ok: false,
+          order: null,
+          error:
+            err?.message ||
+            "Comanda nu a putut fi transmisă către bucătărie.",
+        };
       }
     },
-    [cartItems, orderType, createOrder, addLine, updateStatus]
+    [cartItems, orderType, tableNumber, createOrder, addLine, updateStatus]
   );
+
+  const handleRetryOrderSync = useCallback(async () => {
+    setRetryingOrderSync(true);
+    const syncRes = await sendOrder(txInfo);
+    setRetryingOrderSync(false);
+    if (syncRes.ok) {
+      setOrderSyncError("");
+      setTimeout(() => goTo("confirmation"), 1200);
+    } else {
+      setOrderSyncError(
+        syncRes.error || "Transmiterea comenzii a eșuat. Vă rugăm prezentați bonul POS la casierie."
+      );
+    }
+  }, [sendOrder, txInfo, goTo]);
 
   const handlePay = useCallback(async () => {
     setPayState(STATE.INITIATING);
     setErrorMsg("");
+    setOrderSyncError("");
     try {
       const orderId = `kiosk-${Date.now()}`;
       orderIdRef.current = orderId;
@@ -169,8 +211,16 @@ export default function PaymentScreen() {
         if (result.paid) {
           setTxInfo(result);
           setPayState(STATE.APPROVED);
-          await sendOrder(result);
-          setTimeout(() => goTo("confirmation"), 2200);
+          const syncRes = await sendOrder(result);
+          if (syncRes.ok) {
+            setOrderSyncError("");
+            setTimeout(() => goTo("confirmation"), 2200);
+          } else {
+            setOrderSyncError(
+              syncRes.error ||
+                "Comanda nu a putut fi înregistrată automat în sistem."
+            );
+          }
         } else {
           setPayState(STATE.DECLINED);
           setErrorMsg(result.error || "Plată refuzată de bancă");
@@ -583,12 +633,81 @@ export default function PaymentScreen() {
               <span className="approved-check"></span>
             </div>
             <h2 className="approved-title">Plată aprobată!</h2>
-            {txInfo?.authCode && (
-              <p className="approved-info">
-                Cod: <strong>{txInfo.authCode}</strong>
+            {(txInfo?.authCode || txInfo?.transactionId || txInfo?.rrn) && (
+              <p className="approved-info tabular-nums">
+                Referință POS:{" "}
+                <strong>
+                  {txInfo.authCode || txInfo.transactionId || txInfo.rrn}
+                </strong>
               </p>
             )}
-            <p className="approved-info">Se pregătește comanda...</p>
+            {orderSyncError ? (
+              <div
+                role="alert"
+                style={{
+                  marginTop: 18,
+                  padding: "20px 24px",
+                  borderRadius: 18,
+                  background: "#fef2f2",
+                  border: "2px solid #ef4444",
+                  color: "#7f1d1d",
+                  maxWidth: 520,
+                  textAlign: "left",
+                }}
+              >
+                <p
+                  style={{
+                    margin: "0 0 8px 0",
+                    fontSize: "1.1rem",
+                    fontWeight: 800,
+                    color: "#991b1b",
+                  }}
+                >
+                  Atenție: Plata card a reușit, dar comanda nu s-a transmis la bucătărie!
+                </p>
+                <p
+                  style={{
+                    margin: "0 0 10px 0",
+                    fontSize: "0.95rem",
+                    lineHeight: 1.45,
+                  }}
+                >
+                  Vă rugăm să luați <strong>chitanța tipărită de terminalul POS</strong> și să o prezentați la tejghea (casierie) pentru preluarea imediată a comenzii.
+                </p>
+                <p
+                  className="tabular-nums"
+                  style={{
+                    margin: "0 0 14px 0",
+                    fontSize: "0.9rem",
+                    padding: "8px 12px",
+                    borderRadius: 10,
+                    background: "#fee2e2",
+                    fontWeight: 700,
+                  }}
+                >
+                  Ref. tranzacție POS:{" "}
+                  {txInfo?.authCode ||
+                    txInfo?.transactionId ||
+                    txInfo?.rrn ||
+                    orderIdRef.current ||
+                    qrOrderIdRef.current ||
+                    "CONFIRMAT"}
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-success btn-lg"
+                  disabled={retryingOrderSync}
+                  onClick={handleRetryOrderSync}
+                  style={{ width: "100%" }}
+                >
+                  {retryingOrderSync
+                    ? "Se retrimite comanda..."
+                    : "Reîncearcă transmiterea comenzii"}
+                </button>
+              </div>
+            ) : (
+              <p className="approved-info">Se pregătește comanda...</p>
+            )}
           </div>
         )}
 

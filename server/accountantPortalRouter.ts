@@ -6,16 +6,23 @@ import { getDb } from "./db";
 import { eq, and, desc, inArray, or, isNotNull, ne, isNull } from "drizzle-orm";
 import * as schema from "../drizzle/schema";
 
-const HMAC_SECRET = process.env.JWT_SECRET || "smart_invoice_accountant_portal_secret_2026";
-const CANDIDATE_SECRETS = Array.from(
-  new Set([
-    HMAC_SECRET,
-    "smart_invoice_accountant_portal_secret_2026",
-    process.env.JWT_SECRET || "",
-  ].filter(Boolean))
-);
+function getPortalHmacSecret(): string {
+  if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
+  if (process.env.NODE_ENV !== "production") {
+    return "smart_invoice_accountant_portal_dev_fallback";
+  }
+  throw new TRPCError({
+    code: "INTERNAL_SERVER_ERROR",
+    message: "JWT_SECRET nu este configurat pe server.",
+  });
+}
+
 const PIN_SALT = "_accountant_portal_salt_smart_invoice";
 const ACCESS_PIN_SALT = "_pin_salt_smart_invoice";
+
+const portalPinRateLimit = new Map<string, { count: number; resetAt: number }>();
+const PORTAL_PIN_MAX_ATTEMPTS = 5;
+const PORTAL_PIN_WINDOW_MS = 60_000;
 
 /**
  * Emite un session token semnat HMAC valabil 7 zile
@@ -23,7 +30,10 @@ const ACCESS_PIN_SALT = "_pin_salt_smart_invoice";
 export function createAccountantSessionToken(tenantId: number): string {
   const expiresAt = Date.now() + 7 * 24 * 3600 * 1000;
   const payload = `${tenantId}:${expiresAt}`;
-  const signature = crypto.createHmac("sha256", HMAC_SECRET).update(payload).digest("hex");
+  const signature = crypto
+    .createHmac("sha256", getPortalHmacSecret())
+    .update(payload)
+    .digest("hex");
   return `${payload}.${signature}`;
 }
 
@@ -42,11 +52,12 @@ export function verifyAccountantSessionToken(tenantId: number, tokenStr: string)
     if (tokenTenantId !== tenantId) return false;
     if (Date.now() > expiresAt) return false;
 
-    // Verificăm semnătura pe oricare dintre cheile candidate
-    const isValidSig = CANDIDATE_SECRETS.some(
-      (secret) => crypto.createHmac("sha256", secret).update(payload).digest("hex") === signature
-    );
-    return isValidSig;
+    const expected = crypto
+      .createHmac("sha256", getPortalHmacSecret())
+      .update(payload)
+      .digest("hex");
+    if (signature.length !== expected.length) return false;
+    return crypto.timingSafeEqual(Buffer.from(signature, "utf8"), Buffer.from(expected, "utf8"));
   } catch {
     return false;
   }
@@ -68,11 +79,16 @@ export function verifyAndExtractAccountantSession(tokenStr: string): { tenantId:
     if (isNaN(tokenTenantId) || tokenTenantId <= 0) return null;
     if (Date.now() > expiresAt) return null;
 
-    // Verificăm semnătura pe oricare dintre cheile candidate
-    const isValidSig = CANDIDATE_SECRETS.some(
-      (secret) => crypto.createHmac("sha256", secret).update(payload).digest("hex") === signature
-    );
-    if (!isValidSig) return null;
+    const expected = crypto
+      .createHmac("sha256", getPortalHmacSecret())
+      .update(payload)
+      .digest("hex");
+    if (
+      signature.length !== expected.length ||
+      !crypto.timingSafeEqual(Buffer.from(signature, "utf8"), Buffer.from(expected, "utf8"))
+    ) {
+      return null;
+    }
 
     return { tenantId: tokenTenantId };
   } catch {
@@ -81,7 +97,7 @@ export function verifyAndExtractAccountantSession(tokenStr: string): { tenantId:
 }
 
 /**
- * Găsește un tenant după token-ul sau slug-ul portalului
+ * Găsește un tenant strict după token-ul criptografic sau slug-ul explicit al portalului
  */
 async function findTenantByPortalToken(token: string) {
   const db = await getDb();
@@ -89,6 +105,7 @@ async function findTenantByPortalToken(token: string) {
 
   const allTenants = await db.select().from(schema.tenants);
   const cleanToken = token.trim().toLowerCase();
+  if (!cleanToken) return null;
 
   for (const t of allTenants) {
     let s: any = {};
@@ -100,16 +117,10 @@ async function findTenantByPortalToken(token: string) {
     const portalToken = (portal.token || "").trim().toLowerCase();
     const portalSlug = (portal.customSlug || "").trim().toLowerCase();
 
-    // Verificăm potrivirea pe token dedicat, slug sau fallback pe CUI / ID
     if (portalToken && portalToken === cleanToken) {
       return { tenant: t, settings: s, portal };
     }
-    if (portalSlug && portalSlug === cleanToken) {
-      return { tenant: t, settings: s, portal };
-    }
-    // Suport și dacă a transmis CUI-ul sau ID-ul direct dacă portalul e activ
-    const cleanCui = (t.cui || "").replace(/^RO/i, "").trim().toLowerCase();
-    if (cleanCui && cleanCui === cleanToken) {
+    if (Boolean(portal.enabled) === true && portalSlug && portalSlug === cleanToken) {
       return { tenant: t, settings: s, portal };
     }
   }
@@ -134,13 +145,20 @@ export const accountantPortalRouter = router({
       }
 
       const { tenant, settings, portal } = match;
-      const isEnabled = portal.enabled !== false; // activ implicit dacă există token configurat
+      const isEnabled = Boolean(portal.enabled) === true;
+      if (!isEnabled) {
+        return {
+          found: true,
+          isEnabled: false,
+          message: "Portalul contabil este dezactivat de administrator.",
+        };
+      }
 
       const hasPin = Boolean(portal.pinHash);
 
       return {
         found: true,
-        isEnabled,
+        isEnabled: true,
         tenantId: tenant.id,
         companyName: tenant.name,
         cui: tenant.cui || "",
@@ -150,7 +168,7 @@ export const accountantPortalRouter = router({
         logoHasBackground: Boolean(settings.logoHasBackground),
         themeColor: settings.themeColor || "#16a34a",
         requiresPin: hasPin,
-        autoSessionToken: !hasPin ? createAccountantSessionToken(tenant.id) : undefined,
+        autoSessionToken: isEnabled && !hasPin ? createAccountantSessionToken(tenant.id) : undefined,
       };
     }),
 
@@ -164,14 +182,28 @@ export const accountantPortalRouter = router({
         pin: z.string().trim().min(1),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      const ip =
+        (ctx.req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
+        ctx.req.socket?.remoteAddress ||
+        "unknown";
+      const rateKey = `${input.token.trim().toLowerCase()}:${ip}`;
+      const now = Date.now();
+      const existingRate = portalPinRateLimit.get(rateKey);
+      if (existingRate && now < existingRate.resetAt && existingRate.count >= PORTAL_PIN_MAX_ATTEMPTS) {
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message: "Prea multe încercări eșuate. Te rugăm să aștepți un minut.",
+        });
+      }
+
       const match = await findTenantByPortalToken(input.token);
       if (!match) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Portalul nu a fost găsit." });
       }
 
       const { tenant, settings, portal } = match;
-      if (portal.enabled === false) {
+      if (Boolean(portal.enabled) !== true) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Portalul contabil este dezactivat de administrator." });
       }
 
@@ -198,12 +230,16 @@ export const accountantPortalRouter = router({
       }
 
       if (!pinOk) {
+        const count = existingRate && now < existingRate.resetAt ? existingRate.count + 1 : 1;
+        const resetAt = existingRate && now < existingRate.resetAt ? existingRate.resetAt : now + PORTAL_PIN_WINDOW_MS;
+        portalPinRateLimit.set(rateKey, { count, resetAt });
         throw new TRPCError({
           code: "UNAUTHORIZED",
           message: "Codul PIN introdus este incorect.",
         });
       }
 
+      portalPinRateLimit.delete(rateKey);
       const sessionToken = createAccountantSessionToken(tenant.id);
       return {
         success: true,
@@ -228,7 +264,7 @@ export const accountantPortalRouter = router({
       if (!match) return { valid: false };
 
       const { tenant, portal } = match;
-      if (portal.enabled === false) return { valid: false };
+      if (Boolean(portal.enabled) !== true) return { valid: false };
 
       const valid = verifyAccountantSessionToken(tenant.id, input.sessionToken);
       return {
@@ -258,7 +294,7 @@ export const accountantPortalRouter = router({
       }
 
       const { tenant, settings, portal } = match;
-      if (portal.enabled === false) {
+      if (Boolean(portal.enabled) !== true) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Portalul contabil este dezactivat." });
       }
 
@@ -688,6 +724,9 @@ export const accountantPortalRouter = router({
       }
 
       const { tenant, portal } = match;
+      if (Boolean(portal.enabled) !== true) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Portalul contabil este dezactivat." });
+      }
       const hasPin = Boolean(portal.pinHash);
       if (hasPin && !verifyAccountantSessionToken(tenant.id, input.sessionToken)) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Sesiune neautorizată." });
@@ -719,6 +758,9 @@ export const accountantPortalRouter = router({
       }
 
       const { tenant, portal } = match;
+      if (Boolean(portal.enabled) !== true) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Portalul contabil este dezactivat." });
+      }
       const hasPin = Boolean(portal.pinHash);
       if (hasPin && !verifyAccountantSessionToken(tenant.id, input.sessionToken)) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Sesiune neautorizată." });
@@ -747,7 +789,10 @@ export const accountantPortalRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Portalul nu a fost găsit." });
       }
 
-      const { tenant, settings, portal } = match;
+      const { tenant, portal } = match;
+      if (Boolean(portal.enabled) !== true) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Portalul contabil este dezactivat." });
+      }
       const hasPin = Boolean(portal.pinHash);
       if (hasPin && !verifyAccountantSessionToken(tenant.id, input.sessionToken)) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Sesiune expirată sau neautorizată." });
@@ -796,7 +841,7 @@ export const accountantPortalRouter = router({
       }
 
       const { tenant, portal } = match;
-      if (portal.enabled === false) {
+      if (Boolean(portal.enabled) !== true) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Portalul contabil este dezactivat." });
       }
 
@@ -809,27 +854,76 @@ export const accountantPortalRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB indisponibil" });
 
       if (input.docType === "received") {
-        // 1. Dacă are NIR atașat, preluăm liniile din NIR (cu conturi contabile și tip contabil SAGA)
+        // 1. Dacă are NIR atașat, verificăm că NIR-ul aparține tenantului curent înainte de a returna liniile
         if (input.nirId) {
-          let gestiuneNir = "Depozit";
-          try {
-            const [nirRec] = await db
-              .select()
-              .from(schema.nir)
-              .where(eq(schema.nir.id, input.nirId))
-              .limit(1);
-            if (nirRec?.gestiune) gestiuneNir = nirRec.gestiune;
-          } catch {}
-
-          const nLines = await db
+          const [nirRec] = await db
             .select()
-            .from(schema.nirLines)
-            .where(eq(schema.nirLines.nirId, input.nirId))
-            .orderBy(schema.nirLines.lineOrder, schema.nirLines.id);
+            .from(schema.nir)
+            .where(and(eq(schema.nir.id, input.nirId), eq(schema.nir.tenantId, tenant.id)))
+            .limit(1);
 
-          if (nLines.length > 0) {
-            return nLines.map((l, idx) => {
-              const qty = parseFloat(String(l.cantitateReceptionata || l.cantitateComanda || 0));
+          if (nirRec) {
+            const gestiuneNir = nirRec.gestiune || "Depozit";
+            const nLines = await db
+              .select()
+              .from(schema.nirLines)
+              .where(eq(schema.nirLines.nirId, nirRec.id))
+              .orderBy(schema.nirLines.lineOrder, schema.nirLines.id);
+
+            if (nLines.length > 0) {
+              return nLines.map((l, idx) => {
+                const qty = parseFloat(String(l.cantitateReceptionata || l.cantitateComanda || 0));
+                const price = parseFloat(String(l.unitPrice || 0));
+                const tot = parseFloat(String(l.total || (qty * price)));
+                const vat = parseFloat(String(l.vatRate || 21));
+                const val = Math.round(qty * price * 100) / 100;
+                const tvaSum = Math.round((tot - val) * 100) / 100;
+                return {
+                  lineOrder: idx + 1,
+                  type: l.accountingType || "Materiale auxiliare",
+                  gestiune: gestiuneNir,
+                  description: l.description,
+                  code: String(l.sagaArticleId || (idx + 1)).padStart(8, "0"),
+                  unit: (l.unit || "buc").toUpperCase(),
+                  quantity: qty,
+                  unitPrice: price,
+                  valoare: val,
+                  vatRate: vat,
+                  total: tot,
+                  tva: tvaSum,
+                  nedeductibil: 0,
+                  account: l.accountingAccount || "3028",
+                  pretVanzare: 0,
+                  adaosUnitar: 0,
+                  adaosProcent: 0,
+                  infoSuplimentare: l.observations || "",
+                };
+              });
+            }
+          }
+        }
+
+        // 2. Altfel, verificăm că factura din arhivă aparține tenantului curent înainte de a returna liniile
+        const [ownArchive] = await db
+          .select({ id: schema.invoiceArchive.id })
+          .from(schema.invoiceArchive)
+          .where(
+            and(
+              eq(schema.invoiceArchive.id, input.docId),
+              eq(schema.invoiceArchive.tenantId, tenant.id)
+            )
+          )
+          .limit(1);
+
+        if (ownArchive) {
+          const aLines = await db
+            .select()
+            .from(schema.invoiceArchiveLines)
+            .where(eq(schema.invoiceArchiveLines.invoiceArchiveId, ownArchive.id));
+
+          if (aLines.length > 0) {
+            return aLines.map((l, idx) => {
+              const qty = parseFloat(String(l.quantity || 0));
               const price = parseFloat(String(l.unitPrice || 0));
               const tot = parseFloat(String(l.total || (qty * price)));
               const vat = parseFloat(String(l.vatRate || 21));
@@ -837,10 +931,10 @@ export const accountantPortalRouter = router({
               const tvaSum = Math.round((tot - val) * 100) / 100;
               return {
                 lineOrder: idx + 1,
-                type: l.accountingType || "Materiale auxiliare",
-                gestiune: gestiuneNir,
+                type: "Mărfuri",
+                gestiune: "Depozit",
                 description: l.description,
-                code: String(l.sagaArticleId || (idx + 1)).padStart(8, "0"),
+                code: String(idx + 1).padStart(8, "0"),
                 unit: (l.unit || "buc").toUpperCase(),
                 quantity: qty,
                 unitPrice: price,
@@ -849,165 +943,167 @@ export const accountantPortalRouter = router({
                 total: tot,
                 tva: tvaSum,
                 nedeductibil: 0,
-                account: l.accountingAccount || "3028",
+                account: "371",
                 pretVanzare: 0,
                 adaosUnitar: 0,
                 adaosProcent: 0,
-                infoSuplimentare: l.observations || "",
+                infoSuplimentare: "",
               };
             });
           }
         }
 
-        // 2. Altfel, căutăm în liniile salvate din XML/arhivă
-        const aLines = await db
-          .select()
-          .from(schema.invoiceArchiveLines)
-          .where(eq(schema.invoiceArchiveLines.invoiceArchiveId, input.docId));
-
-        if (aLines.length > 0) {
-          return aLines.map((l, idx) => {
-            const qty = parseFloat(String(l.quantity || 0));
-            const price = parseFloat(String(l.unitPrice || 0));
-            const tot = parseFloat(String(l.total || (qty * price)));
-            const vat = parseFloat(String(l.vatRate || 21));
-            const val = Math.round(qty * price * 100) / 100;
-            const tvaSum = Math.round((tot - val) * 100) / 100;
-            return {
-              lineOrder: idx + 1,
-              type: "Mărfuri",
-              gestiune: "Depozit",
-              description: l.description,
-              code: String(idx + 1).padStart(8, "0"),
-              unit: (l.unit || "buc").toUpperCase(),
-              quantity: qty,
-              unitPrice: price,
-              valoare: val,
-              vatRate: vat,
-              total: tot,
-              tva: tvaSum,
-              nedeductibil: 0,
-              account: "371",
-              pretVanzare: 0,
-              adaosUnitar: 0,
-              adaosProcent: 0,
-              infoSuplimentare: "",
-            };
-          });
-        }
-
         return [];
       } else {
-        // Facturi emise: verificăm emittedInvoiceLines, reInvoiceLines sau invoiceArchiveLines (pentru facturi din arhivă SPV)
-        const eLines = await db
-          .select()
-          .from(schema.emittedInvoiceLines)
-          .where(eq(schema.emittedInvoiceLines.emittedInvoiceId, input.docId))
-          .orderBy(schema.emittedInvoiceLines.lineOrder, schema.emittedInvoiceLines.id);
+        // Facturi emise: verificăm apartenența părintelui la tenant.id pe fiecare ramură
+        const [ownEmitted] = await db
+          .select({ id: schema.emittedInvoices.id })
+          .from(schema.emittedInvoices)
+          .where(
+            and(
+              eq(schema.emittedInvoices.id, input.docId),
+              eq(schema.emittedInvoices.tenantId, tenant.id)
+            )
+          )
+          .limit(1);
 
-        if (eLines.length > 0) {
-          return eLines.map((l, idx) => {
-            const qty = parseFloat(String(l.quantity || 0));
-            const price = parseFloat(String(l.unitPrice || 0));
-            const tot = parseFloat(String(l.total || (qty * price)));
-            const vat = parseFloat(String(l.vatRate || 21));
-            const val = Math.round(qty * price * 100) / 100;
-            const tvaSum = Math.round((tot - val) * 100) / 100;
-            return {
-              lineOrder: idx + 1,
-              type: l.devizType === "MANOPERA" ? "Servicii" : "Marfuri",
-              gestiune: "—",
-              description: l.description,
-              code: String(idx + 1).padStart(8, "0"),
-              unit: (l.unit || "buc").toUpperCase(),
-              quantity: qty,
-              unitPrice: price,
-              valoare: val,
-              vatRate: vat,
-              total: tot,
-              tva: tvaSum,
-              nedeductibil: 0,
-              account: l.devizType === "MANOPERA" ? "704" : "707",
-              pretVanzare: price,
-              adaosUnitar: 0,
-              adaosProcent: 0,
-              infoSuplimentare: "",
-            };
-          });
+        if (ownEmitted) {
+          const eLines = await db
+            .select()
+            .from(schema.emittedInvoiceLines)
+            .where(eq(schema.emittedInvoiceLines.emittedInvoiceId, ownEmitted.id))
+            .orderBy(schema.emittedInvoiceLines.lineOrder, schema.emittedInvoiceLines.id);
+
+          if (eLines.length > 0) {
+            return eLines.map((l, idx) => {
+              const qty = parseFloat(String(l.quantity || 0));
+              const price = parseFloat(String(l.unitPrice || 0));
+              const tot = parseFloat(String(l.total || (qty * price)));
+              const vat = parseFloat(String(l.vatRate || 21));
+              const val = Math.round(qty * price * 100) / 100;
+              const tvaSum = Math.round((tot - val) * 100) / 100;
+              return {
+                lineOrder: idx + 1,
+                type: l.devizType === "MANOPERA" ? "Servicii" : "Marfuri",
+                gestiune: "—",
+                description: l.description,
+                code: String(idx + 1).padStart(8, "0"),
+                unit: (l.unit || "buc").toUpperCase(),
+                quantity: qty,
+                unitPrice: price,
+                valoare: val,
+                vatRate: vat,
+                total: tot,
+                tva: tvaSum,
+                nedeductibil: 0,
+                account: l.devizType === "MANOPERA" ? "704" : "707",
+                pretVanzare: price,
+                adaosUnitar: 0,
+                adaosProcent: 0,
+                infoSuplimentare: "",
+              };
+            });
+          }
         }
 
-        // Verificăm în reInvoiceLines
-        const rLines = await db
-          .select()
-          .from(schema.reInvoiceLines)
-          .where(eq(schema.reInvoiceLines.reInvoiceId, input.docId));
+        // Verificăm în reInvoices cu filtrare pe tenant.id
+        const [ownReInv] = await db
+          .select({ id: schema.reInvoices.id })
+          .from(schema.reInvoices)
+          .where(
+            and(
+              eq(schema.reInvoices.id, input.docId),
+              eq(schema.reInvoices.tenantId, tenant.id)
+            )
+          )
+          .limit(1);
 
-        if (rLines.length > 0) {
-          return rLines.map((l, idx) => {
-            const qty = parseFloat(String(l.quantity || 0));
-            const price = parseFloat(String(l.unitPrice || 0));
-            const tot = parseFloat(String(l.total || (qty * price)));
-            const vat = parseFloat(String(l.vatRate || 21));
-            const val = Math.round(qty * price * 100) / 100;
-            const tvaSum = Math.round((tot - val) * 100) / 100;
-            return {
-              lineOrder: idx + 1,
-              type: "Servicii",
-              gestiune: "—",
-              description: l.description,
-              code: String(idx + 1).padStart(8, "0"),
-              unit: (l.unit || "buc").toUpperCase(),
-              quantity: qty,
-              unitPrice: price,
-              valoare: val,
-              vatRate: vat,
-              total: tot,
-              tva: tvaSum,
-              nedeductibil: 0,
-              account: "704",
-              pretVanzare: price,
-              adaosUnitar: 0,
-              adaosProcent: 0,
-              infoSuplimentare: "",
-            };
-          });
+        if (ownReInv) {
+          const rLines = await db
+            .select()
+            .from(schema.reInvoiceLines)
+            .where(eq(schema.reInvoiceLines.reInvoiceId, ownReInv.id));
+
+          if (rLines.length > 0) {
+            return rLines.map((l, idx) => {
+              const qty = parseFloat(String(l.quantity || 0));
+              const price = parseFloat(String(l.unitPrice || 0));
+              const tot = parseFloat(String(l.total || (qty * price)));
+              const vat = parseFloat(String(l.vatRate || 21));
+              const val = Math.round(qty * price * 100) / 100;
+              const tvaSum = Math.round((tot - val) * 100) / 100;
+              return {
+                lineOrder: idx + 1,
+                type: "Servicii",
+                gestiune: "—",
+                description: l.description,
+                code: String(idx + 1).padStart(8, "0"),
+                unit: (l.unit || "buc").toUpperCase(),
+                quantity: qty,
+                unitPrice: price,
+                valoare: val,
+                vatRate: vat,
+                total: tot,
+                tva: tvaSum,
+                nedeductibil: 0,
+                account: "704",
+                pretVanzare: price,
+                adaosUnitar: 0,
+                adaosProcent: 0,
+                infoSuplimentare: "",
+              };
+            });
+          }
         }
 
-        // Verificăm în invoiceArchiveLines (facturi emise descărcate din SPV ANAF)
-        const aLines = await db
-          .select()
-          .from(schema.invoiceArchiveLines)
-          .where(eq(schema.invoiceArchiveLines.invoiceArchiveId, input.docId));
+        // Verificăm în invoiceArchiveLines (facturi emise descărcate din SPV ANAF) cu filtrare pe tenant.id
+        const [ownOutArchive] = await db
+          .select({ id: schema.invoiceArchive.id })
+          .from(schema.invoiceArchive)
+          .where(
+            and(
+              eq(schema.invoiceArchive.id, input.docId),
+              eq(schema.invoiceArchive.tenantId, tenant.id)
+            )
+          )
+          .limit(1);
 
-        if (aLines.length > 0) {
-          return aLines.map((l, idx) => {
-            const qty = parseFloat(String(l.quantity || 0));
-            const price = parseFloat(String(l.unitPrice || 0));
-            const tot = parseFloat(String(l.total || (qty * price)));
-            const vat = parseFloat(String(l.vatRate || 21));
-            const val = Math.round(qty * price * 100) / 100;
-            const tvaSum = Math.round((tot - val) * 100) / 100;
-            return {
-              lineOrder: idx + 1,
-              type: "Marfuri",
-              gestiune: "—",
-              description: l.description,
-              code: String(idx + 1).padStart(8, "0"),
-              unit: (l.unit || "buc").toUpperCase(),
-              quantity: qty,
-              unitPrice: price,
-              valoare: val,
-              vatRate: vat,
-              total: tot,
-              tva: tvaSum,
-              nedeductibil: 0,
-              account: "707",
-              pretVanzare: price,
-              adaosUnitar: 0,
-              adaosProcent: 0,
-              infoSuplimentare: "",
-            };
-          });
+        if (ownOutArchive) {
+          const aLines = await db
+            .select()
+            .from(schema.invoiceArchiveLines)
+            .where(eq(schema.invoiceArchiveLines.invoiceArchiveId, ownOutArchive.id));
+
+          if (aLines.length > 0) {
+            return aLines.map((l, idx) => {
+              const qty = parseFloat(String(l.quantity || 0));
+              const price = parseFloat(String(l.unitPrice || 0));
+              const tot = parseFloat(String(l.total || (qty * price)));
+              const vat = parseFloat(String(l.vatRate || 21));
+              const val = Math.round(qty * price * 100) / 100;
+              const tvaSum = Math.round((tot - val) * 100) / 100;
+              return {
+                lineOrder: idx + 1,
+                type: "Marfuri",
+                gestiune: "—",
+                description: l.description,
+                code: String(idx + 1).padStart(8, "0"),
+                unit: (l.unit || "buc").toUpperCase(),
+                quantity: qty,
+                unitPrice: price,
+                valoare: val,
+                vatRate: vat,
+                total: tot,
+                tva: tvaSum,
+                nedeductibil: 0,
+                account: "707",
+                pretVanzare: price,
+                adaosUnitar: 0,
+                adaosProcent: 0,
+                infoSuplimentare: "",
+              };
+            });
+          }
         }
 
         return [];

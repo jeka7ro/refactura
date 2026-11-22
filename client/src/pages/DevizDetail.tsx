@@ -55,7 +55,7 @@ export default function DevizDetail() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate("/devize")}
-            className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"
+            className="w-9 h-9 rounded-full flex items-center justify-center border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-300 transition-colors"
             title="Înapoi la lista de devize"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -65,18 +65,18 @@ export default function DevizDetail() {
               <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
                 Deviz de Lucrări #{deviz.number}
               </h1>
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800">
                 {deviz.status || "FINAL"}
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Data emiterii: <strong>{formatDate(String(deviz.date))}</strong>
+              Data emiterii: <strong className="tabular-nums">{formatDate(String(deviz.date))}</strong>
               {invoice?.number && (
                 <>
                   <span className="mx-2">•</span>
                   Factură asociată:{" "}
                   <Link
-                    href={`/facturi-emise-nou/${invoice.id}`}
+                    href={`/facturi-emise-nou/view/${invoice.id}`}
                     className="font-bold text-sky-600 dark:text-sky-400 hover:underline"
                   >
                     {invoice.number}
@@ -87,10 +87,10 @@ export default function DevizDetail() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setShowCodes(!showCodes)}
-            className="flex items-center gap-1.5 px-3 h-9 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3.5 h-9 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm"
           >
             {showCodes ? (
               <EyeOff className="w-3.5 h-3.5" />
@@ -101,7 +101,7 @@ export default function DevizDetail() {
           </button>
           <button
             onClick={() => setIsEditOpen(true)}
-            className="flex items-center gap-1.5 px-3 h-9 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3.5 h-9 rounded-full bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold transition-colors shadow-sm"
           >
             <Pencil className="w-3.5 h-3.5" />
             Editează rânduri
@@ -110,7 +110,7 @@ export default function DevizDetail() {
             href={`/api/pdf/deviz/${deviz.id}?download=1&showCodes=${showCodes ? "1" : "0"}`}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-1.5 px-3 h-9 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3.5 h-9 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm"
           >
             <FileDown className="w-3.5 h-3.5" />
             Descarcă PDF
@@ -121,7 +121,7 @@ export default function DevizDetail() {
       {/* Carduri Părți Contractante (Prestator & Beneficiar) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Prestator / Furnizor */}
-        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+        <div className="p-4 rounded-[22px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
           <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Prestator / Emitent
@@ -154,7 +154,7 @@ export default function DevizDetail() {
         </div>
 
         {/* Beneficiar / Client */}
-        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+        <div className="p-4 rounded-[22px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
           <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Beneficiar / Client
@@ -186,7 +186,7 @@ export default function DevizDetail() {
       </div>
 
       {/* Tabel Linii Deviz cu Defalcare TVA */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-[22px] shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
@@ -347,7 +347,7 @@ export default function DevizDetail() {
       </div>
 
       {deviz.notes && (
-        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-4">
+        <div className="bg-white dark:bg-slate-900 rounded-[22px] shadow-sm border border-slate-200 dark:border-slate-800 p-4">
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
             Mențiuni & Observații
           </h3>

@@ -28,7 +28,7 @@ import { runHorecaMigrations } from "../modules/horeca/migrations";
 import { runSagaMigrations } from "../modules/saga/migrations";
 
 let _pool: mysql.Pool | null = null;
-let _db: ReturnType<typeof drizzle> | null = null;
+let _db: any = null;
 
 export function getPool(): mysql.Pool | null {
   if (!_pool && process.env.DATABASE_URL) {
@@ -41,7 +41,7 @@ export function getPool(): mysql.Pool | null {
       idleTimeout: 30000,
       maxIdle: 5,
     });
-    _pool.on("error", err => {
+    (_pool as any).on("error", (err: any) => {
       console.warn("[DB Pool Warning]", err?.message || err);
       resetDb();
     });
@@ -60,15 +60,16 @@ export function resetDb() {
 }
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
-export async function getDb() {
+export async function getDb(): Promise<ReturnType<typeof drizzle> | null> {
   if (!_db && process.env.DATABASE_URL) {
     try {
       const pool = getPool();
       if (!pool) return null;
-      _db = drizzle(pool);
+      const db = drizzle(pool as any);
+      _db = db;
       // Safe migration: add rawXml column if missing
       try {
-        await _db.execute(
+        await db.execute(
           sql`ALTER TABLE invoiceArchive ADD COLUMN rawXml LONGTEXT NULL`
         );
         console.log("[DB] Added rawXml column to invoiceArchive");
@@ -78,74 +79,74 @@ export async function getDb() {
 
       // Safe migration: add spvSentAt column if missing
       try {
-        await _db.execute(
+        await db.execute(
           sql`ALTER TABLE emittedInvoices ADD COLUMN spvSentAt TIMESTAMP NULL`
         );
       } catch {}
       try {
-        await _db.execute(
+        await db.execute(
           sql`ALTER TABLE reInvoices ADD COLUMN spvSentAt TIMESTAMP NULL`
         );
       } catch {}
       try {
-        await _db.execute(
+        await db.execute(
           sql`UPDATE emittedInvoices SET spvSentAt = COALESCE(updatedAt, createdAt) WHERE spvIndex IS NOT NULL AND spvSentAt IS NULL`
         );
-        await _db.execute(
+        await db.execute(
           sql`UPDATE reInvoices SET spvSentAt = COALESCE(updatedAt, createdAt) WHERE spvIndex IS NOT NULL AND spvSentAt IS NULL`
         );
       } catch {}
 
       // Safe migration: ensure tenants.settings is LONGTEXT for large base64 logos
       try {
-        await _db.execute(
+        await db.execute(
           sql`ALTER TABLE tenants MODIFY COLUMN settings LONGTEXT NULL`
         );
       } catch {}
 
       // Safe migrations: add indexes for lines tables to prevent full table scans
       try {
-        await _db.execute(
+        await db.execute(
           sql`CREATE INDEX idx_invoiceArchiveId ON invoiceArchiveLines(invoiceArchiveId)`
         );
       } catch {}
       try {
-        await _db.execute(
+        await db.execute(
           sql`CREATE INDEX idx_reInvoiceId ON reInvoiceLines(reInvoiceId)`
         );
       } catch {}
       try {
-        await _db.execute(
+        await db.execute(
           sql`CREATE INDEX idx_emittedInvoiceId ON emittedInvoiceLines(emittedInvoiceId)`
         );
       } catch {}
       // Module migrations — fiecare modul izolat, safe
-      await runHorecaMigrations(_db as any);
-      await runSagaMigrations(_db as any);
+      await runHorecaMigrations(db as any);
+      await runSagaMigrations(db as any);
 
       // Safe migrations: add currency & exchangeRate to nir table
       try {
-        await _db.execute(sql`ALTER TABLE nir ADD COLUMN currency VARCHAR(10) DEFAULT 'RON'`);
+        await db.execute(sql`ALTER TABLE nir ADD COLUMN currency VARCHAR(10) DEFAULT 'RON'`);
       } catch {}
       try {
-        await _db.execute(sql`ALTER TABLE nir ADD COLUMN exchangeRate DECIMAL(12,4) DEFAULT 1.0000`);
+        await db.execute(sql`ALTER TABLE nir ADD COLUMN exchangeRate DECIMAL(12,4) DEFAULT 1.0000`);
       } catch {}
 
       // TVA standard România = 21% (din 01.08.2025)
       try {
-        await _db.execute(sql`ALTER TABLE emittedInvoiceLines ALTER COLUMN vatRate SET DEFAULT 21.00`);
+        await db.execute(sql`ALTER TABLE emittedInvoiceLines ALTER COLUMN vatRate SET DEFAULT 21.00`);
       } catch {}
 
       // Safe migrations: add cron tracking fields to integrations
       try {
-        await _db.execute(sql`ALTER TABLE integrations ADD COLUMN lastCronImported INT DEFAULT 0`);
+        await db.execute(sql`ALTER TABLE integrations ADD COLUMN lastCronImported INT DEFAULT 0`);
       } catch {}
       try {
-        await _db.execute(sql`ALTER TABLE integrations ADD COLUMN lastCronAt TIMESTAMP NULL`);
+        await db.execute(sql`ALTER TABLE integrations ADD COLUMN lastCronAt TIMESTAMP NULL`);
       } catch {}
       // API Keys table
       try {
-        await _db.execute(sql`
+        await db.execute(sql`
           CREATE TABLE IF NOT EXISTS apiKeys (
             id INT AUTO_INCREMENT PRIMARY KEY,
             tenantId INT NOT NULL,
@@ -165,7 +166,7 @@ export async function getDb() {
       }
       // Email Logs table
       try {
-        await _db.execute(sql`
+        await db.execute(sql`
           CREATE TABLE IF NOT EXISTS emailLogs (
             id INT AUTO_INCREMENT PRIMARY KEY,
             tenantId INT NOT NULL,
@@ -190,7 +191,7 @@ export async function getDb() {
       }
       // Cost Center Categories nomenclator
       try {
-        await _db.execute(sql`
+        await db.execute(sql`
           CREATE TABLE IF NOT EXISTS costCenterCategories (
             id INT AUTO_INCREMENT PRIMARY KEY,
             tenantId INT NOT NULL,
@@ -203,25 +204,25 @@ export async function getDb() {
         console.log("[DB] costCenterCategories table ready");
       } catch {}
       try {
-        await _db.execute(sql`ALTER TABLE costCenters ADD COLUMN categoryId INT NULL`);
+        await db.execute(sql`ALTER TABLE costCenters ADD COLUMN categoryId INT NULL`);
         console.log("[DB] Added categoryId to costCenters");
       } catch {} // column already exists
       try {
-        await _db.execute(sql`ALTER TABLE costCenterRules ADD COLUMN lineKeyword VARCHAR(255) NULL`);
+        await db.execute(sql`ALTER TABLE costCenterRules ADD COLUMN lineKeyword VARCHAR(255) NULL`);
         console.log("[DB] Added lineKeyword to costCenterRules");
       } catch {} // column already exists
       try {
-        await _db.execute(sql`ALTER TABLE users ADD COLUMN phone VARCHAR(30) NULL`);
+        await db.execute(sql`ALTER TABLE users ADD COLUMN phone VARCHAR(30) NULL`);
         console.log("[DB] Added phone to users");
       } catch {} // column already exists
       try {
-        await _db.execute(sql`ALTER TABLE accounts ADD COLUMN phone VARCHAR(30) NULL`);
+        await db.execute(sql`ALTER TABLE accounts ADD COLUMN phone VARCHAR(30) NULL`);
         console.log("[DB] Added phone to accounts");
       } catch {} // column already exists
 
       // Contracts table
       try {
-        await _db.execute(sql`
+        await db.execute(sql`
           CREATE TABLE IF NOT EXISTS contracts (
             id INT AUTO_INCREMENT PRIMARY KEY,
             tenantId INT NOT NULL,
@@ -255,27 +256,27 @@ export async function getDb() {
 
       // Safe migrations for contract signatures (olographic & digital)
       try {
-        await _db.execute(sql`ALTER TABLE contracts ADD COLUMN supplierSignature LONGTEXT NULL`);
+        await db.execute(sql`ALTER TABLE contracts ADD COLUMN supplierSignature LONGTEXT NULL`);
       } catch {}
       try {
-        await _db.execute(sql`ALTER TABLE contracts ADD COLUMN clientSignature LONGTEXT NULL`);
+        await db.execute(sql`ALTER TABLE contracts ADD COLUMN clientSignature LONGTEXT NULL`);
       } catch {}
       try {
-        await _db.execute(sql`ALTER TABLE contracts ADD COLUMN signatureType VARCHAR(50) DEFAULT 'none'`);
+        await db.execute(sql`ALTER TABLE contracts ADD COLUMN signatureType VARCHAR(50) DEFAULT 'none'`);
       } catch {}
       try {
-        await _db.execute(sql`ALTER TABLE contracts ADD COLUMN digitalSignatureMetadata TEXT NULL`);
+        await db.execute(sql`ALTER TABLE contracts ADD COLUMN digitalSignatureMetadata TEXT NULL`);
       } catch {}
       try {
-        await _db.execute(sql`ALTER TABLE contracts ADD COLUMN signedAt VARCHAR(30) NULL`);
+        await db.execute(sql`ALTER TABLE contracts ADD COLUMN signedAt VARCHAR(30) NULL`);
       } catch {}
       try {
-        await _db.execute(sql`ALTER TABLE contracts ADD COLUMN language VARCHAR(20) DEFAULT 'ro'`);
+        await db.execute(sql`ALTER TABLE contracts ADD COLUMN language VARCHAR(20) DEFAULT 'ro'`);
       } catch {}
 
       // Contract Logs table (Audit trail with timestamps & explanations)
       try {
-        await _db.execute(sql`
+        await db.execute(sql`
           CREATE TABLE IF NOT EXISTS contractLogs (
             id INT AUTO_INCREMENT PRIMARY KEY,
             tenantId INT NOT NULL,
@@ -429,7 +430,7 @@ export async function getDefaultTenantForUser(userId: number, isAccount = false)
   const result = await db
     .select()
     .from(userTenants)
-    .where(eq(userTenants.userId, userId))
+    .where(and(eq(userTenants.userId, userId), eq(userTenants.isActive, 1)))
     .limit(1);
 
   if (result.length > 0) return result[0].tenantId;
@@ -869,7 +870,24 @@ export async function getAllAccounts() {
 export async function getAllTenants() {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(tenants).orderBy(desc(tenants.createdAt));
+  const rows = await db.select().from(tenants).orderBy(desc(tenants.createdAt));
+  return rows.map(row => {
+    if (!row.settings) return row;
+    try {
+      const s = JSON.parse(row.settings);
+      delete s.accessPinHash;
+      delete s.pinHash;
+      delete s.sagaWebToken;
+      delete s.brevoApiKey;
+      if (s.accountantPortal && typeof s.accountantPortal === "object") {
+        const { pinHash: _ignoredPin, ...safePortal } = s.accountantPortal;
+        s.accountantPortal = safePortal;
+      }
+      return { ...row, settings: JSON.stringify(s) };
+    } catch {
+      return row;
+    }
+  });
 }
 
 export async function getAdminUserActivity() {
@@ -1442,6 +1460,14 @@ export async function deleteReInvoice(id: number, tenantId: number) {
       r => !(r.id === id && r.tenantId === tenantId)
     );
     return { success: true };
+  }
+  const [own] = await db
+    .select({ id: reInvoices.id })
+    .from(reInvoices)
+    .where(and(eq(reInvoices.id, id), eq(reInvoices.tenantId, tenantId)))
+    .limit(1);
+  if (!own) {
+    return { success: false };
   }
   await db.delete(reInvoiceLines).where(eq(reInvoiceLines.reInvoiceId, id));
   return db

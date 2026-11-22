@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import DashboardLayout from "@/components/DashboardLayout";
 import { trpc } from "@/lib/trpc";
 import {
   Table,
@@ -37,10 +36,14 @@ export default function SpvLogs() {
 
   const getStatusColor = (status: string | null) => {
     switch (status) {
-      case "validat": return "bg-green-100 text-green-800 border-green-200";
-      case "eroare": return "bg-red-100 text-red-800 border-red-200";
-      case "in_procesare": return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      default: return "bg-slate-100 text-slate-800 border-slate-200";
+      case "validat":
+        return "rounded-full bg-green-100 text-green-800 border-green-200 dark:bg-green-950/50 dark:text-green-300 dark:border-green-800";
+      case "eroare":
+        return "rounded-full bg-red-100 text-red-800 border-red-200 dark:bg-red-950/50 dark:text-red-300 dark:border-red-800";
+      case "in_procesare":
+        return "rounded-full bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800";
+      default:
+        return "rounded-full bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700";
     }
   };
 
@@ -55,62 +58,62 @@ export default function SpvLogs() {
     <>
       <div className="p-3 sm:p-5 max-w-full space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Jurnal Sincronizări SPV ANAF</h1>
-          <p className="text-slate-500 mt-1">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Jurnal Sincronizări SPV ANAF</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">
             Istoricul complet al facturilor trimise și primite din sistemul național e-Factura.
           </p>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
+          <Card className="rounded-[22px]">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Facturi Trimise</CardTitle>
               <UploadCloud className="h-4 w-4 text-blue-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.trimise}</div>
+              <div className="text-2xl font-bold tabular-nums">{stats.trimise}</div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="rounded-[22px]">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Facturi Primite</CardTitle>
               <DownloadCloud className="h-4 w-4 text-purple-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.primite}</div>
+              <div className="text-2xl font-bold tabular-nums">{stats.primite}</div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="rounded-[22px]">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Validari cu Succes</CardTitle>
+              <CardTitle className="text-sm font-medium">Validări cu succes</CardTitle>
               <CheckCircle2 className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.validate}</div>
+              <div className="text-2xl font-bold tabular-nums text-green-600 dark:text-green-400">{stats.validate}</div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="rounded-[22px]">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Erori ANAF</CardTitle>
               <AlertCircle className="h-4 w-4 text-red-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">{stats.erori}</div>
+              <div className="text-2xl font-bold tabular-nums text-red-600 dark:text-red-400">{stats.erori}</div>
             </CardContent>
           </Card>
         </div>
 
-        <Card>
+        <Card className="rounded-[22px]">
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
                 <CardTitle>Istoric Tranzacții SPV</CardTitle>
                 <CardDescription>Vizualizează statusul fiecărui pachet XML procesat</CardDescription>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 <Select value={filterType} onValueChange={setFilterType}>
-                  <SelectTrigger className="w-[150px]">
+                  <SelectTrigger className="w-[165px] rounded-full">
                     <SelectValue placeholder="Toate Tipurile" />
                   </SelectTrigger>
                   <SelectContent>
@@ -120,7 +123,7 @@ export default function SpvLogs() {
                   </SelectContent>
                 </Select>
                 <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="w-[150px]">
+                  <SelectTrigger className="w-[165px] rounded-full">
                     <SelectValue placeholder="Toate Statusurile" />
                   </SelectTrigger>
                   <SelectContent>
@@ -141,11 +144,11 @@ export default function SpvLogs() {
                 <Skeleton className="h-10 w-full" />
               </div>
             ) : filteredLogs?.length === 0 ? (
-              <div className="text-center py-12 text-slate-500">
-                Nu există înregistrări SPV care să corespundă filtrelselectate.
+              <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+                Nu există înregistrări SPV care să corespundă filtrelor selectate.
               </div>
             ) : (
-              <div className="border rounded-md">
+              <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -174,7 +177,7 @@ export default function SpvLogs() {
                               ? isTransmittedInDeadline((log as any).issueDate, log.date)
                               : true;
                             return (
-                              <div className={`text-xs whitespace-nowrap ${inTermen ? "text-emerald-600 dark:text-emerald-500" : "text-slate-800 dark:text-slate-200"}`}>
+                              <div className={`text-xs tabular-nums whitespace-nowrap ${inTermen ? "text-emerald-600 dark:text-emerald-500" : "text-slate-800 dark:text-slate-200"}`}>
                                 <span className="font-medium">
                                   {format(new Date(log.date), "dd MMM yyyy", { locale: ro })}
                                 </span>
@@ -186,14 +189,14 @@ export default function SpvLogs() {
                           })()}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="tabular-nums bg-slate-50">
+                          <Badge variant="outline" className="rounded-full tabular-nums bg-slate-50 dark:bg-slate-800/80 dark:text-slate-200 dark:border-slate-700">
                             {log.spvIndex || "Fără Index"}
                           </Badge>
                         </TableCell>
                         <TableCell className="font-medium">
                           <div>{log.invoiceNumber}</div>
                           {(log as any).issueDate && (
-                            <div className="text-[11px] text-slate-400 font-normal">
+                            <div className="text-[11px] tabular-nums text-slate-400 font-normal">
                               Emisă: {(log as any).issueDate}
                             </div>
                           )}
@@ -203,7 +206,7 @@ export default function SpvLogs() {
                             {log.partnerName}
                           </div>
                         </TableCell>
-                        <TableCell className="text-right font-medium">
+                        <TableCell className="text-right tabular-nums font-medium">
                           {Number(log.total).toFixed(2)} {log.currency}
                         </TableCell>
                         <TableCell>
@@ -212,7 +215,7 @@ export default function SpvLogs() {
                               {log.spvStatus?.toUpperCase()}
                             </Badge>
                             {log.spvStatus === "eroare" && log.spvError && log.spvError.toLowerCase() !== "ok" && (
-                              <span className="text-xs text-red-600 max-w-[250px] line-clamp-2" title={log.spvError}>
+                              <span className="text-xs text-red-600 dark:text-red-400 max-w-[250px] line-clamp-2" title={log.spvError}>
                                 {log.spvError}
                               </span>
                             )}

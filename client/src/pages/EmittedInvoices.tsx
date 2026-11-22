@@ -48,11 +48,11 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: "Anulată",
 };
 const STATUS_COLORS: Record<string, string> = {
-  draft: "bg-slate-100 text-slate-600 border-slate-200",
-  sent: "bg-blue-50 text-blue-700 border-blue-200",
-  paid: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  overdue: "bg-rose-50 text-rose-700 border-rose-200",
-  cancelled: "bg-slate-100 text-slate-500 border-slate-200",
+  draft: "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
+  sent: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800",
+  paid: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800",
+  overdue: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800",
+  cancelled: "bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700",
 };
 const SPV_LABELS: Record<string, string> = {
   nesincronizat: "Netrimisă",
@@ -420,70 +420,70 @@ export default function EmittedInvoices() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4 pb-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-4 pb-2 tabular-nums">
         {/* Card 1: Total Facturi */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-2.5 sm:p-4 flex flex-col justify-between min-h-[4.5rem] sm:min-h-[5.5rem] shadow-sm transition-all hover:shadow-md">
+        <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] p-3.5 sm:p-4 flex flex-col justify-between min-h-[4.5rem] sm:min-h-[5.5rem] shadow-sm transition-all hover:shadow-md">
           <div>
-            <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 truncate">
+            <p className="text-[10px] sm:text-[10.5px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] mb-1 truncate">
               Total Facturi
             </p>
-            <p className="text-base sm:text-2xl font-black text-slate-900 dark:text-white leading-none truncate">
+            <p className="text-base sm:text-2xl font-bold text-[#1d1d1f] dark:text-white leading-none truncate">
               {allData.length}
             </p>
           </div>
           {filtered.length !== allData.length && (
-            <p className="text-[10px] sm:text-[11px] font-medium text-slate-400 mt-1 truncate">
+            <p className="text-[10.5px] sm:text-[11px] font-medium text-[#636366] dark:text-[#98989d] mt-1 truncate">
               {filtered.length} filtrate
             </p>
           )}
         </div>
 
         {/* Card 2: Încasate */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-2.5 sm:p-4 flex flex-col justify-between min-h-[4.5rem] sm:min-h-[5.5rem] shadow-sm transition-all hover:shadow-md">
+        <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] p-3.5 sm:p-4 flex flex-col justify-between min-h-[4.5rem] sm:min-h-[5.5rem] shadow-sm transition-all hover:shadow-md">
           <div>
-            <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 truncate">
+            <p className="text-[10px] sm:text-[10.5px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] mb-1 truncate">
               Încasate
             </p>
-            <p className="text-base sm:text-2xl font-black text-emerald-600 leading-none truncate">
+            <p className="text-base sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 leading-none truncate">
               {counts.paid}
             </p>
           </div>
-          <p className="text-[10px] sm:text-[11px] font-medium text-emerald-600/70 mt-1 truncate">
+          <p className="text-[10.5px] sm:text-[11px] font-medium text-emerald-600/80 dark:text-emerald-400/80 mt-1 truncate">
             {allData.length > 0 ? `${Math.round((counts.paid / allData.length) * 100)}% din total` : "0%"}
           </p>
         </div>
 
         {/* Card 3: Restanțe */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-2.5 sm:p-4 flex flex-col justify-between min-h-[4.5rem] sm:min-h-[5.5rem] shadow-sm transition-all hover:shadow-md">
+        <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] p-3.5 sm:p-4 flex flex-col justify-between min-h-[4.5rem] sm:min-h-[5.5rem] shadow-sm transition-all hover:shadow-md">
           <div>
-            <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 truncate">
+            <p className="text-[10px] sm:text-[10.5px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] mb-1 truncate">
               Restanțe
             </p>
-            <p className="text-base sm:text-2xl font-black text-rose-600 leading-none truncate">
+            <p className="text-base sm:text-2xl font-bold text-rose-600 dark:text-rose-400 leading-none truncate">
               {counts.overdue}
             </p>
           </div>
-          <p className="text-[10px] sm:text-[11px] font-medium text-slate-400 mt-1 truncate">
+          <p className="text-[10.5px] sm:text-[11px] font-medium text-[#636366] dark:text-[#98989d] mt-1 truncate">
             {counts.overdue === 0 ? "Fără restanțe" : "Necesită atenție"}
           </p>
         </div>
 
         {/* Card 4: Total EUR (cu echivalent Lei la curs BNR din ziua fiecărei facturi) */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-amber-200/80 dark:border-amber-900/50 p-2.5 sm:p-4 flex flex-col justify-between min-h-[4.5rem] sm:min-h-[5.5rem] shadow-sm transition-all hover:shadow-md bg-gradient-to-br from-amber-50/40 to-transparent dark:from-amber-950/20">
+        <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] border border-amber-200/80 dark:border-amber-900/50 p-3.5 sm:p-4 flex flex-col justify-between min-h-[4.5rem] sm:min-h-[5.5rem] shadow-sm transition-all hover:shadow-md bg-gradient-to-br from-amber-50/40 to-transparent dark:from-amber-950/20">
           <div>
             <div className="flex items-center justify-between mb-1">
-              <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 truncate">
+              <p className="text-[10px] sm:text-[10.5px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400 truncate">
                 Valoare EUR
               </p>
-              <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-100/80 dark:bg-amber-900/50 px-1.5 py-0.5 rounded leading-none">
+              <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-100/80 dark:bg-amber-900/50 px-1.5 py-0.5 rounded-full leading-none">
                 EUR
               </span>
             </div>
-            <p className="text-base sm:text-2xl font-black text-amber-600 dark:text-amber-400 leading-none truncate">
+            <p className="text-base sm:text-2xl font-bold text-amber-600 dark:text-amber-400 leading-none truncate">
               {formatCurrency(totals.totalEur, "EUR")}
             </p>
           </div>
-          <p className="text-[10px] sm:text-[11px] font-semibold text-slate-600 dark:text-slate-300 mt-1 truncate" title="Echivalent în lei la cursul oficial BNR din data fiecărei facturi">
+          <p className="text-[10.5px] sm:text-[11px] font-semibold text-[#636366] dark:text-[#98989d] mt-1 truncate" title="Echivalent în lei la cursul oficial BNR din data fiecărei facturi">
             {totals.totalEur > 0
               ? `≈ ${formatCurrency(totals.totalEurInRon, "RON")} (curs BNR)`
               : "0,00 facturi EUR"}
@@ -491,21 +491,21 @@ export default function EmittedInvoices() {
         </div>
 
         {/* Card 5: Valoare Totală (Echivalent RON la curs BNR) */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-2.5 sm:p-4 flex flex-col justify-between min-h-[4.5rem] sm:min-h-[5.5rem] shadow-sm transition-all hover:shadow-md col-span-2 sm:col-span-1">
+        <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] p-3.5 sm:p-4 flex flex-col justify-between min-h-[4.5rem] sm:min-h-[5.5rem] shadow-sm transition-all hover:shadow-md col-span-2 sm:col-span-1">
           <div>
             <div className="flex items-center justify-between mb-1">
-              <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">
+              <p className="text-[10px] sm:text-[10.5px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] truncate">
                 Valoare Totală
               </p>
-              <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-1.5 py-0.5 rounded leading-none">
+              <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-1.5 py-0.5 rounded-full leading-none">
                 RON
               </span>
             </div>
-            <p className="text-base sm:text-2xl font-black text-slate-900 dark:text-white leading-none truncate">
+            <p className="text-base sm:text-2xl font-bold text-[#1d1d1f] dark:text-white leading-none truncate">
               {formatCurrency(totals.totalConvertedRon, "RON")}
             </p>
           </div>
-          <p className="text-[10px] sm:text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-1 truncate" title={totals.hasEur ? `${formatCurrency(totals.totalRonOnly, "RON")} + ${formatCurrency(totals.totalEur, "EUR")} convertit la curs BNR` : "Toate facturile emise"}>
+          <p className="text-[10.5px] sm:text-[11px] font-medium text-[#636366] dark:text-[#98989d] mt-1 truncate" title={totals.hasEur ? `${formatCurrency(totals.totalRonOnly, "RON")} + ${formatCurrency(totals.totalEur, "EUR")} convertit la curs BNR` : "Toate facturile emise"}>
             {totals.hasEur
               ? `${formatCurrency(totals.totalRonOnly, "RON")} + ${formatCurrency(totals.totalEur, "EUR")}`
               : "Inclusiv toate emiterile"}
@@ -517,14 +517,14 @@ export default function EmittedInvoices() {
       <SpvDeadlineBanner invoices={data} />
 
       {/* Table Card */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] overflow-hidden shadow-sm">
         {/* Search & Filtre — cu iconițe și dimensiuni ca în AllInvoices */}
-        <div className="p-3 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3 flex-wrap bg-white dark:bg-slate-900">
+        <div className="px-4 py-3 border-b border-black/[0.06] dark:border-white/[0.08] flex items-center gap-2.5 flex-wrap bg-[#f5f7fb]/85 dark:bg-white/[0.025]">
           <div className="relative flex-1 min-w-[200px]">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className="w-3.5 h-3.5 text-[#636366] dark:text-[#98989d] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
-              style={{ paddingLeft: 34, paddingRight: search ? 68 : 14 }}
-              className="rounded-full w-full h-8 border border-slate-200 dark:border-slate-700 outline-none text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all shadow-none"
+              style={{ paddingLeft: 36, paddingRight: search ? 80 : 14 }}
+              className="rounded-full w-full h-9 border border-black/[0.08] dark:border-white/[0.12] outline-none text-[13px] bg-white/90 dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white placeholder:text-[#636366] dark:placeholder:text-[#98989d] focus:bg-white dark:focus:bg-[#3a3a3c] transition-all"
               placeholder="Caută factură, client, CUI..."
               value={search}
               onChange={e => {
@@ -534,14 +534,16 @@ export default function EmittedInvoices() {
             />
             {search && (
               <>
-                <div className="absolute right-7 top-1/2 -translate-y-1/2 bg-blue-600 text-white rounded-full px-1.5 py-0.5 text-[9px] font-bold">
+                <div className="absolute right-9 top-1/2 -translate-y-1/2 bg-blue-600 text-white rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums">
                   {filtered.length}/{allData.length}
                 </div>
                 <button
+                  type="button"
+                  aria-label="Șterge căutarea"
                   onClick={() => setSearch("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center hover:bg-black/[0.06] dark:hover:bg-white/[0.10] cursor-pointer"
                 >
-                  <X className="w-3 h-3 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" />
+                  <X className="w-3.5 h-3.5 text-[#636366] hover:text-[#1d1d1f] dark:text-[#98989d] dark:hover:text-white" />
                 </button>
               </>
             )}
@@ -656,31 +658,31 @@ export default function EmittedInvoices() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-                <th className="text-center w-12 px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
+              <tr className="bg-[#f8f9fc]/90 dark:bg-white/[0.02] border-b border-black/[0.06] dark:border-white/[0.08]">
+                <th className="text-center w-12 px-4 py-3 text-[10.5px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] whitespace-nowrap">
                   Nr.
                 </th>
-                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
+                <th className="text-left px-4 py-3 text-[10.5px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] whitespace-nowrap">
                   Număr Factură
                 </th>
-                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <th className="text-left px-4 py-3 text-[10.5px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">
                   Client
                 </th>
-                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden md:table-cell whitespace-nowrap">
+                <th className="text-left px-4 py-3 text-[10.5px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] hidden md:table-cell whitespace-nowrap">
                   Dată / Scadență
                 </th>
-                <th className="text-right px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
+                <th className="text-right px-4 py-3 text-[10.5px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] whitespace-nowrap">
                   Total
                 </th>
-                <th className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden lg:table-cell whitespace-nowrap">
+                <th className="text-left px-4 py-3 text-[10.5px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] hidden lg:table-cell whitespace-nowrap">
                   Data Transmisă / Index
                 </th>
-                <th className="text-right px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
+                <th className="text-right px-4 py-3 text-[10.5px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] whitespace-nowrap">
                   Acțiuni
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+            <tbody className="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
               {isLoading ? (
                 <tr>
                   <td colSpan={7} className="text-center py-12">
@@ -709,19 +711,19 @@ export default function EmittedInvoices() {
                     }
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
                   >
-                    <td className="text-center px-4 py-2.5 text-slate-400 text-xs whitespace-nowrap">
+                    <td className="text-center px-4 py-2.5 text-[#636366] dark:text-[#98989d] text-xs whitespace-nowrap tabular-nums">
                       <div className="h-10 flex items-center justify-center font-medium">
                         {(page - 1) * rowsPerPage + idx + 1}
                       </div>
                     </td>
-                    <td className="px-4 py-2.5 whitespace-nowrap">
+                    <td className="px-4 py-2.5 whitespace-nowrap tabular-nums">
                       <div className="h-10 flex flex-col justify-center">
                         <div className="h-5 flex items-center gap-1.5">
-                          <span className="text-xs font-bold text-blue-600 hover:underline text-left">
+                          <span className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline text-left">
                             {row.number}
                           </span>
                           {row._source === "archive" && (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-violet-100 text-violet-700 border border-violet-200 leading-none">SPV</span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-100 dark:bg-violet-950/50 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-800 leading-none">SPV</span>
                           )}
                         </div>
                         <div className="h-5 flex items-center">
@@ -735,7 +737,7 @@ export default function EmittedInvoices() {
                                 : row.status || "draft";
                             return (
                               <span
-                                className={`px-2 py-0.5 rounded-full text-[11px] font-normal border leading-none ${STATUS_COLORS[effectiveStatus]}`}
+                                className={`px-2 py-0.5 rounded-full text-[10.5px] font-medium border leading-none ${STATUS_COLORS[effectiveStatus]}`}
                               >
                                 {STATUS_LABELS[effectiveStatus]}
                               </span>
@@ -752,7 +754,8 @@ export default function EmittedInvoices() {
                             return (
                               <Link
                                 href={cId ? `/client/${cId}` : `/clienti?search=${encodeURIComponent(row.clientName)}`}
-                                className="text-xs font-bold text-slate-900 dark:text-white max-w-[200px] truncate hover:underline hover:text-primary transition-colors cursor-pointer block"
+                                onClick={e => e.stopPropagation()}
+                                className="text-xs font-bold text-[#1d1d1f] dark:text-white max-w-[200px] truncate hover:underline hover:text-primary transition-colors cursor-pointer block"
                                 title={row.clientName}
                               >
                                 {row.clientName}
@@ -760,27 +763,27 @@ export default function EmittedInvoices() {
                             );
                           })()}
                         </div>
-                        <div className="h-5 flex items-center text-[11px] text-slate-400 font-normal">
+                        <div className="h-5 flex items-center text-[11px] text-[#636366] dark:text-[#98989d] font-normal tabular-nums">
                           {row.clientCUI ? `CUI: ${row.clientCUI}` : "—"}
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-2.5 hidden md:table-cell whitespace-nowrap">
+                    <td className="px-4 py-2.5 hidden md:table-cell whitespace-nowrap tabular-nums">
                       <div className="h-10 flex flex-col justify-center">
                         <div className="h-5 flex items-center">
-                          <span className="text-xs font-bold text-slate-900 dark:text-white">
+                          <span className="text-xs font-bold text-[#1d1d1f] dark:text-white">
                             {formatDate(row.issueDate)}
                           </span>
                         </div>
-                        <div className="h-5 flex items-center text-[11px] text-slate-400 font-normal">
+                        <div className="h-5 flex items-center text-[11px] text-[#636366] dark:text-[#98989d] font-normal">
                           {row.dueDate ? `Scad: ${formatDate(row.dueDate)}` : "—"}
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                    <td className="px-4 py-2.5 text-right whitespace-nowrap tabular-nums">
                       <div className="h-10 flex flex-col justify-center items-end">
                         <div className="h-5 flex items-center justify-end">
-                          <span className="text-xs font-bold text-slate-900 dark:text-white">
+                          <span className="text-xs font-bold text-[#1d1d1f] dark:text-white">
                             {formatCurrency(
                               parseFloat(String(row.total)),
                               (row.currency || "RON") as any
@@ -794,20 +797,20 @@ export default function EmittedInvoices() {
                               return (
                                 <div className="flex items-center gap-1.5 leading-none">
                                   <span
-                                    className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1 py-0.5 rounded border border-emerald-200 dark:border-emerald-800/60"
+                                    className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/60"
                                     title={`Curs BNR din ${formatDate(computed.rateDate || row.issueDate)}: ${computed.rate.toFixed(4)} lei/${row.currency}`}
                                   >
                                     ≈ {formatCurrency(computed.totalRon, "RON")}
                                   </span>
                                   <span
-                                    className="text-[9px] text-slate-400 tabular-nums"
+                                    className="text-[10px] text-[#636366] dark:text-[#98989d] tabular-nums"
                                     title={`Curs oficial BNR: ${computed.rate.toFixed(4)}`}
                                   >
                                     ({computed.rate.toFixed(4)})
                                   </span>
                                   {isExternalInvoice(row) && (
                                     <span
-                                      className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800"
+                                      className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800"
                                       title="Factură externă (UE/Non-UE). Nu se transmite în RO e-Factura, se declară prin D390/D300."
                                     >
                                       D390
@@ -869,36 +872,38 @@ export default function EmittedInvoices() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-2.5 text-left hidden lg:table-cell whitespace-nowrap">
+                    <td className="px-4 py-2.5 text-left hidden lg:table-cell whitespace-nowrap tabular-nums">
                       <div className="h-10 flex flex-col justify-center">
                         {row.spvSentAt || (row.spvIndex && (row.updatedAt || row.createdAt)) ? (
                           (() => {
                             const sentDate = row.spvSentAt || row.updatedAt || row.createdAt;
                             const inTermen = isTransmittedInDeadline(row.issueDate, sentDate);
+                            const sentObj = sentDate instanceof Date ? sentDate : sentDate ? new Date(sentDate) : null;
+                            const sentTime = sentObj && !isNaN(sentObj.getTime())
+                              ? sentObj.toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })
+                              : "";
                             return (
                               <>
-                                <div className={`h-5 flex items-center text-xs font-bold whitespace-nowrap ${inTermen ? "text-emerald-600 dark:text-emerald-500" : "text-slate-900 dark:text-white"}`}>
+                                <div className={`h-5 flex items-center text-xs font-bold whitespace-nowrap ${inTermen ? "text-emerald-600 dark:text-emerald-400" : "text-[#1d1d1f] dark:text-white"}`}>
                                   <span>{formatDate(sentDate)}</span>
-                                  <span className="ml-1.5 font-bold">
-                                    {new Date(sentDate).toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })}
-                                  </span>
+                                  {sentTime && <span className="ml-1.5 font-bold">{sentTime}</span>}
                                 </div>
                                 <div className="h-5 flex items-center text-[11px] font-normal">
                                   {row.spvIndex ? (
                                     <span
                                       className={
                                         row.spvStatus === "validat"
-                                          ? "text-emerald-500"
+                                          ? "text-emerald-600 dark:text-emerald-400"
                                           : row.spvStatus === "in_procesare"
-                                          ? "text-blue-500"
-                                          : "text-slate-400"
+                                          ? "text-blue-600 dark:text-blue-400"
+                                          : "text-[#636366] dark:text-[#98989d]"
                                       }
                                       title={`Index încărcare SPV: ${row.spvIndex}`}
                                     >
                                       Index: {row.spvIndex}
                                     </span>
                                   ) : (
-                                    <span className="text-slate-400">—</span>
+                                    <span className="text-[#636366] dark:text-[#98989d]">—</span>
                                   )}
                                 </div>
                               </>
@@ -909,16 +914,16 @@ export default function EmittedInvoices() {
                             <div className="h-5 flex items-center text-[11px] text-amber-600 dark:text-amber-400 font-normal whitespace-nowrap">
                               — (Non-SPV)
                             </div>
-                            <div className="h-5 flex items-center text-[11px] text-slate-400 font-normal">
+                            <div className="h-5 flex items-center text-[11px] text-[#636366] dark:text-[#98989d] font-normal">
                               —
                             </div>
                           </>
                         ) : (
                           <>
-                            <div className="h-5 flex items-center text-xs text-slate-400 whitespace-nowrap">
+                            <div className="h-5 flex items-center text-xs text-[#636366] dark:text-[#98989d] whitespace-nowrap">
                               —
                             </div>
-                            <div className="h-5 flex items-center text-[11px] text-slate-400 font-normal">
+                            <div className="h-5 flex items-center text-[11px] text-[#636366] dark:text-[#98989d] font-normal">
                               —
                             </div>
                           </>
@@ -927,11 +932,13 @@ export default function EmittedInvoices() {
                     </td>
                     <td className="px-4 py-2.5 whitespace-nowrap">
                       <div
-                        className="h-10 flex items-center justify-end gap-1"
+                        className="h-10 flex items-center justify-end gap-1.5"
                         onClick={e => e.stopPropagation()}
                       >
                         {row._source !== "archive" && (
                           <button
+                            type="button"
+                            aria-label="Storno Factură"
                             onClick={() =>
                               setStornoTarget({
                                 id: row.id,
@@ -939,13 +946,15 @@ export default function EmittedInvoices() {
                                   `${row.series || ""} ${row.number}`.trim(),
                               })
                             }
-                            className="w-7 h-7 rounded-full border border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100 flex items-center justify-center transition-colors"
+                            className="w-8 h-8 rounded-full border border-orange-200 dark:border-orange-800/70 bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-900/60 flex items-center justify-center transition-colors cursor-pointer"
                             title="Storno Factură"
                           >
                             <Undo2 className="w-3.5 h-3.5" />
                           </button>
                         )}
                         <button
+                          type="button"
+                          aria-label="Descarcă PDF"
                           onClick={() => {
                             const a = document.createElement("a");
                             if (row._source === "archive") {
@@ -959,7 +968,7 @@ export default function EmittedInvoices() {
                             a.click();
                             document.body.removeChild(a);
                           }}
-                          className="w-7 h-7 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-center transition-colors"
+                          className="w-8 h-8 rounded-full apple-btn-glass text-[#3a3a3c] dark:text-[#ebebf5] flex items-center justify-center transition-colors cursor-pointer"
                           title="Descarcă PDF"
                         >
                           <Download className="w-3.5 h-3.5" />
@@ -969,9 +978,11 @@ export default function EmittedInvoices() {
                           row.spvStatus === "nesincronizat" ||
                           row.spvStatus === "eroare") && (
                           <button
+                            type="button"
+                            aria-label="Trimite în SPV"
                             onClick={() => sendToSpv.mutate({ id: row.id })}
                             disabled={sendToSpv.isPending}
-                            className="w-7 h-7 rounded-full border border-indigo-200 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 flex items-center justify-center transition-colors"
+                            className="w-8 h-8 rounded-full border border-indigo-200 dark:border-indigo-800/70 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 flex items-center justify-center transition-colors cursor-pointer"
                             title="Trimite în SPV"
                           >
                             {sendToSpv.isPending ? (
@@ -983,8 +994,10 @@ export default function EmittedInvoices() {
                         )}
                         {row._source !== "archive" && (
                           <button
+                            type="button"
+                            aria-label="Șterge"
                             onClick={() => setDeleteId(row.id)}
-                            className="w-7 h-7 rounded-full border border-rose-200 bg-rose-50 text-rose-500 hover:bg-rose-100 flex items-center justify-center transition-colors"
+                            className="w-8 h-8 rounded-full border border-rose-200 dark:border-rose-800/70 bg-rose-50 dark:bg-rose-950/40 text-rose-500 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 flex items-center justify-center transition-colors cursor-pointer"
                             title="Șterge"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -997,9 +1010,9 @@ export default function EmittedInvoices() {
               )}
             </tbody>
             {filtered.length > 0 && (
-              <tfoot className="bg-slate-50/80 dark:bg-slate-800/60 border-t-2 border-slate-200 dark:border-slate-700">
+              <tfoot className="bg-[#f8f9fc]/90 dark:bg-white/[0.025] border-t-2 border-black/[0.08] dark:border-white/[0.10] tabular-nums">
                 <tr>
-                  <td colSpan={3} className="px-4 py-3 text-left text-xs font-bold text-slate-800 dark:text-slate-100">
+                  <td colSpan={3} className="px-4 py-3 text-left text-xs font-bold text-[#1d1d1f] dark:text-white">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span>TOTAL ({filtered.length} facturi{filtered.length !== allData.length ? " filtrate" : ""}):</span>
                       {totals.hasEur && (
@@ -1009,25 +1022,25 @@ export default function EmittedInvoices() {
                       )}
                     </div>
                   </td>
-                  <td className="hidden md:table-cell px-4 py-3 text-left text-xs text-slate-400">
+                  <td className="hidden md:table-cell px-4 py-3 text-left text-xs text-[#636366] dark:text-[#98989d]">
                     —
                   </td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">
                     <div className="flex flex-col items-end">
-                      <span className="text-sm font-black text-slate-900 dark:text-white">
+                      <span className="text-sm font-black text-[#1d1d1f] dark:text-white">
                         {formatCurrency(totals.totalConvertedRon, "RON")}
                       </span>
                       {totals.hasEur && (
-                        <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400" title="Defalcat: Valoare RON + Valoare EUR">
+                        <span className="text-[10.5px] font-semibold text-[#636366] dark:text-[#98989d]" title="Defalcat: Valoare RON + Valoare EUR">
                           {formatCurrency(totals.totalRonOnly, "RON")} + {formatCurrency(totals.totalEur, "EUR")}
                         </span>
                       )}
                     </div>
                   </td>
-                  <td className="hidden lg:table-cell px-4 py-3 text-left text-xs text-slate-400 font-normal">
+                  <td className="hidden lg:table-cell px-4 py-3 text-left text-xs text-[#636366] dark:text-[#98989d] font-normal">
                     {counts.paid} încasate · {counts.overdue} restanțe
                   </td>
-                  <td className="px-4 py-3 text-right text-xs text-slate-400">
+                  <td className="px-4 py-3 text-right text-xs text-[#636366] dark:text-[#98989d]">
                     —
                   </td>
                 </tr>
@@ -1037,8 +1050,8 @@ export default function EmittedInvoices() {
         </div>
 
         {/* Footer — Pagination */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30">
-          <div className="flex items-center gap-4 text-xs text-slate-600 dark:text-slate-400">
+        <div className="flex items-center justify-between px-4 py-3 border-t border-black/[0.06] dark:border-white/[0.08] bg-[#f8f9fc]/85 dark:bg-white/[0.02] tabular-nums">
+          <div className="flex items-center gap-4 text-xs text-[#636366] dark:text-[#98989d]">
             <div className="flex items-center gap-1 whitespace-nowrap">
               Afișează
               <Select
@@ -1048,7 +1061,7 @@ export default function EmittedInvoices() {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="h-6 px-2 text-xs border-slate-200 bg-white dark:bg-slate-800 dark:border-slate-700 w-[60px] rounded-full focus:ring-1 focus:ring-blue-500 mx-1">
+                <SelectTrigger className="h-7 px-2.5 text-xs apple-btn-glass w-[64px] rounded-full mx-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1062,24 +1075,28 @@ export default function EmittedInvoices() {
               </Select>
             </div>
             <span>
-              Total înregistrări: <strong>{filtered.length}</strong>
+              Total înregistrări: <strong className="text-[#1d1d1f] dark:text-white">{filtered.length}</strong>
             </span>
           </div>
-          <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+          <div className="flex items-center gap-2 text-xs text-[#636366] dark:text-[#98989d]">
             <span>
-              Pagina {page} din {totalPages}
+              Pagina <strong className="text-[#1d1d1f] dark:text-white">{page}</strong> din <strong className="text-[#1d1d1f] dark:text-white">{totalPages}</strong>
             </span>
             <button
+              type="button"
+              aria-label="Pagina anterioară"
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="w-7 h-7 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center disabled:opacity-35 transition-colors cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
+              type="button"
+              aria-label="Pagina următoare"
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="w-7 h-7 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center disabled:opacity-35 transition-colors cursor-pointer"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -1092,7 +1109,7 @@ export default function EmittedInvoices() {
         open={deleteId !== null}
         onOpenChange={() => setDeleteId(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-[22px]">
           <AlertDialogHeader>
             <AlertDialogTitle>Șterge Factura?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1101,9 +1118,9 @@ export default function EmittedInvoices() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Anulează</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-full">Anulează</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-rose-600 hover:bg-rose-700 text-white"
+              className="bg-rose-600 hover:bg-rose-700 text-white rounded-full"
               onClick={() =>
                 deleteId && deleteMutation.mutate({ id: deleteId })
               }
@@ -1119,7 +1136,7 @@ export default function EmittedInvoices() {
         open={stornoTarget !== null}
         onOpenChange={() => setStornoTarget(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-[22px]">
           <AlertDialogHeader>
             <AlertDialogTitle>Emite factură de Storno?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1129,9 +1146,9 @@ export default function EmittedInvoices() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Anulează</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-full">Anulează</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-orange-600 hover:bg-orange-700 text-white"
+              className="bg-orange-600 hover:bg-orange-700 text-white rounded-full"
               onClick={() => {
                 if (stornoTarget) {
                   navigate(`/facturi-emise-nou/storno/${stornoTarget.id}`);
@@ -1148,19 +1165,21 @@ export default function EmittedInvoices() {
       {/* Modal Import Facturi Externe SAGA */}
       {showSagaModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-lg w-full p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.08] dark:border-white/[0.10] shadow-2xl max-w-lg w-full p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-black/[0.06] dark:border-white/[0.08]">
               <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-600 text-white">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-600 text-white">
                   SAGA
                 </span>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                <h3 className="text-base font-bold text-[#1d1d1f] dark:text-white">
                   Import Facturi Externe din SAGA
                 </h3>
               </div>
               <button
+                type="button"
+                aria-label="Închide"
                 onClick={() => setShowSagaModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1215,11 +1234,11 @@ export default function EmittedInvoices() {
               )}
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-black/[0.06] dark:border-white/[0.08]">
               <button
                 type="button"
                 onClick={() => setShowSagaModal(false)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="px-4 py-2 rounded-full apple-btn-glass text-xs font-semibold text-[#3a3a3c] dark:text-[#ebebf5] transition-colors cursor-pointer"
               >
                 Închide
               </button>
@@ -1227,7 +1246,7 @@ export default function EmittedInvoices() {
                 type="button"
                 onClick={handleImportSagaInvoices}
                 disabled={!sagaFile || isImportingSaga}
-                className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all disabled:opacity-50"
+                className="flex items-center gap-1.5 px-5 py-2 rounded-full text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all disabled:opacity-50 cursor-pointer"
               >
                 {isImportingSaga ? (
                   <>
@@ -1248,33 +1267,34 @@ export default function EmittedInvoices() {
       {/* Modal Detalii Eroare ANAF SPV */}
       {spvErrorInvoice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-lg w-full p-6 space-y-4">
+          <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.08] dark:border-white/[0.10] shadow-2xl max-w-lg w-full p-6 space-y-4">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-600 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-600 flex items-center justify-center shrink-0">
                   <AlertCircle className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  <h3 className="text-base font-bold text-[#1d1d1f] dark:text-white">
                     Eroare Validare ANAF (RO e-Factura)
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="text-xs text-[#636366] dark:text-[#98989d] tabular-nums">
                     Factura {spvErrorInvoice.number} · {spvErrorInvoice.clientName}
                   </p>
                 </div>
               </div>
               <button
                 type="button"
+                aria-label="Închide"
                 onClick={() => setSpvErrorInvoice(null)}
-                className="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center"
+                className="w-8 h-8 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] flex items-center justify-center cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-2 text-xs">
+            <div className="space-y-2 text-xs tabular-nums">
               {spvErrorInvoice.spvIndex && (
-                <div className="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex justify-between py-1 border-b border-black/[0.06] dark:border-white/[0.08]">
                   <span className="text-slate-500 font-medium">Index Încărcare ANAF:</span>
                   <span className="tabular-nums font-bold text-slate-700 dark:text-slate-300">
                     {spvErrorInvoice.spvIndex}
@@ -1282,7 +1302,7 @@ export default function EmittedInvoices() {
                 </div>
               )}
               {spvErrorInvoice.spvSentAt && (
-                <div className="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex justify-between py-1 border-b border-black/[0.06] dark:border-white/[0.08]">
                   <span className="text-slate-500 font-medium">Data trimiterii:</span>
                   <span className="text-slate-700 dark:text-slate-300 font-medium">
                     {formatDate(spvErrorInvoice.spvSentAt)}
@@ -1291,26 +1311,26 @@ export default function EmittedInvoices() {
               )}
             </div>
 
-            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-xs space-y-1.5">
+            <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-xs space-y-1.5">
               <span className="font-bold text-rose-900 dark:text-rose-200 block">
                 Mesaj returnat de serverul ANAF:
               </span>
-              <p className="tabular-nums text-[11px] text-rose-800 dark:text-rose-300 bg-white/80 dark:bg-slate-900/60 p-2.5 rounded-lg border border-rose-200/60 dark:border-rose-900/60 break-words leading-relaxed max-h-48 overflow-y-auto">
+              <p className="tabular-nums text-[11px] text-rose-800 dark:text-rose-300 bg-white/80 dark:bg-slate-900/60 p-2.5 rounded-xl border border-rose-200/60 dark:border-rose-900/60 break-words leading-relaxed max-h-48 overflow-y-auto">
                 {spvErrorInvoice.spvError || "Eroare de validare la procesarea fișierului XML de către serverul ANAF."}
               </p>
             </div>
 
-            <div className="p-3 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 text-xs text-blue-900 dark:text-blue-200">
+            <div className="p-3 rounded-2xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 text-xs text-blue-900 dark:text-blue-200">
               <p className="leading-relaxed">
                 Generatorul XML a fost corectat conform specificației CIUS-RO ANAF. Puteți retrimite factura direct apăsând butonul de mai jos.
               </p>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-black/[0.06] dark:border-white/[0.08]">
               <button
                 type="button"
                 onClick={() => setSpvErrorInvoice(null)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                className="px-4 py-2 rounded-full apple-btn-glass text-xs font-semibold text-[#3a3a3c] dark:text-[#ebebf5] transition cursor-pointer"
               >
                 Închide
               </button>
@@ -1321,7 +1341,7 @@ export default function EmittedInvoices() {
                   setSpvErrorInvoice(null);
                 }}
                 disabled={sendToSpv.isPending}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition disabled:opacity-50 cursor-pointer"
               >
                 <Send className="w-3.5 h-3.5" />
                 <span>Retrimite în SPV</span>

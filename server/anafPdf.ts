@@ -62,10 +62,17 @@ export async function convertXmlToPdf(
           return isNaN(num) ? fallback : num;
         };
 
-        const invNumber = getXmlText(invoice["cbc:ID"]);
-        const issueDate = getXmlText(invoice["cbc:IssueDate"]);
-        const dueDate = getXmlText(invoice["cbc:DueDate"], issueDate);
-        const currency = getXmlText(invoice["cbc:DocumentCurrencyCode"], "RON");
+        const invNumber = getXmlText(invoice["cbc:ID"] || invoice["ID"]);
+        const issueDate = getXmlText(invoice["cbc:IssueDate"] || invoice["IssueDate"]);
+        const dueDate = getXmlText(invoice["cbc:DueDate"] || invoice["DueDate"], issueDate);
+        const currency = getXmlText(invoice["cbc:DocumentCurrencyCode"] || invoice["DocumentCurrencyCode"], "RON");
+        const isCreditNote = Boolean(
+          parsed.CreditNote ||
+          parsed["ubl:CreditNote"] ||
+          invoice["cbc:CreditNoteTypeCode"] ||
+          invoice["CreditNoteTypeCode"] ||
+          String(invoice["cbc:InvoiceTypeCode"] || invoice["InvoiceTypeCode"] || "").trim() === "381"
+        );
 
         // Supplier
         const supParty =
@@ -111,7 +118,7 @@ export async function convertXmlToPdf(
             getXmlText(l["cac:Item"]?.["cbc:Description"]) ||
             "Produs";
           const um = unitLabel(l["cbc:InvoicedQuantity"]?.["@_unitCode"] || l["cbc:CreditedQuantity"]?.["@_unitCode"]);
-          const qty = parseXmlNumber(
+          const rawQty = parseXmlNumber(
             l["cbc:InvoicedQuantity"] ?? l["cbc:CreditedQuantity"],
             1
           );
@@ -119,10 +126,12 @@ export async function convertXmlToPdf(
             l["cac:Price"]?.["cbc:PriceAmount"],
             0
           );
-          const val = parseXmlNumber(
+          const rawVal = parseXmlNumber(
             l["cbc:LineExtensionAmount"],
-            qty * price
+            rawQty * price
           );
+          const qty = isCreditNote && rawQty > 0 ? -rawQty : rawQty;
+          const val = isCreditNote && rawVal > 0 ? -rawVal : rawVal;
 
           const tvaNode =
             l["cac:Item"]?.["cac:ClassifiedTaxCategory"] ||
@@ -183,9 +192,15 @@ export async function convertXmlToPdf(
 
         const allMappedLines = [...mappedLines, ...allowanceLines];
 
-        const legalTotal = invoice["cac:LegalMonetaryTotal"] || {};
-        const taxTotal = invoice["cac:TaxTotal"] || {};
-        const taxTotalObj = Array.isArray(taxTotal) ? taxTotal[0] : taxTotal;
+        const legalTotal = invoice["cac:LegalMonetaryTotal"] || invoice["LegalMonetaryTotal"] || {};
+        const taxTotal = invoice["cac:TaxTotal"] || invoice["TaxTotal"] || {};
+        const taxTotalArr = Array.isArray(taxTotal) ? taxTotal : [taxTotal];
+        const taxTotalObj =
+          taxTotalArr.find((tt: any) => {
+            const amtNode = tt?.["cbc:TaxAmount"] ?? tt?.["TaxAmount"];
+            const curAttr = String(amtNode?.["@_currencyID"] || "").trim().toUpperCase();
+            return curAttr && curAttr === currency.toUpperCase();
+          }) || taxTotalArr[0];
 
         // Reverse charge detection
         const taxSubtotal = taxTotalObj?.["cac:TaxSubtotal"] || taxTotalObj?.["TaxSubtotal"];
@@ -203,15 +218,20 @@ export async function convertXmlToPdf(
           }
         }
 
-        const totalTaxAmt = parseXmlNumber(taxTotalObj?.["cbc:TaxAmount"], 0);
-        const subTotal = parseXmlNumber(
-          legalTotal["cbc:TaxExclusiveAmount"] ?? legalTotal["cbc:LineExtensionAmount"],
+        let totalTaxAmt = parseXmlNumber(taxTotalObj?.["cbc:TaxAmount"] ?? taxTotalObj?.["TaxAmount"], 0);
+        let subTotal = parseXmlNumber(
+          legalTotal["cbc:TaxExclusiveAmount"] ?? legalTotal["TaxExclusiveAmount"] ?? legalTotal["cbc:LineExtensionAmount"] ?? legalTotal["LineExtensionAmount"],
           0
         );
-        const payable = parseXmlNumber(
-          legalTotal["cbc:TaxInclusiveAmount"] ?? legalTotal["cbc:PayableAmount"],
+        let payable = parseXmlNumber(
+          legalTotal["cbc:TaxInclusiveAmount"] ?? legalTotal["TaxInclusiveAmount"] ?? legalTotal["cbc:PayableAmount"] ?? legalTotal["PayableAmount"],
           0
         );
+        if (isCreditNote) {
+          if (subTotal > 0) subTotal = -subTotal;
+          if (totalTaxAmt > 0) totalTaxAmt = -totalTaxAmt;
+          if (payable > 0) payable = -payable;
+        }
 
         const data: any = {
           number: invNumber,
@@ -235,6 +255,8 @@ export async function convertXmlToPdf(
           companyBank: "",
           logoBase64: "DEFAULT_TEXT_LOGO",
           template: "classic",
+          isCreditNote,
+          documentTitle: isCreditNote ? "FACTURĂ STORNO" : undefined,
           currency: currency,
           subtotal: subTotal,
           totalVAT: totalTaxAmt,

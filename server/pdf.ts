@@ -269,7 +269,7 @@ function drawLogo(
     const imgBuffer = Buffer.from(base64Data, "base64");
     doc.image(imgBuffer, x + padX, y + padY, {
       fit: [imgW, imgH],
-      align: hasBackground ? "center" : "left",
+      align: (hasBackground ? "center" : undefined) as any,
       valign: "center",
     });
   } catch (_) {

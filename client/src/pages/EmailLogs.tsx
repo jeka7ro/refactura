@@ -168,12 +168,12 @@ export default function EmailLogs() {
           {
             label: "Livrate cu Succes",
             value: stats.trimise,
-            cls: "text-emerald-600",
+            cls: "text-emerald-600 dark:text-emerald-400",
           },
           {
             label: "Erori Transmitere",
             value: stats.erori,
-            cls: "text-rose-600",
+            cls: "text-rose-600 dark:text-rose-400",
           },
           {
             label: "Destinatari Unici",
@@ -183,12 +183,12 @@ export default function EmailLogs() {
         ].map(k => (
           <div
             key={k.label}
-            className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-2 sm:p-4 flex flex-col justify-center h-14 sm:h-20 shadow-sm transition-all hover:shadow-md cursor-pointer"
+            className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 p-2.5 sm:p-4 flex flex-col justify-center h-16 sm:h-20 shadow-sm transition-all hover:shadow-md cursor-pointer"
           >
-            <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5 sm:mb-1 truncate">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5 sm:mb-1 truncate">
               {k.label}
             </p>
-            <p className={`text-base sm:text-2xl font-black leading-none truncate ${k.cls}`}>
+            <p className={`text-base sm:text-2xl font-black tabular-nums leading-none truncate ${k.cls}`}>
               {k.value}
             </p>
           </div>
@@ -284,7 +284,7 @@ export default function EmailLogs() {
         </div>
 
         {/* Table Card */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader className="bg-slate-50/80 dark:bg-slate-800/50">
@@ -352,19 +352,18 @@ export default function EmailLogs() {
                         key={log.id}
                         className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 transition-colors"
                       >
-                        {/* SmartDevize Rule 2: Cell Nr. */}
-                        <TableCell style={{ textAlign: "center", color: "#64748b", fontSize: 13, fontWeight: 500 }}>
+                        <TableCell className="text-center tabular-nums text-[13px] font-medium text-slate-500 dark:text-slate-400">
                           {rowNumber}
                         </TableCell>
 
-                        <TableCell className="whitespace-nowrap text-xs font-medium text-slate-600 dark:text-slate-300">
+                        <TableCell className="whitespace-nowrap tabular-nums text-xs font-medium text-slate-600 dark:text-slate-300">
                           {dateFormatted}
                         </TableCell>
 
                         <TableCell className="whitespace-nowrap">
                           {log.invoiceId ? (
-                            <Link href={`/facturi-emise-nou/${log.invoiceId}`}>
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 tabular-nums font-bold text-xs hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors cursor-pointer">
+                            <Link href={`/facturi-emise-nou/view/${log.invoiceId}`}>
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 tabular-nums font-bold text-xs hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors cursor-pointer">
                                 <FileText className="w-3.5 h-3.5" />
                                 {log.invoiceNumber || `FACT-${log.invoiceId}`}
                                 <ExternalLink className="w-3 h-3 opacity-60" />
@@ -388,7 +387,8 @@ export default function EmailLogs() {
                               <span>{log.recipientEmail}</span>
                               <button
                                 onClick={() => copyToClipboard(log.recipientEmail)}
-                                className="text-slate-400 hover:text-slate-600 transition-colors"
+                                aria-label="Copiază email"
+                                className="w-6 h-6 rounded-full inline-flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors"
                                 title="Copiază email"
                               >
                                 <Copy className="w-3 h-3" />
@@ -456,22 +456,10 @@ export default function EmailLogs() {
             </Table>
           </div>
 
-          {/* SmartDevize Rule 3: Footer Paginare */}
-          <div
-            style={{
-              padding: "12px 20px",
-              borderTop: "1px solid var(--border-color, #e2e8f0)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              background: "var(--bg-secondary, #f8fafc)",
-              borderBottomLeftRadius: 12,
-              borderBottomRightRadius: 12,
-            }}
-            className="dark:bg-slate-900/60 dark:border-slate-800 flex-wrap gap-3"
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <span className="text-xs text-slate-600 dark:text-slate-400" style={{ whiteSpace: "nowrap" }}>
+          {/* Footer Paginare */}
+          <div className="px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-4">
+              <span className="text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">
                 Afișează&nbsp;
                 <select
                   value={rowsPerPage}
@@ -490,26 +478,28 @@ export default function EmailLogs() {
                 </select>
                 &nbsp;rânduri
               </span>
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-slate-500 tabular-nums">
                 Total: <strong>{filteredCount}</strong> {filteredCount === 1 ? "înregistrare" : "înregistrări"}
               </span>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500 mr-2">
+              <span className="text-xs text-slate-500 mr-2 tabular-nums">
                 Pagina {safePage} din {totalPages}
               </span>
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={safePage <= 1}
-                className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:pointer-events-none hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                aria-label="Pagina anterioară"
+                className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:pointer-events-none hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={safePage >= totalPages}
-                className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:pointer-events-none hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                aria-label="Pagina următoare"
+                className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:pointer-events-none hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -520,7 +510,7 @@ export default function EmailLogs() {
       {/* Modal Retrimitere Email (Fără alerte native de browser) */}
       {resendLog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl w-full max-w-md p-6 space-y-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[22px] shadow-2xl w-full max-w-md p-6 space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
                 <Send className="w-5 h-5" />
@@ -569,7 +559,7 @@ export default function EmailLogs() {
                 type="button"
                 onClick={() => setResendLog(null)}
                 disabled={resendMutation.isPending}
-                className="px-4 h-9 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                className="px-4 h-9 rounded-full border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
               >
                 Anulează
               </button>
@@ -577,7 +567,7 @@ export default function EmailLogs() {
                 type="button"
                 onClick={handleConfirmResend}
                 disabled={resendMutation.isPending}
-                className="flex items-center gap-1.5 px-4 h-9 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all disabled:opacity-60"
+                className="flex items-center gap-1.5 px-4 h-9 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all disabled:opacity-60"
               >
                 {resendMutation.isPending ? (
                   <>
@@ -599,7 +589,7 @@ export default function EmailLogs() {
       {/* Modal Previzualizare Email */}
       {previewLogId && (
         <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[94vh] flex flex-col overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[22px] shadow-2xl max-w-3xl w-full max-h-[94vh] flex flex-col overflow-hidden">
             {/* Header Modal */}
             <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-slate-900/80">
               <div className="flex items-center gap-3">
@@ -612,7 +602,7 @@ export default function EmailLogs() {
                       Previzualizare Conținut Email
                     </h3>
                     {previewData && (
-                      <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300">
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300">
                         {previewData.invoiceNumber}
                       </span>
                     )}
@@ -624,7 +614,8 @@ export default function EmailLogs() {
               </div>
               <button
                 onClick={() => setPreviewLogId(null)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+                aria-label="Închide"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -678,7 +669,7 @@ export default function EmailLogs() {
               <div className="flex items-center gap-2">
                 {previewData?.invoiceId && (
                   <Link href={`/facturi-emise-nou/view/${previewData.invoiceId}`}>
-                    <button className="flex items-center gap-1.5 px-3 h-9 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                    <button className="flex items-center gap-1.5 px-3.5 h-9 rounded-full border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                       <FileText className="w-3.5 h-3.5 text-blue-600" />
                       Deschide Factura #{previewData.invoiceNumber}
                       <ExternalLink className="w-3 h-3 opacity-60" />

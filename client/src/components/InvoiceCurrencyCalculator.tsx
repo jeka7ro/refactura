@@ -131,8 +131,8 @@ export function InvoiceCurrencyCalculator({
   }, [bnrData, issueDate]);
 
   const ratesMap: Record<SupportedCurrency, number> = useMemo(() => {
-    const liveRates = bnrData?.rates || {};
-    const hist: any = historicalRate || {};
+    const liveRates: Record<string, number> = (bnrData?.rates as unknown as Record<string, number>) || {};
+    const hist: Record<string, number> = (historicalRate as unknown as Record<string, number>) || {};
 
     // Prioritate maximă: cursul activ setat pe factură (ex: 5.3370)
     const resolvedEur =
@@ -235,7 +235,7 @@ export function InvoiceCurrencyCalculator({
         style={{
           maxHeight: "min(385px, var(--radix-popper-available-height, 385px))",
         }}
-        className="w-[340px] sm:w-[380px] overflow-hidden flex flex-col p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl z-50 animate-in fade-in-50 zoom-in-95"
+        className="w-[340px] sm:w-[380px] overflow-hidden flex flex-col p-3 apple-glass rounded-[22px] border border-black/[0.08] dark:border-white/[0.12] shadow-2xl z-50 animate-in fade-in-50 zoom-in-95"
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5 shrink-0">
@@ -452,7 +452,7 @@ export function InvoiceCurrencyCalculator({
               </button>
             </div>
 
-            <div className="text-[9px] text-slate-500 dark:text-slate-400 pt-0.5 border-t border-emerald-200/60 dark:border-emerald-800/50 flex items-center justify-between">
+            <div className="text-[10px] tabular-nums text-slate-500 dark:text-slate-400 pt-0.5 border-t border-emerald-200/60 dark:border-emerald-800/50 flex items-center justify-between">
               <span>
                 {parsedAmount.toLocaleString("ro-RO", { minimumFractionDigits: 2 })} {fromCurrency} × {effectiveRate.toFixed(4)}
               </span>

@@ -268,7 +268,7 @@ export default function CursValutar() {
           fill="#1d4ed8"
           fontSize={9.5}
           fontWeight={800}
-          fontFamily="ui-monospace, monospace"
+          fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', sans-serif"
           className="fill-blue-700 dark:fill-blue-300 tabular-nums"
         >
           {num.toFixed(4)}
@@ -308,7 +308,7 @@ export default function CursValutar() {
           fill="#b45309"
           fontSize={9.5}
           fontWeight={800}
-          fontFamily="ui-monospace, monospace"
+          fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', sans-serif"
           className="fill-amber-700 dark:fill-amber-300 tabular-nums"
         >
           {num.toFixed(4)}
@@ -320,7 +320,7 @@ export default function CursValutar() {
   return (
     <div className="p-3 sm:p-5 max-w-full space-y-6 pb-12">
       {/* Page Header Banner - Matches Dashboard exactly */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-[22px] border border-slate-200/80 dark:border-slate-800 shadow-sm">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/60">
@@ -340,7 +340,7 @@ export default function CursValutar() {
 
         {/* Date indicator & Refresh action */}
         <div className="flex items-center gap-2.5 self-start md:self-auto">
-          <div className="px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs">
+          <div className="px-3.5 py-2 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs">
             <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Ședința BNR</span>
             <span className="font-bold text-slate-800 dark:text-slate-100">{displayDate}</span>
           </div>
@@ -348,7 +348,7 @@ export default function CursValutar() {
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
             title="Actualizează cursul valutar"
           >
             <RefreshCcw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`} />
@@ -360,7 +360,7 @@ export default function CursValutar() {
       {/* Official BNR Header Ticker & Financial Indices Strip */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Card 1: Cursuri oficiale BNR */}
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-[22px] border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
           <div>
             <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center justify-between">
               <span>Cursuri Principale BNR</span>
@@ -440,7 +440,7 @@ export default function CursValutar() {
         </div>
 
         {/* Card 2: Indici IRCC & ROBOR */}
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-[22px] border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
           <div>
             <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center justify-between">
               <span>Indici de Referință Credite</span>
@@ -486,7 +486,7 @@ export default function CursValutar() {
         </div>
 
         {/* Card 3: Dobândă de Referință */}
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-[22px] border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
           <div>
             <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
               Dobânda Medie Credite Ipotecare
@@ -525,7 +525,7 @@ export default function CursValutar() {
 
       {/* SECTION: Grafice Evoluție Curs BNR - FULL WIDTH (100% width) */}
       <div className="w-full space-y-6">
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-[22px] border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5">
           {/* Chart Control Bar */}
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-3">
@@ -543,12 +543,12 @@ export default function CursValutar() {
             </div>
 
             {/* Days interval toggle: 7, 10, 30 Zile */}
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-full">
               {[7, 10, 30].map((days) => (
                 <button
                   key={days}
                   onClick={() => setChartDays(days as 7 | 10 | 30)}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  className={`px-3.5 py-1.5 text-xs font-bold rounded-full transition-all cursor-pointer ${
                     chartDays === days
                       ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs"
                       : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
@@ -564,7 +564,7 @@ export default function CursValutar() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setChartCurrency("ALL")}
-              className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+              className={`px-3.5 py-1.5 text-xs font-bold rounded-full transition-all cursor-pointer ${
                 chartCurrency === "ALL"
                   ? "bg-blue-600 text-white shadow-xs"
                   : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
@@ -574,7 +574,7 @@ export default function CursValutar() {
             </button>
             <button
               onClick={() => setChartCurrency("EUR")}
-              className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3.5 py-1.5 text-xs font-bold rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
                 chartCurrency === "EUR"
                   ? "bg-blue-600 text-white shadow-xs"
                   : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
@@ -587,7 +587,7 @@ export default function CursValutar() {
             </button>
             <button
               onClick={() => setChartCurrency("USD")}
-              className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3.5 py-1.5 text-xs font-bold rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
                 chartCurrency === "USD"
                   ? "bg-blue-600 text-white shadow-xs"
                   : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
@@ -604,7 +604,7 @@ export default function CursValutar() {
           {chartCurrency === "ALL" ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* EVOLUȚIA CURS EURO */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800">
+              <div className="p-4 sm:p-5 rounded-[22px] bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <span className="inline-flex rounded-[2px] overflow-hidden">
@@ -685,7 +685,7 @@ export default function CursValutar() {
               </div>
 
               {/* EVOLUȚIA CURS DOLAR */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800">
+              <div className="p-4 sm:p-5 rounded-[22px] bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <span className="inline-flex rounded-[2px] overflow-hidden">
@@ -767,7 +767,7 @@ export default function CursValutar() {
             </div>
           ) : (
             /* Single Full Width Chart */
-            <div className="p-4 sm:p-5 rounded-2xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800">
+            <div className="p-4 sm:p-5 rounded-[22px] bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <span className="inline-flex rounded-[2px] overflow-hidden">
@@ -900,7 +900,7 @@ export default function CursValutar() {
       {/* SECTION: Cele două calculatoare pe același rând sub grafice (50% / 50%) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         {/* 1. CONVERTOR RAPID - White card styled exactly like Dashboard */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between h-full">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-[22px] border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between h-full">
           {/* Header */}
           <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 min-h-[58px]">
             <div className="flex items-center gap-3">
@@ -936,7 +936,7 @@ export default function CursValutar() {
                   <select
                     value={fromCurrency}
                     onChange={(e) => setFromCurrency(e.target.value as CurrencyCode)}
-                    className="w-full h-11 px-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none cursor-pointer"
+                    className="w-full h-11 px-3 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none cursor-pointer"
                   >
                     {CURRENCIES.map((c) => (
                       <option key={c.code} value={c.code}>
@@ -952,7 +952,7 @@ export default function CursValutar() {
                     onClick={handleSwap}
                     type="button"
                     title="Inversează valutele"
-                    className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer"
+                    className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer"
                   >
                     <ArrowLeftRight className="w-4 h-4" />
                   </button>
@@ -966,7 +966,7 @@ export default function CursValutar() {
                   <select
                     value={toCurrency}
                     onChange={(e) => setToCurrency(e.target.value as CurrencyCode)}
-                    className="w-full h-11 px-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none cursor-pointer"
+                    className="w-full h-11 px-3 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none cursor-pointer"
                   >
                     {CURRENCIES.map((c) => (
                       <option key={c.code} value={c.code}>
@@ -993,10 +993,10 @@ export default function CursValutar() {
                         setConvertAmount(val);
                       }
                     }}
-                    className="w-full h-12 pl-4 pr-24 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-black text-xl tracking-tight focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                    className="w-full h-12 pl-4 pr-24 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-black tabular-nums text-xl tracking-tight focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                     placeholder="100"
                   />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none px-2.5 py-1 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs">
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none px-2.5 py-1 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs">
                     {fromCurrency}
                   </div>
                 </div>
@@ -1008,7 +1008,7 @@ export default function CursValutar() {
                       key={preset}
                       type="button"
                       onClick={() => setConvertAmount(preset)}
-                      className={`flex-1 min-w-0 py-1.5 px-1 sm:px-1.5 text-center text-[10px] sm:text-[11px] font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                      className={`flex-1 min-w-0 py-1.5 px-1.5 text-center text-[10px] sm:text-[11px] font-bold tabular-nums rounded-full transition-all cursor-pointer whitespace-nowrap ${
                         convertAmount === preset
                           ? "bg-blue-600 text-white shadow-xs"
                           : "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300"
@@ -1024,7 +1024,7 @@ export default function CursValutar() {
             {/* Results and Action Button (Bottom Section) */}
             <div className="space-y-3.5">
               {/* Result Area */}
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/80 space-y-3">
+              <div className="p-4 rounded-[22px] bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/80 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
                     Rezultat Conversie
@@ -1033,7 +1033,7 @@ export default function CursValutar() {
                     onClick={() =>
                       copyToClipboard(convertedResult.toFixed(useFourDecimals ? 4 : 2), "conv")
                     }
-                    className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-100 text-slate-600 dark:text-slate-200 text-xs font-semibold cursor-pointer shadow-2xs transition-colors"
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-100 text-slate-600 dark:text-slate-200 text-xs font-semibold cursor-pointer shadow-2xs transition-colors"
                     title="Copiază rezultatul"
                   >
                     {copiedField === "conv" ? (
@@ -1058,7 +1058,7 @@ export default function CursValutar() {
                 </div>
 
                 <div className="text-[11px] text-slate-500 flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-                  <span>Rată aplicată: 1 {fromCurrency} = {(ratesMap[fromCurrency] / ratesMap[toCurrency]).toFixed(4)} {toCurrency}</span>
+                  <span className="tabular-nums">Rată aplicată: 1 {fromCurrency} = {(ratesMap[fromCurrency] / ratesMap[toCurrency]).toFixed(4)} {toCurrency}</span>
                 </div>
               </div>
 
@@ -1066,7 +1066,7 @@ export default function CursValutar() {
               <button
                 type="button"
                 onClick={transferToVat}
-                className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full h-11 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
                 title="Rezultatul în lei este aplicat automat în Calculatorul TVA"
               >
                 <Sparkles className="w-4 h-4" />
@@ -1080,7 +1080,7 @@ export default function CursValutar() {
         {/* 2. CALCULATOR TVA - Matches Site Aesthetics exactly */}
         <div
           id="calculator-tva"
-          className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between h-full"
+          className="bg-white dark:bg-slate-900 p-6 rounded-[22px] border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between h-full"
         >
           {/* Header with Mode Toggle */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800 min-h-[58px]">
@@ -1099,10 +1099,10 @@ export default function CursValutar() {
             </div>
 
             {/* Segmented Mode Control */}
-            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl self-start sm:self-auto">
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-full self-start sm:self-auto">
               <button
                 onClick={() => setVatMode("add")}
-                className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                className={`px-3 py-1 text-xs font-bold rounded-full transition-all cursor-pointer ${
                   vatMode === "add"
                     ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs"
                     : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
@@ -1112,7 +1112,7 @@ export default function CursValutar() {
               </button>
               <button
                 onClick={() => setVatMode("extract")}
-                className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                className={`px-3 py-1 text-xs font-bold rounded-full transition-all cursor-pointer ${
                   vatMode === "extract"
                     ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs"
                     : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
@@ -1151,17 +1151,17 @@ export default function CursValutar() {
                         setVatAmountInput(val);
                       }
                     }}
-                    className="w-full h-12 pl-4 pr-28 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-black text-xl tracking-tight focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                    className="w-full h-12 pl-4 pr-28 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-black tabular-nums text-xl tracking-tight focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                     placeholder="100"
                   />
                   <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-                    <span className="px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs pointer-events-none">
+                    <span className="px-2.5 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs pointer-events-none">
                       RON
                     </span>
                     <button
                       type="button"
                       onClick={() => copyToClipboard(vatAmountInput, "vatInput")}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                       title="Copiază"
                     >
                       {copiedField === "vatInput" ? (
@@ -1188,7 +1188,7 @@ export default function CursValutar() {
                         setVatRate(item.rate);
                         setCustomVatRate("");
                       }}
-                      className={`px-3.5 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                      className={`px-3.5 py-1.5 text-xs font-bold rounded-full border transition-all cursor-pointer ${
                         vatRate === item.rate && !customVatRate
                           ? "bg-blue-600 text-white border-blue-600 shadow-xs"
                           : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100"
@@ -1205,7 +1205,7 @@ export default function CursValutar() {
                       placeholder="Altă %"
                       value={customVatRate}
                       onChange={(e) => setCustomVatRate(e.target.value)}
-                      className="w-20 h-8 px-2.5 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 outline-none"
+                      className="w-20 h-8 px-2.5 text-xs font-semibold tabular-nums rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 outline-none"
                     />
                   </div>
                 </div>
@@ -1215,7 +1215,7 @@ export default function CursValutar() {
             {/* Bottom Section: VAT Breakdown Card + Checkboxes */}
             <div className="space-y-3.5">
               {/* VAT Breakdown Card */}
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/80 space-y-2.5">
+              <div className="p-4 rounded-[22px] bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/80 space-y-2.5">
                 {/* Baza */}
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-500 font-medium">Valoare fără TVA (Bază):</span>
@@ -1227,7 +1227,7 @@ export default function CursValutar() {
                       onClick={() =>
                         copyToClipboard(vatResults.base.toFixed(useFourDecimals ? 4 : 2), "base")
                       }
-                      className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-0.5 cursor-pointer"
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                       title="Copiază"
                     >
                       {copiedField === "base" ? (
@@ -1250,7 +1250,7 @@ export default function CursValutar() {
                       onClick={() =>
                         copyToClipboard(vatResults.vat.toFixed(useFourDecimals ? 4 : 2), "vat")
                       }
-                      className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-0.5 cursor-pointer"
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                       title="Copiază"
                     >
                       {copiedField === "vat" ? (
@@ -1275,7 +1275,7 @@ export default function CursValutar() {
                       onClick={() =>
                         copyToClipboard(vatResults.total.toFixed(useFourDecimals ? 4 : 2), "total")
                       }
-                      className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-0.5 cursor-pointer"
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                       title="Copiază"
                     >
                       {copiedField === "total" ? (

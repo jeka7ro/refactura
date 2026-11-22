@@ -1,8 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../../server/_core/trpc";
+import { tenantOf } from "../../server/tenant";
 import { z } from "zod";
 import { getDb } from "../../server/db";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import {
   horecaLocations,
   horecaMenuCategories,
@@ -49,11 +50,31 @@ const kioskProcedure = protectedProcedure.use(({ ctx, next }) => {
 //  Importat în server/routers.ts ca: horeca: horecaRouter
 // ─────────────────────────────────────────────────────────────────────────────
 
+async function assertLocationOwned(db: any, locationId: number, tenantId: number) {
+  const [loc] = await db
+    .select({ id: horecaLocations.id })
+    .from(horecaLocations)
+    .where(
+      and(
+        eq(horecaLocations.id, locationId),
+        eq(horecaLocations.tenantId, tenantId)
+      )
+    )
+    .limit(1);
+  if (!loc) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Locația nu a fost găsită sau nu aparține firmei curente.",
+    });
+  }
+}
+
 export const horecaRouter = router({
   // ── LOCATIONS ─────────────────────────────────────────────────────────────
   locations: router({
     list: protectedProcedure.query(async ({ ctx }) => {
-      console.log("[Horeca locations.list] User:", ctx.user.id, "Tenant:", ctx.user.tenantId);
+      const tenantId = tenantOf(ctx);
+      console.log("[Horeca locations.list] User:", ctx.user.id, "Tenant:", tenantId);
       const db = await getDb();
       if (!db) throw new Error("No DB");
       const locs = await db
@@ -61,7 +82,7 @@ export const horecaRouter = router({
         .from(horecaLocations)
         .where(
           and(
-            eq(horecaLocations.tenantId, ctx.user.tenantId!),
+            eq(horecaLocations.tenantId, tenantId),
             eq(horecaLocations.isActive, 1)
           )
         )
@@ -97,7 +118,7 @@ export const horecaRouter = router({
         const db = await getDb();
         if (!db) throw new Error("No DB");
         const [result] = await db.insert(horecaLocations).values({
-          tenantId: ctx.user.tenantId!,
+          tenantId: tenantOf(ctx),
           ...input,
         });
         return { id: (result as any).insertId };
@@ -136,7 +157,7 @@ export const horecaRouter = router({
           .where(
             and(
               eq(horecaLocations.id, id),
-              eq(horecaLocations.tenantId, ctx.user.tenantId!)
+              eq(horecaLocations.tenantId, tenantOf(ctx))
             )
           );
         return { success: true };
@@ -153,7 +174,7 @@ export const horecaRouter = router({
           .where(
             and(
               eq(horecaLocations.id, input.id),
-              eq(horecaLocations.tenantId, ctx.user.tenantId!)
+              eq(horecaLocations.tenantId, tenantOf(ctx))
             )
           );
         return { success: true };
@@ -168,11 +189,15 @@ export const horecaRouter = router({
         const db = await getDb();
         if (!db) throw new Error("No DB");
         const conditions = [
-          eq(horecaIngredients.tenantId, ctx.user.tenantId!),
+          eq(horecaIngredients.tenantId, tenantOf(ctx)),
           eq(horecaIngredients.isActive, 1)
         ];
-        if (input.locationId) {
-          conditions.push(eq(horecaIngredients.locationId, input.locationId));
+        const parsedLocId =
+          input.locationId !== undefined && input.locationId !== ""
+            ? Number(input.locationId)
+            : NaN;
+        if (Number.isFinite(parsedLocId) && parsedLocId > 0) {
+          conditions.push(eq(horecaIngredients.locationId, parsedLocId));
         }
         return db
           .select()
@@ -194,6 +219,8 @@ export const horecaRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        const tenantId = tenantOf(ctx);
+        await assertLocationOwned(db, input.locationId, tenantId);
         if (input.id) {
           await db
             .update(horecaIngredients)
@@ -205,13 +232,13 @@ export const horecaRouter = router({
             .where(
               and(
                 eq(horecaIngredients.id, input.id),
-                eq(horecaIngredients.tenantId, ctx.user.tenantId!)
+                eq(horecaIngredients.tenantId, tenantId)
               )
             );
           return { id: input.id };
         } else {
           const [result] = await db.insert(horecaIngredients).values({
-            tenantId: ctx.user.tenantId!,
+            tenantId,
             locationId: input.locationId,
             name: input.name,
             unit: input.unit,
@@ -236,16 +263,18 @@ export const horecaRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        const tenantId = tenantOf(ctx);
+        await assertLocationOwned(db, input.locationId, tenantId);
 
         const [ownIng] = await db
           .select({ id: horecaIngredients.id })
           .from(horecaIngredients)
-          .where(and(eq(horecaIngredients.id, input.ingredientId), eq(horecaIngredients.tenantId, ctx.user.tenantId!)));
+          .where(and(eq(horecaIngredients.id, input.ingredientId), eq(horecaIngredients.tenantId, tenantId)));
         if (!ownIng) throw new Error("Ingredientul nu a fost găsit");
 
         // 1. Insert movement
         await db.insert(horecaStockMovements).values({
-          tenantId: ctx.user.tenantId!,
+          tenantId,
           locationId: input.locationId,
           ingredientId: input.ingredientId,
           type: "in",
@@ -257,7 +286,7 @@ export const horecaRouter = router({
 
         // 2. Update stock
         await db.execute(
-          sql`UPDATE horecaIngredients SET currentStock = currentStock + ${input.quantity} WHERE id = ${input.ingredientId} AND tenantId = ${ctx.user.tenantId!}`
+          sql`UPDATE horecaIngredients SET currentStock = currentStock + ${input.quantity} WHERE id = ${input.ingredientId} AND tenantId = ${tenantId}`
         );
 
         return { success: true };
@@ -277,7 +306,7 @@ export const horecaRouter = router({
           .from(horecaMenuCategories)
           .where(
             and(
-              eq(horecaMenuCategories.tenantId, ctx.user.tenantId!),
+              eq(horecaMenuCategories.tenantId, tenantOf(ctx)),
               eq(horecaMenuCategories.locationId, input.locationId),
               eq(horecaMenuCategories.isActive, 1)
             )
@@ -299,9 +328,11 @@ export const horecaRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        const tenantId = tenantOf(ctx);
+        await assertLocationOwned(db, input.locationId, tenantId);
         const [r] = await db
           .insert(horecaMenuCategories)
-          .values({ tenantId: ctx.user.tenantId!, ...input });
+          .values({ tenantId, ...input });
         return { id: (r as any).insertId };
       }),
 
@@ -326,7 +357,7 @@ export const horecaRouter = router({
           .where(
             and(
               eq(horecaMenuCategories.id, id),
-              eq(horecaMenuCategories.tenantId, ctx.user.tenantId!)
+              eq(horecaMenuCategories.tenantId, tenantOf(ctx))
             )
           );
         return { success: true };
@@ -343,7 +374,7 @@ export const horecaRouter = router({
           .where(
             and(
               eq(horecaMenuCategories.id, input.id),
-              eq(horecaMenuCategories.tenantId, ctx.user.tenantId!)
+              eq(horecaMenuCategories.tenantId, tenantOf(ctx))
             )
           );
         return { success: true };
@@ -358,7 +389,7 @@ export const horecaRouter = router({
         const db = await getDb();
         if (!db) throw new Error("No DB");
         const conditions = [
-          eq(horecaMenuItems.tenantId, ctx.user.tenantId!),
+          eq(horecaMenuItems.tenantId, tenantOf(ctx)),
           eq(horecaMenuItems.locationId, input.locationId),
           eq(horecaMenuItems.isActive, 1),
         ];
@@ -393,9 +424,19 @@ export const horecaRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        const tenantId = tenantOf(ctx);
+        await assertLocationOwned(db, input.locationId, tenantId);
+        if (input.categoryId) {
+          const [cat] = await db
+            .select({ id: horecaMenuCategories.id })
+            .from(horecaMenuCategories)
+            .where(and(eq(horecaMenuCategories.id, input.categoryId), eq(horecaMenuCategories.tenantId, tenantId)))
+            .limit(1);
+          if (!cat) throw new TRPCError({ code: "FORBIDDEN", message: "Categoria nu aparține firmei curente." });
+        }
         const [r] = await db
           .insert(horecaMenuItems)
-          .values({ tenantId: ctx.user.tenantId!, ...input });
+          .values({ tenantId, ...input });
         return { id: (r as any).insertId };
       }),
 
@@ -424,14 +465,23 @@ export const horecaRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        const tenantId = tenantOf(ctx);
         const { id, ...rest } = input;
+        if (rest.categoryId) {
+          const [cat] = await db
+            .select({ id: horecaMenuCategories.id })
+            .from(horecaMenuCategories)
+            .where(and(eq(horecaMenuCategories.id, rest.categoryId), eq(horecaMenuCategories.tenantId, tenantId)))
+            .limit(1);
+          if (!cat) throw new TRPCError({ code: "FORBIDDEN", message: "Categoria nu aparține firmei curente." });
+        }
         await db
           .update(horecaMenuItems)
           .set(rest)
           .where(
             and(
               eq(horecaMenuItems.id, id),
-              eq(horecaMenuItems.tenantId, ctx.user.tenantId!)
+              eq(horecaMenuItems.tenantId, tenantId)
             )
           );
         return { success: true };
@@ -448,7 +498,7 @@ export const horecaRouter = router({
           .where(
             and(
               eq(horecaMenuItems.id, input.id),
-              eq(horecaMenuItems.tenantId, ctx.user.tenantId!)
+              eq(horecaMenuItems.tenantId, tenantOf(ctx))
             )
           );
         return { success: true };
@@ -466,7 +516,7 @@ export const horecaRouter = router({
           .where(
             and(
               eq(horecaRecipeLines.menuItemId, input.menuItemId),
-              eq(horecaRecipeLines.tenantId, ctx.user.tenantId!)
+              eq(horecaRecipeLines.tenantId, tenantOf(ctx))
             )
           )
           .orderBy(horecaRecipeLines.sortOrder);
@@ -493,13 +543,30 @@ export const horecaRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        const tenantId = tenantOf(ctx);
+        const [ownItem] = await db
+          .select({ id: horecaMenuItems.id })
+          .from(horecaMenuItems)
+          .where(
+            and(
+              eq(horecaMenuItems.id, input.menuItemId),
+              eq(horecaMenuItems.tenantId, tenantId)
+            )
+          )
+          .limit(1);
+        if (!ownItem) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Produsul nu a fost găsit sau nu aparține firmei curente.",
+          });
+        }
         // Șterge vechile linii și reinserează
         await db
           .delete(horecaRecipeLines)
           .where(
             and(
               eq(horecaRecipeLines.menuItemId, input.menuItemId),
-              eq(horecaRecipeLines.tenantId, ctx.user.tenantId!)
+              eq(horecaRecipeLines.tenantId, tenantId)
             )
           );
         if (input.lines.length > 0) {
@@ -508,7 +575,7 @@ export const horecaRouter = router({
               ...l,
               ingredientId: l.ingredientId ?? null,
               menuItemId: input.menuItemId,
-              tenantId: ctx.user.tenantId!,
+              tenantId,
             }))
           );
         }
@@ -519,7 +586,7 @@ export const horecaRouter = router({
           .where(
             and(
               eq(horecaMenuItems.id, input.menuItemId),
-              eq(horecaMenuItems.tenantId, ctx.user.tenantId!)
+              eq(horecaMenuItems.tenantId, tenantId)
             )
           );
         return { success: true };
@@ -530,13 +597,14 @@ export const horecaRouter = router({
       .query(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        const tenantId = tenantOf(ctx);
         const lines = await db
           .select()
           .from(horecaRecipeLines)
           .where(
             and(
               eq(horecaRecipeLines.menuItemId, input.menuItemId),
-              eq(horecaRecipeLines.tenantId, ctx.user.tenantId!)
+              eq(horecaRecipeLines.tenantId, tenantId)
             )
           );
         const [item] = await db
@@ -545,7 +613,7 @@ export const horecaRouter = router({
           .where(
             and(
               eq(horecaMenuItems.id, input.menuItemId),
-              eq(horecaMenuItems.tenantId, ctx.user.tenantId!)
+              eq(horecaMenuItems.tenantId, tenantId)
             )
           );
         const totalCost = lines.reduce(
@@ -574,7 +642,7 @@ export const horecaRouter = router({
           .from(horecaTables)
           .where(
             and(
-              eq(horecaTables.tenantId, ctx.user.tenantId!),
+              eq(horecaTables.tenantId, tenantOf(ctx)),
               eq(horecaTables.locationId, input.locationId),
               eq(horecaTables.isActive, 1)
             )
@@ -594,9 +662,11 @@ export const horecaRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        const tenantId = tenantOf(ctx);
+        await assertLocationOwned(db, input.locationId, tenantId);
         const [r] = await db
           .insert(horecaTables)
-          .values({ tenantId: ctx.user.tenantId!, ...input });
+          .values({ tenantId, ...input });
         return { id: (r as any).insertId };
       }),
 
@@ -611,12 +681,13 @@ export const horecaRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        const tenantId = tenantOf(ctx);
         const { id, ...rest } = input;
         if (rest.currentOrderId) {
           const [ownOrd] = await db
             .select({ id: horecaOrders.id })
             .from(horecaOrders)
-            .where(and(eq(horecaOrders.id, rest.currentOrderId), eq(horecaOrders.tenantId, ctx.user.tenantId!)));
+            .where(and(eq(horecaOrders.id, rest.currentOrderId), eq(horecaOrders.tenantId, tenantId)));
           if (!ownOrd) throw new Error("Comanda nu a fost găsită");
         }
         await db
@@ -625,7 +696,7 @@ export const horecaRouter = router({
           .where(
             and(
               eq(horecaTables.id, id),
-              eq(horecaTables.tenantId, ctx.user.tenantId!)
+              eq(horecaTables.tenantId, tenantId)
             )
           );
         return { success: true };
@@ -642,7 +713,7 @@ export const horecaRouter = router({
           .where(
             and(
               eq(horecaTables.id, input.id),
-              eq(horecaTables.tenantId, ctx.user.tenantId!)
+              eq(horecaTables.tenantId, tenantOf(ctx))
             )
           );
         return { success: true };
@@ -668,7 +739,7 @@ export const horecaRouter = router({
           .from(horecaOrders)
           .where(
             and(
-              eq(horecaOrders.tenantId, ctx.user.tenantId!),
+              eq(horecaOrders.tenantId, tenantOf(ctx)),
               eq(horecaOrders.locationId, input.locationId)
             )
           )
@@ -692,20 +763,21 @@ export const horecaRouter = router({
       .query(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        const tenantId = tenantOf(ctx);
         const [order] = await db
           .select()
           .from(horecaOrders)
           .where(
             and(
               eq(horecaOrders.id, input.id),
-              eq(horecaOrders.tenantId, ctx.user.tenantId!)
+              eq(horecaOrders.tenantId, tenantId)
             )
           );
         if (!order) throw new Error("Not found");
         const lines = await db
           .select()
           .from(horecaOrderLines)
-          .where(eq(horecaOrderLines.orderId, input.id))
+          .where(and(eq(horecaOrderLines.orderId, input.id), eq(horecaOrderLines.tenantId, tenantId)))
           .orderBy(horecaOrderLines.createdAt);
         return { ...order, lines };
       }),
@@ -720,32 +792,135 @@ export const horecaRouter = router({
           guestCount: z.number().default(1),
           staffName: z.string().optional(),
           notes: z.string().optional(),
+          paymentMethod: z
+            .enum(["cash", "card", "voucher", "online", "room_charge", "mixed"])
+            .optional(),
+          status: z
+            .enum([
+              "draft",
+              "sent",
+              "preparing",
+              "ready",
+              "served",
+              "paid",
+              "cancelled",
+            ])
+            .optional(),
+          lines: z
+            .array(
+              z.object({
+                menuItemId: z.number().optional(),
+                name: z.string().min(1),
+                quantity: z.union([z.string(), z.number()]),
+                unitPrice: z.union([z.string(), z.number()]),
+                vatRate: z.number().default(11),
+                notes: z.string().optional(),
+                modifiers: z.string().optional(),
+                kitchenSection: z.string().optional(),
+                foodCostUnit: z.string().optional(),
+              })
+            )
+            .optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        const tenantId = tenantOf(ctx);
+        await assertLocationOwned(db, input.locationId, tenantId);
+        if (input.tableId) {
+          const [ownTable] = await db
+            .select({ id: horecaTables.id })
+            .from(horecaTables)
+            .where(and(eq(horecaTables.id, input.tableId), eq(horecaTables.tenantId, tenantId)))
+            .limit(1);
+          if (!ownTable) {
+            throw new TRPCError({ code: "FORBIDDEN", message: "Masa selectată nu aparține firmei curente." });
+          }
+        }
+
+        const { lines: inputLines, status: reqStatus, paymentMethod, ...orderBase } = input;
+        if (inputLines && inputLines.length > 0) {
+          const menuItemIds = Array.from(
+            new Set(inputLines.map(l => l.menuItemId).filter((id): id is number => Boolean(id)))
+          );
+          if (menuItemIds.length > 0) {
+            const ownedItems = await db
+              .select({ id: horecaMenuItems.id })
+              .from(horecaMenuItems)
+              .where(and(inArray(horecaMenuItems.id, menuItemIds), eq(horecaMenuItems.tenantId, tenantId)));
+            if (ownedItems.length !== menuItemIds.length) {
+              throw new TRPCError({ code: "FORBIDDEN", message: "Unul sau mai multe produse nu aparțin firmei curente." });
+            }
+          }
+        }
+
         // Generare număr comandă
         const [cnt] = await db
           .select({ c: sql<number>`COUNT(*)` })
           .from(horecaOrders)
-          .where(eq(horecaOrders.tenantId, ctx.user.tenantId!));
+          .where(eq(horecaOrders.tenantId, tenantId));
         const orderNumber = `CMD-${String((Number(cnt?.c) || 0) + 1).padStart(4, "0")}`;
+        const finalStatus = reqStatus || "draft";
+        const now = new Date();
         const [r] = await db.insert(horecaOrders).values({
-          tenantId: ctx.user.tenantId!,
+          tenantId,
           orderNumber,
-          ...input,
+          ...orderBase,
+          status: finalStatus,
+          ...(paymentMethod ? { paymentMethod } : {}),
+          ...(finalStatus === "paid" ? { paidAt: now, closedAt: now } : {}),
+          ...(finalStatus === "cancelled" ? { closedAt: now } : {}),
         });
         const orderId = (r as any).insertId;
-        // Marchează masa ca ocupată
-        if (input.tableId) {
+
+        if (inputLines && inputLines.length > 0) {
+          let subtotal = 0;
+          let totalVat = 0;
+          const preparedLines = inputLines.map(l => {
+            const qty = Number(l.quantity) || 0;
+            const price = Number(l.unitPrice) || 0;
+            const vatRate = l.vatRate ?? 11;
+            const lineVat = parseFloat(((qty * price * vatRate) / (100 + vatRate)).toFixed(2));
+            const lineTotal = parseFloat((qty * price).toFixed(2));
+            subtotal += lineTotal;
+            totalVat += lineVat;
+            return {
+              orderId,
+              tenantId,
+              menuItemId: l.menuItemId,
+              name: l.name,
+              quantity: String(l.quantity),
+              unitPrice: String(l.unitPrice),
+              vatRate,
+              vatAmount: lineVat.toFixed(2),
+              total: lineTotal.toFixed(2),
+              foodCostUnit: l.foodCostUnit,
+              modifiers: l.modifiers,
+              notes: l.notes,
+              kitchenSection: l.kitchenSection,
+            };
+          });
+          await db.insert(horecaOrderLines).values(preparedLines);
+          await db
+            .update(horecaOrders)
+            .set({
+              subtotal: subtotal.toFixed(2),
+              vatAmount: totalVat.toFixed(2),
+              total: subtotal.toFixed(2),
+            })
+            .where(and(eq(horecaOrders.id, orderId), eq(horecaOrders.tenantId, tenantId)));
+        }
+
+        // Marchează masa ca ocupată (dacă comanda nu e deja plătită/anulată)
+        if (input.tableId && finalStatus !== "paid" && finalStatus !== "cancelled") {
           await db
             .update(horecaTables)
             .set({ status: "occupied", currentOrderId: orderId })
             .where(
               and(
                 eq(horecaTables.id, input.tableId),
-                eq(horecaTables.tenantId, ctx.user.tenantId!)
+                eq(horecaTables.tenantId, tenantId)
               )
             );
         }
@@ -770,16 +945,17 @@ export const horecaRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        const tenantId = tenantOf(ctx);
         const [ownOrder] = await db
           .select({ id: horecaOrders.id })
           .from(horecaOrders)
-          .where(and(eq(horecaOrders.id, input.orderId), eq(horecaOrders.tenantId, ctx.user.tenantId!)));
+          .where(and(eq(horecaOrders.id, input.orderId), eq(horecaOrders.tenantId, tenantId)));
         if (!ownOrder) throw new Error("Order not found");
         if (input.menuItemId) {
           const [ownItem] = await db
             .select({ id: horecaMenuItems.id })
             .from(horecaMenuItems)
-            .where(and(eq(horecaMenuItems.id, input.menuItemId), eq(horecaMenuItems.tenantId, ctx.user.tenantId!)));
+            .where(and(eq(horecaMenuItems.id, input.menuItemId), eq(horecaMenuItems.tenantId, tenantId)));
           if (!ownItem) throw new Error("Produsul nu a fost găsit");
         }
         const qty = Number(input.quantity);
@@ -791,7 +967,7 @@ export const horecaRouter = router({
         const total = parseFloat((qty * price).toFixed(2));
         await db.insert(horecaOrderLines).values({
           orderId: input.orderId,
-          tenantId: ctx.user.tenantId!,
+          tenantId,
           menuItemId: input.menuItemId,
           name: input.name,
           quantity: input.quantity,
@@ -811,6 +987,7 @@ export const horecaRouter = router({
           .where(
             and(
               eq(horecaOrderLines.orderId, input.orderId),
+              eq(horecaOrderLines.tenantId, tenantId),
               sql`status != 'cancelled'`
             )
           );
@@ -823,7 +1000,7 @@ export const horecaRouter = router({
             vatAmount: totalVat.toFixed(2),
             total: subtotal.toFixed(2),
           })
-          .where(and(eq(horecaOrders.id, input.orderId), eq(horecaOrders.tenantId, ctx.user.tenantId!)));
+          .where(and(eq(horecaOrders.id, input.orderId), eq(horecaOrders.tenantId, tenantId)));
         return { success: true };
       }),
 
@@ -850,6 +1027,7 @@ export const horecaRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        const tenantId = tenantOf(ctx);
         const { id, status, paymentMethod, tip, discount } = input;
 
         const [oldOrder] = await db
@@ -858,7 +1036,7 @@ export const horecaRouter = router({
           .where(
             and(
               eq(horecaOrders.id, id),
-              eq(horecaOrders.tenantId, ctx.user.tenantId!)
+              eq(horecaOrders.tenantId, tenantId)
             )
           );
         if (!oldOrder) throw new Error("Order not found");
@@ -877,7 +1055,7 @@ export const horecaRouter = router({
           .where(
             and(
               eq(horecaOrders.id, id),
-              eq(horecaOrders.tenantId, ctx.user.tenantId!)
+              eq(horecaOrders.tenantId, tenantId)
             )
           );
 
@@ -890,7 +1068,7 @@ export const horecaRouter = router({
               .where(
                 and(
                   eq(horecaTables.id, oldOrder.tableId),
-                  eq(horecaTables.tenantId, ctx.user.tenantId!)
+                  eq(horecaTables.tenantId, tenantId)
                 )
               );
           }
@@ -901,7 +1079,7 @@ export const horecaRouter = router({
           const lines = await db
             .select()
             .from(horecaOrderLines)
-            .where(eq(horecaOrderLines.orderId, id));
+            .where(and(eq(horecaOrderLines.orderId, id), eq(horecaOrderLines.tenantId, tenantId)));
           
           const ingredientsToConsume: any[] = [];
           const horecaStockUpdates: { ingredientId: number; qty: number; unitCost: number }[] = [];
@@ -911,7 +1089,7 @@ export const horecaRouter = router({
               const recipeLines = await db
                 .select()
                 .from(horecaRecipeLines)
-                .where(and(eq(horecaRecipeLines.menuItemId, line.menuItemId), eq(horecaRecipeLines.tenantId, ctx.user.tenantId!)));
+                .where(and(eq(horecaRecipeLines.menuItemId, line.menuItemId), eq(horecaRecipeLines.tenantId, tenantId)));
               for (const recipe of recipeLines) {
                 const consumeQty = Number(recipe.quantity) * Number(line.quantity);
                 const unitCost = Number(recipe.unitCost || 0);
@@ -938,7 +1116,7 @@ export const horecaRouter = router({
           // 1. Generate Bon de Consum for ERP module (if global inventory is used)
           if (ingredientsToConsume.length > 0) {
             const [bc] = await db.insert(bonuriConsum).values({
-              tenantId: ctx.user.tenantId!,
+              tenantId,
               number: `BC-CMD-${oldOrder.orderNumber}`,
               date: new Date(),
               gestiune: "Horeca",
@@ -957,9 +1135,9 @@ export const horecaRouter = router({
 
           // 2. Real-time deduction from local Horeca Inventory
           for (const stockUpd of horecaStockUpdates) {
-             await db.execute(sql`UPDATE horecaIngredients SET currentStock = currentStock - ${stockUpd.qty} WHERE id = ${stockUpd.ingredientId} AND tenantId = ${ctx.user.tenantId!}`);
+             await db.execute(sql`UPDATE horecaIngredients SET currentStock = currentStock - ${stockUpd.qty} WHERE id = ${stockUpd.ingredientId} AND tenantId = ${tenantId}`);
              await db.insert(horecaStockMovements).values({
-               tenantId: ctx.user.tenantId!,
+               tenantId,
                locationId: oldOrder.locationId,
                ingredientId: stockUpd.ingredientId,
                type: "out",
@@ -970,7 +1148,7 @@ export const horecaRouter = router({
           }
 
           // 3. Mark order as stock deducted
-          await db.update(horecaOrders).set({ stockDeducted: 1 }).where(and(eq(horecaOrders.id, id), eq(horecaOrders.tenantId, ctx.user.tenantId!)));
+          await db.update(horecaOrders).set({ stockDeducted: 1 }).where(and(eq(horecaOrders.id, id), eq(horecaOrders.tenantId, tenantId)));
         }
 
         return { success: true };
@@ -981,19 +1159,20 @@ export const horecaRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        const tenantId = tenantOf(ctx);
         await db
           .update(horecaOrders)
           .set({ status: "cancelled", closedAt: new Date() })
           .where(
             and(
               eq(horecaOrders.id, input.id),
-              eq(horecaOrders.tenantId, ctx.user.tenantId!)
+              eq(horecaOrders.tenantId, tenantId)
             )
           );
         const [order] = await db
           .select()
           .from(horecaOrders)
-          .where(and(eq(horecaOrders.id, input.id), eq(horecaOrders.tenantId, ctx.user.tenantId!)));
+          .where(and(eq(horecaOrders.id, input.id), eq(horecaOrders.tenantId, tenantId)));
         if (order?.tableId) {
           await db
             .update(horecaTables)
@@ -1001,7 +1180,7 @@ export const horecaRouter = router({
             .where(
               and(
                 eq(horecaTables.id, order.tableId),
-                eq(horecaTables.tenantId, ctx.user.tenantId!)
+                eq(horecaTables.tenantId, tenantId)
               )
             );
         }
@@ -1023,7 +1202,7 @@ export const horecaRouter = router({
           .from(horecaDeliveryOrders)
           .where(
             and(
-              eq(horecaDeliveryOrders.tenantId, ctx.user.tenantId!),
+              eq(horecaDeliveryOrders.tenantId, tenantOf(ctx)),
               eq(horecaDeliveryOrders.locationId, input.locationId)
             )
           )
@@ -1054,9 +1233,11 @@ export const horecaRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        const tenantId = tenantOf(ctx);
+        await assertLocationOwned(db, input.locationId, tenantId);
         const [r] = await db
           .insert(horecaDeliveryOrders)
-          .values({ tenantId: ctx.user.tenantId!, ...input });
+          .values({ tenantId, ...input });
         return { id: (r as any).insertId };
       }),
 
@@ -1080,14 +1261,23 @@ export const horecaRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        const tenantId = tenantOf(ctx);
         const { id, ...rest } = input;
+        if (rest.internalOrderId) {
+          const [ownOrd] = await db
+            .select({ id: horecaOrders.id })
+            .from(horecaOrders)
+            .where(and(eq(horecaOrders.id, rest.internalOrderId), eq(horecaOrders.tenantId, tenantId)))
+            .limit(1);
+          if (!ownOrd) throw new TRPCError({ code: "FORBIDDEN", message: "Comanda internă nu aparține firmei curente." });
+        }
         await db
           .update(horecaDeliveryOrders)
           .set(rest)
           .where(
             and(
               eq(horecaDeliveryOrders.id, id),
-              eq(horecaDeliveryOrders.tenantId, ctx.user.tenantId!)
+              eq(horecaDeliveryOrders.tenantId, tenantId)
             )
           );
         return { success: true };
@@ -1106,7 +1296,7 @@ export const horecaRouter = router({
           .from(horecaShifts)
           .where(
             and(
-              eq(horecaShifts.tenantId, ctx.user.tenantId!),
+              eq(horecaShifts.tenantId, tenantOf(ctx)),
               eq(horecaShifts.locationId, input.locationId),
               eq(horecaShifts.status, "open")
             )
@@ -1123,13 +1313,15 @@ export const horecaRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        const tenantId = tenantOf(ctx);
+        await assertLocationOwned(db, input.locationId, tenantId);
         // Verifica daca exista deja o tura deschisa
         const existing = await db
           .select()
           .from(horecaShifts)
           .where(
             and(
-              eq(horecaShifts.tenantId, ctx.user.tenantId!),
+              eq(horecaShifts.tenantId, tenantId),
               eq(horecaShifts.locationId, input.locationId),
               eq(horecaShifts.status, "open")
             )
@@ -1138,7 +1330,7 @@ export const horecaRouter = router({
           throw new Error("Există deja o tură deschisă!");
 
         const [r] = await db.insert(horecaShifts).values({
-          tenantId: ctx.user.tenantId!,
+          tenantId,
           locationId: input.locationId,
           startCash: String(input.startCash),
           openedBy: ctx.user.id,
@@ -1158,12 +1350,13 @@ export const horecaRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        const tenantId = tenantOf(ctx);
 
         const [shift] = await db
           .select()
           .from(horecaShifts)
           .where(
-            and(eq(horecaShifts.id, input.id), eq(horecaShifts.status, "open"), eq(horecaShifts.tenantId, ctx.user.tenantId!))
+            and(eq(horecaShifts.id, input.id), eq(horecaShifts.status, "open"), eq(horecaShifts.tenantId, tenantId))
           );
         if (!shift)
           throw new Error("Tura nu a fost găsită sau este deja închisă!");
@@ -1174,7 +1367,7 @@ export const horecaRouter = router({
           .from(horecaOrders)
           .where(
             and(
-              eq(horecaOrders.tenantId, ctx.user.tenantId!),
+              eq(horecaOrders.tenantId, tenantId),
               eq(horecaOrders.locationId, shift.locationId),
               eq(horecaOrders.status, "paid")
             )
@@ -1225,7 +1418,7 @@ export const horecaRouter = router({
             notes: input.notes,
             zReportData: zData,
           })
-          .where(and(eq(horecaShifts.id, input.id), eq(horecaShifts.tenantId, ctx.user.tenantId!)));
+          .where(and(eq(horecaShifts.id, input.id), eq(horecaShifts.tenantId, tenantId)));
 
         return { success: true };
       }),
@@ -1240,7 +1433,7 @@ export const horecaRouter = router({
           .from(horecaShifts)
           .where(
             and(
-              eq(horecaShifts.tenantId, ctx.user.tenantId!),
+              eq(horecaShifts.tenantId, tenantOf(ctx)),
               eq(horecaShifts.locationId, input.locationId)
             )
           )
@@ -1261,7 +1454,7 @@ export const horecaRouter = router({
           .from(horecaOrders)
           .where(
             and(
-              eq(horecaOrders.tenantId, ctx.user.tenantId!),
+              eq(horecaOrders.tenantId, tenantOf(ctx)),
               eq(horecaOrders.locationId, input.locationId)
             )
           );
@@ -1298,7 +1491,7 @@ export const horecaRouter = router({
           .from(horecaDeliveryOrders)
           .where(
             and(
-              eq(horecaDeliveryOrders.tenantId, ctx.user.tenantId!),
+              eq(horecaDeliveryOrders.tenantId, tenantOf(ctx)),
               eq(horecaDeliveryOrders.locationId, input.locationId)
             )
           );
@@ -1335,7 +1528,7 @@ export const horecaRouter = router({
           .from(horecaKioskSettings)
           .where(
             and(
-              eq(horecaKioskSettings.tenantId, ctx.user.tenantId!),
+              eq(horecaKioskSettings.tenantId, tenantOf(ctx)),
               eq(horecaKioskSettings.locationId, input.locationId)
             )
           )
@@ -1373,6 +1566,8 @@ export const horecaRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        const tenantId = tenantOf(ctx);
+        await assertLocationOwned(db, input.locationId, tenantId);
 
         // Check if exists
         const existing = await db
@@ -1380,7 +1575,7 @@ export const horecaRouter = router({
           .from(horecaKioskSettings)
           .where(
             and(
-              eq(horecaKioskSettings.tenantId, ctx.user.tenantId!),
+              eq(horecaKioskSettings.tenantId, tenantId),
               eq(horecaKioskSettings.locationId, input.locationId)
             )
           )
@@ -1397,7 +1592,7 @@ export const horecaRouter = router({
           return { success: true };
         } else {
           await db.insert(horecaKioskSettings).values({
-            tenantId: ctx.user.tenantId!,
+            tenantId,
             ...input,
           });
           return { success: true };
@@ -1431,7 +1626,7 @@ export const horecaRouter = router({
           process.env.SMART_KIOSK_API_KEY || "sk-live-2024-secure";
 
         const resp = await fetch(
-          `${KIOSK_API}/api/locations/${input.locationId}`,
+          `${KIOSK_API}/api/locations/${encodeURIComponent(input.locationId)}`,
           {
             headers: { "x-api-key": API_KEY },
           }
@@ -1467,7 +1662,7 @@ export const horecaRouter = router({
         const { token } = await loginResp.json();
 
         const resp = await fetch(
-          `${KIOSK_API}/api/locations/${input.locationId}`,
+          `${KIOSK_API}/api/locations/${encodeURIComponent(input.locationId)}`,
           {
             method: "PUT",
             headers: {
@@ -1521,8 +1716,8 @@ export const horecaRouter = router({
         const API_KEY =
           process.env.SMART_KIOSK_API_KEY || "sk-live-2024-secure";
 
-        let url = `${KIOSK_API}/api/menu?brandId=${input.brandId}`;
-        if (input.locId) url += `&locId=${input.locId}`;
+        let url = `${KIOSK_API}/api/menu?brandId=${encodeURIComponent(input.brandId)}`;
+        if (input.locId) url += `&locId=${encodeURIComponent(input.locId)}`;
 
         const resp = await fetch(url, { headers: { "x-api-key": API_KEY } });
         if (!resp.ok) throw new Error(`Menu fetch failed: ${resp.status}`);
@@ -1544,9 +1739,9 @@ export const horecaRouter = router({
         const API_KEY =
           process.env.SMART_KIOSK_API_KEY || "sk-live-2024-secure";
 
-        let url = `${KIOSK_API}/api/orders?limit=${input.limit}`;
-        if (input.status) url += `&status=${input.status}`;
-        if (input.brand) url += `&brand=${input.brand}`;
+        let url = `${KIOSK_API}/api/orders?limit=${encodeURIComponent(String(input.limit))}`;
+        if (input.status) url += `&status=${encodeURIComponent(input.status)}`;
+        if (input.brand) url += `&brand=${encodeURIComponent(input.brand)}`;
 
         const resp = await fetch(url, { headers: { "x-api-key": API_KEY } });
         if (!resp.ok) throw new Error(`Orders fetch failed: ${resp.status}`);
@@ -1562,9 +1757,12 @@ export const horecaRouter = router({
         const API_KEY =
           process.env.SMART_KIOSK_API_KEY || "sk-live-2024-secure";
 
-        const resp = await fetch(`${KIOSK_API}/api/orders/${input.orderId}`, {
-          headers: { "x-api-key": API_KEY },
-        });
+        const resp = await fetch(
+          `${KIOSK_API}/api/orders/${encodeURIComponent(input.orderId)}`,
+          {
+            headers: { "x-api-key": API_KEY },
+          }
+        );
         if (!resp.ok) throw new Error(`Order not found: ${resp.status}`);
         return resp.json();
       }),

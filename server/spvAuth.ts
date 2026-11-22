@@ -1,8 +1,58 @@
 import type { Express } from "express";
+import crypto from "crypto";
 import { getDb } from "./db";
-import { integrations } from "../drizzle/schema";
+import { integrations, userTenants } from "../drizzle/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { ENV } from "./_core/env";
+import { authenticateFileRequest } from "./fileAuth";
+import { isValidBidirectionalPair } from "./tenant";
+
+function getSpvStateSecret(): string {
+  if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
+  if (process.env.NODE_ENV !== "production") return "dev_spv_oauth_state_secret";
+  throw new Error("JWT_SECRET is required in production for SPV OAuth state signing");
+}
+
+export function createSpvOAuthState(tenantId: number): string {
+  const expiresAt = Date.now() + 15 * 60 * 1000;
+  const payload = `${tenantId}:${expiresAt}`;
+  const sig = crypto
+    .createHmac("sha256", getSpvStateSecret())
+    .update(payload)
+    .digest("hex");
+  return `${payload}.${sig}`;
+}
+
+export function verifySpvOAuthState(stateStr: string): number | null {
+  try {
+    if (!stateStr) return null;
+    const dotIdx = stateStr.indexOf(".");
+    if (dotIdx <= 0) return null;
+    const payload = stateStr.slice(0, dotIdx);
+    const sig = stateStr.slice(dotIdx + 1);
+    const [tIdStr, expStr] = payload.split(":");
+    const tenantId = parseInt(tIdStr, 10);
+    const expiresAt = parseInt(expStr, 10);
+    if (!Number.isFinite(tenantId) || tenantId <= 0 || !Number.isFinite(expiresAt)) {
+      return null;
+    }
+    if (Date.now() > expiresAt) return null;
+
+    const expected = crypto
+      .createHmac("sha256", getSpvStateSecret())
+      .update(payload)
+      .digest("hex");
+    if (
+      sig.length !== expected.length ||
+      !crypto.timingSafeEqual(Buffer.from(sig, "utf8"), Buffer.from(expected, "utf8"))
+    ) {
+      return null;
+    }
+    return tenantId;
+  } catch {
+    return null;
+  }
+}
 
 function extractJwtSub(jwtToken?: string | null): string | null {
   if (!jwtToken) return null;
@@ -20,10 +70,39 @@ function extractJwtSub(jwtToken?: string | null): string | null {
 
 export function registerSpvAuth(app: Express) {
   // Initiates the OAuth flow
-  app.get("/api/spv/auth", (req, res) => {
-    const { tenantId } = req.query;
-    if (!tenantId) {
+  app.get("/api/spv/auth", async (req, res) => {
+    const auth = await authenticateFileRequest(req);
+    if (!auth) {
+      return res.status(401).send("Neautentificat.");
+    }
+
+    const askedId = req.query.tenantId ? parseInt(String(req.query.tenantId), 10) : auth.tenantId;
+    if (!Number.isFinite(askedId) || askedId <= 0) {
       return res.status(400).send("Tenant ID is required.");
+    }
+
+    if (askedId !== auth.tenantId && auth.role !== "superadmin") {
+      const db = await getDb();
+      if (!db) {
+        return res.status(500).send("Database connection failed.");
+      }
+      const [ut] = auth.accountId
+        ? await db
+            .select({ id: userTenants.id })
+            .from(userTenants)
+            .where(
+              and(
+                eq(userTenants.userId, auth.accountId),
+                eq(userTenants.tenantId, askedId),
+                eq(userTenants.isActive, 1)
+              )
+            )
+            .limit(1)
+        : [undefined];
+      const pairedOk = ut ? true : await isValidBidirectionalPair(db, auth.tenantId, askedId);
+      if (!ut && !pairedOk) {
+        return res.status(403).send("Acces interzis la acest profil.");
+      }
     }
 
     const clientId = process.env.SPV_CLIENT_ID;
@@ -44,8 +123,7 @@ export function registerSpvAuth(app: Express) {
     authUrl.searchParams.append("client_id", clientId);
     authUrl.searchParams.append("redirect_uri", redirectUri);
     authUrl.searchParams.append("token_content_type", "jwt");
-    // You can pass the tenantId in state so it returns in the callback
-    authUrl.searchParams.append("state", String(tenantId));
+    authUrl.searchParams.append("state", createSpvOAuthState(askedId));
 
     res.redirect(authUrl.toString());
   });
@@ -64,9 +142,9 @@ export function registerSpvAuth(app: Express) {
       return res.status(400).send("Missing code or state from ANAF.");
     }
 
-    const tenantId = parseInt(state as string, 10);
-    if (isNaN(tenantId)) {
-      return res.status(400).send("Invalid state (tenantId).");
+    const tenantId = verifySpvOAuthState(String(state));
+    if (!tenantId) {
+      return res.status(400).send("Invalid or expired OAuth state.");
     }
 
     const clientId = process.env.SPV_CLIENT_ID;

@@ -142,7 +142,7 @@ export default function InvoicesEmitted() {
   };
 
   const { data: currentTenantObj } = trpc.tenants.current.useQuery();
-  const tenant = currentTenantObj || tenants[0]?.tenants;
+  const tenant = currentTenantObj || (tenants[0] as any)?.tenants || tenants[0];
   const tenantSettings = useMemo(() => {
     try {
       return JSON.parse(tenant?.settings || "{}");

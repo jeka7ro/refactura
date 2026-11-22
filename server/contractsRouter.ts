@@ -1,10 +1,44 @@
 import { router, protectedProcedure } from "./_core/trpc";
+import { TRPCError } from "@trpc/server";
 import { tenantOf } from "./tenant";
 import { z } from "zod";
 import { getDb } from "./db";
 import { contracts, contractLogs, clients, tenants } from "../drizzle/schema";
 import { eq, and, desc, sql, like, or } from "drizzle-orm";
 import { getAllContractTemplates } from "./contractTemplates";
+
+async function validateContractFileUrl(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
+  tenantId: number,
+  fileUrl?: string | null
+) {
+  if (!fileUrl) return;
+  const trimmed = fileUrl.trim();
+  if (!trimmed) return;
+  if (
+    !trimmed.startsWith("/uploads/contracts/") ||
+    trimmed.includes("..") ||
+    trimmed.includes("\\") ||
+    trimmed.includes("\0") ||
+    !/^\/uploads\/contracts\/[a-zA-Z0-9._ -]+$/.test(trimmed)
+  ) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Calea fișierului de contract este invalidă.",
+    });
+  }
+  const [foreignOwner] = await db
+    .select({ id: contracts.id })
+    .from(contracts)
+    .where(and(eq(contracts.fileUrl, trimmed), sql`${contracts.tenantId} != ${tenantId}`))
+    .limit(1);
+  if (foreignOwner) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Fișierul aparține altei firme.",
+    });
+  }
+}
 
 export const contractsRouter = router({
   /**
@@ -112,7 +146,7 @@ export const contractsRouter = router({
           partnerCity: clients.city,
         })
         .from(contracts)
-        .leftJoin(clients, eq(contracts.partnerId, clients.id))
+        .leftJoin(clients, and(eq(contracts.partnerId, clients.id), eq(clients.tenantId, tenantId)))
         .where(
           and(
             eq(contracts.tenantId, tenantId),
@@ -209,7 +243,7 @@ export const contractsRouter = router({
           partnerIsSupplier: clients.isSupplier,
         })
         .from(contracts)
-        .leftJoin(clients, eq(contracts.partnerId, clients.id))
+        .leftJoin(clients, and(eq(contracts.partnerId, clients.id), eq(clients.tenantId, tenantId)))
         .where(and(eq(contracts.id, input.id), eq(contracts.tenantId, tenantId)));
 
       if (!contract) {
@@ -280,6 +314,33 @@ export const contractsRouter = router({
       if (!db) throw new Error("Baza de date indisponibilă");
 
       let resolvedPartnerId = input.partnerId || null;
+      if (resolvedPartnerId) {
+        const [ownPartner] = await db
+          .select({ id: clients.id })
+          .from(clients)
+          .where(and(eq(clients.id, resolvedPartnerId), eq(clients.tenantId, tenantId)))
+          .limit(1);
+        if (!ownPartner) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Partenerul selectat nu aparține firmei curente.",
+          });
+        }
+      }
+      if (input.parentContractId) {
+        const [ownParent] = await db
+          .select({ id: contracts.id })
+          .from(contracts)
+          .where(and(eq(contracts.id, input.parentContractId), eq(contracts.tenantId, tenantId)))
+          .limit(1);
+        if (!ownParent) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Contractul părinte nu aparține firmei curente.",
+          });
+        }
+      }
+      await validateContractFileUrl(db, tenantId, input.fileUrl);
       if (!resolvedPartnerId && (input.partnerName || input.partnerCui)) {
         const allPartners = await db
           .select({ id: clients.id, name: clients.name, cui: clients.cui })
@@ -417,7 +478,22 @@ export const contractsRouter = router({
       if (!prev) throw new Error("Contractul nu a fost găsit");
 
       const updateData: any = {};
-      if (input.partnerId !== undefined) updateData.partnerId = input.partnerId;
+      if (input.partnerId !== undefined) {
+        if (input.partnerId !== null) {
+          const [ownPartner] = await db
+            .select({ id: clients.id })
+            .from(clients)
+            .where(and(eq(clients.id, input.partnerId), eq(clients.tenantId, tenantId)))
+            .limit(1);
+          if (!ownPartner) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Partenerul selectat nu aparține firmei curente.",
+            });
+          }
+        }
+        updateData.partnerId = input.partnerId;
+      }
       if (input.title !== undefined) updateData.title = input.title;
       if (input.number !== undefined) updateData.number = input.number;
       if (input.date !== undefined) updateData.date = input.date;
@@ -546,6 +622,15 @@ export const contractsRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Baza de date indisponibilă");
 
+      const [ownContract] = await db
+        .select({ id: contracts.id })
+        .from(contracts)
+        .where(and(eq(contracts.id, input.contractId), eq(contracts.tenantId, tenantId)))
+        .limit(1);
+      if (!ownContract) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Contractul nu a fost găsit" });
+      }
+
       await db.insert(contractLogs).values({
         tenantId,
         contractId: input.contractId,
@@ -627,11 +712,13 @@ export const contractsRouter = router({
         if (c) partnerByCui.set(c, p.id);
       }
 
+      const partnerIdsSet = new Set(allPartners.map(p => p.id));
       let importedCount = 0;
       const results = [];
 
       for (const f of input.files) {
-        let assignedPartnerId: number | null = f.partnerId || null;
+        await validateContractFileUrl(db, tenantId, f.fileUrl);
+        let assignedPartnerId: number | null = f.partnerId && partnerIdsSet.has(f.partnerId) ? f.partnerId : null;
 
         // Auto-match dupa CUI daca este detectat
         if (!assignedPartnerId && f.cui) {

@@ -38,7 +38,7 @@
           total: message.total,
           tip: message.tip,
         },
-        "*"
+        window.location.origin
       );
       sendResponse({ ok: true });
       return false;
@@ -71,7 +71,7 @@
           requestId: message.requestId,
           item: message.item,
         },
-        "*"
+        window.location.origin
       );
       return true;
     }
@@ -80,7 +80,7 @@
   };
 
   const onWindowMessage = async (event) => {
-    if (event.source !== window) return;
+    if (event.source !== window || event.origin !== window.location.origin) return;
     if (!chrome?.runtime?.id) {
       try {
         window.__spvConnectorCleanup?.();
@@ -102,7 +102,7 @@
           version: EXTENSION_VERSION,
           requestId: data.requestId || null,
         },
-        "*"
+        window.location.origin
       );
       return;
     }
@@ -136,7 +136,7 @@
             requestId: data.requestId,
             ...(result || { ok: false, error: "Raspuns gol de la extensie." }),
           },
-          "*"
+          window.location.origin
         );
       } catch (err) {
         window.postMessage(
@@ -150,7 +150,7 @@
                 ? err.message
                 : "Comunicarea cu extensia SPV a esuat. Reincarcati extensia din chrome://extensions.",
           },
-          "*"
+          window.location.origin
         );
       }
     }

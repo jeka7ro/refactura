@@ -10,6 +10,7 @@ import { verifySessionToken, extractTokenFromHeader } from "./session";
 import { getAccountById } from "./auth";
 import { getDb, getDefaultTenantForUser } from "./db";
 import { verifyAndExtractAccountantSession } from "./accountantPortalRouter";
+import { isValidBidirectionalPair } from "./tenant";
 
 export interface FileAuthInfo {
   accountId: number;
@@ -290,6 +291,15 @@ export async function requirePdfAccess(
             };
             return next();
           }
+
+          if (account.tenantId && (await isValidBidirectionalPair(db, account.tenantId, docTenantId))) {
+            (req as any).fileAuth = {
+              accountId: account.id,
+              tenantId: docTenantId,
+              role: String(account.role || "user"),
+            };
+            return next();
+          }
         }
       }
     }
@@ -304,20 +314,21 @@ export async function requirePdfAccess(
 }
 
 /**
- * Pentru /uploads/invoices și /uploads/contracts: pe lângă autentificare, un fișier
- * care aparține (e referit de) o altă firmă nu poate fi deschis de o firmă străină.
- * Fișierele încă nereferite (tocmai încărcate, înainte de salvare) rămân accesibile.
+ * Pentru /uploads/invoices, /uploads/contracts și /uploads/spv_documents: pe lângă autentificare,
+ * un fișier care aparține (e referit de) o altă firmă nu poate fi deschis de o firmă străină.
+ * Fișierele încă nereferite (tocmai încărcate, înainte de salvare) rămân accesibile doar utilizatorilor autentificați.
  */
-export function requireUploadAccess(kind: "invoices" | "contracts") {
+export function requireUploadAccess(kind: "invoices" | "contracts" | "spv_documents") {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       let name = req.path.replace(/^\/+/, "");
       try {
         name = decodeURIComponent(name);
       } catch {
-        /* keep raw */
+        res.status(400).json({ error: "Cale invalidă" });
+        return;
       }
-      if (!name || name.includes("..")) {
+      if (!name || name.includes("..") || name.includes("/") || name.includes("\\") || name.includes("\0")) {
         res.status(400).json({ error: "Cale invalidă" });
         return;
       }
@@ -329,14 +340,26 @@ export function requireUploadAccess(kind: "invoices" | "contracts") {
         return;
       }
       const schema = await import("../drizzle/schema");
-      const table: any = kind === "invoices" ? schema.invoiceArchive : schema.contracts;
-      const owners = await db
-        .select({ tenantId: table.tenantId })
-        .from(table)
-        .where(eq(table.fileUrl, url));
+      let owners: Array<{ tenantId: number }> = [];
+      if (kind === "spv_documents") {
+        const [spvRows]: any = await (db as any).execute(
+          sql`SELECT tenantId FROM spv_portal_documents WHERE fileUrl = ${url}`
+        );
+        owners = (spvRows || []).filter((r: any) => r?.tenantId);
+      } else {
+        const table: any = kind === "invoices" ? schema.invoiceArchive : schema.contracts;
+        owners = await db
+          .select({ tenantId: table.tenantId })
+          .from(table)
+          .where(eq(table.fileUrl, url));
+      }
 
       // Fișiere încă nereferite (înainte de salvare)
       if (owners.length === 0) {
+        if (kind === "spv_documents") {
+          res.status(404).json({ error: "Fișierul nu a fost găsit" });
+          return;
+        }
         const auth = await authenticateFileRequest(req);
         if (!auth) {
           res.status(401).json({ error: "Neautentificat" });
@@ -346,7 +369,7 @@ export function requireUploadAccess(kind: "invoices" | "contracts") {
         return next();
       }
 
-      const ownerTenantIds = new Set(owners.map((o: any) => o.tenantId));
+      const ownerTenantIds = new Set(owners.map((o: any) => Number(o.tenantId)));
 
       // A) Verificare token sesiune contabil
       const accountantToken =
@@ -410,6 +433,15 @@ export function requireUploadAccess(kind: "invoices" | "contracts") {
                 .limit(1);
 
               if (ut) {
+                (req as any).fileAuth = {
+                  accountId: account.id,
+                  tenantId: tId,
+                  role: String(account.role || "user"),
+                };
+                return next();
+              }
+
+              if (account.tenantId && (await isValidBidirectionalPair(db, account.tenantId, tId))) {
                 (req as any).fileAuth = {
                   accountId: account.id,
                   tenantId: tId,

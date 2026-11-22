@@ -82,9 +82,42 @@ export async function requireTenantAccess(ctx: TrpcContext, tenantId: number) {
     return ctx;
   }
 
-  // For other users, tenant access should be verified via userTenants table
-  // This is a placeholder - actual implementation requires database query
-  // TODO: Query userTenants table to verify user has access to tenantId
+  // For other users, verify active membership in userTenants or valid bidirectional PF/PJ pair
+  const { getDb } = await import("./db");
+  const db = await getDb();
+  if (!db) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Baza de date indisponibilă",
+    });
+  }
+
+  const { userTenants } = await import("../drizzle/schema");
+  const { and, eq } = await import("drizzle-orm");
+  const [membership] = await db
+    .select({ id: userTenants.id })
+    .from(userTenants)
+    .where(
+      and(
+        eq(userTenants.userId, ctx.user.id),
+        eq(userTenants.tenantId, tenantId),
+        eq(userTenants.isActive, 1)
+      )
+    )
+    .limit(1);
+
+  if (!membership) {
+    const { isValidBidirectionalPair } = await import("./tenant");
+    const pairedOk = ctx.user.tenantId
+      ? await isValidBidirectionalPair(db, ctx.user.tenantId, tenantId)
+      : false;
+    if (!pairedOk) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Acces interzis la această firmă.",
+      });
+    }
+  }
 
   return ctx;
 }

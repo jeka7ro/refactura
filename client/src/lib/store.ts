@@ -42,6 +42,10 @@ export interface Invoice {
 export interface ReInvoiceLine extends InvoiceLine {
   originalUnitPrice: number;
   markupPercent?: number; // optional markup over original
+  isCustom?: boolean;
+  nirLineId?: number;
+  devizCode?: string;
+  devizType?: string;
 }
 
 export interface ReInvoice {
@@ -626,21 +630,31 @@ export const mockCompanySettings: CompanySettings = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-export function formatCurrency(amount: number, currency: Currency): string {
-  const formatters: Record<Currency, Intl.NumberFormat> = {
-    RON: new Intl.NumberFormat("ro-RO", { style: "currency", currency: "RON" }),
-    EUR: new Intl.NumberFormat("ro-RO", { style: "currency", currency: "EUR" }),
-    USD: new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }),
-    GBP: new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }),
-    CHF: new Intl.NumberFormat("de-CH", { style: "currency", currency: "CHF" }),
-  };
-  return formatters[currency].format(amount);
+export function formatCurrency(
+  amount: number | string | null | undefined,
+  currency?: Currency | string | null
+): string {
+  const code = String(currency || "RON").trim().toUpperCase() || "RON";
+  const num = Number(amount ?? 0);
+  const safeAmount = Number.isFinite(num) ? num : 0;
+  try {
+    return new Intl.NumberFormat("ro-RO", {
+      style: "currency",
+      currency: code,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(safeAmount);
+  } catch {
+    return `${safeAmount.toFixed(2)} ${code}`;
+  }
 }
 
-export function formatDate(dateStr: string | null | undefined): string {
-  if (!dateStr) return "—";
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr;
+export function formatDate(dateStr?: string | Date | null): string {
+  if (!dateStr) return "";
+  const d = dateStr instanceof Date ? dateStr : new Date(dateStr);
+  if (isNaN(d.getTime())) {
+    return dateStr instanceof Date ? "" : String(dateStr);
+  }
   return new Intl.DateTimeFormat("ro-RO", {
     day: "2-digit",
     month: "short",

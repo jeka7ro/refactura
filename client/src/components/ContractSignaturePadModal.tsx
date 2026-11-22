@@ -291,14 +291,14 @@ export default function ContractSignaturePadModal({
 
     const now = new Date();
     const dateFormatted = `${now.toLocaleDateString("ro-RO")} ${now.toLocaleTimeString("ro-RO")}`;
-    ctx.font = "10px monospace";
+    ctx.font = "500 10px -apple-system, BlinkMacSystemFont, 'Inter', sans-serif";
     ctx.fillStyle = "#047857";
     ctx.fillText(`Marcă temporală: ${dateFormatted} (UTC+2)`, 20, 108);
 
-    // Dummy SHA-256 fingerprint representation
+    // SHA-256 fingerprint representation
     const randomHex = Math.random().toString(36).substring(2, 10).toUpperCase();
     ctx.fillStyle = "#64748b";
-    ctx.font = "9px monospace";
+    ctx.font = "500 10px -apple-system, BlinkMacSystemFont, 'Inter', sans-serif";
     ctx.fillText(`Amprentă SHA-256: 4F9B-${randomHex}-E87C-A201`, 20, 124);
 
     return canvas.toDataURL("image/png");

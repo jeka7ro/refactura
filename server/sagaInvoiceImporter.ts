@@ -447,18 +447,24 @@ export function isExternalSagaInvoice(inv: {
   const country = (inv.clientCountry || "").trim().toUpperCase();
   const cui = (inv.clientCUI || "").trim().toUpperCase();
 
-  // 1. Dacă valuta este diferită de RON (ex: EUR, USD, GBP, CHF), este cert factură externă
-  if (curr && curr !== "RON") {
+  const isRomanianCountry =
+    country === "RO" || country === "ROMANIA" || country === "ROMÂNIA" || country === "ROU";
+  const isRomanianCui =
+    Boolean(cui) && (cui.startsWith("RO") || /^\d{2,13}$/.test(cui));
+  const isRomanianClient = isRomanianCountry || (!country && isRomanianCui);
+
+  // 1. Dacă țara este specificată și NU este România (RO, ROMANIA, ROU)
+  if (country && !isRomanianCountry) {
     return true;
   }
 
-  // 2. Dacă țara este specificată și NU este România (RO, ROMANIA, ROU)
-  if (country && country !== "RO" && country !== "ROMANIA" && country !== "ROMÂNIA" && country !== "ROU") {
-    return true;
-  }
-
-  // 3. Dacă CUI-ul are prefix de altă țară UE/non-UE (ex: DE123456, FR123456, BG123456, etc.)
+  // 2. Dacă CUI-ul are prefix de altă țară UE/non-UE (ex: DE123456, FR123456, BG123456, etc.)
   if (cui && /^[A-Z]{2}/.test(cui) && !cui.startsWith("RO")) {
+    return true;
+  }
+
+  // 3. Dacă valuta este diferită de RON și clientul NU este din România
+  if (curr && curr !== "RON" && curr !== "LEI" && !isRomanianClient) {
     return true;
   }
 

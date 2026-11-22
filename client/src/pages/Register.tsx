@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/input-group";
 import { toast } from "sonner";
 import { GoogleLogin } from "@react-oauth/google";
+import { cleanErrorMessage } from "@/lib/utils";
 
 export default function Register() {
   const [, setLocation] = useLocation();
@@ -61,6 +62,8 @@ export default function Register() {
         localStorage.setItem("authToken", result.token);
         window.location.href = "/dashboard";
       }
+    } catch (err) {
+      setError(cleanErrorMessage(err, "Eroare la crearea contului."));
     } finally {
       setIsLoading(false);
     }
@@ -82,7 +85,7 @@ export default function Register() {
         window.location.href = "/dashboard";
       }
     } catch (err) {
-      setError((err as Error).message || "Eroare la înregistrarea cu Google");
+      setError(cleanErrorMessage(err, "Eroare la înregistrarea cu Google."));
     } finally {
       setIsLoading(false);
     }
@@ -176,9 +179,9 @@ export default function Register() {
             Creează cont
           </h1>
 
-          <div className="bg-white px-6 py-5 rounded-lg shadow-xl shadow-slate-200/50 border border-slate-100">
+          <div className="bg-white px-6 py-5 rounded-[24px] shadow-xl shadow-slate-950/30 border border-slate-100">
             {error && (
-              <div className="mb-5 p-4 bg-red-50 border border-red-200 rounded-lg flex gap-3 items-start">
+              <div className="mb-5 p-4 bg-red-50 border border-red-200 rounded-2xl flex gap-3 items-start">
                 <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-red-700 font-medium">{error}</p>
               </div>
@@ -317,9 +320,9 @@ export default function Register() {
                     />
                     <button
                       type="button"
+                      aria-label={showPassword ? "Ascunde parola" : "Arată parola"}
                       onClick={() => setShowPassword(!showPassword)}
-                      tabIndex={-1}
-                      className="text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0 focus:outline-none px-2"
+                      className="w-8 h-8 rounded-full inline-flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors flex-shrink-0 focus-visible:ring-2 focus-visible:ring-primary/40 outline-none"
                     >
                       {showPassword ? (
                         <EyeOff className="w-4 h-4" />
@@ -368,13 +371,13 @@ export default function Register() {
                       onChange={e => setConfirmPassword(e.target.value)}
                       placeholder="Repetă parola"
                       disabled={isLoading}
-                      className="py-3"
+                      className="py-3 rounded-full"
                     />
                     <button
                       type="button"
+                      aria-label={showConfirm ? "Ascunde confirmarea parolei" : "Arată confirmarea parolei"}
                       onClick={() => setShowConfirm(!showConfirm)}
-                      tabIndex={-1}
-                      className="text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0 focus:outline-none px-2"
+                      className="w-8 h-8 rounded-full inline-flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors flex-shrink-0 focus-visible:ring-2 focus-visible:ring-primary/40 outline-none"
                     >
                       {showConfirm ? (
                         <EyeOff className="w-4 h-4" />
@@ -462,7 +465,7 @@ export default function Register() {
                       setError("Eroare la înregistrarea cu Google (Client side)");
                     }}
                     useOneTap
-                    shape="rectangular"
+                    shape="pill"
                     text="signup_with"
                     theme="outline"
                   />
