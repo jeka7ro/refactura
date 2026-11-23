@@ -1,5 +1,18 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-23 11:20 — Selector mod interfață implicită (`Interfață Normală` vs `Interfață SAGA`) în Setări -> Portalul Contabilului
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Backend (`server/routers.ts`, `server/accountantPortalRouter.ts`):**
+     - Extins `tenants.getAccountantPortalConfig`, `tenants.updateAccountantPortalConfig` și `accountantPortal.getPublicInfo` cu proprietatea `defaultViewMode` (`"modern" | "saga"`, salvată în `settings.accountantPortal.defaultViewMode`), păstrând valoarea implicită `"saga"` pentru firmele existente.
+  2. **Setări Portal Contabil (`client/src/pages/Settings.tsx`):**
+     - Adăugat selectorul segmentat Apple (`Interfață Normală` / `Interfață SAGA`) direct în `/setari?tab=accountant` cu salvare imediată la click și curățare automată a override-urilor vechi din browser, plus includere în `Salvează Modificările`.
+  3. **Aplicare automată în Portalul Contabilului (`client/src/pages/AccountantPortal.tsx`):**
+     - Portalul se deschide direct în modul configurat de firmă (`publicInfo.defaultViewMode`), eliminând blocajul din vechiul `localStorage` global, în timp ce butonul de comutare din interiorul portalului rămâne disponibil ca suprascriere temporară pe sesiunea curentă (`sessionStorage`).
+- **Fișiere:** `server/routers.ts`, `server/accountantPortalRouter.ts`, `client/src/pages/Settings.tsx`, `client/src/pages/AccountantPortal.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori) și `npm run build` (`0` erori), fără `git push`.
+
 ### 2026-11-23 11:15 — Compactare proporții carduri KPI și `<Card>` pe toate ecranele (`card.tsx`, `AllInvoices.tsx` și încă 15 pagini)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

@@ -167,6 +167,7 @@ export const accountantPortalRouter = router({
         logoBgColor: settings.logoBgColor || (settings.logoHasBackground ? "#0f172a" : ""),
         logoHasBackground: Boolean(settings.logoHasBackground),
         themeColor: settings.themeColor || "#16a34a",
+        defaultViewMode: (portal.defaultViewMode === "modern" ? "modern" : "saga") as "modern" | "saga",
         requiresPin: hasPin,
         autoSessionToken: isEnabled && !hasPin ? createAccountantSessionToken(tenant.id) : undefined,
       };

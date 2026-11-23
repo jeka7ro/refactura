@@ -37,6 +37,8 @@ import {
   KeyRound,
   Copy,
   ExternalLink,
+  LayoutGrid,
+  Database,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -838,12 +840,16 @@ export default function Settings() {
   const [portalEnabled, setPortalEnabled] = useState(false);
   const [portalPin, setPortalPin] = useState("");
   const [portalSlug, setPortalSlug] = useState("");
+  const [portalViewMode, setPortalViewMode] = useState<"modern" | "saga">("saga");
   const [isCopiedPortalLink, setIsCopiedPortalLink] = useState(false);
 
   useEffect(() => {
     if (accountantPortalConfig) {
       setPortalEnabled(accountantPortalConfig.enabled);
       setPortalSlug(accountantPortalConfig.customSlug || "");
+      setPortalViewMode(
+        accountantPortalConfig.defaultViewMode === "modern" ? "modern" : "saga"
+      );
     }
   }, [accountantPortalConfig]);
 
@@ -854,14 +860,47 @@ export default function Settings() {
     return `${origin}/contabil/${slug}`;
   }, [portalSlug, accountantPortalConfig?.customSlug, accountantPortalConfig?.token]);
 
+  const clearPortalLocalViewOverrides = () => {
+    try {
+      localStorage.removeItem("smart_invoice_accountant_view_mode");
+      for (let i = sessionStorage.length - 1; i >= 0; i--) {
+        const k = sessionStorage.key(i);
+        if (k && k.startsWith("smart_invoice_accountant_view_override_")) {
+          sessionStorage.removeItem(k);
+        }
+      }
+    } catch {}
+  };
+
+  const handleChangePortalViewMode = async (nextMode: "modern" | "saga") => {
+    setPortalViewMode(nextMode);
+    clearPortalLocalViewOverrides();
+    try {
+      await updateAccountantConfigMutation.mutateAsync({
+        enabled: portalEnabled,
+        defaultViewMode: nextMode,
+      });
+      await refetchAccountantConfig();
+      toast.success(
+        nextMode === "modern"
+          ? "Portalul contabil se va deschide în Interfața Normală."
+          : "Portalul contabil se va deschide în Interfața SAGA."
+      );
+    } catch (err: any) {
+      toast.error(err?.message || "Eroare la salvarea modului de afișare.");
+    }
+  };
+
   const handleSavePortalConfig = async (regenerate: boolean = false, clearPin: boolean = false) => {
     try {
+      clearPortalLocalViewOverrides();
       await updateAccountantConfigMutation.mutateAsync({
         enabled: portalEnabled,
         pin: portalPin ? portalPin.trim() : undefined,
         clearPin,
         customSlug: portalSlug ? portalSlug.trim() : undefined,
         regenerateToken: regenerate,
+        defaultViewMode: portalViewMode,
       });
       await refetchAccountantConfig();
       setPortalPin("");
@@ -2154,6 +2193,52 @@ export default function Settings() {
                     }`}
                   />
                 </button>
+              </div>
+
+              {/* Mod Interfață Portal (Normală vs SAGA) */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-4 border-b border-slate-100 dark:border-slate-800">
+                <div className="pr-4">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Interfață Implicită Portal
+                  </div>
+                  <div className="text-xs text-slate-500 mt-0.5">
+                    Alegeți interfața în care se deschide automat portalul pentru contabil, fără comutare manuală.
+                  </div>
+                </div>
+                <div
+                  role="group"
+                  aria-label="Interfață implicită portal contabil"
+                  className="inline-flex items-center p-1 rounded-full bg-black/[0.055] dark:bg-white/[0.08] shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)] self-start sm:self-auto shrink-0"
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleChangePortalViewMode("modern")}
+                    disabled={updateAccountantConfigMutation.isPending}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 h-8 px-3.5 rounded-full text-xs transition-all duration-150",
+                      portalViewMode === "modern"
+                        ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_4px_rgba(0,0,0,0.10)]"
+                        : "text-[#636366] dark:text-[#98989d] font-medium hover:text-[#1d1d1f] dark:hover:text-white"
+                    )}
+                  >
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                    <span>Interfață Normală</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleChangePortalViewMode("saga")}
+                    disabled={updateAccountantConfigMutation.isPending}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 h-8 px-3.5 rounded-full text-xs transition-all duration-150",
+                      portalViewMode === "saga"
+                        ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_4px_rgba(0,0,0,0.10)]"
+                        : "text-[#636366] dark:text-[#98989d] font-medium hover:text-[#1d1d1f] dark:hover:text-white"
+                    )}
+                  >
+                    <Database className="w-3.5 h-3.5" />
+                    <span>Interfață SAGA</span>
+                  </button>
+                </div>
               </div>
 
               {/* Link de acces */}

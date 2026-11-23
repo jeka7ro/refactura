@@ -90,25 +90,8 @@ export default function AccountantPortal() {
   // Navigare Sidebar: "received" (Facturi Primite) sau "emitted" (Facturi Emise)
   const [activeTab, setActiveTab] = useState<"received" | "emitted">("received");
 
-  // Mod afișare: "modern" sau "saga" (implicit SAGA C Clasic pentru contabili)
-  const [viewMode, setViewMode] = useState<"modern" | "saga">(() => {
-    try {
-      const saved = localStorage.getItem("smart_invoice_accountant_view_mode");
-      if (saved === "modern" || saved === "saga") return saved;
-      return "saga";
-    } catch {
-      return "saga";
-    }
-  });
-
-  const handleToggleViewMode = () => {
-    const next = viewMode === "modern" ? "saga" : "modern";
-    setViewMode(next);
-    try {
-      localStorage.setItem("smart_invoice_accountant_view_mode", next);
-    } catch {}
-    toast.success(`Ați comutat pe ${next === "saga" ? "Modul SAGA C Clasic" : "Modul Modern"}`);
-  };
+  // Suprascriere manuală temporară pe sesiunea curentă (altfel se folosește modul setat în Setări -> Portal Contabil)
+  const [manualViewOverride, setManualViewOverride] = useState<"modern" | "saga" | null>(null);
 
   const [copiedCui, setCopiedCui] = useState<string | null>(null);
 
@@ -158,6 +141,35 @@ export default function AccountantPortal() {
     { token },
     { enabled: Boolean(token), retry: 1 }
   );
+
+  const serverDefaultMode: "modern" | "saga" =
+    publicInfo?.defaultViewMode === "modern" ? "modern" : "saga";
+  const viewOverrideKey = `smart_invoice_accountant_view_override_${token}_${serverDefaultMode}`;
+
+  useEffect(() => {
+    if (!token || !publicInfo?.found) return;
+    try {
+      const savedOverride = sessionStorage.getItem(viewOverrideKey);
+      if (savedOverride === "modern" || savedOverride === "saga") {
+        setManualViewOverride(savedOverride);
+      } else {
+        setManualViewOverride(null);
+      }
+    } catch {
+      setManualViewOverride(null);
+    }
+  }, [token, publicInfo?.found, viewOverrideKey]);
+
+  const viewMode: "modern" | "saga" = manualViewOverride ?? serverDefaultMode;
+
+  const handleToggleViewMode = () => {
+    const next = viewMode === "modern" ? "saga" : "modern";
+    setManualViewOverride(next);
+    try {
+      sessionStorage.setItem(viewOverrideKey, next);
+    } catch {}
+    toast.success(`Ați comutat pe ${next === "saga" ? "Modul SAGA C Clasic" : "Modul Modern"}`);
+  };
 
   // Verificare sesiune existentă
   const { data: sessionStatus, isLoading: isCheckingSession } =

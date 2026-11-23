@@ -1281,6 +1281,7 @@ export const appRouter = router({
         token: portal.token,
         hasPin: Boolean(portal.pinHash),
         customSlug: portal.customSlug || "",
+        defaultViewMode: (portal.defaultViewMode === "modern" ? "modern" : "saga") as "modern" | "saga",
       };
     }),
     updateAccountantPortalConfig: protectedProcedure
@@ -1291,6 +1292,7 @@ export const appRouter = router({
           clearPin: z.boolean().optional(),
           customSlug: z.string().optional(),
           regenerateToken: z.boolean().optional(),
+          defaultViewMode: z.enum(["modern", "saga"]).optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -1311,6 +1313,10 @@ export const appRouter = router({
         let portal = s.accountantPortal || {};
 
         portal.enabled = input.enabled;
+
+        if (input.defaultViewMode) {
+          portal.defaultViewMode = input.defaultViewMode;
+        }
 
         if (input.regenerateToken || !portal.token) {
           portal.token = crypto.randomBytes(16).toString("hex");
@@ -1338,6 +1344,7 @@ export const appRouter = router({
           token: portal.token,
           hasPin: Boolean(portal.pinHash),
           customSlug: portal.customSlug || "",
+          defaultViewMode: (portal.defaultViewMode === "modern" ? "modern" : "saga") as "modern" | "saga",
         };
       }),
   }),
