@@ -274,6 +274,7 @@ export default function EmitInvoice() {
   const { data: clientsData } = trpc.clients.list.useQuery();
   const { data: searchPartnersData } = trpc.clients.searchPartners.useQuery({
     query: clientSearch || clientName || undefined,
+    onlyClients: true,
   });
   const { data: productsData } = trpc.products.list.useQuery();
   const { data: seriesListData = [] } = trpc.emittedInvoice.seriesList.useQuery();
@@ -349,7 +350,10 @@ export default function EmitInvoice() {
 
   const devizeUpdateMutation = trpc.devize.update.useMutation();
 
-  const clients = clientsData || [];
+  const clients = useMemo(
+    () => (clientsData || []).filter((c: any) => c.isSupplier !== 1),
+    [clientsData]
+  );
   const partnerResults = searchPartnersData || [];
   const filteredClients = useMemo(() => {
     if (partnerResults.length > 0) return partnerResults;

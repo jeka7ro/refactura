@@ -351,11 +351,13 @@ export default function InvoicesEmitted() {
                   className="w-full h-10 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">— Selectează client —</option>
-                  {(clientsData as any[]).map(c => (
-                    <option key={c.id} value={String(c.id)}>
-                      {c.name} {c.cui ? `(${c.cui})` : ""}
-                    </option>
-                  ))}
+                  {(clientsData as any[])
+                    .filter((c: any) => c.isSupplier !== 1)
+                    .map(c => (
+                      <option key={c.id} value={String(c.id)}>
+                        {c.name} {c.cui ? `(${c.cui})` : ""}
+                      </option>
+                    ))}
                 </select>
               </div>
               <div>

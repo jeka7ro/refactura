@@ -1,5 +1,16 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-23 12:30 — Filtrare strict pe Clienți (excludere Furnizori SPV/SAGA) la Emitere Factură (`/facturi-emise/nou`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Backend (`server/routers.ts` — `clients.searchPartners`):**
+     - Adăugat opțiunea `onlyClients: boolean`, care exclude furnizorii din SPV (`isSupplier === 1`) și tabela `sagaFurnizori`.
+  2. **Frontend (`client/src/pages/EmitInvoice.tsx`, `InvoicesEmitted.tsx`, `ReInvoice.tsx`):**
+     - La crearea facturilor emise și a re-facturilor, dropdown-ul de selecție partener afișează strict **Clienții** (`isSupplier !== 1`, `onlyClients: true`), fără a mai amesteca furnizorii importați din facturile primite SPV sau SAGA.
+- **Fișiere:** `server/routers.ts`, `client/src/pages/EmitInvoice.tsx`, `client/src/pages/InvoicesEmitted.tsx`, `client/src/pages/ReInvoice.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori), `npm run build` (`0` erori), test live `searchPartners({ onlyClients: true })` pe `Tenant 1` și `Tenant 4`, fără `git push`.
+
 ### 2026-11-23 12:10 — Protecție anti-dublare și anti-suprascriere nomenclator istoric (`ART_` / `CLI_`) la exportul arhivei ZIP SAGA C
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

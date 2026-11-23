@@ -269,9 +269,12 @@ export default function ReInvoice() {
       { enabled: !!focusedLineId && catalogQuery.length > 0 }
     );
 
-  // Load real clients from DB
+  // Load real clients from DB (strict clienți, fără furnizori)
   const { data: clientsData } = trpc.clients.list.useQuery();
-  const realClients = clientsData ?? [];
+  const realClients = useMemo(
+    () => (clientsData ?? []).filter((c: any) => c.isSupplier !== 1),
+    [clientsData]
+  );
 
   // tRPC mutations
   const createReInvoice = trpc.reinvoice.create.useMutation();

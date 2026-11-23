@@ -2206,11 +2206,20 @@ export const appRouter = router({
       return getClientsByTenant((tenantOf(ctx)));
     }),
     searchPartners: protectedProcedure
-      .input(z.object({ query: z.string().optional(), limit: z.number().optional() }).optional())
+      .input(
+        z
+          .object({
+            query: z.string().optional(),
+            limit: z.number().optional(),
+            onlyClients: z.boolean().optional(),
+          })
+          .optional()
+      )
       .query(async ({ input, ctx }) => {
         const tenantId = tenantOf(ctx);
         const q = (input?.query || "").trim().toLowerCase();
         const limit = input?.limit || 50;
+        const onlyClients = Boolean(input?.onlyClients);
 
         const db = await import("./db").then(m => m.getDb());
         if (!db) return [];
@@ -2223,10 +2232,12 @@ export const appRouter = router({
           .from(clients)
           .where(eq(clients.tenantId, tenantId));
 
-        const furnizoriList = await db
-          .select()
-          .from(sagaFurnizori)
-          .where(eq(sagaFurnizori.tenantId, tenantId));
+        const furnizoriList = onlyClients
+          ? []
+          : await db
+              .select()
+              .from(sagaFurnizori)
+              .where(eq(sagaFurnizori.tenantId, tenantId));
 
         const partners: Array<{
           id: number | string;
@@ -2247,6 +2258,7 @@ export const appRouter = router({
         const seenCui = new Set<string>();
 
         for (const c of clientList) {
+          if (onlyClients && c.isSupplier === 1) continue;
           const cleanCui = (c.cui || "").replace(/^RO/i, "").trim().toLowerCase();
           if (cleanCui) seenCui.add(cleanCui);
           partners.push({
