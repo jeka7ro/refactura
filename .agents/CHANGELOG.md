@@ -1,5 +1,18 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-23 12:10 — Protecție anti-dublare și anti-suprascriere nomenclator istoric (`ART_` / `CLI_`) la exportul arhivei ZIP SAGA C
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Verificat istoricul git (`6e58659`, `2de8738`, `2024046`) și blindat arhiva ZIP (`server/sagaSyncRoute.ts`):**
+     - Confirmat că `|| (parsedNirIds && parsedNirIds.length > 0)` din `6e58659` nu era o protecție anti-dublare (dublarea de atunci venea din includerea a 6 fișiere în ZIP: `FACTURI.XML` + `F_...xml`, `CLIENTI.XML` + `CLI_...xml`, `ARTICOLE.XML` + `ART_...xml`), ci un efect secundar care bloca complet descărcarea `.zip` și omitea facturile emise când existau NIR-uri în lună (`SagaModule.tsx` inițializează automat `selectedNirIds` la încărcarea paginii).
+     - Limitat `ART_<data>.xml` și `CLI_<data>.xml` din arhiva ZIP **strict la codurile `<Cod>` și `<ClientCod>` prezente efectiv în `F_...xml`** din luna/selecția exportată (și omis `CLI_`/`ART_` dacă sunt 0 în selecție), eliminând re-trimiterea celor `9.724` articole și `400+` clienți istorici la fiecare import lunar în SAGA C.
+  2. **Protecție țară clienți externi și validare `<Tip>` / `<UM>` pe nomenclator (`server/sagaXmlGenerator.ts`):**
+     - În `generateSagaClientsXML`: înlocuit `<Tara>RO</Tara>` hardcodat cu țara reală a clientului (`FR`, `GB`, `NL`, `MU`, `RO` etc. + deduplicare după CUI, `sagaCode` și nume), prevenind suprascrierea clienților externi (ex. clienții din Franța ai `WOOD GLASS SRL`) la `RO`.
+     - În `generateSagaArticlesXML`: adăugat deduplicare `seenCodes`, `normalizeSagaUm` și `normalizeSagaCatalogArticleTip` (păstrând tipurile native SAGA și normalizând etichetele non-SAGA).
+- **Fișiere:** `server/sagaSyncRoute.ts`, `server/sagaXmlGenerator.ts`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori), `npm run build` (`0` erori), test live ZIP pe `WOOD GLASS SRL` (`Noiembrie` și `Septembrie 2026`), fără `git push`.
+
 ### 2026-11-23 11:59 — Verificare completă pre-push (WOOD GLASS SRL + toate exporturile SAGA / ZIP / Portal Contabil) și blindare encoding `Windows-1250`
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

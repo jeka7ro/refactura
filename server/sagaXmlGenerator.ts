@@ -1681,10 +1681,39 @@ export async function generateSagaNirXML(
 }
 
 
+const VALID_SAGA_ARTICLE_TIPS = new Set([
+  "Marfuri",
+  "Materii prime",
+  "Materiale auxiliare",
+  "Alte mat. consumabile",
+  "Materiale consumabile",
+  "Piese de schimb",
+  "Combustibili",
+  "Obiecte de inventar",
+  "Produse finite",
+  "Semifabricate",
+  "Ambalaje",
+  "Amenajari provizorii",
+  "Servicii",
+  "Servicii vandute",
+  "Discount comercial intrari",
+]);
+
+function normalizeSagaCatalogArticleTip(category?: string | null, account?: string | null): string {
+  const raw = String(category || "").trim();
+  if (VALID_SAGA_ARTICLE_TIPS.has(raw)) return raw;
+  const resolved = resolveSagaLineTip(raw, account);
+  if (VALID_SAGA_ARTICLE_TIPS.has(resolved)) return resolved;
+  return "Marfuri";
+}
+
 /**
  * Generează fișierul XML de Articole (<Articole>) conform specificațiilor SAGA (ART_<data>.xml)
  */
-export async function generateSagaArticlesXML(tenantId: number) {
+export async function generateSagaArticlesXML(
+  tenantId: number,
+  options?: { onlyCodes?: Set<string> }
+) {
   const db = await getDb();
   if (!db) throw new Error("No DB");
 
@@ -1697,13 +1726,23 @@ export async function generateSagaArticlesXML(tenantId: number) {
   let xml = `<?xml version="1.0" encoding="Windows-1250"?>\n`;
   xml += `<Articole>\n`;
 
+  const seenCodes = new Set<string>();
   for (const art of articles) {
+    const code = String(art.code || "").trim();
+    if (!code || seenCodes.has(code)) continue;
+    if (options?.onlyCodes && !options.onlyCodes.has(code)) continue;
+    seenCodes.add(code);
+
+    const tip = normalizeSagaCatalogArticleTip(art.category, (art as any).accountingAccount);
+    const vatNum = parseFloat(String(art.vatRate ?? "21"));
+    const vatStr = Number.isFinite(vatNum) ? String(vatNum) : "21";
+
     xml += `  <Linie>\n`;
-    xml += `    <Cod>${escapeXml(art.code)}</Cod>\n`;
+    xml += `    <Cod>${escapeXml(code)}</Cod>\n`;
     xml += `    <Denumire>${escapeXml(art.name)}</Denumire>\n`;
-    xml += `    <UM>${escapeXml(art.unit || "buc")}</UM>\n`;
-    xml += `    <Tip>${escapeXml(art.category || "Marfuri")}</Tip>\n`;
-    xml += `    <TVA>${art.vatRate || "21"}</TVA>\n`;
+    xml += `    <UM>${escapeXml(normalizeSagaUm(art.unit))}</UM>\n`;
+    xml += `    <Tip>${escapeXml(tip)}</Tip>\n`;
+    xml += `    <TVA>${escapeXml(vatStr)}</TVA>\n`;
     if (art.barcode) {
       xml += `    <Cod_bare>${escapeXml(art.barcode)}</Cod_bare>\n`;
     }
@@ -1717,7 +1756,10 @@ export async function generateSagaArticlesXML(tenantId: number) {
 /**
  * Generează fișierul XML de Clienți (<Clienti>) conform specificațiilor SAGA (CLI_<data>.xml)
  */
-export async function generateSagaClientsXML(tenantId: number) {
+export async function generateSagaClientsXML(
+  tenantId: number,
+  options?: { onlyCodes?: Set<string> }
+) {
   const db = await getDb();
   if (!db) throw new Error("No DB");
 
@@ -1736,12 +1778,20 @@ export async function generateSagaClientsXML(tenantId: number) {
   // 2. Selectăm strict clienții (isSupplier = 0 / falsy) sau partenerii facturați explicit ca clienți
   const relevantClients = clientsList.filter((c) => !c.isSupplier || billedSet.has(c.id));
 
-  // 3. Deduplicare pe CUI valid și garantare unicitate <Cod> în SAGA C
-  const uniqueClients: (typeof clientsList[0] & { finalCode: string })[] = [];
+  // 3. Deduplicare pe CUI valid / nume (când CUI lipsește) și garantare unicitate <Cod> în SAGA C
+  const uniqueClients: (typeof clientsList[0] & { finalCode: string; resolvedCountry: string })[] = [];
   const seenCuis = new Map<string, typeof clientsList[0]>();
+  const seenNoCuiNames = new Set<string>();
   const seenCodes = new Set<string>();
 
   for (const client of relevantClients) {
+    let cod = client.sagaCode && client.sagaCode !== "null" ? client.sagaCode.trim() : String(client.id);
+    if (seenCodes.has(cod)) {
+      cod = String(client.id);
+    }
+    if (seenCodes.has(cod)) continue;
+    if (options?.onlyCodes && !options.onlyCodes.has(cod)) continue;
+
     const rawCui = (client.cui || "").replace(/^RO/i, "").trim().toUpperCase();
     const isGenericCui = !rawCui || rawCui === "0000000000000" || rawCui === "PF" || rawCui === "-";
 
@@ -1750,17 +1800,26 @@ export async function generateSagaClientsXML(tenantId: number) {
         continue;
       }
       seenCuis.set(rawCui, client);
+    } else {
+      const normName = String(client.name || "").trim().toUpperCase().replace(/\s+/g, " ");
+      if (normName && seenNoCuiNames.has(normName)) {
+        continue;
+      }
+      if (normName) seenNoCuiNames.add(normName);
     }
 
-    let cod = client.sagaCode && client.sagaCode !== "null" ? client.sagaCode.trim() : String(client.id);
-    if (seenCodes.has(cod)) {
-      cod = String(client.id);
+    const explicitCountry = String((client as any).country || "").trim().toUpperCase();
+    const cuiCountry = detectCountryFromCui(client.cui);
+    let resolvedCountry = explicitCountry && explicitCountry !== "RO" ? explicitCountry : cuiCountry;
+    if ((!resolvedCountry || resolvedCountry === "RO") && isGenericCui && /^(SAS|SASU|SARL|EURL)\b/i.test(String(client.name || "").trim())) {
+      resolvedCountry = "FR";
     }
+
     seenCodes.add(cod);
-
     uniqueClients.push({
       ...client,
       finalCode: cod,
+      resolvedCountry: resolvedCountry || "RO",
     });
   }
 
@@ -1773,7 +1832,7 @@ export async function generateSagaClientsXML(tenantId: number) {
     xml += `    <Denumire>${escapeXml(client.name)}</Denumire>\n`;
     xml += `    <Cod_fiscal>${escapeXml(client.cui || "")}</Cod_fiscal>\n`;
     if (client.regCom) xml += `    <Reg_com>${escapeXml(client.regCom)}</Reg_com>\n`;
-    xml += `    <Tara>RO</Tara>\n`;
+    xml += `    <Tara>${escapeXml(client.resolvedCountry)}</Tara>\n`;
     if ((client as any).county) xml += `    <Judet>${escapeXml((client as any).county)}</Judet>\n`;
     if (client.city) xml += `    <Localitate>${escapeXml(client.city)}</Localitate>\n`;
     if (client.address) xml += `    <Adresa>${escapeXml(client.address)}</Adresa>\n`;

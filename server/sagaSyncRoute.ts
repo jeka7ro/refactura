@@ -106,21 +106,44 @@ router.get("/", async (req, res) => {
     }
 
     // Implicit: Pachet complet ZIP (conform SAGA C Diverse > Import date)
-    // SAGA C Import date citește din folder fișierele FACTURI.XML, CLIENTI.XML, ARTICOLE.XML.
-    // NU se adaugă fișiere duplicate (ex: F_...xml sau CLI_...xml) în aceeași arhivă,
+    // SAGA C Import date citește din folder fișierele F_...xml, CLI_...xml, ART_...xml.
+    // NU se adaugă fișiere duplicate (ex: FACTURI.XML + F_...xml) în aceeași arhivă,
     // deoarece SAGA C scanează directorul extras și importă ambele fișiere, provocând DUBLAREA documentelor!
+    // În plus, în arhiva ZIP includem în CLI_ și ART_ STRICT partenerii și articolele referite efectiv
+    // în xmlFacturi din perioada/selecția exportată, pentru a nu re-scana sau suprascrie tot nomenclatorul istoric!
     const xmlFacturi = await generateSagaExportXML(tenantId, exportMonth, exportYear, {
       nirIds: parsedNirIds,
       invoiceIds: parsedInvoiceIds,
     });
-    const xmlArticole = await generateSagaArticlesXML(tenantId);
-    const xmlClienti = await generateSagaClientsXML(tenantId);
+
+    const referencedArticleCodes = new Set<string>();
+    for (const m of xmlFacturi.matchAll(/<Cod>(.*?)<\/Cod>/g)) {
+      const c = m[1]?.trim();
+      if (c) referencedArticleCodes.add(c);
+    }
+    const referencedClientCodes = new Set<string>();
+    for (const m of xmlFacturi.matchAll(/<ClientCod>(.*?)<\/ClientCod>/g)) {
+      const c = m[1]?.trim();
+      if (c) referencedClientCodes.add(c);
+    }
 
     const zip = new AdmZip();
     const facturiFileName = exportMonth === 0 ? `F_${safeCui}_ALL_${exportYear}.xml` : `F_${safeCui}_${exportMonth}_${exportYear}.xml`;
     zip.addFile(facturiFileName, toSagaXmlBuffer(xmlFacturi));
-    zip.addFile(`CLI_${dateStr}.xml`, toSagaXmlBuffer(xmlClienti));
-    zip.addFile(`ART_${dateStr}.xml`, toSagaXmlBuffer(xmlArticole));
+
+    if (referencedClientCodes.size > 0) {
+      const xmlClienti = await generateSagaClientsXML(tenantId, { onlyCodes: referencedClientCodes });
+      if (xmlClienti.includes("<Linie>")) {
+        zip.addFile(`CLI_${dateStr}.xml`, toSagaXmlBuffer(xmlClienti));
+      }
+    }
+
+    if (referencedArticleCodes.size > 0) {
+      const xmlArticole = await generateSagaArticlesXML(tenantId, { onlyCodes: referencedArticleCodes });
+      if (xmlArticole.includes("<Linie>")) {
+        zip.addFile(`ART_${dateStr}.xml`, toSagaXmlBuffer(xmlArticole));
+      }
+    }
 
     const zipBuffer = zip.toBuffer();
 
