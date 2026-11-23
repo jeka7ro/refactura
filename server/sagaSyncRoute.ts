@@ -38,10 +38,26 @@ router.get("/", async (req, res) => {
     const safeCui = (cui ? String(cui).trim() : company.cui.replace(/^RO/i, "")).trim() || "EXPORT";
     const dateStr = format(new Date(), "ddMMyyyy");
 
-    const parsedNirIds = nirIds !== undefined ? String(nirIds).split(",").map(Number).filter(n => !isNaN(n)) : undefined;
-    const parsedInvoiceIds = invoiceIds !== undefined ? String(invoiceIds).split(",").map(Number).filter(n => !isNaN(n)) : undefined;
+    const parsedNirIds =
+      nirIds !== undefined
+        ? String(nirIds)
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+            .map(Number)
+            .filter((n) => !isNaN(n))
+        : undefined;
+    const parsedInvoiceIds =
+      invoiceIds !== undefined
+        ? String(invoiceIds)
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+            .map(Number)
+            .filter((n) => !isNaN(n))
+        : undefined;
 
-    if (type === "nir" || nirId || (parsedNirIds && parsedNirIds.length > 0)) {
+    if (type === "nir" || nirId) {
       const targetNirIds = parsedNirIds && parsedNirIds.length > 0 
         ? parsedNirIds 
         : (nirId ? parseInt(String(nirId)) : undefined);

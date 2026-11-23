@@ -683,7 +683,7 @@ export const sagaRouter = router({
     .mutation(async ({ input, ctx }) => {
       const axios = (await import("axios")).default;
       const FormData = (await import("form-data")).default;
-      const { generateSagaExportXML, getTenantCompanyProfile, updateTenantSagaToken } =
+      const { generateSagaExportXML, getTenantCompanyProfile, updateTenantSagaToken, toSagaXmlBuffer } =
         await import("../../server/sagaXmlGenerator");
       const tenantId = tenantOf(ctx);
 
@@ -718,9 +718,9 @@ export const sagaRouter = router({
       const fileName = `F_${cui}_${input.month}_${input.year}.xml`;
 
       const form = new FormData();
-      form.append("file", Buffer.from(xmlContent, "utf8"), {
+      form.append("file", toSagaXmlBuffer(xmlContent), {
         filename: fileName,
-        contentType: "application/xml",
+        contentType: "application/xml; charset=windows-1250",
       });
 
       try {

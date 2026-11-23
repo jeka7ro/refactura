@@ -201,7 +201,7 @@ export default function SagaClassicPortalView({
       toast.success(
         `Sincronizare SPV ANAF finalizată cu succes! S-au descărcat ${res.imported} facturi noi.`
       );
-      trpcUtils.accountantPortal.getPortalData.invalidate();
+      trpcUtils.accountantPortal.getData.invalidate();
     },
     onError: (err) => {
       toast.error(`Eroare comunicare SPV ANAF: ${err.message}`);

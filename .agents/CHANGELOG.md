@@ -1,5 +1,19 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-23 11:59 — Verificare completă pre-push (WOOD GLASS SRL + toate exporturile SAGA / ZIP / Portal Contabil) și blindare encoding `Windows-1250`
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Audit live pe datele reale ale firmei `WOOD GLASS SRL` (`tenantId = 4`, `RO28396216`) și pe toate firmele:**
+     - Verificat `0` dubluri în baza de date (`emittedInvoices`, `nir`, `invoiceArchive`, `sagaIntrari`) și `0` dubluri `<Factura>` în exportul SAGA XML pe tot anul 2026 (`215` documente: `151` ieșiri + `64` intrări) și pe fiecare lună; verificat live portalul `/contabil/woodglass` (`getPublicInfo`, `validateSession`, `getData` — `916` primite / `770` emise, `getDocumentLines`, `downloadSagaXml`) și toate rutele PDF (`/api/pdf/archive`, `/api/pdf/emitted`, `/api/pdf/nir`, `/api/pdf/contract` -> `200 %PDF-`).
+  2. **Corectat ruta arhivă ZIP SAGA la selecție parțială de NIR-uri (`server/sagaSyncRoute.ts`):**
+     - Eliminat interceptarea greșită `parsedNirIds.length > 0` din ramura `type === "nir"`, astfel încât `Descarcă Arhiva ZIP` din Modulul SAGA cu o selecție parțială de NIR-uri livrează arhiva `.zip` completă (`F_...xml` + `CLI_...xml` + `ART_...xml`, fără fișiere dublate) în loc de un singur XML de NIR.
+  3. **Garantat codificarea binară `Windows-1250` pe toate descărcările XML SAGA și SAGA Web (`AccountantPortal.tsx`, `SagaModule.tsx`, `modules/saga/router.ts`) + fix invalidare `syncSpv` (`SagaClassicPortalView.tsx`):**
+     - Înlocuit `new Blob([xmlString])` (care scria UTF-8 peste antetul `encoding="Windows-1250"`) cu decodarea `res.base64` / `encodeWindows1250Blob` și `toSagaXmlBuffer` pe `pushToSagaWeb`, păstrând diacriticele românești intacte în SAGA C Desktop (ex. `BRAŞOV`, `TĂRLUNGENI`).
+     - Corectat `trpcUtils.accountantPortal.getData.invalidate()` după sincronizarea SPV din `SagaClassicPortalView.tsx` și atributul condițional `Secure` pe cookie-ul `accountantSession`.
+- **Fișiere:** `server/sagaSyncRoute.ts`, `modules/saga/router.ts`, `client/src/pages/AccountantPortal.tsx`, `client/src/pages/SagaModule.tsx`, `client/src/components/SagaClassicPortalView.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori), `npx vitest run` (`1/1` passed), `npm run build` (`0` erori) și test live ZIP/XML/PDF pe `WOOD GLASS SRL`, fără `git push`.
+
 ### 2026-11-23 11:41 — Aliniere 1:1 cu Portalul ANAF pe orele 24h (`16:25:09` vs `04:25:09`), ordinea mesajelor, `Data Arhivare` (`+62` zile) și filtrul `DECLARATIE`
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

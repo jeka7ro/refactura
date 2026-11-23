@@ -37,6 +37,7 @@ import {
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { ConfirmDeleteWrapper } from "@/components/ui/ConfirmModal";
+import { encodeWindows1250Blob } from "@/lib/fileSave";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type SagaPage =
@@ -769,7 +770,7 @@ function ExportTab() {
 
   const exportFacturiMut = trpc.saga.export.useMutation({
     onSuccess: (data) => {
-      const blob = new Blob([data.xml], { type: "text/xml;charset=windows-1250" });
+      const blob = encodeWindows1250Blob(data.xml);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -786,7 +787,7 @@ function ExportTab() {
 
   const exportArticoleMut = trpc.saga.exportArticole.useMutation({
     onSuccess: (data) => {
-      const blob = new Blob([data.xml], { type: "text/xml;charset=windows-1250" });
+      const blob = encodeWindows1250Blob(data.xml);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -802,7 +803,7 @@ function ExportTab() {
 
   const exportClientiMut = trpc.saga.exportClienti.useMutation({
     onSuccess: (data) => {
-      const blob = new Blob([data.xml], { type: "text/xml;charset=windows-1250" });
+      const blob = encodeWindows1250Blob(data.xml);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -822,7 +823,7 @@ function ExportTab() {
   const [exportingNirId, setExportingNirId] = useState<number | null>(null);
   const exportSingleNirMut = trpc.saga.exportNir.useMutation({
     onSuccess: (data) => {
-      const blob = new Blob([data.xml], { type: "text/xml;charset=windows-1250" });
+      const blob = encodeWindows1250Blob(data.xml);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;

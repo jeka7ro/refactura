@@ -33,6 +33,7 @@ import JSZip from "jszip";
 import AccountantPinLock from "@/components/AccountantPinLock";
 import DocumentModalPreview from "@/components/DocumentModalPreview";
 import SagaClassicPortalView from "@/components/SagaClassicPortalView";
+import { encodeWindows1250Blob } from "@/lib/fileSave";
 
 function formatCurrency(amount: number, currency: string = "RON"): string {
   return new Intl.NumberFormat("ro-RO", {
@@ -250,7 +251,11 @@ export default function AccountantPortal() {
   const handleUnlockSuccess = (newToken: string) => {
     try {
       sessionStorage.setItem(storageKey, newToken);
-      document.cookie = `accountantSession=${encodeURIComponent(newToken)}; path=/; max-age=604800; SameSite=Lax; Secure`;
+      const secureAttr =
+        typeof window !== "undefined" && window.location.protocol === "https:"
+          ? "; Secure"
+          : "";
+      document.cookie = `accountantSession=${encodeURIComponent(newToken)}; path=/; max-age=604800; SameSite=Lax${secureAttr}`;
     } catch {}
     setSessionToken(newToken);
     toast.success("Acces autorizat cu succes!");
@@ -598,7 +603,17 @@ export default function AccountantPortal() {
         year,
       });
 
-      const blob = new Blob([res.xml], { type: "application/xml;charset=windows-1250" });
+      let blob: Blob;
+      if (res.base64) {
+        const binaryStr = window.atob(res.base64);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) {
+          bytes[i] = binaryStr.charCodeAt(i);
+        }
+        blob = new Blob([bytes], { type: "application/xml;charset=windows-1250" });
+      } else {
+        blob = encodeWindows1250Blob(res.xml);
+      }
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
