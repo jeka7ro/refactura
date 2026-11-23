@@ -828,10 +828,10 @@ export default function SpvHub() {
   return (
     <>
       <div className="p-4 sm:p-6 max-w-full space-y-4">
-        {/* Nivelul 1 — Antet Executiv Compact pe un singur rând */}
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 pb-3 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="h-8 px-2 rounded-xl bg-white border border-slate-200/90 dark:border-slate-700 shadow-2xs flex items-center justify-center shrink-0">
+        {/* Nivelul 1 — Antet pe un singur rând cu butoanele + status token sub titlu */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="h-9 px-2.5 rounded-xl bg-white border border-slate-200/90 dark:border-slate-700 shadow-2xs flex items-center justify-center shrink-0">
               <img
                 src="https://static.anaf.ro/static/10/Anaf/primapagina/anaf_ro.png"
                 onError={(e) => {
@@ -839,50 +839,52 @@ export default function SpvHub() {
                   e.currentTarget.src = "/anaf-logo.png";
                 }}
                 alt="ANAF"
-                className="h-5 w-auto object-contain select-none"
+                className="h-5.5 w-auto object-contain select-none"
               />
             </div>
-            <h1 className="text-[15px] sm:text-base font-bold tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
-              Mesaje &amp; Documente SPV ANAF
-            </h1>
-            {spvIntegration?.apiKey ? (
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 whitespace-nowrap shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span>
-                  Conectat
-                  {daysUntilExpiration != null
-                    ? ` · Token ${daysUntilExpiration} zile`
-                    : ""}
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <h1 className="text-[15px] sm:text-base font-bold tracking-tight leading-tight text-slate-900 dark:text-white whitespace-nowrap">
+                Mesaje &amp; Documente SPV ANAF
+              </h1>
+              {spvIntegration?.apiKey ? (
+                <span className="w-fit inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10.5px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 whitespace-nowrap">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span>
+                    Conectat
+                    {daysUntilExpiration != null
+                      ? ` · Token ${daysUntilExpiration} zile`
+                      : ""}
+                  </span>
                 </span>
-              </span>
-            ) : (
-              <Link href="/integrari">
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800 whitespace-nowrap shrink-0 cursor-pointer transition-colors">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                  <span>OAuth neconectat</span>
-                </span>
-              </Link>
-            )}
+              ) : (
+                <Link href="/integrari" className="w-fit">
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10.5px] font-medium bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800 whitespace-nowrap cursor-pointer transition-colors">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    <span>OAuth neconectat</span>
+                  </span>
+                </Link>
+              )}
+            </div>
           </div>
 
-          {/* Bară de acțiuni compactă pe același rând */}
+          {/* Bară de acțiuni cu etichete scurte pe același rând cu titlul */}
           <div className="flex items-center gap-1.5 flex-wrap">
             <button
               type="button"
               onClick={() => testSpvMutation.mutate()}
               disabled={testSpvMutation.isPending}
-              className="apple-btn-glass h-8 rounded-full text-[11.5px] font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-all px-2.5 text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer disabled:opacity-60"
-              title="Trimite un ping către serverul ANAF și verifică token-ul"
+              className="apple-btn-glass h-8 rounded-full text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-all px-3 text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer disabled:opacity-60"
+              title="Testează conexiunea cu serverul ANAF și verifică token-ul"
             >
               {testSpvMutation.isPending ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Se testează...</span>
+                  <span>Test...</span>
                 </>
               ) : (
                 <>
                   <Wifi className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Testează conexiunea</span>
+                  <span>Test</span>
                 </>
               )}
             </button>
@@ -892,7 +894,7 @@ export default function SpvHub() {
                 href={oauthInfo.url}
                 target="_blank"
                 rel="noreferrer"
-                className="apple-btn-glass h-8 rounded-full text-[11.5px] font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-all px-2.5 text-[#1d1d1f] dark:text-[#f5f5f7]"
+                className="apple-btn-glass h-8 rounded-full text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-all px-3 text-[#1d1d1f] dark:text-[#f5f5f7]"
                 title="Reautorizare certificat cu token OAuth ANAF"
               >
                 <KeyRound className="w-3.5 h-3.5 text-[#636366] dark:text-[#98989d]" />
@@ -904,7 +906,7 @@ export default function SpvHub() {
               type="button"
               onClick={handleUsbSpvSync}
               disabled={isUsbSyncing}
-              className={`h-8 rounded-full text-[11.5px] font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-all px-2.5 cursor-pointer disabled:opacity-60 ${
+              className={`h-8 rounded-full text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-all px-3 cursor-pointer disabled:opacity-60 ${
                 connectorReady
                   ? "bg-emerald-500/12 hover:bg-emerald-500/18 text-emerald-800 border border-emerald-500/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] dark:bg-emerald-500/18 dark:hover:bg-emerald-500/25 dark:text-emerald-300 dark:border-emerald-500/30"
                   : "apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7]"
@@ -918,7 +920,7 @@ export default function SpvHub() {
               {isUsbSyncing ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>{usbSyncStatus || "Se sincronizează USB..."}</span>
+                  <span>USB...</span>
                 </>
               ) : (
                 <>
@@ -927,11 +929,7 @@ export default function SpvHub() {
                       connectorReady ? "text-emerald-600" : "text-[#636366] dark:text-[#98989d]"
                     }`}
                   />
-                  <span>
-                    {connectorReady
-                      ? "Sincronizează Stick USB"
-                      : "Instalează Conector USB"}
-                  </span>
+                  <span>Stick USB</span>
                 </>
               )}
             </button>
@@ -939,18 +937,18 @@ export default function SpvHub() {
             <button
               type="button"
               onClick={() => setIsUploadOpen(true)}
-              className="apple-btn-glass h-8 rounded-full text-[11.5px] font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-all px-2.5 text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
+              className="apple-btn-glass h-8 rounded-full text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-all px-3 text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
               title="Încarcă o recipisă sau notificare PDF/ZIP originală descărcată din SPV"
             >
               <Upload className="w-3.5 h-3.5" />
-              <span>Încarcă Recipisă</span>
+              <span>Încarcă</span>
             </button>
 
             <button
               type="button"
               onClick={handleSyncAll}
               disabled={isSyncBusy}
-              className="apple-btn-prominent h-8 rounded-full text-[11.5px] font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-all px-3 disabled:opacity-60 text-white cursor-pointer"
+              className="apple-btn-prominent h-8 rounded-full text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-all px-3.5 disabled:opacity-60 text-white cursor-pointer"
               title="Interoghează ANAF și actualizează lista mesajelor"
             >
               {isSyncingAll ||
@@ -958,12 +956,12 @@ export default function SpvHub() {
                 syncInvoicesMutation.isPending ? (
                 <>
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>Se actualizează...</span>
+                  <span>Sync...</span>
                 </>
               ) : (
                 <>
                   <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Actualizează din SPV</span>
+                  <span>Sync SPV</span>
                 </>
               )}
             </button>

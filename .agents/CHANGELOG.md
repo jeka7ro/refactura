@@ -1,5 +1,15 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-23 15:57 — Etichete scurte pe butoanele `/spv` (`Test`, `Reautorizare`, `Stick USB`, `Încarcă`, `Sync SPV`), badge `Conectat` sub titlu și aliniere pe un singur rând
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Layout antet `/spv` pe un singur rând chiar și pe ecrane `1280px` (`client/src/pages/SpvHub.tsx`):**
+     - Mutat badge-ul `Conectat · Token ... zile` direct **sub** titlul `Mesaje & Documente SPV ANAF` (în dreapta logo-ului ANAF).
+     - Scurtat etichetele celor 5 butoane la forme concise (`Test`, `Reautorizare`, `Stick USB`, `Încarcă`, `Sync SPV`), reducând lățimea totală a antetului de la `~1.140px` la `~790px` astfel încât titlul și butoanele stau garantat pe același rând.
+- **Fișiere:** `client/src/pages/SpvHub.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori) și `npm run build` (`0` erori), fără `git push`.
+
 ### 2026-11-23 15:43 — Antet `/spv` compact pe un singur rând și eliminare subtitlu descriptiv (`SpvHub.tsx`)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
