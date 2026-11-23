@@ -5769,8 +5769,17 @@ export const appRouter = router({
       const { sql } = await import("drizzle-orm");
 
       try {
+        const { ensureTenantSpvPortalTimestampsNormalized } = await import("./spvPortalSync");
+        await ensureTenantSpvPortalTimestampsNormalized(db, tenantId);
+
         const [rows]: any = await (db as any).execute(
-          sql`SELECT * FROM spv_portal_documents WHERE tenantId = ${tenantId} AND fileUrl IS NOT NULL ORDER BY STR_TO_DATE(dataDepunere, '%d.%m.%Y %H:%i') DESC, id DESC`
+          sql`SELECT * FROM spv_portal_documents
+              WHERE tenantId = ${tenantId} AND fileUrl IS NOT NULL
+              ORDER BY
+                CASE WHEN numarInregistrare REGEXP '^[0-9]+$' THEN 1 ELSE 0 END DESC,
+                CAST(numarInregistrare AS UNSIGNED) DESC,
+                STR_TO_DATE(dataDepunere, '%d.%m.%Y %H:%i:%s') DESC,
+                id DESC`
         );
         return (rows || []).map((r: any) => ({
           ...r,

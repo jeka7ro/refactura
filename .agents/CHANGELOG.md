@@ -1,5 +1,17 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-23 11:41 — Aliniere 1:1 cu Portalul ANAF pe orele 24h (`16:25:09` vs `04:25:09`), ordinea mesajelor, `Data Arhivare` (`+62` zile) și filtrul `DECLARATIE`
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Corectare bug 12h (`hh:mm:ss`) din API-ul ANAF `SPVWS2` (`server/spvPortalSync.ts`):**
+     - Webserviciul `webserviced.anaf.ro/SPVWS2/rest/listaMesaje` returnează `data_creare` în format 12h fără AM/PM (`19.11.2026 04:25:09` și `04:24:10` în loc de `16:25:09` și `16:24:10`), motiv pentru care cele mai noi 2 documente de la ora `16:25` / `16:24` coborau sub cele de la ora `10:43` și păreau lipsă în capul tabelului.
+     - Adăugat `resolveAnaf24hTimestamp` + normalizare automată idempotentă (`ensureTenantSpvPortalTimestampsNormalized`) care reconstituie ora reală 24h din metadatele `D:YYYYMMDDHHmmss` ale PDF-ului original semnat de ANAF și secvența monotonă a ID-urilor ANAF, plus `computeDataArhivare` la `+62` zile (`20.01.2027 16:25:09`, identic cu portalul ANAF).
+  2. **Ordonare identică cu Portalul ANAF & Filtru `DECLARATIE` (`server/routers.ts`, `client/src/pages/SpvHub.tsx`):**
+     - Ordonat `listPortalDocuments` după secvența oficială ANAF (`CAST(numarInregistrare AS UNSIGNED) DESC`) și data 24h, și inclus tipul `DECLARATIE` în cardul KPI `Recipise Declarații` și în selectorul `Tip Document`.
+- **Fișiere:** `server/spvPortalSync.ts`, `server/routers.ts`, `client/src/pages/SpvHub.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** Verificat pe baza de date reală (`19.11.2026 16:25:09` -> Row 1, `19.11.2026 16:24:10` -> Row 2, `19.11.2026 10:43:09` -> Row 3, identic cu portalul ANAF), `npx tsc --noEmit` (`0` erori) și `npm run build` (`0` erori), fără `git push`.
+
 ### 2026-11-23 11:28 — Upgrade Conector Chrome USB SPV la `v1.5.0` (fără cerință Incognito) și separare sincronizare OAuth de copiile vechi `v1.4.0`
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

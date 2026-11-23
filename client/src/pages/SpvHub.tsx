@@ -643,7 +643,12 @@ export default function SpvHub() {
     if (readFilter === "unread" && doc.isRead) return false;
     if (readFilter === "read" && !doc.isRead) return false;
 
-    if (portalFilter === "declaratie" && doc.tip !== "RECIPISA") return false;
+    if (
+      portalFilter === "declaratie" &&
+      doc.tip !== "RECIPISA" &&
+      doc.tip !== "DECLARATIE"
+    )
+      return false;
     if (
       portalFilter === "cert_sol" &&
       doc.tip !== "CERTIFICAT FISCAL" &&
@@ -726,7 +731,9 @@ export default function SpvHub() {
     unread: portalDocs?.filter((d: any) => !d.isRead).length || 0,
     read: portalDocs?.filter((d: any) => d.isRead).length || 0,
     recipise:
-      portalDocs?.filter((d: any) => d.tip === "RECIPISA").length || 0,
+      portalDocs?.filter(
+        (d: any) => d.tip === "RECIPISA" || d.tip === "DECLARATIE"
+      ).length || 0,
     certificate:
       portalDocs?.filter((d: any) => d.tip === "CERTIFICAT FISCAL").length || 0,
     solicitari:
@@ -1492,6 +1499,7 @@ export default function SpvHub() {
                           >
                             <option value="-TOATE-">-TOATE-</option>
                             <option value="RECIPISA">RECIPISA</option>
+                            <option value="DECLARATIE">DECLARATIE</option>
                             <option value="CERTIFICAT FISCAL">
                               CERTIFICAT FISCAL
                             </option>

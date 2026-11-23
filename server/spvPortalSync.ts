@@ -155,7 +155,16 @@ export async function saveRealSpvDocument(
   await fs.promises.writeFile(path.join(uploadDirClient, diskKey), finalBuf).catch(() => {});
   const fileUrl = `/uploads/spv_documents/${diskKey}`;
 
-  const dataDepunere = String(item?.dataCreare || "").trim();
+  const rawDepunere = String(item?.dataCreare || "").trim();
+  const [sameDayRows]: any = await db.execute(
+    sql`SELECT numarInregistrare, dataDepunere FROM spv_portal_documents WHERE tenantId = ${tenantId}`
+  );
+  const dataDepunere = resolveAnaf24hTimestamp(
+    rawDepunere,
+    finalBuf,
+    normAnafId,
+    Array.isArray(sameDayRows) ? sameDayRows : []
+  );
   const dataArhivare = computeDataArhivare(dataDepunere);
   const titlu = getDocumentTitle(normTip, normDetalii);
   const categorie = classifySpvCategory(normTip, normDetalii);
@@ -164,7 +173,7 @@ export async function saveRealSpvDocument(
 
   if (existRows?.[0]?.id) {
     await db.execute(
-      sql`UPDATE spv_portal_documents SET fileUrl = ${fileUrl}, fileName = ${finalFileName}, sursa = 'webserviced_anaf' WHERE id = ${existRows[0].id}`
+      sql`UPDATE spv_portal_documents SET fileUrl = ${fileUrl}, fileName = ${finalFileName}, dataDepunere = ${dataDepunere}, dataArhivare = ${dataArhivare}, titlu = ${titlu}, sursa = 'webserviced_anaf' WHERE id = ${existRows[0].id}`
     );
     return {
       ok: true,
@@ -192,7 +201,141 @@ export async function saveRealSpvDocument(
 }
 
 /**
- * Calculează data arhivării (+60 de zile de la data creării documentului)
+ * ANAF SPVWS2/rest/listaMesaje formatează data_creare cu Java "dd.MM.yyyy hh:mm:ss" (12h fără AM/PM),
+ * transformând orele de după-amiază (ex: 16:25:09 -> 04:25:09, 13:20:18 -> 01:20:18).
+ * Reconstituim ora exactă 24h din metadatele D:YYYYMMDDHHmmss ale PDF-ului original semnat de ANAF
+ * și/sau din ordinea strict monotonă a ID-urilor ANAF din aceeași zi.
+ */
+export function resolveAnaf24hTimestamp(
+  rawDateStr: string,
+  pdfBuf?: Buffer | null,
+  anafId?: string | null,
+  siblingRows?: Array<{ numarInregistrare?: string | null; dataDepunere?: string | null }>
+): string {
+  const trimmed = String(rawDateStr || "").trim();
+  const m = trimmed.match(/^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})(?::(\d{2}))?$/);
+  if (!m) return trimmed;
+
+  const [, dd, mm, yyyy, hhStr, minStr, secStr = "00"] = m;
+  const rawHour = parseInt(hhStr, 10);
+  if (isNaN(rawHour) || rawHour < 1 || rawHour > 11) {
+    return `${dd}.${mm}.${yyyy} ${hhStr}:${minStr}:${secStr}`;
+  }
+
+  let shouldAdd12 = false;
+  const targetYmd = `${yyyy}${mm}${dd}`;
+
+  // 1. Verificare metadate interne D:YYYYMMDDHHmmss din PDF-ul original semnat de ANAF
+  if (pdfBuf && pdfBuf.length > 0) {
+    try {
+      const latin = pdfBuf.toString("latin1");
+      const dateMatches = latin.match(/D:(\d{8})(\d{2})(\d{2})(\d{2})/g) || [];
+      const sameDayPdfHours: number[] = [];
+      for (const dm of dateMatches) {
+        const ymd = dm.slice(2, 10);
+        const pHour = parseInt(dm.slice(10, 12), 10);
+        if (ymd === targetYmd && !isNaN(pHour)) {
+          sameDayPdfHours.push(pHour);
+        }
+      }
+      if (sameDayPdfHours.length > 0) {
+        const maxPdfHour = Math.max(...sameDayPdfHours);
+        if (maxPdfHour >= 12) {
+          shouldAdd12 = true;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // 2. Verificare secvență monotonă ANAF ID în aceeași zi (dacă un ID mai mic din aceeași zi are ora > rawHour)
+  const numericId = anafId && /^\d+$/.test(String(anafId)) ? Number(anafId) : null;
+  if (!shouldAdd12 && numericId && Array.isArray(siblingRows)) {
+    const datePrefix = `${dd}.${mm}.${yyyy} `;
+    for (const sib of siblingRows) {
+      const sibIdStr = String(sib?.numarInregistrare || "");
+      const sibDep = String(sib?.dataDepunere || "");
+      if (!/^\d+$/.test(sibIdStr) || !sibDep.startsWith(datePrefix)) continue;
+      const sibId = Number(sibIdStr);
+      const sibHour = parseInt(sibDep.slice(datePrefix.length, datePrefix.length + 2), 10);
+      if (sibId < numericId && !isNaN(sibHour) && sibHour > rawHour) {
+        shouldAdd12 = true;
+        break;
+      }
+    }
+  }
+
+  const finalHour = shouldAdd12 ? rawHour + 12 : rawHour;
+  return `${dd}.${mm}.${yyyy} ${String(finalHour).padStart(2, "0")}:${minStr}:${secStr}`;
+}
+
+const repairedPortalTenants = new Set<number>();
+
+/**
+ * Repară idempotent orele 12h (hh:mm:ss) și dataArhivare (+62 zile conform portalului ANAF)
+ * pentru documentele reale deja descărcate pe disc.
+ */
+export async function ensureTenantSpvPortalTimestampsNormalized(
+  db: any,
+  tenantId: number
+): Promise<void> {
+  if (repairedPortalTenants.has(tenantId)) return;
+  try {
+    const [rows]: any = await db.execute(
+      sql`SELECT id, tip, detalii, numarInregistrare, dataDepunere, dataArhivare, fileUrl, titlu FROM spv_portal_documents WHERE tenantId = ${tenantId}`
+    );
+    if (!Array.isArray(rows) || rows.length === 0) {
+      repairedPortalTenants.add(tenantId);
+      return;
+    }
+
+    // Sortăm crescător după ID-ul ANAF ca secvența monotonă din aceeași zi să se propage corect
+    const sortedAsc = [...rows].sort((a, b) => {
+      const na = /^\d+$/.test(String(a.numarInregistrare || "")) ? Number(a.numarInregistrare) : 0;
+      const nb = /^\d+$/.test(String(b.numarInregistrare || "")) ? Number(b.numarInregistrare) : 0;
+      return na - nb;
+    });
+
+    for (const r of sortedAsc) {
+      if (!r.dataDepunere) continue;
+      let pdfBuf: Buffer | null = null;
+      if (r.fileUrl && typeof r.fileUrl === "string") {
+        const rel = r.fileUrl.replace(/^\/+/, "");
+        const pDist = path.join(process.cwd(), "dist", "public", rel);
+        const pClient = path.join(process.cwd(), "client", "public", rel);
+        if (fs.existsSync(pDist)) {
+          pdfBuf = await fs.promises.readFile(pDist).catch(() => null);
+        } else if (fs.existsSync(pClient)) {
+          pdfBuf = await fs.promises.readFile(pClient).catch(() => null);
+        }
+      }
+
+      const normDep = resolveAnaf24hTimestamp(
+        String(r.dataDepunere),
+        pdfBuf,
+        String(r.numarInregistrare || ""),
+        sortedAsc
+      );
+      const normArh = computeDataArhivare(normDep) || r.dataArhivare;
+      const normTitle = getDocumentTitle(String(r.tip || ""), String(r.detalii || ""));
+
+      if (normDep !== r.dataDepunere || normArh !== r.dataArhivare || normTitle !== r.titlu) {
+        r.dataDepunere = normDep;
+        r.dataArhivare = normArh;
+        await db.execute(
+          sql`UPDATE spv_portal_documents SET dataDepunere = ${normDep}, dataArhivare = ${normArh}, titlu = ${normTitle} WHERE id = ${r.id}`
+        );
+      }
+    }
+    repairedPortalTenants.add(tenantId);
+  } catch (err: any) {
+    console.warn("[SPV Timestamp Normalize] Warning:", err?.message);
+  }
+}
+
+/**
+ * Calculează data arhivării (+62 de zile de la data afișării în SPV, identic cu portalul ANAF)
  */
 export function computeDataArhivare(dataCr: string): string | null {
   try {
@@ -205,7 +348,7 @@ export function computeDataArhivare(dataCr: string): string | null {
           parseInt(dParts[1], 10) - 1,
           parseInt(dParts[0], 10)
         );
-        dt.setDate(dt.getDate() + 60);
+        dt.setDate(dt.getDate() + 62);
         const pad = (n: number) => String(n).padStart(2, "0");
         return `${pad(dt.getDate())}.${pad(dt.getMonth() + 1)}.${dt.getFullYear()} ${parts[1] || "00:00:00"}`;
       }
@@ -254,9 +397,13 @@ export function getDocumentTitle(tip: string, detalii: string): string {
   if (
     /\bD?212\b/i.test(detalii) ||
     dUpper.includes("DECLARATIA UNICA") ||
-    dUpper.includes("DECLARAȚIA UNICĂ")
+    dUpper.includes("DECLARAȚIA UNICĂ") ||
+    dUpper.includes("DECLARATIE UNICA") ||
+    dUpper.includes("DECLARAȚIE UNICĂ")
   ) {
-    return "Recipisă Declarația Unică 212 — Persoane Fizice";
+    return tUpper === "DECLARATIE"
+      ? "Declarația Unică 212 — Persoane Fizice"
+      : "Recipisă Declarația Unică 212 — Persoane Fizice";
   }
   if (/\bD?230\b/i.test(detalii)) {
     return "Recipisă Formular 230 (Redirecționare Impozit pe Venit)";
