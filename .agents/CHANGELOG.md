@@ -1,5 +1,15 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-23 14:20 — Înlocuire iconiță veche `g/a` cu iconița `SPV` pentru Dock macOS / PWA (`manifest.json`, `index.html`, `180/192/512px`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Actualizare iconițe PWA / macOS Dock / iOS (`client/public/manifest.json`, `client/index.html`, `client/public/icon-spv-*.png`):**
+     - `manifest.json` și `favicon.png` rămăseseră pe vechea pictogramă `g/a` (`/logo_icon.png`), motiv pentru care aplicația instalată în Dock pe macOS afișa `g/a` în loc de `spv`.
+     - Generat variantele standard `180x180` (`apple-touch-icon.png`), `192x192` (`icon-spv-192.png`) și `512x512` (`icon-spv-512.png`) din `logo_icon_spv.png`, actualizat `logo_icon.png`, `favicon.png`, `manifest.json` și `client/index.html` cu invalidare cache (`?v=2`).
+- **Fișiere:** `client/public/manifest.json`, `client/index.html`, `client/public/icon-spv-192.png`, `client/public/icon-spv-512.png`, `client/public/apple-touch-icon.png`, `client/public/favicon.png`, `client/public/logo_icon.png`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npm run build` (`0` erori), dimensiuni PNG verificate (`180x180`, `192x192`, `512x512`), fără `git push`.
+
 ### 2026-11-23 14:16 — Eliminare tăiere (clipping) buton `Sync` și bare de filtre pe `/facturi`, `/nir` și Portalul Contabil
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
