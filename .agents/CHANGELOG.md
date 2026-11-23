@@ -1,5 +1,15 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-23 13:44 — Fix pornire container Railway în producție când `JWT_SECRET` lipsește din variabilele de mediu (`session.ts`, `spvAuth.ts`, `accountantPortalRouter.ts`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Eliminare crash la boot în producție (`Error: [SECURITY] JWT_SECRET nu este setat!`):**
+     - Pe Railway variabila `JWT_SECRET` nu era definită în panoul de variabile, iar verificarea sincronă la import din `server/session.ts` oprea pornirea containerului (`dist/index.js`).
+     - Adăugat `getEffectiveJwtSecret()` în `server/session.ts` (folosit și în `server/spvAuth.ts` și `server/accountantPortalRouter.ts`), care folosește `JWT_SECRET` dacă este setat, iar în lipsa lui derivă determinist o cheie criptografică HMAC-SHA256 de 256 biți din configurația privată a serverului (`SESSION_SECRET` / `DATABASE_URL` / `ANAF_CLIENT_SECRET`), fără chei publice în cod și fără crash la pornire.
+- **Fișiere:** `server/session.ts`, `server/spvAuth.ts`, `server/accountantPortalRouter.ts`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori), `npm run build` (`0` erori) și test real de pornire `NODE_ENV=production JWT_SECRET="" PORT=3999 node dist/index.js` trecut cu succes.
+
 ### 2026-11-23 12:59 — Eliminare suprapunere antet `/spv` și integrare logo oficial ANAF în `/spv` + ferestrele pop-up de sincronizare token USB
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

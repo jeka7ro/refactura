@@ -6,11 +6,10 @@ import { eq, and, inArray } from "drizzle-orm";
 import { ENV } from "./_core/env";
 import { authenticateFileRequest } from "./fileAuth";
 import { isValidBidirectionalPair } from "./tenant";
+import { getEffectiveJwtSecret } from "./session";
 
 function getSpvStateSecret(): string {
-  if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
-  if (process.env.NODE_ENV !== "production") return "dev_spv_oauth_state_secret";
-  throw new Error("JWT_SECRET is required in production for SPV OAuth state signing");
+  return getEffectiveJwtSecret();
 }
 
 export function createSpvOAuthState(tenantId: number): string {

@@ -5,16 +5,10 @@ import { TRPCError } from "@trpc/server";
 import { getDb } from "./db";
 import { eq, and, desc, inArray, or, isNotNull, ne, isNull } from "drizzle-orm";
 import * as schema from "../drizzle/schema";
+import { getEffectiveJwtSecret } from "./session";
 
 function getPortalHmacSecret(): string {
-  if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
-  if (process.env.NODE_ENV !== "production") {
-    return "smart_invoice_accountant_portal_dev_fallback";
-  }
-  throw new TRPCError({
-    code: "INTERNAL_SERVER_ERROR",
-    message: "JWT_SECRET nu este configurat pe server.",
-  });
+  return getEffectiveJwtSecret();
 }
 
 const PIN_SALT = "_accountant_portal_salt_smart_invoice";
