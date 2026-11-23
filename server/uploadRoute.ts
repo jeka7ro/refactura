@@ -1079,6 +1079,7 @@ export function registerUploadRoute(app: Express) {
         "auth.html",
         "anaf-popup.css",
         "anaf-popup.js",
+        "anaf-logo.png",
       ];
       for (const f of files) {
         if (!fs.existsSync(path.join(extDir, f))) {

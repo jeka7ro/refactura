@@ -1,5 +1,18 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-23 12:59 — Eliminare suprapunere antet `/spv` și integrare logo oficial ANAF în `/spv` + ferestrele pop-up de sincronizare token USB
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Eliminare suprapunere titlu / butoane în `/spv` (`client/src/pages/SpvHub.tsx`):**
+     - Înlocuit `xl:flex-row` + `whitespace-nowrap` pe `<h1>` + `sm:flex-nowrap shrink-0` pe bara de butoane (care pe ecrane `1280px–1440px` cu sidebar deschis făceau titlul să iasă sub butoanele `Testează conexiunea` / `Reautorizare`) cu un layout responsiv `2xl:flex-row` și `flex-wrap` curat, cu zero suprapunere pe orice rezoluție.
+  2. **Integrare logo oficial ANAF (`https://static.anaf.ro/static/10/Anaf/primapagina/anaf_ro.png` + fallback local `anaf-logo.png`):**
+     - În antetul paginii `Mesaje & Documente SPV ANAF` (`SpvHub.tsx`), aliniat inline lângă titlu și statusul tokenului.
+     - În modalul `Conector Chrome pentru Stick USB ANAF (SPVWS2)` din `SpvHub.tsx`.
+     - În fereastra pop-up de sincronizare a tokenului USB din extensia Chrome (`chrome-spv-connector/auth.html`, `anaf-popup.js`, `anaf-popup.css`, `manifest.json`) și în arhiva `/api/spv-connector.zip` (`server/uploadRoute.ts`).
+- **Fișiere:** `client/src/pages/SpvHub.tsx`, `client/public/anaf-logo.png`, `chrome-spv-connector/auth.html`, `chrome-spv-connector/anaf-popup.js`, `chrome-spv-connector/anaf-popup.css`, `chrome-spv-connector/anaf-logo.png`, `chrome-spv-connector/manifest.json`, `server/uploadRoute.ts`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `node --check` pe extensie, `npx tsc --noEmit` (`0` erori), `npm run build` (`0` erori), fără `git push`.
+
 ### 2026-11-23 12:30 — Filtrare strict pe Clienți (excludere Furnizori SPV/SAGA) la Emitere Factură (`/facturi-emise/nou`)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

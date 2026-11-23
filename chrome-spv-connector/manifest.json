@@ -31,5 +31,11 @@
       "js": ["anaf-popup.js"],
       "run_at": "document_start"
     }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["anaf-logo.png"],
+      "matches": ["https://*.anaf.ro/*", "https://webserviced.anaf.ro/*"]
+    }
   ]
 }

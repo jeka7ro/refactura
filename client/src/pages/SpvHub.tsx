@@ -828,43 +828,53 @@ export default function SpvHub() {
   return (
     <>
       <div className="p-4 sm:p-6 max-w-full space-y-4">
-        {/* Nivelul 1 — Antet Executiv Curat pe un singur rând */}
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 pb-3.5 border-b border-slate-200 dark:border-slate-800">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <div className="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 border border-blue-100 dark:border-blue-900 flex items-center justify-center shrink-0">
-                <ShieldCheck className="w-4.5 h-4.5" />
-              </div>
-              <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
-                Mesaje &amp; Documente SPV ANAF
-              </h1>
-              {spvIntegration?.apiKey ? (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 whitespace-nowrap shrink-0">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  <span>
-                    Conectat
-                    {daysUntilExpiration != null
-                      ? ` · Token ${daysUntilExpiration} zile`
-                      : ""}
-                  </span>
-                </span>
-              ) : (
-                <Link href="/integrari">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800 whitespace-nowrap shrink-0 cursor-pointer transition-colors">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                    <span>OAuth SPV neconectat · Conectează în Integrări</span>
-                  </span>
-                </Link>
-              )}
+        {/* Nivelul 1 — Antet Executiv Curat, fără suprapunere pe nicio rezoluție */}
+        <div className="flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-3.5 pb-3.5 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="h-11 px-3 rounded-2xl bg-white border border-slate-200/90 dark:border-slate-700 shadow-2xs flex items-center justify-center shrink-0">
+              <img
+                src="https://static.anaf.ro/static/10/Anaf/primapagina/anaf_ro.png"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = "/anaf-logo.png";
+                }}
+                alt="ANAF"
+                className="h-7 w-auto object-contain select-none"
+              />
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Recipise declarații fiscale, certificate de atestare, răspunsuri
-              solicitări și flux RO e-Factura.
-            </p>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+                  Mesaje &amp; Documente SPV ANAF
+                </h1>
+                {spvIntegration?.apiKey ? (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 whitespace-nowrap shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    <span>
+                      Conectat
+                      {daysUntilExpiration != null
+                        ? ` · Token ${daysUntilExpiration} zile`
+                        : ""}
+                    </span>
+                  </span>
+                ) : (
+                  <Link href="/integrari">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800 whitespace-nowrap shrink-0 cursor-pointer transition-colors">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                      <span>OAuth SPV neconectat · Conectează în Integrări</span>
+                    </span>
+                  </Link>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Recipise declarații fiscale, certificate de atestare, răspunsuri
+                solicitări și flux RO e-Factura.
+              </p>
+            </div>
           </div>
 
-          {/* Bară de acțiuni aliniată pe un singur rând — Apple Liquid Glass Capsules */}
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
+          {/* Bară de acțiuni cu wrap curat — Apple Liquid Glass Capsules */}
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
               onClick={() => testSpvMutation.mutate()}
@@ -1913,10 +1923,22 @@ export default function SpvHub() {
       >
         <DialogContent className="sm:max-w-lg rounded-[22px]">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <ShieldCheck className="w-4.5 h-4.5 text-blue-600" />
-              <span>Conector Chrome pentru Stick USB ANAF (SPVWS2)</span>
-            </DialogTitle>
+            <div className="flex items-center gap-3 mb-1">
+              <div className="h-10 px-2.5 rounded-xl bg-white border border-slate-200 dark:border-slate-700 shadow-2xs flex items-center justify-center shrink-0">
+                <img
+                  src="https://static.anaf.ro/static/10/Anaf/primapagina/anaf_ro.png"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = "/anaf-logo.png";
+                  }}
+                  alt="ANAF"
+                  className="h-6 w-auto object-contain select-none"
+                />
+              </div>
+              <DialogTitle className="text-base font-bold text-slate-900 dark:text-white leading-snug">
+                Conector Chrome pentru Stick USB ANAF (SPVWS2)
+              </DialogTitle>
+            </div>
             <DialogDescription className="text-xs text-slate-500">
               Serviciul ANAF SPV pentru decizii, recipise și declarații (webserviced.anaf.ro) cere autentificare directă mTLS cu stick-ul USB. Extensia Chrome citește stick-ul tău și urcă automat în aplicație documentele PDF originale semnate de Ministerul Finanțelor.
             </DialogDescription>
