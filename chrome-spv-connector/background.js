@@ -12,9 +12,6 @@ const APP_TAB_PATTERNS = [
   "https://refactura.up.railway.app/*",
 ];
 
-const INCOGNITO_HINT =
-  "Activeaza 'Permite in modul incognito' (Allow in Incognito) in chrome://extensions -> Detalii pe extensia Conector SPV, pentru ca fereastra USB sa ruleze automat in sesiune Incognito curata.";
-
 let lastAuthenticatedCifs = [];
 
 function normalizeCif(value) {
@@ -360,15 +357,6 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
         incognitoAllowed,
       },
     };
-    if (
-      out.ok === false &&
-      !usedIncognito &&
-      (out.wrongCertificate || out.needsIncognitoHint) &&
-      out.error &&
-      !String(out.error).includes("Permite in modul incognito")
-    ) {
-      out.error = `${out.error} ${INCOGNITO_HINT}`;
-    }
     delete out.needsIncognitoHint;
     delete out.popupClosedByUser;
     return out;
@@ -735,6 +723,11 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!sender || sender.id !== chrome.runtime.id) return false;
+  if (message && message.action === "RELOAD_EXTENSION") {
+    sendResponse({ ok: true });
+    setTimeout(() => chrome.runtime.reload(), 80);
+    return false;
+  }
   if (!message || message.action !== "SYNC_SPVWS2") return false;
 
   (async () => {

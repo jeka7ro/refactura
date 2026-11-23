@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Factura/SPV — Conector Certificat USB ANAF",
   "description": "Conecteaza certificatul digital USB din Chrome la serviciul webserviced.anaf.ro/SPVWS2 pentru descarcarea automata a documentelor oficiale PDF/ZIP semnate de ANAF.",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "incognito": "spanning",
   "permissions": ["tabs", "scripting", "cookies", "browsingData"],
   "host_permissions": [

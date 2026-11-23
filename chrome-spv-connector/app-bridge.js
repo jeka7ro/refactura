@@ -1,5 +1,5 @@
 (() => {
-  const EXTENSION_VERSION = "1.4.0";
+  const EXTENSION_VERSION = "1.5.0";
   const APP_SOURCE = "smart-invoice-app";
   const EXT_SOURCE = "smart-invoice-extension";
 
@@ -116,6 +116,15 @@
           skippedDuplicate: Boolean(data.skippedDuplicate),
           error: data.error || null,
         });
+      }
+      return;
+    }
+
+    if (data.type === "SPV_CONNECTOR_RELOAD") {
+      try {
+        await chrome.runtime.sendMessage({ action: "RELOAD_EXTENSION" });
+      } catch {
+        /* extension reloads immediately */
       }
       return;
     }

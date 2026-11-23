@@ -136,6 +136,12 @@ export default function SpvHub() {
   const [isUploading, setIsUploading] = useState(false);
 
   // Stare Conector Chrome Stick USB ANAF (webserviced.anaf.ro/SPVWS2)
+  const [connectorVersion, setConnectorVersion] = useState<string>(
+    () =>
+      (typeof document !== "undefined" &&
+        document.documentElement.dataset.spvConnectorInstalled) ||
+      ""
+  );
   const [connectorReady, setConnectorReady] = useState<boolean>(
     () =>
       typeof document !== "undefined" &&
@@ -146,10 +152,23 @@ export default function SpvHub() {
   const [usbSyncStatus, setUsbSyncStatus] = useState<string | null>(null);
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
   const [copiedPath, setCopiedPath] = useState(false);
+  const [copiedExtUrl, setCopiedExtUrl] = useState(false);
+
+  const isLegacyConnector = Boolean(
+    connectorVersion && connectorVersion < "1.5.0"
+  );
 
   useEffect(() => {
-    const onReady = () => {
-      setConnectorReady(true);
+    const syncVer = (ver?: string) => {
+      const detected =
+        ver || document.documentElement.dataset.spvConnectorInstalled || "";
+      if (detected) {
+        setConnectorVersion(detected);
+        setConnectorReady(true);
+      }
+    };
+    const onReady = (e: Event) => {
+      syncVer((e as CustomEvent)?.detail?.version);
     };
     const onMessage = (event: MessageEvent) => {
       if (event.source !== window) return;
@@ -157,14 +176,14 @@ export default function SpvHub() {
         event.data?.source === "smart-invoice-extension" &&
         event.data?.type === "SPV_CONNECTOR_PONG"
       ) {
-        setConnectorReady(true);
+        syncVer(event.data?.version);
       }
     };
     window.addEventListener("spv-connector-ready", onReady);
     window.addEventListener("message", onMessage);
     window.postMessage(
       { source: "smart-invoice-app", type: "SPV_CONNECTOR_PING" },
-      "*"
+      window.location.origin
     );
     return () => {
       window.removeEventListener("spv-connector-ready", onReady);
@@ -221,7 +240,14 @@ export default function SpvHub() {
       ]);
 
       let usbOutcome: any = null;
-      if (connectorReady && oauthInfo?.tenantCui) {
+      const currentExtVer =
+        document.documentElement.dataset.spvConnectorInstalled ||
+        connectorVersion;
+      if (
+        connectorReady &&
+        oauthInfo?.tenantCui &&
+        currentExtVer >= "1.5.0"
+      ) {
         usbOutcome = await runUsbSpvSync({ fromUnifiedSync: true });
       }
 
@@ -309,27 +335,29 @@ export default function SpvHub() {
   };
 
   const handleCheckConnector = () => {
-    const installedVer = document.documentElement.dataset.spvConnectorInstalled;
-    if (installedVer) {
-      setConnectorReady(true);
-      toast.success(`Extensia Conector SPV USB v${installedVer} este activă.`);
-      return;
-    }
     window.postMessage(
       { source: "smart-invoice-app", type: "SPV_CONNECTOR_PING" },
-      "*"
+      window.location.origin
     );
     setTimeout(() => {
-      const retryVer = document.documentElement.dataset.spvConnectorInstalled;
+      const retryVer =
+        document.documentElement.dataset.spvConnectorInstalled || "";
       if (retryVer) {
+        setConnectorVersion(retryVer);
         setConnectorReady(true);
-        toast.success(`Extensia Conector SPV USB v${retryVer} este activă.`);
+        if (retryVer < "1.5.0") {
+          toast.warning(
+            `În Chrome rulează încă versiunea veche v${retryVer}. Apasă Reload pe extensie în chrome://extensions pentru v1.5.0 (fără Incognito).`
+          );
+        } else {
+          toast.success(`Extensia Conector SPV USB v${retryVer} este activă.`);
+        }
       } else {
         toast.info(
           "Extensia nu a fost detectată încă. Reîncarcă pagina după instalarea în chrome://extensions."
         );
       }
-    }, 350);
+    }, 300);
   };
 
   const handleDownloadConnectorZip = async () => {
@@ -388,8 +416,19 @@ export default function SpvHub() {
     fromUnifiedSync?: boolean;
   }): Promise<any> => {
     const fromUnifiedSync = Boolean(options?.fromUnifiedSync);
+    const currentVer =
+      document.documentElement.dataset.spvConnectorInstalled || connectorVersion;
     if (!connectorReady) {
       if (!fromUnifiedSync) setIsConnectorModalOpen(true);
+      return null;
+    }
+    if (currentVer && currentVer < "1.5.0") {
+      if (!fromUnifiedSync) {
+        setIsConnectorModalOpen(true);
+        toast.warning(
+          `În Chrome este încărcată copia veche v${currentVer} (care cerea Incognito). Apasă Reload pe extensie în chrome://extensions pentru v1.5.0.`
+        );
+      }
       return null;
     }
     if (!oauthInfo?.tenantCui) {
@@ -459,7 +498,7 @@ export default function SpvHub() {
                   ok: true,
                   skippedDuplicate: Boolean(saveJson.skippedDuplicate),
                 },
-                "*"
+                window.location.origin
               );
             } catch (err: any) {
               window.postMessage(
@@ -471,7 +510,7 @@ export default function SpvHub() {
                   ok: false,
                   error: err?.message || "Eroare la salvare",
                 },
-                "*"
+                window.location.origin
               );
             }
             return;
@@ -494,7 +533,7 @@ export default function SpvHub() {
             zile: 60,
             existingIds,
           },
-          "*"
+          window.location.origin
         );
       });
 
@@ -504,10 +543,12 @@ export default function SpvHub() {
       if (!result?.ok) {
         const errMsg =
           result?.error || "Eroare la citirea mesajelor SPV prin stick USB.";
-        if (result?.needsIncognitoPermission) {
-          setIsConnectorModalOpen(true);
+        if (!fromUnifiedSync) {
+          if (result?.needsIncognitoPermission) {
+            setIsConnectorModalOpen(true);
+          }
+          toast.error(errMsg);
         }
-        toast.error(errMsg);
         return result;
       }
 
@@ -1874,15 +1915,45 @@ export default function SpvHub() {
           </DialogHeader>
 
           <div className="space-y-3.5 pt-1 text-xs">
+            {isLegacyConnector && (
+              <div className="rounded-2xl border border-amber-300 dark:border-amber-800 bg-amber-50/90 dark:bg-amber-950/40 p-3 space-y-2 text-amber-950 dark:text-amber-100">
+                <p className="font-bold text-xs">
+                  Actualizare rapidă în Chrome (rulează încă v{connectorVersion}, actuală este v1.5.0 — fără Incognito):
+                </p>
+                <p className="text-[11px] leading-relaxed">
+                  Deschide <span className="font-bold">chrome://extensions</span> și apasă iconița rotundă de <span className="font-bold">Reîncărcare (Reload)</span> pe extensia <span className="font-bold">Factura/SPV</span> (sau șterge copia veche și încarcă folderul de mai jos), apoi dă Refresh la pagină. Versiunea v1.5.0 citește direct tokenul USB fără modul Incognito.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText("chrome://extensions");
+                    setCopiedExtUrl(true);
+                    setTimeout(() => setCopiedExtUrl(false), 1800);
+                    toast.success("Adresa chrome://extensions a fost copiată — lipește-o într-un tab nou.");
+                  }}
+                  className="rounded-full px-3 py-1 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-[11px] font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  {copiedExtUrl ? (
+                    <>
+                      <Check className="w-3 h-3 text-emerald-600" />
+                      <span>Copiat: chrome://extensions</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3" />
+                      <span>Copiază adresa chrome://extensions</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+
             <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/70 p-3.5 space-y-2 text-slate-700 dark:text-slate-300">
               <p className="font-semibold text-slate-900 dark:text-white">
-                Instalare în 4 pași (20 secunde):
+                Instalare / Reîncărcare în 3 pași (15 secunde, fără Incognito):
               </p>
               <p>
-                1. Descarcă arhiva extensiei și dezarhivează-o (sau folosește direct folderul proiectului dacă ești pe localhost).
-              </p>
-              <p>
-                2. Deschide în Chrome adresa{" "}
+                1. Deschide în Chrome adresa{" "}
                 <span className="font-semibold select-all">
                   chrome://extensions
                 </span>{" "}
@@ -1890,13 +1961,12 @@ export default function SpvHub() {
                 <span className="font-semibold">Developer mode</span> (dreapta-sus).
               </p>
               <p>
-                3. Apasă{" "}
+                2. Apasă{" "}
                 <span className="font-semibold">Load unpacked</span> și selectează folderul{" "}
-                <span className="font-semibold">chrome-spv-connector</span>.
+                <span className="font-semibold">chrome-spv-connector</span> de mai jos (sau apasă iconița <span className="font-semibold">Reload</span> pe extensie dacă este deja încărcată din acest folder).
               </p>
               <p>
-                4. Apasă <span className="font-semibold">Detalii</span> (Details) pe extensie și activează{" "}
-                <span className="font-semibold">Permite în modul incognito</span> (Allow in Incognito) — astfel fiecare sincronizare deschide automat o mini-fereastră Incognito izolată, fără blocaje de sesiune în Chrome.
+                3. Reîncarcă pagina <span className="font-semibold">/spv</span> și apasă <span className="font-semibold">Sincronizează Stick USB</span> — fereastra ANAF se deschide direct cu tokenul USB conectat.
               </p>
             </div>
 

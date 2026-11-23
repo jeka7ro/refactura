@@ -1,5 +1,17 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-23 11:28 — Upgrade Conector Chrome USB SPV la `v1.5.0` (fără cerință Incognito) și separare sincronizare OAuth de copiile vechi `v1.4.0`
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Conector Chrome USB (`chrome-spv-connector/manifest.json`, `app-bridge.js`, `background.js` — `v1.5.0`):**
+     - Ridicat versiunea extensiei la `1.5.0`, eliminat complet orice mesaj/cerință `Permite în modul incognito` și adăugat suport `SPV_CONNECTOR_RELOAD` (`chrome.runtime.reload()`).
+  2. **Separare OAuth & Detecție copie veche `v1.4.0` în Chrome (`client/src/pages/SpvHub.tsx`):**
+     - `Actualizează din SPV` (`handleSyncAll`) folosește curat tokenul OAuth ANAF conectat fără a mai fi întrerupt de modalul / eroarea Incognito a unei copii vechi `v1.4.0` rămase nereîncărcate în Chrome.
+     - La apăsarea `Sincronizează Stick USB` când Chrome rulează încă vechea copie `v1.4.0` din memorie, afișează instrucțiunea clară de Reload în `chrome://extensions` (cu buton de copiere într-un click) către `v1.5.0` fără Incognito.
+- **Fișiere:** `chrome-spv-connector/manifest.json`, `chrome-spv-connector/app-bridge.js`, `chrome-spv-connector/background.js`, `client/src/pages/SpvHub.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `node --check` curat pe extensie, `npx tsc --noEmit` (`0` erori) și `npm run build` (`0` erori), fără `git push`.
+
 ### 2026-11-23 11:20 — Selector mod interfață implicită (`Interfață Normală` vs `Interfață SAGA`) în Setări -> Portalul Contabilului
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
