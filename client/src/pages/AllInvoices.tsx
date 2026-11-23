@@ -841,110 +841,110 @@ export default function AllInvoices() {
           </div>
         </div>
 
-        {/* KPI Cards — Apple macOS Tahoe Concentric Interactive Tiles */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* KPI Cards — Compact Apple macOS Tahoe Interactive Strip */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
           {/* TOTAL */}
           <div
-            className={`rounded-[22px] border p-4 sm:p-5 flex items-center justify-between min-h-[88px] transition-all duration-200 cursor-pointer ${
+            className={`rounded-2xl border px-3.5 py-2.5 flex items-center justify-between transition-all duration-200 cursor-pointer ${
               typeFilter === "all"
-                ? "bg-gradient-to-br from-white via-white to-primary/[0.07] dark:from-[#1c1c1e] dark:via-[#1c1c1e] dark:to-primary/[0.14] border-primary/45 ring-2 ring-primary/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_8px_24px_-6px_rgba(15,23,42,0.08)]"
-                : "bg-white/95 dark:bg-[#1c1c1e] border-black/[0.06] dark:border-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_2px_10px_-3px_rgba(15,23,42,0.05)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,1),0_8px_22px_-6px_rgba(15,23,42,0.08)]"
+                ? "bg-gradient-to-br from-white via-white to-primary/[0.06] dark:from-[#1c1c1e] dark:via-[#1c1c1e] dark:to-primary/[0.14] border-primary/45 ring-1 ring-primary/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_4px_14px_-4px_rgba(15,23,42,0.07)]"
+                : "bg-white/95 dark:bg-[#1c1c1e] border-black/[0.06] dark:border-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_4px_rgba(15,23,42,0.04)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,1),0_6px_16px_-4px_rgba(15,23,42,0.07)]"
             }`}
             onClick={() => { setTypeFilter("all"); setPage(1); }}
           >
-            <div>
-              <p className="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[#636366] dark:text-[#98989d] mb-1.5 truncate">
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[#636366] dark:text-[#98989d] mb-0.5 truncate">
                 Total
               </p>
               <div className="flex items-baseline gap-1.5 tabular-nums">
-                <p className="text-2xl sm:text-[28px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.025em] leading-none">
+                <p className="text-lg sm:text-[20px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em] leading-none">
                   {allRows.length}
                 </p>
                 {filtered.length !== allRows.length && (
-                  <span className="text-xs font-semibold text-primary">
+                  <span className="text-[11px] font-semibold text-primary">
                     ({filtered.length})
                   </span>
                 )}
               </div>
             </div>
-            <div className="w-10 h-10 rounded-2xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center flex-shrink-0 ml-2">
-              <ClipboardList className="w-4.5 h-4.5 text-primary" />
+            <div className="w-8 h-8 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center flex-shrink-0 ml-2">
+              <ClipboardList className="w-4 h-4 text-primary" />
             </div>
           </div>
 
           {/* EMISE */}
           <div
-            className={`rounded-[22px] border p-4 sm:p-5 flex items-center justify-between min-h-[88px] transition-all duration-200 cursor-pointer ${
+            className={`rounded-2xl border px-3.5 py-2.5 flex items-center justify-between transition-all duration-200 cursor-pointer ${
               typeFilter === "emis"
-                ? "bg-gradient-to-br from-white via-white to-emerald-500/[0.08] dark:from-[#1c1c1e] dark:via-[#1c1c1e] dark:to-emerald-500/[0.15] border-emerald-500/45 ring-2 ring-emerald-500/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_8px_24px_-6px_rgba(15,23,42,0.08)]"
-                : "bg-white/95 dark:bg-[#1c1c1e] border-black/[0.06] dark:border-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_2px_10px_-3px_rgba(15,23,42,0.05)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,1),0_8px_22px_-6px_rgba(15,23,42,0.08)]"
+                ? "bg-gradient-to-br from-white via-white to-emerald-500/[0.07] dark:from-[#1c1c1e] dark:via-[#1c1c1e] dark:to-emerald-500/[0.15] border-emerald-500/45 ring-1 ring-emerald-500/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_4px_14px_-4px_rgba(15,23,42,0.07)]"
+                : "bg-white/95 dark:bg-[#1c1c1e] border-black/[0.06] dark:border-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_4px_rgba(15,23,42,0.04)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,1),0_6px_16px_-4px_rgba(15,23,42,0.07)]"
             }`}
             onClick={() => { setTypeFilter("emis"); setPage(1); }}
           >
-            <div>
-              <p className="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[#636366] dark:text-[#98989d] mb-1.5 truncate">
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[#636366] dark:text-[#98989d] mb-0.5 truncate">
                 Emise
               </p>
               <div className="flex items-baseline gap-1.5 tabular-nums">
-                <p className="text-2xl sm:text-[28px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.025em] leading-none">
+                <p className="text-lg sm:text-[20px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em] leading-none">
                   {allRows.filter(r => r.type === "emis").length}
                 </p>
                 {filtered.length !== allRows.length && (
-                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                  <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
                     ({filtered.filter(r => r.type === "emis").length})
                   </span>
                 )}
               </div>
             </div>
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500/12 dark:bg-emerald-500/20 flex items-center justify-center flex-shrink-0 ml-2">
-              <Send className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/12 dark:bg-emerald-500/20 flex items-center justify-center flex-shrink-0 ml-2">
+              <Send className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
             </div>
           </div>
 
           {/* PRIMITE */}
           <div
-            className={`rounded-[22px] border p-4 sm:p-5 flex items-center justify-between min-h-[88px] transition-all duration-200 cursor-pointer ${
+            className={`rounded-2xl border px-3.5 py-2.5 flex items-center justify-between transition-all duration-200 cursor-pointer ${
               typeFilter === "primit"
-                ? "bg-gradient-to-br from-white via-white to-amber-500/[0.08] dark:from-[#1c1c1e] dark:via-[#1c1c1e] dark:to-amber-500/[0.15] border-amber-500/45 ring-2 ring-amber-500/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_8px_24px_-6px_rgba(15,23,42,0.08)]"
-                : "bg-white/95 dark:bg-[#1c1c1e] border-black/[0.06] dark:border-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_2px_10px_-3px_rgba(15,23,42,0.05)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,1),0_8px_22px_-6px_rgba(15,23,42,0.08)]"
+                ? "bg-gradient-to-br from-white via-white to-amber-500/[0.07] dark:from-[#1c1c1e] dark:via-[#1c1c1e] dark:to-amber-500/[0.15] border-amber-500/45 ring-1 ring-amber-500/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_4px_14px_-4px_rgba(15,23,42,0.07)]"
+                : "bg-white/95 dark:bg-[#1c1c1e] border-black/[0.06] dark:border-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_4px_rgba(15,23,42,0.04)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,1),0_6px_16px_-4px_rgba(15,23,42,0.07)]"
             }`}
             onClick={() => { setTypeFilter("primit"); setPage(1); }}
           >
-            <div>
-              <p className="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[#636366] dark:text-[#98989d] mb-1.5 truncate">
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[#636366] dark:text-[#98989d] mb-0.5 truncate">
                 Primite
               </p>
               <div className="flex items-baseline gap-1.5 tabular-nums">
-                <p className="text-2xl sm:text-[28px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.025em] leading-none">
+                <p className="text-lg sm:text-[20px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em] leading-none">
                   {allRows.filter(r => r.type === "primit").length}
                 </p>
                 {filtered.length !== allRows.length && (
-                  <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
+                  <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">
                     ({filtered.filter(r => r.type === "primit").length})
                   </span>
                 )}
               </div>
             </div>
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/12 dark:bg-amber-500/20 flex items-center justify-center flex-shrink-0 ml-2">
-              <Download className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+            <div className="w-8 h-8 rounded-xl bg-amber-500/12 dark:bg-amber-500/20 flex items-center justify-center flex-shrink-0 ml-2">
+              <Download className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
             </div>
           </div>
 
           {/* TOTAL SUMĂ (PENTRU CELE AFIȘATE / FILTRATE) */}
           <div
-            className={`rounded-[22px] border p-4 sm:p-5 flex items-center justify-between min-h-[88px] transition-all duration-200 ${
+            className={`rounded-2xl border px-3.5 py-2.5 flex items-center justify-between transition-all duration-200 ${
               filteredTotals.isFiltered
-                ? "bg-gradient-to-br from-white via-white to-primary/[0.07] dark:from-[#1c1c1e] dark:to-primary/[0.14] border-primary/45 ring-2 ring-primary/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_8px_24px_-6px_rgba(15,23,42,0.08)]"
-                : "bg-white/95 dark:bg-[#1c1c1e] border-black/[0.06] dark:border-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_2px_10px_-3px_rgba(15,23,42,0.05)]"
+                ? "bg-gradient-to-br from-white via-white to-primary/[0.06] dark:from-[#1c1c1e] dark:to-primary/[0.14] border-primary/45 ring-1 ring-primary/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_4px_14px_-4px_rgba(15,23,42,0.07)]"
+                : "bg-white/95 dark:bg-[#1c1c1e] border-black/[0.06] dark:border-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_4px_rgba(15,23,42,0.04)]"
             }`}
           >
             <div className="min-w-0 flex-1 tabular-nums">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <p className="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[#636366] dark:text-[#98989d] truncate">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[#636366] dark:text-[#98989d] truncate">
                   Total Sumă
                 </p>
                 {filteredTotals.isFiltered ? (
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/12 text-primary leading-none">
+                  <span className="text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/12 text-primary leading-none">
                     Filtrate
                   </span>
                 ) : (
@@ -954,28 +954,24 @@ export default function AllInvoices() {
                 )}
               </div>
               {filteredTotals.entries.length === 0 ? (
-                <p className="text-lg sm:text-xl font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em] leading-none">
+                <p className="text-base sm:text-[18px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em] leading-none">
                   0,00 RON
                 </p>
               ) : (
-                <div className="flex flex-col justify-center">
-                  <p className="text-base sm:text-lg lg:text-[21px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em] leading-tight truncate">
+                <div className="flex items-baseline gap-1.5 flex-wrap">
+                  <p className="text-sm sm:text-base lg:text-[17px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em] leading-none truncate">
                     {formatCurrency(filteredTotals.entries[0][1], (filteredTotals.entries[0][0] as Currency) || "RON")}
                   </p>
-                  {filteredTotals.entries.length > 1 && (
-                    <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
-                      {filteredTotals.entries.slice(1).map(([curr, val]) => (
-                        <span key={curr} className="text-[11px] font-semibold text-[#636366] dark:text-[#98989d]">
-                          + {formatCurrency(val, (curr as Currency) || "EUR")}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  {filteredTotals.entries.slice(1).map(([curr, val]) => (
+                    <span key={curr} className="text-[10.5px] font-semibold text-[#636366] dark:text-[#98989d] leading-none">
+                      + {formatCurrency(val, (curr as Currency) || "EUR")}
+                    </span>
+                  ))}
                 </div>
               )}
             </div>
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/12 dark:bg-amber-500/20 flex items-center justify-center flex-shrink-0 ml-2">
-              <Coins className="w-4.5 h-4.5 text-amber-600 dark:text-amber-400" />
+            <div className="w-8 h-8 rounded-xl bg-amber-500/12 dark:bg-amber-500/20 flex items-center justify-center flex-shrink-0 ml-2">
+              <Coins className="w-4 h-4 text-amber-600 dark:text-amber-400" />
             </div>
           </div>
         </div>

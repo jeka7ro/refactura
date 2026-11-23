@@ -117,12 +117,12 @@ export default function DevizeList() {
         ].map(k => (
           <div
             key={k.label}
-            className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 p-4 shadow-sm"
+            className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] px-3.5 py-2.5 shadow-2xs"
           >
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] mb-0.5">
               {k.label}
             </p>
-            <p className={`text-xl font-black tabular-nums ${k.cls}`}>{k.value}</p>
+            <p className={`text-lg font-bold tabular-nums leading-tight ${k.cls}`}>{k.value}</p>
           </div>
         ))}
       </div>

@@ -467,13 +467,13 @@ export default function Clients() {
           )}
 
           {/* KPI Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-4 pb-2">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pb-1">
             {/* TOTAL */}
             <div
-              className={`bg-white dark:bg-slate-900 rounded-[22px] border p-3 sm:p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md cursor-pointer ${
+              className={`bg-white dark:bg-[#1c1c1e] rounded-2xl border px-3.5 py-2.5 flex items-center justify-between shadow-2xs transition-all hover:shadow-sm cursor-pointer ${
                 filterType === "all" && filterRegime === "all"
                   ? "border-blue-500/60 ring-1 ring-blue-500/20"
-                  : "border-slate-200 dark:border-slate-800"
+                  : "border-black/[0.06] dark:border-white/[0.09]"
               }`}
               onClick={() => {
                 setFilterType("all");
@@ -481,10 +481,10 @@ export default function Clients() {
               }}
             >
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 truncate">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] mb-0.5 truncate">
                   Total Parteneri
                 </p>
-                <p className="text-xl sm:text-2xl font-black tabular-nums text-slate-800 dark:text-white leading-none">
+                <p className="text-lg sm:text-[19px] font-bold tabular-nums text-[#1d1d1f] dark:text-white leading-tight">
                   {counts.total}
                 </p>
               </div>
@@ -492,10 +492,10 @@ export default function Clients() {
 
             {/* CLIENȚI */}
             <div
-              className={`bg-white dark:bg-slate-900 rounded-[22px] border p-3 sm:p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md cursor-pointer ${
+              className={`bg-white dark:bg-[#1c1c1e] rounded-2xl border px-3.5 py-2.5 flex items-center justify-between shadow-2xs transition-all hover:shadow-sm cursor-pointer ${
                 filterType === "client" && filterRegime === "all"
                   ? "border-blue-500/60 ring-1 ring-blue-500/20"
-                  : "border-slate-200 dark:border-slate-800"
+                  : "border-black/[0.06] dark:border-white/[0.09]"
               }`}
               onClick={() => {
                 setFilterType(filterType === "client" ? "all" : "client");
@@ -503,10 +503,10 @@ export default function Clients() {
               }}
             >
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 truncate">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] mb-0.5 truncate">
                   Clienți
                 </p>
-                <p className="text-xl sm:text-2xl font-black tabular-nums text-blue-600 dark:text-blue-400 leading-none">
+                <p className="text-lg sm:text-[19px] font-bold tabular-nums text-blue-600 dark:text-blue-400 leading-tight">
                   {counts.clientsCount}
                 </p>
               </div>
@@ -514,10 +514,10 @@ export default function Clients() {
 
             {/* FURNIZORI */}
             <div
-              className={`bg-white dark:bg-slate-900 rounded-[22px] border p-3 sm:p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md cursor-pointer ${
+              className={`bg-white dark:bg-[#1c1c1e] rounded-2xl border px-3.5 py-2.5 flex items-center justify-between shadow-2xs transition-all hover:shadow-sm cursor-pointer ${
                 filterType === "supplier" && filterRegime === "all"
                   ? "border-amber-500/60 ring-1 ring-amber-500/20"
-                  : "border-slate-200 dark:border-slate-800"
+                  : "border-black/[0.06] dark:border-white/[0.09]"
               }`}
               onClick={() => {
                 setFilterType(filterType === "supplier" ? "all" : "supplier");
@@ -525,10 +525,10 @@ export default function Clients() {
               }}
             >
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 truncate">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] mb-0.5 truncate">
                   Furnizori
                 </p>
-                <p className="text-xl sm:text-2xl font-black tabular-nums text-amber-600 dark:text-amber-400 leading-none">
+                <p className="text-lg sm:text-[19px] font-bold tabular-nums text-amber-600 dark:text-amber-400 leading-tight">
                   {counts.suppliers}
                 </p>
               </div>
@@ -536,10 +536,10 @@ export default function Clients() {
 
             {/* EXTERNI (EUR) */}
             <div
-              className={`bg-white dark:bg-slate-900 rounded-[22px] border p-3 sm:p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md cursor-pointer ${
+              className={`bg-white dark:bg-[#1c1c1e] rounded-2xl border px-3.5 py-2.5 flex items-center justify-between shadow-2xs transition-all hover:shadow-sm cursor-pointer ${
                 filterRegime === "extern"
                   ? "border-indigo-500/60 ring-1 ring-indigo-500/20"
-                  : "border-slate-200 dark:border-slate-800"
+                  : "border-black/[0.06] dark:border-white/[0.09]"
               }`}
               onClick={() => {
                 setFilterRegime(filterRegime === "extern" ? "all" : "extern");
@@ -547,10 +547,10 @@ export default function Clients() {
               }}
             >
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 truncate">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] mb-0.5 truncate">
                   Externi (EUR)
                 </p>
-                <p className="text-xl sm:text-2xl font-black tabular-nums text-indigo-600 dark:text-indigo-400 leading-none">
+                <p className="text-lg sm:text-[19px] font-bold tabular-nums text-indigo-600 dark:text-indigo-400 leading-tight">
                   {counts.externals}
                 </p>
               </div>
@@ -558,10 +558,10 @@ export default function Clients() {
 
             {/* INTERNI (RON) */}
             <div
-              className={`bg-white dark:bg-slate-900 rounded-[22px] border p-3 sm:p-4 flex items-center justify-between h-20 shadow-sm transition-all hover:shadow-md cursor-pointer ${
+              className={`bg-white dark:bg-[#1c1c1e] rounded-2xl border px-3.5 py-2.5 flex items-center justify-between shadow-2xs transition-all hover:shadow-sm cursor-pointer ${
                 filterRegime === "intern"
                   ? "border-slate-500/60 ring-1 ring-slate-500/20"
-                  : "border-slate-200 dark:border-slate-800"
+                  : "border-black/[0.06] dark:border-white/[0.09]"
               }`}
               onClick={() => {
                 setFilterRegime(filterRegime === "intern" ? "all" : "intern");
@@ -569,10 +569,10 @@ export default function Clients() {
               }}
             >
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 truncate">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] mb-0.5 truncate">
                   Interni (RON)
                 </p>
-                <p className="text-xl sm:text-2xl font-black tabular-nums text-slate-700 dark:text-slate-300 leading-none">
+                <p className="text-lg sm:text-[19px] font-bold tabular-nums text-slate-700 dark:text-slate-300 leading-tight">
                   {counts.internals}
                 </p>
               </div>

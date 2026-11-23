@@ -507,17 +507,20 @@ button.bg-primary,
     0 4px 14px -3px color-mix(in srgb, var(--tenant-theme-color, #16a34a) 42%, transparent) !important;
 }
 
-/* Container-ele mari rămân rounded, dar concentric Apple Tahoe (22px) */
+/* Cardurile rămân compacte (16px), iar modalele concentrice (20px) */
 .card,
 [data-slot="card"],
 .kpi-card,
 .chart-card,
 .glass-card,
-.glass-input,
+.glass-input {
+  border-radius: 16px;
+}
+
 .modal,
 [data-slot="dialog-content"],
 [data-slot="alert-dialog-content"] {
-  border-radius: 22px;
+  border-radius: 20px;
 }
 
 /* ═══════════════════════════════════════════════════════════════

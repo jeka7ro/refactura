@@ -307,7 +307,7 @@ export default function InvoiceArchive() {
       </div>
 
       {/* Stats bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
         {[
           {
             label: "Total",
@@ -340,18 +340,18 @@ export default function InvoiceArchive() {
         ].map(s => (
           <div
             key={s.label}
-            className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-[22px] p-4 shadow-sm flex items-center gap-4 transition-all hover:shadow-md"
+            className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-2xl px-3.5 py-2.5 shadow-2xs flex items-center gap-3 transition-all hover:shadow-sm"
           >
             <div
-              className={`w-10 h-10 flex items-center justify-center rounded-xl ${s.color}`}
+              className={`w-8 h-8 flex items-center justify-center rounded-xl shrink-0 ${s.color}`}
             >
-              <s.icon className="w-5 h-5" />
+              <s.icon className="w-4 h-4" />
             </div>
-            <div>
-              <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
+            <div className="min-w-0">
+              <div className="text-[11px] font-medium text-[#636366] dark:text-[#98989d] truncate">
                 {s.label}
               </div>
-              <div className="text-xl font-bold tabular-nums text-slate-900 dark:text-white">
+              <div className="text-lg font-bold tabular-nums text-[#1d1d1f] dark:text-white leading-tight">
                 {s.value}
               </div>
             </div>

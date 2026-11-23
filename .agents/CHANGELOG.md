@@ -1,5 +1,17 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-23 11:15 — Compactare proporții carduri KPI și `<Card>` pe toate ecranele (`card.tsx`, `AllInvoices.tsx` și încă 15 pagini)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Reducere înălțime, padding și raze pe componenta globală `<Card>` (`client/src/components/ui/card.tsx`, `client/src/index.css`):**
+     - Redus paddingul vertical exagerat din `Card` (`py-6 gap-6 px-6` → `py-4 gap-3.5 px-4 sm:px-5`) și ajustat raza cardurilor la `rounded-2xl` (`16px`) în timp ce modalele păstrează raza concentrică `20px`.
+  2. **Compactare bandă carduri KPI pe `/facturi` (`AllInvoices.tsx`) și pe toate celelalte pagini de listă/raport:**
+     - În `AllInvoices.tsx`: eliminat `min-h-[88px]` și `p-4 sm:p-5`, redus la `px-3.5 py-2.5` (~`54px` înălțime compactă), valori `text-lg sm:text-[20px]`, iconițe `w-8 h-8 rounded-xl` și afișare pe același rând a sumei secundare (`+ EUR`) în cardul `Total Sumă`.
+     - Aplicat aceleași proporții compacte (`px-3.5 py-2.5`, `rounded-2xl`, `gap-2.5`, iconițe `w-8 h-8`) pe `EmittedInvoices.tsx`, `Dashboard.tsx`, `SpvHub.tsx`, `Clients.tsx`, `ContractsList.tsx`, `NIRList.tsx`, `InvoiceArchive.tsx`, `DevizeList.tsx`, `BonuriConsumList.tsx`, `EmailLogs.tsx`, `Reports.tsx`, `Integrations.tsx`, `SpvLogs.tsx` și `AccountantPortal.tsx`, fără a elimina nicio informație sau funcționalitate.
+- **Fișiere:** `client/src/components/ui/card.tsx`, `client/src/index.css`, `client/src/pages/AllInvoices.tsx`, `client/src/pages/EmittedInvoices.tsx`, `client/src/pages/Dashboard.tsx`, `client/src/pages/SpvHub.tsx`, `client/src/pages/Clients.tsx`, `client/src/pages/ContractsList.tsx`, `client/src/pages/NIRList.tsx`, `client/src/pages/InvoiceArchive.tsx`, `client/src/pages/DevizeList.tsx`, `client/src/pages/BonuriConsumList.tsx`, `client/src/pages/EmailLogs.tsx`, `client/src/pages/Reports.tsx`, `client/src/pages/Integrations.tsx`, `client/src/pages/SpvLogs.tsx`, `client/src/pages/AccountantPortal.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori) și `npm run build` (`0` erori), fără `git push`.
+
 ### 2026-11-22 23:52 — Audit și perfecționare cap-coadă a întregii aplicații (Securitate Multi-Tenant, Motor Fiscal, Fluxuri & Comunicare UX, Design Apple Liquid Glass, `0` erori TS în tot repo-ul)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

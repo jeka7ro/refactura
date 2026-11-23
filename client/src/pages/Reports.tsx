@@ -407,19 +407,19 @@ function KPICard({
   sub?: string;
 }) {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-[22px] shadow-sm border border-slate-200 dark:border-slate-800 p-5 space-y-3">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+    <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl shadow-2xs border border-black/[0.06] dark:border-white/[0.09] px-3.5 py-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-[10.5px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] truncate">
             {title}
           </p>
-          <p className="text-2xl font-bold tabular-nums text-slate-900 dark:text-white mt-2">
+          <p className="text-lg sm:text-[20px] font-bold tabular-nums text-[#1d1d1f] dark:text-white mt-0.5 leading-tight truncate">
             {value}
           </p>
-          {sub && <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{sub}</p>}
+          {sub && <p className="text-[11px] text-[#636366] dark:text-[#98989d] mt-0.5 truncate">{sub}</p>}
         </div>
         <div
-          className={`w-10 h-10 rounded-2xl ${iconBg} flex items-center justify-center flex-shrink-0`}
+          className={`w-8 h-8 rounded-xl ${iconBg} flex items-center justify-center flex-shrink-0`}
         >
           {icon}
         </div>

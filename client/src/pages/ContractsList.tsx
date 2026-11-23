@@ -355,80 +355,72 @@ export default function ContractsList() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
-        <div className="h-full flex flex-col justify-between rounded-[22px] border border-slate-200/70 dark:border-slate-800 bg-card p-5 shadow-xs transition-all hover:border-primary/30">
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Contracte Active
-              </span>
-              <div className="h-9 w-9 rounded-xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                <FileCheck className="h-5 w-5" />
-              </div>
-            </div>
-            <div className="mt-3 text-3xl font-extrabold tabular-nums text-slate-900 dark:text-white">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 items-stretch">
+        <div className="h-full flex items-center justify-between rounded-2xl border border-black/[0.06] dark:border-white/[0.09] bg-card px-3.5 py-2.5 shadow-2xs transition-all hover:border-primary/30">
+          <div className="min-w-0">
+            <span className="block text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] truncate">
+              Contracte Active
+            </span>
+            <div className="mt-0.5 text-lg sm:text-[20px] font-bold tabular-nums text-[#1d1d1f] dark:text-white leading-tight">
               {loadingStats ? "..." : stats?.totalActive || 0}
             </div>
+            <div className="text-[10.5px] text-[#636366] dark:text-[#98989d] truncate">
+              Valabile și în derulare
+            </div>
           </div>
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 min-h-[32px] flex items-center">
-            Valabile și în derulare
+          <div className="h-8 w-8 rounded-xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 ml-2">
+            <FileCheck className="h-4 w-4" />
           </div>
         </div>
 
-        <div className="h-full flex flex-col justify-between rounded-[22px] border border-slate-200/70 dark:border-slate-800 bg-card p-5 shadow-xs transition-all hover:border-primary/30">
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Acte Adiționale
-              </span>
-              <div className="h-9 w-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300">
-                <RefreshCw className="h-5 w-5" />
-              </div>
-            </div>
-            <div className="mt-3 text-3xl font-extrabold tabular-nums text-slate-900 dark:text-white">
+        <div className="h-full flex items-center justify-between rounded-2xl border border-black/[0.06] dark:border-white/[0.09] bg-card px-3.5 py-2.5 shadow-2xs transition-all hover:border-primary/30">
+          <div className="min-w-0">
+            <span className="block text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] truncate">
+              Acte Adiționale
+            </span>
+            <div className="mt-0.5 text-lg sm:text-[20px] font-bold tabular-nums text-[#1d1d1f] dark:text-white leading-tight">
               {loadingStats ? "..." : stats?.totalAddendums || 0}
             </div>
+            <div className="text-[10.5px] text-[#636366] dark:text-[#98989d] truncate">
+              Modificări de termene & prețuri
+            </div>
           </div>
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 min-h-[32px] flex items-center">
-            Modificări de termene & prețuri
+          <div className="h-8 w-8 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 shrink-0 ml-2">
+            <RefreshCw className="h-4 w-4" />
           </div>
         </div>
 
-        <div className="h-full flex flex-col justify-between rounded-[22px] border border-slate-200/70 dark:border-slate-800 bg-card p-5 shadow-xs transition-all hover:border-primary/30">
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Expiră în 30 Zile
-              </span>
-              <div className="h-9 w-9 rounded-xl bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400">
-                <Clock className="h-5 w-5" />
-              </div>
-            </div>
-            <div className="mt-3 text-3xl font-extrabold tabular-nums text-slate-900 dark:text-white">
+        <div className="h-full flex items-center justify-between rounded-2xl border border-black/[0.06] dark:border-white/[0.09] bg-card px-3.5 py-2.5 shadow-2xs transition-all hover:border-primary/30">
+          <div className="min-w-0">
+            <span className="block text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] truncate">
+              Expiră în 30 Zile
+            </span>
+            <div className="mt-0.5 text-lg sm:text-[20px] font-bold tabular-nums text-[#1d1d1f] dark:text-white leading-tight">
               {loadingStats ? "..." : stats?.expiringSoon || 0}
             </div>
+            <div className="text-[10.5px] text-[#636366] dark:text-[#98989d] truncate">
+              Necesită reînnoire sau act adițional
+            </div>
           </div>
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 min-h-[32px] flex items-center">
-            Necesită reînnoire sau act adițional
+          <div className="h-8 w-8 rounded-xl bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0 ml-2">
+            <Clock className="h-4 w-4" />
           </div>
         </div>
 
-        <div className="h-full flex flex-col justify-between rounded-[22px] border border-slate-200/70 dark:border-slate-800 bg-card p-5 shadow-xs transition-all hover:border-primary/30">
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Fișiere Arhivate
-              </span>
-              <div className="h-9 w-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                <ShieldCheck className="h-5 w-5" />
-              </div>
-            </div>
-            <div className="mt-3 text-3xl font-extrabold tabular-nums text-slate-900 dark:text-white">
+        <div className="h-full flex items-center justify-between rounded-2xl border border-black/[0.06] dark:border-white/[0.09] bg-card px-3.5 py-2.5 shadow-2xs transition-all hover:border-primary/30">
+          <div className="min-w-0">
+            <span className="block text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] truncate">
+              Fișiere Arhivate
+            </span>
+            <div className="mt-0.5 text-lg sm:text-[20px] font-bold tabular-nums text-[#1d1d1f] dark:text-white leading-tight">
               {loadingStats ? "..." : stats?.totalFiles || 0}
             </div>
+            <div className="text-[10.5px] text-[#636366] dark:text-[#98989d] truncate">
+              PDF-uri stocate și indexate
+            </div>
           </div>
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 min-h-[32px] flex items-center">
-            PDF-uri stocate și indexate
+          <div className="h-8 w-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 ml-2">
+            <ShieldCheck className="h-4 w-4" />
           </div>
         </div>
       </div>

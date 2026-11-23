@@ -831,32 +831,32 @@ export default function Dashboard() {
       </div>
 
       {/* ── SMART FINANCIAL KPI STRIP ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {/* KPI 1: Venituri Emise */}
-        <div className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_16px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_6px_rgba(0,0,0,0.05),0_10px_24px_-6px_rgba(0,0,0,0.07)] transition-shadow">
+        <div className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_14px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_6px_rgba(0,0,0,0.05),0_8px_20px_-6px_rgba(0,0,0,0.07)] transition-shadow">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#636366] dark:text-[#98989d]">
+            <span className="text-[10.5px] font-semibold uppercase tracking-[0.05em] text-[#636366] dark:text-[#98989d]">
               Venituri (Facturi Emise)
             </span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 dark:bg-emerald-400/15 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-              <FileOutput className="w-4 h-4" />
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 dark:bg-emerald-400/15 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+              <FileOutput className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="mt-2.5 text-2xl sm:text-[28px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.024em] tabular-nums">
+          <div className="mt-1 text-lg sm:text-[21px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em] tabular-nums leading-tight">
             {formatCurrency(kpi.totalEmittedRon, "RON")}
           </div>
-          <div className="mt-2.5 flex items-center justify-between text-xs tabular-nums">
+          <div className="mt-1.5 flex items-center justify-between text-[11px] tabular-nums">
             <span className="text-[#636366] dark:text-[#98989d]">
               {kpi.countEmitted} facturi emise
               {currencyBreakdown.EUR?.emitted > 0 && (
-                <span className="ml-1.5 px-1.5 py-0.5 rounded-md text-[10.5px] font-semibold bg-blue-500/10 text-blue-700 dark:text-blue-300">
+                <span className="ml-1.5 px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-blue-500/10 text-blue-700 dark:text-blue-300">
                   +{currencyBreakdown.EUR.emitted.toFixed(0)} EUR
                 </span>
               )}
             </span>
             {kpi.emittedGrowth !== null && (
               <span
-                className={`flex items-center font-semibold text-xs ${
+                className={`flex items-center font-semibold text-[11px] ${
                   parseFloat(kpi.emittedGrowth) >= 0
                     ? "text-emerald-700 dark:text-emerald-400"
                     : "text-rose-700 dark:text-rose-400"
@@ -874,25 +874,25 @@ export default function Dashboard() {
         </div>
 
         {/* KPI 2: Cheltuieli Primite */}
-        <div className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_16px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_6px_rgba(0,0,0,0.05),0_10px_24px_-6px_rgba(0,0,0,0.07)] transition-shadow">
+        <div className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_14px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_6px_rgba(0,0,0,0.05),0_8px_20px_-6px_rgba(0,0,0,0.07)] transition-shadow">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#636366] dark:text-[#98989d]">
+            <span className="text-[10.5px] font-semibold uppercase tracking-[0.05em] text-[#636366] dark:text-[#98989d]">
               Cheltuieli (Facturi Primite)
             </span>
-            <div className="w-9 h-9 rounded-xl bg-rose-500/10 dark:bg-rose-400/15 flex items-center justify-center text-rose-600 dark:text-rose-400">
-              <FileText className="w-4 h-4" />
+            <div className="w-8 h-8 rounded-xl bg-rose-500/10 dark:bg-rose-400/15 flex items-center justify-center text-rose-600 dark:text-rose-400">
+              <FileText className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="mt-2.5 text-2xl sm:text-[28px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.024em] tabular-nums">
+          <div className="mt-1 text-lg sm:text-[21px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em] tabular-nums leading-tight">
             {formatCurrency(kpi.totalReceivedRon, "RON")}
           </div>
-          <div className="mt-2.5 flex items-center justify-between text-xs tabular-nums">
+          <div className="mt-1.5 flex items-center justify-between text-[11px] tabular-nums">
             <span className="text-[#636366] dark:text-[#98989d]">
               {kpi.countReceived} facturi furnizori
             </span>
             {kpi.receivedGrowth !== null && (
               <span
-                className={`flex items-center font-semibold text-xs ${
+                className={`flex items-center font-semibold text-[11px] ${
                   parseFloat(kpi.receivedGrowth) <= 0
                     ? "text-emerald-700 dark:text-emerald-400"
                     : "text-rose-700 dark:text-rose-400"
@@ -910,23 +910,23 @@ export default function Dashboard() {
         </div>
 
         {/* KPI 3: Cashflow Net */}
-        <div className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_16px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_6px_rgba(0,0,0,0.05),0_10px_24px_-6px_rgba(0,0,0,0.07)] transition-shadow">
+        <div className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_14px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_6px_rgba(0,0,0,0.05),0_8px_20px_-6px_rgba(0,0,0,0.07)] transition-shadow">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#636366] dark:text-[#98989d]">
+            <span className="text-[10.5px] font-semibold uppercase tracking-[0.05em] text-[#636366] dark:text-[#98989d]">
               Sold Cashflow Net
             </span>
             <div
-              className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+              className={`w-8 h-8 rounded-xl flex items-center justify-center ${
                 kpi.netCashflowRon >= 0
                   ? "bg-blue-500/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-400"
                   : "bg-rose-500/10 dark:bg-rose-400/15 text-rose-600 dark:text-rose-400"
               }`}
             >
-              <Wallet className="w-4 h-4" />
+              <Wallet className="w-3.5 h-3.5" />
             </div>
           </div>
           <div
-            className={`mt-2.5 text-2xl sm:text-[28px] font-bold tracking-[-0.024em] tabular-nums ${
+            className={`mt-1 text-lg sm:text-[21px] font-bold tracking-[-0.022em] tabular-nums leading-tight ${
               kpi.netCashflowRon >= 0
                 ? "text-emerald-600 dark:text-emerald-400"
                 : "text-rose-600 dark:text-rose-400"
@@ -935,12 +935,12 @@ export default function Dashboard() {
             {kpi.netCashflowRon >= 0 ? "+" : ""}
             {formatCurrency(kpi.netCashflowRon, "RON")}
           </div>
-          <div className="mt-2.5 flex items-center justify-between text-xs tabular-nums">
+          <div className="mt-1.5 flex items-center justify-between text-[11px] tabular-nums">
             <span className="text-[#636366] dark:text-[#98989d]">
               Marjă: <span className="font-semibold text-[#1d1d1f] dark:text-white">{kpi.marginPct}%</span>
             </span>
             <span
-              className={`px-2 py-0.5 rounded-full text-[10.5px] font-semibold ${
+              className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
                 kpi.netCashflowRon >= 0
                   ? "bg-emerald-500/12 text-emerald-800 dark:text-emerald-300"
                   : "bg-rose-500/12 text-rose-800 dark:text-rose-300"
@@ -952,24 +952,24 @@ export default function Dashboard() {
         </div>
 
         {/* KPI 4: Balanță TVA Estimat */}
-        <div className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_16px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_6px_rgba(0,0,0,0.05),0_10px_24px_-6px_rgba(0,0,0,0.07)] transition-shadow">
+        <div className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_14px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_6px_rgba(0,0,0,0.05),0_8px_20px_-6px_rgba(0,0,0,0.07)] transition-shadow">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#636366] dark:text-[#98989d]">
+            <span className="text-[10.5px] font-semibold uppercase tracking-[0.05em] text-[#636366] dark:text-[#98989d]">
               Balanță TVA Estimat
             </span>
-            <div className="w-9 h-9 rounded-xl bg-purple-500/10 dark:bg-purple-400/15 flex items-center justify-center text-purple-600 dark:text-purple-400">
-              <Percent className="w-4 h-4" />
+            <div className="w-8 h-8 rounded-xl bg-purple-500/10 dark:bg-purple-400/15 flex items-center justify-center text-purple-600 dark:text-purple-400">
+              <Percent className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="mt-2.5 text-2xl sm:text-[28px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.024em] tabular-nums">
+          <div className="mt-1 text-lg sm:text-[21px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em] tabular-nums leading-tight">
             {formatCurrency(Math.abs(kpi.netVatRon), "RON")}
           </div>
-          <div className="mt-2.5 flex items-center justify-between text-xs">
+          <div className="mt-1.5 flex items-center justify-between text-[11px]">
             <span className="text-[#636366] dark:text-[#98989d] truncate">
               {kpi.netVatRon >= 0 ? "TVA de plată" : "TVA de recuperat"}
             </span>
             <span
-              className={`px-2 py-0.5 rounded-full text-[10.5px] font-semibold ${
+              className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
                 kpi.netVatRon >= 0
                   ? "bg-amber-500/15 text-amber-800 dark:text-amber-300"
                   : "bg-purple-500/15 text-purple-800 dark:text-purple-300"

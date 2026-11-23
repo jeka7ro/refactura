@@ -968,65 +968,65 @@ export default function AccountantPortal() {
           {activeTab === "received" && (
             <>
               {/* Top KPI Cards Primite */}
-              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-[22px] p-4 shadow-xs flex items-center justify-between">
-                  <div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Facturi Primite</span>
-                    <div className="text-xl sm:text-2xl font-black tabular-nums text-slate-900 dark:text-white mt-1 leading-tight">{currentKpis.totalCount}</div>
-                    <div className="text-[11px] text-slate-400 mt-0.5">în selecția activă</div>
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5">
+                <div className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-2xl px-3.5 py-2.5 shadow-2xs flex items-center justify-between">
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">Facturi Primite</span>
+                    <div className="text-lg font-bold tabular-nums text-slate-900 dark:text-white mt-0.5 leading-tight">{currentKpis.totalCount}</div>
+                    <div className="text-[10.5px] text-slate-400">în selecția activă</div>
                   </div>
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/60 text-blue-600 flex items-center justify-center shrink-0">
-                    <FileText className="w-4 h-4" />
-                  </div>
-                </div>
-
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-[22px] p-4 shadow-xs flex items-center justify-between">
-                  <div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Bază Impozabilă</span>
-                    <div className="text-lg sm:text-xl font-black tabular-nums text-slate-900 dark:text-white mt-1 leading-tight">{formatCurrency(currentKpis.totalBase)}</div>
-                    <div className="text-[11px] text-slate-400 mt-0.5">valoare fără TVA</div>
-                  </div>
-                  <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60 text-emerald-600 flex items-center justify-center shrink-0">
-                    <Coins className="w-4 h-4" />
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/60 text-blue-600 flex items-center justify-center shrink-0">
+                    <FileText className="w-3.5 h-3.5" />
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-[22px] p-4 shadow-xs flex items-center justify-between">
-                  <div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">TVA Deductibil</span>
-                    <div className="text-lg sm:text-xl font-black tabular-nums text-amber-600 dark:text-amber-400 mt-1 leading-tight">{formatCurrency(currentKpis.totalVat)}</div>
-                    <div className="text-[11px] text-slate-400 mt-0.5">sumă totală TVA</div>
+                <div className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-2xl px-3.5 py-2.5 shadow-2xs flex items-center justify-between">
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">Bază Impozabilă</span>
+                    <div className="text-base sm:text-lg font-bold tabular-nums text-slate-900 dark:text-white mt-0.5 leading-tight truncate">{formatCurrency(currentKpis.totalBase)}</div>
+                    <div className="text-[10.5px] text-slate-400">valoare fără TVA</div>
                   </div>
-                  <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/60 text-amber-600 flex items-center justify-center shrink-0">
-                    <Percent className="w-4 h-4" />
-                  </div>
-                </div>
-
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-[22px] p-4 shadow-xs flex items-center justify-between">
-                  <div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Total de Plată</span>
-                    <div className="text-lg sm:text-xl font-black tabular-nums text-slate-900 dark:text-white mt-1 leading-tight">{formatCurrency(currentKpis.totalGross)}</div>
-                    <div className="text-[11px] text-slate-400 mt-0.5">valoare brută cu TVA</div>
-                  </div>
-                  <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/60 text-indigo-600 flex items-center justify-center shrink-0">
-                    <Receipt className="w-4 h-4" />
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60 text-emerald-600 flex items-center justify-center shrink-0">
+                    <Coins className="w-3.5 h-3.5" />
                   </div>
                 </div>
 
-                <div className="col-span-2 lg:col-span-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-[22px] p-4 shadow-xs flex items-center justify-between">
-                  <div className="flex-1 mr-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Recepții NIR</span>
-                    <div className="flex items-baseline gap-1.5 mt-1 tabular-nums">
-                      <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-tight">{currentKpis.withNirCount}</span>
+                <div className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-2xl px-3.5 py-2.5 shadow-2xs flex items-center justify-between">
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">TVA Deductibil</span>
+                    <div className="text-base sm:text-lg font-bold tabular-nums text-amber-600 dark:text-amber-400 mt-0.5 leading-tight truncate">{formatCurrency(currentKpis.totalVat)}</div>
+                    <div className="text-[10.5px] text-slate-400">sumă totală TVA</div>
+                  </div>
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/60 text-amber-600 flex items-center justify-center shrink-0">
+                    <Percent className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-2xl px-3.5 py-2.5 shadow-2xs flex items-center justify-between">
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">Total de Plată</span>
+                    <div className="text-base sm:text-lg font-bold tabular-nums text-slate-900 dark:text-white mt-0.5 leading-tight truncate">{formatCurrency(currentKpis.totalGross)}</div>
+                    <div className="text-[10.5px] text-slate-400">valoare brută cu TVA</div>
+                  </div>
+                  <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/60 text-indigo-600 flex items-center justify-center shrink-0">
+                    <Receipt className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+
+                <div className="col-span-2 lg:col-span-1 bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-2xl px-3.5 py-2.5 shadow-2xs flex items-center justify-between">
+                  <div className="flex-1 mr-2 min-w-0">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">Recepții NIR</span>
+                    <div className="flex items-baseline gap-1.5 mt-0.5 tabular-nums">
+                      <span className="text-lg font-bold text-slate-900 dark:text-white leading-tight">{currentKpis.withNirCount}</span>
                       <span className="text-xs text-slate-500">/ {currentKpis.totalCount}</span>
                       <span className="text-xs font-bold text-teal-600 dark:text-teal-400 ml-auto">{currentKpis.nirCoveragePercent}%</span>
                     </div>
-                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mt-1.5">
+                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mt-1">
                       <div className="bg-teal-500 h-full rounded-full transition-all duration-300" style={{ width: `${currentKpis.nirCoveragePercent}%` }} />
                     </div>
                   </div>
-                  <div className="w-9 h-9 rounded-xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200/60 dark:border-teal-800/60 text-teal-600 flex items-center justify-center shrink-0">
-                    <ClipboardCheck className="w-4 h-4" />
+                  <div className="w-8 h-8 rounded-xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200/60 dark:border-teal-800/60 text-teal-600 flex items-center justify-center shrink-0">
+                    <ClipboardCheck className="w-3.5 h-3.5" />
                   </div>
                 </div>
               </div>
@@ -1384,48 +1384,48 @@ export default function AccountantPortal() {
           {activeTab === "emitted" && (
             <>
               {/* Top KPI Cards Emise */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-[22px] p-4 shadow-xs flex items-center justify-between">
-                  <div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Facturi Emise</span>
-                    <div className="text-xl sm:text-2xl font-black tabular-nums text-slate-900 dark:text-white mt-1 leading-tight">{currentEmittedKpis.totalCount}</div>
-                    <div className="text-[11px] text-slate-400 mt-0.5">vânzări către clienți</div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+                <div className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-2xl px-3.5 py-2.5 shadow-2xs flex items-center justify-between">
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">Facturi Emise</span>
+                    <div className="text-lg font-bold tabular-nums text-slate-900 dark:text-white mt-0.5 leading-tight">{currentEmittedKpis.totalCount}</div>
+                    <div className="text-[10.5px] text-slate-400">vânzări către clienți</div>
                   </div>
-                  <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60 text-emerald-600 flex items-center justify-center shrink-0">
-                    <FileOutput className="w-4 h-4" />
-                  </div>
-                </div>
-
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-[22px] p-4 shadow-xs flex items-center justify-between">
-                  <div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Bază Facturată</span>
-                    <div className="text-lg sm:text-xl font-black tabular-nums text-slate-900 dark:text-white mt-1 leading-tight">{formatCurrency(currentEmittedKpis.totalBase)}</div>
-                    <div className="text-[11px] text-slate-400 mt-0.5">venituri nete (fără TVA)</div>
-                  </div>
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/60 text-blue-600 flex items-center justify-center shrink-0">
-                    <Coins className="w-4 h-4" />
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60 text-emerald-600 flex items-center justify-center shrink-0">
+                    <FileOutput className="w-3.5 h-3.5" />
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-[22px] p-4 shadow-xs flex items-center justify-between">
-                  <div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">TVA Colectat</span>
-                    <div className="text-lg sm:text-xl font-black tabular-nums text-amber-600 dark:text-amber-400 mt-1 leading-tight">{formatCurrency(currentEmittedKpis.totalVat)}</div>
-                    <div className="text-[11px] text-slate-400 mt-0.5">sumă totală TVA emis</div>
+                <div className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-2xl px-3.5 py-2.5 shadow-2xs flex items-center justify-between">
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">Bază Facturată</span>
+                    <div className="text-base sm:text-lg font-bold tabular-nums text-slate-900 dark:text-white mt-0.5 leading-tight truncate">{formatCurrency(currentEmittedKpis.totalBase)}</div>
+                    <div className="text-[10.5px] text-slate-400">venituri nete (fără TVA)</div>
                   </div>
-                  <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/60 text-amber-600 flex items-center justify-center shrink-0">
-                    <Percent className="w-4 h-4" />
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/60 text-blue-600 flex items-center justify-center shrink-0">
+                    <Coins className="w-3.5 h-3.5" />
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-[22px] p-4 shadow-xs flex items-center justify-between">
-                  <div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Total General Emis</span>
-                    <div className="text-lg sm:text-xl font-black tabular-nums text-slate-900 dark:text-white mt-1 leading-tight">{formatCurrency(currentEmittedKpis.totalGross)}</div>
-                    <div className="text-[11px] text-slate-400 mt-0.5">total de încasat</div>
+                <div className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-2xl px-3.5 py-2.5 shadow-2xs flex items-center justify-between">
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">TVA Colectat</span>
+                    <div className="text-base sm:text-lg font-bold tabular-nums text-amber-600 dark:text-amber-400 mt-0.5 leading-tight truncate">{formatCurrency(currentEmittedKpis.totalVat)}</div>
+                    <div className="text-[10.5px] text-slate-400">sumă totală TVA emis</div>
                   </div>
-                  <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/60 text-indigo-600 flex items-center justify-center shrink-0">
-                    <Receipt className="w-4 h-4" />
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/60 text-amber-600 flex items-center justify-center shrink-0">
+                    <Percent className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-2xl px-3.5 py-2.5 shadow-2xs flex items-center justify-between">
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">Total General Emis</span>
+                    <div className="text-base sm:text-lg font-bold tabular-nums text-slate-900 dark:text-white mt-0.5 leading-tight truncate">{formatCurrency(currentEmittedKpis.totalGross)}</div>
+                    <div className="text-[10.5px] text-slate-400">total de încasat</div>
+                  </div>
+                  <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/60 text-indigo-600 flex items-center justify-center shrink-0">
+                    <Receipt className="w-3.5 h-3.5" />
                   </div>
                 </div>
               </div>

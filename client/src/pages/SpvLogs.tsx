@@ -65,41 +65,41 @@ export default function SpvLogs() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="rounded-[22px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Facturi Trimise</CardTitle>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+          <Card className="rounded-2xl py-2.5 gap-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 px-3.5 pb-0">
+              <CardTitle className="text-[11px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">Facturi Trimise</CardTitle>
               <UploadCloud className="h-4 w-4 text-blue-500" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold tabular-nums">{stats.trimise}</div>
+            <CardContent className="px-3.5">
+              <div className="text-lg font-bold tabular-nums leading-tight">{stats.trimise}</div>
             </CardContent>
           </Card>
-          <Card className="rounded-[22px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Facturi Primite</CardTitle>
+          <Card className="rounded-2xl py-2.5 gap-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 px-3.5 pb-0">
+              <CardTitle className="text-[11px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">Facturi Primite</CardTitle>
               <DownloadCloud className="h-4 w-4 text-purple-500" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold tabular-nums">{stats.primite}</div>
+            <CardContent className="px-3.5">
+              <div className="text-lg font-bold tabular-nums leading-tight">{stats.primite}</div>
             </CardContent>
           </Card>
-          <Card className="rounded-[22px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Validări cu succes</CardTitle>
+          <Card className="rounded-2xl py-2.5 gap-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 px-3.5 pb-0">
+              <CardTitle className="text-[11px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">Validări cu succes</CardTitle>
               <CheckCircle2 className="h-4 w-4 text-green-500" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold tabular-nums text-green-600 dark:text-green-400">{stats.validate}</div>
+            <CardContent className="px-3.5">
+              <div className="text-lg font-bold tabular-nums leading-tight text-green-600 dark:text-green-400">{stats.validate}</div>
             </CardContent>
           </Card>
-          <Card className="rounded-[22px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Erori ANAF</CardTitle>
+          <Card className="rounded-2xl py-2.5 gap-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 px-3.5 pb-0">
+              <CardTitle className="text-[11px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">Erori ANAF</CardTitle>
               <AlertCircle className="h-4 w-4 text-red-500" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold tabular-nums text-red-600 dark:text-red-400">{stats.erori}</div>
+            <CardContent className="px-3.5">
+              <div className="text-lg font-bold tabular-nums leading-tight text-red-600 dark:text-red-400">{stats.erori}</div>
             </CardContent>
           </Card>
         </div>

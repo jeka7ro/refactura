@@ -974,7 +974,7 @@ export default function SpvHub() {
 
         {/* Nivelul 2 — Bandă KPI Orizontală Compactă */}
         {activeHubTab === "declaratii" ? (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
             <button
               type="button"
               onClick={() => {
@@ -983,19 +983,19 @@ export default function SpvHub() {
                 setFilterTipDoc("-TOATE-");
                 setPage(1);
               }}
-              className={`rounded-[22px] bg-white/95 dark:bg-[#1c1c1e] border px-4 py-3 flex items-center gap-3.5 shadow-2xs text-left transition-all cursor-pointer ${readFilter === "all" && portalFilter === "all"
+              className={`rounded-2xl bg-white/95 dark:bg-[#1c1c1e] border px-3.5 py-2.5 flex items-center gap-3 shadow-2xs text-left transition-all cursor-pointer ${readFilter === "all" && portalFilter === "all"
                 ? "border-blue-500 ring-1 ring-blue-500/20"
                 : "border-black/[0.06] dark:border-white/[0.09] hover:border-slate-300 dark:hover:border-slate-700"
                 }`}
             >
-              <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
-                <Inbox className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
+                <Inbox className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate">
+                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
                   Toate Documentele
                 </p>
-                <p className="text-xl font-bold tabular-nums text-slate-900 dark:text-white leading-tight mt-0.5">
+                <p className="text-lg font-bold tabular-nums text-slate-900 dark:text-white leading-tight">
                   {portalStats.total}
                 </p>
               </div>
@@ -1008,23 +1008,23 @@ export default function SpvHub() {
                 setPortalFilter("all");
                 setPage(1);
               }}
-              className={`rounded-[22px] bg-white/95 dark:bg-[#1c1c1e] border px-4 py-3 flex items-center gap-3.5 shadow-2xs text-left transition-all cursor-pointer ${readFilter === "unread"
+              className={`rounded-2xl bg-white/95 dark:bg-[#1c1c1e] border px-3.5 py-2.5 flex items-center gap-3 shadow-2xs text-left transition-all cursor-pointer ${readFilter === "unread"
                 ? "border-red-500 ring-1 ring-red-500/20 bg-red-50/30 dark:bg-red-950/20"
                 : "border-black/[0.06] dark:border-white/[0.09] hover:border-red-200 dark:hover:border-red-900/60"
                 }`}
             >
-              <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0 relative">
-                <AlertCircle className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-xl bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0 relative">
+                <AlertCircle className="w-4 h-4" />
                 {portalStats.unread > 0 && (
-                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse absolute top-1.5 right-1.5" />
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse absolute top-1 right-1" />
                 )}
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-medium text-red-600 dark:text-red-400 truncate">
+                <p className="text-[11px] font-medium text-red-600 dark:text-red-400 truncate">
                   Mesaje Noi (Necitite)
                 </p>
                 <p
-                  className={`text-xl font-bold tabular-nums leading-tight mt-0.5 ${portalStats.unread > 0
+                  className={`text-lg font-bold tabular-nums leading-tight ${portalStats.unread > 0
                     ? "text-red-600 dark:text-red-400"
                     : "text-slate-900 dark:text-white"
                     }`}
@@ -1041,19 +1041,19 @@ export default function SpvHub() {
                 setReadFilter("all");
                 setPage(1);
               }}
-              className={`rounded-[22px] bg-white/95 dark:bg-[#1c1c1e] border px-4 py-3 flex items-center gap-3.5 shadow-2xs text-left transition-all cursor-pointer ${portalFilter === "declaratie"
+              className={`rounded-2xl bg-white/95 dark:bg-[#1c1c1e] border px-3.5 py-2.5 flex items-center gap-3 shadow-2xs text-left transition-all cursor-pointer ${portalFilter === "declaratie"
                 ? "border-blue-500 ring-1 ring-blue-500/20"
                 : "border-black/[0.06] dark:border-white/[0.09] hover:border-slate-300 dark:hover:border-slate-700"
                 }`}
             >
-              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                <FileCheck className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                <FileCheck className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate">
+                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
                   Recipise Declarații
                 </p>
-                <p className="text-xl font-bold tabular-nums text-blue-700 dark:text-blue-300 leading-tight mt-0.5">
+                <p className="text-lg font-bold tabular-nums text-blue-700 dark:text-blue-300 leading-tight">
                   {portalStats.recipise}
                 </p>
               </div>
@@ -1066,19 +1066,19 @@ export default function SpvHub() {
                 setReadFilter("all");
                 setPage(1);
               }}
-              className={`rounded-[22px] bg-white/95 dark:bg-[#1c1c1e] border px-4 py-3 flex items-center gap-3.5 shadow-2xs text-left transition-all cursor-pointer ${portalFilter === "cert_sol"
+              className={`rounded-2xl bg-white/95 dark:bg-[#1c1c1e] border px-3.5 py-2.5 flex items-center gap-3 shadow-2xs text-left transition-all cursor-pointer ${portalFilter === "cert_sol"
                 ? "border-indigo-500 ring-1 ring-indigo-500/20"
                 : "border-black/[0.06] dark:border-white/[0.09] hover:border-slate-300 dark:hover:border-slate-700"
                 }`}
             >
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-                <ShieldCheck className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate">
+                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
                   Decizii, Certificate &amp; Solicitări
                 </p>
-                <p className="text-xl font-bold tabular-nums text-indigo-700 dark:text-indigo-300 leading-tight mt-0.5">
+                <p className="text-lg font-bold tabular-nums text-indigo-700 dark:text-indigo-300 leading-tight">
                   {portalStats.certificate +
                     portalStats.solicitari +
                     portalStats.decizii}
@@ -1087,23 +1087,23 @@ export default function SpvHub() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
             <button
               type="button"
               onClick={() => setMessageFilter("all")}
-              className={`rounded-[22px] bg-white/95 dark:bg-[#1c1c1e] border px-4 py-3 flex items-center gap-3.5 shadow-2xs text-left transition-all cursor-pointer ${messageFilter === "all"
+              className={`rounded-2xl bg-white/95 dark:bg-[#1c1c1e] border px-3.5 py-2.5 flex items-center gap-3 shadow-2xs text-left transition-all cursor-pointer ${messageFilter === "all"
                 ? "border-blue-500 ring-1 ring-blue-500/20"
                 : "border-black/[0.06] dark:border-white/[0.09] hover:border-slate-300 dark:hover:border-slate-700"
                 }`}
             >
-              <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
-                <Inbox className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
+                <Inbox className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate">
+                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
                   Toate Mesajele
                 </p>
-                <p className="text-xl font-bold tabular-nums text-slate-900 dark:text-white leading-tight mt-0.5">
+                <p className="text-lg font-bold tabular-nums text-slate-900 dark:text-white leading-tight">
                   {msgStats.total}
                 </p>
               </div>
@@ -1112,19 +1112,19 @@ export default function SpvHub() {
             <button
               type="button"
               onClick={() => setMessageFilter("primita")}
-              className={`rounded-[22px] bg-white/95 dark:bg-[#1c1c1e] border px-4 py-3 flex items-center gap-3.5 shadow-2xs text-left transition-all cursor-pointer ${messageFilter === "primita"
+              className={`rounded-2xl bg-white/95 dark:bg-[#1c1c1e] border px-3.5 py-2.5 flex items-center gap-3 shadow-2xs text-left transition-all cursor-pointer ${messageFilter === "primita"
                 ? "border-indigo-500 ring-1 ring-indigo-500/20"
                 : "border-black/[0.06] dark:border-white/[0.09] hover:border-slate-300 dark:hover:border-slate-700"
                 }`}
             >
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-                <ArrowDownLeft className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                <ArrowDownLeft className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate">
+                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
                   Facturi Primite
                 </p>
-                <p className="text-xl font-bold tabular-nums text-indigo-700 dark:text-indigo-300 leading-tight mt-0.5">
+                <p className="text-lg font-bold tabular-nums text-indigo-700 dark:text-indigo-300 leading-tight">
                   {msgStats.primite}
                 </p>
               </div>
@@ -1133,19 +1133,19 @@ export default function SpvHub() {
             <button
               type="button"
               onClick={() => setMessageFilter("trimisa")}
-              className={`rounded-[22px] bg-white/95 dark:bg-[#1c1c1e] border px-4 py-3 flex items-center gap-3.5 shadow-2xs text-left transition-all cursor-pointer ${messageFilter === "trimisa"
+              className={`rounded-2xl bg-white/95 dark:bg-[#1c1c1e] border px-3.5 py-2.5 flex items-center gap-3 shadow-2xs text-left transition-all cursor-pointer ${messageFilter === "trimisa"
                 ? "border-blue-500 ring-1 ring-blue-500/20"
                 : "border-black/[0.06] dark:border-white/[0.09] hover:border-slate-300 dark:hover:border-slate-700"
                 }`}
             >
-              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                <ArrowUpRight className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                <ArrowUpRight className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate">
+                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
                   Facturi Trimise
                 </p>
-                <p className="text-xl font-bold tabular-nums text-blue-700 dark:text-blue-300 leading-tight mt-0.5">
+                <p className="text-lg font-bold tabular-nums text-blue-700 dark:text-blue-300 leading-tight">
                   {msgStats.trimise}
                 </p>
               </div>
@@ -1154,19 +1154,19 @@ export default function SpvHub() {
             <button
               type="button"
               onClick={() => setMessageFilter("eroare")}
-              className={`rounded-[22px] bg-white/95 dark:bg-[#1c1c1e] border px-4 py-3 flex items-center gap-3.5 shadow-2xs text-left transition-all cursor-pointer ${messageFilter === "eroare"
+              className={`rounded-2xl bg-white/95 dark:bg-[#1c1c1e] border px-3.5 py-2.5 flex items-center gap-3 shadow-2xs text-left transition-all cursor-pointer ${messageFilter === "eroare"
                 ? "border-red-500 ring-1 ring-red-500/20"
                 : "border-black/[0.06] dark:border-white/[0.09] hover:border-slate-300 dark:hover:border-slate-700"
                 }`}
             >
-              <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0">
-                <AlertCircle className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-xl bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate">
+                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
                   Erori ANAF
                 </p>
-                <p className="text-xl font-bold tabular-nums text-red-600 dark:text-red-400 leading-tight mt-0.5">
+                <p className="text-lg font-bold tabular-nums text-red-600 dark:text-red-400 leading-tight">
                   {msgStats.erori}
                 </p>
               </div>

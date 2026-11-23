@@ -855,13 +855,13 @@ export default function Integrations() {
         ].map(s => (
           <div
             key={s.label}
-            className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 p-4 shadow-sm"
+            className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] px-3.5 py-2.5 shadow-2xs"
           >
-            <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1">
+            <p className="text-[10px] font-semibold text-[#636366] dark:text-[#98989d] uppercase tracking-wide mb-0.5">
               {s.label}
             </p>
             <p
-              className={`${(s as any).small ? "text-base" : "text-2xl"} font-bold tabular-nums ${s.color}`}
+              className={`${(s as any).small ? "text-sm" : "text-lg"} font-bold tabular-nums leading-tight ${s.color}`}
             >
               {s.value}
             </p>

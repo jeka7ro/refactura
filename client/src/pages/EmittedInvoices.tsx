@@ -420,70 +420,70 @@ export default function EmittedInvoices() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-4 pb-2 tabular-nums">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 pb-1 tabular-nums">
         {/* Card 1: Total Facturi */}
-        <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] p-3.5 sm:p-4 flex flex-col justify-between min-h-[4.5rem] sm:min-h-[5.5rem] shadow-sm transition-all hover:shadow-md">
+        <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] px-3.5 py-2.5 flex flex-col justify-between shadow-2xs transition-all hover:shadow-sm">
           <div>
-            <p className="text-[10px] sm:text-[10.5px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] mb-1 truncate">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] mb-0.5 truncate">
               Total Facturi
             </p>
-            <p className="text-base sm:text-2xl font-bold text-[#1d1d1f] dark:text-white leading-none truncate">
+            <p className="text-base sm:text-[19px] font-bold text-[#1d1d1f] dark:text-white leading-tight truncate">
               {allData.length}
             </p>
           </div>
           {filtered.length !== allData.length && (
-            <p className="text-[10.5px] sm:text-[11px] font-medium text-[#636366] dark:text-[#98989d] mt-1 truncate">
+            <p className="text-[10px] font-medium text-[#636366] dark:text-[#98989d] mt-0.5 truncate">
               {filtered.length} filtrate
             </p>
           )}
         </div>
 
         {/* Card 2: Încasate */}
-        <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] p-3.5 sm:p-4 flex flex-col justify-between min-h-[4.5rem] sm:min-h-[5.5rem] shadow-sm transition-all hover:shadow-md">
+        <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] px-3.5 py-2.5 flex flex-col justify-between shadow-2xs transition-all hover:shadow-sm">
           <div>
-            <p className="text-[10px] sm:text-[10.5px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] mb-1 truncate">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] mb-0.5 truncate">
               Încasate
             </p>
-            <p className="text-base sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 leading-none truncate">
+            <p className="text-base sm:text-[19px] font-bold text-emerald-600 dark:text-emerald-400 leading-tight truncate">
               {counts.paid}
             </p>
           </div>
-          <p className="text-[10.5px] sm:text-[11px] font-medium text-emerald-600/80 dark:text-emerald-400/80 mt-1 truncate">
+          <p className="text-[10px] font-medium text-emerald-600/80 dark:text-emerald-400/80 mt-0.5 truncate">
             {allData.length > 0 ? `${Math.round((counts.paid / allData.length) * 100)}% din total` : "0%"}
           </p>
         </div>
 
         {/* Card 3: Restanțe */}
-        <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] p-3.5 sm:p-4 flex flex-col justify-between min-h-[4.5rem] sm:min-h-[5.5rem] shadow-sm transition-all hover:shadow-md">
+        <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] px-3.5 py-2.5 flex flex-col justify-between shadow-2xs transition-all hover:shadow-sm">
           <div>
-            <p className="text-[10px] sm:text-[10.5px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] mb-1 truncate">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] mb-0.5 truncate">
               Restanțe
             </p>
-            <p className="text-base sm:text-2xl font-bold text-rose-600 dark:text-rose-400 leading-none truncate">
+            <p className="text-base sm:text-[19px] font-bold text-rose-600 dark:text-rose-400 leading-tight truncate">
               {counts.overdue}
             </p>
           </div>
-          <p className="text-[10.5px] sm:text-[11px] font-medium text-[#636366] dark:text-[#98989d] mt-1 truncate">
+          <p className="text-[10px] font-medium text-[#636366] dark:text-[#98989d] mt-0.5 truncate">
             {counts.overdue === 0 ? "Fără restanțe" : "Necesită atenție"}
           </p>
         </div>
 
         {/* Card 4: Total EUR (cu echivalent Lei la curs BNR din ziua fiecărei facturi) */}
-        <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] border border-amber-200/80 dark:border-amber-900/50 p-3.5 sm:p-4 flex flex-col justify-between min-h-[4.5rem] sm:min-h-[5.5rem] shadow-sm transition-all hover:shadow-md bg-gradient-to-br from-amber-50/40 to-transparent dark:from-amber-950/20">
+        <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-amber-200/80 dark:border-amber-900/50 px-3.5 py-2.5 flex flex-col justify-between shadow-2xs transition-all hover:shadow-sm bg-gradient-to-br from-amber-50/40 to-transparent dark:from-amber-950/20">
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-[10px] sm:text-[10.5px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400 truncate">
+            <div className="flex items-center justify-between mb-0.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400 truncate">
                 Valoare EUR
               </p>
-              <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-100/80 dark:bg-amber-900/50 px-1.5 py-0.5 rounded-full leading-none">
+              <span className="text-[9.5px] font-bold text-amber-600 dark:text-amber-400 bg-amber-100/80 dark:bg-amber-900/50 px-1.5 py-0.5 rounded-full leading-none">
                 EUR
               </span>
             </div>
-            <p className="text-base sm:text-2xl font-bold text-amber-600 dark:text-amber-400 leading-none truncate">
+            <p className="text-base sm:text-[19px] font-bold text-amber-600 dark:text-amber-400 leading-tight truncate">
               {formatCurrency(totals.totalEur, "EUR")}
             </p>
           </div>
-          <p className="text-[10.5px] sm:text-[11px] font-semibold text-[#636366] dark:text-[#98989d] mt-1 truncate" title="Echivalent în lei la cursul oficial BNR din data fiecărei facturi">
+          <p className="text-[10px] font-semibold text-[#636366] dark:text-[#98989d] mt-0.5 truncate" title="Echivalent în lei la cursul oficial BNR din data fiecărei facturi">
             {totals.totalEur > 0
               ? `≈ ${formatCurrency(totals.totalEurInRon, "RON")} (curs BNR)`
               : "0,00 facturi EUR"}
@@ -491,21 +491,21 @@ export default function EmittedInvoices() {
         </div>
 
         {/* Card 5: Valoare Totală (Echivalent RON la curs BNR) */}
-        <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] p-3.5 sm:p-4 flex flex-col justify-between min-h-[4.5rem] sm:min-h-[5.5rem] shadow-sm transition-all hover:shadow-md col-span-2 sm:col-span-1">
+        <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] px-3.5 py-2.5 flex flex-col justify-between shadow-2xs transition-all hover:shadow-sm col-span-2 sm:col-span-1">
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-[10px] sm:text-[10.5px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] truncate">
+            <div className="flex items-center justify-between mb-0.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] truncate">
                 Valoare Totală
               </p>
-              <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-1.5 py-0.5 rounded-full leading-none">
+              <span className="text-[9.5px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-1.5 py-0.5 rounded-full leading-none">
                 RON
               </span>
             </div>
-            <p className="text-base sm:text-2xl font-bold text-[#1d1d1f] dark:text-white leading-none truncate">
+            <p className="text-base sm:text-[19px] font-bold text-[#1d1d1f] dark:text-white leading-tight truncate">
               {formatCurrency(totals.totalConvertedRon, "RON")}
             </p>
           </div>
-          <p className="text-[10.5px] sm:text-[11px] font-medium text-[#636366] dark:text-[#98989d] mt-1 truncate" title={totals.hasEur ? `${formatCurrency(totals.totalRonOnly, "RON")} + ${formatCurrency(totals.totalEur, "EUR")} convertit la curs BNR` : "Toate facturile emise"}>
+          <p className="text-[10px] font-medium text-[#636366] dark:text-[#98989d] mt-0.5 truncate" title={totals.hasEur ? `${formatCurrency(totals.totalRonOnly, "RON")} + ${formatCurrency(totals.totalEur, "EUR")} convertit la curs BNR` : "Toate facturile emise"}>
             {totals.hasEur
               ? `${formatCurrency(totals.totalRonOnly, "RON")} + ${formatCurrency(totals.totalEur, "EUR")}`
               : "Inclusiv toate emiterile"}
