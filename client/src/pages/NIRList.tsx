@@ -676,7 +676,7 @@ export default function NIRList() {
       <div className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-2">
         {/* Search & Filtre afarente pe un singur rând compact */}
         <div className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800/50 flex flex-col gap-2 bg-white dark:bg-slate-900">
-          <div className="flex items-center gap-2 w-full flex-wrap xl:flex-nowrap">
+          <div className="flex items-center gap-2 w-full flex-wrap">
             {/* Cautare Pill */}
             <div className="relative flex-1 min-w-[200px]">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />

@@ -1011,9 +1011,9 @@ export default function AllInvoices() {
       <div className="bg-white/96 dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_2px_10px_-3px_rgba(15,23,42,0.04),0_12px_32px_-10px_rgba(15,23,42,0.06)] overflow-hidden">
         {/* Search & Filtre — Apple Frosted Toolbar Strip */}
         <div className="px-4 py-3 border-b border-black/[0.06] dark:border-white/[0.08] flex flex-col gap-2 bg-[#f5f7fb]/85 dark:bg-white/[0.025] backdrop-blur-md">
-          <div className="flex items-center gap-2.5 w-full flex-wrap xl:flex-nowrap">
+          <div className="flex items-center gap-2 w-full flex-wrap">
             {/* Cautare */}
-            <div className="relative flex-1 min-w-[200px]">
+            <div className="relative flex-1 min-w-[160px]">
               <Search
                 className="w-3.5 h-3.5 text-[#636366] dark:text-[#98989d] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
               />
@@ -1045,7 +1045,7 @@ export default function AllInvoices() {
             </div>
 
             {/* Perioadă Filter */}
-            <div className="w-[146px] sm:w-[158px] flex-shrink-0">
+            <div className="w-[138px] flex-shrink-0">
               <Select
                 value={period}
                 onValueChange={val => {
@@ -1058,7 +1058,7 @@ export default function AllInvoices() {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="h-9 w-full rounded-full text-xs font-semibold apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-1.5 px-3.5">
+                <SelectTrigger className="h-9 w-full rounded-full text-xs font-semibold apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-1.5 px-3">
                   <Calendar className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
                   <SelectValue placeholder="Perioadă" />
                 </SelectTrigger>
@@ -1075,8 +1075,8 @@ export default function AllInvoices() {
               </Select>
             </div>
 
-            {/* Type Filter — widened so "Tip: Toate" never truncates */}
-            <div className="w-[136px] sm:w-[144px] flex-shrink-0">
+            {/* Type Filter */}
+            <div className="w-[124px] flex-shrink-0">
               <Select
                 value={typeFilter}
                 onValueChange={val => {
@@ -1084,7 +1084,7 @@ export default function AllInvoices() {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="h-9 w-full rounded-full text-xs font-semibold apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-1.5 px-3.5">
+                <SelectTrigger className="h-9 w-full rounded-full text-xs font-semibold apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-1.5 px-3">
                   <Tag className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
                   <SelectValue placeholder="Tip" />
                 </SelectTrigger>
@@ -1097,7 +1097,7 @@ export default function AllInvoices() {
             </div>
 
             {/* Read / Unread Filter */}
-            <div className="w-[136px] sm:w-[152px] flex-shrink-0">
+            <div className="w-[128px] flex-shrink-0">
               <Select
                 value={readFilter}
                 onValueChange={val => {
@@ -1110,7 +1110,7 @@ export default function AllInvoices() {
                     readFilter !== "all"
                       ? "border-blue-500/60 bg-blue-50/90 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-700"
                       : "apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7]"
-                  } flex items-center gap-1.5 px-3.5 tabular-nums`}
+                  } flex items-center gap-1.5 px-3 tabular-nums`}
                 >
                   {readFilter === "unread" ? (
                     <Mail className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
@@ -1134,7 +1134,7 @@ export default function AllInvoices() {
             </div>
 
             {/* Filtru NIR dedicat (Cu / Fara NIR) */}
-            <div className="w-[136px] sm:w-[156px] flex-shrink-0">
+            <div className="w-[126px] flex-shrink-0">
               <Select
                 value={nirFilter}
                 onValueChange={val => {
@@ -1147,7 +1147,7 @@ export default function AllInvoices() {
                     nirFilter !== "all"
                       ? "border-teal-500/60 bg-teal-50/90 text-teal-800 dark:bg-teal-950/50 dark:text-teal-300 dark:border-teal-700"
                       : "apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7]"
-                  } flex items-center gap-1.5 px-3.5 tabular-nums`}
+                  } flex items-center gap-1.5 px-3 tabular-nums`}
                 >
                   <ClipboardCheck
                     className={`w-3.5 h-3.5 ${
@@ -1167,7 +1167,7 @@ export default function AllInvoices() {
             </div>
 
             {/* Source Filter */}
-            <div className="w-[142px] sm:w-[154px] flex-shrink-0">
+            <div className="w-[138px] flex-shrink-0">
               <Select
                 value={sourceFilter}
                 onValueChange={val => {
@@ -1175,7 +1175,7 @@ export default function AllInvoices() {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="h-9 w-full rounded-full text-xs font-semibold apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-1.5 px-3.5">
+                <SelectTrigger className="h-9 w-full rounded-full text-xs font-semibold apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-1.5 px-3">
                   <Globe className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
                   <SelectValue placeholder="Sursă" />
                 </SelectTrigger>
@@ -1266,7 +1266,7 @@ export default function AllInvoices() {
                 }
               }}
               disabled={syncOblio.isPending || syncSpvManual.isPending}
-              className="apple-btn-prominent flex items-center justify-center gap-1.5 px-4.5 h-9 rounded-full text-white text-xs font-semibold transition-all disabled:opacity-60 flex-shrink-0 cursor-pointer"
+              className="apple-btn-prominent flex items-center justify-center gap-1.5 px-3.5 h-9 rounded-full text-white text-xs font-semibold transition-all disabled:opacity-60 flex-shrink-0 cursor-pointer"
               title="Sincronizează din sursele configurate (Oblio / SPV)"
             >
               {syncOblio.isPending || syncSpvManual.isPending ? (

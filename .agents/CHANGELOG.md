@@ -1,5 +1,15 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-23 14:16 — Eliminare tăiere (clipping) buton `Sync` și bare de filtre pe `/facturi`, `/nir` și Portalul Contabil
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Eliminat `xl:flex-nowrap` și calibrat lățimile capsulelor de filtrare (`client/src/pages/AllInvoices.tsx`, `NIRList.tsx`, `AccountantPortal.tsx`):**
+     - Pe `/facturi` (`AllInvoices.tsx`), combinația `xl:flex-nowrap` + `overflow-hidden` pe cardul tabelului depășea cu ~`156px` lățimea disponibilă pe laptop (`1280px` minus sidebar `240px`) și tăia marginea dreaptă a butonului `Sync`.
+     - Calibrat lățimile celor 5 selectoare și `gap-2` astfel încât pe `1280px+` toate cele 7 controale (inclusiv butonul `Sync` întreg) încap pe un singur rând (`944px <= 960px`), iar pe rezoluții mai înguste coboară curat pe rândul următor (`flex-wrap` permanent) fără să mai fie tăiate vreodată.
+- **Fișiere:** `client/src/pages/AllInvoices.tsx`, `client/src/pages/NIRList.tsx`, `client/src/pages/AccountantPortal.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori) și `npm run build` (`0` erori), fără `git push`.
+
 ### 2026-11-23 13:44 — Fix pornire container Railway în producție când `JWT_SECRET` lipsește din variabilele de mediu (`session.ts`, `spvAuth.ts`, `accountantPortalRouter.ts`)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

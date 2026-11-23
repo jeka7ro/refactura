@@ -1060,7 +1060,7 @@ export default function AccountantPortal() {
 
               {/* Filtre Primite */}
               <div className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 shadow-xs p-3.5 space-y-3">
-                <div className="flex items-center gap-2.5 w-full flex-wrap xl:flex-nowrap">
+                <div className="flex items-center gap-2.5 w-full flex-wrap">
                   <div className="relative flex-1 min-w-[220px]">
                     <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
@@ -1459,7 +1459,7 @@ export default function AccountantPortal() {
 
               {/* Filtre Emise */}
               <div className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 shadow-xs p-3.5 space-y-3">
-                <div className="flex items-center gap-2.5 w-full flex-wrap xl:flex-nowrap">
+                <div className="flex items-center gap-2.5 w-full flex-wrap">
                   <div className="relative flex-1 min-w-[220px]">
                     <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
