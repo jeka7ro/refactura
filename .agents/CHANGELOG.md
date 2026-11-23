@@ -1,5 +1,15 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-23 15:43 — Antet `/spv` compact pe un singur rând și eliminare subtitlu descriptiv (`SpvHub.tsx`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Eliminat textul descriptiv și compactat antetul pe un singur rând (`client/src/pages/SpvHub.tsx`):**
+     - Eliminat paragraful `"Recipise declarații fiscale, certificate de atestare, răspunsuri solicitări și flux RO e-Factura."` care lățea blocul din stânga și împingea butonul `Actualizează din SPV` pe rândul 2.
+     - Calibrat înălțimea (`h-8`), paddingul (`px-2.5` / `px-3`) și fontul (`11.5px` / `15px–16px`), astfel încât `[Logo ANAF] + Mesaje & Documente SPV ANAF + [Conectat · Token ...]` și toate cele 5 butoane stau aliniate pe un singur rând (`~1.138px` total).
+- **Fișiere:** `client/src/pages/SpvHub.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori) și `npm run build` (`0` erori), fără `git push`.
+
 ### 2026-11-23 14:20 — Înlocuire iconiță veche `g/a` cu iconița `SPV` pentru Dock macOS / PWA (`manifest.json`, `index.html`, `180/192/512px`)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
