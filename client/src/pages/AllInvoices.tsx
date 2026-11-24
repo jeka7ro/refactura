@@ -37,6 +37,7 @@ import { normalizeText, cleanErrorMessage } from "@/lib/utils";
 import { useTableSort } from "@/hooks/useTableSort";
 import { toast } from "sonner";
 import SpvDeadlineBadge from "@/components/SpvDeadlineBadge";
+import { LiveAutoSyncControl } from "@/components/LiveAutoSyncControl";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -328,6 +329,12 @@ export default function AllInvoices() {
       case "today": {
         const t = fmt(now);
         return [t, t];
+      }
+      case "yesterday": {
+        const y = startOfDay(now);
+        y.setDate(y.getDate() - 1);
+        const ys = fmt(y);
+        return [ys, ys];
       }
       case "week": {
         const d = startOfDay(now);
@@ -757,6 +764,22 @@ export default function AllInvoices() {
     emis: allRows.filter(r => r.type === "emis").length,
   };
 
+  const quickCounts = useMemo(() => {
+    let spv = 0;
+    let manual = 0;
+    let other = 0;
+    let unpaid = 0;
+    for (const r of allRows) {
+      if (r.source === "spv_anaf") spv++;
+      else if (r.source === "manual") manual++;
+      else other++;
+      if (r.status !== "paid" && r.status !== "processed" && r.status !== "storno") {
+        unpaid++;
+      }
+    }
+    return { spv, manual, other, unpaid };
+  }, [allRows]);
+
   const filteredTotals = useMemo(() => {
     const sums: Record<string, number> = {};
     for (const r of filtered) {
@@ -829,15 +852,68 @@ export default function AllInvoices() {
     <div className="p-2.5 sm:p-4 max-w-full space-y-4">
       {/* Header cu Titlu + Export/Sync (Top Row) si Filtre Perioada (Bottom Row) */}
       <div className="flex flex-col gap-3.5">
-        {/* Top Row: Title & Action Buttons */}
-        <div className="flex items-center justify-between px-1">
+        {/* Top Row: Title, Live Status & Auto-Sync Telemetry */}
+        <div className="flex items-center justify-between gap-3 flex-wrap px-1">
           <div>
-            <h1 className="text-xl sm:text-[22px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em] leading-tight">
-              Facturi
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl sm:text-[22px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em] leading-tight">
+                Facturi
+              </h1>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Live</span>
+              </span>
+            </div>
             <p className="text-xs text-[#636366] dark:text-[#98989d] mt-0.5 tabular-nums">
               Total: <strong className="text-[#1d1d1f] dark:text-white font-semibold">{allRows.length}</strong> înregistrări
             </p>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* 1-Click Period Segmented Bar (Apple Dispatcher Style) */}
+            <div className="inline-flex items-center p-1 rounded-full bg-black/[0.05] dark:bg-white/[0.08] gap-0.5 overflow-x-auto no-scrollbar">
+              {[
+                { id: "today", label: "Azi" },
+                { id: "yesterday", label: "Ieri" },
+                { id: "week", label: "Săpt." },
+                { id: "month", label: "Lună" },
+                { id: "lastMonth", label: "Luna trec." },
+                { id: "year", label: "An" },
+                { id: "all", label: "Toate" },
+              ].map((item) => {
+                const active = period === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setPeriod(item.id);
+                      const range = getDateRange(item.id);
+                      if (range) {
+                        setCustomFrom(range[0]);
+                        setCustomTo(range[1]);
+                      }
+                      setPage(1);
+                    }}
+                    className={`px-2.5 py-1 rounded-full text-[11.5px] font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                      active
+                        ? "bg-primary text-white shadow-2xs"
+                        : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <LiveAutoSyncControl
+              onRefresh={async () => {
+                await Promise.all([r1(), r2(), r3()]);
+              }}
+              isRefreshing={isLoading || syncOblio.isPending || syncSpvManual.isPending}
+              storageKey="invoices_auto_sync"
+            />
           </div>
         </div>
 
@@ -1065,6 +1141,7 @@ export default function AllInvoices() {
                 <SelectContent>
                   <SelectItem value="all">Toate dățile</SelectItem>
                   <SelectItem value="today">Azi</SelectItem>
+                  <SelectItem value="yesterday">Ieri</SelectItem>
                   <SelectItem value="week">Săpt. curentă</SelectItem>
                   <SelectItem value="month">Luna curentă</SelectItem>
                   <SelectItem value="lastMonth">Luna trecută</SelectItem>
@@ -1302,6 +1379,150 @@ export default function AllInvoices() {
               />
             </div>
           )}
+
+          {/* Rând dublu cu contoare live: Stânga (Stare flux) ↔ Dreapta (Surse/Canale) */}
+          <div className="pt-1.5 border-t border-black/[0.05] dark:border-white/[0.06] flex items-center justify-between gap-2 flex-wrap">
+            {/* Stânga: Stări flux */}
+            <div className="inline-flex items-center p-0.5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] gap-0.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => {
+                  setTypeFilter("all");
+                  setReadFilter("all");
+                  setNirFilter("all");
+                  setFilterStatus("all");
+                  setPage(1);
+                }}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer tabular-nums ${
+                  typeFilter === "all" &&
+                  readFilter === "all" &&
+                  nirFilter === "all" &&
+                  filterStatus === "all"
+                    ? "bg-primary text-white shadow-2xs"
+                    : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
+                }`}
+              >
+                Toate {allRows.length}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setReadFilter(readFilter === "unread" ? "all" : "unread");
+                  setPage(1);
+                }}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer inline-flex items-center gap-1 tabular-nums ${
+                  readFilter === "unread"
+                    ? "bg-[#0071e3] text-white shadow-2xs"
+                    : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
+                }`}
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    readFilter === "unread" ? "bg-white" : "bg-[#0071e3]"
+                  }`}
+                />
+                <span>Necitite {readCounts.unread}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setNirFilter(nirFilter === "fara_nir" ? "all" : "fara_nir");
+                  setPage(1);
+                }}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer tabular-nums ${
+                  nirFilter === "fara_nir"
+                    ? "bg-amber-600 text-white shadow-2xs"
+                    : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
+                }`}
+              >
+                Fără NIR {nirCounts.faraNir}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setNirFilter(nirFilter === "cu_nir" ? "all" : "cu_nir");
+                  setPage(1);
+                }}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer tabular-nums ${
+                  nirFilter === "cu_nir"
+                    ? "bg-teal-600 text-white shadow-2xs"
+                    : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
+                }`}
+              >
+                Cu NIR {nirCounts.cuNir}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterStatus(filterStatus === "pending" ? "all" : "pending");
+                  setPage(1);
+                }}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer tabular-nums ${
+                  filterStatus === "pending"
+                    ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-2xs"
+                    : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
+                }`}
+              >
+                În așteptare {quickCounts.unpaid}
+              </button>
+            </div>
+
+            {/* Dreapta: Canale / Surse */}
+            <div className="inline-flex items-center p-0.5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] gap-0.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => {
+                  setSourceFilter(sourceFilter === "spv_anaf" ? "all" : "spv_anaf");
+                  setPage(1);
+                }}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer tabular-nums ${
+                  sourceFilter === "spv_anaf"
+                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white shadow-2xs"
+                    : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
+                }`}
+              >
+                SPV ANAF <span className="opacity-75">{quickCounts.spv}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSourceFilter(sourceFilter === "manual" ? "all" : "manual");
+                  setPage(1);
+                }}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer tabular-nums ${
+                  sourceFilter === "manual"
+                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white shadow-2xs"
+                    : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
+                }`}
+              >
+                Emise Intern <span className="opacity-75">{quickCounts.manual}</span>
+              </button>
+
+              {quickCounts.other > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSourceFilter(sourceFilter === "oblio" ? "all" : "oblio");
+                    setPage(1);
+                  }}
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer tabular-nums ${
+                    sourceFilter !== "all" &&
+                    sourceFilter !== "spv_anaf" &&
+                    sourceFilter !== "manual"
+                      ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white shadow-2xs"
+                      : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
+                  }`}
+                >
+                  Integrări <span className="opacity-75">{quickCounts.other}</span>
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* DESKTOP TABLE */}

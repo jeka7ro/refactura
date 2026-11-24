@@ -1,5 +1,19 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-24 17:17 — Upgrade Dispecerat Live & Apple Design (`DashboardLayout`, `Dashboard`, `AllInvoices`, `NIRList`, `SpvHub`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Capsulă Executivă Companie/Profil + Buton Fullscreen în Header (`client/src/components/DashboardLayout.tsx`):**
+     - Înlocuit cercul mic din dreapta-sus cu capsula completă Apple `[Avatar + punct verde · Nume Companie / CUI ⌄]` și adăugat butonul rotund Fullscreen (`Maximize2` / `Minimize2`).
+  2. **Telemetrie Live + Cronometru `Auto (5m)` cu numărătoare inversă (`client/src/components/LiveAutoSyncControl.tsx`, `Dashboard.tsx`, `SpvHub.tsx`, `AllInvoices.tsx`, `NIRList.tsx`):**
+     - Adăugat badge `● Live`, ora exactă a ultimei actualizări (`Actualizat: HH:MM:SS`) și capsula interactivă `● Auto (5m) 4:57` (cu activare/pauză dintr-un click și persistență în `localStorage`).
+  3. **Carduri KPI cu praguri & pastile semantice Apple + filtre rapide 1-click & contoare live pe stări/surse (`Dashboard.tsx`, `AllInvoices.tsx`, `NIRList.tsx`):**
+     - Actualizat cardurile KPI din `Dashboard.tsx` cu praguri (`SPV ≤5z`, `SLA`, `Marjă`, `D300`) și pastile semantice pastelate (`Optim`, `În termen`, `Optim · Surplus`, `TVA de plată / de recuperat`).
+     - Adăugat segmentele 1-click `[Azi | Ieri | Săpt. | Lună | Luna trec. | An | Toate]` (inclusiv opțiunea `Ieri`) și banda dublă cu contoare live deasupra tabelului (`Toate · Necitite · Fără NIR · Cu NIR · În așteptare` ↔ `SPV ANAF · Emise Intern · Integrări`).
+- **Fișiere:** `client/src/components/LiveAutoSyncControl.tsx`, `client/src/components/DashboardLayout.tsx`, `client/src/pages/Dashboard.tsx`, `client/src/pages/AllInvoices.tsx`, `client/src/pages/NIRList.tsx`, `client/src/pages/SpvHub.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori) și `npm run build` (`0` erori), fără `git push`.
+
 ### 2026-11-24 11:23 — Gradient animat lent prin literele fixe `spv` din logo (`FacturaSpvLogo.tsx`, `index.css`)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

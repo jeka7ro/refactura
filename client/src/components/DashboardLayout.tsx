@@ -57,6 +57,9 @@ import {
   Lock,
   User,
   Check,
+  Maximize2,
+  Minimize2,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -222,6 +225,21 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    } else {
+      document.exitFullscreen?.().catch(() => {});
+    }
+  };
   const [forceMainMenu, setForceMainMenu] = useState(false);
   const [location, setLocation] = useLocation();
   const searchString = useSearch();
@@ -989,12 +1007,27 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </PopoverContent>
         </Popover>
 
+        {/* Fullscreen toggle */}
+        <button
+          type="button"
+          onClick={toggleFullscreen}
+          aria-label={isFullscreen ? "Ieși din ecran complet" : "Ecran complet"}
+          title={isFullscreen ? "Ieși din ecran complet" : "Ecran complet"}
+          className="hidden sm:flex w-9 h-9 rounded-full apple-btn-glass items-center justify-center transition-all cursor-pointer"
+        >
+          {isFullscreen ? (
+            <Minimize2 className="w-3.5 h-3.5 text-[#3a3a3c] dark:text-[#ebebf5]" />
+          ) : (
+            <Maximize2 className="w-3.5 h-3.5 text-[#3a3a3c] dark:text-[#ebebf5]" />
+          )}
+        </button>
+
         {/* Theme toggle */}
         <button
           onClick={toggleTheme}
           aria-label={theme === "dark" ? "Comută la modul luminos" : "Comută la modul întunecat"}
           title={theme === "dark" ? "Mod luminos" : "Mod întunecat"}
-          className="w-9 h-9 rounded-full apple-btn-glass flex items-center justify-center transition-all"
+          className="w-9 h-9 rounded-full apple-btn-glass flex items-center justify-center transition-all cursor-pointer"
         >
           {theme === "dark" ? (
             <Sun className="w-4 h-4 text-[#ebebf5]" />
@@ -1003,40 +1036,63 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           )}
         </button>
 
-        {/* User menu / Company Logo */}
+        {/* User / Active Company Executive Capsule */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center shadow-sm cursor-pointer hover:shadow-md transition-all",
-                companyLogo && !logoError
-                  ? "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden p-0.5"
-                  : activeProfileMeta.isPf
-                    ? "bg-gradient-to-br from-indigo-500 to-indigo-700 text-white text-xs font-bold"
-                    : "bg-gradient-to-br from-blue-500 to-blue-700 text-white text-xs font-bold"
-              )}
-              style={
-                companyLogo &&
-                !logoError &&
-                parsedTenantSettings?.logoHasBackground &&
-                parsedTenantSettings?.logoBgColor
-                  ? { backgroundColor: parsedTenantSettings.logoBgColor }
-                  : undefined
-              }
+              type="button"
+              className="h-9 pl-1 pr-1 sm:pr-2.5 rounded-full apple-btn-glass flex items-center gap-2 cursor-pointer transition-all shrink-0 max-w-[230px]"
               title={companyName}
             >
-              {companyLogo && !logoError ? (
-                <img
-                  src={companyLogo}
-                  alt={companyName}
-                  onError={() => setLogoError(true)}
-                  className="w-full h-full object-contain rounded-full"
-                />
-              ) : activeProfileMeta.isPf ? (
-                <User className="w-4 h-4 text-white" />
-              ) : (
-                user?.name?.charAt(0).toUpperCase() || "U"
-              )}
+              <div
+                className={cn(
+                  "relative w-7 h-7 rounded-full flex items-center justify-center shrink-0 shadow-2xs",
+                  companyLogo && !logoError
+                    ? "bg-white dark:bg-slate-800 border border-black/[0.08] dark:border-white/[0.12] overflow-hidden p-0.5"
+                    : activeProfileMeta.isPf
+                      ? "bg-gradient-to-br from-indigo-500 to-indigo-700 text-white text-[11px] font-bold"
+                      : "bg-gradient-to-br from-emerald-600 to-teal-700 text-white text-[11px] font-bold"
+                )}
+                style={
+                  companyLogo &&
+                  !logoError &&
+                  parsedTenantSettings?.logoHasBackground &&
+                  parsedTenantSettings?.logoBgColor
+                    ? { backgroundColor: parsedTenantSettings.logoBgColor }
+                    : undefined
+                }
+              >
+                {companyLogo && !logoError ? (
+                  <img
+                    src={companyLogo}
+                    alt={companyName}
+                    onError={() => setLogoError(true)}
+                    className="w-full h-full object-contain rounded-full"
+                  />
+                ) : activeProfileMeta.isPf ? (
+                  <User className="w-3.5 h-3.5 text-white" />
+                ) : (
+                  (companyName || user?.name || "U")
+                    .split(/\s+/)
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((w: string) => w[0]?.toUpperCase())
+                    .join("") || "U"
+                )}
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#1c1c1e]" />
+              </div>
+
+              <div className="hidden sm:flex flex-col items-start min-w-0 leading-tight text-left">
+                <span className="text-[11.5px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] truncate max-w-[140px]">
+                  {companyName}
+                </span>
+                <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 truncate max-w-[140px] tabular-nums">
+                  {activeProfileMeta.subtitle ||
+                    ((user as any)?.role === "superadmin" ? "Super Admin" : "Activ")}
+                </span>
+              </div>
+
+              <ChevronDown className="hidden sm:block w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-72">

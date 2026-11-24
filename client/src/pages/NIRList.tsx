@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import NirPdfViewerDialog from "@/components/NirPdfViewerDialog";
+import { LiveAutoSyncControl } from "@/components/LiveAutoSyncControl";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useTableSort } from "@/hooks/useTableSort";
@@ -223,6 +224,12 @@ export default function NIRList() {
       case "today": {
         const t = fmt(now);
         return [t, t];
+      }
+      case "yesterday": {
+        const y = startOfDay(now);
+        y.setDate(y.getDate() - 1);
+        const ys = fmt(y);
+        return [ys, ys];
       }
       case "week": {
         const d = startOfDay(now);
@@ -493,15 +500,25 @@ export default function NIRList() {
       {/* Header Pagina */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+          <h1 className="text-xl font-bold tracking-tight text-[#1d1d1f] dark:text-white flex items-center gap-2">
             <ClipboardCheck className="w-5 h-5 text-teal-600" />
-            NIR — Note de Intrare-Recepție
+            <span>NIR — Note de Intrare-Recepție</span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Live</span>
+            </span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-[#6e6e73] dark:text-[#98989d] mt-0.5">
             Gestionează recepția mărfurilor de la furnizori
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <LiveAutoSyncControl
+            onRefresh={() => refetch()}
+            isRefreshing={isLoading}
+            storageKey="nir_list_auto_sync"
+            compact
+          />
           {/* Buton Distinct: Export Excel (.xlsx) */}
           <button
             onClick={() => handleExportExcel(filtered)}
@@ -728,6 +745,7 @@ export default function NIRList() {
                 <SelectContent>
                   <SelectItem value="all">Toate dățile</SelectItem>
                   <SelectItem value="today">Azi</SelectItem>
+                  <SelectItem value="yesterday">Ieri</SelectItem>
                   <SelectItem value="week">Săpt. curentă</SelectItem>
                   <SelectItem value="month">Luna curentă</SelectItem>
                   <SelectItem value="lastMonth">Luna trecută</SelectItem>
@@ -842,6 +860,85 @@ export default function NIRList() {
                 Resetează
               </button>
             )}
+          </div>
+
+          {/* Rând rapid de perioade 1-click & contoare live status / conturi */}
+          <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800/70 flex items-center justify-between gap-2 flex-wrap">
+            <div className="inline-flex items-center p-0.5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] gap-0.5 flex-wrap">
+              {[
+                { id: "today", label: "Azi" },
+                { id: "yesterday", label: "Ieri" },
+                { id: "week", label: "Săpt." },
+                { id: "month", label: "Lună" },
+                { id: "lastMonth", label: "Luna trec." },
+                { id: "year", label: "An" },
+                { id: "all", label: "Toate" },
+              ].map((item) => {
+                const active = period === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setPeriod(item.id);
+                      setPage(1);
+                    }}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                      active
+                        ? "bg-primary text-white shadow-2xs"
+                        : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="inline-flex items-center p-0.5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] gap-0.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => {
+                  setStatusFilter("all");
+                  setPage(1);
+                }}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer tabular-nums ${
+                  statusFilter === "all"
+                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white shadow-2xs"
+                    : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
+                }`}
+              >
+                Toate {nirList.length}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setStatusFilter(statusFilter === "finalizat" ? "all" : "finalizat");
+                  setPage(1);
+                }}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer tabular-nums ${
+                  statusFilter === "finalizat"
+                    ? "bg-teal-600 text-white shadow-2xs"
+                    : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
+                }`}
+              >
+                Finalizate {statusCounts.finalizat}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setStatusFilter(statusFilter === "draft" ? "all" : "draft");
+                  setPage(1);
+                }}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer tabular-nums ${
+                  statusFilter === "draft"
+                    ? "bg-amber-600 text-white shadow-2xs"
+                    : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
+                }`}
+              >
+                Ciorne {statusCounts.draft}
+              </button>
+            </div>
           </div>
         </div>
 

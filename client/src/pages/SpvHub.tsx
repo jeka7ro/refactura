@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import DocumentModalPreview from "@/components/DocumentModalPreview";
+import { LiveAutoSyncControl } from "@/components/LiveAutoSyncControl";
 
 export default function SpvHub() {
   const utils = trpc.useUtils();
@@ -1120,6 +1121,12 @@ export default function SpvHub() {
 
           {/* Bară de acțiuni cu etichete scurte pe același rând cu titlul */}
           <div className="flex items-center gap-1.5 flex-wrap">
+            <LiveAutoSyncControl
+              onRefresh={handleSyncAll}
+              isRefreshing={isSyncBusy}
+              storageKey="spv_hub_auto_sync"
+              compact
+            />
             <button
               type="button"
               onClick={() => testSpvMutation.mutate()}

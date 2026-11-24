@@ -61,6 +61,7 @@ import {
 } from "recharts";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { LiveAutoSyncControl } from "@/components/LiveAutoSyncControl";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -730,8 +731,12 @@ export default function Dashboard() {
               <h1 className="text-lg sm:text-[21px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em]">
                 {activeCompanyName}
               </h1>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Live</span>
+              </span>
               {activeCompanyCui && (
-                <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5] border border-black/[0.06] dark:border-white/[0.08] tabular-nums">
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5] border border-black/[0.06] dark:border-white/[0.08] tabular-nums">
                   {String(activeCompanyCui).toUpperCase().startsWith("RO")
                     ? String(activeCompanyCui).toUpperCase()
                     : `RO${activeCompanyCui}`}
@@ -816,117 +821,111 @@ export default function Dashboard() {
             ))}
           </div>
 
+          <LiveAutoSyncControl
+            onRefresh={handleRefresh}
+            isRefreshing={isRefreshing}
+            storageKey="dashboard_auto_sync"
+          />
+
           {/* Refresh Button */}
           <button
             onClick={handleRefresh}
             aria-label="Reîmprospătează datele financiare"
             title="Reîmprospătează datele financiare"
-            className="apple-btn-glass w-9 h-9 rounded-full flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] transition-all"
+            className="apple-btn-glass h-9 px-3 rounded-full flex items-center gap-1.5 text-xs font-semibold text-[#1d1d1f] dark:text-[#ebebf5] transition-all cursor-pointer"
           >
             <RefreshCw
-              className={`w-4 h-4 ${isRefreshing ? "animate-spin text-primary" : ""}`}
+              className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-primary" : ""}`}
             />
+            <span className="hidden sm:inline">Actualizează</span>
           </button>
         </div>
       </div>
 
-      {/* ── SMART FINANCIAL KPI STRIP ── */}
+      {/* ── SMART FINANCIAL KPI STRIP — Apple Dispatcher SLA Style ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {/* KPI 1: Venituri Emise */}
-        <div className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_14px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_6px_rgba(0,0,0,0.05),0_8px_20px_-6px_rgba(0,0,0,0.07)] transition-shadow">
-          <div className="flex items-center justify-between">
-            <span className="text-[10.5px] font-semibold uppercase tracking-[0.05em] text-[#636366] dark:text-[#98989d]">
+        <div className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] rounded-[20px] border border-black/[0.06] dark:border-white/[0.09] px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_14px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_6px_rgba(0,0,0,0.05),0_8px_20px_-6px_rgba(0,0,0,0.07)] transition-shadow">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[11px] font-semibold text-[#6e6e73] dark:text-[#98989d]">
               Venituri (Facturi Emise)
             </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 dark:bg-emerald-400/15 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-              <FileOutput className="w-3.5 h-3.5" />
-            </div>
+            <span className="text-[10.5px] font-medium text-[#86868b] tabular-nums">
+              SPV ≤5z
+            </span>
           </div>
-          <div className="mt-1 text-lg sm:text-[21px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em] tabular-nums leading-tight">
+          <div className="mt-1.5 text-xl sm:text-[22px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.024em] tabular-nums leading-tight">
             {formatCurrency(kpi.totalEmittedRon, "RON")}
           </div>
-          <div className="mt-1.5 flex items-center justify-between text-[11px] tabular-nums">
-            <span className="text-[#636366] dark:text-[#98989d]">
+          {currencyBreakdown.EUR?.emitted > 0 && (
+            <div className="mt-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
+              +{formatCurrency(currencyBreakdown.EUR.emitted, "EUR")} în valută
+            </div>
+          )}
+          <div className="mt-2 flex items-center justify-between gap-2 text-[11px] tabular-nums">
+            <span className="text-[#6e6e73] dark:text-[#98989d]">
               {kpi.countEmitted} facturi emise
-              {currencyBreakdown.EUR?.emitted > 0 && (
-                <span className="ml-1.5 px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-blue-500/10 text-blue-700 dark:text-blue-300">
-                  +{currencyBreakdown.EUR.emitted.toFixed(0)} EUR
-                </span>
-              )}
             </span>
-            {kpi.emittedGrowth !== null && (
+            {kpi.emittedGrowth !== null ? (
               <span
-                className={`flex items-center font-semibold text-[11px] ${
+                className={`inline-flex items-center px-2.5 py-0.5 rounded-full font-semibold text-[10.5px] border ${
                   parseFloat(kpi.emittedGrowth) >= 0
-                    ? "text-emerald-700 dark:text-emerald-400"
-                    : "text-rose-700 dark:text-rose-400"
+                    ? "bg-emerald-500/12 text-emerald-700 border-emerald-500/20 dark:text-emerald-300"
+                    : "bg-amber-500/14 text-amber-800 border-amber-500/25 dark:text-amber-300"
                 }`}
               >
-                {parseFloat(kpi.emittedGrowth) >= 0 ? (
-                  <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />
-                ) : (
-                  <ArrowDownRight className="w-3.5 h-3.5 mr-0.5" />
-                )}
-                {kpi.emittedGrowth}%
+                {parseFloat(kpi.emittedGrowth) >= 0 ? "+" : ""}
+                {kpi.emittedGrowth}% trend
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full font-semibold text-[10.5px] bg-emerald-500/12 text-emerald-700 border border-emerald-500/20 dark:text-emerald-300">
+                Optim
               </span>
             )}
           </div>
         </div>
 
         {/* KPI 2: Cheltuieli Primite */}
-        <div className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_14px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_6px_rgba(0,0,0,0.05),0_8px_20px_-6px_rgba(0,0,0,0.07)] transition-shadow">
-          <div className="flex items-center justify-between">
-            <span className="text-[10.5px] font-semibold uppercase tracking-[0.05em] text-[#636366] dark:text-[#98989d]">
+        <div className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] rounded-[20px] border border-black/[0.06] dark:border-white/[0.09] px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_14px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_6px_rgba(0,0,0,0.05),0_8px_20px_-6px_rgba(0,0,0,0.07)] transition-shadow">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[11px] font-semibold text-[#6e6e73] dark:text-[#98989d]">
               Cheltuieli (Facturi Primite)
             </span>
-            <div className="w-8 h-8 rounded-xl bg-rose-500/10 dark:bg-rose-400/15 flex items-center justify-center text-rose-600 dark:text-rose-400">
-              <FileText className="w-3.5 h-3.5" />
-            </div>
+            <span className="text-[10.5px] font-medium text-[#86868b] tabular-nums">
+              {kpi.overdueCount > 0 ? `SLA: ${kpi.overdueCount} rest.` : "La zi"}
+            </span>
           </div>
-          <div className="mt-1 text-lg sm:text-[21px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em] tabular-nums leading-tight">
+          <div className="mt-1.5 text-xl sm:text-[22px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.024em] tabular-nums leading-tight">
             {formatCurrency(kpi.totalReceivedRon, "RON")}
           </div>
-          <div className="mt-1.5 flex items-center justify-between text-[11px] tabular-nums">
-            <span className="text-[#636366] dark:text-[#98989d]">
+          <div className="mt-2 flex items-center justify-between gap-2 text-[11px] tabular-nums">
+            <span className="text-[#6e6e73] dark:text-[#98989d]">
               {kpi.countReceived} facturi furnizori
             </span>
-            {kpi.receivedGrowth !== null && (
-              <span
-                className={`flex items-center font-semibold text-[11px] ${
-                  parseFloat(kpi.receivedGrowth) <= 0
-                    ? "text-emerald-700 dark:text-emerald-400"
-                    : "text-rose-700 dark:text-rose-400"
-                }`}
-              >
-                {parseFloat(kpi.receivedGrowth) <= 0 ? (
-                  <ArrowDownRight className="w-3.5 h-3.5 mr-0.5" />
-                ) : (
-                  <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />
-                )}
-                {kpi.receivedGrowth}%
+            {kpi.overdueCount > 0 ? (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full font-semibold text-[10.5px] bg-rose-500/12 text-rose-700 border border-rose-500/22 dark:text-rose-300">
+                {kpi.overdueCount} scadente
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full font-semibold text-[10.5px] bg-emerald-500/12 text-emerald-700 border border-emerald-500/20 dark:text-emerald-300">
+                În termen
               </span>
             )}
           </div>
         </div>
 
         {/* KPI 3: Cashflow Net */}
-        <div className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_14px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_6px_rgba(0,0,0,0.05),0_8px_20px_-6px_rgba(0,0,0,0.07)] transition-shadow">
-          <div className="flex items-center justify-between">
-            <span className="text-[10.5px] font-semibold uppercase tracking-[0.05em] text-[#636366] dark:text-[#98989d]">
+        <div className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] rounded-[20px] border border-black/[0.06] dark:border-white/[0.09] px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_14px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_6px_rgba(0,0,0,0.05),0_8px_20px_-6px_rgba(0,0,0,0.07)] transition-shadow">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[11px] font-semibold text-[#6e6e73] dark:text-[#98989d]">
               Sold Cashflow Net
             </span>
-            <div
-              className={`w-8 h-8 rounded-xl flex items-center justify-center ${
-                kpi.netCashflowRon >= 0
-                  ? "bg-blue-500/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-400"
-                  : "bg-rose-500/10 dark:bg-rose-400/15 text-rose-600 dark:text-rose-400"
-              }`}
-            >
-              <Wallet className="w-3.5 h-3.5" />
-            </div>
+            <span className="text-[10.5px] font-medium text-[#86868b] tabular-nums">
+              Marjă {kpi.marginPct}%
+            </span>
           </div>
           <div
-            className={`mt-1 text-lg sm:text-[21px] font-bold tracking-[-0.022em] tabular-nums leading-tight ${
+            className={`mt-1.5 text-xl sm:text-[22px] font-bold tracking-[-0.024em] tabular-nums leading-tight ${
               kpi.netCashflowRon >= 0
                 ? "text-emerald-600 dark:text-emerald-400"
                 : "text-rose-600 dark:text-rose-400"
@@ -935,47 +934,47 @@ export default function Dashboard() {
             {kpi.netCashflowRon >= 0 ? "+" : ""}
             {formatCurrency(kpi.netCashflowRon, "RON")}
           </div>
-          <div className="mt-1.5 flex items-center justify-between text-[11px] tabular-nums">
-            <span className="text-[#636366] dark:text-[#98989d]">
-              Marjă: <span className="font-semibold text-[#1d1d1f] dark:text-white">{kpi.marginPct}%</span>
+          <div className="mt-2 flex items-center justify-between gap-2 text-[11px] tabular-nums">
+            <span className="text-[#6e6e73] dark:text-[#98989d]">
+              Emise minus primite
             </span>
             <span
-              className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+              className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-semibold border ${
                 kpi.netCashflowRon >= 0
-                  ? "bg-emerald-500/12 text-emerald-800 dark:text-emerald-300"
-                  : "bg-rose-500/12 text-rose-800 dark:text-rose-300"
+                  ? "bg-emerald-500/12 text-emerald-700 border-emerald-500/20 dark:text-emerald-300"
+                  : "bg-rose-500/12 text-rose-700 border-rose-500/22 dark:text-rose-300"
               }`}
             >
-              {kpi.netCashflowRon >= 0 ? "Surplus" : "Deficit"}
+              {kpi.netCashflowRon >= 0 ? "Optim · Surplus" : "Atenție · Deficit"}
             </span>
           </div>
         </div>
 
         {/* KPI 4: Balanță TVA Estimat */}
-        <div className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_14px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_6px_rgba(0,0,0,0.05),0_8px_20px_-6px_rgba(0,0,0,0.07)] transition-shadow">
-          <div className="flex items-center justify-between">
-            <span className="text-[10.5px] font-semibold uppercase tracking-[0.05em] text-[#636366] dark:text-[#98989d]">
+        <div className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] rounded-[20px] border border-black/[0.06] dark:border-white/[0.09] px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_14px_-4px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_6px_rgba(0,0,0,0.05),0_8px_20px_-6px_rgba(0,0,0,0.07)] transition-shadow">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[11px] font-semibold text-[#6e6e73] dark:text-[#98989d]">
               Balanță TVA Estimat
             </span>
-            <div className="w-8 h-8 rounded-xl bg-purple-500/10 dark:bg-purple-400/15 flex items-center justify-center text-purple-600 dark:text-purple-400">
-              <Percent className="w-3.5 h-3.5" />
-            </div>
+            <span className="text-[10.5px] font-medium text-[#86868b] tabular-nums">
+              D300
+            </span>
           </div>
-          <div className="mt-1 text-lg sm:text-[21px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em] tabular-nums leading-tight">
+          <div className="mt-1.5 text-xl sm:text-[22px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.024em] tabular-nums leading-tight">
             {formatCurrency(Math.abs(kpi.netVatRon), "RON")}
           </div>
-          <div className="mt-1.5 flex items-center justify-between text-[11px]">
-            <span className="text-[#636366] dark:text-[#98989d] truncate">
-              {kpi.netVatRon >= 0 ? "TVA de plată" : "TVA de recuperat"}
+          <div className="mt-2 flex items-center justify-between gap-2 text-[11px]">
+            <span className="text-[#6e6e73] dark:text-[#98989d] truncate">
+              {kpi.netVatRon >= 0 ? "Colectat > Deductibil" : "Deductibil > Colectat"}
             </span>
             <span
-              className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+              className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-semibold border whitespace-nowrap ${
                 kpi.netVatRon >= 0
-                  ? "bg-amber-500/15 text-amber-800 dark:text-amber-300"
-                  : "bg-purple-500/15 text-purple-800 dark:text-purple-300"
+                  ? "bg-amber-500/14 text-amber-800 border-amber-500/25 dark:text-amber-300"
+                  : "bg-emerald-500/12 text-emerald-700 border-emerald-500/20 dark:text-emerald-300"
               }`}
             >
-              {kpi.netVatRon >= 0 ? "De plată" : "De recuperat"}
+              {kpi.netVatRon >= 0 ? "TVA de plată" : "TVA de recuperat"}
             </span>
           </div>
         </div>
