@@ -1039,5 +1039,99 @@ a.border-green-200 {
   border-color: color-mix(in srgb, var(--tenant-theme-color, #16a34a) 28%, transparent) !important;
 }
 
+/* ── Apple Liquid Glass Smooth Icon Motion (FacturaSpvLogo) ── */
+.spv-icon-squircle {
+  transition:
+    transform 0.48s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.48s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.spv-logo-group:hover .spv-icon-squircle {
+  transform: translateY(-1px) scale(1.055);
+  filter: drop-shadow(0 6px 14px rgba(16, 185, 129, 0.28)) drop-shadow(0 3px 8px rgba(9, 13, 22, 0.3));
+}
+
+.spv-logo-slash {
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: center;
+}
+
+.spv-logo-group:hover .spv-logo-slash {
+  transform: translateY(-0.5px) scale(1.06);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .spv-icon-aurora {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: spv-aurora-drift 5.6s ease-in-out infinite;
+  }
+
+  .spv-icon-sapphire {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: spv-sapphire-drift 6.8s ease-in-out infinite;
+  }
+
+  .spv-icon-glint {
+    animation: spv-specular-sweep 5.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  }
+
+  .spv-icon-p-glow {
+    animation: spv-emerald-breathe 3.8s ease-in-out infinite;
+  }
+}
+
+@keyframes spv-aurora-drift {
+  0%, 100% {
+    transform: translate3d(-4%, 2%, 0) scale(1);
+    opacity: 0.88;
+  }
+  50% {
+    transform: translate3d(5%, -5%, 0) scale(1.12);
+    opacity: 1;
+  }
+}
+
+@keyframes spv-sapphire-drift {
+  0%, 100% {
+    transform: translate3d(3%, 0%, 0) scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: translate3d(-5%, 4%, 0) scale(1.1);
+    opacity: 1;
+  }
+}
+
+@keyframes spv-specular-sweep {
+  0% {
+    transform: translateX(-680px) rotate(24deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  44% {
+    transform: translateX(1680px) rotate(24deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(1680px) rotate(24deg);
+    opacity: 0;
+  }
+}
+
+@keyframes spv-emerald-breathe {
+  0%, 100% {
+    opacity: 0.92;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+
 
 

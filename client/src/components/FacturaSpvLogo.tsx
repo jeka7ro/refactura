@@ -16,8 +16,8 @@ const SQUIRCLE_RIM_PATH =
 
 /**
  * Apple macOS Tahoe / Sequoia Liquid Glass Brand Mark & Lockup for Factura/SPV.
- * Uses continuous-curvature Apple superellipse geometry, specular Liquid Glass
- * refraction, and native SF Pro Display typography with zero opaque background box.
+ * Uses continuous-curvature Apple superellipse geometry, smooth ambient Liquid Glass
+ * specular & aurora motion, and native SF Pro Display typography.
  */
 export function FacturaSpvLogo({
   iconOnly = false,
@@ -58,15 +58,15 @@ export function FacturaSpvLogo({
   return (
     <div
       className={cn(
-        "inline-flex items-center select-none shrink-0",
+        "spv-logo-group inline-flex items-center select-none shrink-0",
         dimensions.gap,
         className
       )}
     >
-      {/* Apple Continuous-Curvature Liquid Glass Squircle */}
+      {/* Apple Continuous-Curvature Liquid Glass Squircle with Smooth Motion */}
       <div
         className={cn(
-          "relative flex items-center justify-center shrink-0",
+          "spv-icon-squircle relative flex items-center justify-center shrink-0",
           dimensions.iconBox,
           "drop-shadow-[0_4px_10px_rgba(9,13,22,0.28)]"
         )}
@@ -87,15 +87,15 @@ export function FacturaSpvLogo({
               <stop offset="100%" stopColor="#070b12" />
             </linearGradient>
 
-            <radialGradient id={`top-${uid}`} cx="36%" cy="8%" r="64%">
-              <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.24" />
-              <stop offset="60%" stopColor="#3b82f6" stopOpacity="0.04" />
+            <radialGradient id={`top-${uid}`} cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.3" />
+              <stop offset="58%" stopColor="#3b82f6" stopOpacity="0.07" />
               <stop offset="100%" stopColor="#070b12" stopOpacity="0" />
             </radialGradient>
 
-            <radialGradient id={`glow-${uid}`} cx="52%" cy="90%" r="62%">
-              <stop offset="0%" stopColor="#10b981" stopOpacity="0.48" />
-              <stop offset="54%" stopColor="#0d9488" stopOpacity="0.16" />
+            <radialGradient id={`glow-${uid}`} cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#34d399" stopOpacity="0.54" />
+              <stop offset="52%" stopColor="#10b981" stopOpacity="0.2" />
               <stop offset="100%" stopColor="#070b12" stopOpacity="0" />
             </radialGradient>
 
@@ -105,10 +105,19 @@ export function FacturaSpvLogo({
               <stop offset="44%" stopColor="#ffffff" stopOpacity="0" />
             </linearGradient>
 
+            {/* Diagonal Liquid Glass Specular Sweep */}
+            <linearGradient id={`glint-${uid}`} x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0" />
+              <stop offset="42%" stopColor="#ffffff" stopOpacity="0.05" />
+              <stop offset="50%" stopColor="#ffffff" stopOpacity="0.24" />
+              <stop offset="58%" stopColor="#a7f3d0" stopOpacity="0.08" />
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+            </linearGradient>
+
             <linearGradient id={`rim-${uid}`} x1="18%" y1="0%" x2="82%" y2="100%">
               <stop offset="0%" stopColor="#ffffff" stopOpacity="0.55" />
               <stop offset="42%" stopColor="#ffffff" stopOpacity="0.14" />
-              <stop offset="100%" stopColor="#34d399" stopOpacity="0.34" />
+              <stop offset="100%" stopColor="#34d399" stopOpacity="0.36" />
             </linearGradient>
 
             <linearGradient id={`white-${uid}`} x1="0%" y1="0%" x2="0%" y2="100%">
@@ -130,9 +139,26 @@ export function FacturaSpvLogo({
 
           <g clipPath={`url(#sq-${uid})`}>
             <rect width="1024" height="1024" fill={`url(#bg-${uid})`} />
-            <rect width="1024" height="1024" fill={`url(#top-${uid})`} />
-            <rect width="1024" height="1024" fill={`url(#glow-${uid})`} />
+
+            {/* Smooth Floating Liquid Orbs */}
+            <circle
+              cx="390"
+              cy="120"
+              r="580"
+              fill={`url(#top-${uid})`}
+              className="spv-icon-sapphire"
+            />
+            <circle
+              cx="530"
+              cy="880"
+              r="600"
+              fill={`url(#glow-${uid})`}
+              className="spv-icon-aurora"
+            />
+
             <ellipse cx="512" cy="70" rx="580" ry="320" fill={`url(#sheen-${uid})`} />
+
+            {/* Crisp Monogram */}
             <g
               filter={`url(#sh-${uid})`}
               style={{
@@ -145,10 +171,23 @@ export function FacturaSpvLogo({
             >
               <text x="512" y="594" textAnchor="middle">
                 <tspan fill={`url(#white-${uid})`}>s</tspan>
-                <tspan fill={`url(#emerald-${uid})`}>p</tspan>
+                <tspan fill={`url(#emerald-${uid})`} className="spv-icon-p-glow">
+                  p
+                </tspan>
                 <tspan fill={`url(#white-${uid})`}>v</tspan>
               </text>
             </g>
+
+            {/* Smooth Specular Glass Glint */}
+            <rect
+              x="-240"
+              y="-360"
+              width="420"
+              height="1740"
+              fill={`url(#glint-${uid})`}
+              className="spv-icon-glint"
+            />
+
             <path
               d={SQUIRCLE_RIM_PATH}
               fill="none"
@@ -175,7 +214,7 @@ export function FacturaSpvLogo({
           <span className="font-semibold">Factura</span>
           <svg
             viewBox="0 0 14 28"
-            className={cn("w-auto mx-[2.5px] shrink-0", dimensions.slashH)}
+            className={cn("spv-logo-slash w-auto mx-[2.5px] shrink-0", dimensions.slashH)}
             aria-hidden="true"
           >
             <defs>

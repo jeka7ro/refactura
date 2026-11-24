@@ -1,5 +1,14 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-24 11:08 — Animație smooth Apple Liquid Glass în pictograma `spv` din logo (`FacturaSpvLogo.tsx`, `index.css`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Animație fluidă GPU-accelerată în pictograma `spv` (`client/src/components/FacturaSpvLogo.tsx`, `client/src/index.css`):**
+     - Adăugat reflexie speculară diagonală Apple Liquid Glass (`spv-specular-sweep`), refracție ambientală lentă de smarald/safir în interiorul squircle-ului (`spv-aurora-drift` / `spv-sapphire-drift`) și răspuns tactil tip arc la hover (`cubic-bezier(0.22, 1, 0.36, 1)`), cu suport complet pentru `prefers-reduced-motion`.
+- **Fișiere:** `client/src/components/FacturaSpvLogo.tsx`, `client/src/index.css`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori) și `npm run build` (`0` erori), fără `git push`.
+
 ### 2026-11-24 10:48 — Păstrare antet tabel & câmpuri de filtrare montate la `0` rezultate pe `/spv` + căutare în toate coloanele (`CIF`, `Data Afișare` etc.)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
