@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import { FacturaSpvLogo } from "@/components/FacturaSpvLogo";
 import {
   LayoutDashboard,
   FileText,
@@ -881,22 +882,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     <div className="relative flex h-screen apple-canvas overflow-hidden">
       {/* Top Header — Floating Apple Liquid Glass Functional Bar (content scrolls underneath) */}
       <header className="fixed top-2.5 sm:top-3.5 left-2.5 sm:left-3.5 right-2.5 sm:right-3.5 h-15 apple-glass rounded-[22px] flex items-center px-4 sm:px-5 gap-3 sm:gap-3.5 z-30">
-        {/* Logo */}
+        {/* Logo — Apple Liquid Glass Squircle + SF Pro Lockup */}
         <Link href="/">
           <div className="flex items-center flex-shrink-0 mr-1.5 cursor-pointer hover:opacity-90 transition-opacity">
-            {collapsed ? (
-              <img
-                src="/logo_icon_spv.png"
-                alt="Factura SPV"
-                className="h-9 w-9 object-contain flex-shrink-0 z-10 transition-all duration-200"
-              />
-            ) : (
-              <img
-                src="/logo_spv2.png"
-                alt="Factura SPV"
-                className="h-13 sm:h-14 w-auto object-contain flex-shrink-0 z-10 transition-all duration-200"
-              />
-            )}
+            <FacturaSpvLogo iconOnly={collapsed} size="md" />
           </div>
         </Link>
 

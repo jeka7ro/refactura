@@ -1,5 +1,17 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-24 10:23 — Logo Apple Liquid Glass (`Factura/SPV` + pictogramă squircle continuu) și aliniere bară filtre `/spv` pe un singur rând
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Brand Lockup & Pictogramă Apple Liquid Glass (`client/src/components/FacturaSpvLogo.tsx`, `DashboardLayout.tsx`, `Login.tsx`, `Register.tsx`, `Landing.tsx`):**
+     - Înlocuit logo-ul raster cu chenar alb opac (`logo_spv2.png` / `logo_final_root.png` / `logo_spv.png`) cu componenta vectorială `<FacturaSpvLogo />` (geometrie Apple squircle cu curbură continuă, reflexie speculară Liquid Glass, tipografie `SF Pro Rounded` / `SF Pro Display`, fundal 100% transparent și adaptare nativă Light/Dark Mode).
+     - Regenerat toate asset-urile transparente de rezoluție înaltă pentru Dock macOS / PWA / Favicon / PDF / Email (`icon-spv-512.png`, `icon-spv-192.png`, `apple-touch-icon.png`, `logo_icon_spv.png`, `logo_icon.png`, `favicon.png`, `favicon.ico`, `logo_spv2.png`, `logo_final_root.png`, `logo_spv.png`) și invalidat cache-ul (`?v=3` în `client/index.html` și `client/public/manifest.json`).
+  2. **Aliniere pe un singur rând a barei de taburi, filtre și căutare pe `/spv` (`client/src/pages/SpvHub.tsx`):**
+     - Calibrat capsulele `rounded-full` (`Mesaje & Recipise SPV` / `Mesaje e-Factura`, `Toate / Noi / Citite`, `Marchează citite`, `Elimină filtre` și câmpul `Caută...`) astfel încât întreaga bară rămâne pe un singur rând pe desktop (`1280px+`).
+- **Fișiere:** `client/src/components/FacturaSpvLogo.tsx`, `client/src/components/DashboardLayout.tsx`, `client/src/pages/Login.tsx`, `client/src/pages/Register.tsx`, `client/src/pages/Landing.tsx`, `client/src/pages/SpvHub.tsx`, `client/index.html`, `client/public/manifest.json`, `client/public/icon-spv-512.png`, `client/public/icon-spv-192.png`, `client/public/apple-touch-icon.png`, `client/public/logo_icon_spv.png`, `client/public/logo_icon.png`, `client/public/favicon.png`, `client/public/favicon.ico`, `client/public/logo_spv2.png`, `client/public/logo_final_root.png`, `client/public/logo_spv.png`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori) și `npm run build` (`0` erori), fără `git push`.
+
 ### 2026-11-23 15:57 — Etichete scurte pe butoanele `/spv` (`Test`, `Reautorizare`, `Stick USB`, `Încarcă`, `Sync SPV`), badge `Conectat` sub titlu și aliniere pe un singur rând
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

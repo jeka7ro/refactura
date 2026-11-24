@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { FacturaSpvLogo } from "@/components/FacturaSpvLogo";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
   FileOutput,
@@ -150,11 +151,7 @@ export default function Landing() {
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           >
             <div className="flex items-center justify-center">
-              <img
-                src="/logo_final_root.png"
-                alt="Factura SPV"
-                className="h-16 sm:h-20 w-auto object-contain flex-shrink-0 z-10 mix-blend-multiply"
-              />
+              <FacturaSpvLogo size="lg" theme="light" />
             </div>
           </div>
           <div className="hidden md:flex items-center gap-10 text-sm font-medium text-slate-600">
@@ -533,12 +530,8 @@ export default function Landing() {
       <footer className="py-12 bg-white border-t border-slate-100 flex flex-col items-center">
         <div className="max-w-7xl w-full mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
           <div className="flex items-center gap-3">
-              <div className="flex items-center">
-                <img
-                  src="/logo_spv.png"
-                  alt="Factura SPV"
-                  className="h-12 w-auto object-contain flex-shrink-0 z-10 filter grayscale brightness-200 hover:grayscale-0 hover:brightness-100 transition-all"
-                />
+              <div className="flex items-center opacity-80 hover:opacity-100 transition-opacity">
+                <FacturaSpvLogo size="sm" theme="light" />
               </div>
           </div>
           <p className="text-slate-500 text-sm">
@@ -680,14 +673,8 @@ function HeroMockup() {
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         <div className="hidden sm:flex w-44 bg-slate-900 border-r border-slate-800 p-3 flex-col gap-1 flex-shrink-0">
-          <div className="flex items-center mb-4 cursor-pointer">
-            <div className="bg-white px-3 py-2 rounded-lg shadow-sm border border-white/10 flex items-center justify-center h-10 w-full">
-              <img
-                src="/logo_spv.png"
-                alt="Factura SPV"
-                className="h-7 w-auto object-contain flex-shrink-0 z-10"
-              />
-            </div>
+          <div className="flex items-center mb-4 cursor-pointer px-1">
+            <FacturaSpvLogo size="sm" theme="dark" />
           </div>
           <div
             className={`flex items-center gap-2 px-2 py-2 rounded-lg text-xs font-medium transition-colors ${activeTab === 0 ? "bg-blue-600 text-white" : "text-slate-500 hover:text-white"}`}

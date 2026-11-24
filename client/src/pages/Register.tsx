@@ -22,6 +22,7 @@ import {
 import { toast } from "sonner";
 import { GoogleLogin } from "@react-oauth/google";
 import { cleanErrorMessage } from "@/lib/utils";
+import { FacturaSpvLogo } from "@/components/FacturaSpvLogo";
 
 export default function Register() {
   const [, setLocation] = useLocation();
@@ -110,12 +111,8 @@ export default function Register() {
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-300/20 rounded-full blur-[100px] pointer-events-none" />
 
         <Link href="/">
-          <div className="flex items-center relative z-10 cursor-pointer hover:opacity-90 transition-opacity w-fit max-w-[80%]">
-            <img
-              src="/logo_final_root.png"
-              alt="Factura SPV"
-              className="h-20 sm:h-24 w-auto object-contain z-10 mix-blend-multiply"
-            />
+          <div className="flex items-center relative z-10 cursor-pointer hover:opacity-90 transition-opacity w-fit">
+            <FacturaSpvLogo size="lg" theme="light" />
           </div>
         </Link>
 
@@ -167,11 +164,7 @@ export default function Register() {
           {/* Mobile logo */}
           <Link href="/">
             <div className="flex items-center mb-10 lg:hidden cursor-pointer w-fit">
-              <img
-                src="/logo_final_root.png"
-                alt="Factura SPV"
-                className="h-16 w-auto object-contain z-10"
-              />
+              <FacturaSpvLogo size="md" theme="dark" />
             </div>
           </Link>
 

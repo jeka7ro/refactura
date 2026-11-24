@@ -1224,21 +1224,21 @@ export default function SpvHub() {
 
         {/* Nivelul 3 — Panou Principal Unificat (Tabs + Filtre + Tabel) */}
         <div className="rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] bg-white/95 dark:bg-[#1c1c1e] shadow-2xs overflow-hidden">
-          {/* Bara superioară integrată */}
-          <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex flex-col xl:flex-row xl:items-center justify-between gap-2.5">
+          {/* Bara superioară integrată — pe un singur rând */}
+          <div className="px-3 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex flex-wrap items-center justify-between gap-2">
             {/* Stânga: Selector segmentat taburi */}
-            <div className="inline-flex items-center p-1 rounded-full bg-slate-200/70 dark:bg-slate-800 gap-1 self-start">
+            <div className="inline-flex items-center p-1 rounded-full bg-slate-200/70 dark:bg-slate-800 gap-0.5 shrink-0">
               <button
                 type="button"
                 onClick={() => setActiveHubTab("declaratii")}
-                className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer inline-flex items-center gap-2 whitespace-nowrap ${activeHubTab === "declaratii"
+                className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-colors cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap ${activeHubTab === "declaratii"
                   ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                   }`}
               >
-                <FileCheck className="w-3.5 h-3.5" />
+                <FileCheck className="w-3.5 h-3.5 shrink-0" />
                 <span>Mesaje &amp; Recipise SPV</span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tabular-nums bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular-nums bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                   {portalStats.total}
                 </span>
               </button>
@@ -1246,31 +1246,31 @@ export default function SpvHub() {
               <button
                 type="button"
                 onClick={() => setActiveHubTab("efactura")}
-                className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer inline-flex items-center gap-2 whitespace-nowrap ${activeHubTab === "efactura"
+                className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-colors cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap ${activeHubTab === "efactura"
                   ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                   }`}
               >
-                <Inbox className="w-3.5 h-3.5" />
+                <Inbox className="w-3.5 h-3.5 shrink-0" />
                 <span>Mesaje e-Factura</span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tabular-nums bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular-nums bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                   {msgStats.total}
                 </span>
               </button>
             </div>
 
-            {/* Dreapta: Filtre și căutare */}
+            {/* Dreapta: Filtre și căutare pe același rând */}
             {activeHubTab === "declaratii" ? (
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 flex-wrap justify-end">
                 {/* Filtru segmentat Citit / Necitit */}
-                <div className="inline-flex items-center p-1 rounded-full bg-slate-200/70 dark:bg-slate-800 gap-0.5">
+                <div className="inline-flex items-center p-1 rounded-full bg-slate-200/70 dark:bg-slate-800 gap-0.5 shrink-0">
                   <button
                     type="button"
                     onClick={() => {
                       setReadFilter("all");
                       setPage(1);
                     }}
-                    className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${readFilter === "all"
+                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-colors cursor-pointer whitespace-nowrap ${readFilter === "all"
                       ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                       }`}
@@ -1283,13 +1283,13 @@ export default function SpvHub() {
                       setReadFilter("unread");
                       setPage(1);
                     }}
-                    className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap ${readFilter === "unread"
+                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-colors cursor-pointer inline-flex items-center gap-1 whitespace-nowrap ${readFilter === "unread"
                       ? "bg-red-600 text-white shadow-2xs"
                       : "text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40"
                       }`}
                   >
                     <span
-                      className={`w-2 h-2 rounded-full ${readFilter === "unread"
+                      className={`w-1.5 h-1.5 rounded-full ${readFilter === "unread"
                         ? "bg-white"
                         : "bg-red-500 animate-pulse"
                         }`}
@@ -1302,7 +1302,7 @@ export default function SpvHub() {
                       setReadFilter("read");
                       setPage(1);
                     }}
-                    className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${readFilter === "read"
+                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-colors cursor-pointer whitespace-nowrap ${readFilter === "read"
                       ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                       }`}
@@ -1316,10 +1316,10 @@ export default function SpvHub() {
                     type="button"
                     onClick={() => markAllReadMutation.mutate()}
                     disabled={markAllReadMutation.isPending}
-                    className="rounded-full h-8 px-3 text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                    className="rounded-full h-8 px-2.5 text-[11.5px] font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 inline-flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap shrink-0"
                     title="Marchează toate mesajele ca citite"
                   >
-                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                     <span>Marchează citite</span>
                   </button>
                 )}
@@ -1327,18 +1327,18 @@ export default function SpvHub() {
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className={`rounded-full h-8 px-3 text-xs font-medium border inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap ${hasActivePortalFilters
+                  className={`rounded-full h-8 px-2.5 text-[11.5px] font-medium border inline-flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap shrink-0 ${hasActivePortalFilters
                     ? "bg-[#1e3264] text-white border-[#1e3264] hover:bg-[#16254a]"
                     : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
                     }`}
                   title="Resetează toate filtrele aplicate pe tabel"
                 >
-                  <RefreshCw className="w-3.5 h-3.5" />
+                  <RefreshCw className="w-3.5 h-3.5 shrink-0" />
                   <span>Elimină filtre</span>
                 </button>
 
-                <div className="relative w-full sm:w-60">
-                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <div className="relative w-36 2xl:w-56 shrink-0">
+                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                   <input
                     type="text"
                     value={portalSearchQuery}
@@ -1346,18 +1346,18 @@ export default function SpvHub() {
                       setPortalSearchQuery(e.target.value);
                       setPage(1);
                     }}
-                    placeholder="Caută în toate coloanele..."
+                    placeholder="Caută..."
                     className="w-full h-8 !pl-8 !pr-3 !py-1 text-xs rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:border-blue-500 outline-none"
                   />
                 </div>
               </div>
             ) : (
-              <div className="flex items-center gap-2 flex-wrap">
-                <div className="inline-flex items-center p-1 rounded-full bg-slate-200/70 dark:bg-slate-800 gap-0.5">
+              <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                <div className="inline-flex items-center p-1 rounded-full bg-slate-200/70 dark:bg-slate-800 gap-0.5 shrink-0">
                   <button
                     type="button"
                     onClick={() => setMessageFilter("all")}
-                    className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${messageFilter === "all"
+                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-colors cursor-pointer whitespace-nowrap ${messageFilter === "all"
                       ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                       }`}
@@ -1367,7 +1367,7 @@ export default function SpvHub() {
                   <button
                     type="button"
                     onClick={() => setMessageFilter("primita")}
-                    className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${messageFilter === "primita"
+                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-colors cursor-pointer whitespace-nowrap ${messageFilter === "primita"
                       ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                       }`}
@@ -1377,7 +1377,7 @@ export default function SpvHub() {
                   <button
                     type="button"
                     onClick={() => setMessageFilter("trimisa")}
-                    className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${messageFilter === "trimisa"
+                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-colors cursor-pointer whitespace-nowrap ${messageFilter === "trimisa"
                       ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                       }`}
@@ -1387,7 +1387,7 @@ export default function SpvHub() {
                   <button
                     type="button"
                     onClick={() => setMessageFilter("eroare")}
-                    className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${messageFilter === "eroare"
+                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-colors cursor-pointer whitespace-nowrap ${messageFilter === "eroare"
                       ? "bg-red-600 text-white shadow-2xs"
                       : msgStats.erori > 0
                         ? "text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40"
@@ -1398,13 +1398,13 @@ export default function SpvHub() {
                   </button>
                 </div>
 
-                <div className="relative w-full sm:w-64">
-                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <div className="relative w-44 2xl:w-64 shrink-0">
+                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                   <input
                     type="text"
                     value={searchMessageQuery}
                     onChange={(e) => setSearchMessageQuery(e.target.value)}
-                    placeholder="Caută nr. factură, partener, CUI..."
+                    placeholder="Caută factură, CUI..."
                     className="w-full h-8 !pl-8 !pr-3 !py-1 text-xs rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:border-blue-500 outline-none"
                   />
                 </div>
