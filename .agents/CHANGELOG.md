@@ -1,5 +1,14 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-24 11:11 — Halou luminos rotativ stil Apple Intelligence + undă armonică `s · p · v` pe pictograma din logo
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Refăcut animația din `FacturaSpvLogo.tsx` și `client/src/index.css`:**
+     - Înlocuit dunga diagonală albă cu un halou perimetral luminos rotativ `360°` (smarald `#34d399` → azur `#38bdf8` → mentă `#6ee7b7`) mascat exact pe conturul squircle-ului continuu Apple și o undă armonică fină în cascadă (`0s` / `0.16s` / `0.32s`) pe literele `s`, `p`, `v` stil SF Symbols.
+- **Fișiere:** `client/src/components/FacturaSpvLogo.tsx`, `client/src/index.css`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori) și `npm run build` (`0` erori), fără `git push`.
+
 ### 2026-11-24 11:08 — Animație smooth Apple Liquid Glass în pictograma `spv` din logo (`FacturaSpvLogo.tsx`, `index.css`)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

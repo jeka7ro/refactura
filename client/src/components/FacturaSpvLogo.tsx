@@ -8,16 +8,17 @@ interface FacturaSpvLogoProps {
   className?: string;
 }
 
-const SQUIRCLE_CLIP_PATH =
+const SQUIRCLE_OUTER_PATH =
   "M 340,0 L 684,0 C 803,0 863,0 911,20.4 C 957,40 984,67 1003.6,113 C 1024,161 1024,221 1024,340 L 1024,684 C 1024,803 1024,863 1003.6,911 C 984,957 957,984 911,1003.6 C 863,1024 803,1024 684,1024 L 340,1024 C 221,1024 161,1024 113,1003.6 C 67,984 40,957 20.4,911 C 0,863 0,803 0,684 L 0,340 C 0,221 0,161 20.4,113 C 40,67 67,40 113,20.4 C 161,0 221,0 340,0 Z";
 
-const SQUIRCLE_RIM_PATH =
-  "M 340,10 L 684,10 C 800,10 859,10 905,29.8 C 950,49 977,76 996.2,121 C 1014,166 1014,224 1014,340 L 1014,684 C 1014,800 1014,858 996.2,903 C 977,948 950,975 905,994.2 C 859,1014 800,1014 684,1014 L 340,1014 C 224,1014 165,1014 119,994.2 C 74,975 47,948 27.8,903 C 10,858 10,800 10,684 L 10,340 C 10,224 10,166 27.8,121 C 47,76 74,49 119,29.8 C 165,10 224,10 340,10 Z";
+// Inset by 34 units for a crisp ~1.2px luminous Apple Intelligence perimeter halo at 36px
+const SQUIRCLE_INNER_PATH =
+  "M 352,34 L 672,34 C 783,34 839,34 884,53 C 927,71 953,97 971,140 C 990,185 990,241 990,352 L 990,672 C 990,783 990,839 971,884 C 953,927 927,953 884,971 C 839,990 783,990 672,990 L 352,990 C 241,990 185,990 140,971 C 97,953 71,927 53,884 C 34,839 34,783 34,672 L 34,352 C 34,241 34,185 53,140 C 71,97 97,71 140,53 C 185,34 241,34 352,34 Z";
 
 /**
- * Apple macOS Tahoe / Sequoia Liquid Glass Brand Mark & Lockup for Factura/SPV.
- * Uses continuous-curvature Apple superellipse geometry, smooth ambient Liquid Glass
- * specular & aurora motion, and native SF Pro Display typography.
+ * Apple macOS Tahoe / Apple Intelligence Brand Mark & Lockup for Factura/SPV.
+ * Features a continuous-curvature squircle with a smooth 360° luminous emerald-cyan
+ * perimeter halo and an Apple SF Symbols staggered wave across `s · p · v`.
  */
 export function FacturaSpvLogo({
   iconOnly = false,
@@ -63,7 +64,7 @@ export function FacturaSpvLogo({
         className
       )}
     >
-      {/* Apple Continuous-Curvature Liquid Glass Squircle with Smooth Motion */}
+      {/* Apple Squircle with Rotating Luminous Rim + Staggered SF Symbols Wave */}
       <div
         className={cn(
           "spv-icon-squircle relative flex items-center justify-center shrink-0",
@@ -78,51 +79,51 @@ export function FacturaSpvLogo({
         >
           <defs>
             <clipPath id={`sq-${uid}`}>
-              <path d={SQUIRCLE_CLIP_PATH} />
+              <path d={SQUIRCLE_OUTER_PATH} />
             </clipPath>
 
+            <clipPath id={`sq-in-${uid}`}>
+              <path d={SQUIRCLE_INNER_PATH} />
+            </clipPath>
+
+            {/* Deep Obsidian Glass Core */}
             <linearGradient id={`bg-${uid}`} x1="18%" y1="0%" x2="82%" y2="100%">
-              <stop offset="0%" stopColor="#293850" />
-              <stop offset="46%" stopColor="#121a29" />
+              <stop offset="0%" stopColor="#243247" />
+              <stop offset="48%" stopColor="#101725" />
               <stop offset="100%" stopColor="#070b12" />
             </linearGradient>
 
-            <radialGradient id={`top-${uid}`} cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.3" />
-              <stop offset="58%" stopColor="#3b82f6" stopOpacity="0.07" />
-              <stop offset="100%" stopColor="#070b12" stopOpacity="0" />
-            </radialGradient>
+            {/* Static Subtle Rim Base */}
+            <linearGradient id={`rim-base-${uid}`} x1="15%" y1="0%" x2="85%" y2="100%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.34" />
+              <stop offset="50%" stopColor="#64748b" stopOpacity="0.16" />
+              <stop offset="100%" stopColor="#10b981" stopOpacity="0.28" />
+            </linearGradient>
 
-            <radialGradient id={`glow-${uid}`} cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#34d399" stopOpacity="0.54" />
-              <stop offset="52%" stopColor="#10b981" stopOpacity="0.2" />
+            {/* Rotating Luminous Apple Intelligence Beam */}
+            <linearGradient id={`beam-${uid}`} x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#34d399" stopOpacity="1" />
+              <stop offset="28%" stopColor="#38bdf8" stopOpacity="0.95" />
+              <stop offset="52%" stopColor="#ffffff" stopOpacity="0.12" />
+              <stop offset="78%" stopColor="#070b12" stopOpacity="0" />
+              <stop offset="100%" stopColor="#6ee7b7" stopOpacity="0.9" />
+            </linearGradient>
+
+            <radialGradient id={`glow-${uid}`} cx="50%" cy="84%" r="58%">
+              <stop offset="0%" stopColor="#10b981" stopOpacity="0.5" />
+              <stop offset="55%" stopColor="#0ea5e9" stopOpacity="0.14" />
               <stop offset="100%" stopColor="#070b12" stopOpacity="0" />
             </radialGradient>
 
             <linearGradient id={`sheen-${uid}`} x1="50%" y1="0%" x2="50%" y2="100%">
-              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.28" />
-              <stop offset="38%" stopColor="#ffffff" stopOpacity="0.05" />
-              <stop offset="44%" stopColor="#ffffff" stopOpacity="0" />
-            </linearGradient>
-
-            {/* Diagonal Liquid Glass Specular Sweep */}
-            <linearGradient id={`glint-${uid}`} x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#ffffff" stopOpacity="0" />
-              <stop offset="42%" stopColor="#ffffff" stopOpacity="0.05" />
-              <stop offset="50%" stopColor="#ffffff" stopOpacity="0.24" />
-              <stop offset="58%" stopColor="#a7f3d0" stopOpacity="0.08" />
-              <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-            </linearGradient>
-
-            <linearGradient id={`rim-${uid}`} x1="18%" y1="0%" x2="82%" y2="100%">
-              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.55" />
-              <stop offset="42%" stopColor="#ffffff" stopOpacity="0.14" />
-              <stop offset="100%" stopColor="#34d399" stopOpacity="0.36" />
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.24" />
+              <stop offset="36%" stopColor="#ffffff" stopOpacity="0.04" />
+              <stop offset="42%" stopColor="#ffffff" stopOpacity="0" />
             </linearGradient>
 
             <linearGradient id={`white-${uid}`} x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stopColor="#ffffff" />
-              <stop offset="68%" stopColor="#f1f5f9" />
+              <stop offset="70%" stopColor="#f1f5f9" />
               <stop offset="100%" stopColor="#cbd5e1" />
             </linearGradient>
 
@@ -133,67 +134,63 @@ export function FacturaSpvLogo({
             </linearGradient>
 
             <filter id={`sh-${uid}`} x="-20%" y="-20%" width="140%" height="150%">
-              <feDropShadow dx="0" dy="18" stdDeviation="20" floodColor="#020617" floodOpacity="0.52" />
+              <feDropShadow dx="0" dy="16" stdDeviation="18" floodColor="#020617" floodOpacity="0.5" />
             </filter>
           </defs>
 
+          {/* Outer Squircle: Rotating Luminous Perimeter Beam */}
           <g clipPath={`url(#sq-${uid})`}>
             <rect width="1024" height="1024" fill={`url(#bg-${uid})`} />
-
-            {/* Smooth Floating Liquid Orbs */}
-            <circle
-              cx="390"
-              cy="120"
-              r="580"
-              fill={`url(#top-${uid})`}
-              className="spv-icon-sapphire"
-            />
-            <circle
-              cx="530"
-              cy="880"
-              r="600"
-              fill={`url(#glow-${uid})`}
-              className="spv-icon-aurora"
-            />
-
-            <ellipse cx="512" cy="70" rx="580" ry="320" fill={`url(#sheen-${uid})`} />
-
-            {/* Crisp Monogram */}
-            <g
-              filter={`url(#sh-${uid})`}
-              style={{
-                fontFamily:
-                  '-apple-system, BlinkMacSystemFont, "SF Pro Rounded", "SF Pro Display", "Helvetica Neue", "Inter", sans-serif',
-                fontWeight: 800,
-                fontSize: "430px",
-                letterSpacing: "-0.04em",
-              }}
-            >
-              <text x="512" y="594" textAnchor="middle">
-                <tspan fill={`url(#white-${uid})`}>s</tspan>
-                <tspan fill={`url(#emerald-${uid})`} className="spv-icon-p-glow">
-                  p
-                </tspan>
-                <tspan fill={`url(#white-${uid})`}>v</tspan>
-              </text>
+            <rect width="1024" height="1024" fill={`url(#rim-base-${uid})`} />
+            <g className="spv-rim-rotor">
+              <rect
+                x="-320"
+                y="-320"
+                width="1664"
+                height="1664"
+                fill={`url(#beam-${uid})`}
+              />
             </g>
 
-            {/* Smooth Specular Glass Glint */}
-            <rect
-              x="-240"
-              y="-360"
-              width="420"
-              height="1740"
-              fill={`url(#glint-${uid})`}
-              className="spv-icon-glint"
-            />
+            {/* Inner Squircle Glass Core */}
+            <g clipPath={`url(#sq-in-${uid})`}>
+              <rect width="1024" height="1024" fill={`url(#bg-${uid})`} />
+              <circle
+                cx="512"
+                cy="840"
+                r="560"
+                fill={`url(#glow-${uid})`}
+                className="spv-ambient-pulse"
+              />
+              <ellipse cx="512" cy="70" rx="560" ry="300" fill={`url(#sheen-${uid})`} />
 
-            <path
-              d={SQUIRCLE_RIM_PATH}
-              fill="none"
-              stroke={`url(#rim-${uid})`}
-              strokeWidth="22"
-            />
+              {/* Staggered SF Symbols Wave: s · p · v */}
+              <g
+                filter={`url(#sh-${uid})`}
+                style={{
+                  fontFamily:
+                    '-apple-system, BlinkMacSystemFont, "SF Pro Rounded", "SF Pro Display", "Helvetica Neue", "Inter", sans-serif',
+                  fontWeight: 800,
+                  fontSize: "418px",
+                }}
+              >
+                <g className="spv-glyph-s">
+                  <text x="276" y="592" textAnchor="middle" fill={`url(#white-${uid})`}>
+                    s
+                  </text>
+                </g>
+                <g className="spv-glyph-p" style={{ transformOrigin: "508px 520px" }}>
+                  <text x="508" y="592" textAnchor="middle" fill={`url(#emerald-${uid})`}>
+                    p
+                  </text>
+                </g>
+                <g className="spv-glyph-v">
+                  <text x="744" y="592" textAnchor="middle" fill={`url(#white-${uid})`}>
+                    v
+                  </text>
+                </g>
+              </g>
+            </g>
           </g>
         </svg>
       </div>
