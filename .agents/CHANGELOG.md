@@ -1,5 +1,15 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-24 10:48 — Păstrare antet tabel & câmpuri de filtrare montate la `0` rezultate pe `/spv` + căutare în toate coloanele (`CIF`, `Data Afișare` etc.)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Eliminat demontarea tabelului și a filtrelor pe coloană când căutarea nu găsește rezultate (`client/src/pages/SpvHub.tsx`):**
+     - Mutat starea goală de filtrare (`0` rezultate) în interiorul `<tbody>` / `<TableBody>` (`colSpan={8}` / `colSpan={9}`), păstrând `<table>`, `<thead>`, toate cele 6 filtre inline pe coloană, focusul pe tastatură și butonul `PDF (0)` permanent montate și vizibile.
+     - Adăugat buton `×` de ștergere rapidă în câmpul de căutare și extins `portalSearchQuery` / `searchMessageQuery` să caute insensibil la diacritice și multi-cuvânt în **toate** coloanele (inclusiv `CIF` și `Data Afișare` / `dataCreare`, care lipseau anterior).
+- **Fișiere:** `client/src/pages/SpvHub.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori) și `npm run build` (`0` erori), fără `git push`.
+
 ### 2026-11-24 10:32 — Fereastră compactă Apple HUD pentru Stick USB (`v1.5.1`), tabel `/spv` Apple Frosted Glass cu Bulk Download PDF și butoane icon-only pe un singur rând
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

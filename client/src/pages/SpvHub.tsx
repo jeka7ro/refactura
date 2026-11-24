@@ -720,23 +720,29 @@ export default function SpvHub() {
     }
 
     if (portalSearchQuery.trim()) {
-      const q = portalSearchQuery.toLowerCase().trim();
-      const tipMatch = doc.tip?.toLowerCase().includes(q);
-      const nrMatch = doc.numarInregistrare?.toLowerCase().includes(q);
-      const titluMatch = doc.titlu?.toLowerCase().includes(q);
-      const perMatch = doc.perioadaFiscala?.toLowerCase().includes(q);
-      const detMatch = doc.detalii?.toLowerCase().includes(q);
-      const solMatch = doc.idSolicitare?.toLowerCase().includes(q);
-      const arhMatch = doc.dataArhivare?.toLowerCase().includes(q);
-      if (
-        !tipMatch &&
-        !nrMatch &&
-        !titluMatch &&
-        !perMatch &&
-        !detMatch &&
-        !solMatch &&
-        !arhMatch
-      ) {
+      const norm = (v: any) =>
+        String(v || "")
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "");
+      const haystack = norm(
+        [
+          doc.cif,
+          doc.tip,
+          doc.idSolicitare,
+          doc.dataDepunere,
+          doc.detalii,
+          doc.dataArhivare,
+          doc.numarInregistrare,
+          doc.titlu,
+          doc.perioadaFiscala,
+          doc.fileName,
+        ]
+          .filter(Boolean)
+          .join(" ")
+      );
+      const tokens = norm(portalSearchQuery).trim().split(/\s+/).filter(Boolean);
+      if (!tokens.every((tok) => haystack.includes(tok))) {
         return false;
       }
     }
@@ -784,23 +790,28 @@ export default function SpvHub() {
     if (messageFilter === "eroare" && msg.tip !== "ERORI FACTURA") return false;
 
     if (searchMessageQuery.trim()) {
-      const q = searchMessageQuery.toLowerCase().trim();
-      const numMatch = msg.invoiceNumber?.toLowerCase().includes(q);
-      const nameMatch = msg.partnerName?.toLowerCase().includes(q);
-      const emitMatch = msg.cifEmitent?.toLowerCase().includes(q);
-      const benMatch = msg.cifBeneficiar?.toLowerCase().includes(q);
-      const solMatch = msg.idSolicitare?.toLowerCase().includes(q);
-      const idMatch = msg.id?.toLowerCase().includes(q);
-      const detMatch = msg.detalii?.toLowerCase().includes(q);
-      if (
-        !numMatch &&
-        !nameMatch &&
-        !emitMatch &&
-        !benMatch &&
-        !solMatch &&
-        !idMatch &&
-        !detMatch
-      ) {
+      const norm = (v: any) =>
+        String(v || "")
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "");
+      const haystack = norm(
+        [
+          msg.dataCreare,
+          msg.tip,
+          msg.cifEmitent,
+          msg.cifBeneficiar,
+          msg.idSolicitare,
+          msg.id,
+          msg.invoiceNumber,
+          msg.partnerName,
+          msg.detalii,
+        ]
+          .filter(Boolean)
+          .join(" ")
+      );
+      const tokens = norm(searchMessageQuery).trim().split(/\s+/).filter(Boolean);
+      if (!tokens.every((tok) => haystack.includes(tok))) {
         return false;
       }
     }
@@ -1512,8 +1523,21 @@ export default function SpvHub() {
                       setPage(1);
                     }}
                     placeholder="Caută în toate coloanele..."
-                    className="w-full h-8 !pl-8 !pr-3 !py-1 text-xs rounded-full border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#86868b] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/15 outline-none transition-all"
+                    className="w-full h-8 !pl-8 !pr-7 !py-1 text-xs rounded-full border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#86868b] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/15 outline-none transition-all"
                   />
+                  {portalSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPortalSearchQuery("");
+                        setPage(1);
+                      }}
+                      aria-label="Șterge căutarea"
+                      className="w-4 h-4 rounded-full bg-black/[0.1] dark:bg-white/[0.16] hover:bg-black/[0.18] text-[#6e6e73] dark:text-[#ebebf5] inline-flex items-center justify-center absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  )}
                 </div>
 
                 {/* Filtru segmentat Citit / Necitit */}
@@ -1565,13 +1589,16 @@ export default function SpvHub() {
                   </button>
                 </div>
 
-                {/* Bulk Download PDF (selectate sau toate filtrate) */}
-                {filteredPortalIds.length > 0 && (
+                {/* Bulk Download PDF (selectate sau toate filtrate — rămâne vizibil, nu dispare la filtrare) */}
+                {(portalDocs?.length || 0) > 0 && (
                   <button
                     type="button"
                     onClick={() => handleDownloadPortalSelection()}
-                    disabled={isBulkDownloading}
-                    className={`rounded-full h-8 px-3 text-[11.5px] font-semibold inline-flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-60 ${selectedPortalIds.length > 0
+                    disabled={
+                      isBulkDownloading ||
+                      (selectedPortalIds.length === 0 && filteredPortalIds.length === 0)
+                    }
+                    className={`rounded-full h-8 px-3 text-[11.5px] font-semibold inline-flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-40 disabled:cursor-not-allowed ${selectedPortalIds.length > 0
                       ? "bg-[#0071e3] hover:bg-[#0077ed] text-white shadow-2xs"
                       : "bg-white dark:bg-[#2c2c2e] border border-black/[0.08] dark:border-white/[0.12] hover:border-[#0071e3]/40 text-[#1d1d1f] dark:text-[#f5f5f7]"
                       }`}
@@ -1631,8 +1658,18 @@ export default function SpvHub() {
                     value={searchMessageQuery}
                     onChange={(e) => setSearchMessageQuery(e.target.value)}
                     placeholder="Caută factură, partener, CUI..."
-                    className="w-full h-8 !pl-8 !pr-3 !py-1 text-xs rounded-full border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#86868b] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/15 outline-none transition-all"
+                    className="w-full h-8 !pl-8 !pr-7 !py-1 text-xs rounded-full border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#86868b] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/15 outline-none transition-all"
                   />
+                  {searchMessageQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchMessageQuery("")}
+                      aria-label="Șterge căutarea"
+                      className="w-4 h-4 rounded-full bg-black/[0.1] dark:bg-white/[0.16] hover:bg-black/[0.18] text-[#6e6e73] dark:text-[#ebebf5] inline-flex items-center justify-center absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  )}
                 </div>
 
                 <div className="inline-flex items-center p-1 rounded-full bg-black/[0.055] dark:bg-white/[0.08] gap-0.5 shrink-0">
@@ -1742,25 +1779,10 @@ export default function SpvHub() {
                     Nu există documente în arhiva SPV.
                   </p>
                 </div>
-              ) : filteredPortalDocs?.length === 0 ? (
-                <div className="p-14 text-center text-slate-500">
-                  <FileCheck className="w-10 h-10 mx-auto text-slate-300 mb-2" />
-                  <p className="font-semibold text-sm">
-                    Nu există documente electronice care să corespundă
-                    filtrelor.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={resetFilters}
-                    className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#1e3264] hover:bg-[#16254a] text-white text-xs font-semibold cursor-pointer"
-                  >
-                    <span>Resetează filtrele</span>
-                  </button>
-                </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse text-xs">
-                    {/* Antet Tabel Apple macOS Frosted Glass */}
+                    {/* Antet Tabel Apple macOS Frosted Glass — rămâne montat permanent în timpul filtrării */}
                     <thead>
                       <tr className="bg-[#f5f5f7]/90 dark:bg-[#2c2c2e]/75 text-[#6e6e73] dark:text-[#98989d] text-[11px] font-semibold tracking-[-0.01em] select-none border-b border-black/[0.06] dark:border-white/[0.08]">
                         <th className="py-2.5 pl-3.5 pr-1.5 w-9 text-center">
@@ -1768,10 +1790,11 @@ export default function SpvHub() {
                             ref={masterPortalCheckboxRef}
                             type="checkbox"
                             checked={allPortalSelected}
+                            disabled={filteredPortalIds.length === 0}
                             onChange={toggleSelectAllPortal}
                             aria-label="Selectează toate documentele SPV"
                             title="Selectează toate documentele filtrate"
-                            className="w-4 h-4 rounded-[5px] accent-[#0071e3] cursor-pointer align-middle"
+                            className="w-4 h-4 rounded-[5px] accent-[#0071e3] cursor-pointer align-middle disabled:opacity-30"
                           />
                         </th>
                         <th className="py-2.5 px-3 w-28 whitespace-nowrap">
@@ -1901,7 +1924,27 @@ export default function SpvHub() {
 
                     {/* Corp Tabel — Apple Mail / Finder Style */}
                     <tbody className="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
-                      {paginatedPortalDocs.map((doc: any, idx: number) => {
+                      {paginatedPortalDocs.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={8}
+                            className="py-12 px-4 text-center text-[#6e6e73] dark:text-[#98989d]"
+                          >
+                            <p className="font-semibold text-xs text-[#1d1d1f] dark:text-[#f5f5f7]">
+                              Niciun document nu corespunde căutării sau filtrelor active.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={resetFilters}
+                              className="mt-2.5 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-semibold cursor-pointer shadow-2xs transition-all"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              <span>Resetează filtrele</span>
+                            </button>
+                          </td>
+                        </tr>
+                      ) : (
+                        paginatedPortalDocs.map((doc: any, idx: number) => {
                         const docNumId = Number(doc.id);
                         const isUnread = !doc.isRead;
                         const isSelected = selectedPortalSet.has(docNumId);
@@ -2039,7 +2082,8 @@ export default function SpvHub() {
                             </td>
                           </tr>
                         );
-                      })}
+                        })
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -2112,11 +2156,11 @@ export default function SpvHub() {
                   <Skeleton className="h-9 w-full" />
                   <Skeleton className="h-9 w-full" />
                 </div>
-              ) : filteredMessages?.length === 0 ? (
+              ) : (rawMessages?.length || 0) === 0 ? (
                 <div className="p-14 text-center text-slate-500">
                   <Inbox className="w-10 h-10 mx-auto text-slate-300 mb-2" />
                   <p className="font-semibold text-sm">
-                    Nu există mesaje e-Factura care să corespundă căutării.
+                    Nu există mesaje e-Factura în arhiva SPV.
                   </p>
                 </div>
               ) : (
@@ -2151,7 +2195,30 @@ export default function SpvHub() {
                       </TableRow>
                     </TableHeader>
                     <TableBody className="text-xs">
-                      {filteredMessages?.map((msg: any) => {
+                      {!filteredMessages || filteredMessages.length === 0 ? (
+                        <TableRow>
+                          <TableCell
+                            colSpan={9}
+                            className="py-12 px-4 text-center text-[#6e6e73] dark:text-[#98989d]"
+                          >
+                            <p className="font-semibold text-xs text-[#1d1d1f] dark:text-[#f5f5f7]">
+                              Niciun mesaj e-Factura nu corespunde căutării sau filtrului activ.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setMessageFilter("all");
+                                setSearchMessageQuery("");
+                              }}
+                              className="mt-2.5 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-semibold cursor-pointer shadow-2xs transition-all"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              <span>Resetează filtrele</span>
+                            </button>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredMessages.map((msg: any) => {
                         const isReceived = msg.tip === "FACTURA PRIMITA";
                         const isSent = msg.tip === "FACTURA TRIMISA";
                         const isError = msg.tip === "ERORI FACTURA";
@@ -2286,7 +2353,8 @@ export default function SpvHub() {
                             </TableCell>
                           </TableRow>
                         );
-                      })}
+                        })
+                      )}
                     </TableBody>
                   </Table>
                 </div>
