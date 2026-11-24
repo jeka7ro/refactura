@@ -1,5 +1,14 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-24 11:23 — Gradient animat lent prin literele fixe `spv` din logo (`FacturaSpvLogo.tsx`, `index.css`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Schimbare fină și continuă de culoare strict prin literele fixe `spv` (`client/src/components/FacturaSpvLogo.tsx`, `client/src/index.css`):**
+     - Păstrat squircle-ul Apple și monograma `spv` 100% fixe (fără nicio mișcare sus-jos sau contur rotativ), aplicând o mască vectorială subpixel pe textul `spv` prin care curge lin și fără cusătură un gradient periodic (`alb porțelan → mentă → smarald → azur → alb`, ciclu `5.5s`).
+- **Fișiere:** `client/src/components/FacturaSpvLogo.tsx`, `client/src/index.css`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori) și `npm run build` (`0` erori), fără `git push`.
+
 ### 2026-11-24 11:11 — Halou luminos rotativ stil Apple Intelligence + undă armonică `s · p · v` pe pictograma din logo
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

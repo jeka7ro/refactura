@@ -1039,94 +1039,28 @@ a.border-green-200 {
   border-color: color-mix(in srgb, var(--tenant-theme-color, #16a34a) 28%, transparent) !important;
 }
 
-/* ── Apple Intelligence Rim + SF Symbols Harmonic Wave (FacturaSpvLogo) ── */
+/* ── Smooth Flowing Color Gradient Through Fixed "spv" Text (FacturaSpvLogo) ── */
 .spv-icon-squircle {
-  transition:
-    transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1),
-    filter 0.42s cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: transform;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .spv-logo-group:hover .spv-icon-squircle {
-  transform: scale(1.07);
-  filter: drop-shadow(0 6px 16px rgba(16, 185, 129, 0.34)) drop-shadow(0 2px 6px rgba(9, 13, 22, 0.28));
-}
-
-.spv-logo-slash {
-  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  transform-origin: center;
-}
-
-.spv-logo-group:hover .spv-logo-slash {
-  transform: rotate(6deg) scale(1.08);
+  transform: scale(1.03);
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .spv-rim-rotor {
-    transform-origin: 512px 512px;
-    animation: spv-rim-spin 4.2s linear infinite;
-  }
-
-  .spv-ambient-pulse {
-    transform-origin: 512px 760px;
-    animation: spv-ambient-breathe 3.6s ease-in-out infinite;
-  }
-
-  .spv-glyph-s {
-    animation: spv-glyph-wave 3.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-    animation-delay: 0s;
-  }
-
-  .spv-glyph-p {
-    animation: spv-glyph-wave-p 3.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-    animation-delay: 0.16s;
-  }
-
-  .spv-glyph-v {
-    animation: spv-glyph-wave 3.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-    animation-delay: 0.32s;
+  .spv-text-color-flow {
+    will-change: transform;
+    animation: spv-text-gradient-shift 5.5s linear infinite;
   }
 }
 
-@keyframes spv-rim-spin {
+@keyframes spv-text-gradient-shift {
   from {
-    transform: rotate(0deg);
+    transform: translate3d(0px, 0, 0);
   }
   to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes spv-ambient-breathe {
-  0%, 100% {
-    opacity: 0.65;
-    transform: scale(0.94);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.08);
-  }
-}
-
-@keyframes spv-glyph-wave {
-  0%, 58%, 100% {
-    transform: translateY(0px);
-    opacity: 0.94;
-  }
-  26% {
-    transform: translateY(-28px);
-    opacity: 1;
-  }
-}
-
-@keyframes spv-glyph-wave-p {
-  0%, 58%, 100% {
-    transform: translateY(0px) scale(1);
-    filter: brightness(1);
-  }
-  26% {
-    transform: translateY(-34px) scale(1.03);
-    filter: brightness(1.18);
+    transform: translate3d(1024px, 0, 0);
   }
 }
 
