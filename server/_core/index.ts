@@ -42,6 +42,7 @@ async function startServer() {
   app.use("/api/upload-invoice", requireFileAuth);
   app.use("/api/upload-spv-document", requireFileAuth);
   app.use("/api/spv/import-real-document", requireFileAuth);
+  app.use("/api/spv/bulk-download-pdf", requireFileAuth);
   app.use("/api/spv/connector-log", requireFileAuth);
   app.use("/api/spv-connector.zip", requireFileAuth);
   app.use("/api/upload-contract", requireFileAuth);

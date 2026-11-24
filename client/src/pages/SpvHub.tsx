@@ -38,6 +38,8 @@ import {
   Download,
   FileText,
   FileCheck,
+  CheckCheck,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import DocumentModalPreview from "@/components/DocumentModalPreview";
@@ -120,6 +122,13 @@ export default function SpvHub() {
     setPage(1);
   };
 
+  // Selecție multiplă & Bulk Download PDF
+  const [selectedPortalIds, setSelectedPortalIds] = useState<number[]>([]);
+  const [selectedEfacturaIds, setSelectedEfacturaIds] = useState<string[]>([]);
+  const [isBulkDownloading, setIsBulkDownloading] = useState<boolean>(false);
+  const masterPortalCheckboxRef = useRef<HTMLInputElement>(null);
+  const masterEfacturaCheckboxRef = useRef<HTMLInputElement>(null);
+
   // Filtre Mesaje e-Factura
   const [messageFilter, setMessageFilter] = useState<
     "all" | "primita" | "trimisa" | "eroare"
@@ -158,6 +167,8 @@ export default function SpvHub() {
     connectorVersion && connectorVersion < "1.5.0"
   );
 
+  const hasAutoReloadedExtRef = useRef(false);
+
   useEffect(() => {
     const syncVer = (ver?: string) => {
       const detected =
@@ -165,6 +176,13 @@ export default function SpvHub() {
       if (detected) {
         setConnectorVersion(detected);
         setConnectorReady(true);
+        if (detected === "1.5.0" && !hasAutoReloadedExtRef.current) {
+          hasAutoReloadedExtRef.current = true;
+          window.postMessage(
+            { source: "smart-invoice-app", type: "SPV_CONNECTOR_RELOAD" },
+            window.location.origin
+          );
+        }
       }
     };
     const onReady = (e: Event) => {
@@ -825,6 +843,228 @@ export default function SpvHub() {
     portalFilter !== "all"
   );
 
+  // Selecție filtrată Mesaje & Recipise SPV
+  const filteredPortalIds: number[] = (filteredPortalDocs || []).map((d: any) => Number(d.id));
+  const selectedPortalSet = new Set(selectedPortalIds);
+  const allPortalSelected =
+    filteredPortalIds.length > 0 &&
+    filteredPortalIds.every((id) => selectedPortalSet.has(id));
+  const somePortalSelected =
+    !allPortalSelected &&
+    filteredPortalIds.some((id) => selectedPortalSet.has(id));
+
+  useEffect(() => {
+    if (masterPortalCheckboxRef.current) {
+      masterPortalCheckboxRef.current.indeterminate = somePortalSelected;
+    }
+  }, [somePortalSelected, allPortalSelected]);
+
+  useEffect(() => {
+    if (!portalDocs) return;
+    const valid = new Set(portalDocs.map((d: any) => Number(d.id)));
+    setSelectedPortalIds((prev) => prev.filter((id) => valid.has(id)));
+  }, [portalDocs]);
+
+  const toggleSelectAllPortal = () => {
+    if (allPortalSelected) {
+      const removeSet = new Set(filteredPortalIds);
+      setSelectedPortalIds((prev) => prev.filter((id) => !removeSet.has(id)));
+    } else {
+      setSelectedPortalIds((prev) =>
+        Array.from(new Set([...prev, ...filteredPortalIds]))
+      );
+    }
+  };
+
+  const togglePortalRow = (docId: number) => {
+    setSelectedPortalIds((prev) =>
+      prev.includes(docId) ? prev.filter((id) => id !== docId) : [...prev, docId]
+    );
+  };
+
+  // Selecție filtrată Mesaje e-Factura (doar cele cu PDF disponibil)
+  const downloadableEfactura = (filteredMessages || []).filter((m: any) => Boolean(m.pdfUrl));
+  const downloadableEfacturaIds: string[] = downloadableEfactura.map((m: any) => String(m.id));
+  const selectedEfacturaSet = new Set(selectedEfacturaIds);
+  const allEfacturaSelected =
+    downloadableEfacturaIds.length > 0 &&
+    downloadableEfacturaIds.every((id) => selectedEfacturaSet.has(id));
+  const someEfacturaSelected =
+    !allEfacturaSelected &&
+    downloadableEfacturaIds.some((id) => selectedEfacturaSet.has(id));
+
+  useEffect(() => {
+    if (masterEfacturaCheckboxRef.current) {
+      masterEfacturaCheckboxRef.current.indeterminate = someEfacturaSelected;
+    }
+  }, [someEfacturaSelected, allEfacturaSelected]);
+
+  const toggleSelectAllEfactura = () => {
+    if (allEfacturaSelected) {
+      const removeSet = new Set(downloadableEfacturaIds);
+      setSelectedEfacturaIds((prev) => prev.filter((id) => !removeSet.has(id)));
+    } else {
+      setSelectedEfacturaIds((prev) =>
+        Array.from(new Set([...prev, ...downloadableEfacturaIds]))
+      );
+    }
+  };
+
+  const toggleEfacturaRow = (msgId: string) => {
+    setSelectedEfacturaIds((prev) =>
+      prev.includes(msgId) ? prev.filter((id) => id !== msgId) : [...prev, msgId]
+    );
+  };
+
+  const handleDownloadPortalSelection = async (explicitIds?: number[]) => {
+    if (isBulkDownloading) return;
+    const targetIds =
+      explicitIds && explicitIds.length > 0
+        ? explicitIds
+        : selectedPortalIds.length > 0
+          ? selectedPortalIds
+          : filteredPortalIds;
+
+    if (targetIds.length === 0) {
+      toast.info("Nu există documente disponibile pentru descărcare.");
+      return;
+    }
+
+    setIsBulkDownloading(true);
+    try {
+      const token = localStorage.getItem("authToken");
+      const headers: HeadersInit = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await fetch("/api/spv/bulk-download-pdf", {
+        method: "POST",
+        credentials: "include",
+        headers,
+        body: JSON.stringify({ ids: targetIds }),
+      });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || `Eroare HTTP ${res.status}`);
+      }
+
+      const disp = res.headers.get("content-disposition") || "";
+      const fnMatch = disp.match(/filename="?([^";]+)"?/i);
+      const fallbackName =
+        targetIds.length === 1
+          ? `Document_SPV_${targetIds[0]}.pdf`
+          : `Documente_SPV_${new Date().toISOString().slice(0, 10)}.zip`;
+      const downloadName = fnMatch?.[1] || fallbackName;
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = downloadName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success(
+        targetIds.length === 1
+          ? "Documentul PDF a fost descărcat."
+          : `S-au descărcat ${targetIds.length} documente SPV (${downloadName}).`
+      );
+    } catch (err: any) {
+      toast.error(`Eroare la descărcare: ${err.message}`);
+    } finally {
+      setIsBulkDownloading(false);
+    }
+  };
+
+  const handleDownloadEfacturaSelection = async () => {
+    if (isBulkDownloading) return;
+    const targetMsgs =
+      selectedEfacturaIds.length > 0
+        ? downloadableEfactura.filter((m: any) =>
+            selectedEfacturaSet.has(String(m.id))
+          )
+        : downloadableEfactura;
+
+    if (targetMsgs.length === 0) {
+      toast.info("Nu există facturi PDF disponibile pentru descărcare.");
+      return;
+    }
+
+    setIsBulkDownloading(true);
+    try {
+      const token = localStorage.getItem("authToken");
+      const headers: HeadersInit = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      if (targetMsgs.length === 1) {
+        const single = targetMsgs[0];
+        const res = await fetch(single.pdfUrl, {
+          credentials: "include",
+          headers,
+        });
+        if (!res.ok) throw new Error(`Eroare HTTP ${res.status}`);
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `Factura_${(single.invoiceNumber || single.id).replace(/[^a-zA-Z0-9._-]/g, "_")}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success("Factura PDF a fost descărcată.");
+        return;
+      }
+
+      const JSZipMod = await import("jszip");
+      const JSZip = JSZipMod.default || JSZipMod;
+      const zip = new JSZip();
+      const used = new Set<string>();
+      let added = 0;
+
+      for (const m of targetMsgs) {
+        const res = await fetch(m.pdfUrl, {
+          credentials: "include",
+          headers,
+        });
+        if (!res.ok) continue;
+        const buf = await res.arrayBuffer();
+        const base = `Factura_${String(m.invoiceNumber || m.id).replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+        let fileName = `${base}.pdf`;
+        let idx = 2;
+        while (used.has(fileName.toLowerCase())) {
+          fileName = `${base}_${idx}.pdf`;
+          idx++;
+        }
+        used.add(fileName.toLowerCase());
+        zip.file(fileName, buf);
+        added++;
+      }
+
+      if (added === 0) {
+        throw new Error("Nu s-au putut prelua PDF-urile selectate.");
+      }
+
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const archiveName = `Facturi_SPV_${new Date().toISOString().slice(0, 10)}.zip`;
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = archiveName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`S-au descărcat ${added} facturi PDF (${archiveName}).`);
+    } catch (err: any) {
+      toast.error(`Eroare la descărcarea PDF-urilor: ${err.message}`);
+    } finally {
+      setIsBulkDownloading(false);
+    }
+  };
+
   return (
     <>
       <div className="p-4 sm:p-6 max-w-full space-y-4">
@@ -1224,21 +1464,21 @@ export default function SpvHub() {
 
         {/* Nivelul 3 — Panou Principal Unificat (Tabs + Filtre + Tabel) */}
         <div className="rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] bg-white/95 dark:bg-[#1c1c1e] shadow-2xs overflow-hidden">
-          {/* Bara superioară integrată — pe un singur rând */}
-          <div className="px-3 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex flex-wrap items-center justify-between gap-2">
+          {/* Bara superioară integrată — strict pe un singur rând, stil Apple */}
+          <div className="px-3.5 py-2.5 border-b border-black/[0.06] dark:border-white/[0.08] bg-[#f5f5f7]/75 dark:bg-[#1c1c1e]/85 backdrop-blur-md flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
             {/* Stânga: Selector segmentat taburi */}
-            <div className="inline-flex items-center p-1 rounded-full bg-slate-200/70 dark:bg-slate-800 gap-0.5 shrink-0">
+            <div className="inline-flex items-center p-1 rounded-full bg-black/[0.055] dark:bg-white/[0.08] gap-0.5 shrink-0">
               <button
                 type="button"
                 onClick={() => setActiveHubTab("declaratii")}
-                className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-colors cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap ${activeHubTab === "declaratii"
-                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                className={`rounded-full px-3 py-1 text-[11.5px] font-semibold transition-all cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap ${activeHubTab === "declaratii"
+                  ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] shadow-2xs"
+                  : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
                   }`}
               >
                 <FileCheck className="w-3.5 h-3.5 shrink-0" />
                 <span>Mesaje &amp; Recipise SPV</span>
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular-nums bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular-nums bg-black/[0.05] dark:bg-white/[0.1] text-[#3a3a3c] dark:text-[#ebebf5]">
                   {portalStats.total}
                 </span>
               </button>
@@ -1246,33 +1486,47 @@ export default function SpvHub() {
               <button
                 type="button"
                 onClick={() => setActiveHubTab("efactura")}
-                className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-colors cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap ${activeHubTab === "efactura"
-                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                className={`rounded-full px-3 py-1 text-[11.5px] font-semibold transition-all cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap ${activeHubTab === "efactura"
+                  ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] shadow-2xs"
+                  : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
                   }`}
               >
                 <Inbox className="w-3.5 h-3.5 shrink-0" />
                 <span>Mesaje e-Factura</span>
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular-nums bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular-nums bg-black/[0.05] dark:bg-white/[0.1] text-[#3a3a3c] dark:text-[#ebebf5]">
                   {msgStats.total}
                 </span>
               </button>
             </div>
 
-            {/* Dreapta: Filtre și căutare pe același rând */}
+            {/* Dreapta: Căutare + Filtre + Bulk PDF + Butoane Icon-Only pe același rând */}
             {activeHubTab === "declaratii" ? (
-              <div className="flex items-center gap-1.5 flex-wrap justify-end">
+              <div className="flex items-center gap-1.5 shrink-0 flex-nowrap">
+                <div className="relative w-44 xl:w-56 shrink-0">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#86868b] pointer-events-none" />
+                  <input
+                    type="text"
+                    value={portalSearchQuery}
+                    onChange={(e) => {
+                      setPortalSearchQuery(e.target.value);
+                      setPage(1);
+                    }}
+                    placeholder="Caută în toate coloanele..."
+                    className="w-full h-8 !pl-8 !pr-3 !py-1 text-xs rounded-full border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#86868b] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/15 outline-none transition-all"
+                  />
+                </div>
+
                 {/* Filtru segmentat Citit / Necitit */}
-                <div className="inline-flex items-center p-1 rounded-full bg-slate-200/70 dark:bg-slate-800 gap-0.5 shrink-0">
+                <div className="inline-flex items-center p-1 rounded-full bg-black/[0.055] dark:bg-white/[0.08] gap-0.5 shrink-0">
                   <button
                     type="button"
                     onClick={() => {
                       setReadFilter("all");
                       setPage(1);
                     }}
-                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-colors cursor-pointer whitespace-nowrap ${readFilter === "all"
-                      ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-all cursor-pointer whitespace-nowrap ${readFilter === "all"
+                      ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] shadow-2xs"
+                      : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
                       }`}
                   >
                     Toate ({portalStats.total})
@@ -1283,15 +1537,15 @@ export default function SpvHub() {
                       setReadFilter("unread");
                       setPage(1);
                     }}
-                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-colors cursor-pointer inline-flex items-center gap-1 whitespace-nowrap ${readFilter === "unread"
-                      ? "bg-red-600 text-white shadow-2xs"
-                      : "text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40"
+                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-all cursor-pointer inline-flex items-center gap-1 whitespace-nowrap ${readFilter === "unread"
+                      ? "bg-[#0071e3] text-white shadow-2xs"
+                      : "text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-white/60 dark:hover:bg-white/[0.08]"
                       }`}
                   >
                     <span
                       className={`w-1.5 h-1.5 rounded-full ${readFilter === "unread"
                         ? "bg-white"
-                        : "bg-red-500 animate-pulse"
+                        : "bg-[#0071e3]"
                         }`}
                     />
                     <span>Noi ({portalStats.unread})</span>
@@ -1302,64 +1556,92 @@ export default function SpvHub() {
                       setReadFilter("read");
                       setPage(1);
                     }}
-                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-colors cursor-pointer whitespace-nowrap ${readFilter === "read"
-                      ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-all cursor-pointer whitespace-nowrap ${readFilter === "read"
+                      ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] shadow-2xs"
+                      : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
                       }`}
                   >
                     Citite ({portalStats.read})
                   </button>
                 </div>
 
+                {/* Bulk Download PDF (selectate sau toate filtrate) */}
+                {filteredPortalIds.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadPortalSelection()}
+                    disabled={isBulkDownloading}
+                    className={`rounded-full h-8 px-3 text-[11.5px] font-semibold inline-flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-60 ${selectedPortalIds.length > 0
+                      ? "bg-[#0071e3] hover:bg-[#0077ed] text-white shadow-2xs"
+                      : "bg-white dark:bg-[#2c2c2e] border border-black/[0.08] dark:border-white/[0.12] hover:border-[#0071e3]/40 text-[#1d1d1f] dark:text-[#f5f5f7]"
+                      }`}
+                    title={
+                      selectedPortalIds.length > 0
+                        ? `Descarcă cele ${selectedPortalIds.length} documente PDF selectate`
+                        : `Descarcă toate cele ${filteredPortalIds.length} documente PDF afișate`
+                    }
+                  >
+                    {isBulkDownloading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                    ) : (
+                      <Download
+                        className={`w-3.5 h-3.5 shrink-0 ${selectedPortalIds.length > 0 ? "text-white" : "text-[#0071e3]"}`}
+                      />
+                    )}
+                    <span className="tabular-nums">
+                      PDF ({selectedPortalIds.length > 0 ? selectedPortalIds.length : filteredPortalIds.length})
+                    </span>
+                  </button>
+                )}
+
+                {/* Marchează toate ca citite — DOAR ICONIȚĂ */}
                 {portalStats.unread > 0 && (
                   <button
                     type="button"
                     onClick={() => markAllReadMutation.mutate()}
                     disabled={markAllReadMutation.isPending}
-                    className="rounded-full h-8 px-2.5 text-[11.5px] font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 inline-flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+                    aria-label="Marchează toate mesajele ca citite"
                     title="Marchează toate mesajele ca citite"
+                    className="w-8 h-8 rounded-full bg-white dark:bg-[#2c2c2e] border border-black/[0.08] dark:border-white/[0.12] hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:border-emerald-300 text-emerald-600 dark:text-emerald-400 inline-flex items-center justify-center transition-all cursor-pointer shrink-0 disabled:opacity-50"
                   >
-                    <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>Marchează citite</span>
+                    <CheckCheck className="w-4 h-4" />
                   </button>
                 )}
 
+                {/* Elimină filtre — DOAR ICONIȚĂ */}
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className={`rounded-full h-8 px-2.5 text-[11.5px] font-medium border inline-flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap shrink-0 ${hasActivePortalFilters
-                    ? "bg-[#1e3264] text-white border-[#1e3264] hover:bg-[#16254a]"
-                    : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
+                  aria-label="Elimină filtrele"
+                  title="Elimină filtrele"
+                  className={`w-8 h-8 rounded-full border inline-flex items-center justify-center transition-all cursor-pointer shrink-0 ${hasActivePortalFilters
+                    ? "bg-[#0071e3] text-white border-[#0071e3] hover:bg-[#0077ed] shadow-2xs"
+                    : "bg-white dark:bg-[#2c2c2e] border-black/[0.08] dark:border-white/[0.12] hover:bg-black/[0.04] dark:hover:bg-white/[0.08] text-[#6e6e73] dark:text-[#98989d]"
                     }`}
-                  title="Resetează toate filtrele aplicate pe tabel"
                 >
-                  <RefreshCw className="w-3.5 h-3.5 shrink-0" />
-                  <span>Elimină filtre</span>
+                  <RotateCcw className="w-3.5 h-3.5" />
                 </button>
-
-                <div className="relative w-36 2xl:w-56 shrink-0">
-                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                  <input
-                    type="text"
-                    value={portalSearchQuery}
-                    onChange={(e) => {
-                      setPortalSearchQuery(e.target.value);
-                      setPage(1);
-                    }}
-                    placeholder="Caută..."
-                    className="w-full h-8 !pl-8 !pr-3 !py-1 text-xs rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:border-blue-500 outline-none"
-                  />
-                </div>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                <div className="inline-flex items-center p-1 rounded-full bg-slate-200/70 dark:bg-slate-800 gap-0.5 shrink-0">
+              <div className="flex items-center gap-1.5 shrink-0 flex-nowrap">
+                <div className="relative w-44 xl:w-56 shrink-0">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#86868b] pointer-events-none" />
+                  <input
+                    type="text"
+                    value={searchMessageQuery}
+                    onChange={(e) => setSearchMessageQuery(e.target.value)}
+                    placeholder="Caută factură, partener, CUI..."
+                    className="w-full h-8 !pl-8 !pr-3 !py-1 text-xs rounded-full border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#86868b] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/15 outline-none transition-all"
+                  />
+                </div>
+
+                <div className="inline-flex items-center p-1 rounded-full bg-black/[0.055] dark:bg-white/[0.08] gap-0.5 shrink-0">
                   <button
                     type="button"
                     onClick={() => setMessageFilter("all")}
-                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-colors cursor-pointer whitespace-nowrap ${messageFilter === "all"
-                      ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-all cursor-pointer whitespace-nowrap ${messageFilter === "all"
+                      ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] shadow-2xs"
+                      : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
                       }`}
                   >
                     Toate ({msgStats.total})
@@ -1367,9 +1649,9 @@ export default function SpvHub() {
                   <button
                     type="button"
                     onClick={() => setMessageFilter("primita")}
-                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-colors cursor-pointer whitespace-nowrap ${messageFilter === "primita"
-                      ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-all cursor-pointer whitespace-nowrap ${messageFilter === "primita"
+                      ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] shadow-2xs"
+                      : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
                       }`}
                   >
                     Primite ({msgStats.primite})
@@ -1377,9 +1659,9 @@ export default function SpvHub() {
                   <button
                     type="button"
                     onClick={() => setMessageFilter("trimisa")}
-                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-colors cursor-pointer whitespace-nowrap ${messageFilter === "trimisa"
-                      ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-all cursor-pointer whitespace-nowrap ${messageFilter === "trimisa"
+                      ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] shadow-2xs"
+                      : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
                       }`}
                   >
                     Trimise ({msgStats.trimise})
@@ -1387,27 +1669,59 @@ export default function SpvHub() {
                   <button
                     type="button"
                     onClick={() => setMessageFilter("eroare")}
-                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-colors cursor-pointer whitespace-nowrap ${messageFilter === "eroare"
-                      ? "bg-red-600 text-white shadow-2xs"
+                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-all cursor-pointer whitespace-nowrap ${messageFilter === "eroare"
+                      ? "bg-[#ff3b30] text-white shadow-2xs"
                       : msgStats.erori > 0
-                        ? "text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40"
-                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                        ? "text-[#ff3b30] hover:bg-red-50 dark:hover:bg-red-950/40"
+                        : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
                       }`}
                   >
                     Erori ({msgStats.erori})
                   </button>
                 </div>
 
-                <div className="relative w-44 2xl:w-64 shrink-0">
-                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                  <input
-                    type="text"
-                    value={searchMessageQuery}
-                    onChange={(e) => setSearchMessageQuery(e.target.value)}
-                    placeholder="Caută factură, CUI..."
-                    className="w-full h-8 !pl-8 !pr-3 !py-1 text-xs rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:border-blue-500 outline-none"
-                  />
-                </div>
+                {downloadableEfacturaIds.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleDownloadEfacturaSelection}
+                    disabled={isBulkDownloading}
+                    className={`rounded-full h-8 px-3 text-[11.5px] font-semibold inline-flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-60 ${selectedEfacturaIds.length > 0
+                      ? "bg-[#0071e3] hover:bg-[#0077ed] text-white shadow-2xs"
+                      : "bg-white dark:bg-[#2c2c2e] border border-black/[0.08] dark:border-white/[0.12] hover:border-[#0071e3]/40 text-[#1d1d1f] dark:text-[#f5f5f7]"
+                      }`}
+                    title={
+                      selectedEfacturaIds.length > 0
+                        ? `Descarcă cele ${selectedEfacturaIds.length} facturi PDF selectate`
+                        : `Descarcă toate cele ${downloadableEfacturaIds.length} facturi PDF afișate`
+                    }
+                  >
+                    {isBulkDownloading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                    ) : (
+                      <Download
+                        className={`w-3.5 h-3.5 shrink-0 ${selectedEfacturaIds.length > 0 ? "text-white" : "text-[#0071e3]"}`}
+                      />
+                    )}
+                    <span className="tabular-nums">
+                      PDF ({selectedEfacturaIds.length > 0 ? selectedEfacturaIds.length : downloadableEfacturaIds.length})
+                    </span>
+                  </button>
+                )}
+
+                {(messageFilter !== "all" || searchMessageQuery) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMessageFilter("all");
+                      setSearchMessageQuery("");
+                    }}
+                    aria-label="Elimină filtrele"
+                    title="Elimină filtrele"
+                    className="w-8 h-8 rounded-full bg-[#0071e3] text-white border border-[#0071e3] hover:bg-[#0077ed] inline-flex items-center justify-center transition-all cursor-pointer shrink-0 shadow-2xs"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -1446,9 +1760,20 @@ export default function SpvHub() {
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse text-xs">
-                    {/* Antet Oficial SPV ANAF */}
+                    {/* Antet Tabel Apple macOS Frosted Glass */}
                     <thead>
-                      <tr className="bg-[#1e3264] text-white text-[11px] font-bold select-none border-b border-[#16254a]">
+                      <tr className="bg-[#f5f5f7]/90 dark:bg-[#2c2c2e]/75 text-[#6e6e73] dark:text-[#98989d] text-[11px] font-semibold tracking-[-0.01em] select-none border-b border-black/[0.06] dark:border-white/[0.08]">
+                        <th className="py-2.5 pl-3.5 pr-1.5 w-9 text-center">
+                          <input
+                            ref={masterPortalCheckboxRef}
+                            type="checkbox"
+                            checked={allPortalSelected}
+                            onChange={toggleSelectAllPortal}
+                            aria-label="Selectează toate documentele SPV"
+                            title="Selectează toate documentele filtrate"
+                            className="w-4 h-4 rounded-[5px] accent-[#0071e3] cursor-pointer align-middle"
+                          />
+                        </th>
                         <th className="py-2.5 px-3 w-28 whitespace-nowrap">
                           {oauthInfo?.entityType === "pf" ? "CNP / CIF" : "CIF"}
                         </th>
@@ -1459,19 +1784,26 @@ export default function SpvHub() {
                           Id Solicitare
                         </th>
                         <th className="py-2.5 px-3 w-36 whitespace-nowrap">
-                          Data Afisare
+                          Data Afișare
                         </th>
-                        <th className="py-2.5 px-3 w-28 text-center whitespace-nowrap">
-                          Descarcare document
+                        <th className="py-2.5 px-3 w-32 text-center whitespace-nowrap">
+                          Document
                         </th>
                         <th className="py-2.5 px-3">Detalii</th>
-                        <th className="py-2.5 px-3 w-44 whitespace-nowrap">
-                          Data Arhivare/Data afisare SPV
+                        <th className="py-2.5 px-3 w-40 whitespace-nowrap">
+                          Data Arhivare SPV
                         </th>
                       </tr>
 
-                      {/* Rândul de Filtrare Direct sub Antet */}
-                      <tr className="bg-[#243d78] border-b border-[#1b2e5a]">
+                      {/* Rândul de Filtrare Apple Capsule */}
+                      <tr className="bg-[#fafafa]/85 dark:bg-[#1c1c1e]/85 border-b border-black/[0.06] dark:border-white/[0.08]">
+                        <th className="py-1.5 pl-3.5 pr-1.5 text-center">
+                          {selectedPortalIds.length > 0 && (
+                            <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#0071e3] text-white text-[10px] font-bold tabular-nums">
+                              {selectedPortalIds.length}
+                            </span>
+                          )}
+                        </th>
                         <th className="p-1.5">
                           <input
                             type="text"
@@ -1482,10 +1814,10 @@ export default function SpvHub() {
                             }}
                             placeholder={
                               oauthInfo?.entityType === "pf"
-                                ? "Filtru CNP / CIF..."
-                                : "Filtru CIF..."
+                                ? "CNP / CIF..."
+                                : "CIF..."
                             }
-                            className="w-full !px-2.5 !py-0 h-7 text-[11px] tabular-nums rounded-full bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-none outline-none font-normal"
+                            className="w-full !px-2.5 !py-0 h-7 text-[11px] tabular-nums rounded-full bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#86868b] border border-black/[0.08] dark:border-white/[0.1] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/15 outline-none font-normal transition-all"
                           />
                         </th>
                         <th className="p-1.5">
@@ -1495,9 +1827,9 @@ export default function SpvHub() {
                               setFilterTipDoc(e.target.value);
                               setPage(1);
                             }}
-                            className="w-full !px-2.5 !py-0 h-7 text-[11px] rounded-full bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-none outline-none font-normal"
+                            className="w-full !px-2.5 !py-0 h-7 text-[11px] rounded-full bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] border border-black/[0.08] dark:border-white/[0.1] focus:border-[#0071e3] outline-none font-normal transition-all cursor-pointer"
                           >
-                            <option value="-TOATE-">-TOATE-</option>
+                            <option value="-TOATE-">Toate tipurile</option>
                             <option value="RECIPISA">RECIPISA</option>
                             <option value="DECLARATIE">DECLARATIE</option>
                             <option value="CERTIFICAT FISCAL">
@@ -1519,8 +1851,8 @@ export default function SpvHub() {
                               setFilterIdSolicitare(e.target.value);
                               setPage(1);
                             }}
-                            placeholder="Filtru ID..."
-                            className="w-full !px-2.5 !py-0 h-7 text-[11px] tabular-nums rounded-full bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-none outline-none font-normal"
+                            placeholder="ID..."
+                            className="w-full !px-2.5 !py-0 h-7 text-[11px] tabular-nums rounded-full bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#86868b] border border-black/[0.08] dark:border-white/[0.1] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/15 outline-none font-normal transition-all"
                           />
                         </th>
                         <th className="p-1.5">
@@ -1531,14 +1863,14 @@ export default function SpvHub() {
                               setFilterDataAfisare(e.target.value);
                               setPage(1);
                             }}
-                            placeholder="Filtru Dată..."
-                            className="w-full !px-2.5 !py-0 h-7 text-[11px] tabular-nums rounded-full bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-none outline-none font-normal"
+                            placeholder="Dată..."
+                            className="w-full !px-2.5 !py-0 h-7 text-[11px] tabular-nums rounded-full bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#86868b] border border-black/[0.08] dark:border-white/[0.1] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/15 outline-none font-normal transition-all"
                           />
                         </th>
                         <th className="p-1.5 text-center">
-                          <div className="text-[10px] text-slate-200 font-normal">
+                          <span className="text-[10.5px] text-[#86868b] font-medium">
                             PDF
-                          </div>
+                          </span>
                         </th>
                         <th className="p-1.5">
                           <input
@@ -1548,8 +1880,8 @@ export default function SpvHub() {
                               setFilterDetalii(e.target.value);
                               setPage(1);
                             }}
-                            placeholder="Filtru D101, D394, Vector..."
-                            className="w-full !px-2.5 !py-0 h-7 text-[11px] rounded-full bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-none outline-none font-normal"
+                            placeholder="D101, D394, Vector..."
+                            className="w-full !px-2.5 !py-0 h-7 text-[11px] rounded-full bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#86868b] border border-black/[0.08] dark:border-white/[0.1] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/15 outline-none font-normal transition-all"
                           />
                         </th>
                         <th className="p-1.5">
@@ -1560,47 +1892,72 @@ export default function SpvHub() {
                               setFilterDataArhivare(e.target.value);
                               setPage(1);
                             }}
-                            placeholder="Filtru Arhivare..."
-                            className="w-full !px-2.5 !py-0 h-7 text-[11px] tabular-nums rounded-full bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-none outline-none font-normal"
+                            placeholder="Arhivare..."
+                            className="w-full !px-2.5 !py-0 h-7 text-[11px] tabular-nums rounded-full bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#86868b] border border-black/[0.08] dark:border-white/[0.1] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/15 outline-none font-normal transition-all"
                           />
                         </th>
                       </tr>
                     </thead>
 
-                    {/* Corp Tabel */}
-                    <tbody>
+                    {/* Corp Tabel — Apple Mail / Finder Style */}
+                    <tbody className="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
                       {paginatedPortalDocs.map((doc: any, idx: number) => {
+                        const docNumId = Number(doc.id);
                         const isUnread = !doc.isRead;
-                        const rowTextColor = isUnread
-                          ? "text-[#dc2626] font-semibold"
-                          : "text-slate-800 dark:text-slate-200 font-normal";
+                        const isSelected = selectedPortalSet.has(docNumId);
+                        const primaryTextCls = isUnread
+                          ? "text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold"
+                          : "text-[#3a3a3c] dark:text-[#d1d1d6] font-normal";
 
                         return (
                           <tr
                             key={doc.id}
                             onClick={() => openDocument(doc)}
-                            className={`border-b border-slate-200 dark:border-slate-800 hover:bg-blue-50/70 dark:hover:bg-blue-950/40 cursor-pointer transition-colors ${isUnread
-                              ? "bg-red-50/30 dark:bg-red-950/20"
-                              : idx % 2 === 1
-                                ? "bg-slate-50/50 dark:bg-slate-900/30"
-                                : "bg-white dark:bg-slate-900"
+                            className={`cursor-pointer transition-colors ${isSelected
+                              ? "bg-[#0071e3]/[0.08] dark:bg-[#0a84ff]/[0.16] hover:bg-[#0071e3]/[0.12]"
+                              : isUnread
+                                ? "bg-[#0071e3]/[0.025] dark:bg-[#0a84ff]/[0.05] hover:bg-black/[0.03] dark:hover:bg-white/[0.05]"
+                                : idx % 2 === 1
+                                  ? "bg-black/[0.012] dark:bg-white/[0.015] hover:bg-black/[0.03] dark:hover:bg-white/[0.05]"
+                                  : "bg-white dark:bg-[#1c1c1e] hover:bg-black/[0.03] dark:hover:bg-white/[0.05]"
                               }`}
                           >
-                            {/* CIF */}
+                            {/* Checkbox Selecție */}
                             <td
-                              className={`py-2.5 px-3 tabular-nums whitespace-nowrap ${rowTextColor}`}
+                              className="py-2.5 pl-3.5 pr-1.5 text-center"
+                              onClick={(e) => e.stopPropagation()}
                             >
-                              {doc.cif}
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => togglePortalRow(docNumId)}
+                                aria-label={`Selectează documentul ${doc.tip}`}
+                                className="w-4 h-4 rounded-[5px] accent-[#0071e3] cursor-pointer align-middle"
+                              />
+                            </td>
+
+                            {/* CIF + Apple Mail Unread Dot */}
+                            <td
+                              className={`py-2.5 px-3 tabular-nums whitespace-nowrap ${primaryTextCls}`}
+                            >
+                              <div className="inline-flex items-center gap-2">
+                                <span
+                                  className={`w-2 h-2 rounded-full shrink-0 ${isUnread ? "bg-[#0071e3]" : "bg-transparent"}`}
+                                />
+                                <span>{doc.cif}</span>
+                              </div>
                             </td>
 
                             {/* Tip Document */}
-                            <td
-                              className={`py-2.5 px-3 uppercase whitespace-nowrap font-bold tracking-tight ${rowTextColor}`}
-                            >
+                            <td className="py-2.5 px-3 whitespace-nowrap">
                               <div className="flex items-center gap-1.5">
-                                <span>{doc.tip}</span>
+                                <span
+                                  className={`uppercase tracking-tight text-[11.5px] ${isUnread ? "font-bold text-[#1d1d1f] dark:text-white" : "font-semibold text-[#3a3a3c] dark:text-[#ebebf5]"}`}
+                                >
+                                  {doc.tip}
+                                </span>
                                 {isUnread && (
-                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 border border-red-200 dark:bg-red-950/60 dark:text-red-300 dark:border-red-800">
+                                  <span className="px-1.5 py-0.5 rounded-full text-[9.5px] font-bold bg-[#ff3b30]/10 text-[#ff3b30] border border-[#ff3b30]/20">
                                     NOU
                                   </span>
                                 )}
@@ -1608,35 +1965,40 @@ export default function SpvHub() {
                             </td>
 
                             {/* Id Solicitare */}
-                            <td
-                              className={`py-2.5 px-3 tabular-nums whitespace-nowrap ${isUnread
-                                ? "text-[#dc2626] font-semibold"
-                                : "text-slate-600 dark:text-slate-400"
-                                }`}
-                            >
+                            <td className="py-2.5 px-3 tabular-nums whitespace-nowrap text-[#6e6e73] dark:text-[#98989d]">
                               {doc.idSolicitare || "-"}
                             </td>
 
-                            {/* Data Afisare */}
+                            {/* Data Afișare */}
                             <td
-                              className={`py-2.5 px-3 tabular-nums whitespace-nowrap ${rowTextColor}`}
+                              className={`py-2.5 px-3 tabular-nums whitespace-nowrap ${primaryTextCls}`}
                             >
                               {doc.dataDepunere}
                             </td>
 
-                            {/* Descarcare document — Buton [PDF] + Toggle citit */}
+                            {/* Document — Vizualizare PDF + Descărcare directă + Toggle citit */}
                             <td
                               className="py-2 px-3 text-center"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <div className="inline-flex items-center gap-1.5 justify-center">
+                              <div className="inline-flex items-center gap-1 justify-center">
                                 <button
                                   type="button"
                                   onClick={() => openDocument(doc)}
-                                  className="rounded-full px-3 py-1 bg-[#1e40af] hover:bg-[#1d4ed8] text-white font-bold text-[11px] shadow-2xs transition-colors cursor-pointer"
-                                  title="Deschide documentul PDF oficial ANAF"
+                                  className="rounded-full px-2.5 h-7 bg-[#0071e3]/10 hover:bg-[#0071e3] text-[#0071e3] hover:text-white border border-[#0071e3]/20 font-semibold text-[11px] inline-flex items-center justify-center transition-all cursor-pointer"
+                                  title="Vizualizează documentul PDF oficial ANAF"
                                 >
                                   PDF
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleDownloadPortalSelection([docNumId])
+                                  }
+                                  className="w-7 h-7 rounded-full inline-flex items-center justify-center text-[#6e6e73] hover:text-[#0071e3] hover:bg-[#0071e3]/10 dark:text-[#98989d] dark:hover:text-[#0a84ff] transition-colors cursor-pointer"
+                                  title="Descarcă direct fișierul PDF"
+                                >
+                                  <Download className="w-3.5 h-3.5" />
                                 </button>
                                 <button
                                   type="button"
@@ -1647,17 +2009,17 @@ export default function SpvHub() {
                                     })
                                   }
                                   disabled={markReadMutation.isPending}
-                                  className="w-7 h-7 rounded-full inline-flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                                  className="w-7 h-7 rounded-full inline-flex items-center justify-center text-[#86868b] hover:text-[#1d1d1f] hover:bg-black/[0.05] dark:hover:text-white dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
                                   title={
                                     doc.isRead
-                                      ? "Marchează ca necitit (va fi afișat cu text roșu ca nou)"
-                                      : "Marchează ca citit (va deveni negru)"
+                                      ? "Marchează ca necitit"
+                                      : "Marchează ca citit"
                                   }
                                 >
                                   <Eye
                                     className={`w-3.5 h-3.5 ${doc.isRead
-                                      ? "opacity-35"
-                                      : "text-red-600"
+                                      ? "opacity-40"
+                                      : "text-[#0071e3]"
                                       }`}
                                   />
                                 </button>
@@ -1666,15 +2028,13 @@ export default function SpvHub() {
 
                             {/* Detalii */}
                             <td
-                              className={`py-2.5 px-3 leading-relaxed ${rowTextColor}`}
+                              className={`py-2.5 px-3 leading-snug ${primaryTextCls}`}
                             >
                               <p className="line-clamp-2">{doc.detalii}</p>
                             </td>
 
-                            {/* Data Arhivare/Data afisare SPV */}
-                            <td
-                              className={`py-2.5 px-3 tabular-nums whitespace-nowrap ${rowTextColor}`}
-                            >
+                            {/* Data Arhivare */}
+                            <td className="py-2.5 px-3 tabular-nums whitespace-nowrap text-[#6e6e73] dark:text-[#98989d]">
                               {doc.dataArhivare || "-"}
                             </td>
                           </tr>
@@ -1763,7 +2123,19 @@ export default function SpvHub() {
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-slate-50/70 dark:bg-slate-900/70 text-[11px]">
+                      <TableRow className="bg-[#f5f5f7]/90 dark:bg-[#2c2c2e]/75 text-[#6e6e73] dark:text-[#98989d] text-[11px] border-b border-black/[0.06] dark:border-white/[0.08]">
+                        <TableHead className="w-9 pl-3.5 pr-1.5 text-center">
+                          <input
+                            ref={masterEfacturaCheckboxRef}
+                            type="checkbox"
+                            checked={allEfacturaSelected}
+                            onChange={toggleSelectAllEfactura}
+                            disabled={downloadableEfacturaIds.length === 0}
+                            aria-label="Selectează toate facturile PDF"
+                            title="Selectează toate facturile cu PDF disponibil"
+                            className="w-4 h-4 rounded-[5px] accent-[#0071e3] cursor-pointer align-middle disabled:opacity-30"
+                          />
+                        </TableHead>
                         <TableHead className="w-32">Data SPV</TableHead>
                         <TableHead className="w-36">Tip Mesaj ANAF</TableHead>
                         <TableHead className="w-32">Emitent</TableHead>
@@ -1783,6 +2155,8 @@ export default function SpvHub() {
                         const isReceived = msg.tip === "FACTURA PRIMITA";
                         const isSent = msg.tip === "FACTURA TRIMISA";
                         const isError = msg.tip === "ERORI FACTURA";
+                        const msgKey = String(msg.id);
+                        const isRowSelected = selectedEfacturaSet.has(msgKey);
 
                         return (
                           <TableRow
@@ -1802,8 +2176,24 @@ export default function SpvHub() {
                                 setSelectedSpvMessage(msg);
                               }
                             }}
-                            className="hover:bg-blue-50/60 dark:hover:bg-blue-950/30 cursor-pointer transition-colors"
+                            className={`cursor-pointer transition-colors ${isRowSelected
+                              ? "bg-[#0071e3]/[0.08] dark:bg-[#0a84ff]/[0.16]"
+                              : "hover:bg-black/[0.025] dark:hover:bg-white/[0.04]"
+                              }`}
                           >
+                            <TableCell
+                              className="pl-3.5 pr-1.5 py-2.5 text-center"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isRowSelected}
+                                disabled={!msg.pdfUrl}
+                                onChange={() => toggleEfacturaRow(msgKey)}
+                                aria-label={`Selectează factura ${msg.invoiceNumber || msg.id}`}
+                                className="w-4 h-4 rounded-[5px] accent-[#0071e3] cursor-pointer align-middle disabled:opacity-25"
+                              />
+                            </TableCell>
                             <TableCell className="font-semibold tabular-nums whitespace-nowrap py-2.5">
                               {msg.dataCreare}
                             </TableCell>

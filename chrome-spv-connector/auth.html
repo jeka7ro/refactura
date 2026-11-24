@@ -3,95 +3,135 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Conectare Stick USB — ANAF SPV</title>
+    <title>Stick USB — ANAF SPV</title>
     <style>
+      * {
+        box-sizing: border-box;
+      }
       html,
       body {
         margin: 0;
         padding: 0;
-        min-height: 100vh;
-        background: #f8fafc;
+        height: 100vh;
+        overflow: hidden;
+        background: radial-gradient(circle at 50% 0%, #ffffff 0%, #f2f4f8 100%);
         color-scheme: light;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", sans-serif;
+        -webkit-font-smoothing: antialiased;
       }
       .wrap {
-        min-height: 100vh;
+        height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 24px;
-        box-sizing: border-box;
+        padding: 12px;
       }
       .card {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 14px;
-        padding: 28px 24px;
-        max-width: 380px;
+        background: rgba(255, 255, 255, 0.86);
+        backdrop-filter: blur(24px) saturate(180%);
+        -webkit-backdrop-filter: blur(24px) saturate(180%);
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        border-radius: 22px;
+        padding: 18px 20px 16px;
         width: 100%;
+        max-width: 356px;
         text-align: center;
-        box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
-        box-sizing: border-box;
+        box-shadow:
+          0 12px 28px -8px rgba(15, 23, 42, 0.1),
+          0 1px 2px rgba(15, 23, 42, 0.04),
+          inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      }
+      .header-row {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 10px;
       }
       .badge {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        margin: 0 auto 16px;
-        padding: 8px 14px;
-        border-radius: 14px;
+        height: 30px;
+        padding: 0 10px;
+        border-radius: 9999px;
         background: #ffffff;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+        border: 1px solid rgba(0, 0, 0, 0.07);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
       }
       .badge img {
-        height: 34px;
+        height: 18px;
         width: auto;
         object-fit: contain;
         display: block;
       }
-      h1 {
-        margin: 0 0 8px;
-        font-size: 16px;
-        font-weight: 700;
-        color: #0f172a;
-        letter-spacing: -0.01em;
-      }
-      .status {
-        margin: 0 0 18px;
-        font-size: 13px;
-        line-height: 1.45;
-        color: #475569;
-      }
       .pill {
         display: inline-flex;
         align-items: center;
-        justify-content: center;
-        gap: 8px;
-        padding: 6px 12px;
+        gap: 6px;
+        height: 30px;
+        padding: 0 11px;
         border-radius: 9999px;
-        background: #f1f5f9;
-        color: #334155;
-        font-size: 12px;
+        background: rgba(0, 113, 227, 0.08);
+        border: 1px solid rgba(0, 113, 227, 0.16);
+        color: #0066cc;
+        font-size: 11px;
         font-weight: 600;
-        margin-bottom: 14px;
+        letter-spacing: -0.01em;
       }
       .spinner {
-        width: 14px;
-        height: 14px;
-        border: 2px solid #cbd5e1;
-        border-top-color: #2563eb;
+        width: 11px;
+        height: 11px;
+        border: 1.8px solid rgba(0, 113, 227, 0.24);
+        border-top-color: #0071e3;
         border-radius: 50%;
-        animation: spv-spin 0.8s linear infinite;
+        animation: spv-spin 0.75s linear infinite;
+      }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 14.5px;
+        font-weight: 700;
+        color: #1d1d1f;
+        letter-spacing: -0.022em;
+      }
+      .status {
+        margin: 0 0 12px;
+        font-size: 12px;
+        line-height: 1.4;
+        color: #6e6e73;
+      }
+      .track {
+        width: 100%;
+        height: 5px;
+        border-radius: 9999px;
+        background: rgba(0, 0, 0, 0.07);
+        overflow: hidden;
+        margin-bottom: 10px;
+      }
+      .bar {
+        width: 38%;
+        height: 100%;
+        border-radius: 9999px;
+        background: linear-gradient(90deg, #0071e3, #34c759);
+        animation: spv-indeterminate 1.35s ease-in-out infinite;
       }
       .note {
         margin: 0;
-        font-size: 11.5px;
-        color: #64748b;
+        font-size: 10.5px;
+        color: #86868b;
+        letter-spacing: -0.005em;
       }
       @keyframes spv-spin {
         to {
           transform: rotate(360deg);
+        }
+      }
+      @keyframes spv-indeterminate {
+        0% {
+          transform: translateX(-100%);
+        }
+        100% {
+          transform: translateX(270%);
         }
       }
     </style>
@@ -99,24 +139,27 @@
   <body>
     <div class="wrap">
       <div class="card">
-        <div class="badge">
-          <img
-            src="https://static.anaf.ro/static/10/Anaf/primapagina/anaf_ro.png"
-            onerror="this.onerror=null;this.src='anaf-logo.png';"
-            alt="ANAF"
-          />
+        <div class="header-row">
+          <div class="badge">
+            <img
+              src="https://static.anaf.ro/static/10/Anaf/primapagina/anaf_ro.png"
+              onerror="this.onerror=null;this.src='anaf-logo.png';"
+              alt="ANAF"
+            />
+          </div>
+          <div class="pill">
+            <span class="spinner"></span>
+            <span>mTLS Securizat</span>
+          </div>
         </div>
-        <h1>Conectare Stick USB — ANAF SPV</h1>
+        <h1>Sincronizare Stick USB</h1>
         <p class="status">
-          Se inițializează conexiunea securizată cu certificatul digital...
+          Selectează certificatul digital și confirmă codul PIN...
         </p>
-        <div class="pill">
-          <span class="spinner"></span>
-          <span>Conexiune securizată ANAF</span>
+        <div class="track">
+          <div class="bar"></div>
         </div>
-        <p class="note">
-          Selectează certificatul în fereastra Chrome și confirmă codul PIN.
-        </p>
+        <p class="note">Se închide automat la finalizare</p>
       </div>
     </div>
   </body>

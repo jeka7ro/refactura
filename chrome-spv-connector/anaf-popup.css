@@ -1,12 +1,13 @@
 html[data-spv-popup="1"],
 html[data-spv-popup="1"] body {
-  background: #f8fafc !important;
+  background: radial-gradient(circle at 50% 0%, #ffffff 0%, #f2f4f8 100%) !important;
   color-scheme: light !important;
   margin: 0 !important;
   padding: 0 !important;
   overflow: hidden !important;
-  min-height: 100vh !important;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  height: 100vh !important;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", sans-serif !important;
+  -webkit-font-smoothing: antialiased !important;
 }
 
 html[data-spv-popup="1"] body > *:not(#spv-connector-overlay) {
@@ -21,92 +22,139 @@ html[data-spv-popup="1"] body > *:not(#spv-connector-overlay) {
   position: fixed !important;
   inset: 0 !important;
   z-index: 2147483647 !important;
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f8fafc;
-  padding: 24px;
+  background: radial-gradient(circle at 50% 0%, #ffffff 0%, #f2f4f8 100%);
+  padding: 12px;
   box-sizing: border-box;
 }
 
 #spv-connector-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 28px 24px;
-  max-width: 380px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 22px;
+  padding: 18px 20px 16px;
+  max-width: 356px;
   width: 100%;
   text-align: center;
-  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+  box-shadow:
+    0 12px 28px -8px rgba(15, 23, 42, 0.1),
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
   box-sizing: border-box;
+}
+
+#spv-connector-header {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 #spv-connector-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 16px;
-  padding: 8px 14px;
-  border-radius: 14px;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 9999px;
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 #spv-connector-badge img {
-  height: 34px;
+  height: 18px;
   width: auto;
   object-fit: contain;
   display: block;
-}
-
-#spv-connector-title {
-  margin: 0 0 8px;
-  font-size: 16px;
-  font-weight: 700;
-  color: #0f172a;
-  letter-spacing: -0.01em;
-}
-
-#spv-popup-status {
-  margin: 0 0 18px;
-  font-size: 13px;
-  line-height: 1.45;
-  color: #475569;
 }
 
 #spv-connector-spinner-row {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 6px 12px;
+  gap: 6px;
+  height: 30px;
+  padding: 0 11px;
   border-radius: 9999px;
-  background: #f1f5f9;
-  color: #334155;
-  font-size: 12px;
+  background: rgba(0, 113, 227, 0.08);
+  border: 1px solid rgba(0, 113, 227, 0.16);
+  color: #0066cc;
+  font-size: 11px;
   font-weight: 600;
-  margin-bottom: 14px;
+  letter-spacing: -0.01em;
 }
 
 #spv-connector-spinner {
-  width: 14px;
-  height: 14px;
-  border: 2px solid #cbd5e1;
-  border-top-color: #2563eb;
+  width: 11px;
+  height: 11px;
+  border: 1.8px solid rgba(0, 113, 227, 0.24);
+  border-top-color: #0071e3;
   border-radius: 50%;
-  animation: spv-spin 0.8s linear infinite;
+  animation: spv-spin 0.75s linear infinite;
+}
+
+#spv-connector-title {
+  margin: 0 0 4px;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #1d1d1f;
+  letter-spacing: -0.022em;
+}
+
+#spv-popup-status {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #6e6e73;
+  font-variant-numeric: tabular-nums;
+}
+
+#spv-connector-track {
+  width: 100%;
+  height: 5px;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.07);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+#spv-connector-bar {
+  width: 38%;
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #0071e3, #34c759);
+  transition: width 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+#spv-connector-bar[data-indeterminate="1"] {
+  animation: spv-indeterminate 1.35s ease-in-out infinite;
 }
 
 #spv-connector-note {
   margin: 0;
-  font-size: 11.5px;
-  color: #64748b;
+  font-size: 10.5px;
+  color: #86868b;
+  letter-spacing: -0.005em;
 }
 
 @keyframes spv-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes spv-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(270%);
   }
 }

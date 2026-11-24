@@ -1,5 +1,19 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-24 10:32 — Fereastră compactă Apple HUD pentru Stick USB (`v1.5.1`), tabel `/spv` Apple Frosted Glass cu Bulk Download PDF și butoane icon-only pe un singur rând
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Fereastră compactă Apple Style pentru Conectorul Stick USB (`chrome-spv-connector/` — `v1.5.1`):**
+     - Redus dimensiunea ferestrei popup de la `640x520` la `380x276` și redesenat `auth.html`, `anaf-popup.css` și `anaf-popup.js` în stil Apple macOS Liquid Glass (card translucid `backdrop-filter: blur(24px)`, badge rotund ANAF + indicator `mTLS Securizat`, bară de progres Apple cu procent real la descărcarea documentelor `1..N`, auto-reload din `v1.5.0` în `v1.5.1`).
+  2. **Bara de taburi, filtre și căutare din `/spv` pe un singur rând + butoane icon-only (`client/src/pages/SpvHub.tsx`):**
+     - Mutat câmpul `Caută...` pe același rând cu taburile și filtrele (`flex-nowrap`), transformat butoanele `Marchează citite` și `Elimină filtre` în butoane circulare Apple `w-8 h-8 rounded-full` **doar cu iconiță, fără text** (`CheckCheck` și `RotateCcw`).
+  3. **Tabel `/spv` optimizat Apple Style + Select All & Bulk Download PDF (`SpvHub.tsx`, `server/uploadRoute.ts`, `server/_core/index.ts`):**
+     - Înlocuit antetul bleumarin închis `#1e3264` și textul roșu pe toate coloanele cu antet translucid Apple Frosted Glass (`#f5f5f7`), indicator Apple Mail pentru mesaje necitite și rânduri curate.
+     - Adăugat checkbox `Selectează toate` în antet + checkbox pe fiecare rând (atât pe `Mesaje & Recipise SPV`, cât și pe `Mesaje e-Factura`) + buton `PDF (N)` și ruta securizată `POST /api/spv/bulk-download-pdf` care livrează direct PDF-ul (pentru 1 document) sau arhiva `Documente_SPV_<CUI>_<data>.zip` (pentru selecție multiplă).
+- **Fișiere:** `chrome-spv-connector/manifest.json`, `chrome-spv-connector/app-bridge.js`, `chrome-spv-connector/background.js`, `chrome-spv-connector/auth.html`, `chrome-spv-connector/anaf-popup.css`, `chrome-spv-connector/anaf-popup.js`, `client/src/pages/SpvHub.tsx`, `server/uploadRoute.ts`, `server/_core/index.ts`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `node --check` pe extensie, `npx tsc --noEmit` (`0` erori) și `npm run build` (`0` erori), fără `git push`.
+
 ### 2026-11-24 10:23 — Logo Apple Liquid Glass (`Factura/SPV` + pictogramă squircle continuu) și aliniere bară filtre `/spv` pe un singur rând
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

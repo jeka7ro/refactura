@@ -1068,6 +1068,134 @@ export function registerUploadRoute(app: Express) {
     }
   });
 
+  // ── BULK DOWNLOAD REAL SPV DOCUMENTS (PDF / ZIP) ────────────────────────────
+  app.post("/api/spv/bulk-download-pdf", async (req: Request, res: Response) => {
+    try {
+      const tenantId = await resolveRequestTenant(req);
+      const rawIds = Array.isArray(req.body?.ids) ? req.body.ids : [];
+      const docIds = Array.from(
+        new Set(
+          rawIds
+            .map((v: any) => Number(v))
+            .filter((n: number) => Number.isInteger(n) && n > 0)
+        )
+      ).slice(0, 500);
+
+      if (docIds.length === 0) {
+        return res.status(400).json({ error: "Selectează cel puțin un document SPV." });
+      }
+
+      const { getDb } = await import("./db");
+      const db = await getDb();
+      if (!db) return res.status(500).json({ error: "Baza de date indisponibilă." });
+
+      const [rows]: any = await (db as any).execute(
+        sql`SELECT * FROM spv_portal_documents
+            WHERE tenantId = ${tenantId}
+              AND id IN (${sql.join(docIds.map((id) => sql`${id}`), sql`, `)})
+            ORDER BY id DESC`
+      );
+
+      const docs: any[] = rows || [];
+      if (docs.length === 0) {
+        return res.status(404).json({ error: "Documentele selectate nu au fost găsite." });
+      }
+
+      const allowedSpvDirs = [
+        path.resolve(process.cwd(), "dist", "public", "uploads", "spv_documents"),
+        path.resolve(process.cwd(), "client", "public", "uploads", "spv_documents"),
+        path.resolve(process.cwd(), "public", "uploads", "spv_documents"),
+        path.resolve(process.cwd(), "uploads", "spv_documents"),
+      ];
+
+      const isWithinAllowed = (targetPath: string) => {
+        const resolved = path.resolve(targetPath);
+        return allowedSpvDirs.some(
+          (base) => resolved === base || resolved.startsWith(base + path.sep)
+        );
+      };
+
+      const resolvedFiles: Array<{ diskPath: string; entryName: string; isZip: boolean }> = [];
+      const usedNames = new Set<string>();
+
+      for (const doc of docs) {
+        const rawFileUrl = String(doc.fileUrl || "").trim();
+        if (!rawFileUrl || rawFileUrl.includes("..") || rawFileUrl.includes("\0")) continue;
+        const relativePath = rawFileUrl.replace(/^\//, "");
+        const candidates = [
+          path.resolve(process.cwd(), "dist", "public", relativePath),
+          path.resolve(process.cwd(), "client", "public", relativePath),
+          path.resolve(process.cwd(), relativePath),
+          path.resolve(process.cwd(), "public", relativePath),
+        ];
+
+        let foundPath: string | null = null;
+        for (const p of candidates) {
+          if (isWithinAllowed(p) && fs.existsSync(p)) {
+            foundPath = p;
+            break;
+          }
+        }
+        if (!foundPath) continue;
+
+        const isZip = foundPath.toLowerCase().endsWith(".zip");
+        const ext = isZip ? ".zip" : ".pdf";
+        const baseRaw = String(
+          doc.fileName ||
+            `${doc.tip || "Document"}_${doc.numarInregistrare || doc.id}${ext}`
+        ).replace(/[^a-zA-Z0-9._-]/g, "_");
+        const withExt =
+          baseRaw.toLowerCase().endsWith(".pdf") || baseRaw.toLowerCase().endsWith(".zip")
+            ? baseRaw
+            : `${baseRaw}${ext}`;
+
+        let finalName = withExt;
+        let suffix = 2;
+        while (usedNames.has(finalName.toLowerCase())) {
+          const dotIdx = withExt.lastIndexOf(".");
+          finalName =
+            dotIdx > 0
+              ? `${withExt.slice(0, dotIdx)}_${suffix}${withExt.slice(dotIdx)}`
+              : `${withExt}_${suffix}`;
+          suffix++;
+        }
+        usedNames.add(finalName.toLowerCase());
+        resolvedFiles.push({ diskPath: foundPath, entryName: finalName, isZip });
+      }
+
+      if (resolvedFiles.length === 0) {
+        return res.status(404).json({ error: "Fișierele originale SPV nu există pe disc." });
+      }
+
+      // Dacă este selectat un singur PDF, îl livrăm direct ca PDF
+      if (resolvedFiles.length === 1 && !resolvedFiles[0].isZip) {
+        const single = resolvedFiles[0];
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="${single.entryName}"`
+        );
+        return res.sendFile(single.diskPath);
+      }
+
+      const zip = new AdmZip();
+      for (const item of resolvedFiles) {
+        zip.addLocalFile(item.diskPath, "", item.entryName);
+      }
+      const zipBuf = zip.toBuffer();
+      const cuiLabel = String(docs[0]?.cif || "SPV").replace(/[^a-zA-Z0-9]/g, "");
+      const dateLabel = new Date().toISOString().slice(0, 10);
+      const archiveName = `Documente_SPV_${cuiLabel}_${dateLabel}.zip`;
+
+      res.setHeader("Content-Type", "application/zip");
+      res.setHeader("Content-Disposition", `attachment; filename="${archiveName}"`);
+      res.send(zipBuf);
+    } catch (err: any) {
+      console.error("[SPV Bulk Download] Error:", err?.message);
+      res.status(500).json({ error: err?.message || "Eroare la descărcarea documentelor SPV." });
+    }
+  });
+
   // ── DOWNLOAD CHROME EXTENSION CONECTOR SPV AS ZIP ────────────────────────────
   app.get("/api/spv-connector.zip", async (_req: Request, res: Response) => {
     try {

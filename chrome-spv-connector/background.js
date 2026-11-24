@@ -384,8 +384,8 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
     await clearAnafWebserviceCookies();
   }
 
-  const popupWidth = 640;
-  const popupHeight = 520;
+  const popupWidth = 380;
+  const popupHeight = 276;
   let left = 300;
   let top = 140;
 
@@ -639,13 +639,15 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
 
     for (let i = 0; i < toDownload.length; i += 1) {
       const m = toDownload[i];
-      const progressText = `Se descarca documentul ${i + 1} din ${toDownload.length}...`;
+      const progressText = `Se descarcă documentul ${i + 1} din ${toDownload.length}...`;
 
       if (workerTabId) {
         await chrome.tabs
           .sendMessage(workerTabId, {
             type: "SPV_POPUP_PROGRESS",
             text: progressText,
+            current: i + 1,
+            total: toDownload.length,
           })
           .catch(() => { });
       }
