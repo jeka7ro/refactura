@@ -1,5 +1,14 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-25 11:30 — Ascundere număr build când bara laterală este restrânsă (`DashboardLayout.tsx`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Ascuns blocul cu numărul de build (`#455`) pe modul restrâns (`collapsed`) al barei laterale (`client/src/components/DashboardLayout.tsx`):**
+     - Afișarea secțiunii `Build #...` și a liniei separatoare se face exclusiv când bara laterală este extinsă (`!collapsed`).
+- **Fișiere:** `client/src/components/DashboardLayout.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori) și `npm run build` (`0` erori), fără `git push`.
+
 ### 2026-11-25 11:28 — Eliminare secțiune `[<] getts/App` din subsolul barei laterale (`DashboardLayout.tsx`)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

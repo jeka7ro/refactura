@@ -852,19 +852,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       )}
 
       {/* Număr și dată build */}
-      <div
-        className="px-3 py-2.5 border-t border-black/[0.06] dark:border-white/[0.08] text-center text-[10.5px] leading-tight text-[#636366] dark:text-[#98989d] select-text tabular-nums"
-        title={`Build ${__BUILD_NUMBER__} · ${__BUILD_DATE__}`}
-      >
-        {collapsed ? (
-          <span>#{String(__BUILD_NUMBER__).split(" ")[0]}</span>
-        ) : (
-          <>
-            <div className="font-semibold">Build #{__BUILD_NUMBER__}</div>
-            <div>{__BUILD_DATE__}</div>
-          </>
-        )}
-      </div>
+      {!collapsed && (
+        <div
+          className="px-3 py-2.5 border-t border-black/[0.06] dark:border-white/[0.08] text-center text-[10.5px] leading-tight text-[#636366] dark:text-[#98989d] select-text tabular-nums"
+          title={`Build ${__BUILD_NUMBER__} · ${__BUILD_DATE__}`}
+        >
+          <div className="font-semibold">Build #{__BUILD_NUMBER__}</div>
+          <div>{__BUILD_DATE__}</div>
+        </div>
+      )}
     </div>
   );
 
