@@ -98,7 +98,9 @@ export default function EmittedInvoices() {
     const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
     switch (p) {
       case "today": { const t = fmt(now); return [t, t]; }
+      case "yesterday": { const y = startOfDay(now); y.setDate(y.getDate() - 1); const ys = fmt(y); return [ys, ys]; }
       case "week": { const d = startOfDay(now); const day = d.getDay() || 7; d.setDate(d.getDate() - day + 1); const end = new Date(d); end.setDate(end.getDate() + 6); return [fmt(d), fmt(end)]; }
+      case "lastWeek": { const d = startOfDay(now); const day = d.getDay() || 7; d.setDate(d.getDate() - day - 6); const end = new Date(d); end.setDate(end.getDate() + 6); return [fmt(d), fmt(end)]; }
       case "month": { const s = new Date(now.getFullYear(), now.getMonth(), 1); const e = new Date(now.getFullYear(), now.getMonth() + 1, 0); return [fmt(s), fmt(e)]; }
       case "lastMonth": { const s = new Date(now.getFullYear(), now.getMonth() - 1, 1); const e = new Date(now.getFullYear(), now.getMonth(), 0); return [fmt(s), fmt(e)]; }
       case "year": return [`${now.getFullYear()}-01-01`, `${now.getFullYear()}-12-31`];
@@ -398,305 +400,389 @@ export default function EmittedInvoices() {
     [allData]
   );
 
+  const hasActiveFilters =
+    search.trim() !== "" ||
+    statusFilter !== "all" ||
+    spvFilter !== "all" ||
+    period !== "all";
+
   return (
-    <div className="p-3 sm:p-5 max-w-full space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4">
+    <div className="p-3 sm:p-5 max-w-full space-y-4">
+      {/* Header — Apple macOS Window Title & Single Prominent CTA */}
+      <div className="flex items-center justify-between gap-4 flex-wrap px-0.5">
         <div>
-          <h1 className="text-xl md:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
             Facturi Emise
           </h1>
-          <p className="text-[11px] sm:text-sm text-slate-500 font-medium">
-            Facturi emise direct din platformă
+          <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 tabular-nums">
+            Facturi emise din platformă și SPV ·{" "}
+            <strong className="text-[#1d1d1f] dark:text-white font-semibold">
+              {allData.length}
+            </strong>{" "}
+            documente
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Link href="/facturi-emise-nou/new">
-            <button className="flex items-center justify-center h-9 px-5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold transition-colors shadow-sm flex-shrink-0">
+            <button
+              type="button"
+              className="apple-btn-prominent flex items-center justify-center gap-1.5 h-9 px-4 rounded-full text-white text-[13px] font-semibold transition-all shrink-0 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
               <span>Factură Nouă</span>
             </button>
           </Link>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 pb-1 tabular-nums">
+      {/* KPI Cards — Clean Apple Surface Strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 tabular-nums">
         {/* Card 1: Total Facturi */}
-        <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] px-3.5 py-2.5 flex flex-col justify-between shadow-2xs transition-all hover:shadow-sm">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] mb-0.5 truncate">
-              Total Facturi
-            </p>
-            <p className="text-base sm:text-[19px] font-bold text-[#1d1d1f] dark:text-white leading-tight truncate">
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter("all");
+            setPage(1);
+          }}
+          className={`apple-surface text-left px-4 py-3.5 flex flex-col justify-between gap-2 transition-all cursor-pointer ${
+            statusFilter === "all"
+              ? "ring-1 ring-[#1d1d1f]/15 dark:ring-white/25"
+              : "hover:shadow-md"
+          }`}
+        >
+          <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+            Total facturi
+          </span>
+          <div className="flex items-baseline gap-2">
+            <span className="text-[24px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.028em] leading-none">
               {allData.length}
-            </p>
+            </span>
+            {filtered.length !== allData.length && (
+              <span className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                ({filtered.length} filtrate)
+              </span>
+            )}
           </div>
-          {filtered.length !== allData.length && (
-            <p className="text-[10px] font-medium text-[#636366] dark:text-[#98989d] mt-0.5 truncate">
-              {filtered.length} filtrate
-            </p>
-          )}
-        </div>
+        </button>
 
         {/* Card 2: Încasate */}
-        <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] px-3.5 py-2.5 flex flex-col justify-between shadow-2xs transition-all hover:shadow-sm">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] mb-0.5 truncate">
-              Încasate
-            </p>
-            <p className="text-base sm:text-[19px] font-bold text-emerald-600 dark:text-emerald-400 leading-tight truncate">
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter(statusFilter === "paid" ? "all" : "paid");
+            setPage(1);
+          }}
+          className={`apple-surface text-left px-4 py-3.5 flex flex-col justify-between gap-2 transition-all cursor-pointer ${
+            statusFilter === "paid"
+              ? "ring-1 ring-emerald-500/40"
+              : "hover:shadow-md"
+          }`}
+        >
+          <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+            Încasate
+          </span>
+          <div className="flex items-baseline gap-2">
+            <span className="text-[24px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.028em] leading-none">
               {counts.paid}
-            </p>
+            </span>
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300 leading-none">
+              {allData.length > 0 ? `${Math.round((counts.paid / allData.length) * 100)}%` : "0%"}
+            </span>
           </div>
-          <p className="text-[10px] font-medium text-emerald-600/80 dark:text-emerald-400/80 mt-0.5 truncate">
-            {allData.length > 0 ? `${Math.round((counts.paid / allData.length) * 100)}% din total` : "0%"}
-          </p>
-        </div>
+        </button>
 
         {/* Card 3: Restanțe */}
-        <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] px-3.5 py-2.5 flex flex-col justify-between shadow-2xs transition-all hover:shadow-sm">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] mb-0.5 truncate">
-              Restanțe
-            </p>
-            <p className="text-base sm:text-[19px] font-bold text-rose-600 dark:text-rose-400 leading-tight truncate">
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter(statusFilter === "overdue" ? "all" : "overdue");
+            setPage(1);
+          }}
+          className={`apple-surface text-left px-4 py-3.5 flex flex-col justify-between gap-2 transition-all cursor-pointer ${
+            statusFilter === "overdue"
+              ? "ring-1 ring-rose-500/40"
+              : "hover:shadow-md"
+          }`}
+        >
+          <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+            Restanțe
+          </span>
+          <div className="flex items-baseline gap-2">
+            <span
+              className={`text-[24px] font-bold tracking-[-0.028em] leading-none ${
+                counts.overdue > 0
+                  ? "text-[#ff3b30] dark:text-[#ff453a]"
+                  : "text-[#1d1d1f] dark:text-white"
+              }`}
+            >
               {counts.overdue}
-            </p>
+            </span>
+            <span className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+              {counts.overdue === 0 ? "La zi" : "Scadente"}
+            </span>
           </div>
-          <p className="text-[10px] font-medium text-[#636366] dark:text-[#98989d] mt-0.5 truncate">
-            {counts.overdue === 0 ? "Fără restanțe" : "Necesită atenție"}
-          </p>
-        </div>
+        </button>
 
-        {/* Card 4: Total EUR (cu echivalent Lei la curs BNR din ziua fiecărei facturi) */}
-        <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-amber-200/80 dark:border-amber-900/50 px-3.5 py-2.5 flex flex-col justify-between shadow-2xs transition-all hover:shadow-sm bg-gradient-to-br from-amber-50/40 to-transparent dark:from-amber-950/20">
+        {/* Card 4: Valoare EUR */}
+        <div className="apple-surface px-4 py-3.5 flex flex-col justify-between gap-2">
+          <div className="flex items-center justify-between gap-1.5">
+            <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+              Valoare EUR
+            </span>
+            <span className="px-2 py-0.5 rounded-full text-[10.5px] font-semibold bg-amber-500/10 text-amber-700 dark:bg-amber-500/18 dark:text-amber-300 leading-none">
+              EUR
+            </span>
+          </div>
           <div>
-            <div className="flex items-center justify-between mb-0.5">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400 truncate">
-                Valoare EUR
-              </p>
-              <span className="text-[9.5px] font-bold text-amber-600 dark:text-amber-400 bg-amber-100/80 dark:bg-amber-900/50 px-1.5 py-0.5 rounded-full leading-none">
-                EUR
-              </span>
-            </div>
-            <p className="text-base sm:text-[19px] font-bold text-amber-600 dark:text-amber-400 leading-tight truncate">
+            <p className="text-[20px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.024em] leading-none truncate">
               {formatCurrency(totals.totalEur, "EUR")}
             </p>
-          </div>
-          <p className="text-[10px] font-semibold text-[#636366] dark:text-[#98989d] mt-0.5 truncate" title="Echivalent în lei la cursul oficial BNR din data fiecărei facturi">
-            {totals.totalEur > 0
-              ? `≈ ${formatCurrency(totals.totalEurInRon, "RON")} (curs BNR)`
-              : "0,00 facturi EUR"}
-          </p>
-        </div>
-
-        {/* Card 5: Valoare Totală (Echivalent RON la curs BNR) */}
-        <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] px-3.5 py-2.5 flex flex-col justify-between shadow-2xs transition-all hover:shadow-sm col-span-2 sm:col-span-1">
-          <div>
-            <div className="flex items-center justify-between mb-0.5">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] truncate">
-                Valoare Totală
-              </p>
-              <span className="text-[9.5px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-1.5 py-0.5 rounded-full leading-none">
-                RON
-              </span>
-            </div>
-            <p className="text-base sm:text-[19px] font-bold text-[#1d1d1f] dark:text-white leading-tight truncate">
-              {formatCurrency(totals.totalConvertedRon, "RON")}
+            <p className="text-[11px] text-[#6e6e73] dark:text-[#98989d] mt-1 truncate">
+              {totals.totalEur > 0
+                ? `≈ ${formatCurrency(totals.totalEurInRon, "RON")}`
+                : "0 facturi valutare"}
             </p>
           </div>
-          <p className="text-[10px] font-medium text-[#636366] dark:text-[#98989d] mt-0.5 truncate" title={totals.hasEur ? `${formatCurrency(totals.totalRonOnly, "RON")} + ${formatCurrency(totals.totalEur, "EUR")} convertit la curs BNR` : "Toate facturile emise"}>
-            {totals.hasEur
-              ? `${formatCurrency(totals.totalRonOnly, "RON")} + ${formatCurrency(totals.totalEur, "EUR")}`
-              : "Inclusiv toate emiterile"}
-          </p>
+        </div>
+
+        {/* Card 5: Valoare Totală RON */}
+        <div className="apple-surface px-4 py-3.5 flex flex-col justify-between gap-2 col-span-2 sm:col-span-1">
+          <div className="flex items-center justify-between gap-1.5">
+            <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+              Valoare totală
+            </span>
+            <span className="px-2 py-0.5 rounded-full text-[10.5px] font-semibold bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5] leading-none">
+              RON
+            </span>
+          </div>
+          <div>
+            <p className="text-[20px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.024em] leading-none truncate">
+              {formatCurrency(totals.totalConvertedRon, "RON")}
+            </p>
+            <p className="text-[11px] text-[#6e6e73] dark:text-[#98989d] mt-1 truncate">
+              {totals.hasEur
+                ? `${formatCurrency(totals.totalRonOnly, "RON")} + EUR`
+                : "Toate emiterile"}
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Reminder Termen Legal SPV (5 zile lucrătoare) */}
       <SpvDeadlineBanner invoices={data} />
 
-      {/* Table Card */}
-      <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] overflow-hidden shadow-sm">
-        {/* Search & Filtre — cu iconițe și dimensiuni ca în AllInvoices */}
-        <div className="px-4 py-3 border-b border-black/[0.06] dark:border-white/[0.08] flex items-center gap-2.5 flex-wrap bg-[#f5f7fb]/85 dark:bg-white/[0.025]">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="w-3.5 h-3.5 text-[#636366] dark:text-[#98989d] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              style={{ paddingLeft: 36, paddingRight: search ? 80 : 14 }}
-              className="rounded-full w-full h-9 border border-black/[0.08] dark:border-white/[0.12] outline-none text-[13px] bg-white/90 dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white placeholder:text-[#636366] dark:placeholder:text-[#98989d] focus:bg-white dark:focus:bg-[#3a3a3c] transition-all"
-              placeholder="Caută factură, client, CUI..."
-              value={search}
-              onChange={e => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-            />
-            {search && (
-              <>
-                <div className="absolute right-9 top-1/2 -translate-y-1/2 bg-blue-600 text-white rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums">
-                  {filtered.length}/{allData.length}
-                </div>
+      {/* Unified Apple Control & Filter Card */}
+      <div className="apple-surface p-3 space-y-2.5">
+        {/* Row 1: Period Segmented Track */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="apple-segmented overflow-x-auto no-scrollbar max-w-full">
+              {[
+                { id: "all", label: "Toate" },
+                { id: "today", label: "Azi" },
+                { id: "yesterday", label: "Ieri" },
+                { id: "week", label: "Săpt. asta" },
+                { id: "lastWeek", label: "Săpt. trec." },
+                { id: "month", label: "Luna asta" },
+                { id: "lastMonth", label: "Luna trec." },
+                { id: "year", label: "An" },
+                { id: "custom", label: "Interval" },
+              ].map(item => (
                 <button
+                  key={item.id}
                   type="button"
-                  aria-label="Șterge căutarea"
-                  onClick={() => setSearch("")}
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center hover:bg-black/[0.06] dark:hover:bg-white/[0.10] cursor-pointer"
+                  data-active={period === item.id}
+                  onClick={() => {
+                    setPeriod(item.id);
+                    const range = getDateRange(item.id);
+                    if (range && item.id !== "custom") {
+                      setCustomFrom(range[0]);
+                      setCustomTo(range[1]);
+                    }
+                    setPage(1);
+                  }}
+                  className="apple-segmented-item"
                 >
-                  <X className="w-3.5 h-3.5 text-[#636366] hover:text-[#1d1d1f] dark:text-[#98989d] dark:hover:text-white" />
+                  {item.label}
                 </button>
-              </>
+              ))}
+            </div>
+
+            {period === "custom" && (
+              <div className="inline-flex items-center gap-1.5 px-2.5 h-[34px] rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] text-xs tabular-nums">
+                <Calendar className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d]" />
+                <input
+                  type="date"
+                  value={customFrom}
+                  onChange={e => {
+                    setCustomFrom(e.target.value);
+                    setPage(1);
+                  }}
+                  className="h-6 px-1 text-xs bg-transparent text-[#1d1d1f] dark:text-white outline-none w-[110px]"
+                />
+                <span className="text-[#8e8e93]">–</span>
+                <input
+                  type="date"
+                  value={customTo}
+                  onChange={e => {
+                    setCustomTo(e.target.value);
+                    setPage(1);
+                  }}
+                  className="h-6 px-1 text-xs bg-transparent text-[#1d1d1f] dark:text-white outline-none w-[110px]"
+                />
+              </div>
             )}
-          </div>
-
-          {/* Perioadă Filter */}
-          <div className="w-[140px] sm:w-[155px] flex-shrink-0">
-            <Select
-              value={period}
-              onValueChange={val => {
-                setPeriod(val as any);
-                const range = getDateRange(val);
-                if (range && val !== "custom") {
-                  setCustomFrom(range[0]);
-                  setCustomTo(range[1]);
-                }
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 shadow-none flex items-center gap-1.5 px-3">
-                <Calendar className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
-                <SelectValue placeholder="Perioadă" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toate dățile</SelectItem>
-                <SelectItem value="today">Azi</SelectItem>
-                <SelectItem value="week">Săpt. curentă</SelectItem>
-                <SelectItem value="month">Luna curentă</SelectItem>
-                <SelectItem value="lastMonth">Luna trecută</SelectItem>
-                <SelectItem value="year">Anul curent</SelectItem>
-                <SelectItem value="lastYear">Anul trecut</SelectItem>
-                <SelectItem value="custom">Personalizat...</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Status Filter */}
-          <div className="w-[125px] sm:w-[140px] flex-shrink-0">
-            <Select
-              value={statusFilter}
-              onValueChange={val => {
-                setStatusFilter(val as any);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 shadow-none flex items-center gap-1.5 px-3">
-                <Tag className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toate statusurile</SelectItem>
-                <SelectItem value="draft">Ciornă ({counts.draft})</SelectItem>
-                <SelectItem value="sent">Emise ({counts.sent})</SelectItem>
-                <SelectItem value="paid">Încasate ({counts.paid})</SelectItem>
-                <SelectItem value="overdue">Restanțe ({counts.overdue})</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* SPV Filter */}
-          <div className="w-[130px] sm:w-[150px] flex-shrink-0">
-            <Select
-              value={spvFilter}
-              onValueChange={val => {
-                setSpvFilter(val as any);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 shadow-none flex items-center gap-1.5 px-3">
-                <Send className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
-                <SelectValue placeholder="Stare SPV" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toate SPV</SelectItem>
-                <SelectItem value="validat">Validate</SelectItem>
-                <SelectItem value="in_procesare">În procesare</SelectItem>
-                <SelectItem value="eroare">Erori SPV</SelectItem>
-                <SelectItem value="nesincronizat">Netrimise</SelectItem>
-                <SelectItem value="extern">Externe (D390)</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </div>
 
-        {period === "custom" && (
-          <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30 flex items-center gap-2 text-xs">
-            <Calendar className="w-3.5 h-3.5 text-blue-500" />
-            <span className="text-slate-500 font-medium">De la:</span>
-            <input
-              type="date"
-              value={customFrom}
-              onChange={e => {
-                setCustomFrom(e.target.value);
-                setPage(1);
-              }}
-              className="h-7 px-3 text-xs bg-white dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-blue-500"
-            />
-            <span className="text-slate-500 font-medium">Până la:</span>
-            <input
-              type="date"
-              value={customTo}
-              onChange={e => {
-                setCustomTo(e.target.value);
-                setPage(1);
-              }}
-              className="h-7 px-3 text-xs bg-white dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-blue-500"
-            />
+        {/* Row 2: Status Segmented Chips ↔ SPV Filter + Search */}
+        <div className="flex items-center justify-between gap-2.5 flex-wrap pt-0.5">
+          <div className="apple-segmented flex-wrap">
+            {[
+              { id: "all", label: "Toate", count: counts.all },
+              { id: "draft", label: "Ciornă", count: counts.draft },
+              { id: "sent", label: "Emise", count: counts.sent },
+              { id: "paid", label: "Încasate", count: counts.paid },
+              { id: "overdue", label: "Restanțe", count: counts.overdue },
+            ].map(st => (
+              <button
+                key={st.id}
+                type="button"
+                data-active={statusFilter === st.id}
+                onClick={() => {
+                  setStatusFilter(st.id);
+                  setPage(1);
+                }}
+                className="apple-segmented-item tabular-nums"
+              >
+                <span>{st.label}</span>
+                <span className="opacity-65">{st.count}</span>
+              </button>
+            ))}
           </div>
-        )}
 
-        {/* Table */}
+          <div className="flex items-center gap-2 flex-wrap flex-1 sm:flex-initial justify-end">
+            {/* SPV Filter */}
+            <div className="w-[152px] shrink-0">
+              <Select
+                value={spvFilter}
+                onValueChange={val => {
+                  setSpvFilter(val as any);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger
+                  data-filtered={spvFilter !== "all"}
+                  className="apple-pill-control h-[34px] w-full flex items-center gap-1.5 px-3"
+                >
+                  <Send className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
+                  <SelectValue placeholder="Toate SPV" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toate SPV</SelectItem>
+                  <SelectItem value="validat">Validate</SelectItem>
+                  <SelectItem value="in_procesare">În procesare</SelectItem>
+                  <SelectItem value="eroare">Erori SPV</SelectItem>
+                  <SelectItem value="nesincronizat">Netrimise</SelectItem>
+                  <SelectItem value="extern">Externe (D390)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Search */}
+            <div className="relative flex-1 sm:w-[240px] min-w-[180px]">
+              <Search className="w-3.5 h-3.5 text-[#8e8e93] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                style={{ paddingLeft: 34, paddingRight: search ? 76 : 14 }}
+                className="apple-pill-control rounded-full w-full h-[34px] outline-none text-[13px] text-[#1d1d1f] dark:text-white placeholder:text-[#8e8e93] focus:bg-white dark:focus:bg-[#2c2c2e]"
+                placeholder="Caută factură, client, CUI..."
+                value={search}
+                onChange={e => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+              />
+              {search && (
+                <>
+                  <span className="absolute right-8 top-1/2 -translate-y-1/2 bg-black/[0.07] dark:bg-white/[0.14] text-[#1d1d1f] dark:text-white rounded-full px-2 py-0.5 text-[10.5px] font-semibold tabular-nums">
+                    {filtered.length}/{allData.length}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Șterge căutarea"
+                    onClick={() => setSearch("")}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center hover:bg-black/[0.07] dark:hover:bg-white/[0.12] cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d]" />
+                  </button>
+                </>
+              )}
+            </div>
+
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  setStatusFilter("all");
+                  setSpvFilter("all");
+                  setPeriod("all");
+                  setPage(1);
+                }}
+                className="apple-pill-control h-[34px] px-3 inline-flex items-center gap-1 text-[12px] text-[#6e6e73] hover:text-[#1d1d1f] dark:text-[#98989d] dark:hover:text-white cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Resetează</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Table Surface */}
+      <div className="apple-surface overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-[#f8f9fc]/90 dark:bg-white/[0.02] border-b border-black/[0.06] dark:border-white/[0.08]">
-                <th className="text-center w-12 px-4 py-3 text-[10.5px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] whitespace-nowrap">
+              <tr className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+                <th className="text-center w-12 px-3 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
                   Nr.
                 </th>
-                <th className="text-left px-4 py-3 text-[10.5px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] whitespace-nowrap">
-                  Număr Factură
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                  Factură & Stare
                 </th>
-                <th className="text-left px-4 py-3 text-[10.5px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
                   Client
                 </th>
-                <th className="text-left px-4 py-3 text-[10.5px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] hidden md:table-cell whitespace-nowrap">
-                  Dată / Scadență
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] hidden md:table-cell whitespace-nowrap">
+                  Emitere & Scadență
                 </th>
-                <th className="text-right px-4 py-3 text-[10.5px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] whitespace-nowrap">
-                  Total
+                <th className="text-right px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                  Valoare
                 </th>
-                <th className="text-left px-4 py-3 text-[10.5px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] hidden lg:table-cell whitespace-nowrap">
-                  Data Transmisă / Index
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] hidden lg:table-cell whitespace-nowrap">
+                  Transmitere SPV
                 </th>
-                <th className="text-right px-4 py-3 text-[10.5px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] whitespace-nowrap">
+                <th className="text-right px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
                   Acțiuni
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
+            <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12">
-                    <Loader2 className="w-6 h-6 animate-spin text-slate-400 mx-auto" />
+                  <td colSpan={7} className="text-center py-14">
+                    <Loader2 className="w-6 h-6 animate-spin text-[#6e6e73] mx-auto" />
                   </td>
                 </tr>
               ) : paged.length === 0 ? (
                 <tr>
                   <td
                     colSpan={7}
-                    className="text-center py-12 text-slate-400 text-sm"
+                    className="text-center py-12 text-[#6e6e73] dark:text-[#98989d] text-[13px]"
                   >
                     {data.length === 0
-                      ? "Nicio factură emisă încă. Apasă pe «Emite Factură Nouă»."
+                      ? "Nicio factură emisă încă. Apasă pe «Factură Nouă»."
                       : "Niciun rezultat pentru filtrele selectate."}
                   </td>
                 </tr>
@@ -709,24 +795,24 @@ export default function EmittedInvoices() {
                         ? navigate(`/facturi/${row.id}`)
                         : navigate(`/facturi-emise-nou/view/${row.id}`)
                     }
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
+                    className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] cursor-pointer transition-colors"
                   >
-                    <td className="text-center px-4 py-2.5 text-[#636366] dark:text-[#98989d] text-xs whitespace-nowrap tabular-nums">
-                      <div className="h-10 flex items-center justify-center font-medium">
-                        {(page - 1) * rowsPerPage + idx + 1}
-                      </div>
+                    <td className="text-center px-3 py-3 text-[#8e8e93] text-[12px] whitespace-nowrap tabular-nums">
+                      {(page - 1) * rowsPerPage + idx + 1}
                     </td>
-                    <td className="px-4 py-2.5 whitespace-nowrap tabular-nums">
-                      <div className="h-10 flex flex-col justify-center">
-                        <div className="h-5 flex items-center gap-1.5">
-                          <span className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline text-left">
+                    <td className="px-4 py-3 whitespace-nowrap tabular-nums">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-white hover:underline text-left">
                             {row.number}
                           </span>
                           {row._source === "archive" && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-100 dark:bg-violet-950/50 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-800 leading-none">SPV</span>
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-violet-500/10 text-violet-700 dark:bg-violet-500/18 dark:text-violet-300 leading-none">
+                              SPV
+                            </span>
                           )}
                         </div>
-                        <div className="h-5 flex items-center">
+                        <div className="flex items-center">
                           {(() => {
                             const effectiveStatus =
                               row.status === "draft" &&
@@ -737,7 +823,7 @@ export default function EmittedInvoices() {
                                 : row.status || "draft";
                             return (
                               <span
-                                className={`px-2 py-0.5 rounded-full text-[10.5px] font-medium border leading-none ${STATUS_COLORS[effectiveStatus]}`}
+                                className={`px-2 py-0.5 rounded-full text-[11px] font-medium border leading-none ${STATUS_COLORS[effectiveStatus]}`}
                               >
                                 {STATUS_LABELS[effectiveStatus]}
                               </span>
@@ -746,72 +832,70 @@ export default function EmittedInvoices() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-2.5">
-                      <div className="h-10 flex flex-col justify-center">
-                        <div className="h-5 flex items-center">
-                          {(() => {
-                            const cId = getClientId(row);
-                            return (
-                              <Link
-                                href={cId ? `/client/${cId}` : `/clienti?search=${encodeURIComponent(row.clientName)}`}
-                                onClick={e => e.stopPropagation()}
-                                className="text-xs font-bold text-[#1d1d1f] dark:text-white max-w-[200px] truncate hover:underline hover:text-primary transition-colors cursor-pointer block"
-                                title={row.clientName}
-                              >
-                                {row.clientName}
-                              </Link>
-                            );
-                          })()}
-                        </div>
-                        <div className="h-5 flex items-center text-[11px] text-[#636366] dark:text-[#98989d] font-normal tabular-nums">
-                          {row.clientCUI ? `CUI: ${row.clientCUI}` : "—"}
-                        </div>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col gap-0.5">
+                        {(() => {
+                          const cId = getClientId(row);
+                          return (
+                            <Link
+                              href={
+                                cId
+                                  ? `/client/${cId}`
+                                  : `/clienti?search=${encodeURIComponent(row.clientName)}`
+                              }
+                              onClick={e => e.stopPropagation()}
+                              className="text-[13.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] max-w-[220px] truncate hover:underline transition-colors cursor-pointer block"
+                              title={row.clientName}
+                            >
+                              {row.clientName}
+                            </Link>
+                          );
+                        })()}
+                        <span className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] tabular-nums">
+                          {row.clientCUI ? `CUI ${row.clientCUI}` : "—"}
+                        </span>
                       </div>
                     </td>
-                    <td className="px-4 py-2.5 hidden md:table-cell whitespace-nowrap tabular-nums">
-                      <div className="h-10 flex flex-col justify-center">
-                        <div className="h-5 flex items-center">
-                          <span className="text-xs font-bold text-[#1d1d1f] dark:text-white">
-                            {formatDate(row.issueDate)}
-                          </span>
-                        </div>
-                        <div className="h-5 flex items-center text-[11px] text-[#636366] dark:text-[#98989d] font-normal">
-                          {row.dueDate ? `Scad: ${formatDate(row.dueDate)}` : "—"}
-                        </div>
+                    <td className="px-4 py-3 hidden md:table-cell whitespace-nowrap tabular-nums">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#ebebf5]">
+                          {formatDate(row.issueDate)}
+                        </span>
+                        <span className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d]">
+                          {row.dueDate ? `Scad. ${formatDate(row.dueDate)}` : "—"}
+                        </span>
                       </div>
                     </td>
-                    <td className="px-4 py-2.5 text-right whitespace-nowrap tabular-nums">
-                      <div className="h-10 flex flex-col justify-center items-end">
-                        <div className="h-5 flex items-center justify-end">
-                          <span className="text-xs font-bold text-[#1d1d1f] dark:text-white">
-                            {formatCurrency(
-                              parseFloat(String(row.total)),
-                              (row.currency || "RON") as any
-                            )}
-                          </span>
-                        </div>
-                        <div className="h-5 flex items-center justify-end">
+                    <td className="px-4 py-3 text-right whitespace-nowrap tabular-nums">
+                      <div className="flex flex-col items-end gap-1">
+                        <span
+                          className={`text-[13.5px] font-semibold ${
+                            parseFloat(String(row.total)) < 0
+                              ? "text-[#ff3b30] dark:text-[#ff453a]"
+                              : "text-[#1d1d1f] dark:text-white"
+                          }`}
+                        >
+                          {formatCurrency(
+                            parseFloat(String(row.total)),
+                            (row.currency || "RON") as any
+                          )}
+                        </span>
+                        <div className="flex items-center justify-end">
                           {(() => {
                             const computed = getInvoiceRateAndRon(row);
                             if (computed.isForeign) {
                               return (
                                 <div className="flex items-center gap-1.5 leading-none">
                                   <span
-                                    className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/60"
+                                    className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 dark:bg-emerald-500/18 px-2 py-0.5 rounded-full"
                                     title={`Curs BNR din ${formatDate(computed.rateDate || row.issueDate)}: ${computed.rate.toFixed(4)} lei/${row.currency}`}
                                   >
                                     ≈ {formatCurrency(computed.totalRon, "RON")}
                                   </span>
-                                  <span
-                                    className="text-[10px] text-[#636366] dark:text-[#98989d] tabular-nums"
-                                    title={`Curs oficial BNR: ${computed.rate.toFixed(4)}`}
-                                  >
-                                    ({computed.rate.toFixed(4)})
-                                  </span>
                                   {isExternalInvoice(row) && (
                                     <span
-                                      className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800"
-                                      title="Factură externă (UE/Non-UE). Nu se transmite în RO e-Factura, se declară prin D390/D300."
+                                      className="px-1.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-700 dark:bg-amber-500/18 dark:text-amber-300"
+                                      title="Factură externă (UE/Non-UE). Se declară prin D390/D300."
                                     >
                                       D390
                                     </span>
@@ -821,17 +905,14 @@ export default function EmittedInvoices() {
                             }
                             if (row._source === "archive") {
                               return (
-                                <span className="text-[11px] font-normal text-violet-600 leading-none">
+                                <span className="text-[11px] text-[#8e8e93] leading-none">
                                   Din SPV
                                 </span>
                               );
                             }
                             if (isExternalInvoice(row)) {
                               return (
-                                <span
-                                  className="px-2 py-0.5 rounded-full text-[10px] font-normal bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 leading-none"
-                                  title="Factură externă (UE/Non-UE). Nu se transmite în RO e-Factura, se declară prin D390/D300."
-                                >
+                                <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-700 dark:bg-amber-500/18 dark:text-amber-300 leading-none">
                                   Extern (D390)
                                 </span>
                               );
@@ -841,19 +922,18 @@ export default function EmittedInvoices() {
                                 {row.spvStatus === "eroare" ? (
                                   <button
                                     type="button"
-                                    onClick={(e) => {
+                                    onClick={e => {
                                       e.stopPropagation();
                                       setSpvErrorInvoice(row);
                                     }}
-                                    className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-500 hover:text-rose-600 underline cursor-pointer"
-                                    title={row.spvError ? `Eroare ANAF: ${row.spvError} (Click pentru detalii)` : "Eroare validare ANAF (Click pentru detalii)"}
+                                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#ff3b30] hover:underline cursor-pointer"
                                   >
                                     <span>Eroare</span>
-                                    <AlertCircle className="w-3 h-3 text-rose-500 shrink-0" />
+                                    <AlertCircle className="w-3 h-3 shrink-0" />
                                   </button>
                                 ) : (
                                   <span
-                                    className={`text-[11px] font-normal ${SPV_COLORS[row.spvStatus || "nesincronizat"]}`}
+                                    className={`text-[11px] ${SPV_COLORS[row.spvStatus || "nesincronizat"]}`}
                                   >
                                     {SPV_LABELS[row.spvStatus || "nesincronizat"]}
                                   </span>
@@ -872,86 +952,48 @@ export default function EmittedInvoices() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-2.5 text-left hidden lg:table-cell whitespace-nowrap tabular-nums">
-                      <div className="h-10 flex flex-col justify-center">
+                    <td className="px-4 py-3 text-left hidden lg:table-cell whitespace-nowrap tabular-nums">
+                      <div className="flex flex-col gap-0.5">
                         {row.spvSentAt || (row.spvIndex && (row.updatedAt || row.createdAt)) ? (
                           (() => {
                             const sentDate = row.spvSentAt || row.updatedAt || row.createdAt;
                             const inTermen = isTransmittedInDeadline(row.issueDate, sentDate);
                             const sentObj = sentDate instanceof Date ? sentDate : sentDate ? new Date(sentDate) : null;
-                            const sentTime = sentObj && !isNaN(sentObj.getTime())
-                              ? sentObj.toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })
-                              : "";
+                            const sentTime =
+                              sentObj && !isNaN(sentObj.getTime())
+                                ? sentObj.toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })
+                                : "";
                             return (
                               <>
-                                <div className={`h-5 flex items-center text-xs font-bold whitespace-nowrap ${inTermen ? "text-emerald-600 dark:text-emerald-400" : "text-[#1d1d1f] dark:text-white"}`}>
-                                  <span>{formatDate(sentDate)}</span>
-                                  {sentTime && <span className="ml-1.5 font-bold">{sentTime}</span>}
-                                </div>
-                                <div className="h-5 flex items-center text-[11px] font-normal">
-                                  {row.spvIndex ? (
-                                    <span
-                                      className={
-                                        row.spvStatus === "validat"
-                                          ? "text-emerald-600 dark:text-emerald-400"
-                                          : row.spvStatus === "in_procesare"
-                                          ? "text-blue-600 dark:text-blue-400"
-                                          : "text-[#636366] dark:text-[#98989d]"
-                                      }
-                                      title={`Index încărcare SPV: ${row.spvIndex}`}
-                                    >
-                                      Index: {row.spvIndex}
-                                    </span>
-                                  ) : (
-                                    <span className="text-[#636366] dark:text-[#98989d]">—</span>
-                                  )}
-                                </div>
+                                <span
+                                  className={`text-[12.5px] font-medium whitespace-nowrap ${
+                                    inTermen
+                                      ? "text-emerald-600 dark:text-emerald-400"
+                                      : "text-[#1d1d1f] dark:text-white"
+                                  }`}
+                                >
+                                  {formatDate(sentDate)} {sentTime}
+                                </span>
+                                <span className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d]">
+                                  {row.spvIndex ? `SPV #${row.spvIndex}` : "—"}
+                                </span>
                               </>
                             );
                           })()
                         ) : isExternalInvoice(row) ? (
-                          <>
-                            <div className="h-5 flex items-center text-[11px] text-amber-600 dark:text-amber-400 font-normal whitespace-nowrap">
-                              — (Non-SPV)
-                            </div>
-                            <div className="h-5 flex items-center text-[11px] text-[#636366] dark:text-[#98989d] font-normal">
-                              —
-                            </div>
-                          </>
+                          <span className="text-[11.5px] text-amber-600 dark:text-amber-400">
+                            Non-SPV (D390)
+                          </span>
                         ) : (
-                          <>
-                            <div className="h-5 flex items-center text-xs text-[#636366] dark:text-[#98989d] whitespace-nowrap">
-                              —
-                            </div>
-                            <div className="h-5 flex items-center text-[11px] text-[#636366] dark:text-[#98989d] font-normal">
-                              —
-                            </div>
-                          </>
+                          <span className="text-[12px] text-[#8e8e93]">—</span>
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-2.5 whitespace-nowrap">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <div
-                        className="h-10 flex items-center justify-end gap-1.5"
+                        className="flex items-center justify-end gap-1.5"
                         onClick={e => e.stopPropagation()}
                       >
-                        {row._source !== "archive" && (
-                          <button
-                            type="button"
-                            aria-label="Storno Factură"
-                            onClick={() =>
-                              setStornoTarget({
-                                id: row.id,
-                                number:
-                                  `${row.series || ""} ${row.number}`.trim(),
-                              })
-                            }
-                            className="w-8 h-8 rounded-full border border-orange-200 dark:border-orange-800/70 bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-900/60 flex items-center justify-center transition-colors cursor-pointer"
-                            title="Storno Factură"
-                          >
-                            <Undo2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
                         <button
                           type="button"
                           aria-label="Descarcă PDF"
@@ -974,30 +1016,50 @@ export default function EmittedInvoices() {
                           <Download className="w-3.5 h-3.5" />
                         </button>
 
-                        {row._source !== "archive" && !isExternalInvoice(row) && (!row.spvStatus ||
-                          row.spvStatus === "nesincronizat" ||
-                          row.spvStatus === "eroare") && (
+                        {row._source !== "archive" &&
+                          !isExternalInvoice(row) &&
+                          (!row.spvStatus ||
+                            row.spvStatus === "nesincronizat" ||
+                            row.spvStatus === "eroare") && (
+                            <button
+                              type="button"
+                              aria-label="Trimite în SPV"
+                              onClick={() => sendToSpv.mutate({ id: row.id })}
+                              disabled={sendToSpv.isPending}
+                              className="w-8 h-8 rounded-full apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center justify-center transition-colors cursor-pointer"
+                              title="Trimite în SPV"
+                            >
+                              {sendToSpv.isPending ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Send className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                          )}
+
+                        {row._source !== "archive" && (
                           <button
                             type="button"
-                            aria-label="Trimite în SPV"
-                            onClick={() => sendToSpv.mutate({ id: row.id })}
-                            disabled={sendToSpv.isPending}
-                            className="w-8 h-8 rounded-full border border-indigo-200 dark:border-indigo-800/70 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 flex items-center justify-center transition-colors cursor-pointer"
-                            title="Trimite în SPV"
+                            aria-label="Storno Factură"
+                            onClick={() =>
+                              setStornoTarget({
+                                id: row.id,
+                                number: `${row.series || ""} ${row.number}`.trim(),
+                              })
+                            }
+                            className="w-8 h-8 rounded-full apple-btn-glass text-[#3a3a3c] dark:text-[#ebebf5] flex items-center justify-center transition-colors cursor-pointer"
+                            title="Storno Factură"
                           >
-                            {sendToSpv.isPending ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                              <Send className="w-3.5 h-3.5" />
-                            )}
+                            <Undo2 className="w-3.5 h-3.5" />
                           </button>
                         )}
+
                         {row._source !== "archive" && (
                           <button
                             type="button"
                             aria-label="Șterge"
                             onClick={() => setDeleteId(row.id)}
-                            className="w-8 h-8 rounded-full border border-rose-200 dark:border-rose-800/70 bg-rose-50 dark:bg-rose-950/40 text-rose-500 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 flex items-center justify-center transition-colors cursor-pointer"
+                            className="w-8 h-8 rounded-full apple-btn-glass text-[#6e6e73] hover:text-[#ff3b30] dark:text-[#98989d] dark:hover:text-[#ff453a] flex items-center justify-center transition-colors cursor-pointer"
                             title="Șterge"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1010,37 +1072,40 @@ export default function EmittedInvoices() {
               )}
             </tbody>
             {filtered.length > 0 && (
-              <tfoot className="bg-[#f8f9fc]/90 dark:bg-white/[0.025] border-t-2 border-black/[0.08] dark:border-white/[0.10] tabular-nums">
+              <tfoot className="bg-[#fafafa] dark:bg-white/[0.025] border-t border-black/[0.07] dark:border-white/[0.09] tabular-nums">
                 <tr>
-                  <td colSpan={3} className="px-4 py-3 text-left text-xs font-bold text-[#1d1d1f] dark:text-white">
+                  <td colSpan={3} className="px-4 py-3 text-left text-[12.5px] font-semibold text-[#1d1d1f] dark:text-white">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span>TOTAL ({filtered.length} facturi{filtered.length !== allData.length ? " filtrate" : ""}):</span>
+                      <span>
+                        Total ({filtered.length} facturi
+                        {filtered.length !== allData.length ? " filtrate" : ""})
+                      </span>
                       {totals.hasEur && (
-                        <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-100/70 dark:bg-amber-900/40 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
-                          {formatCurrency(totals.totalEur, "EUR")} (convertit la curs BNR)
+                        <span className="text-[11px] font-medium text-amber-700 dark:text-amber-300 bg-amber-500/10 dark:bg-amber-500/18 px-2 py-0.5 rounded-full">
+                          {formatCurrency(totals.totalEur, "EUR")} convertit BNR
                         </span>
                       )}
                     </div>
                   </td>
-                  <td className="hidden md:table-cell px-4 py-3 text-left text-xs text-[#636366] dark:text-[#98989d]">
+                  <td className="hidden md:table-cell px-4 py-3 text-left text-xs text-[#8e8e93]">
                     —
                   </td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">
                     <div className="flex flex-col items-end">
-                      <span className="text-sm font-black text-[#1d1d1f] dark:text-white">
+                      <span className="text-[14px] font-bold text-[#1d1d1f] dark:text-white">
                         {formatCurrency(totals.totalConvertedRon, "RON")}
                       </span>
                       {totals.hasEur && (
-                        <span className="text-[10.5px] font-semibold text-[#636366] dark:text-[#98989d]" title="Defalcat: Valoare RON + Valoare EUR">
+                        <span className="text-[11px] text-[#6e6e73] dark:text-[#98989d]">
                           {formatCurrency(totals.totalRonOnly, "RON")} + {formatCurrency(totals.totalEur, "EUR")}
                         </span>
                       )}
                     </div>
                   </td>
-                  <td className="hidden lg:table-cell px-4 py-3 text-left text-xs text-[#636366] dark:text-[#98989d] font-normal">
+                  <td className="hidden lg:table-cell px-4 py-3 text-left text-[12px] text-[#6e6e73] dark:text-[#98989d]">
                     {counts.paid} încasate · {counts.overdue} restanțe
                   </td>
-                  <td className="px-4 py-3 text-right text-xs text-[#636366] dark:text-[#98989d]">
+                  <td className="px-4 py-3 text-right text-xs text-[#8e8e93]">
                     —
                   </td>
                 </tr>
@@ -1050,8 +1115,8 @@ export default function EmittedInvoices() {
         </div>
 
         {/* Footer — Pagination */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-black/[0.06] dark:border-white/[0.08] bg-[#f8f9fc]/85 dark:bg-white/[0.02] tabular-nums">
-          <div className="flex items-center gap-4 text-xs text-[#636366] dark:text-[#98989d]">
+        <div className="flex items-center justify-between px-4 py-3 border-t border-black/[0.05] dark:border-white/[0.07] bg-[#fafafa]/85 dark:bg-white/[0.02] tabular-nums flex-wrap gap-2">
+          <div className="flex items-center gap-3 text-[12px] text-[#6e6e73] dark:text-[#98989d]">
             <div className="flex items-center gap-1 whitespace-nowrap">
               Afișează
               <Select
@@ -1061,7 +1126,7 @@ export default function EmittedInvoices() {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="h-7 px-2.5 text-xs apple-btn-glass w-[64px] rounded-full mx-1">
+                <SelectTrigger className="apple-pill-control h-7 px-2.5 text-[12px] w-[66px] mx-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1075,12 +1140,13 @@ export default function EmittedInvoices() {
               </Select>
             </div>
             <span>
-              Total înregistrări: <strong className="text-[#1d1d1f] dark:text-white">{filtered.length}</strong>
+              din <strong className="text-[#1d1d1f] dark:text-white font-semibold">{filtered.length}</strong> documente
             </span>
           </div>
-          <div className="flex items-center gap-2 text-xs text-[#636366] dark:text-[#98989d]">
-            <span>
-              Pagina <strong className="text-[#1d1d1f] dark:text-white">{page}</strong> din <strong className="text-[#1d1d1f] dark:text-white">{totalPages}</strong>
+          <div className="flex items-center gap-1.5 text-[12px] text-[#6e6e73] dark:text-[#98989d]">
+            <span className="mr-1.5">
+              Pagina <strong className="text-[#1d1d1f] dark:text-white font-semibold">{page}</strong> din{" "}
+              <strong className="text-[#1d1d1f] dark:text-white font-semibold">{totalPages}</strong>
             </span>
             <button
               type="button"
@@ -1089,7 +1155,7 @@ export default function EmittedInvoices() {
               disabled={page === 1}
               className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center disabled:opacity-35 transition-colors cursor-pointer"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-3.5 h-3.5" />
             </button>
             <button
               type="button"
@@ -1098,7 +1164,7 @@ export default function EmittedInvoices() {
               disabled={page === totalPages}
               className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center disabled:opacity-35 transition-colors cursor-pointer"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>

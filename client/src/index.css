@@ -139,7 +139,10 @@ body {
   letter-spacing: -0.011em;
 }
 
-h1, h2, h3, .apple-display {
+h1,
+h2,
+h3,
+.apple-display {
   letter-spacing: -0.022em;
 }
 
@@ -326,6 +329,7 @@ h1, h2, h3, .apple-display {
 }
 
 @layer base {
+
   /* Buttons */
   button {
     @apply transition-all duration-150;
@@ -376,6 +380,7 @@ h1, h2, h3, .apple-display {
 
 /* Apple Accessibility Media Queries: Reduce Motion & Reduce Transparency */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -387,6 +392,7 @@ h1, h2, h3, .apple-display {
 }
 
 @media (prefers-reduced-transparency: reduce) {
+
   .glass,
   .apple-glass,
   .glass-sm,
@@ -398,6 +404,7 @@ h1, h2, h3, .apple-display {
     background: #ffffff !important;
     background-color: #ffffff !important;
   }
+
   .dark .glass,
   .dark .apple-glass,
   .dark .glass-sm,
@@ -415,6 +422,7 @@ h1, h2, h3, .apple-display {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -425,6 +433,7 @@ h1, h2, h3, .apple-display {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -544,6 +553,7 @@ button.bg-primary,
   --sidebar-accent-foreground: #ffffff;
   --sidebar-ring: #2563eb;
 }
+
 html.dark[data-theme="blue"] {
   --primary: #3b82f6;
   --accent: #3b82f6;
@@ -568,6 +578,7 @@ html.dark[data-theme="blue"] {
   --sidebar-accent-foreground: #ffffff;
   --sidebar-ring: #14b8a6;
 }
+
 html.dark[data-theme="teal"] {
   --primary: #2dd4bf;
   --accent: #2dd4bf;
@@ -592,6 +603,7 @@ html.dark[data-theme="teal"] {
   --sidebar-accent-foreground: #ffffff;
   --sidebar-ring: #22c55e;
 }
+
 html.dark[data-theme="green"] {
   --primary: #4ade80;
   --accent: #4ade80;
@@ -616,6 +628,7 @@ html.dark[data-theme="green"] {
   --sidebar-accent-foreground: #ffffff;
   --sidebar-ring: #f43f5e;
 }
+
 html.dark[data-theme="rose"] {
   --primary: #fb7185;
   --accent: #fb7185;
@@ -640,6 +653,7 @@ html.dark[data-theme="rose"] {
   --sidebar-accent-foreground: #ffffff;
   --sidebar-ring: #a78bfa;
 }
+
 html.dark[data-theme="violet"] {
   --primary: #a78bfa;
   --accent: #a78bfa;
@@ -664,6 +678,7 @@ html.dark[data-theme="violet"] {
   --sidebar-accent-foreground: #ffffff;
   --sidebar-ring: #fb923c;
 }
+
 html.dark[data-theme="orange"] {
   --primary: #fb923c;
   --accent: #fb923c;
@@ -688,6 +703,7 @@ html.dark[data-theme="orange"] {
   --sidebar-accent-foreground: #ffffff;
   --sidebar-ring: #0284c7;
 }
+
 html.dark[data-theme="navy"] {
   --primary: #0284c7;
   --accent: #0284c7;
@@ -702,15 +718,19 @@ html.dark[data-theme="navy"] {
 [data-theme="teal"] .hover\:bg-blue-700:hover {
   background-color: #0d9488 !important;
 }
+
 [data-theme="teal"] .bg-blue-600:hover {
   background-color: #0f766e !important;
 }
+
 [data-theme="teal"] .text-blue-600 {
   color: #0d9488 !important;
 }
+
 [data-theme="teal"] .border-blue-600 {
   border-color: #0d9488 !important;
 }
+
 [data-theme="teal"] .ring-blue-500 {
   --tw-ring-color: #14b8a6 !important;
 }
@@ -719,15 +739,19 @@ html.dark[data-theme="navy"] {
 [data-theme="green"] .hover\:bg-blue-700:hover {
   background-color: #16a34a !important;
 }
+
 [data-theme="green"] .bg-blue-600:hover {
   background-color: #15803d !important;
 }
+
 [data-theme="green"] .text-blue-600 {
   color: #16a34a !important;
 }
+
 [data-theme="green"] .border-blue-600 {
   border-color: #16a34a !important;
 }
+
 [data-theme="green"] .ring-blue-500 {
   --tw-ring-color: #22c55e !important;
 }
@@ -736,39 +760,51 @@ html.dark[data-theme="navy"] {
 [data-theme="rose"] .hover\:bg-blue-700:hover {
   background-color: #e11d48 !important;
 }
+
 [data-theme="rose"] .bg-blue-600:hover {
   background-color: #be123c !important;
 }
+
 [data-theme="rose"] .text-blue-600 {
   color: #e11d48 !important;
 }
+
 [data-theme="rose"] .border-blue-600 {
   border-color: #e11d48 !important;
 }
+
 [data-theme="rose"] .ring-blue-500 {
   --tw-ring-color: #fb7185 !important;
 }
+
 [data-theme="rose"] .text-blue-400 {
   color: #fb7185 !important;
 }
+
 [data-theme="rose"] .from-blue-500 {
   --tw-gradient-from: #e11d48 !important;
 }
+
 [data-theme="rose"] .to-blue-700 {
   --tw-gradient-to: #be123c !important;
 }
+
 [data-theme="rose"] .hover\:bg-blue-50:hover {
   background-color: #ffe4e6 !important;
 }
+
 [data-theme="rose"] .hover\:border-blue-200:hover {
   border-color: #fecdd3 !important;
 }
+
 [data-theme="rose"] .hover\:text-blue-600:hover {
   color: #e11d48 !important;
 }
+
 [data-theme="rose"] .group-hover\:text-blue-600:is(:where(.group):hover *) {
   color: #e11d48 !important;
 }
+
 [data-theme="rose"] .border-t-blue-600 {
   border-top-color: #e11d48 !important;
 }
@@ -777,15 +813,19 @@ html.dark[data-theme="navy"] {
 [data-theme="violet"] .hover\:bg-blue-700:hover {
   background-color: #7c3aed !important;
 }
+
 [data-theme="violet"] .bg-blue-600:hover {
   background-color: #6d28d9 !important;
 }
+
 [data-theme="violet"] .text-blue-600 {
   color: #7c3aed !important;
 }
+
 [data-theme="violet"] .border-blue-600 {
   border-color: #7c3aed !important;
 }
+
 [data-theme="violet"] .ring-blue-500 {
   --tw-ring-color: #a78bfa !important;
 }
@@ -794,15 +834,19 @@ html.dark[data-theme="navy"] {
 [data-theme="orange"] .hover\:bg-blue-700:hover {
   background-color: #ea580c !important;
 }
+
 [data-theme="orange"] .bg-blue-600:hover {
   background-color: #c2410c !important;
 }
+
 [data-theme="orange"] .text-blue-600 {
   color: #ea580c !important;
 }
+
 [data-theme="orange"] .border-blue-600 {
   border-color: #ea580c !important;
 }
+
 [data-theme="orange"] .ring-blue-500 {
   --tw-ring-color: #fb923c !important;
 }
@@ -811,12 +855,15 @@ html.dark[data-theme="navy"] {
 [data-theme="blue"] .hover\:bg-blue-700:hover {
   background-color: #2563eb !important;
 }
+
 [data-theme="blue"] .bg-blue-600:hover {
   background-color: #1d4ed8 !important;
 }
+
 [data-theme="blue"] .text-blue-600 {
   color: #2563eb !important;
 }
+
 [data-theme="blue"] .border-blue-600 {
   border-color: #2563eb !important;
 }
@@ -825,12 +872,15 @@ html.dark[data-theme="navy"] {
 [data-theme="navy"] .hover\:bg-blue-700:hover {
   background-color: #003366 !important;
 }
+
 [data-theme="navy"] .bg-blue-600:hover {
   background-color: #002244 !important;
 }
+
 [data-theme="navy"] .text-blue-600 {
   color: #003366 !important;
 }
+
 [data-theme="navy"] .border-blue-600 {
   border-color: #003366 !important;
 }
@@ -839,9 +889,9 @@ html.dark[data-theme="navy"] {
  * REGULA GLOBALA: Câmpurile editabile folosesc rotunjirea
  * de la containere (8px / rounded-lg), NU de la butoane (pill)
  * ====================================================== */
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.rounded-full):not([data-slot="input-group-control"]),
-textarea:not(.rounded-full),
-select:not(.rounded-full) {
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.rounded-full):not(.apple-input):not([data-slot="input-group-control"]),
+textarea:not(.rounded-full):not(.apple-input),
+select:not(.rounded-full):not(.apple-input) {
   border-radius: 8px !important;
 }
 
@@ -856,6 +906,7 @@ input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none !important;
   margin: 0 !important;
 }
+
 input[type="number"] {
   -moz-appearance: textfield !important;
 }
@@ -947,10 +998,10 @@ button.active\:bg-green-800:active {
 /* Form checkboxes, radios and toggles */
 input[type="checkbox"]:checked,
 input[type="radio"]:checked,
-.peer:checked ~ .peer-checked\:bg-blue-600,
-.peer:checked ~ .peer-checked\:bg-emerald-600,
-.peer:checked ~ .peer-checked\:bg-teal-500,
-.peer:checked ~ .peer-checked\:bg-teal-600,
+.peer:checked~.peer-checked\:bg-blue-600,
+.peer:checked~.peer-checked\:bg-emerald-600,
+.peer:checked~.peer-checked\:bg-teal-500,
+.peer:checked~.peer-checked\:bg-teal-600,
 .peer-checked\:bg-blue-600:is(:checked ~ *),
 .peer-checked\:bg-primary:is(:checked ~ *) {
   background-color: var(--tenant-theme-color, var(--primary, #16a34a)) !important;
@@ -1059,11 +1110,248 @@ a.border-green-200 {
   from {
     transform: translate3d(0px, 0, 0);
   }
+
   to {
     transform: translate3d(1024px, 0, 0);
   }
 }
 
+/* ============================================================================
+ * APPLE HUMAN INTERFACE GUIDELINES — CONTENT & CONTROL PRIMITIVES
+ * Two-Layer Architecture:
+ *   1. Content Layer (.apple-surface, .apple-inspector-row, .apple-doc-stage)
+ *      -> Opaque elevated surfaces, hairline borders, zero backdrop-blur
+ *   2. Functional Layer (.apple-segmented, .apple-pill-control, .apple-glass)
+ *      -> Crisp UISegmentedControl / NSSegmentedControl with white elevated thumb
+ * ============================================================================ */
 
+.apple-surface {
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.055);
+  border-radius: 20px;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.025),
+    0 6px 20px -6px rgba(15, 23, 42, 0.045);
+}
 
+.dark .apple-surface {
+  background-color: #1c1c1e;
+  border-color: rgba(255, 255, 255, 0.085);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.35),
+    0 8px 24px -8px rgba(0, 0, 0, 0.45);
+}
 
+/* UISegmentedControl / NSSegmentedControl Track & Elevated White Thumb */
+.apple-segmented {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 9999px;
+  background-color: rgba(118, 118, 128, 0.105);
+}
+
+.dark .apple-segmented {
+  background-color: rgba(118, 118, 128, 0.24);
+}
+
+.apple-segmented-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.008em;
+  color: #636366;
+  background: transparent;
+  border: none;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    color 0.16s ease,
+    box-shadow 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dark .apple-segmented-item {
+  color: #98989d;
+}
+
+.apple-segmented-item:hover:not([data-active="true"]) {
+  color: #1d1d1f;
+}
+
+.dark .apple-segmented-item:hover:not([data-active="true"]) {
+  color: #f5f5f7;
+}
+
+.apple-segmented-item[data-active="true"] {
+  background-color: #ffffff !important;
+  color: #1d1d1f !important;
+  font-weight: 600;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.09),
+    0 1px 1px rgba(0, 0, 0, 0.05),
+    0 0 0 0.5px rgba(0, 0, 0, 0.04);
+}
+
+.dark .apple-segmented-item[data-active="true"] {
+  background-color: #3a3a3c !important;
+  color: #ffffff !important;
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.45),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.14);
+}
+
+/* Soft Monochrome Filter / Search / Popover Pill (Apple Finder / Mail) */
+.apple-pill-control {
+  border-radius: 9999px !important;
+  background-color: rgba(118, 118, 128, 0.09);
+  border: 1px solid transparent;
+  color: #1d1d1f;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: -0.008em;
+  box-shadow: none;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.apple-pill-control:hover {
+  background-color: rgba(118, 118, 128, 0.14);
+}
+
+.dark .apple-pill-control {
+  background-color: rgba(118, 118, 128, 0.22);
+  color: #f5f5f7;
+}
+
+.dark .apple-pill-control:hover {
+  background-color: rgba(118, 118, 128, 0.30);
+}
+
+.apple-pill-control[data-filtered="true"] {
+  background-color: #ffffff;
+  border-color: rgba(0, 0, 0, 0.12);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.dark .apple-pill-control[data-filtered="true"] {
+  background-color: #2c2c2e;
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* Subtle Semantic Destructive Capsule (Apple HIG #ff3b30 / #ff453a) */
+.apple-btn-destructive-soft {
+  border-radius: 9999px;
+  background-color: rgba(255, 59, 48, 0.10) !important;
+  color: #d70015 !important;
+  border: 1px solid rgba(255, 59, 48, 0.22) !important;
+  transition: background-color 0.16s ease, border-color 0.16s ease;
+}
+
+.apple-btn-destructive-soft:hover {
+  background-color: rgba(255, 59, 48, 0.16) !important;
+  border-color: rgba(255, 59, 48, 0.32) !important;
+}
+
+.dark .apple-btn-destructive-soft {
+  background-color: rgba(255, 69, 58, 0.16) !important;
+  color: #ff6961 !important;
+  border-color: rgba(255, 69, 58, 0.28) !important;
+}
+
+.dark .apple-btn-destructive-soft:hover {
+  background-color: rgba(255, 69, 58, 0.24) !important;
+}
+
+/* Apple Sheet Text Field (12px squircle radius, soft fill) */
+.apple-input {
+  border-radius: 12px !important;
+  background-color: rgba(118, 118, 128, 0.09);
+  border: 1px solid transparent;
+  color: #1d1d1f;
+  font-size: 13.5px;
+  transition: background-color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.apple-input::placeholder {
+  color: #8e8e93;
+}
+
+.apple-input:focus {
+  background-color: #ffffff;
+  border-color: rgba(0, 113, 227, 0.45) !important;
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.14);
+}
+
+.dark .apple-input {
+  background-color: rgba(118, 118, 128, 0.24);
+  color: #f5f5f7;
+}
+
+.dark .apple-input:focus {
+  background-color: #2c2c2e;
+  border-color: rgba(10, 132, 255, 0.55) !important;
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.20);
+}
+
+/* Apple macOS Inspector Key-Value Hairline Row */
+.apple-inspector-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(60, 60, 67, 0.07);
+}
+
+.dark .apple-inspector-row {
+  border-bottom-color: rgba(235, 235, 245, 0.08);
+}
+
+.apple-inspector-row:first-child {
+  padding-top: 0;
+}
+
+.apple-inspector-row:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+/* macOS Quick Look / Preview Document Stage */
+.apple-doc-stage {
+  background-color: #ebebf0;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.dark .apple-doc-stage {
+  background-color: #101014;
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.apple-doc-paper {
+  border-radius: 14px;
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow:
+    0 12px 34px -8px rgba(15, 23, 42, 0.12),
+    0 2px 6px rgba(15, 23, 42, 0.05);
+}
+
+.dark .apple-doc-paper {
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 16px 40px -8px rgba(0, 0, 0, 0.65),
+    0 2px 8px rgba(0, 0, 0, 0.4);
+}

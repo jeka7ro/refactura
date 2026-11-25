@@ -1,5 +1,21 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-25 10:54 — Redesign Apple HIG complet pentru Listele de Facturi și toate ecranele Detalii Factură (`AllInvoices`, `EmittedInvoices`, `ReInvoicesSent`, `InvoiceDetail`, `EmittedInvoiceDetail`, `ReInvoiceDetail`, `index.css`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Primitive autentice Apple Human Interface Guidelines (`client/src/index.css`):**
+     - Separat strict cele două straturi Apple (`liquid-glass.md`): stratul de conținut opac elevat (`.apple-surface`, `.apple-inspector-row`, `.apple-doc-stage` + `.apple-doc-paper`) și stratul funcțional (`.apple-segmented` / `.apple-segmented-item` cu pastilă albă elevată stil `UISegmentedControl` / `NSSegmentedControl`, `.apple-pill-control`, `.apple-btn-destructive-soft`, `.apple-input`).
+  2. **Paginile de Facturi (`AllInvoices.tsx`, `EmittedInvoices.tsx`, `ReInvoicesSent.tsx`):**
+     - Eliminat redundanța controalelor și butoanele multicolore stridente în favoarea cardurilor KPI curate (`.apple-surface`, etichete calme sentence-case, sume `SF Pro Display` `tabular-nums`) și a unui panou unificat de filtrare cu segmente monocrome cu pastilă albă elevată (`[Toate | Primite | Emise]`, `[Toate | Azi | Ieri | Săpt. asta | Săpt. trec. | Luna asta | Luna trec. | An | Interval]`, stări de lucru) + filtre soft-pill și un singur CTA proeminent.
+     - Optimizat tabelele în stil macOS Finder/Mail (antet calm sentence-case `12px`, punct albastru `#0071e3` pentru facturi necitite, butoane de rând monocrome `.apple-btn-glass`, bară flotantă translucidă la selecție multiplă și rânduri mobile accesibile `>=11px` cu ținte tactile `36x36px`).
+  3. **Toate cele 3 ecrane Detalii Factură (`InvoiceDetail.tsx`, `EmittedInvoiceDetail.tsx`, `ReInvoiceDetail.tsx`):**
+     - Înlocuit șirul de butoane curcubeu din antet cu o bară flotantă translucidă `.apple-glass` cu **un singur CTA proeminent** (`Creează NIR` / `Vezi NIR`, `Trimite în SPV` sau `Trimite pe Email`), păstrând 100% din acțiunile secundare în capsule monocrome `.apple-btn-glass` și acțiunea de stornare în `.apple-btn-destructive-soft`.
+     - Redesenat cardurile de sumar în stil macOS Inspector / Apple Wallet (valoare principală `28px` bold `tabular-nums` în `#1d1d1f` în loc de roșu `rose-600`, rânduri cu linii fine `.apple-inspector-row` și copiere rapidă la click pentru `CUI` și `Index SPV`).
+     - Încadrat previzualizarea PDF (Factură + Deviz) într-o scenă macOS Quick Look / Preview (`.apple-doc-stage` + foaie albă cu umbră naturală `.apple-doc-paper`) și adus modalele de Email la stilul Apple Sheet (`.apple-input` + selector de limbi squircle).
+- **Fișiere:** `client/src/index.css`, `client/src/pages/AllInvoices.tsx`, `client/src/pages/EmittedInvoices.tsx`, `client/src/pages/ReInvoicesSent.tsx`, `client/src/pages/InvoiceDetail.tsx`, `client/src/pages/EmittedInvoiceDetail.tsx`, `client/src/pages/ReInvoiceDetail.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori) și `npm run build` (`0` erori), fără `git push`.
+
 ### 2026-11-24 17:17 — Upgrade Dispecerat Live & Apple Design (`DashboardLayout`, `Dashboard`, `AllInvoices`, `NIRList`, `SpvHub`)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

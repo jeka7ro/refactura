@@ -20,6 +20,9 @@ import {
   CheckCircle2,
   AlertCircle,
   X,
+  Coins,
+  Copy,
+  ExternalLink,
 } from "lucide-react";
 import {
   formatCurrency,
@@ -217,358 +220,470 @@ export default function EmittedInvoiceDetail() {
 
   const status = (invoice.status || "draft") as any;
   const isSpvValidated = invoice.spvStatus === "validat" || Boolean(invoice.spvIndex);
+  const totalVal = parseFloat(String(invoice.total || "0"));
+  const subtotalVal = parseFloat(String(invoice.subtotal || "0"));
+  const vatVal = parseFloat(String(invoice.totalVAT || "0"));
+  const isStorno = totalVal < 0;
+  const isExternal = isExternalInvoice(invoice);
+  const needsSpvSend =
+    !isExternal &&
+    (!invoice.spvStatus ||
+      invoice.spvStatus === "nesincronizat" ||
+      invoice.spvStatus === "eroare");
+
+  const openSendEmailModal = (prefillRecipient?: string) => {
+    setEmailRecipient(prefillRecipient ?? (invoice.clientEmail || ""));
+    const match = (invoice.notes || "").match(
+      /(?:delegat|reprezentant|persoan[aă] de contact)\s*:\s*([^\n\r(]+)/i
+    );
+    setRepresentativeName(match && match[1] ? match[1].trim() : "");
+    setShowEmailModal(true);
+  };
+
+  const copyToClipboard = (value: string, label: string) => {
+    navigator.clipboard.writeText(value);
+    toast.success(`${label} copiat în clipboard`);
+  };
 
   return (
-    <div className="p-3 sm:p-5 max-w-full space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-3">
+    <div className="p-3 sm:p-5 max-w-full space-y-4">
+      {/* Top Floating Apple Glass Action Bar (1 Prominent CTA + Monochrome Glass Secondary Capsules) */}
+      <div className="apple-glass rounded-[22px] px-4 sm:px-5 py-3.5 flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-3 min-w-0">
           <button
             type="button"
+            aria-label="Înapoi"
             onClick={() => window.history.back()}
-            className="flex items-center justify-center w-8 h-8 rounded-full apple-btn-glass border border-black/[0.06] dark:border-white/[0.09] hover:bg-black/[0.04] dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
+            className="apple-btn-glass flex items-center justify-center w-9 h-9 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] shrink-0 cursor-pointer"
           >
-            <ArrowLeft className="w-4 h-4 text-[#3a3a3c] dark:text-[#ebebf5]" />
+            <ArrowLeft className="w-4 h-4" />
           </button>
-          <div>
-            <h1 className="text-xl font-bold text-[#1d1d1f] dark:text-white tracking-tight tabular-nums">
-              Factură {formatInvoiceNumber(invoice.series, invoice.number)}
-            </h1>
-            <p className="text-sm text-[#636366] dark:text-[#98989d] mt-0.5 tabular-nums">
-              {invoice.clientName || "—"} ·{" "}
-              {formatDate(invoice.issueDate || "")}
-            </p>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+              <span>Factură emisă</span>
+              <span>·</span>
+              <span className="truncate max-w-[240px]">{invoice.clientName || "—"}</span>
+              <span>·</span>
+              <span className="tabular-nums">{formatDate(invoice.issueDate || "")}</span>
+            </div>
+            <div className="flex items-center gap-2.5 flex-wrap mt-0.5">
+              <h1 className="text-[20px] sm:text-[22px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.024em] leading-tight tabular-nums">
+                Factură {formatInvoiceNumber(invoice.series, invoice.number)}
+              </h1>
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border leading-tight ${
+                  (invoiceStatusColors as any)[status] ||
+                  "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
+                }`}
+              >
+                {(invoiceStatusLabels as any)[status] || status}
+              </span>
+            </div>
           </div>
         </div>
+
         <div className="flex items-center gap-2 flex-wrap">
-          <span
-            className={`px-3 h-8 flex items-center rounded-full text-xs font-bold border ${(invoiceStatusColors as any)[status] || "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"}`}
-          >
-            {(invoiceStatusLabels as any)[status] || status}
-          </span>
-          <button
-            type="button"
-            onClick={() => {
-              setEmailRecipient(invoice.clientEmail || "");
-              const match = (invoice.notes || "").match(/(?:delegat|reprezentant|persoan[aă] de contact)\s*:\s*([^\n\r(]+)/i);
-              setRepresentativeName(match && match[1] ? match[1].trim() : "");
-              setShowEmailModal(true);
-            }}
-            className="flex items-center gap-1.5 px-3.5 h-8 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.97] cursor-pointer"
-          >
-            <Mail className="w-3.5 h-3.5" />
-            Trimite pe Email
-          </button>
           {isSpvValidated ? (
             <>
               <div
-                className="flex items-center gap-1.5 px-3.5 h-8 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs font-semibold select-none shadow-sm cursor-default"
+                className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-black/[0.045] dark:bg-white/[0.08] border border-black/[0.06] dark:border-white/[0.10] text-[#6e6e73] dark:text-[#98989d] text-[12px] font-medium select-none cursor-default"
                 title="Conform legislației fiscale (OUG 120/2021 și Codul Fiscal art. 330), documentul a fost validat în SPV și nu mai poate fi modificat. Pentru corecții, emiteți o factură de stornare."
               >
-                <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                <span>Blocată la editare (Document oficial înregistrat în SPV)</span>
+                <Lock className="w-3.5 h-3.5 shrink-0" />
+                <span>Înregistrată SPV · Nemodificabilă</span>
               </div>
               <Link href={`/facturi-emise-nou/storno/${invoice.id}`}>
                 <button
                   type="button"
-                  className="flex items-center gap-1.5 px-3.5 h-8 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.97] cursor-pointer"
+                  className="apple-btn-destructive-soft inline-flex items-center gap-1.5 px-3.5 h-9 rounded-full text-[12.5px] font-semibold cursor-pointer"
                   title="Emite o factură de stornare (cu valori negative) conform legii fiscale"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
-                  Stornează Factura
+                  <span>Stornează</span>
                 </button>
               </Link>
             </>
           ) : (
-            <Link href={`/facturi-emise-nou/${invoice.id}`}>
+            <>
+              <Link href={`/facturi-emise-nou/${invoice.id}`}>
+                <button
+                  type="button"
+                  className="apple-btn-glass inline-flex items-center gap-1.5 px-3.5 h-9 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-semibold cursor-pointer"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  <span>Editează Factura</span>
+                </button>
+              </Link>
+              {linkedDeviz && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditDevizOpen(true)}
+                  className="apple-btn-glass inline-flex items-center gap-1.5 px-3.5 h-9 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-semibold cursor-pointer"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  <span>Editează Deviz</span>
+                </button>
+              )}
+            </>
+          )}
+
+          {needsSpvSend ? (
+            <>
               <button
                 type="button"
-                className="flex items-center gap-1.5 px-3.5 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.97] cursor-pointer"
+                onClick={() => openSendEmailModal()}
+                className="apple-btn-glass inline-flex items-center gap-1.5 px-3.5 h-9 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-semibold cursor-pointer"
               >
-                Editează Factura
-                <ArrowRight className="w-3.5 h-3.5" />
+                <Mail className="w-3.5 h-3.5" />
+                <span>Trimite pe Email</span>
               </button>
-            </Link>
-          )}
-          {linkedDeviz && !isSpvValidated && (
+              <button
+                type="button"
+                onClick={() => sendToSpv.mutate({ id: invoice.id })}
+                disabled={sendToSpv.isPending}
+                className="apple-btn-prominent inline-flex items-center gap-1.5 px-4 h-9 rounded-full text-white text-[12.5px] font-semibold disabled:opacity-60 cursor-pointer"
+              >
+                {sendToSpv.isPending ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Send className="w-3.5 h-3.5" />
+                )}
+                <span>Trimite în SPV</span>
+              </button>
+            </>
+          ) : (
             <button
               type="button"
-              onClick={() => setIsEditDevizOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 h-8 rounded-full bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.97] cursor-pointer"
+              onClick={() => openSendEmailModal()}
+              className="apple-btn-prominent inline-flex items-center gap-1.5 px-4 h-9 rounded-full text-white text-[12.5px] font-semibold cursor-pointer"
             >
-              <Pencil className="w-3.5 h-3.5" />
-              Editează Deviz
+              <Mail className="w-3.5 h-3.5" />
+              <span>Trimite pe Email</span>
             </button>
           )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        {/* Client Info */}
-        <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] shadow-sm border border-black/[0.06] dark:border-white/[0.09] p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Building2 className="w-4 h-4 text-[#636366] dark:text-[#98989d]" />
-            <span className="text-xs font-bold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">
-              Client
-            </span>
+      {/* 4 Apple Inspector Cards (Opaque Content Layer) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3.5">
+        {/* Card 1: Hero Financial Summary */}
+        <div className="apple-surface p-5 flex flex-col justify-between tabular-nums">
+          <div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                Total facturat
+              </span>
+              <span className="w-7 h-7 rounded-lg bg-[#f2f2f7] dark:bg-[#2c2c2e] flex items-center justify-center shrink-0">
+                <Coins className="w-3.5 h-3.5 text-[#1d1d1f] dark:text-[#f5f5f7]" />
+              </span>
+            </div>
+            <div
+              className={`text-[26px] sm:text-[28px] font-bold tracking-[-0.03em] leading-none mt-2 ${
+                isStorno
+                  ? "text-[#ff3b30] dark:text-[#ff453a]"
+                  : "text-[#1d1d1f] dark:text-[#f5f5f7]"
+              }`}
+            >
+              {formatCurrency(totalVal, invoice.currency as any)}
+            </div>
           </div>
-          <div className="space-y-2">
-            <div className="text-sm font-semibold text-[#1d1d1f] dark:text-white flex items-center justify-between gap-2">
-              <span>{invoice.clientName || "—"}</span>
-              {invoice.clientCode && (
-                <span className="px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs tabular-nums font-bold">
-                  Cod SAGA: {invoice.clientCode}
-                </span>
+
+          <div className="mt-4 pt-3 border-t border-black/[0.06] dark:border-white/[0.08]">
+            <div className="apple-inspector-row text-[12.5px]">
+              <span className="text-[#6e6e73] dark:text-[#98989d]">Subtotal</span>
+              <span className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                {formatCurrency(subtotalVal, invoice.currency as any)}
+              </span>
+            </div>
+            <div className="apple-inspector-row text-[12.5px]">
+              <span className="text-[#6e6e73] dark:text-[#98989d]">TVA</span>
+              <span className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                {formatCurrency(vatVal, invoice.currency as any)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 2: Client Info */}
+        <div className="apple-surface p-5 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                Client / Cumpărător
+              </span>
+              <span className="w-7 h-7 rounded-lg bg-[#f2f2f7] dark:bg-[#2c2c2e] flex items-center justify-center shrink-0">
+                <Building2 className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d]" />
+              </span>
+            </div>
+            <div className="text-[15.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] leading-snug">
+              {invoice.clientName || "—"}
+            </div>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-black/[0.06] dark:border-white/[0.08]">
+            <div className="apple-inspector-row text-[12.5px] tabular-nums">
+              <span className="text-[#6e6e73] dark:text-[#98989d]">Cod fiscal (CUI)</span>
+              {invoice.clientCUI ? (
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(String(invoice.clientCUI), "CUI")}
+                  className="inline-flex items-center gap-1.5 font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] hover:text-[#0071e3] dark:hover:text-[#0a84ff] cursor-pointer"
+                  title="Copiază CUI"
+                >
+                  <span>{invoice.clientCUI}</span>
+                  <Copy className="w-3 h-3 text-[#8e8e93]" />
+                </button>
+              ) : (
+                <span className="text-[#8e8e93]">—</span>
               )}
             </div>
-            {invoice.clientCUI && (
-              <div className="text-xs text-[#636366] dark:text-[#98989d] tabular-nums">
-                CUI: {invoice.clientCUI}
+            {invoice.clientCode ? (
+              <div className="apple-inspector-row text-[12.5px] tabular-nums">
+                <span className="text-[#6e6e73] dark:text-[#98989d]">Cod SAGA</span>
+                <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:bg-amber-500/18 dark:text-amber-300 text-[11px] font-semibold">
+                  {invoice.clientCode}
+                </span>
+              </div>
+            ) : (
+              <div className="apple-inspector-row text-[12.5px]">
+                <span className="text-[#6e6e73] dark:text-[#98989d]">Țară</span>
+                <span className="font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">
+                  {invoice.clientCountry || "RO"}
+                </span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Invoice Info */}
-        <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] shadow-sm border border-black/[0.06] dark:border-white/[0.09] p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Hash className="w-4 h-4 text-[#636366] dark:text-[#98989d]" />
-            <span className="text-xs font-bold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">
-              Detalii Factură
-            </span>
-          </div>
-          <div className="space-y-2 text-xs tabular-nums">
-            <div className="flex justify-between">
-              <span className="text-[#636366] dark:text-[#98989d]">Număr:</span>
-              <span className="text-[#1d1d1f] dark:text-white font-medium">
-                {formatInvoiceNumber(invoice.series, invoice.number)}
+        {/* Card 3: Fiscal & SPV Inspector */}
+        <div className="apple-surface p-5 flex flex-col justify-between tabular-nums">
+          <div>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                Detalii & RO e-Factura
+              </span>
+              <span className="w-7 h-7 rounded-lg bg-[#f2f2f7] dark:bg-[#2c2c2e] flex items-center justify-center shrink-0">
+                <Hash className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d]" />
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-[#636366] dark:text-[#98989d]">Dată:</span>
-              <span className="text-[#1d1d1f] dark:text-white font-medium">
-                {formatDate(invoice.issueDate || "")}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-[#636366] dark:text-[#98989d]">Scadență:</span>
-              <span className="text-[#1d1d1f] dark:text-white font-medium">
-                {formatDate(invoice.dueDate || "")}
-              </span>
-            </div>
-            <div className="flex justify-between mt-2 pt-2 border-t border-black/[0.06] dark:border-white/[0.08]">
-              <span className="text-[#636366] dark:text-[#98989d] font-bold">Stare SPV:</span>
-              <span className="text-[#1d1d1f] dark:text-white font-bold">
-                {isExternalInvoice(invoice) ? (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
-                    Extern (D390)
-                  </span>
-                ) : invoice.spvStatus === "validat" ? (
-                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">Validată</span>
-                ) : invoice.spvStatus === "eroare" ? (
-                  <span className="text-rose-600 dark:text-rose-400 font-bold">Eroare</span>
-                ) : invoice.spvStatus === "in_procesare" ? (
-                  <span className="text-blue-600 dark:text-blue-400 font-bold">Trimisă</span>
-                ) : (
-                  invoice.spvStatus || "Netrimisă"
-                )}
-              </span>
-            </div>
-            {(invoice.spvSentAt || (invoice.spvIndex && (invoice.updatedAt || invoice.createdAt))) && (
-              <div className="flex justify-between">
-                <span className="text-[#636366] dark:text-[#98989d]">Data Transmisă:</span>
-                {(() => {
-                  const d = invoice.spvSentAt || invoice.updatedAt || invoice.createdAt;
-                  const inTermen = isTransmittedInDeadline(invoice.issueDate, d);
-                  const dObj = d instanceof Date ? d : d ? new Date(d) : null;
-                  const timeStr = dObj && !isNaN(dObj.getTime())
-                    ? dObj.toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })
-                    : "";
-                  return (
-                    <span className={`font-medium ${inTermen ? "text-emerald-600 dark:text-emerald-400" : "text-[#1d1d1f] dark:text-white"}`}>
-                      {formatDate(d)} {timeStr}
-                    </span>
-                  );
-                })()}
-              </div>
-            )}
-            {invoice.spvIndex && (
-              <div className="flex justify-between">
-                <span className="text-slate-500">Index SPV:</span>
-                <span className="font-medium text-slate-700 dark:text-slate-300">
-                  {invoice.spvIndex}
+
+            <div>
+              <div className="apple-inspector-row text-[12.5px]">
+                <span className="text-[#6e6e73] dark:text-[#98989d]">Data / Scadență</span>
+                <span className="font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">
+                  {formatDate(invoice.issueDate || "")}
+                  {invoice.dueDate ? ` · ${formatDate(invoice.dueDate)}` : ""}
                 </span>
               </div>
-            )}
-            {!isExternalInvoice(invoice) && !isSpvTransmitted(invoice.spvStatus, invoice.spvIndex, invoice.spvSentAt) && (
-              <div className="mt-2.5">
-                <SpvDeadlineBadge
-                  detailed={true}
-                  issueDate={invoice.issueDate || invoice.createdAt}
-                  clientCountry={invoice.clientCountry}
-                  clientCUI={invoice.clientCUI}
-                  spvStatus={invoice.spvStatus}
-                  spvIndex={invoice.spvIndex}
-                  spvSentAt={invoice.spvSentAt}
-                />
+              <div className="apple-inspector-row text-[12.5px]">
+                <span className="text-[#6e6e73] dark:text-[#98989d]">Stare SPV</span>
+                <span>
+                  {isExternal ? (
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:bg-amber-500/18 dark:text-amber-300">
+                      Extern (D390)
+                    </span>
+                  ) : invoice.spvStatus === "validat" ? (
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300">
+                      Validată ANAF
+                    </span>
+                  ) : invoice.spvStatus === "eroare" ? (
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#ff3b30]/10 text-[#d70015] dark:text-[#ff6961]">
+                      Eroare ANAF
+                    </span>
+                  ) : invoice.spvStatus === "in_procesare" ? (
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#0071e3]/10 text-[#0071e3] dark:text-[#64d2ff]">
+                      În procesare
+                    </span>
+                  ) : (
+                    <span className="text-[#8e8e93] font-medium">
+                      {invoice.spvStatus || "Netrimisă"}
+                    </span>
+                  )}
+                </span>
               </div>
-            )}
-            {isExternalInvoice(invoice) && (
-              <div className="mt-2.5 p-2.5 rounded-lg bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/60 text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
-                Factură externă ({invoice.clientCountry || "UE"}). Conform legislației fiscale, operațiunile externe nu se transmit în RO e-Factura, ci se raportează în <strong>Declarația 390 VIES</strong> și se transmit clientului în format PDF pe e-mail.
-              </div>
-            )}
-            {invoice.spvStatus === "eroare" && invoice.spvError && (
-              <div className="mt-2.5 p-3 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-800 dark:text-rose-200">
-                <div className="font-bold flex items-center gap-1.5 mb-1 text-rose-700 dark:text-rose-300">
-                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                  <span>Mesaj eroare de la ANAF (RO e-Factura):</span>
+
+              {(invoice.spvSentAt ||
+                (invoice.spvIndex && (invoice.updatedAt || invoice.createdAt))) && (
+                <div className="apple-inspector-row text-[12.5px]">
+                  <span className="text-[#6e6e73] dark:text-[#98989d]">Transmisă la</span>
+                  {(() => {
+                    const d = invoice.spvSentAt || invoice.updatedAt || invoice.createdAt;
+                    const inTermen = isTransmittedInDeadline(invoice.issueDate, d);
+                    const dObj = d instanceof Date ? d : d ? new Date(d) : null;
+                    const timeStr =
+                      dObj && !isNaN(dObj.getTime())
+                        ? dObj.toLocaleTimeString("ro-RO", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "";
+                    return (
+                      <span
+                        className={`font-medium ${
+                          inTermen
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-[#1d1d1f] dark:text-white"
+                        }`}
+                      >
+                        {formatDate(d)} {timeStr}
+                      </span>
+                    );
+                  })()}
                 </div>
-                <p className="tabular-nums text-[11px] leading-relaxed bg-white/80 dark:bg-slate-900/60 p-2 rounded border border-rose-100 dark:border-rose-900 break-words">
+              )}
+
+              {invoice.spvIndex && (
+                <div className="apple-inspector-row text-[12.5px]">
+                  <span className="text-[#6e6e73] dark:text-[#98989d]">Index SPV</span>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(String(invoice.spvIndex), "Index SPV")}
+                    className="inline-flex items-center gap-1.5 font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] hover:text-[#0071e3] cursor-pointer"
+                    title="Copiază Index SPV"
+                  >
+                    <span>{invoice.spvIndex}</span>
+                    <Copy className="w-3 h-3 text-[#8e8e93]" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {!isExternal &&
+              !isSpvTransmitted(
+                invoice.spvStatus,
+                invoice.spvIndex,
+                invoice.spvSentAt
+              ) && (
+                <div className="mt-2.5">
+                  <SpvDeadlineBadge
+                    detailed={true}
+                    issueDate={invoice.issueDate || invoice.createdAt}
+                    clientCountry={invoice.clientCountry}
+                    clientCUI={invoice.clientCUI}
+                    spvStatus={invoice.spvStatus}
+                    spvIndex={invoice.spvIndex}
+                    spvSentAt={invoice.spvSentAt}
+                  />
+                </div>
+              )}
+
+            {isExternal && (
+              <div className="mt-2.5 p-2.5 rounded-xl bg-amber-500/[0.08] border border-amber-500/20 text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                Factură externă ({invoice.clientCountry || "UE"}) — se raportează prin{" "}
+                <strong>D390 VIES</strong> și se transmite pe e-mail în format PDF.
+              </div>
+            )}
+
+            {invoice.spvStatus === "eroare" && invoice.spvError && (
+              <div className="mt-2.5 p-2.5 rounded-xl bg-[#ff3b30]/[0.07] border border-[#ff3b30]/20 text-[11px] text-[#d70015] dark:text-[#ff6961] space-y-1">
+                <div className="font-semibold flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>Eroare validare ANAF:</span>
+                </div>
+                <p className="tabular-nums leading-relaxed break-words opacity-90">
                   {invoice.spvError}
                 </p>
-                <p className="mt-2 text-[11px] text-slate-600 dark:text-slate-400">
-                  Structura XML a fost corectată conform regulilor CIUS-RO ANAF. Puteți retransmite factura apăsând pe <strong>Trimite SPV</strong>.
-                </p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Totals */}
-        <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] shadow-sm border border-black/[0.06] dark:border-white/[0.09] p-5 tabular-nums">
-          <div className="flex items-center gap-2 mb-4">
-            <Globe className="w-4 h-4 text-[#636366] dark:text-[#98989d]" />
-            <span className="text-xs font-bold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">
-              Totaluri
-            </span>
-          </div>
-          <div className="space-y-3 text-xs">
-            <div className="flex justify-between">
-              <span className="text-[#636366] dark:text-[#98989d]">Subtotal:</span>
-              <span className="text-[#1d1d1f] dark:text-white font-medium">
-                {formatCurrency(
-                  parseFloat(String(invoice.subtotal)),
-                  invoice.currency as any
-                )}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-[#636366] dark:text-[#98989d]">TVA:</span>
-              <span className="text-[#1d1d1f] dark:text-white font-medium">
-                {formatCurrency(
-                  parseFloat(String(invoice.totalVAT)),
-                  invoice.currency as any
-                )}
-              </span>
-            </div>
-            <div className="flex justify-between pt-2 mt-2 border-t border-black/[0.06] dark:border-white/[0.08]">
-              <span className="font-bold text-[#1d1d1f] dark:text-white">
-                Total:
-              </span>
-              <span className="font-black text-rose-600 dark:text-rose-400 text-sm">
-                {formatCurrency(
-                  parseFloat(String(invoice.total)),
-                  invoice.currency as any
-                )}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Transmitere Email & Previzualizare */}
-        <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] shadow-sm border border-black/[0.06] dark:border-white/[0.09] p-5 flex flex-col justify-between">
+        {/* Card 4: Email Delivery Inspector */}
+        <div className="apple-surface p-5 flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between gap-2 mb-4">
-              <div className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-[#636366] dark:text-[#98989d]" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">
-                  Transmitere Email
-                </span>
-              </div>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                Transmitere Email
+              </span>
               {latestEmailLog?.status === "trimis" ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                  Trimis
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300">
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>Trimis</span>
                 </span>
               ) : latestEmailLog?.status === "eroare" ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
-                  <AlertCircle className="w-3 h-3 text-rose-600 dark:text-rose-400" />
-                  Eroare trimitere
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#ff3b30]/10 text-[#d70015] dark:text-[#ff6961]">
+                  <AlertCircle className="w-3 h-3" />
+                  <span>Eroare</span>
                 </span>
               ) : (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700">
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#6e6e73] dark:text-[#98989d]">
                   Netrimis
                 </span>
               )}
             </div>
 
             {latestEmailLog ? (
-              <div className="space-y-2 text-xs tabular-nums">
-                <div className="flex justify-between items-start gap-2">
-                  <span className="text-[#636366] dark:text-[#98989d] shrink-0">Destinatar:</span>
-                  <span className="text-[#1d1d1f] dark:text-white font-medium text-right truncate max-w-[170px]" title={latestEmailLog.recipientEmail}>
+              <div className="tabular-nums">
+                <div className="apple-inspector-row text-[12.5px]">
+                  <span className="text-[#6e6e73] dark:text-[#98989d] shrink-0">
+                    Destinatar
+                  </span>
+                  <span
+                    className="text-[#1d1d1f] dark:text-white font-medium text-right truncate max-w-[165px]"
+                    title={latestEmailLog.recipientEmail}
+                  >
                     {latestEmailLog.recipientEmail}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-[#636366] dark:text-[#98989d]">Data {latestEmailLog.status === "eroare" ? "încercării" : "expedierii"}:</span>
+                <div className="apple-inspector-row text-[12.5px]">
+                  <span className="text-[#6e6e73] dark:text-[#98989d]">
+                    {latestEmailLog.status === "eroare" ? "Încercare" : "Expediat"}
+                  </span>
                   <span className="text-[#1d1d1f] dark:text-white font-medium">
-                    {formatDate(latestEmailLog.sentAt)} {(() => {
+                    {formatDate(latestEmailLog.sentAt)}{" "}
+                    {(() => {
                       const s = latestEmailLog.sentAt;
                       const d = s instanceof Date ? s : s ? new Date(s) : null;
                       return d && !isNaN(d.getTime())
-                        ? d.toLocaleTimeString("ro-RO", { hour: "2-digit", minute: "2-digit" })
+                        ? d.toLocaleTimeString("ro-RO", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
                         : "";
                     })()}
                   </span>
                 </div>
                 {latestEmailLog.status === "eroare" && latestEmailLog.error && (
-                  <div className="p-2 rounded bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-[11px] text-rose-700 dark:text-rose-300">
-                    <span className="font-semibold block mb-0.5">Motiv eroare:</span>
-                    <span className="break-all tabular-nums text-[10px]">{latestEmailLog.error}</span>
+                  <div className="mt-2 p-2 rounded-xl bg-[#ff3b30]/[0.07] border border-[#ff3b30]/20 text-[11px] text-[#d70015] dark:text-[#ff6961] break-all">
+                    {latestEmailLog.error}
                   </div>
                 )}
-                {invoiceEmailLogs && invoiceEmailLogs.length > 1 && (() => {
-                  const successCount = invoiceEmailLogs.filter(l => l.status === "trimis").length;
-                  const errorCount = invoiceEmailLogs.filter(l => l.status === "eroare").length;
-                  return (
-                    <div className="flex justify-between text-[11px] text-slate-500">
-                      <span>Istoric:</span>
-                      {successCount > 0 && errorCount > 0 ? (
-                        <span className="font-semibold text-slate-700 dark:text-slate-300">
-                          <span className="text-emerald-600">{successCount} trimise</span> / <span className="text-rose-600">{errorCount} eșuate</span>
+                {invoiceEmailLogs &&
+                  invoiceEmailLogs.length > 1 &&
+                  (() => {
+                    const successCount = invoiceEmailLogs.filter(
+                      l => l.status === "trimis"
+                    ).length;
+                    const errorCount = invoiceEmailLogs.filter(
+                      l => l.status === "eroare"
+                    ).length;
+                    return (
+                      <div className="apple-inspector-row text-[12px]">
+                        <span className="text-[#6e6e73] dark:text-[#98989d]">
+                          Istoric
                         </span>
-                      ) : successCount > 0 ? (
-                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                          {successCount} trimiteri reușite
+                        <span className="font-medium text-[#1d1d1f] dark:text-[#ebebf5]">
+                          {successCount > 0 && `${successCount} trimise`}
+                          {successCount > 0 && errorCount > 0 && " · "}
+                          {errorCount > 0 && `${errorCount} eșuate`}
                         </span>
-                      ) : (
-                        <span className="font-semibold text-rose-600 dark:text-rose-400">
-                          {errorCount} încercări eșuate
-                        </span>
-                      )}
-                    </div>
-                  );
-                })()}
-                {latestEmailLog.messageId && (
-                  <div className="flex justify-between items-center text-[11px] text-slate-400">
-                    <span>Message ID:</span>
-                    <span className="tabular-nums text-[10px] truncate max-w-[120px]" title={latestEmailLog.messageId}>
-                      {latestEmailLog.messageId}
-                    </span>
-                  </div>
-                )}
+                      </div>
+                    );
+                  })()}
               </div>
             ) : (
-              <div className="text-xs text-slate-500 space-y-1.5 py-1">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Email client:</span>
-                  <span className="text-slate-700 dark:text-slate-300 font-medium truncate max-w-[160px]">
+              <div className="space-y-1.5 pt-1">
+                <div className="apple-inspector-row text-[12.5px]">
+                  <span className="text-[#6e6e73] dark:text-[#98989d]">
+                    Email client
+                  </span>
+                  <span className="text-[#1d1d1f] dark:text-[#ebebf5] font-medium truncate max-w-[160px]">
                     {invoice.clientEmail || "—"}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400">Factura nu a fost încă expediată pe email către client.</p>
+                <p className="text-[11.5px] text-[#8e8e93] pt-1">
+                  Factura nu a fost încă expediată pe email.
+                </p>
               </div>
             )}
           </div>
@@ -579,22 +694,21 @@ export default function EmittedInvoiceDetail() {
                 <button
                   type="button"
                   onClick={() => setViewSentEmailModal(true)}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-3.5 h-8 rounded-full bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 text-xs font-bold transition-colors border border-blue-200 dark:border-blue-800 shadow-2xs cursor-pointer"
+                  className="apple-btn-glass flex-1 flex items-center justify-center gap-1.5 px-3.5 h-8 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12px] font-semibold cursor-pointer"
                 >
                   <Eye className="w-3.5 h-3.5" />
-                  Previzualizează Email
+                  <span>Previzualizează Email</span>
                 </button>
                 <button
                   type="button"
                   aria-label="Retrimite factura pe email"
-                  onClick={() => {
-                    setEmailRecipient(latestEmailLog.recipientEmail || invoice.clientEmail || "");
-                    const match = (invoice.notes || "").match(/(?:delegat|reprezentant|persoan[aă] de contact)\s*:\s*([^\n\r(]+)/i);
-                    setRepresentativeName(match && match[1] ? match[1].trim() : "");
-                    setShowEmailModal(true);
-                  }}
+                  onClick={() =>
+                    openSendEmailModal(
+                      latestEmailLog.recipientEmail || invoice.clientEmail || ""
+                    )
+                  }
                   title="Retrimite factura pe email"
-                  className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] transition-colors shrink-0 cursor-pointer"
+                  className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-[#1d1d1f] dark:text-[#f5f5f7] shrink-0 cursor-pointer"
                 >
                   <Send className="w-3.5 h-3.5" />
                 </button>
@@ -602,156 +716,180 @@ export default function EmittedInvoiceDetail() {
             ) : (
               <button
                 type="button"
-                onClick={() => {
-                  setEmailRecipient(invoice.clientEmail || "");
-                  const match = (invoice.notes || "").match(/(?:delegat|reprezentant|persoan[aă] de contact)\s*:\s*([^\n\r(]+)/i);
-                  setRepresentativeName(match && match[1] ? match[1].trim() : "");
-                  setShowEmailModal(true);
-                }}
-                className="w-full flex items-center justify-center gap-1.5 px-3.5 h-8 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-2xs cursor-pointer"
+                onClick={() => openSendEmailModal()}
+                className="apple-btn-glass w-full flex items-center justify-center gap-1.5 px-3.5 h-8 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12px] font-semibold cursor-pointer"
               >
                 <Mail className="w-3.5 h-3.5" />
-                Trimite pe Email
+                <span>Configurează & Trimite</span>
               </button>
             )}
           </div>
         </div>
       </div>
 
-      {/* PDF-uri: Factură + Deviz unul lângă celălalt */}
+      {/* macOS Quick Look Document Stage: Factură PDF + Deviz PDF */}
       <div
-        className={`flex gap-4 ${linkedDeviz ? "flex-row items-start" : "flex-col"}`}
+        className={`flex gap-4 ${
+          linkedDeviz ? "flex-col xl:flex-row items-stretch" : "flex-col"
+        }`}
       >
         {/* Factură PDF */}
         <div
-          className={`bg-white dark:bg-[#1c1c1e] rounded-[22px] shadow-sm border border-black/[0.06] dark:border-white/[0.09] overflow-hidden flex flex-col ${linkedDeviz ? "flex-1 min-w-0" : "w-full"}`}
+          className={`apple-surface overflow-hidden flex flex-col ${
+            linkedDeviz ? "flex-1 min-w-0" : "w-full"
+          }`}
         >
-          <div className="flex items-center justify-between p-3.5 border-b border-black/[0.06] dark:border-white/[0.08]">
-            <div className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-[#636366] dark:text-[#98989d]" />
-              <h2 className="text-sm font-bold text-[#1d1d1f] dark:text-white">
-                Factură PDF
+          <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-black/[0.05] dark:border-white/[0.07] bg-[#fafafa]/90 dark:bg-white/[0.025] flex-wrap gap-2">
+            <div className="flex items-center gap-2.5">
+              <span className="w-7 h-7 rounded-lg bg-[#f2f2f7] dark:bg-[#2c2c2e] flex items-center justify-center shrink-0">
+                <FileText className="w-3.5 h-3.5 text-[#1d1d1f] dark:text-[#f5f5f7]" />
+              </span>
+              <h2 className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                Previzualizare Factură PDF
               </h2>
             </div>
-            <div className="flex gap-2">
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <a
+                href={`/api/pdf/emitted/${invoice.id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="apple-btn-glass inline-flex items-center gap-1.5 px-3.5 h-8 rounded-full text-[12px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Tab nou</span>
+              </a>
               <button
                 type="button"
                 onClick={() =>
-                  window.open(
-                    `/api/pdf/emitted/${invoice.id}?download=1`,
-                    "_blank"
-                  )
+                  window.open(`/api/pdf/emitted/${invoice.id}?download=1`, "_blank")
                 }
-                className="px-3.5 h-7 text-xs font-bold rounded-full apple-btn-glass text-[#3a3a3c] dark:text-[#ebebf5] cursor-pointer"
+                className="apple-btn-glass inline-flex items-center gap-1.5 px-3.5 h-8 rounded-full text-[12px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
               >
-                Descarcă
+                <Download className="w-3.5 h-3.5" />
+                <span>Descarcă</span>
               </button>
-              {isExternalInvoice(invoice) ? (
-                <span className="inline-flex items-center gap-1.5 px-3 h-7 text-xs font-semibold rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                  <Globe className="w-3.5 h-3.5" /> Client Extern (Non-SPV)
+
+              {isExternal ? (
+                <span className="inline-flex items-center gap-1.5 px-3 h-8 text-[12px] font-medium rounded-full bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/20">
+                  <Globe className="w-3.5 h-3.5" />
+                  <span>Client Extern (Non-SPV)</span>
                 </span>
               ) : (
                 <>
-                  {(!invoice.spvStatus ||
-                    invoice.spvStatus === "nesincronizat" ||
-                    invoice.spvStatus === "eroare") && (
+                  {needsSpvSend && (
                     <button
                       type="button"
                       onClick={() => sendToSpv.mutate({ id: invoice.id })}
                       disabled={sendToSpv.isPending}
-                      className="flex items-center gap-1.5 px-3.5 h-7 text-xs font-bold rounded-full bg-indigo-600 text-white hover:bg-indigo-700 transition-colors cursor-pointer"
+                      className="apple-btn-glass inline-flex items-center gap-1.5 px-3.5 h-8 text-[12px] font-semibold rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
                     >
                       {sendToSpv.isPending ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : (
                         <Send className="w-3.5 h-3.5" />
                       )}
-                      Trimite SPV
+                      <span>Trimite SPV</span>
                     </button>
                   )}
-                  {(invoice.spvStatus === "in_procesare" || invoice.spvStatus === "eroare") && (
+                  {(invoice.spvStatus === "in_procesare" ||
+                    invoice.spvStatus === "eroare") && (
                     <button
                       type="button"
                       onClick={() => checkSpvStatus.mutate({ id: invoice.id })}
                       disabled={checkSpvStatus.isPending}
-                      className={`flex items-center gap-1.5 px-3.5 h-7 text-xs font-bold rounded-full text-white transition-colors cursor-pointer ${
-                        invoice.spvStatus === "eroare"
-                          ? "bg-rose-500 hover:bg-rose-600"
-                          : "bg-amber-500 hover:bg-amber-600"
-                      }`}
+                      className="apple-btn-glass inline-flex items-center gap-1.5 px-3.5 h-8 text-[12px] font-semibold rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
                     >
                       {checkSpvStatus.isPending ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : (
                         <RefreshCw className="w-3.5 h-3.5" />
                       )}
-                      Verifică Status ANAF
+                      <span>Verifică Status ANAF</span>
                     </button>
                   )}
                 </>
               )}
             </div>
           </div>
-          <div className="bg-slate-50 dark:bg-slate-900/50 p-3 overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
-            <iframe
-              key={`pdf-${invoice.id}-${invoice.spvIndex || "0"}`}
-              src={`/api/pdf/emitted/${invoice.id}?v=${invoice.spvIndex || (invoice.updatedAt ? new Date(invoice.updatedAt).getTime() : Date.now())}`}
-              className="w-full min-w-[800px] sm:min-w-full h-[550px] rounded-xl border border-slate-200 dark:border-slate-700 bg-white"
-              title="PDF Viewer"
-            />
+
+          <div
+            className="apple-doc-stage p-3 sm:p-5 overflow-x-auto flex-1"
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
+            <div className={`apple-doc-paper overflow-hidden ${linkedDeviz ? "" : "max-w-5xl mx-auto"}`}>
+              <iframe
+                key={`pdf-${invoice.id}-${invoice.spvIndex || "0"}`}
+                src={`/api/pdf/emitted/${invoice.id}?v=${
+                  invoice.spvIndex ||
+                  (invoice.updatedAt
+                    ? new Date(invoice.updatedAt).getTime()
+                    : Date.now())
+                }`}
+                className="w-full min-w-[780px] sm:min-w-full h-[680px] border-0 bg-white"
+                title="PDF Viewer"
+              />
+            </div>
           </div>
         </div>
 
         {/* Deviz PDF (dacă există) */}
         {linkedDeviz && (
-          <div className="flex-1 min-w-0 bg-white dark:bg-[#1c1c1e] rounded-[22px] shadow-sm border border-sky-200 dark:border-sky-800 overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between p-3.5 border-b border-sky-100 dark:border-sky-800 bg-sky-50/70 dark:bg-sky-900/20">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-sky-500" />
-                <h2 className="text-sm font-bold text-sky-900 dark:text-sky-300 tabular-nums">
+          <div className="flex-1 min-w-0 apple-surface overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-black/[0.05] dark:border-white/[0.07] bg-[#fafafa]/90 dark:bg-white/[0.025] flex-wrap gap-2">
+              <div className="flex items-center gap-2.5">
+                <span className="w-7 h-7 rounded-lg bg-[#0071e3]/10 dark:bg-[#0a84ff]/18 flex items-center justify-center shrink-0">
+                  <FileText className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#64d2ff]" />
+                </span>
+                <h2 className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums">
                   Deviz {linkedDeviz.deviz.number}
                 </h2>
-                <span className="text-xs text-sky-600 dark:text-sky-400 tabular-nums">
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5] tabular-nums">
                   {Number(linkedDeviz.deviz.total).toFixed(2)} RON
                 </span>
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 {!isSpvValidated && (
                   <button
                     type="button"
                     onClick={() => setIsEditDevizOpen(true)}
-                    className="flex items-center gap-1.5 px-3.5 h-7 text-xs font-bold rounded-full bg-sky-600 hover:bg-sky-700 text-white shadow-sm transition-colors cursor-pointer"
+                    className="apple-btn-glass inline-flex items-center gap-1.5 px-3.5 h-8 text-[12px] font-semibold rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
                   >
                     <Pencil className="w-3.5 h-3.5" />
-                    Editează Deviz
+                    <span>Editează Deviz</span>
                   </button>
                 )}
                 <a
                   href={`/api/pdf/deviz/${linkedDeviz.deviz.id}?download=1`}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-1.5 px-3.5 h-7 text-xs font-bold rounded-full border border-sky-200 dark:border-sky-700 bg-white dark:bg-slate-800 text-sky-700 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-slate-700 transition-colors"
+                  className="apple-btn-glass inline-flex items-center gap-1.5 px-3.5 h-8 text-[12px] font-semibold rounded-full text-[#1d1d1f] dark:text-[#f5f5f7]"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  Descarcă
+                  <span>Descarcă</span>
                 </a>
                 <a
                   href={`/api/pdf/deviz/${linkedDeviz.deviz.id}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-1.5 px-3.5 h-7 text-xs font-bold rounded-full bg-sky-600 hover:bg-sky-700 text-white transition-colors"
+                  className="apple-btn-glass inline-flex items-center gap-1.5 px-3.5 h-8 text-[12px] font-semibold rounded-full text-[#1d1d1f] dark:text-[#f5f5f7]"
                 >
-                  <FileText className="w-3.5 h-3.5" />
-                  Tab nou
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Tab nou</span>
                 </a>
               </div>
             </div>
-            <div className="bg-slate-50 dark:bg-slate-900/50 p-3 overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
-              <iframe
-                src={`/api/pdf/deviz/${linkedDeviz.deviz.id}?t=${devizTimestamp}`}
-                className="w-full min-w-[800px] sm:min-w-full h-[550px] border border-slate-200 dark:border-slate-700 bg-white"
-                title="Deviz PDF Viewer"
-              />
+            <div
+              className="apple-doc-stage p-3 sm:p-5 overflow-x-auto flex-1"
+              style={{ WebkitOverflowScrolling: "touch" }}
+            >
+              <div className="apple-doc-paper overflow-hidden">
+                <iframe
+                  src={`/api/pdf/deviz/${linkedDeviz.deviz.id}?t=${devizTimestamp}`}
+                  className="w-full min-w-[780px] sm:min-w-full h-[680px] border-0 bg-white"
+                  title="Deviz PDF Viewer"
+                />
+              </div>
             </div>
           </div>
         )}
@@ -830,20 +968,22 @@ export default function EmittedInvoiceDetail() {
 
             {/* Modal Body */}
             <div className="flex-1 overflow-hidden flex flex-col lg:flex-row min-h-0">
-              {/* Panou Stânga: Formular Configurare */}
+              {/* Panou Stânga: Formular Configurare (Apple Sheet Style) */}
               <div
                 className={`w-full ${
-                  showEmailPreview ? "lg:w-[410px] xl:w-[440px] shrink-0 border-b lg:border-b-0 lg:border-r border-slate-100 dark:border-slate-800" : ""
-                } p-5 sm:p-6 overflow-y-auto space-y-4 bg-white dark:bg-slate-900`}
+                  showEmailPreview
+                    ? "lg:w-[410px] xl:w-[440px] shrink-0 border-b lg:border-b-0 lg:border-r border-black/[0.06] dark:border-white/[0.08]"
+                    : ""
+                } p-5 sm:p-6 overflow-y-auto space-y-4 bg-white dark:bg-[#1c1c1e]`}
               >
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                  <label className="text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center justify-between">
                     <span>Adresă Email Destinatar</span>
                     {invoice.clientEmail && invoice.clientEmail !== emailRecipient && (
                       <button
                         type="button"
                         onClick={() => setEmailRecipient(invoice.clientEmail || "")}
-                        className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                        className="text-[11px] font-medium text-[#0071e3] dark:text-[#64d2ff] hover:underline cursor-pointer"
                       >
                         Folosește email client
                       </button>
@@ -854,12 +994,12 @@ export default function EmittedInvoiceDetail() {
                     value={emailRecipient}
                     onChange={e => setEmailRecipient(e.target.value)}
                     placeholder="client@exemplu.ro"
-                    className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="apple-input w-full h-10 px-3.5 outline-none"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  <label className="text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                     Nume Reprezentant (opțional)
                   </label>
                   <input
@@ -868,43 +1008,42 @@ export default function EmittedInvoiceDetail() {
                     onChange={e => setRepresentativeName(e.target.value)}
                     placeholder={
                       selectedLanguages.includes("en")
-                        ? "ex: John Doe (lăsați gol pentru 'Bună ziua / Dear Sir or Madam,')"
+                        ? "ex: John Doe (gol pentru 'Bună ziua / Dear Sir or Madam,')"
                         : selectedLanguages.includes("fr")
-                        ? "ex: Jean Dupont (lăsați gol pentru 'Bună ziua / Madame, Monsieur,')"
+                        ? "ex: Jean Dupont (gol pentru 'Bună ziua / Madame, Monsieur,')"
                         : selectedLanguages.includes("de")
-                        ? "ex: Hans Schmidt (lăsați gol pentru 'Bună ziua / Sehr geehrte Damen und Herren,')"
+                        ? "ex: Hans Schmidt (gol pentru 'Bună ziua / Sehr geehrte...')"
                         : selectedLanguages.includes("nl")
-                        ? "ex: Jan Jansen (lăsați gol pentru 'Bună ziua / Geachte heer,')"
+                        ? "ex: Jan Jansen (gol pentru 'Bună ziua / Geachte heer,')"
                         : selectedLanguages.includes("hu")
-                        ? "ex: Kovács János (lăsați gol pentru 'Bună ziua / Tisztelt Hölgyem / Uram,')"
+                        ? "ex: Kovács János (gol pentru 'Bună ziua / Tisztelt...')"
                         : "ex: Ion Popescu (lăsați gol pentru 'Bună ziua,')"
                     }
-                    className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="apple-input w-full h-10 px-3.5 outline-none"
                   />
-                  <p className="text-[11px] text-slate-500 leading-normal">
+                  <p className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] leading-normal">
                     {selectedLanguages.length > 1
                       ? `Email bilingv (${selectedLanguages.map(c => c.toUpperCase()).join(" + ")}). Va începe cu formula de adresare nominală în ambele limbi.`
-                      : "Dacă este specificat, emailul va începe cu formula de adresare nominală a persoanei."}
+                      : "Dacă este specificat, emailul va începe cu formula de adresare nominală."}
                   </p>
                 </div>
 
-                {/* Selector Limbi Email (maxim 2 limbi) */}
-                <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                      <span>Limbi email</span>
-                      <span className="text-[10px] font-normal text-slate-500">
-                        (alege 1 sau maxim 2)
-                      </span>
+                {/* Selector Limbi Email (maxim 2 limbi — Apple Squircle Tiles) */}
+                <div className="space-y-2.5 p-3.5 bg-[#f5f5f7] dark:bg-[#2c2c2e]/70 rounded-2xl border border-black/[0.05] dark:border-white/[0.08]">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                      Limbi email <span className="font-normal text-[#6e6e73] dark:text-[#98989d]">(1 sau 2)</span>
                     </label>
-                    <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/40 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
+                    <span className="text-[11px] font-semibold text-[#1d1d1f] dark:text-white bg-white dark:bg-[#3a3a3c] px-2.5 py-0.5 rounded-full shadow-2xs">
                       {selectedLanguages.length === 1
-                        ? `1 limbă: ${AVAILABLE_LANGUAGES.find(l => l.code === selectedLanguages[0])?.name}`
-                        : `Bilingv: ${selectedLanguages.map(c => AVAILABLE_LANGUAGES.find(l => l.code === c)?.name).join(" + ")}`}
+                        ? AVAILABLE_LANGUAGES.find(l => l.code === selectedLanguages[0])?.name
+                        : selectedLanguages
+                            .map(c => AVAILABLE_LANGUAGES.find(l => l.code === c)?.name)
+                            .join(" + ")}
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-6 gap-1 pt-0.5">
+                  <div className="grid grid-cols-6 gap-1.5 pt-0.5">
                     {AVAILABLE_LANGUAGES.map(lang => {
                       const isSelected = selectedLanguages.includes(lang.code);
                       const order = isSelected ? selectedLanguages.indexOf(lang.code) + 1 : null;
@@ -914,20 +1053,19 @@ export default function EmittedInvoiceDetail() {
                           type="button"
                           onClick={() => toggleLanguage(lang.code)}
                           title={`${lang.name} (${lang.code.toUpperCase()})`}
-                          className={`relative flex flex-col items-center justify-center py-2 px-1 rounded-lg border text-xs transition-all cursor-pointer ${
+                          className={`relative flex flex-col items-center justify-center py-2 px-1 rounded-xl border text-xs transition-all cursor-pointer ${
                             isSelected
-                              ? "bg-blue-600 text-white border-blue-600 shadow-sm ring-2 ring-blue-500/30 font-bold scale-[1.02]"
-                              : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/80 font-medium"
+                              ? "bg-white dark:bg-[#3a3a3c] text-[#1d1d1f] dark:text-white border-[#1d1d1f]/25 dark:border-white/30 shadow-xs font-bold"
+                              : "bg-transparent border-black/[0.06] dark:border-white/[0.08] text-[#6e6e73] dark:text-[#98989d] hover:bg-white/60 dark:hover:bg-white/[0.06] font-medium"
                           }`}
                         >
                           {isSelected && (
-                            <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-slate-900 text-white text-[10.5px] tabular-nums flex items-center justify-center font-extrabold border border-white">
+                            <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#1d1d1f] dark:bg-white text-white dark:text-[#1d1d1f] text-[10px] tabular-nums flex items-center justify-center font-bold">
                               {order}
                             </span>
                           )}
-                          <span className="text-base leading-none mb-0.5">{lang.flag}</span>
-                          <span className="text-[10.5px] uppercase tracking-wider font-bold">{lang.code}</span>
-                          <span className={`text-[10.5px] truncate max-w-full ${isSelected ? "text-blue-100" : "text-slate-400"}`}>
+                          <span className="text-[11px] uppercase font-bold">{lang.code}</span>
+                          <span className="text-[10.5px] truncate max-w-full opacity-75">
                             {lang.name}
                           </span>
                         </button>
@@ -935,15 +1073,15 @@ export default function EmittedInvoiceDetail() {
                     })}
                   </div>
 
-                  <p className="text-[10.5px] text-slate-500 pt-0.5">
+                  <p className="text-[11px] text-[#6e6e73] dark:text-[#98989d]">
                     {selectedLanguages.length === 1
-                      ? "Emailul va fi expediat exclusiv în limba selectată."
-                      : "Emailul va fi expediat bilingv (în ambele limbi selectate, cu toate detaliile traduse)."}
+                      ? "Emailul va fi expediat în limba selectată."
+                      : "Emailul va fi expediat bilingv, cu toate detaliile traduse."}
                   </p>
                 </div>
 
-                <div className="p-3 rounded-lg bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-[11px] text-emerald-800 dark:text-emerald-300 leading-relaxed">
-                  Factura fiscală în format PDF cu siglă, QR SPV și detalii de plată este generată automat și atașată la mesaj.
+                <div className="p-3 rounded-2xl bg-emerald-500/[0.08] border border-emerald-500/20 text-[11.5px] text-emerald-800 dark:text-emerald-300 leading-relaxed">
+                  Factura fiscală PDF cu siglă, cod QR SPV și detalii de plată este atașată automat.
                 </div>
 
                 {!showEmailPreview && (
@@ -951,10 +1089,10 @@ export default function EmittedInvoiceDetail() {
                     <button
                       type="button"
                       onClick={() => setShowEmailPreview(true)}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#0071e3] dark:text-[#64d2ff] hover:underline cursor-pointer"
                     >
                       <Eye className="w-3.5 h-3.5" />
-                      Previzualizează cum va arăta emailul clientului (cu logo și detalii)
+                      <span>Previzualizează emailul clientului</span>
                     </button>
                   </div>
                 )}
@@ -962,34 +1100,36 @@ export default function EmittedInvoiceDetail() {
 
               {/* Panou Dreapta: Previzualizare Live Email */}
               {showEmailPreview && (
-                <div className="flex-1 p-4 sm:p-5 bg-slate-100/70 dark:bg-slate-950/80 flex flex-col min-h-0 overflow-hidden">
+                <div className="flex-1 p-4 sm:p-5 apple-doc-stage flex flex-col min-h-0 overflow-hidden">
                   <div className="flex items-center justify-between mb-2.5 shrink-0 px-1">
                     <div className="flex items-center gap-2">
-                      <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                      <Eye className="w-4 h-4 text-[#6e6e73] dark:text-[#98989d]" />
+                      <span className="text-[12px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                         Previzualizare Email Live
                       </span>
                     </div>
-                    <span className="text-[11px] text-slate-500">
+                    <span className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d]">
                       Aspectul recepționat în inbox de client
                     </span>
                   </div>
 
-                  <div className="flex-1 w-full bg-slate-200/50 dark:bg-slate-900/50 rounded-xl border border-slate-200/80 dark:border-slate-800 p-2 sm:p-4 flex justify-center items-start overflow-y-auto min-h-[460px]">
+                  <div className="flex-1 w-full flex justify-center items-start overflow-y-auto min-h-[460px]">
                     {isEmailPreviewLoading ? (
-                      <div className="py-24 flex flex-col items-center justify-center gap-3 text-slate-400">
-                        <Loader2 className="w-7 h-7 animate-spin text-blue-600" />
-                        <span className="text-xs font-medium">Se generează previzualizarea emailului...</span>
+                      <div className="py-24 flex flex-col items-center justify-center gap-3 text-[#6e6e73]">
+                        <Loader2 className="w-7 h-7 animate-spin" />
+                        <span className="text-xs font-medium">
+                          Se generează previzualizarea emailului...
+                        </span>
                       </div>
                     ) : emailPreviewData?.html ? (
                       <iframe
                         srcDoc={emailPreviewData.html}
                         title="Previzualizare Email"
-                        className="w-full max-w-[620px] min-h-[520px] bg-white rounded-xl shadow-md border border-slate-200 dark:border-slate-800"
+                        className="w-full max-w-[620px] min-h-[520px] apple-doc-paper border-0"
                         sandbox="allow-same-origin"
                       />
                     ) : (
-                      <div className="py-20 text-center text-xs text-slate-500">
+                      <div className="py-20 text-center text-xs text-[#6e6e73]">
                         Previzualizarea nu a putut fi încărcată.
                       </div>
                     )}
@@ -999,16 +1139,19 @@ export default function EmittedInvoiceDetail() {
             </div>
 
             {/* Footer Modal */}
-            <div className="px-5 sm:px-6 py-3.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-slate-900/80 shrink-0">
-              <span className="text-[11px] text-slate-500 hidden sm:inline truncate max-w-[280px]">
-                Expediere către: <strong className="text-slate-700 dark:text-slate-300">{emailRecipient || "fără destinatar"}</strong>
+            <div className="px-5 sm:px-6 py-3.5 border-t border-black/[0.06] dark:border-white/[0.08] flex items-center justify-between bg-[#fafafa]/90 dark:bg-white/[0.025] shrink-0">
+              <span className="text-[12px] text-[#6e6e73] dark:text-[#98989d] hidden sm:inline truncate max-w-[280px]">
+                Către:{" "}
+                <strong className="text-[#1d1d1f] dark:text-[#f5f5f7]">
+                  {emailRecipient || "fără destinatar"}
+                </strong>
               </span>
               <div className="flex items-center gap-2 ml-auto">
                 <button
                   type="button"
                   onClick={() => setShowEmailModal(false)}
                   disabled={sendEmailMutation.isPending}
-                  className="px-4 h-9 rounded-full apple-btn-glass text-xs font-semibold text-[#3a3a3c] dark:text-[#ebebf5] transition-colors cursor-pointer"
+                  className="px-4 h-9 rounded-full apple-btn-glass text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] transition-colors cursor-pointer"
                 >
                   Anulează
                 </button>
@@ -1027,17 +1170,17 @@ export default function EmittedInvoiceDetail() {
                     });
                   }}
                   disabled={sendEmailMutation.isPending}
-                  className="flex items-center gap-1.5 px-5 h-9 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all disabled:opacity-60 cursor-pointer"
+                  className="apple-btn-prominent flex items-center gap-1.5 px-5 h-9 rounded-full text-white text-[12.5px] font-semibold transition-all disabled:opacity-60 cursor-pointer"
                 >
                   {sendEmailMutation.isPending ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      Se trimite...
+                      <span>Se trimite...</span>
                     </>
                   ) : (
                     <>
                       <Send className="w-3.5 h-3.5" />
-                      Trimite Factura
+                      <span>Trimite Factura</span>
                     </>
                   )}
                 </button>
@@ -1114,36 +1257,36 @@ export default function EmittedInvoiceDetail() {
             </div>
 
             {/* Preview Iframe */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-100/70 dark:bg-slate-950/80 flex justify-center min-h-[380px]">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 apple-doc-stage flex justify-center min-h-[380px]">
               {isSentEmailLoading ? (
-                <div className="py-24 flex flex-col items-center justify-center gap-3 text-slate-400">
-                  <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                <div className="py-24 flex flex-col items-center justify-center gap-3 text-[#6e6e73]">
+                  <Loader2 className="w-7 h-7 animate-spin" />
                   <span className="text-sm font-medium">Se încarcă emailul expediat...</span>
                 </div>
               ) : sentEmailPreviewData?.html ? (
                 <iframe
                   srcDoc={sentEmailPreviewData.html}
                   title="Conținut Email Transmis"
-                  className="w-full max-w-[580px] h-[520px] bg-white rounded-xl shadow-md border border-slate-200 dark:border-slate-800"
+                  className="w-full max-w-[580px] h-[520px] apple-doc-paper border-0"
                   sandbox="allow-same-origin"
                 />
               ) : (
-                <div className="py-24 text-center text-xs text-slate-500">
+                <div className="py-24 text-center text-xs text-[#6e6e73]">
                   Nu s-a putut încărca conținutul emailului.
                 </div>
               )}
             </div>
 
             {/* Footer Modal */}
-            <div className="px-6 py-3 border-t border-black/[0.06] dark:border-white/[0.08] flex items-center justify-between bg-[#f8f9fc]/85 dark:bg-white/[0.02]">
-              <span className="text-xs text-[#636366] dark:text-[#98989d]">
+            <div className="px-6 py-3.5 border-t border-black/[0.06] dark:border-white/[0.08] flex items-center justify-between bg-[#fafafa]/90 dark:bg-white/[0.025]">
+              <span className="text-xs text-[#6e6e73] dark:text-[#98989d]">
                 Document fiscal expediat prin platformă
               </span>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setViewSentEmailModal(false)}
-                  className="px-4 h-9 rounded-full apple-btn-glass text-xs font-semibold text-[#3a3a3c] dark:text-[#ebebf5] transition-colors cursor-pointer"
+                  className="px-4 h-9 rounded-full apple-btn-glass text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] transition-colors cursor-pointer"
                 >
                   Închide
                 </button>
@@ -1151,15 +1294,14 @@ export default function EmittedInvoiceDetail() {
                   type="button"
                   onClick={() => {
                     setViewSentEmailModal(false);
-                    setEmailRecipient(latestEmailLog?.recipientEmail || invoice.clientEmail || "");
-                    const match = (invoice.notes || "").match(/(?:delegat|reprezentant|persoan[aă] de contact)\s*:\s*([^\n\r(]+)/i);
-                    setRepresentativeName(match && match[1] ? match[1].trim() : "");
-                    setShowEmailModal(true);
+                    openSendEmailModal(
+                      latestEmailLog?.recipientEmail || invoice.clientEmail || ""
+                    );
                   }}
-                  className="flex items-center gap-1.5 px-4 h-9 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
+                  className="apple-btn-prominent flex items-center gap-1.5 px-4 h-9 rounded-full text-white text-[12.5px] font-semibold transition-all cursor-pointer"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  Retrimite Factura
+                  <span>Retrimite Factura</span>
                 </button>
               </div>
             </div>

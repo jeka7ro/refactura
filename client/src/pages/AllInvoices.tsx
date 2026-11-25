@@ -344,6 +344,14 @@ export default function AllInvoices() {
         end.setDate(end.getDate() + 6);
         return [fmt(d), fmt(end)];
       }
+      case "lastWeek": {
+        const d = startOfDay(now);
+        const day = d.getDay() || 7;
+        d.setDate(d.getDate() - day - 6);
+        const end = new Date(d);
+        end.setDate(end.getDate() + 6);
+        return [fmt(d), fmt(end)];
+      }
       case "month": {
         const s = new Date(now.getFullYear(), now.getMonth(), 1);
         const e = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -848,333 +856,471 @@ export default function AllInvoices() {
     }
   };
 
+  const hasActiveFilters =
+    search.trim() !== "" ||
+    typeFilter !== "all" ||
+    nirFilter !== "all" ||
+    readFilter !== "all" ||
+    filterStatus !== "all" ||
+    sourceFilter !== "all" ||
+    period !== "all";
+
+  const resetAllFilters = () => {
+    setSearch("");
+    setTypeFilter("all");
+    setNirFilter("all");
+    setReadFilter("all");
+    setFilterStatus("all");
+    setSourceFilter("all");
+    setPeriod("all");
+    setPage(1);
+  };
+
   return (
-    <div className="p-2.5 sm:p-4 max-w-full space-y-4">
-      {/* Header cu Titlu + Export/Sync (Top Row) si Filtre Perioada (Bottom Row) */}
-      <div className="flex flex-col gap-3.5">
-        {/* Top Row: Title, Live Status & Auto-Sync Telemetry */}
-        <div className="flex items-center justify-between gap-3 flex-wrap px-1">
+    <div className="p-3 sm:p-5 max-w-full space-y-4">
+      {/* Header — Apple macOS Window Title & Live Telemetry */}
+      <div className="flex items-center justify-between gap-3 flex-wrap px-0.5">
+        <div className="flex items-center gap-3">
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-[22px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em] leading-tight">
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-[22px] sm:text-[26px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-tight">
                 Facturi
               </h1>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 <span>Live</span>
               </span>
             </div>
-            <p className="text-xs text-[#636366] dark:text-[#98989d] mt-0.5 tabular-nums">
-              Total: <strong className="text-[#1d1d1f] dark:text-white font-semibold">{allRows.length}</strong> înregistrări
+            <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 tabular-nums">
+              Evidență unificată ·{" "}
+              <strong className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold">
+                {allRows.length}
+              </strong>{" "}
+              documente
+              {filtered.length !== allRows.length && (
+                <span className="ml-1.5 text-[#1d1d1f] dark:text-white font-medium">
+                  ({filtered.length} afișate)
+                </span>
+              )}
             </p>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* 1-Click Period Segmented Bar (Apple Dispatcher Style) */}
-            <div className="inline-flex items-center p-1 rounded-full bg-black/[0.05] dark:bg-white/[0.08] gap-0.5 overflow-x-auto no-scrollbar">
-              {[
-                { id: "today", label: "Azi" },
-                { id: "yesterday", label: "Ieri" },
-                { id: "week", label: "Săpt." },
-                { id: "month", label: "Lună" },
-                { id: "lastMonth", label: "Luna trec." },
-                { id: "year", label: "An" },
-                { id: "all", label: "Toate" },
-              ].map((item) => {
-                const active = period === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => {
-                      setPeriod(item.id);
-                      const range = getDateRange(item.id);
-                      if (range) {
-                        setCustomFrom(range[0]);
-                        setCustomTo(range[1]);
-                      }
-                      setPage(1);
-                    }}
-                    className={`px-2.5 py-1 rounded-full text-[11.5px] font-semibold transition-all cursor-pointer whitespace-nowrap ${
-                      active
-                        ? "bg-primary text-white shadow-2xs"
-                        : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            <LiveAutoSyncControl
-              onRefresh={async () => {
-                await Promise.all([r1(), r2(), r3()]);
-              }}
-              isRefreshing={isLoading || syncOblio.isPending || syncSpvManual.isPending}
-              storageKey="invoices_auto_sync"
-            />
           </div>
         </div>
 
-        {/* KPI Cards — Compact Apple macOS Tahoe Interactive Strip */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-          {/* TOTAL */}
-          <div
-            className={`rounded-2xl border px-3.5 py-2.5 flex items-center justify-between transition-all duration-200 cursor-pointer ${
-              typeFilter === "all"
-                ? "bg-gradient-to-br from-white via-white to-primary/[0.06] dark:from-[#1c1c1e] dark:via-[#1c1c1e] dark:to-primary/[0.14] border-primary/45 ring-1 ring-primary/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_4px_14px_-4px_rgba(15,23,42,0.07)]"
-                : "bg-white/95 dark:bg-[#1c1c1e] border-black/[0.06] dark:border-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_4px_rgba(15,23,42,0.04)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,1),0_6px_16px_-4px_rgba(15,23,42,0.07)]"
-            }`}
-            onClick={() => { setTypeFilter("all"); setPage(1); }}
-          >
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[#636366] dark:text-[#98989d] mb-0.5 truncate">
-                Total
-              </p>
-              <div className="flex items-baseline gap-1.5 tabular-nums">
-                <p className="text-lg sm:text-[20px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em] leading-none">
-                  {allRows.length}
-                </p>
-                {filtered.length !== allRows.length && (
-                  <span className="text-[11px] font-semibold text-primary">
-                    ({filtered.length})
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="w-8 h-8 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center flex-shrink-0 ml-2">
-              <ClipboardList className="w-4 h-4 text-primary" />
-            </div>
-          </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <LiveAutoSyncControl
+            onRefresh={async () => {
+              await Promise.all([r1(), r2(), r3()]);
+            }}
+            isRefreshing={isLoading || syncOblio.isPending || syncSpvManual.isPending}
+            storageKey="invoices_auto_sync"
+          />
+        </div>
+      </div>
 
-          {/* EMISE */}
-          <div
-            className={`rounded-2xl border px-3.5 py-2.5 flex items-center justify-between transition-all duration-200 cursor-pointer ${
-              typeFilter === "emis"
-                ? "bg-gradient-to-br from-white via-white to-emerald-500/[0.07] dark:from-[#1c1c1e] dark:via-[#1c1c1e] dark:to-emerald-500/[0.15] border-emerald-500/45 ring-1 ring-emerald-500/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_4px_14px_-4px_rgba(15,23,42,0.07)]"
-                : "bg-white/95 dark:bg-[#1c1c1e] border-black/[0.06] dark:border-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_4px_rgba(15,23,42,0.04)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,1),0_6px_16px_-4px_rgba(15,23,42,0.07)]"
-            }`}
-            onClick={() => { setTypeFilter("emis"); setPage(1); }}
-          >
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[#636366] dark:text-[#98989d] mb-0.5 truncate">
-                Emise
-              </p>
-              <div className="flex items-baseline gap-1.5 tabular-nums">
-                <p className="text-lg sm:text-[20px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em] leading-none">
-                  {allRows.filter(r => r.type === "emis").length}
-                </p>
-                {filtered.length !== allRows.length && (
-                  <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                    ({filtered.filter(r => r.type === "emis").length})
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/12 dark:bg-emerald-500/20 flex items-center justify-center flex-shrink-0 ml-2">
+      {/* KPI Cards — Clean Apple Surface Strip (Opaque Content Layer, Calm Labels, SF Pro Display Numbers) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* Card 1: Toate Facturile */}
+        <button
+          type="button"
+          onClick={() => {
+            setTypeFilter("all");
+            setPage(1);
+          }}
+          className={`apple-surface text-left px-4 sm:px-5 py-3.5 sm:py-4 flex flex-col justify-between gap-2.5 transition-all cursor-pointer ${
+            typeFilter === "all"
+              ? "ring-1 ring-[#1d1d1f]/15 dark:ring-white/25 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.08)]"
+              : "hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)]"
+          }`}
+        >
+          <div className="flex items-center justify-between gap-2 w-full">
+            <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+              Toate facturile
+            </span>
+            <span className="w-7 h-7 rounded-lg bg-[#f2f2f7] dark:bg-[#2c2c2e] flex items-center justify-center shrink-0">
+              <ClipboardList className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff]" />
+            </span>
+          </div>
+          <div className="flex items-baseline gap-2 tabular-nums">
+            <span className="text-[24px] sm:text-[26px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.028em] leading-none">
+              {allRows.length}
+            </span>
+            {readCounts.unread > 0 && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#0071e3]/10 text-[#0071e3] dark:bg-[#0a84ff]/18 dark:text-[#64d2ff]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#0071e3] dark:bg-[#64d2ff]" />
+                {readCounts.unread} noi
+              </span>
+            )}
+          </div>
+        </button>
+
+        {/* Card 2: Facturi Emise */}
+        <button
+          type="button"
+          onClick={() => {
+            setTypeFilter(typeFilter === "emis" ? "all" : "emis");
+            setPage(1);
+          }}
+          className={`apple-surface text-left px-4 sm:px-5 py-3.5 sm:py-4 flex flex-col justify-between gap-2.5 transition-all cursor-pointer ${
+            typeFilter === "emis"
+              ? "ring-1 ring-emerald-500/40 shadow-[0_4px_16px_-4px_rgba(16,185,129,0.14)]"
+              : "hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)]"
+          }`}
+        >
+          <div className="flex items-center justify-between gap-2 w-full">
+            <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+              Facturi emise
+            </span>
+            <span className="w-7 h-7 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/18 flex items-center justify-center shrink-0">
               <Send className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            </div>
+            </span>
           </div>
+          <div className="flex items-baseline gap-2 tabular-nums">
+            <span className="text-[24px] sm:text-[26px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.028em] leading-none">
+              {counts.emis}
+            </span>
+            {filtered.length !== allRows.length && (
+              <span className="text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                ({filtered.filter(r => r.type === "emis").length} filtrate)
+              </span>
+            )}
+          </div>
+        </button>
 
-          {/* PRIMITE */}
-          <div
-            className={`rounded-2xl border px-3.5 py-2.5 flex items-center justify-between transition-all duration-200 cursor-pointer ${
-              typeFilter === "primit"
-                ? "bg-gradient-to-br from-white via-white to-amber-500/[0.07] dark:from-[#1c1c1e] dark:via-[#1c1c1e] dark:to-amber-500/[0.15] border-amber-500/45 ring-1 ring-amber-500/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_4px_14px_-4px_rgba(15,23,42,0.07)]"
-                : "bg-white/95 dark:bg-[#1c1c1e] border-black/[0.06] dark:border-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_4px_rgba(15,23,42,0.04)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,1),0_6px_16px_-4px_rgba(15,23,42,0.07)]"
-            }`}
-            onClick={() => { setTypeFilter("primit"); setPage(1); }}
-          >
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[#636366] dark:text-[#98989d] mb-0.5 truncate">
-                Primite
-              </p>
-              <div className="flex items-baseline gap-1.5 tabular-nums">
-                <p className="text-lg sm:text-[20px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em] leading-none">
-                  {allRows.filter(r => r.type === "primit").length}
-                </p>
-                {filtered.length !== allRows.length && (
-                  <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">
-                    ({filtered.filter(r => r.type === "primit").length})
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="w-8 h-8 rounded-xl bg-amber-500/12 dark:bg-amber-500/20 flex items-center justify-center flex-shrink-0 ml-2">
+        {/* Card 3: Facturi Primite */}
+        <button
+          type="button"
+          onClick={() => {
+            setTypeFilter(typeFilter === "primit" ? "all" : "primit");
+            setPage(1);
+          }}
+          className={`apple-surface text-left px-4 sm:px-5 py-3.5 sm:py-4 flex flex-col justify-between gap-2.5 transition-all cursor-pointer ${
+            typeFilter === "primit"
+              ? "ring-1 ring-amber-500/40 shadow-[0_4px_16px_-4px_rgba(245,158,11,0.14)]"
+              : "hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)]"
+          }`}
+        >
+          <div className="flex items-center justify-between gap-2 w-full">
+            <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+              Facturi primite
+            </span>
+            <span className="w-7 h-7 rounded-lg bg-amber-500/10 dark:bg-amber-500/18 flex items-center justify-center shrink-0">
               <Download className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-            </div>
+            </span>
           </div>
+          <div className="flex items-baseline gap-2 tabular-nums">
+            <span className="text-[24px] sm:text-[26px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.028em] leading-none">
+              {counts.primit}
+            </span>
+            {nirCounts.faraNir > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-700 dark:bg-amber-500/18 dark:text-amber-300">
+                {nirCounts.faraNir} fără NIR
+              </span>
+            )}
+          </div>
+        </button>
 
-          {/* TOTAL SUMĂ (PENTRU CELE AFIȘATE / FILTRATE) */}
-          <div
-            className={`rounded-2xl border px-3.5 py-2.5 flex items-center justify-between transition-all duration-200 ${
-              filteredTotals.isFiltered
-                ? "bg-gradient-to-br from-white via-white to-primary/[0.06] dark:from-[#1c1c1e] dark:to-primary/[0.14] border-primary/45 ring-1 ring-primary/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_4px_14px_-4px_rgba(15,23,42,0.07)]"
-                : "bg-white/95 dark:bg-[#1c1c1e] border-black/[0.06] dark:border-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_4px_rgba(15,23,42,0.04)]"
-            }`}
-          >
-            <div className="min-w-0 flex-1 tabular-nums">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[#636366] dark:text-[#98989d] truncate">
-                  Total Sumă
-                </p>
-                {filteredTotals.isFiltered ? (
-                  <span className="text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/12 text-primary leading-none">
-                    Filtrate
-                  </span>
-                ) : (
-                  <span className="text-[10px] font-medium text-[#636366] dark:text-[#98989d] leading-none">
-                    (Toate)
-                  </span>
-                )}
-              </div>
-              {filteredTotals.entries.length === 0 ? (
-                <p className="text-base sm:text-[18px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em] leading-none">
-                  0,00 RON
-                </p>
-              ) : (
-                <div className="flex items-baseline gap-1.5 flex-wrap">
-                  <p className="text-sm sm:text-base lg:text-[17px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em] leading-none truncate">
-                    {formatCurrency(filteredTotals.entries[0][1], (filteredTotals.entries[0][0] as Currency) || "RON")}
-                  </p>
-                  {filteredTotals.entries.slice(1).map(([curr, val]) => (
-                    <span key={curr} className="text-[10.5px] font-semibold text-[#636366] dark:text-[#98989d] leading-none">
-                      + {formatCurrency(val, (curr as Currency) || "EUR")}
-                    </span>
-                  ))}
-                </div>
+        {/* Card 4: Valoare Afișată */}
+        <div className="apple-surface px-4 sm:px-5 py-3.5 sm:py-4 flex flex-col justify-between gap-2.5">
+          <div className="flex items-center justify-between gap-2 w-full">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+                Valoare totală
+              </span>
+              {filteredTotals.isFiltered && (
+                <span className="px-2 py-0.5 rounded-full text-[10.5px] font-medium bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5] leading-none">
+                  Filtrate
+                </span>
               )}
             </div>
-            <div className="w-8 h-8 rounded-xl bg-amber-500/12 dark:bg-amber-500/20 flex items-center justify-center flex-shrink-0 ml-2">
-              <Coins className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-            </div>
+            <span className="w-7 h-7 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/18 flex items-center justify-center shrink-0">
+              <Coins className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            </span>
+          </div>
+          <div className="tabular-nums min-w-0">
+            {filteredTotals.entries.length === 0 ? (
+              <span className="text-[22px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.028em] leading-none">
+                0,00 RON
+              </span>
+            ) : (
+              <div className="flex items-baseline gap-1.5 flex-wrap">
+                <span className="text-[19px] sm:text-[22px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none truncate">
+                  {formatCurrency(
+                    filteredTotals.entries[0][1],
+                    (filteredTotals.entries[0][0] as Currency) || "RON"
+                  )}
+                </span>
+                {filteredTotals.entries.slice(1).map(([curr, val]) => (
+                  <span
+                    key={curr}
+                    className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d] leading-none"
+                  >
+                    + {formatCurrency(val, (curr as Currency) || "EUR")}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Banner selectie multipla */}
-      {selectedIds.size > 0 && (
-        <div className="flex items-center justify-between gap-3 px-4 py-2.5 apple-btn-prominent rounded-full shadow-lg">
-          <span className="text-sm font-semibold tabular-nums">
-            {selectedIds.size} factură/facturi selectate
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setSelectedIds(new Set())}
-              className="px-3.5 h-8 rounded-full bg-white/20 hover:bg-white/30 text-white text-xs font-semibold transition-colors"
-            >
-              Anulează
-            </button>
-            <button
-              onClick={handleDownloadSelectedZip}
-              className="px-3.5 h-8 rounded-full bg-white text-[#1d1d1f] hover:bg-white/90 text-xs font-semibold transition-colors shadow-sm"
-            >
-              Descarcă selectate
-            </button>
+      {/* Unified Apple Control & Filter Card (UISegmentedControl White Thumb + Soft Monochrome Pills) */}
+      <div className="apple-surface p-3 space-y-2.5">
+        {/* Row 1: Type Segmented + Period Segmented + Sync Primary CTA */}
+        <div className="flex items-center justify-between gap-2.5 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
+            {/* Segmented: Tip Factură */}
+            <div className="apple-segmented" role="tablist" aria-label="Tip factură">
+              {[
+                { id: "all", label: "Toate" },
+                { id: "primit", label: "Primite" },
+                { id: "emis", label: "Emise" },
+              ].map(t => (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={typeFilter === t.id}
+                  data-active={typeFilter === t.id}
+                  onClick={() => {
+                    setTypeFilter(t.id as InvoiceTypeFilter);
+                    setPage(1);
+                  }}
+                  className="apple-segmented-item"
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Segmented: Perioadă 1-Click */}
+            <div className="apple-segmented overflow-x-auto no-scrollbar max-w-full" role="tablist" aria-label="Perioadă">
+              {[
+                { id: "all", label: "Toate" },
+                { id: "today", label: "Azi" },
+                { id: "yesterday", label: "Ieri" },
+                { id: "week", label: "Săpt. asta" },
+                { id: "lastWeek", label: "Săpt. trec." },
+                { id: "month", label: "Luna asta" },
+                { id: "lastMonth", label: "Luna trec." },
+                { id: "year", label: "An" },
+                { id: "custom", label: "Interval" },
+              ].map(item => (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={period === item.id}
+                  data-active={period === item.id}
+                  onClick={() => {
+                    setPeriod(item.id);
+                    const range = getDateRange(item.id);
+                    if (range && item.id !== "custom") {
+                      setCustomFrom(range[0]);
+                      setCustomTo(range[1]);
+                    }
+                    setPage(1);
+                  }}
+                  className="apple-segmented-item"
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            {period === "custom" && (
+              <div className="inline-flex items-center gap-1.5 px-2.5 h-[34px] rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] text-xs tabular-nums">
+                <Calendar className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
+                <input
+                  type="date"
+                  value={customFrom}
+                  onChange={e => {
+                    setCustomFrom(e.target.value);
+                    setPage(1);
+                  }}
+                  className="h-6 px-1 text-xs tabular-nums bg-transparent text-[#1d1d1f] dark:text-[#f5f5f7] outline-none w-[110px]"
+                />
+                <span className="text-[#8e8e93]">–</span>
+                <input
+                  type="date"
+                  value={customTo}
+                  onChange={e => {
+                    setCustomTo(e.target.value);
+                    setPage(1);
+                  }}
+                  className="h-6 px-1 text-xs tabular-nums bg-transparent text-[#1d1d1f] dark:text-[#f5f5f7] outline-none w-[110px]"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Single Prominent Primary Action: Sync */}
+          <button
+            type="button"
+            onClick={async () => {
+              const hasOblio = (dbIntegrations as any[]).some(
+                i => i.provider === "oblio" && i.status === "active"
+              );
+              const hasSpv = (dbIntegrations as any[]).some(
+                i => i.provider === "spv" && i.status === "active"
+              );
+              let syncedAny = false;
+
+              if (hasOblio || hasSpv) {
+                toast.loading("Sincronizare date în curs...", { id: "sync" });
+                let spvResult: any = null;
+                let oblioErr: string | null = null;
+                let spvErr: string | null = null;
+                const tasks: Promise<unknown>[] = [];
+                if (hasOblio) {
+                  tasks.push(
+                    syncOblio.mutateAsync().catch((err: unknown) => {
+                      oblioErr = cleanErrorMessage(err, "Eroare la sincronizarea Oblio.");
+                    })
+                  );
+                }
+                if (hasSpv) {
+                  tasks.push(
+                    syncSpvManual
+                      .mutateAsync()
+                      .then(r => {
+                        spvResult = r;
+                      })
+                      .catch((err: unknown) => {
+                        spvErr = cleanErrorMessage(err, "Eroare la sincronizarea SPV.");
+                      })
+                  );
+                }
+                await Promise.all(tasks);
+                syncedAny = true;
+
+                r1();
+                r2();
+                r3();
+
+                if (oblioErr && spvErr) {
+                  toast.error(`Sincronizarea a eșuat: ${spvErr} · ${oblioErr}`, { id: "sync" });
+                } else if (spvErr) {
+                  toast.error(`Eroare sincronizare SPV: ${spvErr}`, { id: "sync" });
+                } else if (oblioErr) {
+                  toast.warning(`SPV sincronizat, dar Oblio a raportat o eroare: ${oblioErr}`, { id: "sync" });
+                } else if (spvResult?.limitHit > 0) {
+                  const facturiNoi = spvResult.imported === 1 ? "1 factură nouă importată" : `${spvResult.imported} facturi noi importate`;
+                  const facturiLimita = spvResult.limitHit === 1 ? "1 factură" : `${spvResult.limitHit} facturi`;
+                  toast.warning(
+                    `Sync complet: ${facturiNoi}.\n${facturiLimita} nu ${spvResult.limitHit === 1 ? "a putut" : "au putut"} fi descărcată azi — ANAF permite maxim 10 descărcări/zi per fișier. Va fi importată automat mâine.`,
+                    { id: "sync", duration: 8000 }
+                  );
+                } else if (spvResult?.imported > 0) {
+                  const facturiNoi = spvResult.imported === 1 ? "1 factură nouă importată" : `${spvResult.imported} facturi noi importate`;
+                  toast.success(`Sync complet: ${facturiNoi} din SPV!`, { id: "sync" });
+                } else {
+                  toast.success("Sincronizare completă! Nicio factură nouă de importat.", { id: "sync" });
+                }
+              }
+
+              if (!syncedAny) {
+                toast.error("Nicio integrare activă de sincronizat.", {
+                  action: {
+                    label: "Configurează Integrări",
+                    onClick: () => navigate("/integrari"),
+                  },
+                });
+              }
+            }}
+            disabled={syncOblio.isPending || syncSpvManual.isPending}
+            className="apple-btn-prominent flex items-center justify-center gap-1.5 px-4 h-[34px] rounded-full text-white text-[12.5px] font-semibold transition-all disabled:opacity-60 shrink-0 cursor-pointer"
+            title="Sincronizează din sursele configurate (Oblio / SPV)"
+          >
+            {syncOblio.isPending || syncSpvManual.isPending ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <RefreshCw className="w-3.5 h-3.5" />
+            )}
+            <span>Sync</span>
+          </button>
+        </div>
+
+        {/* Row 2: Workflow Segmented Chips (Left) ↔ Soft Popover Filters & Search (Right) */}
+        <div className="flex items-center justify-between gap-2.5 flex-wrap pt-0.5">
+          {/* Quick Workflow Segmented Track */}
+          <div className="apple-segmented flex-wrap">
             <button
               type="button"
-              onClick={() => setBulkDeleteOpen(true)}
-              className="px-3.5 h-8 rounded-full bg-[#ff3b30] text-white hover:bg-[#e0352b] text-xs font-semibold transition-colors shadow-sm cursor-pointer"
+              data-active={
+                readFilter === "all" &&
+                nirFilter === "all" &&
+                filterStatus === "all"
+              }
+              onClick={() => {
+                setReadFilter("all");
+                setNirFilter("all");
+                setFilterStatus("all");
+                setPage(1);
+              }}
+              className="apple-segmented-item tabular-nums"
             >
-              Șterge selectate
+              <span>Toate</span>
+              <span className="opacity-65">{allRows.length}</span>
+            </button>
+
+            <button
+              type="button"
+              data-active={readFilter === "unread"}
+              onClick={() => {
+                setReadFilter(readFilter === "unread" ? "all" : "unread");
+                setPage(1);
+              }}
+              className="apple-segmented-item tabular-nums"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-[#0071e3] dark:bg-[#0a84ff]" />
+              <span>Necitite</span>
+              <span className="opacity-70">{readCounts.unread}</span>
+            </button>
+
+            <button
+              type="button"
+              data-active={nirFilter === "fara_nir"}
+              onClick={() => {
+                setNirFilter(nirFilter === "fara_nir" ? "all" : "fara_nir");
+                setPage(1);
+              }}
+              className="apple-segmented-item tabular-nums"
+            >
+              <span>Fără NIR</span>
+              <span className="opacity-70">{nirCounts.faraNir}</span>
+            </button>
+
+            <button
+              type="button"
+              data-active={nirFilter === "cu_nir"}
+              onClick={() => {
+                setNirFilter(nirFilter === "cu_nir" ? "all" : "cu_nir");
+                setPage(1);
+              }}
+              className="apple-segmented-item tabular-nums"
+            >
+              <span>Cu NIR</span>
+              <span className="opacity-70">{nirCounts.cuNir}</span>
+            </button>
+
+            <button
+              type="button"
+              data-active={filterStatus === "pending"}
+              onClick={() => {
+                setFilterStatus(filterStatus === "pending" ? "all" : "pending");
+                setPage(1);
+              }}
+              className="apple-segmented-item tabular-nums"
+            >
+              <span>În așteptare</span>
+              <span className="opacity-70">{quickCounts.unpaid}</span>
             </button>
           </div>
-        </div>
-      )}
 
-      {/* Card tabel — Apple Tahoe Concentric Container */}
-      <div className="bg-white/96 dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_2px_10px_-3px_rgba(15,23,42,0.04),0_12px_32px_-10px_rgba(15,23,42,0.06)] overflow-hidden">
-        {/* Search & Filtre — Apple Frosted Toolbar Strip */}
-        <div className="px-4 py-3 border-b border-black/[0.06] dark:border-white/[0.08] flex flex-col gap-2 bg-[#f5f7fb]/85 dark:bg-white/[0.025] backdrop-blur-md">
-          <div className="flex items-center gap-2 w-full flex-wrap">
-            {/* Cautare */}
-            <div className="relative flex-1 min-w-[160px]">
-              <Search
-                className="w-3.5 h-3.5 text-[#636366] dark:text-[#98989d] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-              />
-              <input
-                style={{ paddingLeft: 36, paddingRight: search ? 80 : 14 }}
-                className="rounded-full w-full h-9 border border-black/[0.08] dark:border-white/[0.12] outline-none text-[13px] bg-white/90 dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white placeholder:text-[#636366] dark:placeholder:text-[#98989d] shadow-[inset_0_1px_2px_rgba(15,23,42,0.04),0_1px_0_rgba(255,255,255,0.9)] focus:bg-white dark:focus:bg-[#3a3a3c] transition-all"
-                placeholder="Caută factură..."
-                value={search}
-                onChange={e => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
-              />
-              {search && (
-                <>
-                  <div className="absolute right-9 top-1/2 -translate-y-1/2 bg-primary text-white rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums">
-                    {filtered.length}/{allRows.length}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setSearch("")}
-                    aria-label="Șterge căutarea"
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center hover:bg-black/[0.06] dark:hover:bg-white/[0.10] cursor-pointer"
-                  >
-                    <X className="w-3.5 h-3.5 text-[#636366] hover:text-[#1d1d1f] dark:text-[#98989d] dark:hover:text-white" />
-                  </button>
-                </>
-              )}
-            </div>
-
-            {/* Perioadă Filter */}
-            <div className="w-[138px] flex-shrink-0">
-              <Select
-                value={period}
-                onValueChange={val => {
-                  setPeriod(val as any);
-                  const range = getDateRange(val);
-                  if (range && val !== "custom") {
-                    setCustomFrom(range[0]);
-                    setCustomTo(range[1]);
-                  }
-                  setPage(1);
-                }}
-              >
-                <SelectTrigger className="h-9 w-full rounded-full text-xs font-semibold apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-1.5 px-3">
-                  <Calendar className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
-                  <SelectValue placeholder="Perioadă" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toate dățile</SelectItem>
-                  <SelectItem value="today">Azi</SelectItem>
-                  <SelectItem value="yesterday">Ieri</SelectItem>
-                  <SelectItem value="week">Săpt. curentă</SelectItem>
-                  <SelectItem value="month">Luna curentă</SelectItem>
-                  <SelectItem value="lastMonth">Luna trecută</SelectItem>
-                  <SelectItem value="year">Anul curent</SelectItem>
-                  <SelectItem value="lastYear">Anul trecut</SelectItem>
-                  <SelectItem value="custom">Personalizat...</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Type Filter */}
-            <div className="w-[124px] flex-shrink-0">
-              <Select
-                value={typeFilter}
-                onValueChange={val => {
-                  setTypeFilter(val as any);
-                  setPage(1);
-                }}
-              >
-                <SelectTrigger className="h-9 w-full rounded-full text-xs font-semibold apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-1.5 px-3">
-                  <Tag className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
-                  <SelectValue placeholder="Tip" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tip: Toate</SelectItem>
-                  <SelectItem value="primit">Primite</SelectItem>
-                  <SelectItem value="emis">Emise</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Read / Unread Filter */}
-            <div className="w-[128px] flex-shrink-0">
+          {/* Right Controls: Soft Popover Selects + Search Pill */}
+          <div className="flex items-center gap-2 flex-wrap flex-1 sm:flex-initial justify-end">
+            {/* Citire Select */}
+            <div className="w-[126px] shrink-0">
               <Select
                 value={readFilter}
                 onValueChange={val => {
@@ -1183,35 +1329,26 @@ export default function AllInvoices() {
                 }}
               >
                 <SelectTrigger
-                  className={`h-9 w-full rounded-full text-xs font-semibold ${
-                    readFilter !== "all"
-                      ? "border-blue-500/60 bg-blue-50/90 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-700"
-                      : "apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7]"
-                  } flex items-center gap-1.5 px-3 tabular-nums`}
+                  data-filtered={readFilter !== "all"}
+                  className="apple-pill-control h-[34px] w-full flex items-center gap-1.5 px-3 tabular-nums"
                 >
-                  {readFilter === "unread" ? (
-                    <Mail className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                  ) : readFilter === "read" ? (
-                    <MailOpen className="w-3.5 h-3.5 text-[#636366] dark:text-[#98989d] flex-shrink-0" />
+                  {readFilter === "read" ? (
+                    <MailOpen className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
                   ) : (
-                    <Mail className="w-3.5 h-3.5 text-[#636366] dark:text-[#98989d] flex-shrink-0" />
+                    <Mail className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
                   )}
                   <SelectValue placeholder="Citire" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Toate ({allRows.length})</SelectItem>
-                  <SelectItem value="unread">
-                    ● Necitite ({readCounts.unread})
-                  </SelectItem>
-                  <SelectItem value="read">
-                    ○ Citite ({readCounts.read})
-                  </SelectItem>
+                  <SelectItem value="unread">Necitite ({readCounts.unread})</SelectItem>
+                  <SelectItem value="read">Citite ({readCounts.read})</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Filtru NIR dedicat (Cu / Fara NIR) */}
-            <div className="w-[126px] flex-shrink-0">
+            {/* NIR Select */}
+            <div className="w-[124px] shrink-0">
               <Select
                 value={nirFilter}
                 onValueChange={val => {
@@ -1220,31 +1357,22 @@ export default function AllInvoices() {
                 }}
               >
                 <SelectTrigger
-                  className={`h-9 w-full rounded-full text-xs font-semibold ${
-                    nirFilter !== "all"
-                      ? "border-teal-500/60 bg-teal-50/90 text-teal-800 dark:bg-teal-950/50 dark:text-teal-300 dark:border-teal-700"
-                      : "apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7]"
-                  } flex items-center gap-1.5 px-3 tabular-nums`}
+                  data-filtered={nirFilter !== "all"}
+                  className="apple-pill-control h-[34px] w-full flex items-center gap-1.5 px-3 tabular-nums"
                 >
-                  <ClipboardCheck
-                    className={`w-3.5 h-3.5 ${
-                      nirFilter !== "all"
-                        ? "text-teal-600 dark:text-teal-400"
-                        : "text-teal-600"
-                    } flex-shrink-0`}
-                  />
+                  <ClipboardCheck className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
                   <SelectValue placeholder="NIR" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">NIR: Toate</SelectItem>
+                  <SelectItem value="all">Toate NIR</SelectItem>
                   <SelectItem value="cu_nir">Cu NIR ({nirCounts.cuNir})</SelectItem>
-                  <SelectItem value="fara_nir">○ Fără NIR ({nirCounts.faraNir})</SelectItem>
+                  <SelectItem value="fara_nir">Fără NIR ({nirCounts.faraNir})</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Source Filter */}
-            <div className="w-[138px] flex-shrink-0">
+            {/* Source Select */}
+            <div className="w-[136px] shrink-0">
               <Select
                 value={sourceFilter}
                 onValueChange={val => {
@@ -1252,283 +1380,115 @@ export default function AllInvoices() {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="h-9 w-full rounded-full text-xs font-semibold apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-1.5 px-3">
-                  <Globe className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
-                  <SelectValue placeholder="Sursă" />
+                <SelectTrigger
+                  data-filtered={sourceFilter !== "all"}
+                  className="apple-pill-control h-[34px] w-full flex items-center gap-1.5 px-3"
+                >
+                  <Globe className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
+                  <SelectValue placeholder="Toate sursele" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Toate sursele</SelectItem>
-                  <SelectItem value="spv_anaf">SPV ANAF</SelectItem>
+                  <SelectItem value="spv_anaf">SPV ANAF ({quickCounts.spv})</SelectItem>
+                  <SelectItem value="manual">Emise intern ({quickCounts.manual})</SelectItem>
                   <SelectItem value="oblio">Oblio</SelectItem>
                   <SelectItem value="smartbill">SmartBill</SelectItem>
-                  <SelectItem value="manual">Manual</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Buton Sync — Apple Liquid Glass Prominent Capsule */}
-            <button
-              onClick={async () => {
-                const hasOblio = (dbIntegrations as any[]).some(
-                  i => i.provider === "oblio" && i.status === "active"
-                );
-                const hasSpv = (dbIntegrations as any[]).some(
-                  i => i.provider === "spv" && i.status === "active"
-                );
-                let syncedAny = false;
-
-                if (hasOblio || hasSpv) {
-                  toast.loading("Sincronizare date în curs...", { id: "sync" });
-                  let spvResult: any = null;
-                  let oblioErr: string | null = null;
-                  let spvErr: string | null = null;
-                  const tasks: Promise<unknown>[] = [];
-                  if (hasOblio) {
-                    tasks.push(
-                      syncOblio.mutateAsync().catch((err: unknown) => {
-                        oblioErr = cleanErrorMessage(err, "Eroare la sincronizarea Oblio.");
-                      })
-                    );
-                  }
-                  if (hasSpv) {
-                    tasks.push(
-                      syncSpvManual
-                        .mutateAsync()
-                        .then(r => {
-                          spvResult = r;
-                        })
-                        .catch((err: unknown) => {
-                          spvErr = cleanErrorMessage(err, "Eroare la sincronizarea SPV.");
-                        })
-                    );
-                  }
-                  await Promise.all(tasks);
-                  syncedAny = true;
-
-                  r1();
-                  r2();
-                  r3();
-
-                  if (oblioErr && spvErr) {
-                    toast.error(`Sincronizarea a eșuat: ${spvErr} · ${oblioErr}`, { id: "sync" });
-                  } else if (spvErr) {
-                    toast.error(`Eroare sincronizare SPV: ${spvErr}`, { id: "sync" });
-                  } else if (oblioErr) {
-                    toast.warning(`SPV sincronizat, dar Oblio a raportat o eroare: ${oblioErr}`, { id: "sync" });
-                  } else if (spvResult?.limitHit > 0) {
-                    const facturiNoi = spvResult.imported === 1 ? "1 factură nouă importată" : `${spvResult.imported} facturi noi importate`;
-                    const facturiLimita = spvResult.limitHit === 1 ? "1 factură" : `${spvResult.limitHit} facturi`;
-                    toast.warning(
-                      `Sync complet: ${facturiNoi}.\n${facturiLimita} nu ${spvResult.limitHit === 1 ? "a putut" : "au putut"} fi descărcată azi — ANAF permite maxim 10 descărcări/zi per fișier. Va fi importată automat mâine.`,
-                      { id: "sync", duration: 8000 }
-                    );
-                  } else if (spvResult?.imported > 0) {
-                    const facturiNoi = spvResult.imported === 1 ? "1 factură nouă importată" : `${spvResult.imported} facturi noi importate`;
-                    toast.success(`Sync complet: ${facturiNoi} din SPV!`, { id: "sync" });
-                  } else {
-                    toast.success("Sincronizare completă! Nicio factură nouă de importat.", { id: "sync" });
-                  }
-                }
-
-                if (!syncedAny) {
-                  toast.error(
-                    "Nicio integrare activă de sincronizat.",
-                    {
-                      action: {
-                        label: "Configurează Integrări",
-                        onClick: () => navigate("/integrari"),
-                      },
-                    }
-                  );
-                }
-              }}
-              disabled={syncOblio.isPending || syncSpvManual.isPending}
-              className="apple-btn-prominent flex items-center justify-center gap-1.5 px-3.5 h-9 rounded-full text-white text-xs font-semibold transition-all disabled:opacity-60 flex-shrink-0 cursor-pointer"
-              title="Sincronizează din sursele configurate (Oblio / SPV)"
-            >
-              {syncOblio.isPending || syncSpvManual.isPending ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <RefreshCw className="w-3.5 h-3.5" />
-              )}
-              <span>Sync</span>
-            </button>
-          </div>
-
-          {/* Arată input-urile doar dacă este pe "custom" */}
-          {period === "custom" && (
-            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded-full border border-slate-200 dark:border-slate-700 w-fit mt-0.5">
+            {/* Search Field */}
+            <div className="relative flex-1 sm:w-[230px] md:w-[250px] min-w-[180px]">
+              <Search className="w-3.5 h-3.5 text-[#8e8e93] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
-                type="date"
-                value={customFrom}
+                style={{ paddingLeft: 34, paddingRight: search ? 76 : 14 }}
+                className="apple-pill-control rounded-full w-full h-[34px] outline-none text-[13px] text-[#1d1d1f] dark:text-white placeholder:text-[#8e8e93] focus:bg-white dark:focus:bg-[#2c2c2e] focus:border-black/15 dark:focus:border-white/20"
+                placeholder="Caută factură, partener..."
+                value={search}
                 onChange={e => {
-                  setCustomFrom(e.target.value);
+                  setSearch(e.target.value);
                   setPage(1);
                 }}
-                className="h-7 px-1.5 text-xs tabular-nums bg-transparent text-slate-600 dark:text-slate-300 outline-none w-[112px]"
               />
-              <span className="text-[10px] text-slate-400 font-bold">-</span>
-              <input
-                type="date"
-                value={customTo}
-                onChange={e => {
-                  setCustomTo(e.target.value);
-                  setPage(1);
-                }}
-                className="h-7 px-1.5 text-xs tabular-nums bg-transparent text-slate-600 dark:text-slate-300 outline-none w-[112px]"
-              />
-            </div>
-          )}
-
-          {/* Rând dublu cu contoare live: Stânga (Stare flux) ↔ Dreapta (Surse/Canale) */}
-          <div className="pt-1.5 border-t border-black/[0.05] dark:border-white/[0.06] flex items-center justify-between gap-2 flex-wrap">
-            {/* Stânga: Stări flux */}
-            <div className="inline-flex items-center p-0.5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] gap-0.5 flex-wrap">
-              <button
-                type="button"
-                onClick={() => {
-                  setTypeFilter("all");
-                  setReadFilter("all");
-                  setNirFilter("all");
-                  setFilterStatus("all");
-                  setPage(1);
-                }}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer tabular-nums ${
-                  typeFilter === "all" &&
-                  readFilter === "all" &&
-                  nirFilter === "all" &&
-                  filterStatus === "all"
-                    ? "bg-primary text-white shadow-2xs"
-                    : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
-                }`}
-              >
-                Toate {allRows.length}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setReadFilter(readFilter === "unread" ? "all" : "unread");
-                  setPage(1);
-                }}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer inline-flex items-center gap-1 tabular-nums ${
-                  readFilter === "unread"
-                    ? "bg-[#0071e3] text-white shadow-2xs"
-                    : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
-                }`}
-              >
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    readFilter === "unread" ? "bg-white" : "bg-[#0071e3]"
-                  }`}
-                />
-                <span>Necitite {readCounts.unread}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setNirFilter(nirFilter === "fara_nir" ? "all" : "fara_nir");
-                  setPage(1);
-                }}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer tabular-nums ${
-                  nirFilter === "fara_nir"
-                    ? "bg-amber-600 text-white shadow-2xs"
-                    : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
-                }`}
-              >
-                Fără NIR {nirCounts.faraNir}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setNirFilter(nirFilter === "cu_nir" ? "all" : "cu_nir");
-                  setPage(1);
-                }}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer tabular-nums ${
-                  nirFilter === "cu_nir"
-                    ? "bg-teal-600 text-white shadow-2xs"
-                    : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
-                }`}
-              >
-                Cu NIR {nirCounts.cuNir}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setFilterStatus(filterStatus === "pending" ? "all" : "pending");
-                  setPage(1);
-                }}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer tabular-nums ${
-                  filterStatus === "pending"
-                    ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-2xs"
-                    : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
-                }`}
-              >
-                În așteptare {quickCounts.unpaid}
-              </button>
-            </div>
-
-            {/* Dreapta: Canale / Surse */}
-            <div className="inline-flex items-center p-0.5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] gap-0.5 flex-wrap">
-              <button
-                type="button"
-                onClick={() => {
-                  setSourceFilter(sourceFilter === "spv_anaf" ? "all" : "spv_anaf");
-                  setPage(1);
-                }}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer tabular-nums ${
-                  sourceFilter === "spv_anaf"
-                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white shadow-2xs"
-                    : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
-                }`}
-              >
-                SPV ANAF <span className="opacity-75">{quickCounts.spv}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setSourceFilter(sourceFilter === "manual" ? "all" : "manual");
-                  setPage(1);
-                }}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer tabular-nums ${
-                  sourceFilter === "manual"
-                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white shadow-2xs"
-                    : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
-                }`}
-              >
-                Emise Intern <span className="opacity-75">{quickCounts.manual}</span>
-              </button>
-
-              {quickCounts.other > 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSourceFilter(sourceFilter === "oblio" ? "all" : "oblio");
-                    setPage(1);
-                  }}
-                  className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer tabular-nums ${
-                    sourceFilter !== "all" &&
-                    sourceFilter !== "spv_anaf" &&
-                    sourceFilter !== "manual"
-                      ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white shadow-2xs"
-                      : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
-                  }`}
-                >
-                  Integrări <span className="opacity-75">{quickCounts.other}</span>
-                </button>
+              {search && (
+                <>
+                  <span className="absolute right-8 top-1/2 -translate-y-1/2 bg-black/[0.07] dark:bg-white/[0.14] text-[#1d1d1f] dark:text-white rounded-full px-2 py-0.5 text-[10.5px] font-semibold tabular-nums">
+                    {filtered.length}/{allRows.length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    aria-label="Șterge căutarea"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center hover:bg-black/[0.07] dark:hover:bg-white/[0.12] cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d]" />
+                  </button>
+                </>
               )}
             </div>
+
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={resetAllFilters}
+                title="Resetează toate filtrele"
+                className="apple-pill-control h-[34px] px-3 inline-flex items-center gap-1 text-[12px] text-[#6e6e73] hover:text-[#1d1d1f] dark:text-[#98989d] dark:hover:text-white cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Resetează</span>
+              </button>
+            )}
           </div>
         </div>
+      </div>
 
+      {/* Floating Apple Frosted Glass Multi-Selection Bar */}
+      {selectedIds.size > 0 && (
+        <div className="apple-glass rounded-full px-4 py-2 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2.5 text-[13px] font-semibold text-[#1d1d1f] dark:text-white tabular-nums">
+            <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full bg-[#1d1d1f] dark:bg-white text-white dark:text-[#1d1d1f] text-[12px] font-bold">
+              {selectedIds.size}
+            </span>
+            <span>
+              {selectedIds.size === 1
+                ? "factură selectată"
+                : "facturi selectate"}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSelectedIds(new Set())}
+              className="apple-pill-control px-3.5 h-8 text-[12px] font-semibold cursor-pointer"
+            >
+              Anulează
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadSelectedZip}
+              className="apple-btn-prominent px-4 h-8 rounded-full text-white text-[12px] font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Descarcă PDF / ZIP</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setBulkDeleteOpen(true)}
+              className="apple-btn-destructive-soft px-3.5 h-8 text-[12px] font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Șterge</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Table Surface — Clean Apple macOS Finder / Mail Table */}
+      <div className="apple-surface overflow-hidden">
         {/* DESKTOP TABLE */}
         <div className="hidden sm:block overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-[#f8f9fc]/90 dark:bg-white/[0.02] border-b border-black/[0.06] dark:border-white/[0.08]">
+            <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
               <tr>
                 <th className="px-4 py-3 w-10 text-center">
                   <input
@@ -1542,84 +1502,112 @@ export default function AllInvoices() {
                     title="Selectează/Deselectează toate de pe această pagină"
                   />
                 </th>
-                <th className="px-4 py-3 w-12 text-center text-[10.5px] font-semibold text-[#636366] dark:text-[#98989d] uppercase tracking-wider whitespace-nowrap">
-                  Nr. Crt.
+                <th className="px-3 py-3 w-12 text-center text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                  Nr.
                 </th>
                 <th
-                  className="px-4 py-3 text-left text-[11px] font-semibold text-[#636366] dark:text-[#98989d] uppercase tracking-wider cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white whitespace-nowrap select-none transition-colors"
+                  className="px-4 py-3 text-left text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white whitespace-nowrap select-none transition-colors"
                   onClick={() => handleSort("number")}
                 >
                   <div className="flex items-center gap-1">
-                    Număr Factură{" "}
-                    <span className="text-primary">
+                    <span>Factură & Stare</span>
+                    <span className="text-[#1d1d1f] dark:text-white opacity-60">
                       {getSortIcon("number")}
                     </span>
                   </div>
                 </th>
                 <th
-                  className="px-4 py-3 text-left text-[11px] font-semibold text-[#636366] dark:text-[#98989d] uppercase tracking-wider cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white whitespace-nowrap select-none transition-colors"
+                  className="px-4 py-3 text-left text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white whitespace-nowrap select-none transition-colors"
                   onClick={() => handleSort("partnerName")}
                 >
                   <div className="flex items-center gap-1">
-                    Partener{" "}
-                    <span className="text-primary">
+                    <span>Partener</span>
+                    <span className="text-[#1d1d1f] dark:text-white opacity-60">
                       {getSortIcon("partnerName")}
                     </span>
                   </div>
                 </th>
                 <th
-                  className="px-4 py-3 text-left text-[11px] font-semibold text-[#636366] dark:text-[#98989d] uppercase tracking-wider cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white whitespace-nowrap select-none transition-colors"
+                  className="px-4 py-3 text-left text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white whitespace-nowrap select-none transition-colors"
                   onClick={() => handleSort("date")}
                 >
                   <div className="flex items-center gap-1">
-                    Dată / Scadență{" "}
-                    <span className="text-primary">{getSortIcon("date")}</span>
+                    <span>Emitere & Scadență</span>
+                    <span className="text-[#1d1d1f] dark:text-white opacity-60">
+                      {getSortIcon("date")}
+                    </span>
                   </div>
                 </th>
                 <th
-                  className="px-4 py-3 text-right text-[11px] font-semibold text-[#636366] dark:text-[#98989d] uppercase tracking-wider cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white whitespace-nowrap select-none transition-colors"
+                  className="px-4 py-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white whitespace-nowrap select-none transition-colors"
                   onClick={() => handleSort("total")}
                 >
                   <div className="flex items-center justify-end gap-1">
-                    Total{" "}
-                    <span className="text-primary">
+                    <span>Valoare</span>
+                    <span className="text-[#1d1d1f] dark:text-white opacity-60">
                       {getSortIcon("total")}
                     </span>
                   </div>
                 </th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold text-[#636366] dark:text-[#98989d] uppercase tracking-wider whitespace-nowrap">
+                <th className="px-4 py-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
                   Acțiuni
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
+            <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center">
-                    <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto" />
+                  <td colSpan={7} className="py-14 text-center">
+                    <Loader2 className="w-6 h-6 animate-spin text-[#6e6e73] mx-auto" />
                   </td>
                 </tr>
               ) : paginated.length === 0 ? (
                 <tr>
                   <td
                     colSpan={7}
-                    className="py-6 text-center text-[#636366] dark:text-[#98989d] text-xs bg-black/[0.015] dark:bg-white/[0.02]"
+                    className="py-12 text-center text-[#6e6e73] dark:text-[#98989d] text-[13px]"
                   >
-                    {search || typeFilter !== "all" || nirFilter !== "all"
-                      ? "Nicio factură pentru filtrele aplicate."
-                      : "Nu există facturi. Apasă Sync sau importă XML din pagina Integrări."}
+                    <div className="flex flex-col items-center gap-2.5">
+                      <span>
+                        {hasActiveFilters
+                          ? "Nicio factură nu corespunde filtrelor selectate."
+                          : "Nu există facturi înregistrate. Apasă pe Sync pentru import automat din SPV."}
+                      </span>
+                      {hasActiveFilters && (
+                        <button
+                          type="button"
+                          onClick={resetAllFilters}
+                          className="apple-btn-glass px-4 h-8 text-[12px] font-semibold text-[#1d1d1f] dark:text-white cursor-pointer"
+                        >
+                          Resetează filtrele
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ) : (
                 paginated.map((row, i) => {
                   const tb = TYPE_BADGE[row.type];
                   const isUnread = row.type === "primit" && !row.isRead;
+                  const openDetail = () => {
+                    if (isUnread) markAsRead.mutate({ id: row.id });
+                    if (row.source === "refactura") navigate(`/re-facturi/${row.id}`);
+                    else if (row.type === "emis" && row.source === "manual")
+                      navigate(`/facturi-emise-nou/view/${row.id}`);
+                    else navigate(`/facturi-primite/${row.id}`);
+                  };
                   return (
                     <tr
                       key={`${row.source}-${row.type}-${row.id}`}
-                      className={`hover:bg-black/[0.02] dark:hover:bg-white/[0.035] transition-colors ${selectedIds.has(`${row.source}-${row.id}`) ? "bg-primary/[0.06] dark:bg-primary/[0.12]" : isUnread ? "bg-blue-500/[0.035] dark:bg-blue-500/[0.08]" : ""}`}
+                      className={`group transition-colors hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] ${
+                        selectedIds.has(`${row.source}-${row.id}`)
+                          ? "bg-[#0071e3]/[0.05] dark:bg-[#0a84ff]/[0.12]"
+                          : isUnread
+                            ? "bg-[#0071e3]/[0.025] dark:bg-[#0a84ff]/[0.06]"
+                            : ""
+                      }`}
                     >
-                      <td className="px-4 py-2.5 text-center">
+                      <td className="px-4 py-3 text-center">
                         <input
                           type="checkbox"
                           className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-primary cursor-pointer"
@@ -1627,45 +1615,36 @@ export default function AllInvoices() {
                           onChange={() => toggleSelect(row)}
                         />
                       </td>
-                      <td className="px-4 py-2.5 text-center whitespace-nowrap">
-                        <div className="h-10 flex items-center justify-center font-semibold text-xs text-[#636366] dark:text-[#98989d] tabular-nums">
+                      <td className="px-3 py-3 text-center whitespace-nowrap">
+                        <span className="text-[12px] font-medium text-[#8e8e93] tabular-nums">
                           {(page - 1) * rowsPerPage + i + 1}
-                        </div>
+                        </span>
                       </td>
-                      <td className="px-4 py-2.5 whitespace-nowrap">
-                        <div className="h-10 flex flex-col justify-center gap-0.5">
-                          <div className="h-5 flex items-center gap-1.5">
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
                             {isUnread && (
                               <span
-                                className="w-2 h-2 rounded-full bg-primary shrink-0 inline-block shadow-sm"
+                                className="w-2 h-2 rounded-full bg-[#0071e3] dark:bg-[#0a84ff] shrink-0"
                                 title="Factură nouă (necitită)"
                               />
                             )}
                             <button
-                              onClick={() => {
-                                if (isUnread) markAsRead.mutate({ id: row.id });
-                                if (row.source === "refactura")
-                                  navigate(`/re-facturi/${row.id}`);
-                                else if (
-                                  row.type === "emis" &&
-                                  row.source === "manual"
-                                )
-                                  navigate(`/facturi-emise-nou/view/${row.id}`);
-                                else navigate(`/facturi-primite/${row.id}`);
-                              }}
-                              className={`text-[12.5px] text-left truncate hover:underline tabular-nums ${
+                              type="button"
+                              onClick={openDetail}
+                              className={`text-[13.5px] text-left truncate hover:underline tabular-nums cursor-pointer ${
                                 isUnread
-                                  ? "font-bold text-primary"
-                                  : "font-semibold text-primary"
+                                  ? "font-bold text-[#1d1d1f] dark:text-white"
+                                  : "font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]"
                               }`}
                             >
                               {row.number}
                             </button>
                             <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border leading-none ${
+                              className={`px-2 py-0.5 rounded-full text-[11px] font-medium leading-none ${
                                 row.type === "emis"
-                                  ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30"
-                                  : "bg-amber-500/12 text-amber-700 border-amber-500/20 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30"
+                                  ? "bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300"
+                                  : "bg-amber-500/12 text-amber-700 dark:bg-amber-500/18 dark:text-amber-300"
                               }`}
                             >
                               {tb.label}
@@ -1673,97 +1652,103 @@ export default function AllInvoices() {
                             {row.nirNumber && (
                               <Link href={`/nir/edit/${row.nirId}`}>
                                 <span
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border leading-none bg-teal-500/10 text-teal-700 border-teal-500/20 hover:bg-teal-500/20 dark:bg-teal-500/15 dark:text-teal-300 dark:border-teal-500/30 transition-colors cursor-pointer tabular-nums"
-                                  title={`NIR asociat: ${row.nirNumber}. Click pentru vizualizare / editare NIR.`}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium leading-none bg-teal-500/10 text-teal-700 hover:bg-teal-500/18 dark:bg-teal-500/18 dark:text-teal-300 transition-colors cursor-pointer tabular-nums"
+                                  title={`NIR asociat: ${row.nirNumber}`}
                                 >
-                                  <ClipboardCheck className="w-3 h-3 text-teal-600 dark:text-teal-400 shrink-0" />
+                                  <ClipboardCheck className="w-3 h-3 shrink-0" />
                                   <span>{row.nirNumber}</span>
                                 </span>
                               </Link>
                             )}
                           </div>
-                          <div className="h-5 flex items-center gap-2">
+                          <div className="flex items-center gap-2">
                             <span
-                              className={`px-2 py-0.5 rounded-full text-[10.5px] font-medium border leading-none ${STATUS_COLORS[row.status] || STATUS_COLORS.pending}`}
+                              className={`px-2 py-0.5 rounded-full text-[11px] font-medium border leading-none ${
+                                STATUS_COLORS[row.status] || STATUS_COLORS.pending
+                              }`}
                             >
                               {getStatusLabel(row.status, row.type)}
                             </span>
                             {row.spvIndex && (
                               <span
-                                className="text-[11px] tabular-nums text-[#636366] dark:text-[#98989d] font-normal leading-none"
+                                className="text-[11px] tabular-nums text-[#8e8e93] leading-none"
                                 title={`Index încărcare SPV: ${row.spvIndex}`}
                               >
-                                Index: {row.spvIndex}
+                                SPV #{row.spvIndex}
                               </span>
                             )}
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-2.5">
-                        <div className="h-10 flex flex-col justify-center gap-0.5">
-                          <div className="h-5 flex items-center">
-                            {(() => {
-                              const cId = getClientId(row);
-                              return (
-                                <Link
-                                  href={cId ? `/client/${cId}` : `/clienti?search=${encodeURIComponent(row.partnerName)}`}
-                                  className={`text-[12.5px] max-w-[220px] truncate hover:underline hover:text-primary transition-colors cursor-pointer block ${
-                                    isUnread
-                                      ? "font-bold text-[#1d1d1f] dark:text-white"
-                                      : "font-medium text-[#1d1d1f] dark:text-[#f5f5f7]"
-                                  }`}
-                                  title={row.partnerName}
-                                >
-                                  {row.partnerName}
-                                </Link>
-                              );
-                            })()}
-                          </div>
-                          <div className="h-5 flex items-center text-[11px] text-[#636366] dark:text-[#98989d] font-normal gap-1.5 whitespace-nowrap tabular-nums">
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col gap-0.5">
+                          {(() => {
+                            const cId = getClientId(row);
+                            return (
+                              <Link
+                                href={
+                                  cId
+                                    ? `/client/${cId}`
+                                    : `/clienti?search=${encodeURIComponent(row.partnerName)}`
+                                }
+                                className={`text-[13.5px] max-w-[240px] truncate hover:underline transition-colors cursor-pointer block ${
+                                  isUnread
+                                    ? "font-bold text-[#1d1d1f] dark:text-white"
+                                    : "font-medium text-[#1d1d1f] dark:text-[#f5f5f7]"
+                                }`}
+                                title={row.partnerName}
+                              >
+                                {row.partnerName}
+                              </Link>
+                            );
+                          })()}
+                          <div className="flex items-center text-[11.5px] text-[#6e6e73] dark:text-[#98989d] gap-1.5 whitespace-nowrap tabular-nums">
                             {row.partnerCui ? (
                               <>
-                                <span>{`CUI: ${row.partnerCui}`}</span>
+                                <span>CUI {row.partnerCui}</span>
                                 <span>·</span>
                               </>
                             ) : null}
-                            <span className={`font-medium ${SOURCE_BADGE[row.source]?.cls || "text-[#636366]"}`}>
+                            <span className="font-medium">
                               {SOURCE_BADGE[row.source]?.label || row.source}
                             </span>
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-2.5 whitespace-nowrap tabular-nums">
-                        <div className="h-10 flex flex-col justify-center gap-0.5">
-                          <div className="h-5 flex items-center">
-                            <span className={`text-[12.5px] ${
+                      <td className="px-4 py-3 whitespace-nowrap tabular-nums">
+                        <div className="flex flex-col gap-0.5">
+                          <span
+                            className={`text-[13px] ${
                               isUnread
-                                ? "font-bold text-[#1d1d1f] dark:text-white"
-                                : "font-medium text-[#3a3a3c] dark:text-[#ebebf5]"
-                            }`}>
-                              {formatDate(row.date)}
-                            </span>
-                          </div>
-                          <div className="h-5 flex items-center text-[11px] text-[#636366] dark:text-[#98989d] font-normal">
-                            {row.dueDate ? `Scad: ${formatDate(row.dueDate)}` : "—"}
-                          </div>
+                                ? "font-semibold text-[#1d1d1f] dark:text-white"
+                                : "font-medium text-[#1d1d1f] dark:text-[#ebebf5]"
+                            }`}
+                          >
+                            {formatDate(row.date)}
+                          </span>
+                          <span className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d]">
+                            {row.dueDate ? `Scad. ${formatDate(row.dueDate)}` : "Fără scadență"}
+                          </span>
                         </div>
                       </td>
-                      <td className="px-4 py-2.5 text-right whitespace-nowrap tabular-nums">
-                        <div className="h-10 flex flex-col justify-center items-end gap-0.5">
-                          <div className="h-5 flex items-center justify-end">
-                            <span className={`text-[13px] ${
-                              isUnread
-                                ? "font-bold text-[#1d1d1f] dark:text-white"
-                                : "font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]"
-                            }`}>
-                              {formatCurrency(row.total, row.currency as Currency)}
-                            </span>
-                          </div>
-                          <div className="h-5 flex items-center justify-end leading-none text-[11px] font-normal">
+                      <td className="px-4 py-3 text-right whitespace-nowrap tabular-nums">
+                        <div className="flex flex-col items-end gap-1">
+                          <span
+                            className={`text-[13.5px] tracking-[-0.01em] ${
+                              row.total < 0
+                                ? "font-bold text-[#ff3b30] dark:text-[#ff453a]"
+                                : isUnread
+                                  ? "font-bold text-[#1d1d1f] dark:text-white"
+                                  : "font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]"
+                            }`}
+                          >
+                            {formatCurrency(row.total, row.currency as Currency)}
+                          </span>
+                          <div className="flex items-center justify-end leading-none text-[11px]">
                             {row.spvStatus &&
                             (row.spvStatus.toLowerCase() === "validat" ||
                               row.spvStatus.toLowerCase() === "trimisa") ? (
-                              <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/12 dark:bg-emerald-500/18 px-2 py-0.5 rounded-full border border-emerald-500/20 leading-none">
+                              <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 dark:bg-emerald-500/18 px-2 py-0.5 rounded-full leading-none">
                                 {row.spvStatus.toLowerCase() === "validat"
                                   ? "Validată SPV"
                                   : "Trimisă SPV"}
@@ -1776,8 +1761,8 @@ export default function AllInvoices() {
                                     !row.partnerCui.toUpperCase().startsWith("RO") &&
                                     /^[A-Z]{2}/.test(row.partnerCui)))) ? (
                               <span
-                                className="text-[10px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-500/12 dark:bg-amber-500/18 px-2 py-0.5 rounded-full border border-amber-500/20 leading-none"
-                                title="Factură externă (UE/Non-UE) - declarată prin D390/D300, nu se transmite în SPV"
+                                className="text-[11px] font-medium text-amber-700 dark:text-amber-300 bg-amber-500/10 dark:bg-amber-500/18 px-2 py-0.5 rounded-full leading-none"
+                                title="Factură externă (UE/Non-UE) - declarată prin D390/D300"
                               >
                                 Extern (D390)
                               </span>
@@ -1791,14 +1776,24 @@ export default function AllInvoices() {
                                 spvSentAt={row.spvSentAt}
                               />
                             ) : (
-                              <span className="text-[#636366] dark:text-[#98989d]">—</span>
+                              <span className="text-[#8e8e93]">SPV recepționat</span>
                             )}
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-2.5 whitespace-nowrap">
-                        <div className="h-10 flex items-center justify-end gap-1.5">
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
                           <button
+                            type="button"
+                            onClick={openDetail}
+                            aria-label={`Deschide factura ${row.number}`}
+                            className="apple-btn-glass flex items-center justify-center w-8 h-8 rounded-full text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white transition-all cursor-pointer"
+                            title="Vizualizează detalii"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => {
                               if (row.source === "refactura") {
                                 handleDownloadReInvoicePDF(row);
@@ -1814,14 +1809,10 @@ export default function AllInvoices() {
                                 row.fileUrl &&
                                 row.fileUrl !== "spv_import"
                               ) {
-                                downloadFile(
-                                  row.fileUrl,
-                                  `${row.number}.pdf`
-                                );
+                                downloadFile(row.fileUrl, `${row.number}.pdf`);
                               } else if (
                                 row.type === "primit" ||
-                                (row.type === "emis" &&
-                                  row.source === "spv_anaf")
+                                (row.type === "emis" && row.source === "spv_anaf")
                               ) {
                                 downloadFile(
                                   `/api/pdf/archive/${row.id}?download=1`,
@@ -1832,7 +1823,7 @@ export default function AllInvoices() {
                               }
                             }}
                             aria-label={`Descarcă PDF ${row.number}`}
-                            className="apple-btn-glass flex items-center justify-center w-8 h-8 rounded-full text-[#3a3a3c] dark:text-[#ebebf5] hover:text-primary transition-all cursor-pointer"
+                            className="apple-btn-glass flex items-center justify-center w-8 h-8 rounded-full text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white transition-all cursor-pointer"
                             title="Descarcă PDF"
                           >
                             <FileDown className="w-3.5 h-3.5" />
@@ -1840,8 +1831,9 @@ export default function AllInvoices() {
                           {row.nirId && (
                             <Link href={`/nir/edit/${row.nirId}`}>
                               <button
+                                type="button"
                                 aria-label={`Vezi NIR ${row.nirNumber || ""}`}
-                                className="flex items-center justify-center w-8 h-8 rounded-full bg-teal-500/12 dark:bg-teal-500/20 hover:bg-teal-500/20 text-teal-600 dark:text-teal-400 border border-teal-500/25 transition-all cursor-pointer"
+                                className="apple-btn-glass flex items-center justify-center w-8 h-8 rounded-full text-teal-700 dark:text-teal-300 transition-all cursor-pointer"
                                 title={`Vezi NIR: ${row.nirNumber || ""}`}
                               >
                                 <ClipboardCheck className="w-3.5 h-3.5" />
@@ -1851,13 +1843,14 @@ export default function AllInvoices() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <button
+                                type="button"
                                 aria-label="Mai multe acțiuni"
                                 className="apple-btn-glass flex items-center justify-center w-8 h-8 rounded-full text-[#3a3a3c] dark:text-[#ebebf5] transition-all cursor-pointer"
                               >
                                 <MoreVertical className="w-3.5 h-3.5" />
                               </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuContent align="end" className="w-52 rounded-2xl">
                               {row.status !== "paid" &&
                                 row.status !== "processed" &&
                                 row.status !== "storno" &&
@@ -1890,31 +1883,29 @@ export default function AllInvoices() {
                                   </DropdownMenuItem>
                                 )}
 
-                              {row.type === "primit" && (
-                                isUnread ? (
+                              {row.type === "primit" &&
+                                (isUnread ? (
                                   <DropdownMenuItem
                                     onClick={() => markAsRead.mutate({ id: row.id })}
-                                    className="cursor-pointer text-slate-700 dark:text-slate-300"
+                                    className="cursor-pointer"
                                   >
-                                    <MailOpen className="w-4 h-4 mr-2 text-blue-600" />
+                                    <MailOpen className="w-4 h-4 mr-2 text-[#0071e3]" />
                                     <span>Marchează ca citită</span>
                                   </DropdownMenuItem>
                                 ) : (
                                   <DropdownMenuItem
                                     onClick={() => markAsUnread.mutate({ id: row.id })}
-                                    className="cursor-pointer text-slate-700 dark:text-slate-300"
+                                    className="cursor-pointer"
                                   >
-                                    <Mail className="w-4 h-4 mr-2 text-slate-500" />
+                                    <Mail className="w-4 h-4 mr-2 text-[#6e6e73]" />
                                     <span>Marchează ca necitită</span>
                                   </DropdownMenuItem>
-                                )
-                              )}
+                                ))}
 
                               {(row.type === "primit" ||
-                                (row.type === "emis" &&
-                                  row.source === "spv_anaf")) && (
+                                (row.type === "emis" && row.source === "spv_anaf")) && (
                                 <Link href={`/re-facturare/${row.id}`}>
-                                  <DropdownMenuItem className="cursor-pointer text-blue-600 focus:text-blue-700">
+                                  <DropdownMenuItem className="cursor-pointer">
                                     <Send className="w-4 h-4 mr-2" />
                                     <span>Re-facturează</span>
                                   </DropdownMenuItem>
@@ -1923,17 +1914,21 @@ export default function AllInvoices() {
 
                               {row.nirId ? (
                                 <Link href={`/nir/edit/${row.nirId}`}>
-                                  <DropdownMenuItem className="cursor-pointer text-teal-600 focus:text-teal-700 font-medium">
+                                  <DropdownMenuItem className="cursor-pointer font-medium">
                                     <ClipboardCheck className="w-4 h-4 mr-2 text-teal-600" />
-                                    <span>Vezi NIR {row.nirNumber ? `(${row.nirNumber})` : ""}</span>
+                                    <span>
+                                      Vezi NIR {row.nirNumber ? `(${row.nirNumber})` : ""}
+                                    </span>
                                   </DropdownMenuItem>
                                 </Link>
                               ) : row.type === "primit" ? (
                                 <Link href={`/nir/nou/${row.id}`}>
-                                  <DropdownMenuItem className="cursor-pointer text-teal-600 focus:text-teal-700">
-                                    <ClipboardList className="w-4 h-4 mr-2" />
+                                  <DropdownMenuItem className="cursor-pointer">
+                                    <ClipboardList className="w-4 h-4 mr-2 text-teal-600" />
                                     <span>
-                                      {(row as any).nirStatus === "partial" ? "Creează NIR (Parțial)" : "Creează NIR"}
+                                      {(row as any).nirStatus === "partial"
+                                        ? "Creează NIR (Parțial)"
+                                        : "Creează NIR"}
                                     </span>
                                   </DropdownMenuItem>
                                 </Link>
@@ -1952,10 +1947,7 @@ export default function AllInvoices() {
                               ) : (
                                 <DropdownMenuItem
                                   onClick={() => {
-                                    if (
-                                      row.type === "emis" &&
-                                      row.source === "manual"
-                                    ) {
+                                    if (row.type === "emis" && row.source === "manual") {
                                       downloadFile(
                                         `/api/pdf/emitted/${row.id}?download=1`,
                                         `${row.number}.pdf`
@@ -1964,14 +1956,10 @@ export default function AllInvoices() {
                                       row.fileUrl &&
                                       row.fileUrl !== "spv_import"
                                     ) {
-                                      downloadFile(
-                                        row.fileUrl,
-                                        `${row.number}.pdf`
-                                      );
+                                      downloadFile(row.fileUrl, `${row.number}.pdf`);
                                     } else if (
                                       row.type === "primit" ||
-                                      (row.type === "emis" &&
-                                        row.source === "spv_anaf")
+                                      (row.type === "emis" && row.source === "spv_anaf")
                                     ) {
                                       downloadFile(
                                         `/api/pdf/archive/${row.id}?download=1`,
@@ -1992,7 +1980,7 @@ export default function AllInvoices() {
 
                               <DropdownMenuItem
                                 onClick={() => setDeleteTarget(row)}
-                                className="cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50"
+                                className="cursor-pointer text-[#ff3b30] focus:text-[#ff3b30] focus:bg-red-50 dark:focus:bg-red-950/30"
                               >
                                 <Trash2 className="w-4 h-4 mr-2" />
                                 <span>Șterge</span>
@@ -2009,57 +1997,79 @@ export default function AllInvoices() {
           </table>
         </div>
 
-        {/* MOBILE CARDS */}
-        <div className="sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
+        {/* MOBILE LIST — Apple iOS Mail Inset Grouped Craft (>=11px typography, >=36px hit targets) */}
+        <div className="sm:hidden divide-y divide-black/[0.06] dark:divide-white/[0.08]">
           {isLoading ? (
-            <div className="py-10 text-center">
-              <Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto" />
+            <div className="py-12 text-center">
+              <Loader2 className="w-6 h-6 animate-spin text-[#6e6e73] mx-auto" />
             </div>
           ) : paginated.length === 0 ? (
-            <div className="py-10 text-center text-xs text-slate-400">
-              Nicio factură.
+            <div className="py-12 px-4 text-center text-[13px] text-[#6e6e73] dark:text-[#98989d] space-y-2.5">
+              <p>Nicio factură nu corespunde filtrelor.</p>
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={resetAllFilters}
+                  className="apple-btn-glass px-4 h-8 text-[12px] font-semibold text-[#1d1d1f] dark:text-white"
+                >
+                  Resetează filtrele
+                </button>
+              )}
             </div>
           ) : (
-            paginated.map((row, i) => {
+            paginated.map((row) => {
               const tb = TYPE_BADGE[row.type];
+              const isUnread = row.type === "primit" && !row.isRead;
+              const openDetail = () => {
+                if (isUnread) markAsRead.mutate({ id: row.id });
+                if (row.source === "refactura") navigate(`/re-facturi/${row.id}`);
+                else if (row.type === "emis" && row.source === "manual")
+                  navigate(`/facturi-emise-nou/view/${row.id}`);
+                else navigate(`/facturi-primite/${row.id}`);
+              };
               return (
                 <div
                   key={`${row.source}-${row.type}-${row.id}`}
-                  className="px-3 py-2.5"
+                  className={`px-4 py-3.5 transition-colors ${
+                    isUnread ? "bg-[#0071e3]/[0.03] dark:bg-[#0a84ff]/[0.07]" : ""
+                  }`}
                 >
-                  {/* LINIA 1: Numar, Nume, Total, Meniu */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                      <span className="text-[10px] text-slate-400 flex-shrink-0">
-                        {(page - 1) * rowsPerPage + i + 1}.
-                      </span>
-                      <button
-                        onClick={() => {
-                          if (row.source === "refactura")
-                            navigate(`/re-facturi/${row.id}`);
-                          else if (row.type === "emis" && row.source === "manual")
-                            navigate(`/facturi-emise-nou/view/${row.id}`);
-                          else navigate(`/facturi-primite/${row.id}`);
-                        }}
-                        className="text-[11px] font-bold text-blue-600 hover:underline flex-shrink-0"
+                  {/* Line 1: Partner + Amount + Accessible Menu Hit Target */}
+                  <div className="flex items-start justify-between gap-2.5">
+                    <button
+                      type="button"
+                      onClick={openDetail}
+                      className="flex items-center gap-2 min-w-0 flex-1 text-left"
+                    >
+                      {isUnread && (
+                        <span className="w-2 h-2 rounded-full bg-[#0071e3] dark:bg-[#0a84ff] shrink-0" />
+                      )}
+                      <span
+                        className={`text-[14px] truncate ${
+                          isUnread
+                            ? "font-bold text-[#1d1d1f] dark:text-white"
+                            : "font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]"
+                        }`}
                       >
-                        {row.number}
-                      </button>
-                      <span className="text-[11px] text-slate-600 dark:text-slate-300 truncate font-medium">
                         {row.partnerName}
                       </span>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-[11px] font-black text-slate-900 dark:text-white">
+                    </button>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[14px] font-bold text-[#1d1d1f] dark:text-white tabular-nums">
                         {formatCurrency(row.total, row.currency as Currency)}
                       </span>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <button className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 transition-colors">
-                            <MoreVertical className="w-3.5 h-3.5" />
+                          <button
+                            type="button"
+                            aria-label={`Acțiuni factură ${row.number}`}
+                            className="apple-btn-glass flex items-center justify-center w-9 h-9 rounded-full text-[#3a3a3c] dark:text-[#ebebf5]"
+                          >
+                            <MoreVertical className="w-4 h-4" />
                           </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuContent align="end" className="w-52 rounded-2xl">
                           {row.status !== "paid" &&
                             row.status !== "processed" &&
                             row.status !== "storno" &&
@@ -2093,10 +2103,9 @@ export default function AllInvoices() {
                             )}
 
                           {(row.type === "primit" ||
-                            (row.type === "emis" &&
-                              row.source === "spv_anaf")) && (
+                            (row.type === "emis" && row.source === "spv_anaf")) && (
                             <Link href={`/re-facturare/${row.id}`}>
-                              <DropdownMenuItem className="cursor-pointer text-blue-600 focus:text-blue-700">
+                              <DropdownMenuItem className="cursor-pointer">
                                 <Send className="w-4 h-4 mr-2" />
                                 <span>Re-facturează</span>
                               </DropdownMenuItem>
@@ -2105,17 +2114,21 @@ export default function AllInvoices() {
 
                           {row.nirId ? (
                             <Link href={`/nir/edit/${row.nirId}`}>
-                              <DropdownMenuItem className="cursor-pointer text-teal-600 focus:text-teal-700 font-medium">
+                              <DropdownMenuItem className="cursor-pointer font-medium">
                                 <ClipboardCheck className="w-4 h-4 mr-2 text-teal-600" />
-                                <span>Vezi NIR {row.nirNumber ? `(${row.nirNumber})` : ""}</span>
+                                <span>
+                                  Vezi NIR {row.nirNumber ? `(${row.nirNumber})` : ""}
+                                </span>
                               </DropdownMenuItem>
                             </Link>
                           ) : row.type === "primit" ? (
                             <Link href={`/nir/nou/${row.id}`}>
-                              <DropdownMenuItem className="cursor-pointer text-teal-600 focus:text-teal-700">
-                                <ClipboardList className="w-4 h-4 mr-2" />
+                              <DropdownMenuItem className="cursor-pointer">
+                                <ClipboardList className="w-4 h-4 mr-2 text-teal-600" />
                                 <span>
-                                  {(row as any).nirStatus === "partial" ? "Creează NIR (Parțial)" : "Creează NIR"}
+                                  {(row as any).nirStatus === "partial"
+                                    ? "Creează NIR (Parțial)"
+                                    : "Creează NIR"}
                                 </span>
                               </DropdownMenuItem>
                             </Link>
@@ -2134,10 +2147,7 @@ export default function AllInvoices() {
                           ) : (
                             <DropdownMenuItem
                               onClick={() => {
-                                if (
-                                  row.type === "emis" &&
-                                  row.source === "manual"
-                                ) {
+                                if (row.type === "emis" && row.source === "manual") {
                                   downloadFile(
                                     `/api/pdf/emitted/${row.id}?download=1`,
                                     `${row.number}.pdf`
@@ -2146,14 +2156,10 @@ export default function AllInvoices() {
                                   row.fileUrl &&
                                   row.fileUrl !== "spv_import"
                                 ) {
-                                  downloadFile(
-                                    row.fileUrl,
-                                    `${row.number}.pdf`
-                                  );
+                                  downloadFile(row.fileUrl, `${row.number}.pdf`);
                                 } else if (
                                   row.type === "primit" ||
-                                  (row.type === "emis" &&
-                                    row.source === "spv_anaf")
+                                  (row.type === "emis" && row.source === "spv_anaf")
                                 ) {
                                   downloadFile(
                                     `/api/pdf/archive/${row.id}?download=1`,
@@ -2174,7 +2180,7 @@ export default function AllInvoices() {
 
                           <DropdownMenuItem
                             onClick={() => setDeleteTarget(row)}
-                            className="cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50"
+                            className="cursor-pointer text-[#ff3b30] focus:text-[#ff3b30]"
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
                             <span>Șterge</span>
@@ -2184,44 +2190,46 @@ export default function AllInvoices() {
                     </div>
                   </div>
 
-                  {/* LINIA 2: Badge tip, Date, Badge status */}
-                  <div className="flex items-center justify-between mt-1.5">
-                    <div className="flex items-center gap-1.5 text-[9px] text-slate-400">
-                      <span
-                        className={`px-1 py-0.5 rounded text-[8px] font-bold border ${tb.cls}`}
+                  {/* Line 2: Number + Date + Semantic Pills */}
+                  <div className="flex items-center justify-between gap-2 mt-1.5 tabular-nums">
+                    <div className="flex items-center gap-1.5 text-[12px] text-[#6e6e73] dark:text-[#98989d] flex-wrap">
+                      <button
+                        type="button"
+                        onClick={openDetail}
+                        className="font-semibold text-[#1d1d1f] dark:text-[#ebebf5] hover:underline"
                       >
-                        {tb.label}
-                      </span>
+                        {row.number}
+                      </button>
+                      <span>·</span>
+                      <span>{formatDate(row.date)}</span>
                       {row.nirNumber && (
                         <Link href={`/nir/edit/${row.nirId}`}>
-                          <span
-                            className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] font-bold border bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/50 dark:text-teal-300 dark:border-teal-800"
-                            title={`NIR: ${row.nirNumber}`}
-                          >
-                            <ClipboardCheck className="w-2.5 h-2.5 text-teal-600 dark:text-teal-400 shrink-0" />
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-teal-500/10 text-teal-700 dark:bg-teal-500/18 dark:text-teal-300">
+                            <ClipboardCheck className="w-3 h-3 shrink-0" />
                             <span>{row.nirNumber}</span>
                           </span>
                         </Link>
                       )}
-                      <span>{formatDate(row.date)}</span>
-                      {row.dueDate && (
-                        <>
-                          <span>·</span>
-                          <span>Scad. {formatDate(row.dueDate)}</span>
-                        </>
-                      )}
-                      {row.spvIndex && (
-                        <>
-                          <span>·</span>
-                          <span className="tabular-nums">Index: {row.spvIndex}</span>
-                        </>
-                      )}
                     </div>
-                    <span
-                      className={`px-1.5 py-0.5 rounded text-[9px] font-semibold border ${STATUS_CLS[row.status] || STATUS_CLS.pending}`}
-                    >
-                      {STATUS_LBL[row.status] || row.status}
-                    </span>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                          row.type === "emis"
+                            ? "bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300"
+                            : "bg-amber-500/12 text-amber-700 dark:bg-amber-500/18 dark:text-amber-300"
+                        }`}
+                      >
+                        {tb.label}
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[11px] font-medium border ${
+                          STATUS_COLORS[row.status] || STATUS_COLORS.pending
+                        }`}
+                      >
+                        {getStatusLabel(row.status, row.type)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               );
@@ -2230,8 +2238,8 @@ export default function AllInvoices() {
         </div>
 
         {/* Footer paginare — Apple HIG Capsule Controls */}
-        <div className="px-4 py-3 border-t border-black/[0.06] dark:border-white/[0.08] flex items-center justify-between bg-[#f8f9fc]/85 dark:bg-white/[0.02] flex-wrap gap-2">
-          <div className="flex items-center gap-2 text-xs text-[#636366] dark:text-[#98989d] tabular-nums">
+        <div className="px-4 py-3 border-t border-black/[0.05] dark:border-white/[0.07] flex items-center justify-between bg-[#fafafa]/85 dark:bg-white/[0.02] flex-wrap gap-2">
+          <div className="flex items-center gap-2 text-[12px] text-[#6e6e73] dark:text-[#98989d] tabular-nums">
             <span className="flex items-center whitespace-nowrap">
               Afișează
               <Select
@@ -2241,7 +2249,7 @@ export default function AllInvoices() {
                   setPage(1);
                 }}
               >
-                <SelectTrigger className="h-7 px-2.5 text-xs apple-btn-glass w-[64px] rounded-full mx-1.5">
+                <SelectTrigger className="apple-pill-control h-7 px-2.5 text-[12px] w-[66px] mx-1.5">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -2254,27 +2262,30 @@ export default function AllInvoices() {
                 </SelectContent>
               </Select>
             </span>
-            <span className="whitespace-nowrap ml-2">
-              Total înregistrări: <strong className="text-[#1d1d1f] dark:text-white font-semibold">{filtered.length}</strong>
+            <span className="whitespace-nowrap ml-1">
+              din <strong className="text-[#1d1d1f] dark:text-white font-semibold">{filtered.length}</strong> documente
             </span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-[#636366] dark:text-[#98989d] tabular-nums">
-            <span className="whitespace-nowrap mr-1">
-              Pg. <strong className="text-[#1d1d1f] dark:text-white font-semibold">{page}/{totalPages}</strong>
+          <div className="flex items-center gap-1.5 text-[12px] text-[#6e6e73] dark:text-[#98989d] tabular-nums">
+            <span className="whitespace-nowrap mr-1.5">
+              Pagina <strong className="text-[#1d1d1f] dark:text-white font-semibold">{page}</strong> din{" "}
+              <strong className="text-[#1d1d1f] dark:text-white font-semibold">{totalPages}</strong>
             </span>
             <button
+              type="button"
               onClick={() => setPage(p => p - 1)}
               disabled={page === 1}
               aria-label="Pagina anterioară"
-              className="apple-btn-glass w-8 h-8 rounded-full flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] disabled:opacity-35 transition-all"
+              className="apple-btn-glass w-8 h-8 rounded-full flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] disabled:opacity-35 transition-all cursor-pointer"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
             <button
+              type="button"
               onClick={() => setPage(p => p + 1)}
               disabled={page >= totalPages}
               aria-label="Pagina următoare"
-              className="apple-btn-glass w-8 h-8 rounded-full flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] disabled:opacity-35 transition-all"
+              className="apple-btn-glass w-8 h-8 rounded-full flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] disabled:opacity-35 transition-all cursor-pointer"
             >
               <ChevronRight className="w-3.5 h-3.5" />
             </button>

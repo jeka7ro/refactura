@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import * as XLSX from "xlsx";
 import {
   Plus,
@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/select";
 
 export default function ReInvoicesSent() {
+  const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ReInvoiceStatus | "all">(
     "all"
@@ -241,19 +242,17 @@ export default function ReInvoicesSent() {
   const columns: DataTableColumn<any>[] = [
     {
       key: "number",
-      label: "NR. RE-FACTURĂ",
+      label: "Re-Factură & Stare",
       sortable: true,
       className: "whitespace-nowrap",
       render: (value: string, row: any) => (
-        <div className="h-10 flex flex-col justify-center">
-          <div className="h-5 flex items-center">
-            <span className="text-xs font-bold text-blue-600 hover:underline text-left cursor-pointer">
-              {value}
-            </span>
-          </div>
-          <div className="h-5 flex items-center">
+        <div className="flex flex-col gap-1 py-0.5 tabular-nums">
+          <span className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-white hover:underline text-left cursor-pointer">
+            {value}
+          </span>
+          <div>
             <span
-              className={`px-2 py-0.5 rounded-full text-[11px] font-normal border leading-none ${reInvoiceStatusColors[row.status as ReInvoiceStatus]}`}
+              className={`px-2 py-0.5 rounded-full text-[11px] font-medium border leading-none ${reInvoiceStatusColors[row.status as ReInvoiceStatus]}`}
             >
               {reInvoiceStatusLabels[row.status as ReInvoiceStatus]}
             </span>
@@ -263,142 +262,120 @@ export default function ReInvoicesSent() {
     },
     {
       key: "clientName",
-      label: "CLIENT",
+      label: "Client",
       sortable: true,
-      render: (value: string) => (
-        <div className="h-10 flex flex-col justify-center">
-          <div className="h-5 flex items-center">
-            <div
-              className="text-xs font-bold text-slate-900 dark:text-white max-w-[200px] truncate"
-              title={value}
-            >
-              {value}
-            </div>
+      render: (value: string, row: any) => (
+        <div className="flex flex-col gap-0.5 py-0.5">
+          <div
+            className="text-[13.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] max-w-[220px] truncate"
+            title={value}
+          >
+            {value || "—"}
           </div>
-          <div className="h-5 flex items-center text-[11px] text-slate-400 font-normal">
-            —
+          <div className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] tabular-nums">
+            {row.clientCUI ? `CUI ${row.clientCUI}` : "—"}
           </div>
         </div>
       ),
     },
     {
       key: "sourceInvoiceNumber",
-      label: "FACTURĂ SURSĂ",
+      label: "Factură Sursă",
       sortable: true,
-      render: (value: string) => (
-        <div className="h-10 flex flex-col justify-center">
-          <div className="h-5 flex items-center text-xs font-bold text-slate-900 dark:text-white">
-            {value}
+      render: (value: string, row: any) => (
+        <div className="flex flex-col gap-0.5 py-0.5 tabular-nums">
+          <div className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#ebebf5]">
+            {value || "—"}
           </div>
-          <div className="h-5 flex items-center text-[11px] text-slate-400 font-normal">
-            —
+          <div className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] truncate max-w-[180px]">
+            {row.sourceSupplierName || "—"}
           </div>
         </div>
       ),
     },
     {
       key: "date",
-      label: "DATĂ / SCADENȚĂ",
+      label: "Emitere & Scadență",
       sortable: true,
       className: "whitespace-nowrap",
       render: (_: any, row: any) => (
-        <div className="h-10 flex flex-col justify-center">
-          <div className="h-5 flex items-center text-xs font-bold text-slate-900 dark:text-white">
+        <div className="flex flex-col gap-0.5 py-0.5 tabular-nums">
+          <div className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#ebebf5]">
             {formatDate(row.date || row.issueDate)}
           </div>
-          <div className="h-5 flex items-center text-[11px] text-slate-400 font-normal">
-            {row.dueDate ? `Scad: ${formatDate(row.dueDate)}` : "—"}
+          <div className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d]">
+            {row.dueDate ? `Scad. ${formatDate(row.dueDate)}` : "—"}
           </div>
         </div>
       ),
     },
     {
       key: "total",
-      label: "TOTAL",
+      label: "Valoare",
       sortable: true,
       className: "whitespace-nowrap",
       render: (value: number, row: any) => (
-        <div className="h-10 flex flex-col justify-center items-end">
-          <div className="h-5 flex items-center justify-end text-xs font-bold text-slate-900 dark:text-white">
+        <div className="flex flex-col items-end gap-1 py-0.5 tabular-nums">
+          <div className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-white">
             {formatCurrency(value, row.currency)}
           </div>
-          <div className="h-5 flex items-center justify-end leading-none">
-            <div className="flex items-center gap-1">
-              {!row.spvStatus || row.spvStatus === "nesincronizat" ? (
-                <span className="text-[11px] font-normal text-slate-400">
-                  Nesincronizat
-                </span>
-              ) : row.spvStatus === "in_procesare" ? (
-                <span className="text-[11px] font-normal text-blue-500">
-                  Trimisă
-                </span>
-              ) : row.spvStatus === "validat" ? (
-                <span className="text-[11px] font-normal text-emerald-500">
-                  Validat
-                </span>
-              ) : row.spvStatus === "eroare" ? (
-                <span className="text-[11px] font-normal text-rose-500">Eroare</span>
-              ) : (
-                <span className="text-[11px] font-normal">{row.spvStatus}</span>
-              )}
-              <SpvDeadlineBadge
-                issueDate={row.issueDate || row.date}
-                spvStatus={row.spvStatus}
-                clientCountry={row.clientCountry}
-                clientCUI={row.clientCUI}
-                spvIndex={row.spvIndex}
-                spvSentAt={row.spvSentAt}
-              />
-            </div>
+          <div className="flex items-center justify-end leading-none gap-1">
+            {!row.spvStatus || row.spvStatus === "nesincronizat" ? (
+              <span className="text-[11px] text-[#8e8e93]">Netrimisă</span>
+            ) : row.spvStatus === "in_procesare" ? (
+              <span className="text-[11px] font-medium text-[#0071e3]">Trimisă</span>
+            ) : row.spvStatus === "validat" ? (
+              <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                Validată SPV
+              </span>
+            ) : row.spvStatus === "eroare" ? (
+              <span className="text-[11px] font-semibold text-[#ff3b30]">Eroare</span>
+            ) : (
+              <span className="text-[11px]">{row.spvStatus}</span>
+            )}
+            <SpvDeadlineBadge
+              issueDate={row.issueDate || row.date}
+              spvStatus={row.spvStatus}
+              clientCountry={row.clientCountry}
+              clientCUI={row.clientCUI}
+              spvIndex={row.spvIndex}
+              spvSentAt={row.spvSentAt}
+            />
           </div>
         </div>
       ),
     },
     {
       key: "spvSentAt",
-      label: "DATA TRANSMISĂ / INDEX",
+      label: "Transmitere SPV",
       sortable: true,
       className: "whitespace-nowrap",
       render: (value: any, row: any) => {
         const sentDate =
           value || (row.spvIndex && (row.updatedAt || row.createdAt));
         if (!sentDate) {
-          return (
-            <div className="h-10 flex flex-col justify-center text-slate-400">
-              <div className="h-5 flex items-center text-xs">—</div>
-              <div className="h-5 flex items-center text-[11px]">—</div>
-            </div>
-          );
+          return <span className="text-[12px] text-[#8e8e93]">—</span>;
         }
         const inTermen = isTransmittedInDeadline(row.issueDate || row.date, sentDate);
         return (
-          <div className="h-10 flex flex-col justify-center">
-            <div className={`h-5 flex items-center text-xs font-bold whitespace-nowrap ${inTermen ? "text-emerald-600 dark:text-emerald-500" : "text-slate-900 dark:text-white"}`}>
+          <div className="flex flex-col gap-0.5 py-0.5 tabular-nums">
+            <div
+              className={`text-[12.5px] font-medium whitespace-nowrap ${
+                inTermen
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : "text-[#1d1d1f] dark:text-white"
+              }`}
+            >
               <span>{formatDate(sentDate)}</span>
-              <span className="ml-1.5 font-bold">
+              <span className="ml-1.5">
                 {new Date(sentDate).toLocaleTimeString("ro-RO", {
                   hour: "2-digit",
                   minute: "2-digit",
                 })}
               </span>
             </div>
-            <div className="h-5 flex items-center text-[11px] font-normal">
-              {row.spvIndex ? (
-                <span
-                  className={
-                    row.spvStatus === "validat"
-                      ? "text-emerald-500"
-                      : row.spvStatus === "in_procesare"
-                      ? "text-blue-500"
-                      : "text-slate-400"
-                  }
-                  title={`Index încărcare SPV: ${row.spvIndex}`}
-                >
-                  Index: {row.spvIndex}
-                </span>
-              ) : (
-                <span className="text-slate-400">—</span>
-              )}
+            <div className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d]">
+              {row.spvIndex ? `SPV #${row.spvIndex}` : "—"}
             </div>
           </div>
         );
@@ -407,192 +384,213 @@ export default function ReInvoicesSent() {
   ];
 
   return (
-    <div className="p-3 sm:p-5 max-w-full space-y-3">
-      {/* Header cu Titlu + Export/Sync (Top Row) si Filtre Perioada (Bottom Row) */}
-      <div className="flex flex-col gap-3 mb-4">
-        {/* Top Row: Title & Action Buttons */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
-              Re-Facturi Emise
-            </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Total: <strong>{reInvoices.length}</strong> înregistrări
-            </p>
-          </div>
+    <div className="p-3 sm:p-5 max-w-full space-y-4">
+      {/* Header — Apple macOS Window Title & Single Prominent CTA */}
+      <div className="flex items-center justify-between gap-3 flex-wrap px-0.5">
+        <div>
+          <h1 className="text-[22px] sm:text-[26px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-tight">
+            Re-Facturi
+          </h1>
+          <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 tabular-nums">
+            Total:{" "}
+            <strong className="text-[#1d1d1f] dark:text-white font-semibold">
+              {reInvoices.length}
+            </strong>{" "}
+            documente
+          </p>
+        </div>
 
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={exportToExcel}
+            className="apple-btn-glass flex items-center gap-1.5 px-3.5 h-9 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-semibold transition-all cursor-pointer"
+            title="Exportă tabelul curent în format Microsoft Excel (.xlsx)"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Export Excel</span>
+          </button>
+          <Link href="/facturi-primite">
             <button
-              onClick={exportToExcel}
-              className="flex items-center gap-1 px-3 h-8 rounded-lg bg-[#107c41] hover:bg-[#0b5c30] text-white text-xs font-bold transition-all shadow-sm"
-              title="Exportă tabelul curent în format Microsoft Excel (.xlsx)"
+              type="button"
+              className="apple-btn-prominent flex items-center justify-center gap-1.5 h-9 px-4 rounded-full text-white text-[12.5px] font-semibold transition-all shrink-0 cursor-pointer"
             >
-              <Download className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Export Excel (.xlsx)</span>
+              <Plus className="w-4 h-4" />
+              <span>Re-Factură Nouă</span>
             </button>
-            <Link href="/facturi-primite">
-              <button className="flex items-center justify-center sm:gap-1.5 w-10 h-10 sm:w-auto sm:h-8 sm:px-3 rounded-full sm:rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors shadow-sm flex-shrink-0"><Plus className="w-5 h-5 sm:w-3.5 sm:h-3.5" /><span className="hidden sm:inline">Re-Factură nouă</span></button>
-            </Link>
-          </div>
+          </Link>
         </div>
+      </div>
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-4 gap-1.5 sm:gap-4 pb-2">
-          {[
-            {
-              label: "Total Re-Facturi",
-              value: reInvoices.length,
-              cls: "text-slate-900 dark:text-white",
-            },
-            {
-              label: "Încasate",
-              value: reInvoices.filter(r => r.status === "paid").length,
-              cls: "text-emerald-600",
-            },
-            {
-              label: "Restanțe",
-              value: reInvoices.filter(r => r.status === "overdue").length,
-              cls: "text-rose-600",
-            },
-            {
-              label: "Valoare Totală",
-              value: `${totalValue.toLocaleString("ro-RO", { minimumFractionDigits: 2 })} RON`,
-              cls: "text-sky-600 dark:text-sky-400",
-            },
-          ].map(k => (
-            <div
-              key={k.label}
-              className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-2 sm:p-4 flex flex-col justify-center h-14 sm:h-20 shadow-sm transition-all hover:shadow-md cursor-pointer"
-            >
-              <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5 sm:mb-1 truncate">
-                {k.label}
-              </p>
-              <p className={`text-base sm:text-2xl font-black leading-none truncate ${k.cls}`}>{k.value}</p>
-            </div>
-          ))}
-        </div>
+      {/* KPI Cards — Clean Apple Surface Strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 tabular-nums">
+        {[
+          {
+            label: "Total re-facturi",
+            value: reInvoices.length,
+            cls: "text-[#1d1d1f] dark:text-white",
+          },
+          {
+            label: "Încasate",
+            value: reInvoices.filter(r => r.status === "paid").length,
+            cls: "text-[#1d1d1f] dark:text-white",
+          },
+          {
+            label: "Restanțe",
+            value: reInvoices.filter(r => r.status === "overdue").length,
+            cls:
+              reInvoices.filter(r => r.status === "overdue").length > 0
+                ? "text-[#ff3b30] dark:text-[#ff453a]"
+                : "text-[#1d1d1f] dark:text-white",
+          },
+          {
+            label: "Valoare totală",
+            value: `${totalValue.toLocaleString("ro-RO", { minimumFractionDigits: 2 })} RON`,
+            cls: "text-[#1d1d1f] dark:text-white",
+          },
+        ].map(k => (
+          <div
+            key={k.label}
+            className="apple-surface px-4 sm:px-5 py-3.5 sm:py-4 flex flex-col justify-between gap-2"
+          >
+            <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+              {k.label}
+            </span>
+            <span className={`text-[22px] sm:text-[24px] font-bold tracking-[-0.026em] leading-none truncate ${k.cls}`}>
+              {k.value}
+            </span>
+          </div>
+        ))}
       </div>
 
       {/* Reminder Termen Legal SPV (5 zile lucrătoare) */}
       <SpvDeadlineBanner invoices={reInvoices} />
 
-      {/* Toolbar Filtre — cu iconițe și dimensiuni identice cu AllInvoices și EmittedInvoices */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-        <div className="p-3 flex items-center gap-3 flex-wrap bg-white dark:bg-slate-900">
-          {/* Căutare */}
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              style={{ paddingLeft: 34, paddingRight: search ? 68 : 14 }}
-              className="rounded-full w-full h-8 border border-slate-200 dark:border-slate-700 outline-none text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all shadow-none"
-              placeholder="Caută re-factură, client, factură sursă..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-            {search && (
-              <>
-                <div className="absolute right-7 top-1/2 -translate-y-1/2 bg-blue-600 text-white rounded-full px-1.5 py-0.5 text-[9px] font-bold">
-                  {filtered.length}/{reInvoices.length}
-                </div>
-                <button
-                  onClick={() => setSearch("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2"
+      {/* Unified Apple Control & Filter Card */}
+      <div className="apple-surface p-3 space-y-2.5">
+        <div className="flex items-center justify-between gap-2.5 flex-wrap">
+          <div className="apple-segmented overflow-x-auto no-scrollbar max-w-full">
+            {[
+              { id: "all", label: "Toate" },
+              { id: "today", label: "Azi" },
+              { id: "week", label: "Săpt. asta" },
+              { id: "month", label: "Luna asta" },
+              { id: "lastMonth", label: "Luna trec." },
+              { id: "year", label: "An" },
+              { id: "custom", label: "Interval" },
+            ].map(item => (
+              <button
+                key={item.id}
+                type="button"
+                data-active={period === item.id}
+                onClick={() => {
+                  setPeriod(item.id);
+                  const range = getDateRange(item.id);
+                  if (range && item.id !== "custom") {
+                    setCustomFrom(range[0]);
+                    setCustomTo(range[1]);
+                  }
+                }}
+                className="apple-segmented-item"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap flex-1 sm:flex-initial justify-end">
+            {/* Status Select */}
+            <div className="w-[146px] shrink-0">
+              <Select
+                value={statusFilter}
+                onValueChange={val => setStatusFilter(val as any)}
+              >
+                <SelectTrigger
+                  data-filtered={statusFilter !== "all"}
+                  className="apple-pill-control h-[34px] w-full flex items-center gap-1.5 px-3"
                 >
-                  <X className="w-3 h-3 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" />
-                </button>
-              </>
-            )}
-          </div>
+                  <Tag className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
+                  <SelectValue placeholder="Toate statusurile" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toate statusurile</SelectItem>
+                  <SelectItem value="draft">Ciornă ({counts.draft})</SelectItem>
+                  <SelectItem value="pending">În Așteptare ({counts.pending})</SelectItem>
+                  <SelectItem value="sent">Trimise ({counts.sent})</SelectItem>
+                  <SelectItem value="paid">Încasate ({counts.paid})</SelectItem>
+                  <SelectItem value="overdue">Restanțe ({counts.overdue})</SelectItem>
+                  <SelectItem value="cancelled">Anulate ({counts.cancelled})</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Perioadă Filter */}
-          <div className="w-[140px] sm:w-[155px] flex-shrink-0">
-            <Select
-              value={period}
-              onValueChange={val => {
-                setPeriod(val as any);
-                const range = getDateRange(val);
-                if (range && val !== "custom") {
-                  setCustomFrom(range[0]);
-                  setCustomTo(range[1]);
-                }
-              }}
-            >
-              <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 shadow-none flex items-center gap-1.5 px-3">
-                <Calendar className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
-                <SelectValue placeholder="Perioadă" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toate dățile</SelectItem>
-                <SelectItem value="today">Azi</SelectItem>
-                <SelectItem value="week">Săpt. curentă</SelectItem>
-                <SelectItem value="month">Luna curentă</SelectItem>
-                <SelectItem value="lastMonth">Luna trecută</SelectItem>
-                <SelectItem value="year">Anul curent</SelectItem>
-                <SelectItem value="lastYear">Anul trecut</SelectItem>
-                <SelectItem value="custom">Personalizat...</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+            {/* SPV Filter */}
+            <div className="w-[146px] shrink-0">
+              <Select
+                value={spvFilter}
+                onValueChange={val => setSpvFilter(val as any)}
+              >
+                <SelectTrigger
+                  data-filtered={spvFilter !== "all"}
+                  className="apple-pill-control h-[34px] w-full flex items-center gap-1.5 px-3"
+                >
+                  <Send className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
+                  <SelectValue placeholder="Toate SPV" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toate SPV</SelectItem>
+                  <SelectItem value="validat">Validate ({spvCounts.validat})</SelectItem>
+                  <SelectItem value="in_procesare">În procesare ({spvCounts.in_procesare})</SelectItem>
+                  <SelectItem value="eroare">Erori SPV ({spvCounts.eroare})</SelectItem>
+                  <SelectItem value="nesincronizat">Netrimise ({spvCounts.nesincronizat})</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Status Filter */}
-          <div className="w-[125px] sm:w-[140px] flex-shrink-0">
-            <Select
-              value={statusFilter}
-              onValueChange={val => setStatusFilter(val as any)}
-            >
-              <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 shadow-none flex items-center gap-1.5 px-3">
-                <Tag className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toate statusurile</SelectItem>
-                <SelectItem value="draft">Ciornă ({counts.draft})</SelectItem>
-                <SelectItem value="pending">În Așteptare ({counts.pending})</SelectItem>
-                <SelectItem value="sent">Trimise ({counts.sent})</SelectItem>
-                <SelectItem value="paid">Încasate ({counts.paid})</SelectItem>
-                <SelectItem value="overdue">Restanțe ({counts.overdue})</SelectItem>
-                <SelectItem value="cancelled">Anulate ({counts.cancelled})</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* SPV Filter */}
-          <div className="w-[130px] sm:w-[150px] flex-shrink-0">
-            <Select
-              value={spvFilter}
-              onValueChange={val => setSpvFilter(val as any)}
-            >
-              <SelectTrigger className="h-8 w-full rounded-full text-xs font-bold border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 shadow-none flex items-center gap-1.5 px-3">
-                <Send className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
-                <SelectValue placeholder="Stare SPV" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toate SPV</SelectItem>
-                <SelectItem value="validat">Validate ({spvCounts.validat})</SelectItem>
-                <SelectItem value="in_procesare">În procesare ({spvCounts.in_procesare})</SelectItem>
-                <SelectItem value="eroare">Erori SPV ({spvCounts.eroare})</SelectItem>
-                <SelectItem value="nesincronizat">Netrimise ({spvCounts.nesincronizat})</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Căutare */}
+            <div className="relative flex-1 sm:w-[240px] min-w-[180px]">
+              <Search className="w-3.5 h-3.5 text-[#8e8e93] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                style={{ paddingLeft: 34, paddingRight: search ? 72 : 14 }}
+                className="apple-pill-control rounded-full w-full h-[34px] outline-none text-[13px] text-[#1d1d1f] dark:text-white placeholder:text-[#8e8e93] focus:bg-white dark:focus:bg-[#2c2c2e]"
+                placeholder="Caută re-factură, client..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+              {search && (
+                <>
+                  <span className="absolute right-8 top-1/2 -translate-y-1/2 bg-black/[0.07] dark:bg-white/[0.14] text-[#1d1d1f] dark:text-white rounded-full px-2 py-0.5 text-[10.5px] font-semibold tabular-nums">
+                    {filtered.length}/{reInvoices.length}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Șterge căutarea"
+                    onClick={() => setSearch("")}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center hover:bg-black/[0.07] dark:hover:bg-white/[0.12] cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d]" />
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
         {period === "custom" && (
-          <div className="px-4 py-2 border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/30 flex items-center gap-2 text-xs">
-            <Calendar className="w-3.5 h-3.5 text-blue-500" />
-            <span className="text-slate-500 font-medium">De la:</span>
+          <div className="inline-flex items-center gap-1.5 px-2.5 h-[34px] rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] text-xs tabular-nums">
+            <Calendar className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d]" />
             <input
               type="date"
               value={customFrom}
               onChange={e => setCustomFrom(e.target.value)}
-              className="border border-slate-200 dark:border-slate-700 rounded-md px-2 py-0.5 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+              className="h-6 px-1 text-xs bg-transparent text-[#1d1d1f] dark:text-white outline-none w-[110px]"
             />
-            <span className="text-slate-500 font-medium ml-2">Până la:</span>
+            <span className="text-[#8e8e93]">–</span>
             <input
               type="date"
               value={customTo}
               onChange={e => setCustomTo(e.target.value)}
-              className="border border-slate-200 dark:border-slate-700 rounded-md px-2 py-0.5 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+              className="h-6 px-1 text-xs bg-transparent text-[#1d1d1f] dark:text-white outline-none w-[110px]"
             />
           </div>
         )}
@@ -604,47 +602,53 @@ export default function ReInvoicesSent() {
         rowKey="id"
         searchable={false}
         onRowClick={row => {
-          window.location.href = `/re-facturi/${row.id}`;
+          navigate(`/re-facturi/${row.id}`);
         }}
         isLoading={isLoading}
         actions={row => (
-          <div className="flex items-center justify-end gap-1">
+          <div
+            className="flex items-center justify-end gap-1.5"
+            onClick={e => e.stopPropagation()}
+          >
             <button
-              onClick={() => (window.location.href = `/re-facturi/${row.id}`)}
-              className="w-6 h-6 rounded-lg border border-slate-200 bg-white text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center"
+              type="button"
+              onClick={() => navigate(`/re-facturi/${row.id}`)}
+              className="w-8 h-8 rounded-full apple-btn-glass text-[#3a3a3c] dark:text-[#ebebf5] flex items-center justify-center cursor-pointer"
               title="Vizualizare Detaliată"
             >
-              <Eye className="w-3 h-3" />
+              <Eye className="w-3.5 h-3.5" />
             </button>
             <a
               href={`/api/pdf/reinvoice/${row.id}?download=1`}
               download
-              className="w-6 h-6 rounded-lg border border-slate-200 bg-white text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center"
+              className="w-8 h-8 rounded-full apple-btn-glass text-[#3a3a3c] dark:text-[#ebebf5] flex items-center justify-center cursor-pointer"
               title="Descarcă PDF"
             >
-              <Download className="w-3 h-3" />
+              <Download className="w-3.5 h-3.5" />
             </a>
             <a
               href={`mailto:${row.clientEmail || ""}?subject=Factura ${row.number}&body=Regăsiți atașată factura ${row.number}.`}
-              className="w-6 h-6 rounded-lg border border-slate-200 bg-white text-emerald-600 hover:bg-emerald-50 transition-colors flex items-center justify-center"
+              className="w-8 h-8 rounded-full apple-btn-glass text-[#3a3a3c] dark:text-[#ebebf5] flex items-center justify-center cursor-pointer"
               title="Trimite pe Email"
             >
-              <Mail className="w-3 h-3" />
+              <Mail className="w-3.5 h-3.5" />
             </a>
             <button
+              type="button"
               onClick={handleSPV}
-              className="w-6 h-6 rounded-lg border border-slate-200 bg-white text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center justify-center"
+              className="w-8 h-8 rounded-full apple-btn-glass text-[#3a3a3c] dark:text-[#ebebf5] flex items-center justify-center cursor-pointer"
               title="Trimite în SPV"
             >
-              <Send className="w-3 h-3" />
+              <Send className="w-3.5 h-3.5" />
             </button>
             <button
+              type="button"
               onClick={() => setDeleteId(row.id)}
               disabled={deleteReInvoice.isPending && deleteId === row.id}
-              className="w-6 h-6 rounded-lg border border-slate-200 bg-white text-rose-600 hover:bg-rose-50 transition-colors flex items-center justify-center disabled:opacity-50"
+              className="w-8 h-8 rounded-full apple-btn-glass text-[#6e6e73] hover:text-[#ff3b30] dark:text-[#98989d] dark:hover:text-[#ff453a] flex items-center justify-center disabled:opacity-50 cursor-pointer"
               title="Șterge"
             >
-              <Trash2 className="w-3 h-3" />
+              <Trash2 className="w-3.5 h-3.5" />
             </button>
           </div>
         )}
@@ -654,7 +658,7 @@ export default function ReInvoicesSent() {
         open={deleteId !== null}
         onOpenChange={open => !open && setDeleteId(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-[22px]">
           <AlertDialogHeader>
             <AlertDialogTitle>Ștergere Re-Factură</AlertDialogTitle>
             <AlertDialogDescription>
@@ -663,13 +667,13 @@ export default function ReInvoicesSent() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Anulează</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-full">Anulează</AlertDialogCancel>
             <AlertDialogAction
               onClick={e => {
                 e.preventDefault();
                 handleDelete();
               }}
-              className="bg-rose-600 hover:bg-rose-700 text-white"
+              className="bg-rose-600 hover:bg-rose-700 text-white rounded-full"
             >
               {deleteReInvoice.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
