@@ -481,17 +481,7 @@ export default function EmittedInvoices() {
             setStatusFilter("all");
             setPage(1);
           }}
-          style={
-            statusFilter === "all"
-              ? {
-                  borderColor:
-                    "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 55%, transparent)",
-                  boxShadow:
-                    "0 0 0 2px color-mix(in srgb, var(--tenant-theme-color, #16a34a) 16%, transparent)",
-                }
-              : undefined
-          }
-          className="apple-surface px-4 py-3.5 flex flex-col justify-between gap-2 transition-all hover:shadow-md cursor-pointer select-none"
+          className="apple-surface outline-none px-4 py-3.5 flex flex-col justify-between gap-2 transition-all hover:shadow-md cursor-pointer select-none"
         >
           <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
             Total facturi
@@ -516,17 +506,7 @@ export default function EmittedInvoices() {
             setStatusFilter(statusFilter === "paid" ? "all" : "paid");
             setPage(1);
           }}
-          style={
-            statusFilter === "paid"
-              ? {
-                  borderColor:
-                    "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 55%, transparent)",
-                  boxShadow:
-                    "0 0 0 2px color-mix(in srgb, var(--tenant-theme-color, #16a34a) 16%, transparent)",
-                }
-              : undefined
-          }
-          className="apple-surface px-4 py-3.5 flex flex-col justify-between gap-2 transition-all hover:shadow-md cursor-pointer select-none"
+          className="apple-surface outline-none px-4 py-3.5 flex flex-col justify-between gap-2 transition-all hover:shadow-md cursor-pointer select-none"
         >
           <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
             Încasate
@@ -549,11 +529,7 @@ export default function EmittedInvoices() {
             setStatusFilter(statusFilter === "overdue" ? "all" : "overdue");
             setPage(1);
           }}
-          className={`apple-surface px-4 py-3.5 flex flex-col justify-between gap-2 transition-all cursor-pointer select-none ${
-            statusFilter === "overdue"
-              ? "ring-2 ring-[#ff3b30]/25 border-[#ff3b30]/50"
-              : "hover:shadow-md"
-          }`}
+          className="apple-surface outline-none px-4 py-3.5 flex flex-col justify-between gap-2 transition-all hover:shadow-md cursor-pointer select-none"
         >
           <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
             Restanțe

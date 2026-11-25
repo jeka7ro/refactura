@@ -973,17 +973,7 @@ export default function AllInvoices() {
               setPage(1);
             }
           }}
-          style={
-            typeFilter === "all"
-              ? {
-                  borderColor:
-                    "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 55%, transparent)",
-                  boxShadow:
-                    "0 0 0 2px color-mix(in srgb, var(--tenant-theme-color, #16a34a) 16%, transparent)",
-                }
-              : undefined
-          }
-          className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
+          className="apple-surface outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
         >
           <div className="flex items-center justify-between gap-2 w-full">
             <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
@@ -1021,17 +1011,7 @@ export default function AllInvoices() {
               setPage(1);
             }
           }}
-          style={
-            typeFilter === "emis"
-              ? {
-                  borderColor:
-                    "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 55%, transparent)",
-                  boxShadow:
-                    "0 0 0 2px color-mix(in srgb, var(--tenant-theme-color, #16a34a) 16%, transparent)",
-                }
-              : undefined
-          }
-          className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
+          className="apple-surface outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
         >
           <div className="flex items-center justify-between gap-2 w-full">
             <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
@@ -1068,17 +1048,7 @@ export default function AllInvoices() {
               setPage(1);
             }
           }}
-          style={
-            typeFilter === "primit"
-              ? {
-                  borderColor:
-                    "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 55%, transparent)",
-                  boxShadow:
-                    "0 0 0 2px color-mix(in srgb, var(--tenant-theme-color, #16a34a) 16%, transparent)",
-                }
-              : undefined
-          }
-          className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
+          className="apple-surface outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
         >
           <div className="flex items-center justify-between gap-2 w-full">
             <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">

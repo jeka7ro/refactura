@@ -1,5 +1,16 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-25 12:15 — Uniformizare contur carduri KPI fără chenar albastru pe primul card + finisare contururi Dark Mode (`AllInvoices.tsx`, `EmittedInvoices.tsx`, `index.css`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Eliminare chenar/contur colorat de pe cardurile KPI (`AllInvoices.tsx`, `EmittedInvoices.tsx`):**
+     - Eliminat conturul colorat (`borderColor` + `boxShadow` `0 0 0 2px`) de pe primul card (`Toate facturile` / `Total facturi`) și uniformizat toate cardurile KPI la același contur discret `.apple-surface` (cu `outline-none`), exact ca restul cardurilor de pe rând.
+  2. **Finisare contururi și reflexii pe Dark Mode (`client/src/index.css`, `DashboardLayout.tsx`, `button.tsx`, `card.tsx`, `select.tsx`, `SpvHub.tsx`):**
+     - Eliminat bordurile albe lăptoase și umbrele `inset` albe de Light Mode de pe `.apple-btn-prominent` (`Sync`), sidebar, `Button`, `Card` și `SelectTrigger` în Dark Mode.
+- **Fișiere:** `client/src/pages/AllInvoices.tsx`, `client/src/pages/EmittedInvoices.tsx`, `client/src/index.css`, `client/src/components/DashboardLayout.tsx`, `client/src/components/ui/button.tsx`, `client/src/components/ui/card.tsx`, `client/src/components/ui/select.tsx`, `client/src/pages/SpvHub.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori) și `npm run build` (`0` erori), fără `git push`.
+
 ### 2026-11-25 12:00 — Audit complet și blindare anti-dublare SPV, Export SAGA (ZIP/XML/Web), Portal Contabil și Evidență Facturi
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

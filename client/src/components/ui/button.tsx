@@ -10,13 +10,13 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.48),inset_0_-1px_0.5px_rgba(0,0,0,0.12),0_4px_14px_-3px_rgba(0,0,0,0.2)] hover:brightness-105",
+          "bg-primary text-primary-foreground shadow-[inset_0_0.5px_0_rgba(255,255,255,0.28),0_4px_12px_-3px_rgba(0,0,0,0.18)] dark:shadow-[inset_0_0_0_0.5px_rgba(255,255,255,0.12),0_4px_12px_-2px_rgba(0,0,0,0.45)] hover:brightness-105",
         destructive:
-          "bg-destructive text-white shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.42),0_4px_12px_-3px_rgba(255,59,48,0.35)] hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/80",
+          "bg-destructive text-white shadow-[inset_0_0.5px_0_rgba(255,255,255,0.26),0_4px_12px_-3px_rgba(255,59,48,0.32)] dark:shadow-[inset_0_0_0_0.5px_rgba(255,255,255,0.12),0_4px_12px_-2px_rgba(0,0,0,0.45)] hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/80",
         outline:
-          "border border-white/85 dark:border-white/[0.14] bg-white/78 dark:bg-white/[0.08] backdrop-blur-md shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.95),0_0_0_0.5px_rgba(15,23,42,0.08),0_2px_6px_-1px_rgba(15,23,42,0.06)] hover:bg-white dark:hover:bg-white/[0.14] text-foreground",
+          "bg-clip-padding border border-black/[0.08] dark:border-white/[0.09] bg-white/82 dark:bg-white/[0.07] backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_2px_6px_-1px_rgba(15,23,42,0.06)] dark:shadow-[0_2px_6px_-1px_rgba(0,0,0,0.35)] hover:bg-white dark:hover:bg-white/[0.12] text-foreground",
         secondary:
-          "bg-white/72 dark:bg-white/[0.08] text-secondary-foreground backdrop-blur-md border border-black/[0.06] dark:border-white/[0.10] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.9),0_1px_3px_rgba(0,0,0,0.05)] hover:bg-white dark:hover:bg-white/[0.14]",
+          "bg-clip-padding bg-white/75 dark:bg-white/[0.08] text-secondary-foreground backdrop-blur-md border border-black/[0.06] dark:border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_3px_rgba(0,0,0,0.05)] dark:shadow-none hover:bg-white dark:hover:bg-white/[0.13]",
         ghost: "hover:bg-black/[0.05] dark:hover:bg-white/[0.08] rounded-full",
         link: "text-primary underline-offset-4 hover:underline",
       },

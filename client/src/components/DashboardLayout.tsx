@@ -690,20 +690,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <div
                   style={
                     active && !item.subItems
-                      ? {
-                          backgroundColor: themeColor,
-                          backgroundImage:
-                            "linear-gradient(180deg, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.02) 58%, rgba(0,0,0,0.08) 100%)",
-                        }
+                      ? { backgroundColor: themeColor }
                       : undefined
                   }
                   className={cn(
                     "flex items-center gap-2.5 px-3.5 py-2 rounded-full text-[13.5px] leading-snug transition-all duration-150 cursor-pointer group",
                     active && !item.subItems
-                      ? "text-white font-semibold shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.52),0_4px_12px_-2px_rgba(0,0,0,0.18)]"
+                      ? "apple-sidebar-active text-white font-semibold"
                       : (active || hasExpandedSubs) && item.subItems
-                        ? "text-[#1d1d1f] dark:text-white font-semibold bg-white/75 dark:bg-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_3px_rgba(0,0,0,0.05)]"
-                        : "text-[#3a3a3c] font-medium hover:text-[#1d1d1f] hover:bg-white/65 dark:text-[#ebebf5]/80 dark:hover:text-white dark:hover:bg-white/[0.07]",
+                        ? "apple-sidebar-group-open text-[#1d1d1f] dark:text-white font-semibold"
+                        : "text-[#3a3a3c] font-medium hover:text-[#1d1d1f] hover:bg-white/65 dark:text-[#ebebf5]/80 dark:hover:text-white dark:hover:bg-white/[0.06]",
                     collapsed && "justify-center px-2"
                   )}
                 >
@@ -726,7 +722,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               </Link>
               {/* Sub-items indentat */}
               {!collapsed && item.subItems && (active || hasExpandedSubs) && (
-                <div className="ml-4 mt-1 pl-3 border-l border-black/[0.08] dark:border-white/[0.10] space-y-0.5 py-0.5">
+                <div className="ml-4 mt-1 pl-3 border-l border-black/[0.08] dark:border-white/[0.08] space-y-0.5 py-0.5">
                   {item.subItems.map(sub => {
                     const SubIcon = sub.icon;
                     const subActive = isSubItemActive(sub.href);
@@ -739,18 +735,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         <div
                           style={
                             subActive
-                              ? {
-                                  backgroundColor: themeColor,
-                                  backgroundImage:
-                                    "linear-gradient(180deg, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.02) 58%, rgba(0,0,0,0.08) 100%)",
-                                }
+                              ? { backgroundColor: themeColor }
                               : undefined
                           }
                           className={cn(
                             "flex items-center gap-2 px-3 py-1.5 rounded-full text-[12.5px] transition-all duration-150 cursor-pointer group",
                             subActive
-                              ? "text-white font-semibold shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.5),0_3px_10px_-2px_rgba(0,0,0,0.18)]"
-                              : "text-[#636366] font-medium hover:text-[#1d1d1f] hover:bg-white/65 dark:text-[#98989d] dark:hover:text-white dark:hover:bg-white/[0.07]"
+                              ? "apple-sidebar-active text-white font-semibold"
+                              : "text-[#636366] font-medium hover:text-[#1d1d1f] hover:bg-white/65 dark:text-[#98989d] dark:hover:text-white dark:hover:bg-white/[0.06]"
                           )}
                         >
                           <SubIcon

@@ -1166,7 +1166,7 @@ export default function SpvHub() {
               disabled={isUsbSyncing}
               className={`h-8 rounded-full text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-all px-3 cursor-pointer disabled:opacity-60 ${
                 connectorReady
-                  ? "bg-emerald-500/12 hover:bg-emerald-500/18 text-emerald-800 border border-emerald-500/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] dark:bg-emerald-500/18 dark:hover:bg-emerald-500/25 dark:text-emerald-300 dark:border-emerald-500/30"
+                  ? "bg-emerald-500/12 hover:bg-emerald-500/18 text-emerald-800 border border-emerald-500/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] dark:shadow-none dark:bg-emerald-500/18 dark:hover:bg-emerald-500/25 dark:text-emerald-300 dark:border-emerald-500/30"
                   : "apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7]"
                 }`}
               title={
