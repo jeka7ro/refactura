@@ -489,13 +489,14 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
 
   // Logo
   if (data.logoBase64) {
+    const isCustomSub = Boolean(data.logoSubtitle);
     drawLogo(
       doc,
       data.logoBase64,
       leftX,
       y,
-      130,
-      38,
+      isCustomSub ? 130 : 115,
+      isCustomSub ? 38 : 34,
       data.logoHasBackground,
       data.logoBgColor,
       data.logoSubtitle
