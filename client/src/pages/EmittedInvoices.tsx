@@ -588,14 +588,12 @@ export default function EmittedInvoices() {
 
       {/* Single-Row Unified Toolbar (Zero Duplicate Filters, Auto-Width Pills) */}
       <div className="apple-surface px-3 py-2.5">
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-2 w-full min-w-0">
           {/* Period Segmented Track */}
           <div className="apple-segmented shrink-0">
             {[
               { id: "all", label: "Toate" },
               { id: "today", label: "Azi" },
-              { id: "yesterday", label: "Ieri" },
-              { id: "week", label: "Săpt." },
               { id: "month", label: "Lună" },
               { id: "lastMonth", label: "Luna trec." },
               { id: "year", label: "An" },
@@ -631,7 +629,7 @@ export default function EmittedInvoices() {
                   setCustomFrom(e.target.value);
                   setPage(1);
                 }}
-                className="h-6 px-1 text-xs bg-transparent text-[#1d1d1f] dark:text-white outline-none w-[106px]"
+                className="h-6 px-1 text-xs bg-transparent text-[#1d1d1f] dark:text-white outline-none w-[104px]"
               />
               <span className="text-[#8e8e93]">–</span>
               <input
@@ -641,7 +639,7 @@ export default function EmittedInvoices() {
                   setCustomTo(e.target.value);
                   setPage(1);
                 }}
-                className="h-6 px-1 text-xs bg-transparent text-[#1d1d1f] dark:text-white outline-none w-[106px]"
+                className="h-6 px-1 text-xs bg-transparent text-[#1d1d1f] dark:text-white outline-none w-[104px]"
               />
             </div>
           )}
@@ -668,8 +666,8 @@ export default function EmittedInvoices() {
             ))}
           </div>
 
-          {/* Right Side: Auto-Width SPV Filter + Search + Reset */}
-          <div className="ml-auto flex items-center gap-2 shrink-0">
+          {/* Right Side: Auto-Width SPV Filter + Fluid Search + Reset */}
+          <div className="ml-auto flex items-center gap-2 flex-1 justify-end min-w-0">
             <Select
               value={spvFilter}
               onValueChange={val => {
@@ -694,7 +692,7 @@ export default function EmittedInvoices() {
               </SelectContent>
             </Select>
 
-            <div className="relative w-[210px] xl:w-[250px] shrink-0">
+            <div className="relative flex-1 min-w-[140px] max-w-[240px]">
               <Search className="w-3.5 h-3.5 text-[#8e8e93] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 style={{ paddingLeft: 34, paddingRight: search ? 72 : 14 }}

@@ -1,5 +1,16 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-25 11:14 — Eliminare butoane `Ieri`, `Săpt.` și `În așteptare` + încadrare 100% pe un singur rând fără scrollbar orizontal (`AllInvoices`, `EmittedInvoices`, `ReInvoicesSent`, `index.css`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Eliminat `Ieri`, `Săpt.` și `În așteptare` din bara de filtre la cererea utilizatorului:**
+     - Păstrat segmentele curate `[Toate | Azi | Lună | Luna trec. | An | Interval]` și `[Necitite | Fără NIR | Cu NIR]`.
+  2. **Eliminat scrollbar-ul orizontal și tăierea butonului `Sync` pe dreapta:**
+     - Făcut câmpul `Caută...` flexibil (`flex-1 min-w-[140px] max-w-[235px]`) și definit utilitarul `.no-scrollbar` în `client/src/index.css` astfel încât toată bara intră complet pe un singur rând fără overflow.
+- **Fișiere:** `client/src/index.css`, `client/src/pages/AllInvoices.tsx`, `client/src/pages/EmittedInvoices.tsx`, `client/src/pages/ReInvoicesSent.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori) și `npm run build` (`0` erori), fără `git push`.
+
 ### 2026-11-25 11:05 — Culoarea tenantului pe tabul selectat + bară de filtre pe un singur rând fără dubluri (`index.css`, `AllInvoices.tsx`, `EmittedInvoices.tsx`, `ReInvoicesSent.tsx`)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

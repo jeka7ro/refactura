@@ -465,6 +465,15 @@ h3,
   @apply bg-slate-400 dark:bg-slate-500;
 }
 
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* Container */
 .container {
   @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;

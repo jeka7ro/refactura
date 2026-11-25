@@ -466,15 +466,14 @@ export default function ReInvoicesSent() {
       {/* Reminder Termen Legal SPV (5 zile lucrătoare) */}
       <SpvDeadlineBanner invoices={reInvoices} />
 
-      {/* Unified Apple Control & Filter Card */}
-      <div className="apple-surface p-3 space-y-2.5">
-        <div className="flex items-center justify-between gap-2.5 flex-wrap">
-          <div className="apple-segmented overflow-x-auto no-scrollbar max-w-full">
+      {/* Single-Row Unified Toolbar */}
+      <div className="apple-surface px-3 py-2.5">
+        <div className="flex items-center gap-2 w-full min-w-0">
+          <div className="apple-segmented shrink-0">
             {[
               { id: "all", label: "Toate" },
               { id: "today", label: "Azi" },
-              { id: "week", label: "Săpt. asta" },
-              { id: "month", label: "Luna asta" },
+              { id: "month", label: "Lună" },
               { id: "lastMonth", label: "Luna trec." },
               { id: "year", label: "An" },
               { id: "custom", label: "Interval" },
@@ -544,7 +543,7 @@ export default function ReInvoicesSent() {
             </Select>
 
             {/* Căutare */}
-            <div className="relative w-[210px] xl:w-[250px] shrink-0">
+            <div className="relative flex-1 min-w-[140px] max-w-[240px]">
               <Search className="w-3.5 h-3.5 text-[#8e8e93] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 style={{ paddingLeft: 34, paddingRight: search ? 72 : 14 }}
