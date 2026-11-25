@@ -1485,33 +1485,41 @@ export default function SpvHub() {
           {/* Bara superioară integrată — strict pe un singur rând, stil Apple */}
           <div className="px-3.5 py-2.5 border-b border-black/[0.06] dark:border-white/[0.08] bg-[#f5f5f7]/75 dark:bg-[#1c1c1e]/85 backdrop-blur-md flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
             {/* Stânga: Selector segmentat taburi */}
-            <div className="inline-flex items-center p-1 rounded-full bg-black/[0.055] dark:bg-white/[0.08] gap-0.5 shrink-0">
+            <div className="apple-segmented shrink-0">
               <button
                 type="button"
+                data-active={activeHubTab === "declaratii"}
                 onClick={() => setActiveHubTab("declaratii")}
-                className={`rounded-full px-3 py-1 text-[11.5px] font-semibold transition-all cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap ${activeHubTab === "declaratii"
-                  ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] shadow-2xs"
-                  : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
-                  }`}
+                className="apple-segmented-item px-3"
               >
                 <FileCheck className="w-3.5 h-3.5 shrink-0" />
                 <span>Mesaje &amp; Recipise SPV</span>
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular-nums bg-black/[0.05] dark:bg-white/[0.1] text-[#3a3a3c] dark:text-[#ebebf5]">
+                <span
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular-nums ${
+                    activeHubTab === "declaratii"
+                      ? "bg-white/20 text-white"
+                      : "bg-black/[0.06] dark:bg-white/[0.1] text-[#3a3a3c] dark:text-[#ebebf5]"
+                  }`}
+                >
                   {portalStats.total}
                 </span>
               </button>
 
               <button
                 type="button"
+                data-active={activeHubTab === "efactura"}
                 onClick={() => setActiveHubTab("efactura")}
-                className={`rounded-full px-3 py-1 text-[11.5px] font-semibold transition-all cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap ${activeHubTab === "efactura"
-                  ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] shadow-2xs"
-                  : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
-                  }`}
+                className="apple-segmented-item px-3"
               >
                 <Inbox className="w-3.5 h-3.5 shrink-0" />
                 <span>Mesaje e-Factura</span>
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular-nums bg-black/[0.05] dark:bg-white/[0.1] text-[#3a3a3c] dark:text-[#ebebf5]">
+                <span
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular-nums ${
+                    activeHubTab === "efactura"
+                      ? "bg-white/20 text-white"
+                      : "bg-black/[0.06] dark:bg-white/[0.1] text-[#3a3a3c] dark:text-[#ebebf5]"
+                  }`}
+                >
                   {msgStats.total}
                 </span>
               </button>
@@ -1530,7 +1538,7 @@ export default function SpvHub() {
                       setPage(1);
                     }}
                     placeholder="Caută în toate coloanele..."
-                    className="w-full h-8 !pl-8 !pr-7 !py-1 text-xs rounded-full border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#86868b] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/15 outline-none transition-all"
+                    className="w-full h-8 !pl-8 !pr-7 !py-1 text-xs rounded-full border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#86868b] focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 outline-none transition-all"
                   />
                   {portalSearchQuery && (
                     <button
@@ -1548,49 +1556,43 @@ export default function SpvHub() {
                 </div>
 
                 {/* Filtru segmentat Citit / Necitit */}
-                <div className="inline-flex items-center p-1 rounded-full bg-black/[0.055] dark:bg-white/[0.08] gap-0.5 shrink-0">
+                <div className="apple-segmented shrink-0">
                   <button
                     type="button"
+                    data-active={readFilter === "all"}
                     onClick={() => {
                       setReadFilter("all");
                       setPage(1);
                     }}
-                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-all cursor-pointer whitespace-nowrap ${readFilter === "all"
-                      ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] shadow-2xs"
-                      : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
-                      }`}
+                    className="apple-segmented-item px-2.5 tabular-nums"
                   >
                     Toate ({portalStats.total})
                   </button>
                   <button
                     type="button"
+                    data-active={readFilter === "unread"}
                     onClick={() => {
                       setReadFilter("unread");
                       setPage(1);
                     }}
-                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-all cursor-pointer inline-flex items-center gap-1 whitespace-nowrap ${readFilter === "unread"
-                      ? "bg-[#0071e3] text-white shadow-2xs"
-                      : "text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-white/60 dark:hover:bg-white/[0.08]"
-                      }`}
+                    className="apple-segmented-item px-2.5 tabular-nums"
                   >
                     <span
                       className={`w-1.5 h-1.5 rounded-full ${readFilter === "unread"
                         ? "bg-white"
-                        : "bg-[#0071e3]"
+                        : "bg-blue-600"
                         }`}
                     />
                     <span>Noi ({portalStats.unread})</span>
                   </button>
                   <button
                     type="button"
+                    data-active={readFilter === "read"}
                     onClick={() => {
                       setReadFilter("read");
                       setPage(1);
                     }}
-                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-all cursor-pointer whitespace-nowrap ${readFilter === "read"
-                      ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] shadow-2xs"
-                      : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
-                      }`}
+                    className="apple-segmented-item px-2.5 tabular-nums"
                   >
                     Citite ({portalStats.read})
                   </button>
@@ -1606,8 +1608,8 @@ export default function SpvHub() {
                       (selectedPortalIds.length === 0 && filteredPortalIds.length === 0)
                     }
                     className={`rounded-full h-8 px-3 text-[11.5px] font-semibold inline-flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-40 disabled:cursor-not-allowed ${selectedPortalIds.length > 0
-                      ? "bg-[#0071e3] hover:bg-[#0077ed] text-white shadow-2xs"
-                      : "bg-white dark:bg-[#2c2c2e] border border-black/[0.08] dark:border-white/[0.12] hover:border-[#0071e3]/40 text-[#1d1d1f] dark:text-[#f5f5f7]"
+                      ? "bg-blue-600 hover:bg-blue-700 text-white shadow-2xs"
+                      : "bg-white dark:bg-[#2c2c2e] border border-black/[0.08] dark:border-white/[0.12] hover:border-blue-500 text-[#1d1d1f] dark:text-[#f5f5f7]"
                       }`}
                     title={
                       selectedPortalIds.length > 0
@@ -1619,7 +1621,7 @@ export default function SpvHub() {
                       <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
                     ) : (
                       <Download
-                        className={`w-3.5 h-3.5 shrink-0 ${selectedPortalIds.length > 0 ? "text-white" : "text-[#0071e3]"}`}
+                        className={`w-3.5 h-3.5 shrink-0 ${selectedPortalIds.length > 0 ? "text-white" : "text-blue-600"}`}
                       />
                     )}
                     <span className="tabular-nums">
@@ -1649,7 +1651,7 @@ export default function SpvHub() {
                   aria-label="Elimină filtrele"
                   title="Elimină filtrele"
                   className={`w-8 h-8 rounded-full border inline-flex items-center justify-center transition-all cursor-pointer shrink-0 ${hasActivePortalFilters
-                    ? "bg-[#0071e3] text-white border-[#0071e3] hover:bg-[#0077ed] shadow-2xs"
+                    ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 shadow-2xs"
                     : "bg-white dark:bg-[#2c2c2e] border-black/[0.08] dark:border-white/[0.12] hover:bg-black/[0.04] dark:hover:bg-white/[0.08] text-[#6e6e73] dark:text-[#98989d]"
                     }`}
                 >
@@ -1665,7 +1667,7 @@ export default function SpvHub() {
                     value={searchMessageQuery}
                     onChange={(e) => setSearchMessageQuery(e.target.value)}
                     placeholder="Caută factură, partener, CUI..."
-                    className="w-full h-8 !pl-8 !pr-7 !py-1 text-xs rounded-full border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#86868b] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/15 outline-none transition-all"
+                    className="w-full h-8 !pl-8 !pr-7 !py-1 text-xs rounded-full border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#86868b] focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 outline-none transition-all"
                   />
                   {searchMessageQuery && (
                     <button
@@ -1679,45 +1681,39 @@ export default function SpvHub() {
                   )}
                 </div>
 
-                <div className="inline-flex items-center p-1 rounded-full bg-black/[0.055] dark:bg-white/[0.08] gap-0.5 shrink-0">
+                <div className="apple-segmented shrink-0">
                   <button
                     type="button"
+                    data-active={messageFilter === "all"}
                     onClick={() => setMessageFilter("all")}
-                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-all cursor-pointer whitespace-nowrap ${messageFilter === "all"
-                      ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] shadow-2xs"
-                      : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
-                      }`}
+                    className="apple-segmented-item px-2.5 tabular-nums"
                   >
                     Toate ({msgStats.total})
                   </button>
                   <button
                     type="button"
+                    data-active={messageFilter === "primita"}
                     onClick={() => setMessageFilter("primita")}
-                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-all cursor-pointer whitespace-nowrap ${messageFilter === "primita"
-                      ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] shadow-2xs"
-                      : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
-                      }`}
+                    className="apple-segmented-item px-2.5 tabular-nums"
                   >
                     Primite ({msgStats.primite})
                   </button>
                   <button
                     type="button"
+                    data-active={messageFilter === "trimisa"}
                     onClick={() => setMessageFilter("trimisa")}
-                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-all cursor-pointer whitespace-nowrap ${messageFilter === "trimisa"
-                      ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] shadow-2xs"
-                      : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
-                      }`}
+                    className="apple-segmented-item px-2.5 tabular-nums"
                   >
                     Trimise ({msgStats.trimise})
                   </button>
                   <button
                     type="button"
                     onClick={() => setMessageFilter("eroare")}
-                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-semibold transition-all cursor-pointer whitespace-nowrap ${messageFilter === "eroare"
+                    className={`rounded-full px-2.5 h-7 text-[12px] font-semibold transition-all cursor-pointer whitespace-nowrap inline-flex items-center ${messageFilter === "eroare"
                       ? "bg-[#ff3b30] text-white shadow-2xs"
                       : msgStats.erori > 0
                         ? "text-[#ff3b30] hover:bg-red-50 dark:hover:bg-red-950/40"
-                        : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
+                        : "text-[#636366] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
                       }`}
                   >
                     Erori ({msgStats.erori})
@@ -1730,8 +1726,8 @@ export default function SpvHub() {
                     onClick={handleDownloadEfacturaSelection}
                     disabled={isBulkDownloading}
                     className={`rounded-full h-8 px-3 text-[11.5px] font-semibold inline-flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-60 ${selectedEfacturaIds.length > 0
-                      ? "bg-[#0071e3] hover:bg-[#0077ed] text-white shadow-2xs"
-                      : "bg-white dark:bg-[#2c2c2e] border border-black/[0.08] dark:border-white/[0.12] hover:border-[#0071e3]/40 text-[#1d1d1f] dark:text-[#f5f5f7]"
+                      ? "bg-blue-600 hover:bg-blue-700 text-white shadow-2xs"
+                      : "bg-white dark:bg-[#2c2c2e] border border-black/[0.08] dark:border-white/[0.12] hover:border-blue-500 text-[#1d1d1f] dark:text-[#f5f5f7]"
                       }`}
                     title={
                       selectedEfacturaIds.length > 0
@@ -1743,7 +1739,7 @@ export default function SpvHub() {
                       <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
                     ) : (
                       <Download
-                        className={`w-3.5 h-3.5 shrink-0 ${selectedEfacturaIds.length > 0 ? "text-white" : "text-[#0071e3]"}`}
+                        className={`w-3.5 h-3.5 shrink-0 ${selectedEfacturaIds.length > 0 ? "text-white" : "text-blue-600"}`}
                       />
                     )}
                     <span className="tabular-nums">
@@ -1761,7 +1757,7 @@ export default function SpvHub() {
                     }}
                     aria-label="Elimină filtrele"
                     title="Elimină filtrele"
-                    className="w-8 h-8 rounded-full bg-[#0071e3] text-white border border-[#0071e3] hover:bg-[#0077ed] inline-flex items-center justify-center transition-all cursor-pointer shrink-0 shadow-2xs"
+                    className="w-8 h-8 rounded-full bg-blue-600 text-white border border-blue-600 hover:bg-blue-700 inline-flex items-center justify-center transition-all cursor-pointer shrink-0 shadow-2xs"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                   </button>

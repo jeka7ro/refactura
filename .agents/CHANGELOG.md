@@ -1,5 +1,16 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-25 11:41 — Aplicare uniformă a culorii dinamice a tenantului pe toate butoanele și taburile active din filtre
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Reguli globale pentru controale filtrate și taburi active (`client/src/index.css`, `client/src/components/ui/tabs.tsx`):**
+     - Actualizat `.apple-pill-control[data-filtered="true"]`, `[data-slot="select-trigger"][data-filtered="true"]` și `[data-slot="tabs-trigger"][data-state="active"]` să folosească direct `var(--tenant-theme-color)` cu text și iconițe albe, eliminând fundalul alb pe filtrele și taburile selectate.
+  2. **Unificat toate barele de filtre și selectoarele segmentate rămase pe alb în paginile aplicației:**
+     - Convertit la `.apple-segmented` / `.apple-segmented-item` și `bg-primary text-white` controalele active din `Dashboard.tsx` (orizont de timp, mod grafic 3D, top parteneri), `SpvHub.tsx` (taburi SPV / e-Factura, filtre Citite/Noi/Toate, Primite/Trimise/Toate și butoane PDF/Reset), `NIRList.tsx` (`Toate / Finalizate / Ciorne`), `EmailLogs.tsx`, `CursValutar.tsx`, `InvoiceCurrencyCalculator.tsx`, `Settings.tsx` (`Interfață Normală / SAGA`), `ContractCreate.tsx`, `ContractSignaturePadModal.tsx`, `EmittedInvoiceDetail.tsx`, `Inventory.tsx`, `ContractsList.tsx`, `InvoiceArchive.tsx`, `SpvLogs.tsx`, `SuperAdmin.tsx` și modulele `HoReCa`.
+- **Fișiere:** `client/src/index.css`, `client/src/components/ui/tabs.tsx`, `client/src/pages/Dashboard.tsx`, `client/src/pages/SpvHub.tsx`, `client/src/pages/NIRList.tsx`, `client/src/pages/EmailLogs.tsx`, `client/src/pages/CursValutar.tsx`, `client/src/components/InvoiceCurrencyCalculator.tsx`, `client/src/pages/Settings.tsx`, `client/src/pages/ContractCreate.tsx`, `client/src/components/ContractSignaturePadModal.tsx`, `client/src/pages/EmittedInvoiceDetail.tsx`, `client/src/pages/Inventory.tsx`, `client/src/pages/ContractsList.tsx`, `client/src/pages/InvoiceArchive.tsx`, `client/src/pages/SpvLogs.tsx`, `client/src/pages/SuperAdmin.tsx`, `client/src/pages/horeca/HorecaOrders.tsx`, `client/src/pages/horeca/HorecaTables.tsx`, `client/src/pages/horeca/HorecaMenu.tsx`, `client/src/pages/horeca/HorecaKitchenDisplay.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori) și `npm run build` (`0` erori), fără `git push`.
+
 ### 2026-11-25 11:30 — Ascundere număr build când bara laterală este restrânsă (`DashboardLayout.tsx`)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

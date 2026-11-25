@@ -895,46 +895,37 @@ export default function NIRList() {
               })}
             </div>
 
-            <div className="inline-flex items-center p-0.5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] gap-0.5 flex-wrap">
+            <div className="apple-segmented flex-wrap">
               <button
                 type="button"
+                data-active={statusFilter === "all"}
                 onClick={() => {
                   setStatusFilter("all");
                   setPage(1);
                 }}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer tabular-nums ${
-                  statusFilter === "all"
-                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white shadow-2xs"
-                    : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
-                }`}
+                className="apple-segmented-item px-2.5 tabular-nums"
               >
                 Toate {nirList.length}
               </button>
               <button
                 type="button"
+                data-active={statusFilter === "finalizat"}
                 onClick={() => {
                   setStatusFilter(statusFilter === "finalizat" ? "all" : "finalizat");
                   setPage(1);
                 }}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer tabular-nums ${
-                  statusFilter === "finalizat"
-                    ? "bg-teal-600 text-white shadow-2xs"
-                    : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
-                }`}
+                className="apple-segmented-item px-2.5 tabular-nums"
               >
                 Finalizate {statusCounts.finalizat}
               </button>
               <button
                 type="button"
+                data-active={statusFilter === "draft"}
                 onClick={() => {
                   setStatusFilter(statusFilter === "draft" ? "all" : "draft");
                   setPage(1);
                 }}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer tabular-nums ${
-                  statusFilter === "draft"
-                    ? "bg-amber-600 text-white shadow-2xs"
-                    : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
-                }`}
+                className="apple-segmented-item px-2.5 tabular-nums"
               >
                 Ciorne {statusCounts.draft}
               </button>

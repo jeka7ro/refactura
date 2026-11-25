@@ -382,7 +382,10 @@ export default function InvoiceArchive() {
               setPage(0);
             }}
           >
-            <SelectTrigger className="w-36 h-9 rounded-full text-sm border-slate-200 dark:border-slate-700">
+            <SelectTrigger
+              data-filtered={filterSource !== "all"}
+              className="apple-pill-control w-auto h-9 px-3.5 rounded-full text-sm shrink-0"
+            >
               <SelectValue placeholder="Sursă" />
             </SelectTrigger>
             <SelectContent>
@@ -401,7 +404,10 @@ export default function InvoiceArchive() {
               setPage(0);
             }}
           >
-            <SelectTrigger className="w-36 h-9 rounded-full text-sm border-slate-200 dark:border-slate-700">
+            <SelectTrigger
+              data-filtered={filterStatus !== "all"}
+              className="apple-pill-control w-auto h-9 px-3.5 rounded-full text-sm shrink-0"
+            >
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>

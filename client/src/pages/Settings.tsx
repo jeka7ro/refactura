@@ -2208,32 +2208,24 @@ export default function Settings() {
                 <div
                   role="group"
                   aria-label="Interfață implicită portal contabil"
-                  className="inline-flex items-center p-1 rounded-full bg-black/[0.055] dark:bg-white/[0.08] shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)] self-start sm:self-auto shrink-0"
+                  className="apple-segmented self-start sm:self-auto shrink-0"
                 >
                   <button
                     type="button"
+                    data-active={portalViewMode === "modern"}
                     onClick={() => handleChangePortalViewMode("modern")}
                     disabled={updateAccountantConfigMutation.isPending}
-                    className={cn(
-                      "inline-flex items-center gap-1.5 h-8 px-3.5 rounded-full text-xs transition-all duration-150",
-                      portalViewMode === "modern"
-                        ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_4px_rgba(0,0,0,0.10)]"
-                        : "text-[#636366] dark:text-[#98989d] font-medium hover:text-[#1d1d1f] dark:hover:text-white"
-                    )}
+                    className="apple-segmented-item px-3.5"
                   >
                     <LayoutGrid className="w-3.5 h-3.5" />
                     <span>Interfață Normală</span>
                   </button>
                   <button
                     type="button"
+                    data-active={portalViewMode === "saga"}
                     onClick={() => handleChangePortalViewMode("saga")}
                     disabled={updateAccountantConfigMutation.isPending}
-                    className={cn(
-                      "inline-flex items-center gap-1.5 h-8 px-3.5 rounded-full text-xs transition-all duration-150",
-                      portalViewMode === "saga"
-                        ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_4px_rgba(0,0,0,0.10)]"
-                        : "text-[#636366] dark:text-[#98989d] font-medium hover:text-[#1d1d1f] dark:hover:text-white"
-                    )}
+                    className="apple-segmented-item px-3.5"
                   >
                     <Database className="w-3.5 h-3.5" />
                     <span>Interfață SAGA</span>

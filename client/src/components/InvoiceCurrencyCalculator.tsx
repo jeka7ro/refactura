@@ -269,7 +269,7 @@ export function InvoiceCurrencyCalculator({
           }}
         >
           {/* Butoane rapide de comutare direcție: EUR RON vs RON EUR */}
-          <div className="grid grid-cols-2 gap-1 p-0.5 bg-slate-100 dark:bg-slate-800/80 rounded-lg">
+          <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-full">
             <button
               type="button"
               onClick={() => {
@@ -279,9 +279,9 @@ export function InvoiceCurrencyCalculator({
                 setCustomRate("");
               }}
               className={cn(
-                "flex items-center justify-center gap-1.5 py-1 px-2 rounded-md text-[11px] font-bold transition-all cursor-pointer",
+                "flex items-center justify-center gap-1.5 py-1 px-2 rounded-full text-[11px] font-bold transition-all cursor-pointer",
                 fromCurrency === "EUR" && toCurrency === "RON"
-                  ? "bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs"
+                  ? "bg-primary text-white shadow-2xs"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
               )}
             >
@@ -297,9 +297,9 @@ export function InvoiceCurrencyCalculator({
                 setCustomRate("");
               }}
               className={cn(
-                "flex items-center justify-center gap-1.5 py-1 px-2 rounded-md text-[11px] font-bold transition-all cursor-pointer",
+                "flex items-center justify-center gap-1.5 py-1 px-2 rounded-full text-[11px] font-bold transition-all cursor-pointer",
                 fromCurrency === "RON" && toCurrency === "EUR"
-                  ? "bg-white dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-2xs"
+                  ? "bg-primary text-white shadow-2xs"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
               )}
             >

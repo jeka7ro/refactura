@@ -240,42 +240,39 @@ export default function EmailLogs() {
           </div>
 
           {/* Status Tabs */}
-          <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-full border border-slate-200 dark:border-slate-700">
+          <div className="apple-segmented">
             <button
+              type="button"
+              data-active={statusFilter === "all"}
               onClick={() => {
                 setStatusFilter("all");
                 setPage(1);
               }}
-              className={`px-3 py-1 text-xs font-semibold rounded-full transition-all ${
-                statusFilter === "all"
-                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-              }`}
+              className="apple-segmented-item px-3 tabular-nums"
             >
               Toate ({totalCount})
             </button>
             <button
+              type="button"
+              data-active={statusFilter === "trimis"}
               onClick={() => {
                 setStatusFilter("trimis");
                 setPage(1);
               }}
-              className={`px-3 py-1 text-xs font-semibold rounded-full transition-all ${
-                statusFilter === "trimis"
-                  ? "bg-emerald-600 text-white shadow-sm"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-              }`}
+              className="apple-segmented-item px-3 tabular-nums"
             >
               Trimise ({stats.trimise})
             </button>
             <button
+              type="button"
               onClick={() => {
                 setStatusFilter("eroare");
                 setPage(1);
               }}
-              className={`px-3 py-1 text-xs font-semibold rounded-full transition-all ${
+              className={`px-3 h-7 text-xs font-semibold rounded-full transition-all inline-flex items-center tabular-nums ${
                 statusFilter === "eroare"
                   ? "bg-rose-600 text-white shadow-sm"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
+                  : "text-[#636366] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
               }`}
             >
               Erori ({stats.erori})

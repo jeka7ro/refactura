@@ -1171,26 +1171,20 @@ function ActivityTab() {
             </select>
 
             {/* Toggle View */}
-            <div className="flex items-center p-0.5 bg-slate-100 rounded-lg border border-slate-200">
+            <div className="apple-segmented">
               <button
                 type="button"
+                data-active={viewMode === "tenants"}
                 onClick={() => setViewMode("tenants")}
-                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
-                  viewMode === "tenants"
-                    ? "bg-white text-blue-600 shadow-sm"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
+                className="apple-segmented-item px-3"
               >
                 Pe Tenanți
               </button>
               <button
                 type="button"
+                data-active={viewMode === "users"}
                 onClick={() => setViewMode("users")}
-                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
-                  viewMode === "users"
-                    ? "bg-white text-blue-600 shadow-sm"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
+                className="apple-segmented-item px-3"
               >
                 Listă Utilizatori
               </button>

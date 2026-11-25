@@ -1055,12 +1055,12 @@ export default function EmittedInvoiceDetail() {
                           title={`${lang.name} (${lang.code.toUpperCase()})`}
                           className={`relative flex flex-col items-center justify-center py-2 px-1 rounded-xl border text-xs transition-all cursor-pointer ${
                             isSelected
-                              ? "bg-white dark:bg-[#3a3a3c] text-[#1d1d1f] dark:text-white border-[#1d1d1f]/25 dark:border-white/30 shadow-xs font-bold"
+                              ? "bg-primary text-white border-transparent shadow-xs font-bold"
                               : "bg-transparent border-black/[0.06] dark:border-white/[0.08] text-[#6e6e73] dark:text-[#98989d] hover:bg-white/60 dark:hover:bg-white/[0.06] font-medium"
                           }`}
                         >
                           {isSelected && (
-                            <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#1d1d1f] dark:bg-white text-white dark:text-[#1d1d1f] text-[10px] tabular-nums flex items-center justify-center font-bold">
+                            <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-white text-[#1d1d1f] shadow-xs text-[10px] tabular-nums flex items-center justify-center font-bold">
                               {order}
                             </span>
                           )}

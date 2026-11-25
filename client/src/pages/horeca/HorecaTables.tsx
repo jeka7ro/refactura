@@ -209,16 +209,20 @@ export default function HorecaTables() {
             </select>
           )}
           {/* Toggle view */}
-          <div className="flex bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-1 shadow-sm">
+          <div className="apple-segmented">
             <button
+              type="button"
+              data-active={viewMode === "plan"}
               onClick={() => setViewMode("plan")}
-              className={`px-3 py-1.5 rounded text-sm font-bold flex items-center gap-1.5 transition-colors ${viewMode === "plan" ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"}`}
+              className="apple-segmented-item px-3"
             >
               <Grid3X3 className="w-4 h-4" /> Plan
             </button>
             <button
+              type="button"
+              data-active={viewMode === "list"}
               onClick={() => setViewMode("list")}
-              className={`px-3 py-1.5 rounded text-sm font-bold flex items-center gap-1.5 transition-colors ${viewMode === "list" ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"}`}
+              className="apple-segmented-item px-3"
             >
               <List className="w-4 h-4" /> Listă
             </button>

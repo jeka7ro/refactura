@@ -1037,15 +1037,12 @@ export default function ContractCreate() {
 
         {/* Butoane comutare mod & Salvare in coltul din dreapta */}
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="inline-flex items-center p-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+          <div className="apple-segmented">
             <button
               type="button"
+              data-active={activeMode === "editor"}
               onClick={() => setActiveMode("editor")}
-              className={`px-3 py-1 text-xs font-semibold rounded-full transition-colors flex items-center gap-1.5 ${
-                activeMode === "editor"
-                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-              }`}
+              className="apple-segmented-item px-3"
             >
               <Edit3 className="h-3.5 w-3.5" />
               <span>Editor & Semnături</span>
@@ -1053,12 +1050,9 @@ export default function ContractCreate() {
 
             <button
               type="button"
+              data-active={activeMode === "upload"}
               onClick={() => setActiveMode("upload")}
-              className={`px-3 py-1 text-xs font-semibold rounded-full transition-colors flex items-center gap-1.5 ${
-                activeMode === "upload"
-                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-              }`}
+              className="apple-segmented-item px-3"
             >
               <Upload className="h-3.5 w-3.5" />
               <span>Încarcă PDF Semnat</span>
@@ -1115,39 +1109,30 @@ export default function ContractCreate() {
                 Model Contract (Șablon)
               </label>
               {/* Comutator Rapid Limbă: RO | EN | Bilingv */}
-              <div className="inline-flex items-center p-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <div className="apple-segmented">
                 <button
                   type="button"
+                  data-active={docLanguage === "ro"}
                   onClick={() => handleLanguageChange("ro")}
-                  className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full transition-colors ${
-                    docLanguage === "ro"
-                      ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
-                      : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                  }`}
+                  className="apple-segmented-item !h-6 px-2.5 !text-[10.5px]"
                   title="Contract în limba Română"
                 >
                   RO
                 </button>
                 <button
                   type="button"
+                  data-active={docLanguage === "en"}
                   onClick={() => handleLanguageChange("en")}
-                  className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full transition-colors ${
-                    docLanguage === "en"
-                      ? "bg-blue-600 text-white shadow-xs"
-                      : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                  }`}
+                  className="apple-segmented-item !h-6 px-2.5 !text-[10.5px]"
                   title="Agreement in English"
                 >
                   EN
                 </button>
                 <button
                   type="button"
+                  data-active={docLanguage === "ro_en"}
                   onClick={() => handleLanguageChange("ro_en")}
-                  className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full transition-colors ${
-                    docLanguage === "ro_en"
-                      ? "bg-purple-600 text-white shadow-xs"
-                      : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                  }`}
+                  className="apple-segmented-item !h-6 px-2.5 !text-[10.5px]"
                   title="Contract Bilingv: 2 coloane paralele Română și Engleză"
                 >
                   RO + EN (Bilingv)

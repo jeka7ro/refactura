@@ -483,7 +483,10 @@ export default function ContractsList() {
               setPage(1);
             }}
           >
-            <SelectTrigger className="rounded-full border-slate-200 dark:border-slate-700 text-sm">
+            <SelectTrigger
+              data-filtered={filterType !== "toate"}
+              className="apple-pill-control rounded-full text-sm h-10"
+            >
               <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 truncate">
                 <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
                 <span className="truncate">
@@ -512,7 +515,10 @@ export default function ContractsList() {
               setPage(1);
             }}
           >
-            <SelectTrigger className="rounded-full border-slate-200 dark:border-slate-700 text-sm">
+            <SelectTrigger
+              data-filtered={filterPartnerType !== "toate"}
+              className="apple-pill-control rounded-full text-sm h-10"
+            >
               <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 truncate">
                 <Tag className="h-3.5 w-3.5 text-primary shrink-0" />
                 <span className="truncate">
@@ -537,7 +543,10 @@ export default function ContractsList() {
               setPage(1);
             }}
           >
-            <SelectTrigger className="rounded-full border-slate-200 dark:border-slate-700 text-sm">
+            <SelectTrigger
+              data-filtered={filterStatus !== "toate"}
+              className="apple-pill-control rounded-full text-sm h-10"
+            >
               <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 truncate">
                 <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
                 <span className="truncate">

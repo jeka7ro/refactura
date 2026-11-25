@@ -795,16 +795,14 @@ export default function Dashboard() {
           )}
 
           {/* Time Horizon Filter Pills — Apple Capsule Segmented Control */}
-          <div className="inline-flex items-center bg-black/[0.055] dark:bg-white/[0.08] p-1 rounded-full shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)]">
+          <div className="apple-segmented">
             {(["7D", "30D", "3M", "6M", "1Y", "ALL"] as TimeHorizon[]).map((hz) => (
               <button
                 key={hz}
+                type="button"
+                data-active={timeHorizon === hz}
                 onClick={() => setTimeHorizon(hz)}
-                className={`px-3 py-1 text-xs rounded-full transition-all duration-150 ${
-                  timeHorizon === hz
-                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_4px_rgba(0,0,0,0.10),0_1px_1px_rgba(0,0,0,0.06)]"
-                    : "text-[#636366] dark:text-[#98989d] font-medium hover:text-[#1d1d1f] dark:hover:text-white"
-                }`}
+                className="apple-segmented-item px-3"
               >
                 {hz === "7D"
                   ? "7 Zile"
@@ -999,36 +997,30 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="inline-flex items-center bg-black/[0.055] dark:bg-white/[0.08] p-1 rounded-full text-xs shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)]">
+            <div className="apple-segmented">
               <button
+                type="button"
+                data-active={viewMode === "stream3d"}
                 onClick={() => setViewMode("stream3d")}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full transition-all duration-150 ${
-                  viewMode === "stream3d"
-                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_4px_rgba(0,0,0,0.10),0_1px_1px_rgba(0,0,0,0.06)]"
-                    : "text-[#636366] dark:text-[#98989d] font-medium hover:text-[#1d1d1f] dark:hover:text-white"
-                }`}
+                className="apple-segmented-item px-3.5"
               >
                 <LineChart className="w-3.5 h-3.5" />
                 <span>Arie 3D</span>
               </button>
               <button
+                type="button"
+                data-active={viewMode === "bars3d"}
                 onClick={() => setViewMode("bars3d")}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full transition-all duration-150 ${
-                  viewMode === "bars3d"
-                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_4px_rgba(0,0,0,0.10),0_1px_1px_rgba(0,0,0,0.06)]"
-                    : "text-[#636366] dark:text-[#98989d] font-medium hover:text-[#1d1d1f] dark:hover:text-white"
-                }`}
+                className="apple-segmented-item px-3.5"
               >
                 <BarChart3 className="w-3.5 h-3.5" />
                 <span>Coloane 3D</span>
               </button>
               <button
+                type="button"
+                data-active={viewMode === "cashflow"}
                 onClick={() => setViewMode("cashflow")}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full transition-all duration-150 ${
-                  viewMode === "cashflow"
-                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_4px_rgba(0,0,0,0.10),0_1px_1px_rgba(0,0,0,0.06)]"
-                    : "text-[#636366] dark:text-[#98989d] font-medium hover:text-[#1d1d1f] dark:hover:text-white"
-                }`}
+                className="apple-segmented-item px-3.5"
               >
                 <Wallet className="w-3.5 h-3.5" />
                 <span>Cashflow Net</span>
@@ -1290,24 +1282,20 @@ export default function Dashboard() {
               </p>
             </div>
 
-            <div className="inline-flex bg-black/[0.055] dark:bg-white/[0.08] p-1 rounded-full text-xs shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)]">
+            <div className="apple-segmented">
               <button
+                type="button"
+                data-active={partnerTab === "clients"}
                 onClick={() => setPartnerTab("clients")}
-                className={`px-3.5 py-1.5 rounded-full transition-all duration-150 tabular-nums ${
-                  partnerTab === "clients"
-                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_4px_rgba(0,0,0,0.10),0_1px_1px_rgba(0,0,0,0.06)]"
-                    : "text-[#636366] dark:text-[#98989d] font-medium hover:text-[#1d1d1f] dark:hover:text-white"
-                }`}
+                className="apple-segmented-item px-3.5 tabular-nums"
               >
                 Top Clienți ({topClients.length})
               </button>
               <button
+                type="button"
+                data-active={partnerTab === "suppliers"}
                 onClick={() => setPartnerTab("suppliers")}
-                className={`px-3.5 py-1.5 rounded-full transition-all duration-150 tabular-nums ${
-                  partnerTab === "suppliers"
-                    ? "bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_1px_4px_rgba(0,0,0,0.10),0_1px_1px_rgba(0,0,0,0.06)]"
-                    : "text-[#636366] dark:text-[#98989d] font-medium hover:text-[#1d1d1f] dark:hover:text-white"
-                }`}
+                className="apple-segmented-item px-3.5 tabular-nums"
               >
                 Top Furnizori ({topSuppliers.length})
               </button>

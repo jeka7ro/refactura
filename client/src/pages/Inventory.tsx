@@ -75,16 +75,16 @@ export default function Inventory() {
             <button
               type="button"
               onClick={() => setShowFilters(v => !v)}
-              className={`flex items-center justify-center gap-2 px-4 py-2 border rounded-full text-sm font-medium transition-colors ${
+              className={`flex items-center justify-center gap-2 px-4 py-2 border rounded-full text-sm font-medium transition-colors cursor-pointer ${
                 showFilters || hasActiveFilters
-                  ? "bg-indigo-50 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300"
-                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  ? "bg-primary text-white border-transparent shadow-xs font-semibold"
+                  : "apple-pill-control"
               }`}
             >
               <Filter className="w-4 h-4" />
               Filtre
               {hasActiveFilters && (
-                <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                <span className="w-2 h-2 rounded-full bg-white" />
               )}
             </button>
           </div>

@@ -543,16 +543,14 @@ export default function CursValutar() {
             </div>
 
             {/* Days interval toggle: 7, 10, 30 Zile */}
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-full">
+            <div className="apple-segmented">
               {[7, 10, 30].map((days) => (
                 <button
                   key={days}
+                  type="button"
+                  data-active={chartDays === days}
                   onClick={() => setChartDays(days as 7 | 10 | 30)}
-                  className={`px-3.5 py-1.5 text-xs font-bold rounded-full transition-all cursor-pointer ${
-                    chartDays === days
-                      ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs"
-                      : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                  }`}
+                  className="apple-segmented-item px-3.5 tabular-nums"
                 >
                   {days} Zile
                 </button>
@@ -1099,24 +1097,20 @@ export default function CursValutar() {
             </div>
 
             {/* Segmented Mode Control */}
-            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-full self-start sm:self-auto">
+            <div className="apple-segmented self-start sm:self-auto">
               <button
+                type="button"
+                data-active={vatMode === "add"}
                 onClick={() => setVatMode("add")}
-                className={`px-3 py-1 text-xs font-bold rounded-full transition-all cursor-pointer ${
-                  vatMode === "add"
-                    ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs"
-                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                }`}
+                className="apple-segmented-item px-3"
               >
                 + Adaugă TVA
               </button>
               <button
+                type="button"
+                data-active={vatMode === "extract"}
                 onClick={() => setVatMode("extract")}
-                className={`px-3 py-1 text-xs font-bold rounded-full transition-all cursor-pointer ${
-                  vatMode === "extract"
-                    ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs"
-                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                }`}
+                className="apple-segmented-item px-3"
               >
                 - Extrage TVA
               </button>

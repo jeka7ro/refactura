@@ -233,10 +233,12 @@ export default function HorecaOrders() {
       {/* Filters & Search */}
       <div className="flex flex-col sm:flex-row gap-3">
         {/* Status filters */}
-        <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none bg-slate-100 dark:bg-slate-800/60 p-1.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm w-fit">
+        <div className="apple-segmented overflow-x-auto no-scrollbar w-fit">
           <button
+            type="button"
+            data-active={statusFilter === "all"}
             onClick={() => setStatusFilter("all")}
-            className={`px-4 py-1.5 rounded-full text-sm font-bold whitespace-nowrap transition-all shadow-sm border ${statusFilter === "all" ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white border-slate-200 dark:border-slate-600" : "bg-transparent text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-900 dark:hover:text-white"}`}
+            className="apple-segmented-item px-4 text-xs font-semibold tabular-nums"
           >
             Toate ({orders.length})
           </button>
@@ -246,8 +248,10 @@ export default function HorecaOrders() {
             return (
               <button
                 key={k}
+                type="button"
+                data-active={statusFilter === k}
                 onClick={() => setStatusFilter(k)}
-                className={`px-4 py-1.5 rounded-full text-sm font-bold whitespace-nowrap transition-all shadow-sm border ${statusFilter === k ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white border-slate-200 dark:border-slate-600" : "bg-transparent text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-900 dark:hover:text-white"}`}
+                className="apple-segmented-item px-4 text-xs font-semibold tabular-nums"
               >
                 {v.label} ({count})
               </button>

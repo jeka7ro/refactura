@@ -113,7 +113,10 @@ export default function SpvLogs() {
               </div>
               <div className="flex items-center gap-3 flex-wrap">
                 <Select value={filterType} onValueChange={setFilterType}>
-                  <SelectTrigger className="w-[165px] rounded-full">
+                  <SelectTrigger
+                    data-filtered={filterType !== "all"}
+                    className="apple-pill-control w-auto h-9 px-3.5 rounded-full"
+                  >
                     <SelectValue placeholder="Toate Tipurile" />
                   </SelectTrigger>
                   <SelectContent>
@@ -123,7 +126,10 @@ export default function SpvLogs() {
                   </SelectContent>
                 </Select>
                 <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="w-[165px] rounded-full">
+                  <SelectTrigger
+                    data-filtered={filterStatus !== "all"}
+                    className="apple-pill-control w-auto h-9 px-3.5 rounded-full"
+                  >
                     <SelectValue placeholder="Toate Statusurile" />
                   </SelectTrigger>
                   <SelectContent>

@@ -164,16 +164,20 @@ export default function HorecaKitchenDisplay() {
           </div>
         </div>
         <div className="flex gap-2 items-center">
-          <div className="flex bg-slate-200/50 dark:bg-slate-700/50 p-1 rounded-full">
+          <div className="apple-segmented">
             <button
+              type="button"
+              data-active={viewMode === "grid"}
               onClick={() => setViewMode("grid")}
-              className={`p-1.5 rounded-full transition-colors ${viewMode === "grid" ? "bg-white dark:bg-slate-800 shadow-sm text-blue-600 dark:text-blue-400" : "text-slate-500 hover:text-slate-800 dark:text-slate-400"}`}
+              className="apple-segmented-item px-2.5"
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
             <button
+              type="button"
+              data-active={viewMode === "list"}
               onClick={() => setViewMode("list")}
-              className={`p-1.5 rounded-full transition-colors ${viewMode === "list" ? "bg-white dark:bg-slate-800 shadow-sm text-blue-600 dark:text-blue-400" : "text-slate-500 hover:text-slate-800 dark:text-slate-400"}`}
+              className="apple-segmented-item px-2.5"
             >
               <ListIcon className="w-4 h-4" />
             </button>
