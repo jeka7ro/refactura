@@ -25,7 +25,6 @@ import {
   ClipboardCheck,
   MoreVertical,
   Coins,
-  Tag,
   Globe,
   Clock,
   Mail,
@@ -917,7 +916,7 @@ export default function AllInvoices() {
         </div>
       </div>
 
-      {/* KPI Cards — Clean Rectangular 16px Apple Cards (Identical Geometry Across All 4 Cards) */}
+      {/* KPI Cards — Clean Rectangular 16px Apple Cards (Click Filters Type: Toate / Emise / Primite) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Card 1: Toate Facturile */}
         <div
@@ -934,7 +933,17 @@ export default function AllInvoices() {
               setPage(1);
             }
           }}
-          className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 transition-shadow hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
+          style={
+            typeFilter === "all"
+              ? {
+                  borderColor:
+                    "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 55%, transparent)",
+                  boxShadow:
+                    "0 0 0 2px color-mix(in srgb, var(--tenant-theme-color, #16a34a) 16%, transparent)",
+                }
+              : undefined
+          }
+          className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
         >
           <div className="flex items-center justify-between gap-2 w-full">
             <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
@@ -972,11 +981,17 @@ export default function AllInvoices() {
               setPage(1);
             }
           }}
-          className={`apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 transition-all cursor-pointer select-none ${
+          style={
             typeFilter === "emis"
-              ? "ring-2 ring-[#0071e3]/25 border-[#0071e3]/50"
-              : "hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)]"
-          }`}
+              ? {
+                  borderColor:
+                    "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 55%, transparent)",
+                  boxShadow:
+                    "0 0 0 2px color-mix(in srgb, var(--tenant-theme-color, #16a34a) 16%, transparent)",
+                }
+              : undefined
+          }
+          className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
         >
           <div className="flex items-center justify-between gap-2 w-full">
             <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
@@ -1013,11 +1028,17 @@ export default function AllInvoices() {
               setPage(1);
             }
           }}
-          className={`apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 transition-all cursor-pointer select-none ${
+          style={
             typeFilter === "primit"
-              ? "ring-2 ring-[#0071e3]/25 border-[#0071e3]/50"
-              : "hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)]"
-          }`}
+              ? {
+                  borderColor:
+                    "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 55%, transparent)",
+                  boxShadow:
+                    "0 0 0 2px color-mix(in srgb, var(--tenant-theme-color, #16a34a) 16%, transparent)",
+                }
+              : undefined
+          }
+          className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
         >
           <div className="flex items-center justify-between gap-2 w-full">
             <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
@@ -1083,206 +1104,74 @@ export default function AllInvoices() {
         </div>
       </div>
 
-      {/* Unified Apple Control & Filter Card (UISegmentedControl White Thumb + Soft Monochrome Pills) */}
-      <div className="apple-surface p-3 space-y-2.5">
-        {/* Row 1: Type Segmented + Period Segmented + Sync Primary CTA */}
-        <div className="flex items-center justify-between gap-2.5 flex-wrap">
-          <div className="flex items-center gap-2 flex-wrap min-w-0">
-            {/* Segmented: Tip Factură */}
-            <div className="apple-segmented" role="tablist" aria-label="Tip factură">
-              {[
-                { id: "all", label: "Toate" },
-                { id: "primit", label: "Primite" },
-                { id: "emis", label: "Emise" },
-              ].map(t => (
-                <button
-                  key={t.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={typeFilter === t.id}
-                  data-active={typeFilter === t.id}
-                  onClick={() => {
-                    setTypeFilter(t.id as InvoiceTypeFilter);
-                    setPage(1);
-                  }}
-                  className="apple-segmented-item"
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Segmented: Perioadă 1-Click */}
-            <div className="apple-segmented overflow-x-auto no-scrollbar max-w-full" role="tablist" aria-label="Perioadă">
-              {[
-                { id: "all", label: "Toate" },
-                { id: "today", label: "Azi" },
-                { id: "yesterday", label: "Ieri" },
-                { id: "week", label: "Săpt. asta" },
-                { id: "lastWeek", label: "Săpt. trec." },
-                { id: "month", label: "Luna asta" },
-                { id: "lastMonth", label: "Luna trec." },
-                { id: "year", label: "An" },
-                { id: "custom", label: "Interval" },
-              ].map(item => (
-                <button
-                  key={item.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={period === item.id}
-                  data-active={period === item.id}
-                  onClick={() => {
-                    setPeriod(item.id);
-                    const range = getDateRange(item.id);
-                    if (range && item.id !== "custom") {
-                      setCustomFrom(range[0]);
-                      setCustomTo(range[1]);
-                    }
-                    setPage(1);
-                  }}
-                  className="apple-segmented-item"
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-
-            {period === "custom" && (
-              <div className="inline-flex items-center gap-1.5 px-2.5 h-[34px] rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] text-xs tabular-nums">
-                <Calendar className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
-                <input
-                  type="date"
-                  value={customFrom}
-                  onChange={e => {
-                    setCustomFrom(e.target.value);
-                    setPage(1);
-                  }}
-                  className="h-6 px-1 text-xs tabular-nums bg-transparent text-[#1d1d1f] dark:text-[#f5f5f7] outline-none w-[110px]"
-                />
-                <span className="text-[#8e8e93]">–</span>
-                <input
-                  type="date"
-                  value={customTo}
-                  onChange={e => {
-                    setCustomTo(e.target.value);
-                    setPage(1);
-                  }}
-                  className="h-6 px-1 text-xs tabular-nums bg-transparent text-[#1d1d1f] dark:text-[#f5f5f7] outline-none w-[110px]"
-                />
-              </div>
-            )}
+      {/* Single-Row Unified Toolbar (Zero Duplicate Filters, Tenant Active Tab Color) */}
+      <div className="apple-surface px-3 py-2.5">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+          {/* 1. Period Segmented Track */}
+          <div
+            className="apple-segmented shrink-0"
+            role="tablist"
+            aria-label="Perioadă"
+          >
+            {[
+              { id: "all", label: "Toate" },
+              { id: "today", label: "Azi" },
+              { id: "yesterday", label: "Ieri" },
+              { id: "week", label: "Săpt." },
+              { id: "month", label: "Lună" },
+              { id: "lastMonth", label: "Luna trec." },
+              { id: "year", label: "An" },
+              { id: "custom", label: "Interval" },
+            ].map(item => (
+              <button
+                key={item.id}
+                type="button"
+                role="tab"
+                aria-selected={period === item.id}
+                data-active={period === item.id}
+                onClick={() => {
+                  setPeriod(item.id);
+                  const range = getDateRange(item.id);
+                  if (range && item.id !== "custom") {
+                    setCustomFrom(range[0]);
+                    setCustomTo(range[1]);
+                  }
+                  setPage(1);
+                }}
+                className="apple-segmented-item px-2.5"
+              >
+                {item.label}
+              </button>
+            ))}
           </div>
 
-          {/* Single Prominent Primary Action: Sync */}
-          <button
-            type="button"
-            onClick={async () => {
-              const hasOblio = (dbIntegrations as any[]).some(
-                i => i.provider === "oblio" && i.status === "active"
-              );
-              const hasSpv = (dbIntegrations as any[]).some(
-                i => i.provider === "spv" && i.status === "active"
-              );
-              let syncedAny = false;
+          {period === "custom" && (
+            <div className="inline-flex items-center gap-1 px-2.5 h-[34px] rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] text-xs tabular-nums shrink-0">
+              <Calendar className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
+              <input
+                type="date"
+                value={customFrom}
+                onChange={e => {
+                  setCustomFrom(e.target.value);
+                  setPage(1);
+                }}
+                className="h-6 px-1 text-xs tabular-nums bg-transparent text-[#1d1d1f] dark:text-[#f5f5f7] outline-none w-[106px]"
+              />
+              <span className="text-[#8e8e93]">–</span>
+              <input
+                type="date"
+                value={customTo}
+                onChange={e => {
+                  setCustomTo(e.target.value);
+                  setPage(1);
+                }}
+                className="h-6 px-1 text-xs tabular-nums bg-transparent text-[#1d1d1f] dark:text-[#f5f5f7] outline-none w-[106px]"
+              />
+            </div>
+          )}
 
-              if (hasOblio || hasSpv) {
-                toast.loading("Sincronizare date în curs...", { id: "sync" });
-                let spvResult: any = null;
-                let oblioErr: string | null = null;
-                let spvErr: string | null = null;
-                const tasks: Promise<unknown>[] = [];
-                if (hasOblio) {
-                  tasks.push(
-                    syncOblio.mutateAsync().catch((err: unknown) => {
-                      oblioErr = cleanErrorMessage(err, "Eroare la sincronizarea Oblio.");
-                    })
-                  );
-                }
-                if (hasSpv) {
-                  tasks.push(
-                    syncSpvManual
-                      .mutateAsync()
-                      .then(r => {
-                        spvResult = r;
-                      })
-                      .catch((err: unknown) => {
-                        spvErr = cleanErrorMessage(err, "Eroare la sincronizarea SPV.");
-                      })
-                  );
-                }
-                await Promise.all(tasks);
-                syncedAny = true;
-
-                r1();
-                r2();
-                r3();
-
-                if (oblioErr && spvErr) {
-                  toast.error(`Sincronizarea a eșuat: ${spvErr} · ${oblioErr}`, { id: "sync" });
-                } else if (spvErr) {
-                  toast.error(`Eroare sincronizare SPV: ${spvErr}`, { id: "sync" });
-                } else if (oblioErr) {
-                  toast.warning(`SPV sincronizat, dar Oblio a raportat o eroare: ${oblioErr}`, { id: "sync" });
-                } else if (spvResult?.limitHit > 0) {
-                  const facturiNoi = spvResult.imported === 1 ? "1 factură nouă importată" : `${spvResult.imported} facturi noi importate`;
-                  const facturiLimita = spvResult.limitHit === 1 ? "1 factură" : `${spvResult.limitHit} facturi`;
-                  toast.warning(
-                    `Sync complet: ${facturiNoi}.\n${facturiLimita} nu ${spvResult.limitHit === 1 ? "a putut" : "au putut"} fi descărcată azi — ANAF permite maxim 10 descărcări/zi per fișier. Va fi importată automat mâine.`,
-                    { id: "sync", duration: 8000 }
-                  );
-                } else if (spvResult?.imported > 0) {
-                  const facturiNoi = spvResult.imported === 1 ? "1 factură nouă importată" : `${spvResult.imported} facturi noi importate`;
-                  toast.success(`Sync complet: ${facturiNoi} din SPV!`, { id: "sync" });
-                } else {
-                  toast.success("Sincronizare completă! Nicio factură nouă de importat.", { id: "sync" });
-                }
-              }
-
-              if (!syncedAny) {
-                toast.error("Nicio integrare activă de sincronizat.", {
-                  action: {
-                    label: "Configurează Integrări",
-                    onClick: () => navigate("/integrari"),
-                  },
-                });
-              }
-            }}
-            disabled={syncOblio.isPending || syncSpvManual.isPending}
-            className="apple-btn-prominent flex items-center justify-center gap-1.5 px-4 h-[34px] rounded-full text-white text-[12.5px] font-semibold transition-all disabled:opacity-60 shrink-0 cursor-pointer"
-            title="Sincronizează din sursele configurate (Oblio / SPV)"
-          >
-            {syncOblio.isPending || syncSpvManual.isPending ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <RefreshCw className="w-3.5 h-3.5" />
-            )}
-            <span>Sync</span>
-          </button>
-        </div>
-
-        {/* Row 2: Workflow Segmented Chips (Left) ↔ Soft Popover Filters & Search (Right) */}
-        <div className="flex items-center justify-between gap-2.5 flex-wrap pt-0.5">
-          {/* Quick Workflow Segmented Track */}
-          <div className="apple-segmented flex-wrap">
-            <button
-              type="button"
-              data-active={
-                readFilter === "all" &&
-                nirFilter === "all" &&
-                filterStatus === "all"
-              }
-              onClick={() => {
-                setReadFilter("all");
-                setNirFilter("all");
-                setFilterStatus("all");
-                setPage(1);
-              }}
-              className="apple-segmented-item tabular-nums"
-            >
-              <span>Toate</span>
-              <span className="opacity-65">{allRows.length}</span>
-            </button>
-
+          {/* 2. Non-Duplicated Workflow Filter Chips (Click to Toggle) */}
+          <div className="apple-segmented shrink-0">
             <button
               type="button"
               data-active={readFilter === "unread"}
@@ -1290,11 +1179,17 @@ export default function AllInvoices() {
                 setReadFilter(readFilter === "unread" ? "all" : "unread");
                 setPage(1);
               }}
-              className="apple-segmented-item tabular-nums"
+              className="apple-segmented-item px-2.5 tabular-nums"
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-[#0071e3] dark:bg-[#0a84ff]" />
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  readFilter === "unread"
+                    ? "bg-white"
+                    : "bg-[#0071e3] dark:bg-[#0a84ff]"
+                }`}
+              />
               <span>Necitite</span>
-              <span className="opacity-70">{readCounts.unread}</span>
+              <span className="opacity-75">{readCounts.unread}</span>
             </button>
 
             <button
@@ -1304,10 +1199,10 @@ export default function AllInvoices() {
                 setNirFilter(nirFilter === "fara_nir" ? "all" : "fara_nir");
                 setPage(1);
               }}
-              className="apple-segmented-item tabular-nums"
+              className="apple-segmented-item px-2.5 tabular-nums"
             >
               <span>Fără NIR</span>
-              <span className="opacity-70">{nirCounts.faraNir}</span>
+              <span className="opacity-75">{nirCounts.faraNir}</span>
             </button>
 
             <button
@@ -1317,10 +1212,10 @@ export default function AllInvoices() {
                 setNirFilter(nirFilter === "cu_nir" ? "all" : "cu_nir");
                 setPage(1);
               }}
-              className="apple-segmented-item tabular-nums"
+              className="apple-segmented-item px-2.5 tabular-nums"
             >
               <span>Cu NIR</span>
-              <span className="opacity-70">{nirCounts.cuNir}</span>
+              <span className="opacity-75">{nirCounts.cuNir}</span>
             </button>
 
             <button
@@ -1330,98 +1225,42 @@ export default function AllInvoices() {
                 setFilterStatus(filterStatus === "pending" ? "all" : "pending");
                 setPage(1);
               }}
-              className="apple-segmented-item tabular-nums"
+              className="apple-segmented-item px-2.5 tabular-nums"
             >
               <span>În așteptare</span>
-              <span className="opacity-70">{quickCounts.unpaid}</span>
+              <span className="opacity-75">{quickCounts.unpaid}</span>
             </button>
           </div>
 
-          {/* Right Controls: Soft Popover Selects + Search Pill */}
-          <div className="flex items-center gap-2 flex-wrap flex-1 sm:flex-initial justify-end">
-            {/* Citire Select */}
-            <div className="w-[126px] shrink-0">
-              <Select
-                value={readFilter}
-                onValueChange={val => {
-                  setReadFilter(val as any);
-                  setPage(1);
-                }}
+          {/* 3. Right Side Controls: Auto-Width Source Filter + Search + Reset + Sync */}
+          <div className="ml-auto flex items-center gap-2 shrink-0">
+            <Select
+              value={sourceFilter}
+              onValueChange={val => {
+                setSourceFilter(val);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger
+                data-filtered={sourceFilter !== "all"}
+                className="apple-pill-control h-[34px] w-auto shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3"
               >
-                <SelectTrigger
-                  data-filtered={readFilter !== "all"}
-                  className="apple-pill-control h-[34px] w-full flex items-center gap-1.5 px-3 tabular-nums"
-                >
-                  {readFilter === "read" ? (
-                    <MailOpen className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
-                  ) : (
-                    <Mail className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
-                  )}
-                  <SelectValue placeholder="Citire" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toate ({allRows.length})</SelectItem>
-                  <SelectItem value="unread">Necitite ({readCounts.unread})</SelectItem>
-                  <SelectItem value="read">Citite ({readCounts.read})</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                <Globe className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
+                <SelectValue placeholder="Toate sursele" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toate sursele</SelectItem>
+                <SelectItem value="spv_anaf">SPV ANAF ({quickCounts.spv})</SelectItem>
+                <SelectItem value="manual">Emise intern ({quickCounts.manual})</SelectItem>
+                <SelectItem value="oblio">Oblio</SelectItem>
+                <SelectItem value="smartbill">SmartBill</SelectItem>
+              </SelectContent>
+            </Select>
 
-            {/* NIR Select */}
-            <div className="w-[124px] shrink-0">
-              <Select
-                value={nirFilter}
-                onValueChange={val => {
-                  setNirFilter(val as any);
-                  setPage(1);
-                }}
-              >
-                <SelectTrigger
-                  data-filtered={nirFilter !== "all"}
-                  className="apple-pill-control h-[34px] w-full flex items-center gap-1.5 px-3 tabular-nums"
-                >
-                  <ClipboardCheck className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
-                  <SelectValue placeholder="NIR" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toate NIR</SelectItem>
-                  <SelectItem value="cu_nir">Cu NIR ({nirCounts.cuNir})</SelectItem>
-                  <SelectItem value="fara_nir">Fără NIR ({nirCounts.faraNir})</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Source Select */}
-            <div className="w-[136px] shrink-0">
-              <Select
-                value={sourceFilter}
-                onValueChange={val => {
-                  setSourceFilter(val);
-                  setPage(1);
-                }}
-              >
-                <SelectTrigger
-                  data-filtered={sourceFilter !== "all"}
-                  className="apple-pill-control h-[34px] w-full flex items-center gap-1.5 px-3"
-                >
-                  <Globe className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
-                  <SelectValue placeholder="Toate sursele" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toate sursele</SelectItem>
-                  <SelectItem value="spv_anaf">SPV ANAF ({quickCounts.spv})</SelectItem>
-                  <SelectItem value="manual">Emise intern ({quickCounts.manual})</SelectItem>
-                  <SelectItem value="oblio">Oblio</SelectItem>
-                  <SelectItem value="smartbill">SmartBill</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Search Field */}
-            <div className="relative flex-1 sm:w-[230px] md:w-[250px] min-w-[180px]">
+            <div className="relative w-[195px] xl:w-[235px] shrink-0">
               <Search className="w-3.5 h-3.5 text-[#8e8e93] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
-                style={{ paddingLeft: 34, paddingRight: search ? 76 : 14 }}
+                style={{ paddingLeft: 34, paddingRight: search ? 72 : 14 }}
                 className="apple-pill-control rounded-full w-full h-[34px] outline-none text-[13px] text-[#1d1d1f] dark:text-white placeholder:text-[#8e8e93] focus:bg-white dark:focus:bg-[#2c2c2e] focus:border-black/15 dark:focus:border-white/20"
                 placeholder="Caută factură, partener..."
                 value={search}
@@ -1432,16 +1271,16 @@ export default function AllInvoices() {
               />
               {search && (
                 <>
-                  <span className="absolute right-8 top-1/2 -translate-y-1/2 bg-black/[0.07] dark:bg-white/[0.14] text-[#1d1d1f] dark:text-white rounded-full px-2 py-0.5 text-[10.5px] font-semibold tabular-nums">
+                  <span className="absolute right-7 top-1/2 -translate-y-1/2 bg-black/[0.07] dark:bg-white/[0.14] text-[#1d1d1f] dark:text-white rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums">
                     {filtered.length}/{allRows.length}
                   </span>
                   <button
                     type="button"
                     onClick={() => setSearch("")}
                     aria-label="Șterge căutarea"
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center hover:bg-black/[0.07] dark:hover:bg-white/[0.12] cursor-pointer"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center hover:bg-black/[0.07] dark:hover:bg-white/[0.12] cursor-pointer"
                   >
-                    <X className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d]" />
+                    <X className="w-3 h-3 text-[#6e6e73] dark:text-[#98989d]" />
                   </button>
                 </>
               )}
@@ -1451,13 +1290,128 @@ export default function AllInvoices() {
               <button
                 type="button"
                 onClick={resetAllFilters}
-                title="Resetează toate filtrele"
-                className="apple-pill-control h-[34px] px-3 inline-flex items-center gap-1 text-[12px] text-[#6e6e73] hover:text-[#1d1d1f] dark:text-[#98989d] dark:hover:text-white cursor-pointer"
+                title="Elimină toate filtrele"
+                aria-label="Elimină toate filtrele"
+                className="apple-pill-control w-[34px] h-[34px] shrink-0 flex items-center justify-center text-[#6e6e73] hover:text-[#1d1d1f] dark:text-[#98989d] dark:hover:text-white cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
-                <span>Resetează</span>
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={async () => {
+                const hasOblio = (dbIntegrations as any[]).some(
+                  i => i.provider === "oblio" && i.status === "active"
+                );
+                const hasSpv = (dbIntegrations as any[]).some(
+                  i => i.provider === "spv" && i.status === "active"
+                );
+                let syncedAny = false;
+
+                if (hasOblio || hasSpv) {
+                  toast.loading("Sincronizare date în curs...", { id: "sync" });
+                  let spvResult: any = null;
+                  let oblioErr: string | null = null;
+                  let spvErr: string | null = null;
+                  const tasks: Promise<unknown>[] = [];
+                  if (hasOblio) {
+                    tasks.push(
+                      syncOblio.mutateAsync().catch((err: unknown) => {
+                        oblioErr = cleanErrorMessage(
+                          err,
+                          "Eroare la sincronizarea Oblio."
+                        );
+                      })
+                    );
+                  }
+                  if (hasSpv) {
+                    tasks.push(
+                      syncSpvManual
+                        .mutateAsync()
+                        .then(r => {
+                          spvResult = r;
+                        })
+                        .catch((err: unknown) => {
+                          spvErr = cleanErrorMessage(
+                            err,
+                            "Eroare la sincronizarea SPV."
+                          );
+                        })
+                    );
+                  }
+                  await Promise.all(tasks);
+                  syncedAny = true;
+
+                  r1();
+                  r2();
+                  r3();
+
+                  if (oblioErr && spvErr) {
+                    toast.error(
+                      `Sincronizarea a eșuat: ${spvErr} · ${oblioErr}`,
+                      { id: "sync" }
+                    );
+                  } else if (spvErr) {
+                    toast.error(`Eroare sincronizare SPV: ${spvErr}`, {
+                      id: "sync",
+                    });
+                  } else if (oblioErr) {
+                    toast.warning(
+                      `SPV sincronizat, dar Oblio a raportat o eroare: ${oblioErr}`,
+                      { id: "sync" }
+                    );
+                  } else if (spvResult?.limitHit > 0) {
+                    const facturiNoi =
+                      spvResult.imported === 1
+                        ? "1 factură nouă importată"
+                        : `${spvResult.imported} facturi noi importate`;
+                    const facturiLimita =
+                      spvResult.limitHit === 1
+                        ? "1 factură"
+                        : `${spvResult.limitHit} facturi`;
+                    toast.warning(
+                      `Sync complet: ${facturiNoi}.\n${facturiLimita} nu ${
+                        spvResult.limitHit === 1 ? "a putut" : "au putut"
+                      } fi descărcată azi — ANAF permite maxim 10 descărcări/zi per fișier. Va fi importată automat mâine.`,
+                      { id: "sync", duration: 8000 }
+                    );
+                  } else if (spvResult?.imported > 0) {
+                    const facturiNoi =
+                      spvResult.imported === 1
+                        ? "1 factură nouă importată"
+                        : `${spvResult.imported} facturi noi importate`;
+                    toast.success(`Sync complet: ${facturiNoi} din SPV!`, {
+                      id: "sync",
+                    });
+                  } else {
+                    toast.success(
+                      "Sincronizare completă! Nicio factură nouă de importat.",
+                      { id: "sync" }
+                    );
+                  }
+                }
+
+                if (!syncedAny) {
+                  toast.error("Nicio integrare activă de sincronizat.", {
+                    action: {
+                      label: "Configurează Integrări",
+                      onClick: () => navigate("/integrari"),
+                    },
+                  });
+                }
+              }}
+              disabled={syncOblio.isPending || syncSpvManual.isPending}
+              className="apple-btn-prominent flex items-center justify-center gap-1.5 px-4 h-[34px] rounded-full text-white text-[12.5px] font-semibold transition-all disabled:opacity-60 shrink-0 cursor-pointer"
+              title="Sincronizează din sursele configurate (Oblio / SPV)"
+            >
+              {syncOblio.isPending || syncSpvManual.isPending ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="w-3.5 h-3.5" />
+              )}
+              <span>Sync</span>
+            </button>
           </div>
         </div>
       </div>

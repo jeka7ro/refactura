@@ -445,7 +445,17 @@ export default function EmittedInvoices() {
             setStatusFilter("all");
             setPage(1);
           }}
-          className="apple-surface px-4 py-3.5 flex flex-col justify-between gap-2 transition-shadow hover:shadow-md cursor-pointer select-none"
+          style={
+            statusFilter === "all"
+              ? {
+                  borderColor:
+                    "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 55%, transparent)",
+                  boxShadow:
+                    "0 0 0 2px color-mix(in srgb, var(--tenant-theme-color, #16a34a) 16%, transparent)",
+                }
+              : undefined
+          }
+          className="apple-surface px-4 py-3.5 flex flex-col justify-between gap-2 transition-all hover:shadow-md cursor-pointer select-none"
         >
           <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
             Total facturi
@@ -470,11 +480,17 @@ export default function EmittedInvoices() {
             setStatusFilter(statusFilter === "paid" ? "all" : "paid");
             setPage(1);
           }}
-          className={`apple-surface px-4 py-3.5 flex flex-col justify-between gap-2 transition-all cursor-pointer select-none ${
+          style={
             statusFilter === "paid"
-              ? "ring-2 ring-[#0071e3]/25 border-[#0071e3]/50"
-              : "hover:shadow-md"
-          }`}
+              ? {
+                  borderColor:
+                    "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 55%, transparent)",
+                  boxShadow:
+                    "0 0 0 2px color-mix(in srgb, var(--tenant-theme-color, #16a34a) 16%, transparent)",
+                }
+              : undefined
+          }
+          className="apple-surface px-4 py-3.5 flex flex-col justify-between gap-2 transition-all hover:shadow-md cursor-pointer select-none"
         >
           <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
             Încasate
@@ -570,129 +586,118 @@ export default function EmittedInvoices() {
       {/* Reminder Termen Legal SPV (5 zile lucrătoare) */}
       <SpvDeadlineBanner invoices={data} />
 
-      {/* Unified Apple Control & Filter Card */}
-      <div className="apple-surface p-3 space-y-2.5">
-        {/* Row 1: Period Segmented Track */}
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="apple-segmented overflow-x-auto no-scrollbar max-w-full">
-              {[
-                { id: "all", label: "Toate" },
-                { id: "today", label: "Azi" },
-                { id: "yesterday", label: "Ieri" },
-                { id: "week", label: "Săpt. asta" },
-                { id: "lastWeek", label: "Săpt. trec." },
-                { id: "month", label: "Luna asta" },
-                { id: "lastMonth", label: "Luna trec." },
-                { id: "year", label: "An" },
-                { id: "custom", label: "Interval" },
-              ].map(item => (
-                <button
-                  key={item.id}
-                  type="button"
-                  data-active={period === item.id}
-                  onClick={() => {
-                    setPeriod(item.id);
-                    const range = getDateRange(item.id);
-                    if (range && item.id !== "custom") {
-                      setCustomFrom(range[0]);
-                      setCustomTo(range[1]);
-                    }
-                    setPage(1);
-                  }}
-                  className="apple-segmented-item"
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-
-            {period === "custom" && (
-              <div className="inline-flex items-center gap-1.5 px-2.5 h-[34px] rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] text-xs tabular-nums">
-                <Calendar className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d]" />
-                <input
-                  type="date"
-                  value={customFrom}
-                  onChange={e => {
-                    setCustomFrom(e.target.value);
-                    setPage(1);
-                  }}
-                  className="h-6 px-1 text-xs bg-transparent text-[#1d1d1f] dark:text-white outline-none w-[110px]"
-                />
-                <span className="text-[#8e8e93]">–</span>
-                <input
-                  type="date"
-                  value={customTo}
-                  onChange={e => {
-                    setCustomTo(e.target.value);
-                    setPage(1);
-                  }}
-                  className="h-6 px-1 text-xs bg-transparent text-[#1d1d1f] dark:text-white outline-none w-[110px]"
-                />
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Row 2: Status Segmented Chips ↔ SPV Filter + Search */}
-        <div className="flex items-center justify-between gap-2.5 flex-wrap pt-0.5">
-          <div className="apple-segmented flex-wrap">
+      {/* Single-Row Unified Toolbar (Zero Duplicate Filters, Auto-Width Pills) */}
+      <div className="apple-surface px-3 py-2.5">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+          {/* Period Segmented Track */}
+          <div className="apple-segmented shrink-0">
             {[
-              { id: "all", label: "Toate", count: counts.all },
+              { id: "all", label: "Toate" },
+              { id: "today", label: "Azi" },
+              { id: "yesterday", label: "Ieri" },
+              { id: "week", label: "Săpt." },
+              { id: "month", label: "Lună" },
+              { id: "lastMonth", label: "Luna trec." },
+              { id: "year", label: "An" },
+              { id: "custom", label: "Interval" },
+            ].map(item => (
+              <button
+                key={item.id}
+                type="button"
+                data-active={period === item.id}
+                onClick={() => {
+                  setPeriod(item.id);
+                  const range = getDateRange(item.id);
+                  if (range && item.id !== "custom") {
+                    setCustomFrom(range[0]);
+                    setCustomTo(range[1]);
+                  }
+                  setPage(1);
+                }}
+                className="apple-segmented-item px-2.5"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+
+          {period === "custom" && (
+            <div className="inline-flex items-center gap-1 px-2.5 h-[34px] rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] text-xs tabular-nums shrink-0">
+              <Calendar className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d]" />
+              <input
+                type="date"
+                value={customFrom}
+                onChange={e => {
+                  setCustomFrom(e.target.value);
+                  setPage(1);
+                }}
+                className="h-6 px-1 text-xs bg-transparent text-[#1d1d1f] dark:text-white outline-none w-[106px]"
+              />
+              <span className="text-[#8e8e93]">–</span>
+              <input
+                type="date"
+                value={customTo}
+                onChange={e => {
+                  setCustomTo(e.target.value);
+                  setPage(1);
+                }}
+                className="h-6 px-1 text-xs bg-transparent text-[#1d1d1f] dark:text-white outline-none w-[106px]"
+              />
+            </div>
+          )}
+
+          {/* Non-Duplicated Quick Chips (Ciornă / Emise — Încasate & Restanțe sunt pe cardurile KPI) */}
+          <div className="apple-segmented shrink-0">
+            {[
               { id: "draft", label: "Ciornă", count: counts.draft },
               { id: "sent", label: "Emise", count: counts.sent },
-              { id: "paid", label: "Încasate", count: counts.paid },
-              { id: "overdue", label: "Restanțe", count: counts.overdue },
             ].map(st => (
               <button
                 key={st.id}
                 type="button"
                 data-active={statusFilter === st.id}
                 onClick={() => {
-                  setStatusFilter(st.id);
+                  setStatusFilter(statusFilter === st.id ? "all" : st.id);
                   setPage(1);
                 }}
-                className="apple-segmented-item tabular-nums"
+                className="apple-segmented-item px-2.5 tabular-nums"
               >
                 <span>{st.label}</span>
-                <span className="opacity-65">{st.count}</span>
+                <span className="opacity-75">{st.count}</span>
               </button>
             ))}
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap flex-1 sm:flex-initial justify-end">
-            {/* SPV Filter */}
-            <div className="w-[152px] shrink-0">
-              <Select
-                value={spvFilter}
-                onValueChange={val => {
-                  setSpvFilter(val as any);
-                  setPage(1);
-                }}
+          {/* Right Side: Auto-Width SPV Filter + Search + Reset */}
+          <div className="ml-auto flex items-center gap-2 shrink-0">
+            <Select
+              value={spvFilter}
+              onValueChange={val => {
+                setSpvFilter(val as any);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger
+                data-filtered={spvFilter !== "all"}
+                className="apple-pill-control h-[34px] w-auto shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3"
               >
-                <SelectTrigger
-                  data-filtered={spvFilter !== "all"}
-                  className="apple-pill-control h-[34px] w-full flex items-center gap-1.5 px-3"
-                >
-                  <Send className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
-                  <SelectValue placeholder="Toate SPV" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toate SPV</SelectItem>
-                  <SelectItem value="validat">Validate</SelectItem>
-                  <SelectItem value="in_procesare">În procesare</SelectItem>
-                  <SelectItem value="eroare">Erori SPV</SelectItem>
-                  <SelectItem value="nesincronizat">Netrimise</SelectItem>
-                  <SelectItem value="extern">Externe (D390)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                <Send className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
+                <SelectValue placeholder="Toate SPV" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toate SPV</SelectItem>
+                <SelectItem value="validat">Validate</SelectItem>
+                <SelectItem value="in_procesare">În procesare</SelectItem>
+                <SelectItem value="eroare">Erori SPV</SelectItem>
+                <SelectItem value="nesincronizat">Netrimise</SelectItem>
+                <SelectItem value="extern">Externe (D390)</SelectItem>
+              </SelectContent>
+            </Select>
 
-            {/* Search */}
-            <div className="relative flex-1 sm:w-[240px] min-w-[180px]">
+            <div className="relative w-[210px] xl:w-[250px] shrink-0">
               <Search className="w-3.5 h-3.5 text-[#8e8e93] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
-                style={{ paddingLeft: 34, paddingRight: search ? 76 : 14 }}
+                style={{ paddingLeft: 34, paddingRight: search ? 72 : 14 }}
                 className="apple-pill-control rounded-full w-full h-[34px] outline-none text-[13px] text-[#1d1d1f] dark:text-white placeholder:text-[#8e8e93] focus:bg-white dark:focus:bg-[#2c2c2e]"
                 placeholder="Caută factură, client, CUI..."
                 value={search}
@@ -703,16 +708,16 @@ export default function EmittedInvoices() {
               />
               {search && (
                 <>
-                  <span className="absolute right-8 top-1/2 -translate-y-1/2 bg-black/[0.07] dark:bg-white/[0.14] text-[#1d1d1f] dark:text-white rounded-full px-2 py-0.5 text-[10.5px] font-semibold tabular-nums">
+                  <span className="absolute right-7 top-1/2 -translate-y-1/2 bg-black/[0.07] dark:bg-white/[0.14] text-[#1d1d1f] dark:text-white rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums">
                     {filtered.length}/{allData.length}
                   </span>
                   <button
                     type="button"
                     aria-label="Șterge căutarea"
                     onClick={() => setSearch("")}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center hover:bg-black/[0.07] dark:hover:bg-white/[0.12] cursor-pointer"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center hover:bg-black/[0.07] dark:hover:bg-white/[0.12] cursor-pointer"
                   >
-                    <X className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d]" />
+                    <X className="w-3 h-3 text-[#6e6e73] dark:text-[#98989d]" />
                   </button>
                 </>
               )}
@@ -721,6 +726,8 @@ export default function EmittedInvoices() {
             {hasActiveFilters && (
               <button
                 type="button"
+                aria-label="Elimină toate filtrele"
+                title="Elimină toate filtrele"
                 onClick={() => {
                   setSearch("");
                   setStatusFilter("all");
@@ -728,10 +735,9 @@ export default function EmittedInvoices() {
                   setPeriod("all");
                   setPage(1);
                 }}
-                className="apple-pill-control h-[34px] px-3 inline-flex items-center gap-1 text-[12px] text-[#6e6e73] hover:text-[#1d1d1f] dark:text-[#98989d] dark:hover:text-white cursor-pointer"
+                className="apple-pill-control w-[34px] h-[34px] shrink-0 flex items-center justify-center text-[#6e6e73] hover:text-[#1d1d1f] dark:text-[#98989d] dark:hover:text-white cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
-                <span>Resetează</span>
               </button>
             )}
           </div>

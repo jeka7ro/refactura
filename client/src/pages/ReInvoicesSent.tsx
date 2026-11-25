@@ -498,57 +498,53 @@ export default function ReInvoicesSent() {
             ))}
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap flex-1 sm:flex-initial justify-end">
+          <div className="ml-auto flex items-center gap-2 shrink-0">
             {/* Status Select */}
-            <div className="w-[146px] shrink-0">
-              <Select
-                value={statusFilter}
-                onValueChange={val => setStatusFilter(val as any)}
+            <Select
+              value={statusFilter}
+              onValueChange={val => setStatusFilter(val as any)}
+            >
+              <SelectTrigger
+                data-filtered={statusFilter !== "all"}
+                className="apple-pill-control h-[34px] w-auto shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3"
               >
-                <SelectTrigger
-                  data-filtered={statusFilter !== "all"}
-                  className="apple-pill-control h-[34px] w-full flex items-center gap-1.5 px-3"
-                >
-                  <Tag className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
-                  <SelectValue placeholder="Toate statusurile" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toate statusurile</SelectItem>
-                  <SelectItem value="draft">Ciornă ({counts.draft})</SelectItem>
-                  <SelectItem value="pending">În Așteptare ({counts.pending})</SelectItem>
-                  <SelectItem value="sent">Trimise ({counts.sent})</SelectItem>
-                  <SelectItem value="paid">Încasate ({counts.paid})</SelectItem>
-                  <SelectItem value="overdue">Restanțe ({counts.overdue})</SelectItem>
-                  <SelectItem value="cancelled">Anulate ({counts.cancelled})</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                <Tag className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
+                <SelectValue placeholder="Toate statusurile" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toate statusurile</SelectItem>
+                <SelectItem value="draft">Ciornă ({counts.draft})</SelectItem>
+                <SelectItem value="pending">În Așteptare ({counts.pending})</SelectItem>
+                <SelectItem value="sent">Trimise ({counts.sent})</SelectItem>
+                <SelectItem value="paid">Încasate ({counts.paid})</SelectItem>
+                <SelectItem value="overdue">Restanțe ({counts.overdue})</SelectItem>
+                <SelectItem value="cancelled">Anulate ({counts.cancelled})</SelectItem>
+              </SelectContent>
+            </Select>
 
             {/* SPV Filter */}
-            <div className="w-[146px] shrink-0">
-              <Select
-                value={spvFilter}
-                onValueChange={val => setSpvFilter(val as any)}
+            <Select
+              value={spvFilter}
+              onValueChange={val => setSpvFilter(val as any)}
+            >
+              <SelectTrigger
+                data-filtered={spvFilter !== "all"}
+                className="apple-pill-control h-[34px] w-auto shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3"
               >
-                <SelectTrigger
-                  data-filtered={spvFilter !== "all"}
-                  className="apple-pill-control h-[34px] w-full flex items-center gap-1.5 px-3"
-                >
-                  <Send className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
-                  <SelectValue placeholder="Toate SPV" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toate SPV</SelectItem>
-                  <SelectItem value="validat">Validate ({spvCounts.validat})</SelectItem>
-                  <SelectItem value="in_procesare">În procesare ({spvCounts.in_procesare})</SelectItem>
-                  <SelectItem value="eroare">Erori SPV ({spvCounts.eroare})</SelectItem>
-                  <SelectItem value="nesincronizat">Netrimise ({spvCounts.nesincronizat})</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                <Send className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
+                <SelectValue placeholder="Toate SPV" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toate SPV</SelectItem>
+                <SelectItem value="validat">Validate ({spvCounts.validat})</SelectItem>
+                <SelectItem value="in_procesare">În procesare ({spvCounts.in_procesare})</SelectItem>
+                <SelectItem value="eroare">Erori SPV ({spvCounts.eroare})</SelectItem>
+                <SelectItem value="nesincronizat">Netrimise ({spvCounts.nesincronizat})</SelectItem>
+              </SelectContent>
+            </Select>
 
             {/* Căutare */}
-            <div className="relative flex-1 sm:w-[240px] min-w-[180px]">
+            <div className="relative w-[210px] xl:w-[250px] shrink-0">
               <Search className="w-3.5 h-3.5 text-[#8e8e93] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 style={{ paddingLeft: 34, paddingRight: search ? 72 : 14 }}
@@ -559,16 +555,16 @@ export default function ReInvoicesSent() {
               />
               {search && (
                 <>
-                  <span className="absolute right-8 top-1/2 -translate-y-1/2 bg-black/[0.07] dark:bg-white/[0.14] text-[#1d1d1f] dark:text-white rounded-full px-2 py-0.5 text-[10.5px] font-semibold tabular-nums">
+                  <span className="absolute right-7 top-1/2 -translate-y-1/2 bg-black/[0.07] dark:bg-white/[0.14] text-[#1d1d1f] dark:text-white rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums">
                     {filtered.length}/{reInvoices.length}
                   </span>
                   <button
                     type="button"
                     aria-label="Șterge căutarea"
                     onClick={() => setSearch("")}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center hover:bg-black/[0.07] dark:hover:bg-white/[0.12] cursor-pointer"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center hover:bg-black/[0.07] dark:hover:bg-white/[0.12] cursor-pointer"
                   >
-                    <X className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d]" />
+                    <X className="w-3 h-3 text-[#6e6e73] dark:text-[#98989d]" />
                   </button>
                 </>
               )}

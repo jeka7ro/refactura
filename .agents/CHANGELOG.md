@@ -1,5 +1,16 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-25 11:05 — Culoarea tenantului pe tabul selectat + bară de filtre pe un singur rând fără dubluri (`index.css`, `AllInvoices.tsx`, `EmittedInvoices.tsx`, `ReInvoicesSent.tsx`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Culoarea dinamică a tenantului (`var(--tenant-theme-color)`) pe taburile selectate și pe cardurile KPI active:**
+     - Actualizat `.apple-segmented-item[data-active="true"]` în `client/src/index.css` și chenarele cardurilor KPI active din `AllInvoices.tsx` / `EmittedInvoices.tsx` să folosească direct `var(--tenant-theme-color)` cu text alb curat.
+  2. **Unificat bara de filtre pe un singur rând și eliminat filtrele care dublau butoanele:**
+     - Eliminat dropdown-urile duplicate (`Citire`, `NIR`) și segmentele redundante (`Toate / Primite / Emise`, deja prezente pe cardurile KPI), lăsând totul într-un singur rând fluid (`Perioadă` · `Necitite / Fără NIR / Cu NIR / În așteptare` · `Toate sursele` cu `w-auto` fără trunchiere · `Caută...` · `Sync`).
+- **Fișiere:** `client/src/index.css`, `client/src/pages/AllInvoices.tsx`, `client/src/pages/EmittedInvoices.tsx`, `client/src/pages/ReInvoicesSent.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori) și `npm run build` (`0` erori), fără `git push`.
+
 ### 2026-11-25 11:02 — Corecție geometrie carduri KPI `16px` pe `/facturi` și `/facturi-emise-nou` (`index.css`, `AllInvoices.tsx`, `EmittedInvoices.tsx`)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
