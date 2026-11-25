@@ -120,29 +120,39 @@ export default function PrintInvoice() {
       <div className="flex justify-between items-start border-b border-gray-200 pb-8 mb-8">
         <div>
           {settings.logoBase64 ? (
-            settings.logoHasBackground ? (
-              <div
-                className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-xl mb-4 shadow-sm border"
-                style={{
-                  backgroundColor: settings.logoBgColor || "#0f172a",
-                  borderColor: settings.logoBgColor || "#0f172a",
-                }}
-              >
-                <img
-                  src={settings.logoBase64}
-                  alt="Logo"
-                  className="h-9 w-auto object-contain"
-                />
-              </div>
-            ) : (
-              <div className="inline-flex items-center mb-4">
-                <img
-                  src={settings.logoBase64}
-                  alt="Logo"
-                  className="h-10 w-auto max-w-[160px] object-contain"
-                />
-              </div>
-            )
+            <div className="inline-flex flex-col items-center mb-4">
+              {settings.logoHasBackground ? (
+                <div
+                  className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-xl shadow-sm border"
+                  style={{
+                    backgroundColor: settings.logoBgColor || "#0f172a",
+                    borderColor: settings.logoBgColor || "#0f172a",
+                  }}
+                >
+                  <img
+                    src={settings.logoBase64}
+                    alt="Logo"
+                    className="h-9 w-auto object-contain"
+                  />
+                </div>
+              ) : (
+                <div className="inline-flex items-center">
+                  <img
+                    src={settings.logoBase64}
+                    alt="Logo"
+                    className="h-10 w-auto max-w-[160px] object-contain"
+                  />
+                </div>
+              )}
+              {Number(tenant?.id) === 1 && (
+                <span
+                  className="text-[11px] font-bold tracking-tight mt-1"
+                  style={{ color: settings.logoBgColor || "#1e3a5f" }}
+                >
+                  www.getapp.ro
+                </span>
+              )}
+            </div>
           ) : (
             <h1 className="text-2xl font-black mb-4">{tenant?.name}</h1>
           )}

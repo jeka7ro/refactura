@@ -189,6 +189,10 @@ export function registerPdfRoute(app: any) {
         logoBase64: logoBase64 || undefined,
         logoHasBackground,
         logoBgColor,
+        logoSubtitle:
+          Number(ri.tenantId) === 1
+            ? settings.logoSubtitle || "www.getapp.ro"
+            : settings.logoSubtitle || undefined,
         themeColor,
         template: settings.invoiceTemplate === "modern" ? "classic" : (settings.invoiceTemplate || "classic"),
         lines: translatedLines,
@@ -719,6 +723,10 @@ export function registerPdfRoute(app: any) {
         logoBase64,
         logoHasBackground,
         logoBgColor,
+        logoSubtitle:
+          Number(inv.tenantId) === 1
+            ? "www.getapp.ro"
+            : undefined,
         themeColor,
         template: "classic" as any,
         isCreditNote,
@@ -904,6 +912,10 @@ export function registerPdfRoute(app: any) {
         logoBase64,
         logoHasBackground,
         logoBgColor,
+        logoSubtitle:
+          Number(inv.tenantId) === 1
+            ? "www.getapp.ro"
+            : undefined,
         themeColor,
         template: settings.invoiceTemplate === "modern" ? "classic" : (settings.invoiceTemplate || "classic"),
         lines: translatedLines,
@@ -1017,8 +1029,8 @@ export function registerPdfRoute(app: any) {
       const activeLogo = (logoBase64 && logoBase64 !== "DEFAULT_TEXT_LOGO") ? logoBase64 : "DEFAULT_TEXT_LOGO";
       const cardX = 40;
       const cardY = 20;
-      const cardW = 120;
-      const cardH = 36;
+      const cardW = 128;
+      const cardH = 38;
       const cardR = 7;
 
       if (logoHasBackground) {
@@ -1028,7 +1040,7 @@ export function registerPdfRoute(app: any) {
         doc.restore();
       }
 
-      const padX = logoHasBackground ? 7 : 0;
+      const padX = logoHasBackground ? 6 : 0;
       const padY = logoHasBackground ? 4 : 0;
       const imgW = cardW - padX * 2;
       const imgH = cardH - padY * 2;
@@ -1082,6 +1094,20 @@ export function registerPdfRoute(app: any) {
             align: "center",
             valign: "center",
           });
+          if (Number(tenant?.id) === 1) {
+            doc
+              .fontSize(8)
+              .font("Roboto-Bold")
+              .fillColor(logoBgColor || "#1e3a5f")
+              .text("www.getapp.ro", cardX, cardY + cardH + 3, {
+                width: cardW,
+                align: "center",
+                lineBreak: false,
+              });
+            try {
+              doc.link(cardX, cardY, cardW, cardH + 14, "https://www.getapp.ro");
+            } catch {}
+          }
         } catch {
           doc
             .fontSize(14)
@@ -1989,8 +2015,8 @@ export function registerPdfRoute(app: any) {
       const activeLogo = (logoBase64 && logoBase64 !== "DEFAULT_TEXT_LOGO") ? logoBase64 : "DEFAULT_TEXT_LOGO";
       const cardX = 40;
       const cardY = 20;
-      const cardW = 120;
-      const cardH = 36;
+      const cardW = 128;
+      const cardH = 38;
       const cardR = 7;
 
       if (logoHasBackground) {
@@ -2000,7 +2026,7 @@ export function registerPdfRoute(app: any) {
         doc.restore();
       }
 
-      const padX = logoHasBackground ? 7 : 0;
+      const padX = logoHasBackground ? 6 : 0;
       const padY = logoHasBackground ? 4 : 0;
       const imgW = cardW - padX * 2;
       const imgH = cardH - padY * 2;
@@ -2053,6 +2079,20 @@ export function registerPdfRoute(app: any) {
             align: "center",
             valign: "center",
           });
+          if (Number(tenant?.id) === 1) {
+            doc
+              .fontSize(8)
+              .font("Roboto-Bold")
+              .fillColor(logoBgColor || "#1e3a5f")
+              .text("www.getapp.ro", cardX, cardY + cardH + 3, {
+                width: cardW,
+                align: "center",
+                lineBreak: false,
+              });
+            try {
+              doc.link(cardX, cardY, cardW, cardH + 14, "https://www.getapp.ro");
+            } catch {}
+          }
         } catch {
           doc
             .fontSize(14)
@@ -2390,8 +2430,8 @@ export function registerPdfRoute(app: any) {
       const activeLogo = (logoBase64 && logoBase64 !== "DEFAULT_TEXT_LOGO") ? logoBase64 : "DEFAULT_TEXT_LOGO";
       const cardX = 40;
       const cardY = 20;
-      const cardW = 120;
-      const cardH = 36;
+      const cardW = 128;
+      const cardH = 38;
       const cardR = 7;
 
       if (logoHasBackground) {
@@ -2401,7 +2441,7 @@ export function registerPdfRoute(app: any) {
         doc.restore();
       }
 
-      const padX = logoHasBackground ? 7 : 0;
+      const padX = logoHasBackground ? 6 : 0;
       const padY = logoHasBackground ? 4 : 0;
       const imgW = cardW - padX * 2;
       const imgH = cardH - padY * 2;
@@ -2454,6 +2494,20 @@ export function registerPdfRoute(app: any) {
             align: "center",
             valign: "center",
           });
+          if (Number(tenant?.id) === 1) {
+            doc
+              .fontSize(8)
+              .font("Roboto-Bold")
+              .fillColor(logoBgColor || "#1e3a5f")
+              .text("www.getapp.ro", cardX, cardY + cardH + 3, {
+                width: cardW,
+                align: "center",
+                lineBreak: false,
+              });
+            try {
+              doc.link(cardX, cardY, cardW, cardH + 14, "https://www.getapp.ro");
+            } catch {}
+          }
         } catch {
           doc
             .fontSize(14)

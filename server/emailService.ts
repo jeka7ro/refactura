@@ -171,6 +171,10 @@ export async function generateEmittedInvoicePdfBuffer(invoiceId: number): Promis
     logoBase64,
     logoHasBackground,
     logoBgColor,
+    logoSubtitle:
+      Number(inv.tenantId) === 1
+        ? settings.logoSubtitle || "www.getapp.ro"
+        : settings.logoSubtitle || undefined,
     themeColor,
     template: settings.invoiceTemplate === "modern" ? "classic" : (settings.invoiceTemplate || "classic"),
     lines: translatedLines,

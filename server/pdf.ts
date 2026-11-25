@@ -40,7 +40,12 @@ function sanitizeData(obj: any): any {
   if (obj !== null && typeof obj === "object") {
     const res: any = {};
     for (const key of Object.keys(obj)) {
-      if (key === "logoBase64" || key === "logoBgColor" || key === "themeColor") {
+      if (
+        key === "logoBase64" ||
+        key === "logoBgColor" ||
+        key === "logoSubtitle" ||
+        key === "themeColor"
+      ) {
         res[key] = obj[key];
       } else if (key === "logoHasBackground") {
         res[key] = Boolean(obj[key]);
@@ -80,6 +85,7 @@ export interface ReInvoiceData {
   logoBase64?: string;
   logoHasBackground?: boolean;
   logoBgColor?: string;
+  logoSubtitle?: string;
   themeColor?: string;
   template?: InvoiceTemplate;
   lines: Array<{
@@ -241,16 +247,18 @@ function drawLogo(
   logoBase64: string,
   x: number,
   y: number,
-  w = 115,
-  h = 34,
+  w = 130,
+  h = 38,
   hasBackground = false,
-  bgColor = "#0f172a"
+  bgColor = "#0f172a",
+  subtitle?: string,
+  subtitleColor?: string
 ) {
   if (!logoBase64 || logoBase64 === "DEFAULT_TEXT_LOGO") {
     return;
   }
 
-  const padX = hasBackground ? 7 : 0;
+  const padX = hasBackground ? 6 : 0;
   const padY = hasBackground ? 4 : 0;
   const imgW = w - padX * 2;
   const imgH = h - padY * 2;
@@ -274,6 +282,27 @@ function drawLogo(
     });
   } catch (_) {
     /* ignoră logo invalid */
+  }
+
+  if (subtitle && subtitle.trim()) {
+    const cleanSub = subtitle.trim();
+    const linkHref = /^https?:\/\//i.test(cleanSub)
+      ? cleanSub
+      : `https://${cleanSub}`;
+    doc.save();
+    doc
+      .fontSize(8.5)
+      .font("Roboto-Bold")
+      .fillColor(subtitleColor || (hasBackground ? bgColor || "#1e3a5f" : "#1e3a5f"))
+      .text(cleanSub, x, y + h + 4, {
+        width: w,
+        align: "center",
+        lineBreak: false,
+      });
+    try {
+      doc.link(x, y, w, h + 16, linkHref);
+    } catch (_) {}
+    doc.restore();
   }
 }
 
@@ -465,16 +494,17 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
       data.logoBase64,
       leftX,
       y,
-      115,
-      34,
+      130,
+      38,
       data.logoHasBackground,
-      data.logoBgColor
+      data.logoBgColor,
+      data.logoSubtitle
     );
   }
 
   // Header: Left "Factura", Right "Seria și numărul"
   const classicTitle = data.documentTitle || (data.isCreditNote ? (isBilingual ? "FACTURĂ STORNO / CREDIT NOTE" : "FACTURĂ STORNO") : L.title);
-  const titleX = leftX + (data.logoBase64 && data.logoBase64 !== "DEFAULT_TEXT_LOGO" ? (isBilingual ? 130 : 180) : 0);
+  const titleX = leftX + (data.logoBase64 && data.logoBase64 !== "DEFAULT_TEXT_LOGO" ? (isBilingual ? 142 : 180) : 0);
 
   const metaColW = isBilingual ? 230 : 210;
   const numberColW = Math.max(metaColW, 230);
@@ -1051,11 +1081,13 @@ function generateModern(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
       doc,
       data.logoBase64,
       leftX,
-      18,
-      90,
-      54,
+      16,
+      96,
+      44,
       data.logoHasBackground,
-      data.logoBgColor
+      data.logoBgColor,
+      data.logoSubtitle,
+      "#cbd5e1"
     );
   }
 
@@ -1299,12 +1331,13 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
       data.logoBase64,
       leftX,
       y,
-      90,
-      45,
+      126,
+      38,
       data.logoHasBackground,
-      data.logoBgColor
+      data.logoBgColor,
+      data.logoSubtitle
     );
-    y += 60;
+    y += data.logoSubtitle ? 64 : 56;
   }
 
   // Title left-aligned

@@ -1,5 +1,16 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-25 11:24 — Logo `GetApp` cu iconiță clară și `www.getapp.ro` sub logo strict pentru Tenantul 1 (`server/pdf.ts`, `server/pdfRoute.ts`, `server/emailService.ts`, `PrintInvoice.tsx`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Îmbunătățit claritatea și vizibilitatea iconiței din logo-ul `GetApp` pentru Tenantul 1 (`id = 1`):**
+     - Reconstruit la rezoluție înaltă (`1040×232` RGBA fără contur întunecat parazit) logo-ul `GetApp` din `tenants.settings.logoBase64` exclusiv pentru Tenantul 1, cu linii îngroșate și contrast luminos alb-cian pe fundalul `#1e3a5f` și dimensiune optimizată `130×38pt` în antetul PDF.
+  2. **Adăugat `www.getapp.ro` centrat sub logo strict pentru Tenantul 1 (`id = 1`):**
+     - Afișat `www.getapp.ro` (cu link activ către `https://www.getapp.ro`) centrat exact sub badge-ul `GetApp` în toate PDF-urile generate (Facturi arhivă/SPV, Facturi emise, Re-facturi, NIR, Devize, Bonuri de consum, atașamente Email și `PrintInvoice`), exclusiv când `tenantId === 1`.
+- **Fișiere:** `server/pdf.ts`, `server/pdfRoute.ts`, `server/emailService.ts`, `client/src/pages/PrintInvoice.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori) și `npm run build` (`0` erori), fără `git push`.
+
 ### 2026-11-25 11:14 — Eliminare butoane `Ieri`, `Săpt.` și `În așteptare` + încadrare 100% pe un singur rând fără scrollbar orizontal (`AllInvoices`, `EmittedInvoices`, `ReInvoicesSent`, `index.css`)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
