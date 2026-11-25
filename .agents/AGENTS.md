@@ -73,3 +73,13 @@ Adaugă o intrare nouă DEASUPRA celor existente în `.agents/CHANGELOG.md` în 
 # Apple Design Skill (`dickwu/apple-design-skill`)
 
 Pentru orice creare, audit sau îmbunătățire UI/UX, urmează `.agents/skills/apple-design/SKILL.md` și referințele Apple HIG din `.agents/skills/apple-design/references/hig/` (`accessibility.md`, `layout.md`, `typography.md`, `color.md`, plus componentele relevante de pe ecran), păstrând toate regulile stricte ale proiectului.
+
+# Web Design, Frontend & Testing Skills (`vercel-labs/agent-skills`, `anthropics/skills`, `obra/superpowers`)
+
+1. **`web-design-guidelines` + `frontend-design`** (`.agents/skills/web-design-guidelines/SKILL.md`, `.agents/skills/web-design-guidelines/references/command.md`, `.agents/skills/frontend-design/SKILL.md`):
+   - Aplică `min-width: 0` pe flex/grid ca niciun filtru, tabel sau text tradus să nu depășească ecranul (`scrollWidth <= clientWidth`), `tabular-nums` pe sume/prețuri/TVA, `font-size >= 16px` pe `<input>` pe mobil contra auto-zoom iOS Safari, `touch-action: manipulation`, `overscroll-behavior: contain` în modale și contrast curat atât în Light Mode, cât și în Dark Mode.
+2. **`webapp-testing`** (`.agents/skills/webapp-testing/SKILL.md`):
+   - Verifică modificările UI în browser real pe Desktop și rezoluții de telefon (`320px`, `375px`, `390px`, `430px`), Light + Dark Mode, verificând geometric elementele (`getBoundingClientRect()`, `scrollWidth`, `getComputedStyle()`). Toate fișierele temporare rămân strict în workspace.
+3. **`systematic-debugging` + `verification-before-completion`** (`.agents/skills/systematic-debugging/SKILL.md`, `.agents/skills/verification-before-completion/SKILL.md`):
+   - *Zero cârpeli la ghici:* investighează cauza rădăcină pe întreg fluxul de date înainte de orice fix și oprește-te după 3 încercări eșuate.
+   - *Dovezi înainte de afirmații:* nu raporta niciodată o sarcină ca finalizată fără verificarea proaspătă a build-ului (`npx tsc --noEmit`, `npm run build`) și a comportamentului real.

@@ -1,5 +1,18 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-25 19:49 — Instalare și activare pachete de skill-uri `vercel-labs/agent-skills`, `anthropics/skills` și `obra/superpowers`
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Instalat în `.agents/skills/` cele 5 skill-uri oficiale împreună cu referințele și scripturile lor:**
+     - `web-design-guidelines` (`vercel-labs/agent-skills` + snapshot local complet `vercel-labs/web-interface-guidelines` în `references/command.md` și `references/README.md`);
+     - `webapp-testing` și `frontend-design` (`anthropics/skills`);
+     - `verification-before-completion` și `systematic-debugging` (`obra/superpowers`, inclusiv `root-cause-tracing.md`, `defense-in-depth.md`, `condition-based-waiting.md`).
+  2. **Activat regulile permanente (`trigger: always_on`) în `.agents/rules/` și `.agents/AGENTS.md`:**
+     - Creat `.agents/rules/web-and-frontend-skills.md` și `.agents/rules/testing-and-superpowers.md` și actualizat `.agents/AGENTS.md`, armonizate cu regulile stricte ale proiectului (izolare pe workspace, zero `git push` necerut, zero pop-up-uri native, zero date fake).
+- **Fișiere:** `.agents/skills/web-design-guidelines/*`, `.agents/skills/webapp-testing/*`, `.agents/skills/frontend-design/*`, `.agents/skills/verification-before-completion/*`, `.agents/skills/systematic-debugging/*`, `.agents/rules/web-and-frontend-skills.md`, `.agents/rules/testing-and-superpowers.md`, `.agents/AGENTS.md`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** Verificare structură YAML frontmatter și fișiere pentru toate cele 7 skill-uri din `.agents/skills/`, fără `git push`.
+
 ### 2026-11-25 12:15 — Uniformizare contur carduri KPI fără chenar albastru pe primul card + finisare contururi Dark Mode (`AllInvoices.tsx`, `EmittedInvoices.tsx`, `index.css`)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
