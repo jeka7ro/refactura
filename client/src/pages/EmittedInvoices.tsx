@@ -435,20 +435,17 @@ export default function EmittedInvoices() {
         </div>
       </div>
 
-      {/* KPI Cards — Clean Apple Surface Strip */}
+      {/* KPI Cards — Clean Rectangular 16px Apple Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 tabular-nums">
         {/* Card 1: Total Facturi */}
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={0}
           onClick={() => {
             setStatusFilter("all");
             setPage(1);
           }}
-          className={`apple-surface text-left px-4 py-3.5 flex flex-col justify-between gap-2 transition-all cursor-pointer ${
-            statusFilter === "all"
-              ? "ring-1 ring-[#1d1d1f]/15 dark:ring-white/25"
-              : "hover:shadow-md"
-          }`}
+          className="apple-surface px-4 py-3.5 flex flex-col justify-between gap-2 transition-shadow hover:shadow-md cursor-pointer select-none"
         >
           <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
             Total facturi
@@ -463,18 +460,19 @@ export default function EmittedInvoices() {
               </span>
             )}
           </div>
-        </button>
+        </div>
 
         {/* Card 2: Încasate */}
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={0}
           onClick={() => {
             setStatusFilter(statusFilter === "paid" ? "all" : "paid");
             setPage(1);
           }}
-          className={`apple-surface text-left px-4 py-3.5 flex flex-col justify-between gap-2 transition-all cursor-pointer ${
+          className={`apple-surface px-4 py-3.5 flex flex-col justify-between gap-2 transition-all cursor-pointer select-none ${
             statusFilter === "paid"
-              ? "ring-1 ring-emerald-500/40"
+              ? "ring-2 ring-[#0071e3]/25 border-[#0071e3]/50"
               : "hover:shadow-md"
           }`}
         >
@@ -489,18 +487,19 @@ export default function EmittedInvoices() {
               {allData.length > 0 ? `${Math.round((counts.paid / allData.length) * 100)}%` : "0%"}
             </span>
           </div>
-        </button>
+        </div>
 
         {/* Card 3: Restanțe */}
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={0}
           onClick={() => {
             setStatusFilter(statusFilter === "overdue" ? "all" : "overdue");
             setPage(1);
           }}
-          className={`apple-surface text-left px-4 py-3.5 flex flex-col justify-between gap-2 transition-all cursor-pointer ${
+          className={`apple-surface px-4 py-3.5 flex flex-col justify-between gap-2 transition-all cursor-pointer select-none ${
             statusFilter === "overdue"
-              ? "ring-1 ring-rose-500/40"
+              ? "ring-2 ring-[#ff3b30]/25 border-[#ff3b30]/50"
               : "hover:shadow-md"
           }`}
         >
@@ -521,7 +520,7 @@ export default function EmittedInvoices() {
               {counts.overdue === 0 ? "La zi" : "Scadente"}
             </span>
           </div>
-        </button>
+        </div>
 
         {/* Card 4: Valoare EUR */}
         <div className="apple-surface px-4 py-3.5 flex flex-col justify-between gap-2">

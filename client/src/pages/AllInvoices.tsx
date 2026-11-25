@@ -917,26 +917,30 @@ export default function AllInvoices() {
         </div>
       </div>
 
-      {/* KPI Cards — Clean Apple Surface Strip (Opaque Content Layer, Calm Labels, SF Pro Display Numbers) */}
+      {/* KPI Cards — Clean Rectangular 16px Apple Cards (Identical Geometry Across All 4 Cards) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Card 1: Toate Facturile */}
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={0}
           onClick={() => {
             setTypeFilter("all");
             setPage(1);
           }}
-          className={`apple-surface text-left px-4 sm:px-5 py-3.5 sm:py-4 flex flex-col justify-between gap-2.5 transition-all cursor-pointer ${
-            typeFilter === "all"
-              ? "ring-1 ring-[#1d1d1f]/15 dark:ring-white/25 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.08)]"
-              : "hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)]"
-          }`}
+          onKeyDown={e => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setTypeFilter("all");
+              setPage(1);
+            }
+          }}
+          className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 transition-shadow hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
         >
           <div className="flex items-center justify-between gap-2 w-full">
             <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
               Toate facturile
             </span>
-            <span className="w-7 h-7 rounded-lg bg-[#f2f2f7] dark:bg-[#2c2c2e] flex items-center justify-center shrink-0">
+            <span className="w-7 h-7 rounded-[8px] bg-[#f2f4f7] dark:bg-[#2c2c2e] flex items-center justify-center shrink-0">
               <ClipboardList className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff]" />
             </span>
           </div>
@@ -951,18 +955,26 @@ export default function AllInvoices() {
               </span>
             )}
           </div>
-        </button>
+        </div>
 
         {/* Card 2: Facturi Emise */}
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={0}
           onClick={() => {
             setTypeFilter(typeFilter === "emis" ? "all" : "emis");
             setPage(1);
           }}
-          className={`apple-surface text-left px-4 sm:px-5 py-3.5 sm:py-4 flex flex-col justify-between gap-2.5 transition-all cursor-pointer ${
+          onKeyDown={e => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setTypeFilter(typeFilter === "emis" ? "all" : "emis");
+              setPage(1);
+            }
+          }}
+          className={`apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 transition-all cursor-pointer select-none ${
             typeFilter === "emis"
-              ? "ring-1 ring-emerald-500/40 shadow-[0_4px_16px_-4px_rgba(16,185,129,0.14)]"
+              ? "ring-2 ring-[#0071e3]/25 border-[#0071e3]/50"
               : "hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)]"
           }`}
         >
@@ -970,7 +982,7 @@ export default function AllInvoices() {
             <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
               Facturi emise
             </span>
-            <span className="w-7 h-7 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/18 flex items-center justify-center shrink-0">
+            <span className="w-7 h-7 rounded-[8px] bg-[#eefbf3] dark:bg-emerald-500/18 flex items-center justify-center shrink-0">
               <Send className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
             </span>
           </div>
@@ -984,18 +996,26 @@ export default function AllInvoices() {
               </span>
             )}
           </div>
-        </button>
+        </div>
 
         {/* Card 3: Facturi Primite */}
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={0}
           onClick={() => {
             setTypeFilter(typeFilter === "primit" ? "all" : "primit");
             setPage(1);
           }}
-          className={`apple-surface text-left px-4 sm:px-5 py-3.5 sm:py-4 flex flex-col justify-between gap-2.5 transition-all cursor-pointer ${
+          onKeyDown={e => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setTypeFilter(typeFilter === "primit" ? "all" : "primit");
+              setPage(1);
+            }
+          }}
+          className={`apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 transition-all cursor-pointer select-none ${
             typeFilter === "primit"
-              ? "ring-1 ring-amber-500/40 shadow-[0_4px_16px_-4px_rgba(245,158,11,0.14)]"
+              ? "ring-2 ring-[#0071e3]/25 border-[#0071e3]/50"
               : "hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)]"
           }`}
         >
@@ -1003,7 +1023,7 @@ export default function AllInvoices() {
             <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
               Facturi primite
             </span>
-            <span className="w-7 h-7 rounded-lg bg-amber-500/10 dark:bg-amber-500/18 flex items-center justify-center shrink-0">
+            <span className="w-7 h-7 rounded-[8px] bg-[#fff6eb] dark:bg-amber-500/18 flex items-center justify-center shrink-0">
               <Download className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
             </span>
           </div>
@@ -1017,10 +1037,10 @@ export default function AllInvoices() {
               </span>
             )}
           </div>
-        </button>
+        </div>
 
         {/* Card 4: Valoare Afișată */}
-        <div className="apple-surface px-4 sm:px-5 py-3.5 sm:py-4 flex flex-col justify-between gap-2.5">
+        <div className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
           <div className="flex items-center justify-between gap-2 w-full">
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
@@ -1032,7 +1052,7 @@ export default function AllInvoices() {
                 </span>
               )}
             </div>
-            <span className="w-7 h-7 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/18 flex items-center justify-center shrink-0">
+            <span className="w-7 h-7 rounded-[8px] bg-[#eefbf3] dark:bg-emerald-500/18 flex items-center justify-center shrink-0">
               <Coins className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
             </span>
           </div>
@@ -1043,7 +1063,7 @@ export default function AllInvoices() {
               </span>
             ) : (
               <div className="flex items-baseline gap-1.5 flex-wrap">
-                <span className="text-[19px] sm:text-[22px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none truncate">
+                <span className="text-[20px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none truncate">
                   {formatCurrency(
                     filteredTotals.entries[0][1],
                     (filteredTotals.entries[0][0] as Currency) || "RON"

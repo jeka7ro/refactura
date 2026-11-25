@@ -1,5 +1,15 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-25 11:02 — Corecție geometrie carduri KPI `16px` pe `/facturi` și `/facturi-emise-nou` (`index.css`, `AllInvoices.tsx`, `EmittedInvoices.tsx`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Eliminat transformarea primelor 3 carduri KPI în capsule ovale (`border-radius: 9999px !important`):**
+     - Regula globală `button:not(...) { border-radius: 9999px !important }` din `client/src/index.css` prindea cardurile KPI redate ca `<button className="apple-surface">`, deformându-le în ovale în timp ce al 4-lea card (`<div>`) rămânea dreptunghiular.
+     - Transformat cardurile KPI interactive în `<div role="button" tabIndex={0}>` cu `.apple-surface` (`border-radius: 16px !important`), badge-uri de pictogramă uniforme `rounded-[8px]` și exclus `.apple-surface` din selectorul global de capsule din `index.css`.
+- **Fișiere:** `client/src/index.css`, `client/src/pages/AllInvoices.tsx`, `client/src/pages/EmittedInvoices.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori) și `npm run build` (`0` erori), fără `git push`.
+
 ### 2026-11-25 10:54 — Redesign Apple HIG complet pentru Listele de Facturi și toate ecranele Detalii Factură (`AllInvoices`, `EmittedInvoices`, `ReInvoicesSent`, `InvoiceDetail`, `EmittedInvoiceDetail`, `ReInvoiceDetail`, `index.css`)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
