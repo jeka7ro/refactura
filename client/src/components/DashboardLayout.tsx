@@ -16,7 +16,6 @@ import {
   Users,
   Settings,
   LogOut,
-  ChevronLeft,
   ChevronRight,
   ArrowLeft,
   Menu,
@@ -852,36 +851,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
       )}
 
-      {/* Collapse toggle */}
-      <div className="px-3 py-2.5 border-t border-black/[0.06] dark:border-white/[0.08]">
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          title={collapsed ? "Extinde sidebar" : "Restrânge sidebar"}
-          aria-label={collapsed ? "Extinde bara laterală" : "Restrânge bara laterală"}
-          className={cn(
-            "w-full flex items-center gap-2.5 px-3 py-2 rounded-full transition-all duration-150 group",
-            "text-[#636366] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white",
-            "hover:bg-black/[0.045] dark:hover:bg-white/[0.06]",
-            collapsed && "justify-center"
-          )}
-        >
-          <div className="w-6 h-6 rounded-lg bg-black/[0.045] dark:bg-white/[0.08] group-hover:bg-black/[0.08] dark:group-hover:bg-white/[0.12] flex items-center justify-center transition-colors flex-shrink-0">
-            {collapsed
-              ? <ChevronRight className="w-3.5 h-3.5" />
-              : <ChevronLeft className="w-3.5 h-3.5" />
-            }
-          </div>
-          {!collapsed && (
-            <div className="flex-1 flex justify-center">
-               <img src="/gettsapp_logo_ver2.png" alt="GettsApp" className="h-7 w-auto pr-6" />
-            </div>
-          )}
-        </button>
-      </div>
-
       {/* Număr și dată build */}
       <div
-        className="px-3 pb-3 text-center text-[10.5px] leading-tight text-[#636366] dark:text-[#98989d] select-text tabular-nums"
+        className="px-3 py-2.5 border-t border-black/[0.06] dark:border-white/[0.08] text-center text-[10.5px] leading-tight text-[#636366] dark:text-[#98989d] select-text tabular-nums"
         title={`Build ${__BUILD_NUMBER__} · ${__BUILD_DATE__}`}
       >
         {collapsed ? (

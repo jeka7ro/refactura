@@ -1,5 +1,14 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-25 11:28 — Eliminare secțiune `[<] getts/App` din subsolul barei laterale (`DashboardLayout.tsx`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Eliminat blocul cu săgeata `<` și imaginea `getts/App` (`/gettsapp_logo_ver2.png`) din partea de jos a sidebar-ului (`client/src/components/DashboardLayout.tsx`):**
+     - Scoaterea rândului păstrează curat subsolul meniului lateral (restrângerea/extinderea barei laterale rămâne disponibilă din butonul dedicat din header-ul de sus).
+- **Fișiere:** `client/src/components/DashboardLayout.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori) și `npm run build` (`0` erori), fără `git push`.
+
 ### 2026-11-25 11:24 — Logo `GetApp` cu iconiță clară și `www.getapp.ro` sub logo strict pentru Tenantul 1 (`server/pdf.ts`, `server/pdfRoute.ts`, `server/emailService.ts`, `PrintInvoice.tsx`)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
