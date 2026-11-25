@@ -1623,6 +1623,16 @@ export const appRouter = router({
         const invoiceData = await getReInvoiceById(input.id, (tenantOf(ctx)));
         if (!invoiceData) throw new Error("Invoice not found");
 
+        if (
+          (invoiceData as any).spvStatus === "validat" ||
+          ((invoiceData as any).spvStatus === "in_procesare" && (invoiceData as any).spvIndex)
+        ) {
+          return {
+            success: false,
+            error: `Factura este deja transmisă în SPV ANAF (Index încărcare: ${(invoiceData as any).spvIndex || "activ"}). Re-transmiterea este blocată pentru a nu dubla factura la client.`,
+          };
+        }
+
         // 2. Get tenant
         const { tenants } = await import("../drizzle/schema");
         const { eq } = await import("drizzle-orm");
@@ -4785,6 +4795,16 @@ export const appRouter = router({
             )
           );
         if (!inv) throw new Error("Invoice not found");
+
+        if (
+          inv.spvStatus === "validat" ||
+          (inv.spvStatus === "in_procesare" && inv.spvIndex)
+        ) {
+          return {
+            success: false,
+            error: `Factura este deja transmisă în SPV ANAF (Index încărcare: ${inv.spvIndex || "activ"}). Re-transmiterea este blocată pentru a nu dubla factura la client.`,
+          };
+        }
 
         const isExternal =
           inv.spvStatus === "extern" ||

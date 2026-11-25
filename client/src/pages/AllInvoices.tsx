@@ -531,12 +531,40 @@ export default function AllInvoices() {
   const allRows: UnifiedRow[] = useMemo(() => {
     const normDateStr = (v: unknown): string =>
       v instanceof Date ? v.toISOString() : v ? String(v) : "";
+    const normInvNum = (s?: string | null) =>
+      String(s || "")
+        .replace(/[^A-Za-z0-9]/g, "")
+        .toUpperCase()
+        .replace(/^0+/, "");
+    const normPartnerKey = (cui?: string | null, name?: string | null) => {
+      const c = String(cui || "")
+        .replace(/^RO/i, "")
+        .replace(/[^A-Za-z0-9]/g, "")
+        .toUpperCase();
+      if (c && c !== "0000000000000") return `CUI:${c}`;
+      const n = String(name || "")
+        .replace(/[^A-Za-z0-9]/g, "")
+        .toUpperCase();
+      return n ? `NAME:${n}` : "";
+    };
+
     const rows: UnifiedRow[] = [];
     const emittedIndexByNumber = new Map<string, string>();
+    const platformOutSpvIndexes = new Set<string>();
+    const platformOutDocPartnerKeys = new Set<string>();
+
     (Array.isArray(emittedInvoices) ? emittedInvoices : []).forEach((i: any) => {
       if (i.number && i.spvIndex) {
         emittedIndexByNumber.set(String(i.number).trim().toLowerCase(), String(i.spvIndex));
       }
+      if (i.spvIndex) platformOutSpvIndexes.add(String(i.spvIndex).trim());
+      const dk = `${normInvNum(i.number)}|${normPartnerKey(i.clientCUI || i.clientCui, i.clientName)}`;
+      if (dk !== "|") platformOutDocPartnerKeys.add(dk);
+    });
+    (Array.isArray(reInvoices) ? reInvoices : []).forEach((i: any) => {
+      if (i.spvIndex) platformOutSpvIndexes.add(String(i.spvIndex).trim());
+      const dk = `${normInvNum(i.number)}|${normPartnerKey(i.clientCUI || i.clientCui, i.clientName)}`;
+      if (dk !== "|") platformOutDocPartnerKeys.add(dk);
     });
 
     const nirByArchiveId = new Map<number, any>();
@@ -562,6 +590,18 @@ export default function AllInvoices() {
         (i.notes ? i.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i)?.[1] : null) ||
         (i.invoiceNumber ? emittedIndexByNumber.get(String(i.invoiceNumber).trim().toLowerCase()) : null) ||
         null;
+
+      if (!isPrimit) {
+        const outPartnerName = i.customerName || i.supplierName || "";
+        const outPartnerCui = i.customerCUI || i.customerCui || i.supplierCUI || i.supplierCui || "";
+        const dk = `${normInvNum(i.invoiceNumber)}|${normPartnerKey(outPartnerCui, outPartnerName)}`;
+        const isDuplicateOfPlatformOut =
+          (spvIdx && platformOutSpvIndexes.has(String(spvIdx).trim())) ||
+          (dk !== "|" && platformOutDocPartnerKeys.has(dk));
+        if (isDuplicateOfPlatformOut) {
+          return;
+        }
+      }
 
       const cleanInvNum = String(i.invoiceNumber || "").trim().toLowerCase();
       const matchedNir =

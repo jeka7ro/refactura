@@ -790,8 +790,8 @@ export const sagaRouter = router({
 
       const schema = await import("../../drizzle/schema");
 
-      // Query Emitted Invoices
-      const invoices = await db
+      // Query Emitted Invoices (fără facturile anulate)
+      const rawEmittedInvoices = await db
         .select({
           id: schema.emittedInvoices.id,
           number: schema.emittedInvoices.number,
@@ -799,6 +799,7 @@ export const sagaRouter = router({
           dueDate: schema.emittedInvoices.dueDate,
           total: schema.emittedInvoices.total,
           currency: schema.emittedInvoices.currency,
+          status: schema.emittedInvoices.status,
           clientName: schema.clients.name,
           clientCui: schema.clients.cui,
         })
@@ -812,6 +813,8 @@ export const sagaRouter = router({
         )
         .where(eq(schema.emittedInvoices.tenantId, tenantId))
         .orderBy(desc(schema.emittedInvoices.issueDate));
+
+      const invoices = rawEmittedInvoices.filter((i) => i.status !== "cancelled");
 
       // Query NIRs
       const nirs = await db

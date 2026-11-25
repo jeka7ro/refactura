@@ -1,5 +1,21 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-25 12:00 — Audit complet și blindare anti-dublare SPV, Export SAGA (ZIP/XML/Web), Portal Contabil și Evidență Facturi
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Eliminare dublare serie (`FACTFACT-...`, `WOODEWOODE ...`) și deduplicare precisă în Portalul Contabil (`server/accountantPortalRouter.ts`):**
+     - Corectat afișarea numărului facturilor emise (în DB `number` conține deja seria pe `755/762` facturi, iar `EXT` este serie sintetică pe facturile externe fără serie) și deduplicat `emittedInvoices` / `reInvoices` / `invoiceArchive (out)` + `spvMessages` pe cheie exactă `(spvIndex)` sau `(număr normalizat + partener)`, fără a ascunde facturi cu număr coincident către clienți diferiți.
+  2. **Blindare Export SAGA C & SAGA Web conform regulilor de pe `26.10` (`server/sagaXmlGenerator.ts`, `server/sagaSyncRoute.ts`, `modules/saga/router.ts`):**
+     - Prevenit emiterea dublă `<FacturaSerie>` peste un `<FacturaNumar>` care conține deja seria (sau `EXT`), exclus facturile anulate (`status === "cancelled"`), prioritizat determinist NIR-urile `finalizat` înaintea `draft` pe aceeași factură, normalizat cheile `CUI_NrDoc` (fără spații/cratime/zerouri) între `nir` și `sagaIntrari`, și aliniat `/api/saga-sync/push-articles` la codificarea `Windows-1250` (`toSagaXmlBuffer`).
+  3. **Protecție anti-dublare la transmiterea și sincronizarea SPV / Oblio / Upload (`server/routers.ts`, `server/spvCron.ts`, `server/oblioSync.ts`, `server/uploadRoute.ts`):**
+     - Blocat re-transmiterea accidentală în ANAF (`sendToSpv`) pentru facturile deja `validat` sau `in_procesare` (cu `spvIndex`), prevenind dublarea facturii la client în SPV.
+     - În `spvCron.ts` (`FACTURA TRIMISA`) și `oblioSync.ts`, verificat existența facturii în `emittedInvoices` / `reInvoices` / `invoiceArchive (out)` înainte de inserare, și adăugat verificare de duplicat pe `numarInregistrare` la upload-ul manual de documente SPV (`/api/upload-spv-document`).
+  4. **Deduplicare unificată în UI (`AllInvoices.tsx`, `EmittedInvoices.tsx`, `Dashboard.tsx`):**
+     - Corectat `supplierCUI` în `EmittedInvoices.tsx` și deduplicat facturile `out` din arhivă față de cele emise în platformă în tabel și în totalurile KPI.
+- **Fișiere:** `server/accountantPortalRouter.ts`, `server/sagaXmlGenerator.ts`, `server/sagaSyncRoute.ts`, `modules/saga/router.ts`, `server/routers.ts`, `server/spvCron.ts`, `server/oblioSync.ts`, `server/uploadRoute.ts`, `client/src/pages/AllInvoices.tsx`, `client/src/pages/EmittedInvoices.tsx`, `client/src/pages/Dashboard.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori), `npm run build` (`0` erori) și verificare automată pe baza de date reală (ZIP/XML SAGA, SPV și Portal Contabil cu `0` dubluri), fără `git push`.
+
 ### 2026-11-25 11:41 — Aplicare uniformă a culorii dinamice a tenantului pe toate butoanele și taburile active din filtre
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

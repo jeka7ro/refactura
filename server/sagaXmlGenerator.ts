@@ -733,6 +733,7 @@ export async function generateSagaExportXML(
     .where(eq(schema.emittedInvoices.tenantId, tenantId));
 
   let monthInvoices = invoices.filter((inv) => {
+    if (inv.status === "cancelled") return false;
     if (!inv.issueDate) return false;
     const invDate = inv.issueDate.substring(0, 10);
     return invDate >= startDateStr && invDate <= endDateStr;
@@ -749,12 +750,18 @@ export async function generateSagaExportXML(
   const clientsMap = new Map();
   allClients.forEach((c) => clientsMap.set(c.id, c));
   const exportedOutNumbers = new Set<string>();
-  const normInvKey = (s?: string | null) => String(s || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+  const normInvKey = (s?: string | null) => String(s || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase().replace(/^0+/, "");
 
   for (const inv of monthInvoices) {
-    if (inv.number) {
-      exportedOutNumbers.add(normInvKey(inv.number));
-      if (inv.series) exportedOutNumbers.add(normInvKey(`${inv.series}${inv.number}`));
+    const invDedupKey = normInvKey(inv.number);
+    if (invDedupKey && exportedOutNumbers.has(invDedupKey)) {
+      continue;
+    }
+    if (invDedupKey) {
+      exportedOutNumbers.add(invDedupKey);
+      if (inv.series && inv.series.toUpperCase() !== "EXT") {
+        exportedOutNumbers.add(normInvKey(`${inv.series}${inv.number}`));
+      }
     }
     const lines = await db
       .select()
@@ -848,10 +855,16 @@ export async function generateSagaExportXML(
         ? await resolveSagaExchangeRate(inv.issueDate, invCurrency, (inv as any).exchangeRate, inv.notes)
         : 1;
 
-    if (inv.series) {
-      xml += `      <FacturaSerie>${escapeXml(inv.series)}</FacturaSerie>\n`;
+    const cleanInvSer = String(inv.series || "").trim();
+    const cleanInvNum = String(inv.number || "").trim();
+    const shouldEmitSeparateSeries =
+      Boolean(cleanInvSer) &&
+      cleanInvSer.toUpperCase() !== "EXT" &&
+      !cleanInvNum.toUpperCase().startsWith(cleanInvSer.toUpperCase());
+    if (shouldEmitSeparateSeries) {
+      xml += `      <FacturaSerie>${escapeXml(cleanInvSer)}</FacturaSerie>\n`;
     }
-    xml += `      <FacturaNumar>${escapeXml(inv.number)}</FacturaNumar>\n`;
+    xml += `      <FacturaNumar>${escapeXml(cleanInvNum)}</FacturaNumar>\n`;
     xml += `      <FacturaData>${formatDate(inv.issueDate)}</FacturaData>\n`;
     if (inv.dueDate) {
       xml += `      <FacturaScadenta>${formatDate(inv.dueDate)}</FacturaScadenta>\n`;
@@ -1053,15 +1066,24 @@ export async function generateSagaExportXML(
     monthNirs = monthNirs.filter((n) => options.nirIds!.includes(n.id));
   }
 
-  // Urmărim cheile unice de document (CUI_NrFactura) pentru a preveni exportul duplicat
+  // Prioritizăm determinist NIR-urile finalizate înaintea ciornelor pe aceeași factură
+  monthNirs.sort((a, b) => {
+    const aFin = a.status === "finalizat" ? 0 : 1;
+    const bFin = b.status === "finalizat" ? 0 : 1;
+    if (aFin !== bFin) return aFin - bFin;
+    return b.id - a.id;
+  });
+
+  // Urmărim cheile unice de document (CUI_NrFactura normalizate) pentru a preveni exportul duplicat
   const exportedDocKeys = new Set<string>();
+  const normDocPart = (s?: string | null) => String(s || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase().replace(/^0+/, "");
   const articleState = await loadEnrichedSagaArticles(db, tenantId);
 
   // a. Facturi Intrări din modulul NIR
   for (const n of monthNirs) {
-    const cleanSupplierCui = (n.supplierCUI || "").replace(/^RO/i, "").trim().toUpperCase();
-    const docNum = (n.invoiceNumber || n.nirNumber || "").trim().toUpperCase();
-    const docKey = `${cleanSupplierCui}_${docNum}`;
+    const cleanSupplierCui = (n.supplierCUI || "").replace(/^RO/i, "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+    const docNum = normDocPart(n.invoiceNumber || n.nirNumber);
+    const docKey = docNum ? `${cleanSupplierCui}_${docNum}` : "";
     if (docKey && exportedDocKeys.has(docKey)) continue;
     if (docKey) exportedDocKeys.add(docKey);
 
@@ -1267,9 +1289,9 @@ export async function generateSagaExportXML(
     });
 
     for (const n of monthSagaIntrari) {
-      const cleanFurnizorCui = (n.cuiFurnizor || "").replace(/^RO/i, "").trim().toUpperCase();
-      const docNum = (n.nrDoc || "").trim().toUpperCase();
-      const docKey = `${cleanFurnizorCui}_${docNum}`;
+      const cleanFurnizorCui = (n.cuiFurnizor || "").replace(/^RO/i, "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+      const docNum = normDocPart(n.nrDoc);
+      const docKey = docNum ? `${cleanFurnizorCui}_${docNum}` : "";
       if (docKey && exportedDocKeys.has(docKey)) continue;
       if (docKey) exportedDocKeys.add(docKey);
 
@@ -1475,13 +1497,21 @@ export async function generateSagaNirXML(
   let xml = `<?xml version="1.0" encoding="Windows-1250"?>\n`;
   xml += `<Facturi>\n`;
 
+  nirs.sort((a, b) => {
+    const aFin = a.status === "finalizat" ? 0 : 1;
+    const bFin = b.status === "finalizat" ? 0 : 1;
+    if (aFin !== bFin) return aFin - bFin;
+    return b.id - a.id;
+  });
+
   const exportedDocKeys = new Set<string>();
+  const normDocPart = (s?: string | null) => String(s || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase().replace(/^0+/, "");
   const articleState = await loadEnrichedSagaArticles(db, tenantId);
 
   for (const n of nirs) {
-    const cleanSupplierCui = (n.supplierCUI || "").replace(/^RO/i, "").trim().toUpperCase();
-    const docNum = (n.invoiceNumber || n.nirNumber || "").trim().toUpperCase();
-    const docKey = `${cleanSupplierCui}_${docNum}`;
+    const cleanSupplierCui = (n.supplierCUI || "").replace(/^RO/i, "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+    const docNum = normDocPart(n.invoiceNumber || n.nirNumber);
+    const docKey = docNum ? `${cleanSupplierCui}_${docNum}` : "";
     if (docKey && exportedDocKeys.has(docKey)) continue;
     if (docKey) exportedDocKeys.add(docKey);
     const linesData = await db

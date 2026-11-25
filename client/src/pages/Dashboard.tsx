@@ -283,7 +283,35 @@ export default function Dashboard() {
   // 1. UNIFIED INVOICES ENGINE
   const allInvoices: UnifiedInvoice[] = useMemo(() => {
     const list: UnifiedInvoice[] = [];
+    const normInvNum = (s?: string | null) =>
+      String(s || "")
+        .replace(/[^A-Za-z0-9]/g, "")
+        .toUpperCase()
+        .replace(/^0+/, "");
+    const normPartnerKey = (cui?: string | null, name?: string | null) => {
+      const c = String(cui || "")
+        .replace(/^RO/i, "")
+        .replace(/[^A-Za-z0-9]/g, "")
+        .toUpperCase();
+      if (c && c !== "0000000000000") return `CUI:${c}`;
+      const n = String(name || "")
+        .replace(/[^A-Za-z0-9]/g, "")
+        .toUpperCase();
+      return n ? `NAME:${n}` : "";
+    };
 
+    const platformOutSpvSet = new Set<string>();
+    const platformOutDocPartnerSet = new Set<string>();
+    (Array.isArray(emittedInvoices) ? emittedInvoices : []).forEach((e: any) => {
+      if (e.spvIndex) platformOutSpvSet.add(String(e.spvIndex).trim());
+      const dk = `${normInvNum(e.number)}|${normPartnerKey(e.clientCUI, e.clientName)}`;
+      if (dk !== "|") platformOutDocPartnerSet.add(dk);
+    });
+    (Array.isArray(reInvoices) ? reInvoices : []).forEach((r: any) => {
+      if (r.spvIndex) platformOutSpvSet.add(String(r.spvIndex).trim());
+      const dk = `${normInvNum(r.number)}|${normPartnerKey(r.clientCUI || r.clientCui, r.clientName)}`;
+      if (dk !== "|") platformOutDocPartnerSet.add(dk);
+    });
 
     // A. Invoice Archive (Direction 'in' = Received, Direction 'out' = Emitted from SPV)
     const rawArchive = archiveData as unknown as { items?: any[] };
@@ -294,6 +322,19 @@ export default function Dashboard() {
       const cur = i.currency || "RON";
       const isPrimit = i.direction === "in";
       const vat = parseFloat(i.totalVAT || "0");
+
+      if (!isPrimit) {
+        const spvIdx = i.spvIndex || (i.fileName ? i.fileName.match(/SPV_(\d+)/i)?.[1] : null);
+        const outName = i.supplierName || i.customerName || "";
+        const outCui = i.customerCUI || i.supplierCUI || "";
+        const dk = `${normInvNum(i.invoiceNumber)}|${normPartnerKey(outCui, outName)}`;
+        if (
+          (spvIdx && platformOutSpvSet.has(String(spvIdx).trim())) ||
+          (dk !== "|" && platformOutDocPartnerSet.has(dk))
+        ) {
+          return;
+        }
+      }
 
       list.push({
         id: i.id,

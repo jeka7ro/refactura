@@ -1010,6 +1010,23 @@ export function registerUploadRoute(app: Express) {
           const regNumMatch = actualOriginalName.match(/(\d{7,10})/);
           const numarInregistrare = regNumMatch ? regNumMatch[1] : `${Date.now().toString().slice(-8)}`;
 
+          if (regNumMatch) {
+            const [existingSpvDoc]: any = await (db as any).execute(
+              sql`SELECT id, fileUrl FROM spv_portal_documents WHERE tenantId = ${tenantId} AND numarInregistrare = ${numarInregistrare} LIMIT 1`
+            );
+            if (existingSpvDoc?.[0]?.id) {
+              results.push({
+                fileName: actualOriginalName,
+                tip,
+                titlu,
+                numarInregistrare,
+                fileUrl: existingSpvDoc[0].fileUrl || fileUrl,
+                skippedDuplicate: true,
+              });
+              continue;
+            }
+          }
+
           const pad2 = (n: number) => String(n).padStart(2, "0");
           const formatSpvDate = (d: Date) =>
             `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}.${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;

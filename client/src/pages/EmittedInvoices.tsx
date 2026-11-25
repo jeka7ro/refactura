@@ -228,18 +228,54 @@ export default function EmittedInvoices() {
 
   // Combine both sources: emitted invoices (FACT-*) + archive OUT invoices (TON-*)
   const allData = useMemo(() => {
-    const emitted = data.map(r => ({ ...r, _source: "emitted" as const }));
+    const normInvNum = (s?: string | null) =>
+      String(s || "")
+        .replace(/[^A-Za-z0-9]/g, "")
+        .toUpperCase()
+        .replace(/^0+/, "");
+    const normPartnerKey = (cui?: string | null, name?: string | null) => {
+      const c = String(cui || "")
+        .replace(/^RO/i, "")
+        .replace(/[^A-Za-z0-9]/g, "")
+        .toUpperCase();
+      if (c && c !== "0000000000000") return `CUI:${c}`;
+      const n = String(name || "")
+        .replace(/[^A-Za-z0-9]/g, "")
+        .toUpperCase();
+      return n ? `NAME:${n}` : "";
+    };
+
+    const emittedSpvSet = new Set<string>();
+    const emittedDocPartnerSet = new Set<string>();
+
+    const emitted = data.map(r => {
+      if (r.spvIndex) emittedSpvSet.add(String(r.spvIndex).trim());
+      const dk = `${normInvNum(r.number)}|${normPartnerKey(r.clientCUI, r.clientName)}`;
+      if (dk !== "|") emittedDocPartnerSet.add(dk);
+      return { ...r, _source: "emitted" as const };
+    });
+
     const archiveItems = (() => {
       const raw = archiveRaw as unknown as { items: any[] } | any[];
       return (raw as any)?.items ?? (Array.isArray(raw) ? raw : []);
     })();
+
     const archived = archiveItems
       .filter((r: any) => r.direction === "out" || r.direction === "emis")
+      .filter((r: any) => {
+        const spvIdx = r.spvIndex || (r.fileName ? (r.fileName.match(/SPV_(\d+)/)?.[1] ?? null) : null);
+        const cName = r.supplierName || r.buyerName || "";
+        const cCui = r.supplierCUI || r.supplierCif || r.buyerCif || "";
+        const dk = `${normInvNum(r.invoiceNumber)}|${normPartnerKey(cCui, cName)}`;
+        if (spvIdx && emittedSpvSet.has(String(spvIdx).trim())) return false;
+        if (dk !== "|" && emittedDocPartnerSet.has(dk)) return false;
+        return true;
+      })
       .map((r: any) => ({
         id: r.id,
         number: r.invoiceNumber || `#${r.id}`,
         clientName: r.supplierName || r.buyerName || "",
-        clientCUI: r.supplierCif || r.buyerCif || "",
+        clientCUI: r.supplierCUI || r.supplierCif || r.buyerCif || "",
         issueDate: r.issueDate,
         dueDate: r.dueDate,
         total: parseFloat(r.total || "0"),

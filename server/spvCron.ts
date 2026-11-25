@@ -622,8 +622,11 @@ export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
         if (isCreditNote && parsedVAT > 0) parsedVAT = -parsedVAT;
         const totalVAT = parsedVAT;
 
-        // Check for duplicate by invoice number + supplier (normalize CUI - strip RO prefix)
-        const normalizedCUI = String(supplierCUI).replace(/^RO/i, "");
+        // Check for duplicate by invoice number + supplier (normalize CUI - strip RO prefix & spaces/hyphens)
+        const normalizedCUI = String(supplierCUI)
+          .replace(/^RO/i, "")
+          .replace(/[^a-zA-Z0-9]/g, "")
+          .toUpperCase();
         // Număr normalizat: fără separatori, majuscule, fără zerouri la început
         // (facturile importate înainte de fix pot fi salvate fără zerourile din față)
         const cleanInvoiceNumber = String(invoiceNumber)
@@ -633,14 +636,121 @@ export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
 
         const { sql } = await import("drizzle-orm");
 
+        // Dacă este o factură EMISĂ (direction === "out"), verificăm mai întâi dacă există deja
+        // în emittedInvoices sau reInvoices pe același număr + același client, pentru a nu o dubla în invoiceArchive!
+        if (direction === "out" && cleanInvoiceNumber) {
+          const { emittedInvoices, reInvoices } = await import("../drizzle/schema");
+          const normPartyName = String(supplierName || "")
+            .replace(/[^a-zA-Z0-9]/g, "")
+            .toUpperCase();
+
+          const allEmittedForTenant = await db
+            .select({
+              id: emittedInvoices.id,
+              number: emittedInvoices.number,
+              series: emittedInvoices.series,
+              clientCUI: emittedInvoices.clientCUI,
+              clientName: emittedInvoices.clientName,
+              spvIndex: emittedInvoices.spvIndex,
+              status: emittedInvoices.status,
+            })
+            .from(emittedInvoices)
+            .where(eq(emittedInvoices.tenantId, intg.tenantId));
+
+          const matchedEmittedByNum = allEmittedForTenant.find((e) => {
+            const eNum = String(e.number || "")
+              .replace(/[^a-zA-Z0-9]/g, "")
+              .toUpperCase()
+              .replace(/^0+/, "");
+            const eFull = String(`${e.series || ""}${e.number || ""}`)
+              .replace(/[^a-zA-Z0-9]/g, "")
+              .toUpperCase()
+              .replace(/^0+/, "");
+            if (eNum !== cleanInvoiceNumber && eFull !== cleanInvoiceNumber) return false;
+            const eCui = String(e.clientCUI || "")
+              .replace(/^RO/i, "")
+              .replace(/[^a-zA-Z0-9]/g, "")
+              .toUpperCase();
+            if (normalizedCUI && eCui) return normalizedCUI === eCui;
+            const eName = String(e.clientName || "")
+              .replace(/[^a-zA-Z0-9]/g, "")
+              .toUpperCase();
+            return Boolean(normPartyName && eName && normPartyName === eName);
+          });
+
+          if (matchedEmittedByNum) {
+            await db
+              .update(emittedInvoices)
+              .set({
+                spvStatus: "validat",
+                spvError: null,
+                spvIndex: matchedEmittedByNum.spvIndex || (msg.id_solicitare ? String(msg.id_solicitare) : undefined),
+                rawXml: xmlString,
+                status: matchedEmittedByNum.status === "draft" ? "sent" : matchedEmittedByNum.status,
+              })
+              .where(eq(emittedInvoices.id, matchedEmittedByNum.id));
+            console.log(
+              `[SPV Cron] Matched outgoing SPV invoice ${invoiceNumber} to existing emittedInvoice #${matchedEmittedByNum.id} — skipped duplicate archive insert`
+            );
+            skipped++;
+            continue;
+          }
+
+          const allReInvForTenant = await db
+            .select({
+              id: reInvoices.id,
+              number: reInvoices.number,
+              clientCUI: reInvoices.clientCUI,
+              clientName: reInvoices.clientName,
+              spvIndex: reInvoices.spvIndex,
+            })
+            .from(reInvoices)
+            .where(eq(reInvoices.tenantId, intg.tenantId));
+
+          const matchedReInvByNum = allReInvForTenant.find((r) => {
+            const rNum = String(r.number || "")
+              .replace(/[^a-zA-Z0-9]/g, "")
+              .toUpperCase()
+              .replace(/^0+/, "");
+            if (rNum !== cleanInvoiceNumber) return false;
+            const rCui = String(r.clientCUI || "")
+              .replace(/^RO/i, "")
+              .replace(/[^a-zA-Z0-9]/g, "")
+              .toUpperCase();
+            if (normalizedCUI && rCui) return normalizedCUI === rCui;
+            const rName = String(r.clientName || "")
+              .replace(/[^a-zA-Z0-9]/g, "")
+              .toUpperCase();
+            return Boolean(normPartyName && rName && normPartyName === rName);
+          });
+
+          if (matchedReInvByNum) {
+            await db
+              .update(reInvoices)
+              .set({
+                spvStatus: "validat",
+                spvError: null,
+                spvIndex: matchedReInvByNum.spvIndex || (msg.id_solicitare ? String(msg.id_solicitare) : undefined),
+                rawXml: xmlString,
+              })
+              .where(eq(reInvoices.id, matchedReInvByNum.id));
+            console.log(
+              `[SPV Cron] Matched outgoing SPV invoice ${invoiceNumber} to existing reInvoice #${matchedReInvByNum.id} — skipped duplicate archive insert`
+            );
+            skipped++;
+            continue;
+          }
+        }
+
         const [dup] = await db
           .select({ id: invoiceArchive.id, rawXml: invoiceArchive.rawXml })
           .from(invoiceArchive)
           .where(
             and(
               eq(invoiceArchive.tenantId, intg.tenantId),
+              eq(invoiceArchive.direction, direction),
               sql`TRIM(LEADING '0' FROM UPPER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(${invoiceArchive.invoiceNumber}, '-', ''), ' ', ''), '/', ''), '.', ''), '_', ''), ',', ''))) = ${cleanInvoiceNumber}`,
-              sql`REPLACE(UPPER(${invoiceArchive.supplierCUI}), 'RO', '') = ${normalizedCUI.toUpperCase()}`
+              sql`REPLACE(REPLACE(REPLACE(UPPER(TRIM(COALESCE(${invoiceArchive.supplierCUI}, ''))), 'RO', ''), ' ', ''), '-', '') = ${normalizedCUI}`
             )
           );
 

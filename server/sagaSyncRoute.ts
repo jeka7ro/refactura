@@ -289,9 +289,9 @@ router.post("/push-articles", async (req, res) => {
     const fileName = `ART_${dateStr}.xml`;
 
     const form = new FormData();
-    form.append("file", Buffer.from(xmlContent, "utf8"), {
+    form.append("file", toSagaXmlBuffer(xmlContent), {
       filename: fileName,
-      contentType: "application/xml",
+      contentType: "application/xml; charset=windows-1250",
     });
 
     const response = await axios.post("https://web.sagasoft.ro/api/v20260225/Import", form, {

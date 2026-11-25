@@ -6,8 +6,8 @@
  * Facturile primite se importă manual din SPV → pagina Integrări → Import XML e-Factura.
  */
 import { createInvoiceArchiveEntry, getDb } from "./db";
-import { integrations, invoiceArchive, clients } from "../drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { integrations, invoiceArchive, clients, emittedInvoices } from "../drizzle/schema";
+import { eq, and, sql } from "drizzle-orm";
 
 const OBLIO_TOKEN_URL = "https://www.oblio.eu/api/authorize/token";
 const OBLIO_INVOICE_LIST_URL = "https://www.oblio.eu/api/docs/invoice/list";
@@ -129,19 +129,47 @@ export async function syncOblioInvoices(tenantId: number): Promise<{
       for (const inv of invoices) {
         try {
           const invoiceNumber = `${inv.seriesName}-${inv.number}`;
+          const cleanOblioNum = invoiceNumber
+            .replace(/[^A-Za-z0-9]/g, "")
+            .toUpperCase()
+            .replace(/^0+/, "");
+          const cleanOblioCui = String(inv.client?.cif || "")
+            .replace(/^RO/i, "")
+            .replace(/[^A-Za-z0-9]/g, "")
+            .toUpperCase();
 
+          // Verificăm atât în invoiceArchive (inclusiv cele deja aduse din SPV ANAF pe direction='out'),
+          // cât și în emittedInvoices, pentru a nu dubla facturile emise între Oblio și SPV!
           const [existing] = await db
             .select({ id: invoiceArchive.id })
             .from(invoiceArchive)
             .where(
               and(
                 eq(invoiceArchive.tenantId, tenantId),
-                eq(invoiceArchive.source, "oblio"),
-                eq(invoiceArchive.invoiceNumber, invoiceNumber)
+                eq(invoiceArchive.direction, "out"),
+                sql`TRIM(LEADING '0' FROM UPPER(REPLACE(REPLACE(REPLACE(REPLACE(${invoiceArchive.invoiceNumber}, '-', ''), ' ', ''), '/', ''), '.', ''))) = ${cleanOblioNum}`,
+                cleanOblioCui
+                  ? sql`REPLACE(REPLACE(UPPER(TRIM(COALESCE(${invoiceArchive.supplierCUI}, ''))), 'RO', ''), ' ', '') = ${cleanOblioCui}`
+                  : eq(invoiceArchive.invoiceNumber, invoiceNumber)
               )
             );
 
           if (existing) {
+            skipped++;
+            continue;
+          }
+
+          const [existingEmitted] = await db
+            .select({ id: emittedInvoices.id })
+            .from(emittedInvoices)
+            .where(
+              and(
+                eq(emittedInvoices.tenantId, tenantId),
+                sql`TRIM(LEADING '0' FROM UPPER(REPLACE(REPLACE(REPLACE(REPLACE(${emittedInvoices.number}, '-', ''), ' ', ''), '/', ''), '.', ''))) = ${cleanOblioNum}`
+              )
+            );
+
+          if (existingEmitted) {
             skipped++;
             continue;
           }

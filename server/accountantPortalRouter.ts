@@ -11,6 +11,45 @@ function getPortalHmacSecret(): string {
   return getEffectiveJwtSecret();
 }
 
+function formatEmittedDisplayNumber(
+  series?: string | null,
+  number?: string | null,
+  fallbackId?: number
+): string {
+  const cleanNum = String(number || "").trim();
+  const cleanSer = String(series || "").trim();
+  if (cleanNum) {
+    if (
+      !cleanSer ||
+      cleanSer.toUpperCase() === "EXT" ||
+      cleanNum.toUpperCase().startsWith(cleanSer.toUpperCase())
+    ) {
+      return cleanNum;
+    }
+    return `${cleanSer}-${cleanNum}`;
+  }
+  return cleanSer ? `${cleanSer}-${fallbackId || ""}` : `FACT-${fallbackId || ""}`;
+}
+
+function normInvoiceDedupNum(s?: string | null): string {
+  return String(s || "")
+    .replace(/[^A-Za-z0-9]/g, "")
+    .toUpperCase()
+    .replace(/^0+/, "");
+}
+
+function normPartnerDedupKey(cui?: string | null, name?: string | null): string {
+  const cleanCui = String(cui || "")
+    .replace(/^RO/i, "")
+    .replace(/[^A-Za-z0-9]/g, "")
+    .toUpperCase();
+  if (cleanCui && cleanCui !== "0000000000000") return `CUI:${cleanCui}`;
+  const cleanName = String(name || "")
+    .replace(/[^A-Za-z0-9]/g, "")
+    .toUpperCase();
+  return cleanName ? `NAME:${cleanName}` : "";
+}
+
 const PIN_SALT = "_accountant_portal_salt_smart_invoice";
 const ACCESS_PIN_SALT = "_pin_salt_smart_invoice";
 
@@ -399,13 +438,19 @@ export const accountantPortalRouter = router({
         )
         .orderBy(desc(schema.invoiceArchive.createdAt));
 
-      const seenEmittedNums = new Set<string>();
+      const seenSpvIndexes = new Set<string>();
+      const seenEmittedDocPartnerKeys = new Set<string>();
 
       const combinedEmitted: any[] = [];
 
       for (const inv of emittedRows) {
-        const num = `${inv.series || ""}${inv.number || ""}`.trim() || `FACT-${inv.id}`;
-        seenEmittedNums.add(num.toLowerCase());
+        if (inv.status === "cancelled") continue;
+        const num = formatEmittedDisplayNumber(inv.series, inv.number, inv.id);
+        const spvIdx = String(inv.spvIndex || "").trim();
+        const partnerKey = normPartnerDedupKey(inv.clientCUI, inv.clientName);
+        const docPartnerKey = `${normInvoiceDedupNum(num)}|${partnerKey}`;
+        if (spvIdx) seenSpvIndexes.add(spvIdx);
+        if (docPartnerKey !== "|") seenEmittedDocPartnerKeys.add(docPartnerKey);
         combinedEmitted.push({
           id: inv.id,
           source: "emitted",
@@ -420,15 +465,23 @@ export const accountantPortalRouter = router({
           currency: inv.currency || "RON",
           status: inv.status || "draft",
           pdfUrl: `/api/pdf/emitted/${inv.id}`,
-          spvIndex: inv.spvIndex || "",
+          spvIndex: spvIdx,
           notes: inv.notes || "",
         });
       }
 
       for (const inv of reInvoiceRows) {
-        const num = inv.number || `REF-${inv.id}`;
-        if (!seenEmittedNums.has(num.toLowerCase())) {
-          seenEmittedNums.add(num.toLowerCase());
+        if (inv.status === "cancelled") continue;
+        const num = String(inv.number || "").trim() || `REF-${inv.id}`;
+        const spvIdx = String(inv.spvIndex || "").trim();
+        const partnerKey = normPartnerDedupKey(inv.clientCUI, inv.clientName);
+        const docPartnerKey = `${normInvoiceDedupNum(num)}|${partnerKey}`;
+        const isDup =
+          (spvIdx && seenSpvIndexes.has(spvIdx)) ||
+          (docPartnerKey !== "|" && seenEmittedDocPartnerKeys.has(docPartnerKey));
+        if (!isDup) {
+          if (spvIdx) seenSpvIndexes.add(spvIdx);
+          if (docPartnerKey !== "|") seenEmittedDocPartnerKeys.add(docPartnerKey);
           combinedEmitted.push({
             id: inv.id,
             source: "reinvoice",
@@ -443,16 +496,23 @@ export const accountantPortalRouter = router({
             currency: inv.currency || "RON",
             status: inv.status || "draft",
             pdfUrl: `/api/pdf/reinvoice/${inv.id}`,
-            spvIndex: "",
+            spvIndex: spvIdx,
             notes: inv.notes || "",
           });
         }
       }
 
       for (const inv of outArchiveRows) {
-        const num = inv.invoiceNumber || `FACT-SPV-${inv.id}`;
-        if (!seenEmittedNums.has(num.toLowerCase())) {
-          seenEmittedNums.add(num.toLowerCase());
+        const num = String(inv.invoiceNumber || "").trim() || `FACT-SPV-${inv.id}`;
+        const spvIdx = String(inv.spvIndex || "").trim();
+        const partnerKey = normPartnerDedupKey(inv.supplierCUI, inv.supplierName);
+        const docPartnerKey = `${normInvoiceDedupNum(num)}|${partnerKey}`;
+        const isDup =
+          (spvIdx && seenSpvIndexes.has(spvIdx)) ||
+          (docPartnerKey !== "|" && seenEmittedDocPartnerKeys.has(docPartnerKey));
+        if (!isDup) {
+          if (spvIdx) seenSpvIndexes.add(spvIdx);
+          if (docPartnerKey !== "|") seenEmittedDocPartnerKeys.add(docPartnerKey);
           const totalNum = parseFloat(String(inv.total || 0));
           const vatNum = parseFloat(String(inv.totalVAT || 0));
           const baseNum = totalNum - vatNum;
@@ -470,7 +530,7 @@ export const accountantPortalRouter = router({
             currency: inv.currency || "RON",
             status: inv.status || "emisa",
             pdfUrl: inv.source === "spv_anaf" || inv.fileUrl === "spv_import" ? `/api/pdf/archive/${inv.id}` : inv.fileUrl || `/api/pdf/archive/${inv.id}`,
-            spvIndex: inv.spvIndex || "",
+            spvIndex: spvIdx,
             notes: inv.notes || "",
           });
         }
@@ -576,15 +636,16 @@ export const accountantPortalRouter = router({
 
       // Erori reale din SPV ANAF
       for (const errInv of spvErrorsList) {
+        const dispNum = formatEmittedDisplayNumber(errInv.series, errInv.number, errInv.id);
         alerts.push({
           id: `spv-err-${errInv.id}`,
           type: "spv_error",
           severity: "error",
-          title: `Eroare validare SPV ANAF (${errInv.series || ""}${errInv.number || ""})`,
+          title: `Eroare validare SPV ANAF (${dispNum})`,
           description:
             errInv.spvError ||
             `Factura a fost respinsă de ANAF (Index încărcare: ${errInv.spvIndex || "—"})`,
-          docNumber: `${errInv.series || ""}${errInv.number || ""}`,
+          docNumber: dispNum,
           partnerName: errInv.clientName || "Client",
           spvIndex: errInv.spvIndex,
           date: errInv.issueDate,
@@ -609,41 +670,52 @@ export const accountantPortalRouter = router({
         });
       }
 
-      // Mesajele reale din SPV
+      // Mesajele reale din SPV (fără dublare între spvArchiveList direction='out' și spvEmittedList)
+      const emittedMsgSpvSet = new Set(
+        spvEmittedList.map((e) => String(e.spvIndex || "").trim()).filter(Boolean)
+      );
       const spvMessages = [
-        ...spvArchiveList.map((a) => {
-          const cleanInvNum = (a.invoiceNumber || "").trim().toLowerCase();
-          const matchedNir =
-            nirByArchiveId.get(Number(a.id)) ||
-            (cleanInvNum ? nirByInvoiceNumber.get(cleanInvNum) : null);
-          return {
-            id: `spv-in-${a.id}`,
-            originalId: a.id,
-            direction: "in" as const,
-            typeLabel: "Factură primită (Furnizor)",
-            invoiceNumber: a.invoiceNumber || "—",
-            partnerName: a.supplierName || "—",
-            partnerCui: a.supplierCUI || "",
-            issueDate: a.issueDate || "",
-            total: parseFloat(String(a.total || 0)),
-            spvIndex: a.spvIndex || "",
-            status: "validat" as const,
-            isRead: Boolean(a.isRead),
-            hasNir: Boolean(matchedNir),
-            nirId: matchedNir ? matchedNir.id : null,
-            nirNumber: matchedNir ? matchedNir.nirNumber : null,
-            pdfUrl:
-              a.source === "spv_anaf" || a.fileUrl === "spv_import"
-                ? `/api/pdf/archive/${a.id}`
-                : a.fileUrl || `/api/pdf/archive/${a.id}`,
-          };
-        }),
+        ...spvArchiveList
+          .filter((a) => {
+            if (a.direction === "out" && a.spvIndex && emittedMsgSpvSet.has(String(a.spvIndex).trim())) {
+              return false;
+            }
+            return true;
+          })
+          .map((a) => {
+            const cleanInvNum = (a.invoiceNumber || "").trim().toLowerCase();
+            const matchedNir =
+              nirByArchiveId.get(Number(a.id)) ||
+              (cleanInvNum ? nirByInvoiceNumber.get(cleanInvNum) : null);
+            const isOut = a.direction === "out";
+            return {
+              id: `spv-${isOut ? "out-arch" : "in"}-${a.id}`,
+              originalId: a.id,
+              direction: (isOut ? "out" : "in") as "in" | "out",
+              typeLabel: isOut ? "Factură emisă (Client)" : "Factură primită (Furnizor)",
+              invoiceNumber: a.invoiceNumber || "—",
+              partnerName: a.supplierName || "—",
+              partnerCui: a.supplierCUI || "",
+              issueDate: a.issueDate || "",
+              total: parseFloat(String(a.total || 0)),
+              spvIndex: a.spvIndex || "",
+              status: "validat" as const,
+              isRead: Boolean(a.isRead),
+              hasNir: !isOut && Boolean(matchedNir),
+              nirId: !isOut && matchedNir ? matchedNir.id : null,
+              nirNumber: !isOut && matchedNir ? matchedNir.nirNumber : null,
+              pdfUrl:
+                a.source === "spv_anaf" || a.fileUrl === "spv_import"
+                  ? `/api/pdf/archive/${a.id}`
+                  : a.fileUrl || `/api/pdf/archive/${a.id}`,
+            };
+          }),
         ...spvEmittedList.map((e) => ({
           id: `spv-out-${e.id}`,
           originalId: e.id,
           direction: "out" as const,
           typeLabel: "Factură emisă (Client)",
-          invoiceNumber: `${e.series || ""}${e.number || ""}`,
+          invoiceNumber: formatEmittedDisplayNumber(e.series, e.number, e.id),
           partnerName: e.clientName || "—",
           partnerCui: e.clientCUI || "",
           issueDate: e.issueDate || "",
