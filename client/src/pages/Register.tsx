@@ -185,7 +185,7 @@ export default function Register() {
               className="space-y-4"
               autoComplete="on"
             >
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
                   <label
                     htmlFor="reg-lastname"
@@ -236,7 +236,7 @@ export default function Register() {
                 </div>
               </div>
 
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
                   <label
                     htmlFor="reg-email"
@@ -287,7 +287,7 @@ export default function Register() {
                 </div>
               </div>
 
-              <div className="flex gap-4 items-start">
+              <div className="flex flex-col sm:flex-row gap-4 items-start">
                 <div className="flex-1">
                   <label
                     htmlFor="reg-password"

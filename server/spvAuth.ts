@@ -1,8 +1,8 @@
 import type { Express } from "express";
 import crypto from "crypto";
 import { getDb } from "./db";
-import { integrations, userTenants } from "../drizzle/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { integrations, userTenants, tenants } from "../drizzle/schema";
+import { eq, and } from "drizzle-orm";
 import { ENV } from "./_core/env";
 import { authenticateFileRequest } from "./fileAuth";
 import { isValidBidirectionalPair } from "./tenant";
@@ -53,26 +53,15 @@ export function verifySpvOAuthState(stateStr: string): number | null {
   }
 }
 
-function extractJwtSub(jwtToken?: string | null): string | null {
-  if (!jwtToken) return null;
-  const parts = String(jwtToken).split(".");
-  if (parts.length !== 3) return null;
-  try {
-    const payload = JSON.parse(
-      Buffer.from(parts[1], "base64url").toString("utf8")
-    );
-    return payload?.sub ? String(payload.sub) : null;
-  } catch {
-    return null;
-  }
-}
-
 export function registerSpvAuth(app: Express) {
   // Initiates the OAuth flow
   app.get("/api/spv/auth", async (req, res) => {
     const auth = await authenticateFileRequest(req);
     if (!auth) {
       return res.status(401).send("Neautentificat.");
+    }
+    if (auth.role === "accountant" || !auth.accountId) {
+      return res.status(403).send("Acces interzis (sesiune doar pentru citire).");
     }
 
     const askedId = req.query.tenantId ? parseInt(String(req.query.tenantId), 10) : auth.tenantId;
@@ -231,23 +220,39 @@ export function registerSpvAuth(app: Express) {
         });
       }
 
-      // Sync other SPV integration rows sharing the exact same USB certificate subject (`sub`)
-      const newSub = extractJwtSub(accessToken);
-      if (newSub) {
-        const spvRows = await db
-          .select({
-            id: integrations.id,
-            tenantId: integrations.tenantId,
-            apiKey: integrations.apiKey,
-          })
+      // Propagate token ONLY to verified bidirectional PF/PJ partner of this tenant
+      const [currentTenantRow] = await db
+        .select({ settings: tenants.settings })
+        .from(tenants)
+        .where(eq(tenants.id, tenantId))
+        .limit(1);
+      let parsedTenantSettings: any = {};
+      try {
+        parsedTenantSettings = currentTenantRow?.settings
+          ? JSON.parse(currentTenantRow.settings)
+          : {};
+      } catch {}
+      const candidatePartnerId = Number(
+        parsedTenantSettings?.pairedPfTenantId ||
+          parsedTenantSettings?.pairedPjTenantId ||
+          0
+      );
+      if (
+        candidatePartnerId > 0 &&
+        candidatePartnerId !== tenantId &&
+        (await isValidBidirectionalPair(db, tenantId, candidatePartnerId))
+      ) {
+        const [partnerSpv] = await db
+          .select({ id: integrations.id })
           .from(integrations)
-          .where(eq(integrations.provider, "spv"));
-        const matchingIds = spvRows
-          .filter(
-            (row) => row.tenantId !== tenantId && extractJwtSub(row.apiKey) === newSub
+          .where(
+            and(
+              eq(integrations.tenantId, candidatePartnerId),
+              eq(integrations.provider, "spv")
+            )
           )
-          .map((row) => row.id);
-        if (matchingIds.length > 0) {
+          .limit(1);
+        if (partnerSpv) {
           await db
             .update(integrations)
             .set({
@@ -256,7 +261,7 @@ export function registerSpvAuth(app: Express) {
               tokenExpiresAt: expiresAt,
               status: "active",
             })
-            .where(inArray(integrations.id, matchingIds));
+            .where(eq(integrations.id, partnerSpv.id));
         }
       }
 

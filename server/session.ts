@@ -7,12 +7,13 @@ export function getEffectiveJwtSecret(): string {
   if (process.env.JWT_SECRET && process.env.JWT_SECRET.trim().length > 0) {
     return process.env.JWT_SECRET.trim();
   }
-  const privateEnvSeed =
+  const privateEnvSeed = (
     process.env.SESSION_SECRET ||
     process.env.COOKIE_SECRET ||
     process.env.DATABASE_URL ||
     process.env.ANAF_CLIENT_SECRET ||
-    "";
+    ""
+  ).trim();
   if (privateEnvSeed) {
     if (!cachedDerivedSecret) {
       cachedDerivedSecret = crypto
@@ -27,14 +28,13 @@ export function getEffectiveJwtSecret(): string {
     }
     return cachedDerivedSecret;
   }
-  if (process.env.NODE_ENV !== "production") {
-    return "your-secret-key-change-in-production";
-  }
   if (!cachedDerivedSecret) {
     cachedDerivedSecret = crypto.randomBytes(32).toString("hex");
-    console.warn(
-      "[SECURITY] JWT_SECRET nu este setat; s-a generat o cheie criptografică pe durata rulării containerului."
-    );
+    if (process.env.NODE_ENV === "production") {
+      console.warn(
+        "[SECURITY] JWT_SECRET nu este setat; s-a generat o cheie criptografică pe durata rulării containerului."
+      );
+    }
   }
   return cachedDerivedSecret;
 }
@@ -75,7 +75,9 @@ export async function verifySessionToken(
   token: string
 ): Promise<SessionPayload | null> {
   try {
-    const verified = await jwtVerify(token, getSecret());
+    const verified = await jwtVerify(token, getSecret(), {
+      algorithms: ["HS256"],
+    });
     return verified.payload as unknown as SessionPayload;
   } catch (error) {
     console.error("[Session] Token verification failed:", error);

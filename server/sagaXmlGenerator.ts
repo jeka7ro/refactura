@@ -177,6 +177,30 @@ export async function loadEnrichedSagaArticles(
   return { articles, byId, byCode, next088Seq };
 }
 
+async function updateOwnedNirLineArticleId(
+  db: any,
+  nirLineId: number,
+  tenantId: number,
+  sagaArticleId: number
+): Promise<void> {
+  const [ownLine] = await db
+    .select({ id: schema.nirLines.id })
+    .from(schema.nirLines)
+    .innerJoin(schema.nir, eq(schema.nir.id, schema.nirLines.nirId))
+    .where(
+      and(
+        eq(schema.nirLines.id, nirLineId),
+        eq(schema.nir.tenantId, tenantId)
+      )
+    )
+    .limit(1);
+  if (!ownLine) return;
+  await db
+    .update(schema.nirLines)
+    .set({ sagaArticleId })
+    .where(eq(schema.nirLines.id, ownLine.id));
+}
+
 export async function resolveOrCreateArticleForLine(
   db: any,
   tenantId: number,
@@ -241,10 +265,7 @@ export async function resolveOrCreateArticleForLine(
         existingByCode.knownPrices.push(validPrice);
       }
       if (persistToDb && options?.nirLineId && existingByCode.id) {
-        await db
-          .update(schema.nirLines)
-          .set({ sagaArticleId: existingByCode.id })
-          .where(eq(schema.nirLines.id, options.nirLineId));
+        await updateOwnedNirLineArticleId(db, options.nirLineId, tenantId, existingByCode.id);
       }
       return {
         sagaArticleId: existingByCode.id,
@@ -271,10 +292,7 @@ export async function resolveOrCreateArticleForLine(
       });
       newId = (ins as any).insertId;
       if (options?.nirLineId && newId > 0) {
-        await db
-          .update(schema.nirLines)
-          .set({ sagaArticleId: newId })
-          .where(eq(schema.nirLines.id, options.nirLineId));
+        await updateOwnedNirLineArticleId(db, options.nirLineId, tenantId, newId);
       }
     }
     const createdArt: CandidateArticle = {
@@ -315,10 +333,7 @@ export async function resolveOrCreateArticleForLine(
       art.knownPrices.push(validPrice);
     }
     if (persistToDb && options?.nirLineId && art.id && art.id > 0) {
-      await db
-        .update(schema.nirLines)
-        .set({ sagaArticleId: art.id })
-        .where(eq(schema.nirLines.id, options.nirLineId));
+      await updateOwnedNirLineArticleId(db, options.nirLineId, tenantId, art.id);
     }
     return {
       sagaArticleId: art.id > 0 ? art.id : undefined,
@@ -354,10 +369,7 @@ export async function resolveOrCreateArticleForLine(
     });
     newId = (ins as any).insertId;
     if (options?.nirLineId && newId > 0) {
-      await db
-        .update(schema.nirLines)
-        .set({ sagaArticleId: newId })
-        .where(eq(schema.nirLines.id, options.nirLineId));
+      await updateOwnedNirLineArticleId(db, options.nirLineId, tenantId, newId);
     }
   }
 
@@ -399,20 +411,21 @@ export interface TenantCompanyProfile {
 }
 
 export async function getTenantCompanyProfile(tenantId: number): Promise<TenantCompanyProfile> {
+  const isTradeInvest = tenantId === 1;
   const db = await getDb();
   if (!db) {
     return {
-      name: "TRADE INVEST NETWORK S.R.L.",
-      cui: "RO42322117",
-      regCom: "J2020002825409",
+      name: isTradeInvest ? "TRADE INVEST NETWORK S.R.L." : "Companie",
+      cui: isTradeInvest ? "RO42322117" : "",
+      regCom: isTradeInvest ? "J2020002825409" : "",
       country: "RO",
-      county: "B",
-      city: "Bucuresti",
-      address: "MUNICIPIUL BUCUREŞTI, SECTOR 1, STR POPA SAVU, NR.78",
+      county: isTradeInvest ? "B" : "",
+      city: isTradeInvest ? "Bucuresti" : "",
+      address: isTradeInvest ? "MUNICIPIUL BUCUREŞTI, SECTOR 1, STR POPA SAVU, NR.78" : "",
       phone: "",
-      email: "office@refactura.ro",
-      bank: "Unicredit",
-      iban: "RO31BACX0000001999343001",
+      email: isTradeInvest ? "office@refactura.ro" : "",
+      bank: isTradeInvest ? "Unicredit" : "",
+      iban: isTradeInvest ? "RO31BACX0000001999343001" : "",
     };
   }
 
@@ -430,8 +443,6 @@ export async function getTenantCompanyProfile(tenantId: number): Promise<TenantC
     }
   }
 
-  const isTradeInvest = tenant?.name?.toLowerCase().includes("trade invest") || tenantId === 1 || tenantId === 9;
-
   return {
     name: tenant?.name || (isTradeInvest ? "TRADE INVEST NETWORK S.R.L." : "Companie"),
     cui: tenant?.cui?.trim() || settings.cui?.trim() || (isTradeInvest ? "RO42322117" : ""),
@@ -439,7 +450,7 @@ export async function getTenantCompanyProfile(tenantId: number): Promise<TenantC
     country: settings.country || "RO",
     county: settings.county || (isTradeInvest ? "B" : ""),
     city: settings.city || (isTradeInvest ? "Bucuresti" : ""),
-    address: settings.address || tenant?.address || (isTradeInvest ? "MUNICIPIUL BUCUREŞTI, SECTOR 1, STR POPA SAVU, NR.78" : "Bucuresti"),
+    address: settings.address || tenant?.address || (isTradeInvest ? "MUNICIPIUL BUCUREŞTI, SECTOR 1, STR POPA SAVU, NR.78" : ""),
     phone: tenant?.phone || settings.phone || "",
     email: tenant?.email || settings.email || "",
     bank: settings.bank || (isTradeInvest ? "Unicredit" : ""),
@@ -574,7 +585,7 @@ async function resolveSagaExchangeRate(
   }
   try {
     const { getBnrRateForDate } = await import("./bnrService");
-    const cleanDate = String(docDate || new Date().toISOString().slice(0, 10)).slice(0, 10);
+    const cleanDate = toIsoDateStr(docDate) || new Date().toISOString().slice(0, 10);
     const bnr = await getBnrRateForDate(cleanDate, cur);
     if (bnr?.rate && bnr.rate > 0) return bnr.rate;
   } catch {}
@@ -638,6 +649,7 @@ export async function resolveNirSpvData(db: any, n: any) {
       .where(
         and(
           eq(schema.invoiceArchive.tenantId, n.tenantId),
+          eq(schema.invoiceArchive.direction, "in"),
           eq(schema.invoiceArchive.invoiceNumber, n.invoiceNumber)
         )
       );
@@ -691,6 +703,11 @@ export async function resolveNirSpvData(db: any, n: any) {
     if (m) spvIndex = m[1];
   }
 
+  const normCur = String(currency || "RON").trim().toUpperCase();
+  if (normCur !== "RON" && normCur !== "LEI" && !(exchangeRate > 1)) {
+    exchangeRate = await resolveSagaExchangeRate(docDate, normCur, exchangeRate, n.notes);
+  }
+
   return { spvIndex, docDate, dueDate, archiveTotal, archiveTotalVat, currency, exchangeRate, isReverseCharge };
 }
 
@@ -735,8 +752,8 @@ export async function generateSagaExportXML(
   let monthInvoices = invoices.filter((inv) => {
     if (inv.status === "cancelled") return false;
     if (!inv.issueDate) return false;
-    const invDate = inv.issueDate.substring(0, 10);
-    return invDate >= startDateStr && invDate <= endDateStr;
+    const invDate = toIsoDateStr(inv.issueDate);
+    return Boolean(invDate) && invDate >= startDateStr && invDate <= endDateStr;
   });
 
   if (options?.invoiceIds !== undefined) {
@@ -821,9 +838,10 @@ export async function generateSagaExportXML(
       const price = parseFloat(String(line.unitPrice)) || 0;
       const rate = parseFloat(String(line.vatRate)) || 0;
       const rawTotal = parseFloat(String(line.total));
-      const lineVal = (!isNaN(rawTotal) && rawTotal !== 0)
-        ? rawTotal
-        : Math.round(qty * price * 100) / 100;
+      const calcNet = Math.round(qty * price * 100) / 100;
+      const lineVal = (qty !== 0 && price !== 0)
+        ? calcNet
+        : ((!isNaN(rawTotal) && rawTotal !== 0) ? rawTotal : calcNet);
       const lineVat = Math.round(lineVal * (rate / 100) * 100) / 100;
       const lineTotal = Math.round((lineVal + lineVat) * 100) / 100;
 
@@ -919,8 +937,8 @@ export async function generateSagaExportXML(
     const monthReInvoices = allReInvoices.filter((ri) => {
       if (ri.status === "cancelled") return false;
       if (!ri.issueDate) return false;
-      const d = ri.issueDate.substring(0, 10);
-      if (d < startDateStr || d > endDateStr) return false;
+      const d = toIsoDateStr(ri.issueDate);
+      if (!d || d < startDateStr || d > endDateStr) return false;
       const k = normInvKey(ri.number);
       return !(k && exportedOutNumbers.has(k));
     });
@@ -976,7 +994,10 @@ export async function generateSagaExportXML(
         const price = parseFloat(String(line.unitPrice)) || 0;
         const rate = parseFloat(String(line.vatRate ?? 21)) || 0;
         const rawTotal = parseFloat(String(line.total));
-        const lineVal = (!isNaN(rawTotal) && rawTotal !== 0) ? rawTotal : Math.round(qty * price * 100) / 100;
+        const calcNet = Math.round(qty * price * 100) / 100;
+        const lineVal = (qty !== 0 && price !== 0)
+          ? calcNet
+          : ((!isNaN(rawTotal) && rawTotal !== 0) ? rawTotal : calcNet);
         const lineVat = Math.round(lineVal * (rate / 100) * 100) / 100;
         totalValoare += lineVal;
         totalTva += lineVat;
@@ -1058,8 +1079,8 @@ export async function generateSagaExportXML(
 
   let monthNirs = nirList.filter((n) => {
     if (!n.receiptDate) return false;
-    const nDate = n.receiptDate.substring(0, 10);
-    return nDate >= startDateStr && nDate <= endDateStr;
+    const nDate = toIsoDateStr(n.receiptDate);
+    return Boolean(nDate) && nDate >= startDateStr && nDate <= endDateStr;
   });
 
   if (options?.nirIds !== undefined) {
@@ -1283,9 +1304,10 @@ export async function generateSagaExportXML(
   if (options?.nirIds === undefined) {
     const monthSagaIntrari = noileIntrari.filter((n) => {
       if (n.nirId) return false; // deja exportat prin NIR
+      if (n.status === "stornat") return false;
       if (!n.data) return false;
-      const nDate = n.data.substring(0, 10);
-      return nDate >= startDateStr && nDate <= endDateStr;
+      const nDate = toIsoDateStr(n.data);
+      return Boolean(nDate) && nDate >= startDateStr && nDate <= endDateStr;
     });
 
     for (const n of monthSagaIntrari) {
@@ -1489,8 +1511,8 @@ export async function generateSagaNirXML(
     const endDateStr = isAllYear ? `${options.year}-12-31` : `${options.year}-${String(options.month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
     nirs = nirs.filter((n) => {
       if (!n.receiptDate) return false;
-      const nDate = n.receiptDate.substring(0, 10);
-      return nDate >= startDateStr && nDate <= endDateStr;
+      const nDate = toIsoDateStr(n.receiptDate);
+      return Boolean(nDate) && nDate >= startDateStr && nDate <= endDateStr;
     });
   }
 
@@ -1919,15 +1941,32 @@ function escapeXml(unsafe: any): string {
   });
 }
 
+export function toIsoDateStr(raw: string | Date | null | undefined): string {
+  if (!raw) return "";
+  if (raw instanceof Date) {
+    return isNaN(raw.getTime()) ? "" : format(raw, "yyyy-MM-dd");
+  }
+  const s = String(raw).trim();
+  if (!s) return "";
+  const dmy = s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})/);
+  if (dmy) {
+    return `${dmy[3]}-${dmy[2].padStart(2, "0")}-${dmy[1].padStart(2, "0")}`;
+  }
+  const ymd = s.match(/^(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
+  if (ymd) {
+    return `${ymd[1]}-${ymd[2].padStart(2, "0")}-${ymd[3].padStart(2, "0")}`;
+  }
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) return format(d, "yyyy-MM-dd");
+  return s.slice(0, 10);
+}
+
 function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return "";
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return String(dateStr);
-    return format(d, "dd.MM.yyyy");
-  } catch {
-    return String(dateStr);
-  }
+  const iso = toIsoDateStr(dateStr);
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) return `${m[3]}.${m[2]}.${m[1]}`;
+  return String(dateStr);
 }
 
 export interface SimulatedSagaWarning {
@@ -2145,8 +2184,8 @@ export async function simulateSagaNirImport(
         : `${options.year}-${String(options.month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
       selectedNirs = selectedNirs.filter((n) => {
         if (!n.receiptDate) return false;
-        const nDate = n.receiptDate.substring(0, 10);
-        return nDate >= startDateStr && nDate <= endDateStr;
+        const nDate = toIsoDateStr(n.receiptDate);
+        return Boolean(nDate) && nDate >= startDateStr && nDate <= endDateStr;
       });
     }
 
@@ -2336,7 +2375,7 @@ export async function simulateSagaNirImport(
         },
         articleState,
         {
-          persistToDb: !item.isDraft,
+          persistToDb: false,
           nirLineId: rawLine.id,
         }
       );

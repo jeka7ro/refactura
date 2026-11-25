@@ -6,7 +6,7 @@
  * Facturile primite se importă manual din SPV → pagina Integrări → Import XML e-Factura.
  */
 import { createInvoiceArchiveEntry, getDb } from "./db";
-import { integrations, invoiceArchive, clients, emittedInvoices } from "../drizzle/schema";
+import { integrations, invoiceArchive, clients, emittedInvoices, tenants } from "../drizzle/schema";
 import { eq, and, sql } from "drizzle-orm";
 
 const OBLIO_TOKEN_URL = "https://www.oblio.eu/api/authorize/token";
@@ -91,6 +91,30 @@ export async function syncOblioInvoices(tenantId: number): Promise<{
     const cif = parsed.cif;
 
     if (!cif) throw new Error("CIF firmă lipsește din configurarea Oblio");
+
+    const [tenant] = await db
+      .select({ cui: tenants.cui })
+      .from(tenants)
+      .where(eq(tenants.id, tenantId))
+      .limit(1);
+    const cleanTenantCif = String(tenant?.cui || "")
+      .trim()
+      .toUpperCase()
+      .replace(/^RO/i, "")
+      .replace(/[^A-Z0-9]/g, "");
+    const cleanOblioConfigCif = String(cif)
+      .trim()
+      .toUpperCase()
+      .replace(/^RO/i, "")
+      .replace(/[^A-Z0-9]/g, "");
+    if (!cleanTenantCif) {
+      throw new Error("CUI-ul firmei nu este configurat în profilul companiei.");
+    }
+    if (cleanOblioConfigCif !== cleanTenantCif) {
+      throw new Error(
+        `CIF-ul din integrarea Oblio (${cif}) nu corespunde cu CUI-ul firmei curente (${tenant?.cui}).`
+      );
+    }
 
     const token = await getOblioToken(tenantId, email, secret);
     console.log("[Oblio] Token obtained OK");

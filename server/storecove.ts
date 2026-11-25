@@ -76,7 +76,7 @@ export function mapToStorecoveInvoice(props: StorecoveInvoiceMappingProps) {
               name: line.description,
               classifiedTaxCategory: {
                 id: "S", // S = Standard rate
-                percent: Number(line.vatRate || 21), // Standard BE VAT is 21%
+                percent: Number(line.vatRate ?? 21), // Standard BE VAT is 21%
                 taxScheme: { id: "VAT" },
               },
             },
@@ -94,7 +94,7 @@ export function mapToStorecoveInvoice(props: StorecoveInvoiceMappingProps) {
             taxAmount: Number(invoice.totalVAT),
             taxCategory: {
               id: "S",
-              percent: lines.length > 0 ? Number(lines[0].vatRate || 21) : 21,
+              percent: lines.length > 0 ? Number(lines[0].vatRate ?? 21) : 21,
               taxScheme: { id: "VAT" },
             },
           },

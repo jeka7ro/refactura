@@ -4,18 +4,96 @@
  * deci nu pot trimite header-ul Authorization. Clientul pune tokenul de sesiune
  * într-un cookie (vezi client/src/lib/authCookie.ts), iar aici îl verificăm.
  */
+import crypto from "crypto";
 import type { Request, Response, NextFunction } from "express";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { verifySessionToken, extractTokenFromHeader } from "./session";
 import { getAccountById } from "./auth";
-import { getDb, getDefaultTenantForUser } from "./db";
-import { verifyAndExtractAccountantSession } from "./accountantPortalRouter";
-import { isValidBidirectionalPair } from "./tenant";
+import { getDb } from "./db";
+import {
+  verifyAndExtractAccountantSession,
+  computeAccountantCredFingerprint,
+} from "./accountantPortalRouter";
+import {
+  isValidBidirectionalPair,
+  parseSettingsJson,
+  resolveVerifiedAccountTenant,
+} from "./tenant";
 
 export interface FileAuthInfo {
   accountId: number;
   tenantId: number;
   role: string;
+  allowedTenantIds?: number[];
+}
+
+async function isValidAccountantSessionForTenant(
+  accountantAuth: { tenantId: number; credFp: string } | null,
+  expectedTenantId?: number
+): Promise<boolean> {
+  try {
+    if (!accountantAuth?.tenantId || !accountantAuth.credFp) return false;
+    if (
+      expectedTenantId !== undefined &&
+      accountantAuth.tenantId !== expectedTenantId
+    ) {
+      return false;
+    }
+    const db = await getDb();
+    if (!db) return false;
+    const { tenants } = await import("../drizzle/schema");
+    const [tenant] = await db
+      .select({ settings: tenants.settings })
+      .from(tenants)
+      .where(eq(tenants.id, accountantAuth.tenantId))
+      .limit(1);
+    if (!tenant?.settings) return false;
+    const parsed = parseSettingsJson(tenant.settings);
+    if (Boolean(parsed?.accountantPortal?.enabled) !== true) return false;
+
+    const currentFp = computeAccountantCredFingerprint(parsed);
+    const a = Buffer.from(accountantAuth.credFp, "utf8");
+    const b = Buffer.from(currentFp, "utf8");
+    if (a.length !== b.length) return false;
+    return crypto.timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
+}
+
+export async function canAccessTenantOwner(
+  db: any,
+  auth: FileAuthInfo,
+  ownerTenantId: number
+): Promise<boolean> {
+  if (!ownerTenantId || ownerTenantId <= 0) return false;
+  if (auth.role === "superadmin") return true;
+  if (auth.role === "accountant") return auth.tenantId === ownerTenantId;
+  if (!auth.accountId) return false;
+  if (auth.allowedTenantIds?.includes(ownerTenantId)) return true;
+
+  const { userTenants } = await import("../drizzle/schema");
+  const activeRows = await db
+    .select({ tenantId: userTenants.tenantId })
+    .from(userTenants)
+    .where(
+      and(
+        eq(userTenants.userId, auth.accountId),
+        eq(userTenants.isActive, 1)
+      )
+    );
+
+  const activeIds = activeRows
+    .map((r: any) => Number(r.tenantId))
+    .filter((n: number) => Number.isFinite(n) && n > 0);
+  if (activeIds.includes(ownerTenantId)) return true;
+
+  for (const activeId of activeIds) {
+    if (await isValidBidirectionalPair(db, activeId, ownerTenantId)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function readCookie(req: Request, name: string): string | null {
@@ -38,18 +116,31 @@ function readCookie(req: Request, name: string): string | null {
 export async function authenticateFileRequest(
   req: Request
 ): Promise<FileAuthInfo | null> {
+  const rawQueryTenantId = req.query?.tenantId;
+  const requestedTenantId =
+    rawQueryTenantId !== undefined
+      ? parseInt(String(rawQueryTenantId), 10)
+      : NaN;
+  const hasValidQueryTenant =
+    Number.isFinite(requestedTenantId) && requestedTenantId > 0;
+
   // 1. Suport prioritar pentru Portalul Contabil dacă token-ul este trimis explicit prin query sau header
   const explicitAccountantToken =
-    (req.query.accountantToken as string) ||
+    (req.query?.accountantToken as string) ||
     (req.headers["x-accountant-token"] as string);
 
   if (explicitAccountantToken) {
     const accountantAuth = verifyAndExtractAccountantSession(explicitAccountantToken);
-    if (accountantAuth?.tenantId) {
+    if (
+      accountantAuth &&
+      (!hasValidQueryTenant || accountantAuth.tenantId === requestedTenantId) &&
+      (await isValidAccountantSessionForTenant(accountantAuth))
+    ) {
       return {
         accountId: 0,
         tenantId: accountantAuth.tenantId,
         role: "accountant",
+        allowedTenantIds: [accountantAuth.tenantId],
       };
     }
   }
@@ -63,18 +154,43 @@ export async function authenticateFileRequest(
     const payload = await verifySessionToken(token);
     if (payload?.accountId) {
       const account: any = await getAccountById(payload.accountId);
-      if (account) {
-        let tenantId: number | undefined = account.tenantId || undefined;
-        if (!tenantId) {
-          try {
-            const t = await getDefaultTenantForUser(account.id);
-            if (t) tenantId = t;
-          } catch {
-            /* ignore */
+      if (!account || !account.isActive) {
+        return null;
+      }
+      if (account.role === "superadmin") {
+        const effectiveTenantId = hasValidQueryTenant
+          ? requestedTenantId
+          : account.tenantId || 1;
+        return {
+          accountId: account.id,
+          tenantId: effectiveTenantId,
+          role: "superadmin",
+        };
+      }
+
+      const db = await getDb();
+      if (db) {
+        const resolved = await resolveVerifiedAccountTenant(db, account);
+        if (resolved.tenantId) {
+          const auth: FileAuthInfo = {
+            accountId: account.id,
+            tenantId: resolved.tenantId,
+            role: String(account.role || "user"),
+            allowedTenantIds: resolved.allowedTenantIds,
+          };
+          if (
+            hasValidQueryTenant &&
+            (await canAccessTenantOwner(db, auth, requestedTenantId))
+          ) {
+            auth.tenantId = requestedTenantId;
+            if (!auth.allowedTenantIds?.includes(requestedTenantId)) {
+              auth.allowedTenantIds = [
+                ...(auth.allowedTenantIds || []),
+                requestedTenantId,
+              ];
+            }
           }
-        }
-        if (tenantId) {
-          return { accountId: account.id, tenantId, role: String(account.role || "user") };
+          return auth;
         }
       }
     }
@@ -84,11 +200,16 @@ export async function authenticateFileRequest(
   const cookieAccountantToken = readCookie(req, "accountantSession");
   if (cookieAccountantToken) {
     const accountantAuth = verifyAndExtractAccountantSession(cookieAccountantToken);
-    if (accountantAuth?.tenantId) {
+    if (
+      accountantAuth &&
+      (!hasValidQueryTenant || accountantAuth.tenantId === requestedTenantId) &&
+      (await isValidAccountantSessionForTenant(accountantAuth))
+    ) {
       return {
         accountId: 0,
         tenantId: accountantAuth.tenantId,
         role: "accountant",
+        allowedTenantIds: [accountantAuth.tenantId],
       };
     }
   }
@@ -96,7 +217,7 @@ export async function authenticateFileRequest(
   return null;
 }
 
-/** Cere doar autentificare (fără verificare de proprietar) — pentru fișiere statice. */
+/** Cere doar autentificare (fără verificare de proprietar) — pentru fișiere statice / export read-only. */
 export async function requireFileAuth(
   req: Request,
   res: Response,
@@ -106,6 +227,29 @@ export async function requireFileAuth(
     const auth = await authenticateFileRequest(req);
     if (!auth) {
       res.status(401).json({ error: "Neautentificat" });
+      return;
+    }
+    (req as any).fileAuth = auth;
+    next();
+  } catch {
+    res.status(401).json({ error: "Neautentificat" });
+  }
+}
+
+/** Cere autentificare de utilizator activ (blochează sesiunile read-only de Portal Contabil). */
+export async function requireUserAuth(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const auth = await authenticateFileRequest(req);
+    if (!auth) {
+      res.status(401).json({ error: "Neautentificat" });
+      return;
+    }
+    if (auth.role === "accountant" || !auth.accountId) {
+      res.status(403).json({ error: "Acces interzis (sesiune doar pentru citire)" });
       return;
     }
     (req as any).fileAuth = auth;
@@ -125,12 +269,28 @@ export async function requirePdfAccess(
   next: NextFunction
 ) {
   try {
+    const rawQueryTenantId = req.query?.tenantId;
+    const requestedTenantId =
+      rawQueryTenantId !== undefined
+        ? parseInt(String(rawQueryTenantId), 10)
+        : NaN;
+    const hasExplicitTenantQuery =
+      Number.isFinite(requestedTenantId) && requestedTenantId > 0;
+
     // Previzualizare NIR nesalvat: doar autentificare (documentul nu există încă în DB)
     if (req.method === "POST" && req.path === "/nir-preview") {
       const auth = await authenticateFileRequest(req);
       if (!auth) {
         res.status(401).json({ error: "Neautentificat. Autentifică-te din nou." });
         return;
+      }
+      if (hasExplicitTenantQuery && auth.role !== "superadmin") {
+        const db = await getDb();
+        if (!db || !(await canAccessTenantOwner(db, auth, requestedTenantId))) {
+          res.status(403).json({ error: "Acces interzis la firma solicitată." });
+          return;
+        }
+        auth.tenantId = requestedTenantId;
       }
       (req as any).fileAuth = auth;
       next();
@@ -173,6 +333,83 @@ export async function requirePdfAccess(
         sql`SELECT tenantId FROM spv_portal_documents WHERE id = ${id}`
       );
       row = spvRows?.[0];
+    } else if (resource === "nir") {
+      const preAuth = await authenticateFileRequest(req);
+      if (preAuth && (preAuth.role !== "superadmin" || hasExplicitTenantQuery)) {
+        const [ownDirect] = await db
+          .select({ tenantId: schema.nir.tenantId })
+          .from(schema.nir)
+          .where(and(eq(schema.nir.id, id), eq(schema.nir.tenantId, preAuth.tenantId)));
+        if (ownDirect) {
+          row = ownDirect;
+        } else {
+          const [ownByArchive] = await db
+            .select({ tenantId: schema.nir.tenantId })
+            .from(schema.nir)
+            .where(and(eq(schema.nir.invoiceArchiveId, id), eq(schema.nir.tenantId, preAuth.tenantId)));
+          if (ownByArchive) {
+            row = ownByArchive;
+          } else {
+            const [invArchive] = await db
+              .select({ invoiceNumber: schema.invoiceArchive.invoiceNumber, tenantId: schema.invoiceArchive.tenantId })
+              .from(schema.invoiceArchive)
+              .where(
+                and(
+                  eq(schema.invoiceArchive.id, id),
+                  eq(schema.invoiceArchive.tenantId, preAuth.tenantId),
+                  eq(schema.invoiceArchive.direction, "in")
+                )
+              );
+            if (invArchive && invArchive.invoiceNumber) {
+              const [byNum] = await db
+                .select({ tenantId: schema.nir.tenantId })
+                .from(schema.nir)
+                .where(
+                  and(
+                    eq(schema.nir.tenantId, invArchive.tenantId),
+                    eq(schema.nir.invoiceNumber, invArchive.invoiceNumber)
+                  )
+                )
+                .limit(1);
+              if (byNum) row = byNum;
+            }
+          }
+        }
+      }
+      if (!row) {
+        const [r] = await db
+          .select({ tenantId: table.tenantId })
+          .from(table)
+          .where(eq(table.id, id));
+        row = r;
+        if (!row) {
+          const [byArchive] = await db
+            .select({ tenantId: schema.nir.tenantId })
+            .from(schema.nir)
+            .where(eq(schema.nir.invoiceArchiveId, id));
+          if (byArchive) {
+            row = byArchive;
+          } else {
+            const [invArchive] = await db
+              .select({ invoiceNumber: schema.invoiceArchive.invoiceNumber, tenantId: schema.invoiceArchive.tenantId })
+              .from(schema.invoiceArchive)
+              .where(and(eq(schema.invoiceArchive.id, id), eq(schema.invoiceArchive.direction, "in")));
+            if (invArchive && invArchive.invoiceNumber) {
+              const [byNum] = await db
+                .select({ tenantId: schema.nir.tenantId })
+                .from(schema.nir)
+                .where(
+                  and(
+                    eq(schema.nir.tenantId, invArchive.tenantId),
+                    eq(schema.nir.invoiceNumber, invArchive.invoiceNumber)
+                  )
+                )
+                .limit(1);
+              if (byNum) row = byNum;
+            }
+          }
+        }
+      }
     } else {
       const [r] = await db
         .select({ tenantId: table.tenantId })
@@ -181,44 +418,13 @@ export async function requirePdfAccess(
       row = r;
     }
 
-    // Fallback pentru NIR: dacă se transmite id-ul de arhivă al facturii în loc de id-ul nir
-    if (!row && resource === "nir") {
-      const [byArchive] = await db
-        .select({ tenantId: schema.nir.tenantId })
-        .from(schema.nir)
-        .where(eq(schema.nir.invoiceArchiveId, id));
-      if (byArchive) {
-        row = byArchive;
-      } else {
-        // Fallback 2: căutare prin invoiceArchive (dacă NIR e legat doar prin invoiceNumber)
-        const [invArchive] = await db
-          .select({ invoiceNumber: schema.invoiceArchive.invoiceNumber, tenantId: schema.invoiceArchive.tenantId })
-          .from(schema.invoiceArchive)
-          .where(eq(schema.invoiceArchive.id, id));
-        if (invArchive && invArchive.invoiceNumber) {
-          const { and: andOp, eq: eqOp } = await import("drizzle-orm");
-          const [byNum] = await db
-            .select({ tenantId: schema.nir.tenantId })
-            .from(schema.nir)
-            .where(
-              andOp(
-                eqOp(schema.nir.tenantId, invArchive.tenantId),
-                eqOp(schema.nir.invoiceNumber, invArchive.invoiceNumber)
-              )
-            )
-            .limit(1);
-          if (byNum) row = byNum;
-        }
-      }
-    }
-
     if (!row) {
       console.warn(`[FileAuth:requirePdfAccess] Document not found for resource="${resource}" id=${id}`);
       res.status(404).json({ error: "Documentul nu a fost găsit" });
       return;
     }
 
-    const docTenantId = row.tenantId;
+    const docTenantId = Number(row.tenantId);
 
     // A) Verificare token sesiune contabil (din query ?accountantToken=..., header sau cookie)
     const accountantToken =
@@ -228,11 +434,16 @@ export async function requirePdfAccess(
 
     if (accountantToken) {
       const accountantAuth = verifyAndExtractAccountantSession(accountantToken);
-      if (accountantAuth && accountantAuth.tenantId === docTenantId) {
+      if (
+        accountantAuth &&
+        (!hasExplicitTenantQuery || requestedTenantId === docTenantId) &&
+        (await isValidAccountantSessionForTenant(accountantAuth, docTenantId))
+      ) {
         (req as any).fileAuth = {
           accountId: 0,
           tenantId: docTenantId,
           role: "accountant",
+          allowedTenantIds: [docTenantId],
         };
         return next();
       }
@@ -247,58 +458,47 @@ export async function requirePdfAccess(
       const payload = await verifySessionToken(token);
       if (payload?.accountId) {
         const account: any = await getAccountById(payload.accountId);
-        if (account) {
+        if (account && account.isActive) {
           // Superadminul are acces direct la toate firmele/documentele
           if (account.role === "superadmin") {
+            const effectiveTid =
+              hasExplicitTenantQuery && requestedTenantId === docTenantId
+                ? requestedTenantId
+                : docTenantId;
             (req as any).fileAuth = {
               accountId: account.id,
-              tenantId: docTenantId,
+              tenantId: effectiveTid,
               role: "superadmin",
             };
             return next();
           }
 
-          // Utilizator pe propriul tenant direct
-          if (account.tenantId === docTenantId) {
-            (req as any).fileAuth = {
+          const resolved = await resolveVerifiedAccountTenant(db, account);
+          if (resolved.tenantId) {
+            const userAuth: FileAuthInfo = {
               accountId: account.id,
-              tenantId: docTenantId,
+              tenantId: resolved.tenantId,
               role: String(account.role || "user"),
+              allowedTenantIds: resolved.allowedTenantIds,
             };
-            return next();
-          }
 
-          // Verificare acces multi-tenant în tabela userTenants
-          const { userTenants } = await import("../drizzle/schema");
-          const { and: andOp, eq: eqOp } = await import("drizzle-orm");
-          const [ut] = await db
-            .select({ id: userTenants.id })
-            .from(userTenants)
-            .where(
-              andOp(
-                eqOp(userTenants.userId, account.id),
-                eqOp(userTenants.tenantId, docTenantId),
-                eqOp(userTenants.isActive, 1)
-              )
-            )
-            .limit(1);
+            const canAccessDoc = await canAccessTenantOwner(db, userAuth, docTenantId);
+            const canAccessRequested =
+              !hasExplicitTenantQuery ||
+              (requestedTenantId === docTenantId &&
+                (await canAccessTenantOwner(db, userAuth, requestedTenantId)));
 
-          if (ut) {
-            (req as any).fileAuth = {
-              accountId: account.id,
-              tenantId: docTenantId,
-              role: String(account.role || "user"),
-            };
-            return next();
-          }
-
-          if (account.tenantId && (await isValidBidirectionalPair(db, account.tenantId, docTenantId))) {
-            (req as any).fileAuth = {
-              accountId: account.id,
-              tenantId: docTenantId,
-              role: String(account.role || "user"),
-            };
-            return next();
+            if (canAccessDoc && canAccessRequested) {
+              const allowed = new Set<number>(userAuth.allowedTenantIds || []);
+              allowed.add(docTenantId);
+              (req as any).fileAuth = {
+                accountId: account.id,
+                tenantId: docTenantId,
+                role: String(account.role || "user"),
+                allowedTenantIds: Array.from(allowed),
+              };
+              return next();
+            }
           }
         }
       }
@@ -316,7 +516,7 @@ export async function requirePdfAccess(
 /**
  * Pentru /uploads/invoices, /uploads/contracts și /uploads/spv_documents: pe lângă autentificare,
  * un fișier care aparține (e referit de) o altă firmă nu poate fi deschis de o firmă străină.
- * Fișierele încă nereferite (tocmai încărcate, înainte de salvare) rămân accesibile doar utilizatorilor autentificați.
+ * Fișierele încă nereferite trebuie să poarte prefixul t${tenantId}- al unei firme accesibile utilizatorului.
  */
 export function requireUploadAccess(kind: "invoices" | "contracts" | "spv_documents") {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -365,8 +565,23 @@ export function requireUploadAccess(kind: "invoices" | "contracts" | "spv_docume
           res.status(401).json({ error: "Neautentificat" });
           return;
         }
-        (req as any).fileAuth = auth;
-        return next();
+        if (auth.role === "superadmin") {
+          (req as any).fileAuth = auth;
+          return next();
+        }
+        const prefixMatch = name.match(/^t(\d+)-/);
+        if (prefixMatch) {
+          const prefixTenantId = parseInt(prefixMatch[1], 10);
+          if (
+            prefixTenantId > 0 &&
+            (await canAccessTenantOwner(db, auth, prefixTenantId))
+          ) {
+            (req as any).fileAuth = auth;
+            return next();
+          }
+        }
+        res.status(404).json({ error: "Fișierul nu a fost găsit" });
+        return;
       }
 
       const ownerTenantIds = new Set(owners.map((o: any) => Number(o.tenantId)));
@@ -379,11 +594,16 @@ export function requireUploadAccess(kind: "invoices" | "contracts" | "spv_docume
 
       if (accountantToken) {
         const accountantAuth = verifyAndExtractAccountantSession(accountantToken);
-        if (accountantAuth && ownerTenantIds.has(accountantAuth.tenantId)) {
+        if (
+          accountantAuth &&
+          ownerTenantIds.has(accountantAuth.tenantId) &&
+          (await isValidAccountantSessionForTenant(accountantAuth, accountantAuth.tenantId))
+        ) {
           (req as any).fileAuth = {
             accountId: 0,
             tenantId: accountantAuth.tenantId,
             role: "accountant",
+            allowedTenantIds: [accountantAuth.tenantId],
           };
           return next();
         }
@@ -398,7 +618,7 @@ export function requireUploadAccess(kind: "invoices" | "contracts" | "spv_docume
         const payload = await verifySessionToken(token);
         if (payload?.accountId) {
           const account: any = await getAccountById(payload.accountId);
-          if (account) {
+          if (account && account.isActive) {
             if (account.role === "superadmin") {
               (req as any).fileAuth = {
                 accountId: account.id,
@@ -408,46 +628,26 @@ export function requireUploadAccess(kind: "invoices" | "contracts" | "spv_docume
               return next();
             }
 
-            if (account.tenantId && ownerTenantIds.has(account.tenantId)) {
-              (req as any).fileAuth = {
+            const resolved = await resolveVerifiedAccountTenant(db, account);
+            if (resolved.tenantId) {
+              const userAuth: FileAuthInfo = {
                 accountId: account.id,
-                tenantId: account.tenantId,
+                tenantId: resolved.tenantId,
                 role: String(account.role || "user"),
+                allowedTenantIds: resolved.allowedTenantIds,
               };
-              return next();
-            }
-
-            const { userTenants } = await import("../drizzle/schema");
-            const { and: andOp, eq: eqOp } = await import("drizzle-orm");
-            for (const tId of Array.from(ownerTenantIds)) {
-              const [ut] = await db
-                .select({ id: userTenants.id })
-                .from(userTenants)
-                .where(
-                  andOp(
-                    eqOp(userTenants.userId, account.id),
-                    eqOp(userTenants.tenantId, tId),
-                    eqOp(userTenants.isActive, 1)
-                  )
-                )
-                .limit(1);
-
-              if (ut) {
-                (req as any).fileAuth = {
-                  accountId: account.id,
-                  tenantId: tId,
-                  role: String(account.role || "user"),
-                };
-                return next();
-              }
-
-              if (account.tenantId && (await isValidBidirectionalPair(db, account.tenantId, tId))) {
-                (req as any).fileAuth = {
-                  accountId: account.id,
-                  tenantId: tId,
-                  role: String(account.role || "user"),
-                };
-                return next();
+              for (const tId of Array.from(ownerTenantIds)) {
+                if (await canAccessTenantOwner(db, userAuth, tId)) {
+                  const allowed = new Set<number>(userAuth.allowedTenantIds || []);
+                  allowed.add(tId);
+                  (req as any).fileAuth = {
+                    accountId: account.id,
+                    tenantId: tId,
+                    role: String(account.role || "user"),
+                    allowedTenantIds: Array.from(allowed),
+                  };
+                  return next();
+                }
               }
             }
           }
@@ -463,13 +663,28 @@ export function requireUploadAccess(kind: "invoices" | "contracts" | "spv_docume
 }
 
 /**
- * Tenantul efectiv pentru rutele de import/export: este mereu cel al utilizatorului
- * autentificat. Doar superadmin poate specifica explicit alt tenant.
+ * Tenantul efectiv pentru rutele de import/export: este cel al utilizatorului autentificat,
+ * dar onorează explicit ?tenantId= (sau parametrul cerut) pentru superadmin și pentru utilizatori
+ * multi-tenant verificați prin canAccessTenantOwner (allowedTenantIds).
  */
 export function resolveRequestTenant(req: Request, requested?: unknown): number {
   const auth: FileAuthInfo | undefined = (req as any).fileAuth;
   if (!auth) throw new Error("Neautentificat");
-  const asked = parseInt(String(requested ?? ""), 10);
-  if (auth.role === "superadmin" && Number.isFinite(asked) && asked > 0) return asked;
+  const explicitQuery = req.query?.tenantId;
+  const candidate =
+    requested !== undefined && requested !== null && requested !== ""
+      ? requested
+      : explicitQuery;
+  const asked = parseInt(String(candidate ?? ""), 10);
+  if (Number.isFinite(asked) && asked > 0) {
+    if (auth.role === "superadmin") return asked;
+    const hasExplicitParam =
+      explicitQuery !== undefined ||
+      (req as any).body?.tenantId !== undefined ||
+      (req as any).body === undefined;
+    if (hasExplicitParam && auth.allowedTenantIds?.includes(asked)) {
+      return asked;
+    }
+  }
   return auth.tenantId;
 }

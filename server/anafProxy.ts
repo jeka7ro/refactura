@@ -62,11 +62,11 @@ export function registerAnafProxy(app: Express) {
           .join(" ") ||
         "";
 
-      // Localitate / județ
+      // Județ (prioritizăm județul oficial înainte de localitate)
       const judet =
-        adresaSediu?.sdenumire_Localitate ||
         adresaSediu?.sdenumire_Judet ||
         dg.judet ||
+        adresaSediu?.sdenumire_Localitate ||
         "";
 
       const isPlatitorTva = found.inregistrare_scop_Tva?.scpTVA === true;

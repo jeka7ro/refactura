@@ -446,7 +446,8 @@ export default function NIRList() {
       { wch: 30 }, // Furnizor
       { wch: 16 }, // CUI
       { wch: 18 }, // Factura
-      { wch: 14 }, // Data
+      { wch: 14 }, // Data Factura
+      { wch: 14 }, // Data Receptie
       { wch: 18 }, // Gestiune
       { wch: 12 }, // Articole
       { wch: 16 }, // Conturi
@@ -690,16 +691,40 @@ export default function NIRList() {
       )}
 
       {/* Card tabel cu filtre integrate sus și paginare jos */}
-      <div className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-2">
-        {/* Search & Filtre afarente pe un singur rând compact */}
-        <div className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800/50 flex flex-col gap-2 bg-white dark:bg-slate-900">
-          <div className="flex items-center gap-2 w-full flex-wrap">
+      <div className="apple-surface overflow-hidden mt-2">
+        {/* Search & Filtre unificate fără dubluri */}
+        <div className="px-3.5 py-2.5 border-b border-black/[0.06] dark:border-white/[0.08] flex flex-col gap-2">
+          <div className="flex items-center gap-2 w-full flex-wrap xl:flex-nowrap min-w-0">
+            {/* Segmente Perioadă */}
+            <div className="apple-segmented max-w-full overflow-x-auto no-scrollbar shrink-0">
+              {[
+                { id: "all", label: "Toate" },
+                { id: "today", label: "Azi" },
+                { id: "month", label: "Lună" },
+                { id: "lastMonth", label: "Luna trec." },
+                { id: "year", label: "An" },
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  data-active={period === item.id}
+                  onClick={() => {
+                    setPeriod(item.id);
+                    setPage(1);
+                  }}
+                  className="apple-segmented-item px-2.5 shrink-0"
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
             {/* Cautare Pill */}
-            <div className="relative flex-1 min-w-[200px]">
+            <div className="relative flex-1 min-w-[160px]">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 style={{ paddingLeft: 34, paddingRight: search ? 76 : 14 }}
-                className="rounded-full w-full h-8 border border-slate-200 dark:border-slate-700 outline-none text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-teal-500 transition-all shadow-none"
+                className="apple-pill-control rounded-full w-full h-[34px] outline-none text-[13px] text-[#1d1d1f] dark:text-white placeholder:text-[#8e8e93]"
                 placeholder="Caută NIR, furnizor, factură, cont, articol..."
                 value={search}
                 onChange={(e) => {
@@ -709,7 +734,7 @@ export default function NIRList() {
               />
               {search && (
                 <>
-                  <div className="absolute right-8 top-1/2 -translate-y-1/2 bg-teal-600 text-white rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums">
+                  <div className="absolute right-8 top-1/2 -translate-y-1/2 bg-primary text-white rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums">
                     {filtered.length}/{nirList.length}
                   </div>
                   <button
@@ -723,73 +748,8 @@ export default function NIRList() {
               )}
             </div>
 
-            {/* Filtru Perioadă */}
-            <div className="w-[140px] sm:w-[150px] flex-shrink-0">
-              <Select
-                value={period}
-                onValueChange={(val) => {
-                  setPeriod(val);
-                  setPage(1);
-                }}
-              >
-                <SelectTrigger
-                  className={`h-8 w-full rounded-full text-xs font-bold border ${
-                    period !== "all"
-                      ? "border-blue-500 bg-blue-50/70 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-700"
-                      : "border-slate-200 bg-white text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
-                  } hover:bg-slate-50 focus:ring-2 focus:ring-teal-500 shadow-none flex items-center gap-1.5 px-3`}
-                >
-                  <Calendar className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
-                  <SelectValue placeholder="Perioadă" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toate dățile</SelectItem>
-                  <SelectItem value="today">Azi</SelectItem>
-                  <SelectItem value="yesterday">Ieri</SelectItem>
-                  <SelectItem value="week">Săpt. curentă</SelectItem>
-                  <SelectItem value="month">Luna curentă</SelectItem>
-                  <SelectItem value="lastMonth">Luna trecută</SelectItem>
-                  <SelectItem value="year">Anul curent</SelectItem>
-                  <SelectItem value="lastYear">Anul trecut</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Filtru Status */}
-            <div className="w-[125px] sm:w-[140px] flex-shrink-0">
-              <Select
-                value={statusFilter}
-                onValueChange={(val) => {
-                  setStatusFilter(val);
-                  setPage(1);
-                }}
-              >
-                <SelectTrigger
-                  className={`h-8 w-full rounded-full text-xs font-bold border ${
-                    statusFilter !== "all"
-                      ? "border-indigo-500 bg-indigo-50/70 text-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-700"
-                      : "border-slate-200 bg-white text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
-                  } hover:bg-slate-50 focus:ring-2 focus:ring-teal-500 shadow-none flex items-center gap-1.5 px-3`}
-                >
-                  <Tag className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">
-                    Status: Toate ({nirList.length})
-                  </SelectItem>
-                  <SelectItem value="finalizat">
-                    Finalizate ({statusCounts.finalizat})
-                  </SelectItem>
-                  <SelectItem value="draft">
-                    ○ Ciorne ({statusCounts.draft})
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
             {/* Filtru Cont Contabil */}
-            <div className="w-[130px] sm:w-[150px] flex-shrink-0">
+            <div className="shrink-0">
               <Select
                 value={accountFilter}
                 onValueChange={(val) => {
@@ -798,11 +758,8 @@ export default function NIRList() {
                 }}
               >
                 <SelectTrigger
-                  className={`h-8 w-full rounded-full text-xs font-bold border ${
-                    accountFilter !== "all"
-                      ? "border-emerald-500 bg-emerald-50/70 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-700"
-                      : "border-slate-200 bg-white text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
-                  } hover:bg-slate-50 focus:ring-2 focus:ring-teal-500 shadow-none flex items-center gap-1.5 px-3`}
+                  data-filtered={accountFilter !== "all"}
+                  className="apple-pill-control h-[34px] w-auto shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3"
                 >
                   <Layers className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
                   <SelectValue placeholder="Cont" />
@@ -862,40 +819,9 @@ export default function NIRList() {
             )}
           </div>
 
-          {/* Rând rapid de perioade 1-click & contoare live status / conturi */}
-          <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800/70 flex items-center justify-between gap-2 flex-wrap">
-            <div className="inline-flex items-center p-0.5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] gap-0.5 flex-wrap">
-              {[
-                { id: "today", label: "Azi" },
-                { id: "yesterday", label: "Ieri" },
-                { id: "week", label: "Săpt." },
-                { id: "month", label: "Lună" },
-                { id: "lastMonth", label: "Luna trec." },
-                { id: "year", label: "An" },
-                { id: "all", label: "Toate" },
-              ].map((item) => {
-                const active = period === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => {
-                      setPeriod(item.id);
-                      setPage(1);
-                    }}
-                    className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap ${
-                      active
-                        ? "bg-primary text-white shadow-2xs"
-                        : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="apple-segmented flex-wrap">
+          {/* Rând status rapid 1-click */}
+          <div className="pt-1.5 border-t border-black/[0.05] dark:border-white/[0.07] flex items-center justify-between gap-2 flex-wrap">
+            <div className="apple-segmented max-w-full overflow-x-auto no-scrollbar">
               <button
                 type="button"
                 data-active={statusFilter === "all"}
@@ -903,7 +829,7 @@ export default function NIRList() {
                   setStatusFilter("all");
                   setPage(1);
                 }}
-                className="apple-segmented-item px-2.5 tabular-nums"
+                className="apple-segmented-item px-2.5 tabular-nums shrink-0"
               >
                 Toate {nirList.length}
               </button>
@@ -914,7 +840,7 @@ export default function NIRList() {
                   setStatusFilter(statusFilter === "finalizat" ? "all" : "finalizat");
                   setPage(1);
                 }}
-                className="apple-segmented-item px-2.5 tabular-nums"
+                className="apple-segmented-item px-2.5 tabular-nums shrink-0"
               >
                 Finalizate {statusCounts.finalizat}
               </button>
@@ -925,7 +851,7 @@ export default function NIRList() {
                   setStatusFilter(statusFilter === "draft" ? "all" : "draft");
                   setPage(1);
                 }}
-                className="apple-segmented-item px-2.5 tabular-nums"
+                className="apple-segmented-item px-2.5 tabular-nums shrink-0"
               >
                 Ciorne {statusCounts.draft}
               </button>

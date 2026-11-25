@@ -3,8 +3,8 @@
  * Auth: Basic (email:apiToken) → fetch invoices → download PDF → save to invoiceArchive
  */
 import { createInvoiceArchiveEntry, getDb } from "./db";
-import { integrations, invoiceArchive, clients } from "../drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { integrations, invoiceArchive, clients, tenants } from "../drizzle/schema";
+import { eq, and, sql } from "drizzle-orm";
 import { storagePut } from "./storage";
 
 const SMARTBILL_API = "https://ws.smartbill.ro/SMBWS/api";
@@ -75,21 +75,89 @@ export async function syncSmartBillInvoices(tenantId: number): Promise<{
   let skipped = 0;
   let clientsImported = 0;
 
-  const email = process.env.SMARTBILL_EMAIL;
-  const token = process.env.SMARTBILL_TOKEN;
-  const cif = process.env.SMARTBILL_CIF;
-
-  if (!email || !token || !cif) {
-    throw new Error(
-      "SMARTBILL_EMAIL, SMARTBILL_TOKEN sau SMARTBILL_CIF lipsesc din .env"
-    );
-  }
-
-  const auth = getBasicAuth(email, token);
-
   try {
     const db = await getDb();
     if (!db) throw new Error("DB unavailable");
+
+    const [sbIntg] = await db
+      .select()
+      .from(integrations)
+      .where(
+        and(
+          eq(integrations.tenantId, tenantId),
+          eq(integrations.provider, "smartbill"),
+          eq(integrations.status, "active")
+        )
+      );
+
+    if (!sbIntg) {
+      throw new Error(
+        "Integrarea SmartBill nu este configurată sau este dezactivată pentru această firmă"
+      );
+    }
+
+    let parsedCfg: any = {};
+    for (const raw of [sbIntg.config, sbIntg.apiSecret, sbIntg.apiKey]) {
+      if (!raw) continue;
+      try {
+        const obj = JSON.parse(raw);
+        if (obj && typeof obj === "object") {
+          parsedCfg = { ...parsedCfg, ...obj };
+        }
+      } catch {}
+    }
+
+    let email = String(parsedCfg.email || parsedCfg.username || "").trim();
+    let token = String(
+      parsedCfg.token || parsedCfg.apiToken || parsedCfg.apiKey || parsedCfg.secret || parsedCfg.apiSecret || ""
+    ).trim();
+    const cif = String(parsedCfg.cif || parsedCfg.cui || "").replace(/^RO/i, "").trim();
+
+    if (!token && sbIntg.apiKey && !sbIntg.apiKey.trim().startsWith("{")) {
+      const rawKey = sbIntg.apiKey.trim();
+      if (rawKey.includes(":")) {
+        const idx = rawKey.indexOf(":");
+        if (!email) email = rawKey.slice(0, idx).trim();
+        token = rawKey.slice(idx + 1).trim();
+      } else {
+        token = rawKey;
+      }
+    }
+    if (!token && sbIntg.apiSecret && !sbIntg.apiSecret.trim().startsWith("{")) {
+      token = sbIntg.apiSecret.trim();
+    }
+
+    if (!email || !token || !cif) {
+      throw new Error(
+        "Datele de conectare SmartBill (email, token API sau CIF) lipsesc din configurarea firmei"
+      );
+    }
+
+    const [tenant] = await db
+      .select({ cui: tenants.cui })
+      .from(tenants)
+      .where(eq(tenants.id, tenantId))
+      .limit(1);
+    const cleanTenantCif = String(tenant?.cui || "")
+      .trim()
+      .toUpperCase()
+      .replace(/^RO/i, "")
+      .replace(/[^A-Z0-9]/g, "");
+    const cleanSbCif = String(cif)
+      .trim()
+      .toUpperCase()
+      .replace(/^RO/i, "")
+      .replace(/[^A-Z0-9]/g, "");
+    if (!cleanTenantCif) {
+      throw new Error("CUI-ul firmei nu este configurat în profilul companiei.");
+    }
+    if (cleanSbCif !== cleanTenantCif) {
+      throw new Error(
+        `CIF-ul din integrarea SmartBill (${cif}) nu corespunde cu CUI-ul firmei curente (${tenant?.cui}).`
+      );
+    }
+
+    const auth = getBasicAuth(email, token);
 
     // ── 1. FACTURI EMISE ──────────────────────────────────────────
     console.log("[SmartBill] Fetching emitted invoices...");
@@ -119,6 +187,7 @@ export async function syncSmartBillInvoices(tenantId: number): Promise<{
               and(
                 eq(invoiceArchive.tenantId, tenantId),
                 eq(invoiceArchive.source, "smartbill"),
+                eq(invoiceArchive.direction, "out"),
                 eq(invoiceArchive.invoiceNumber, invoiceNumber)
               )
             );
@@ -223,23 +292,6 @@ export async function syncSmartBillInvoices(tenantId: number): Promise<{
               ""
             );
 
-          // Check duplicate
-          const [existing] = await db
-            .select({ id: invoiceArchive.id })
-            .from(invoiceArchive)
-            .where(
-              and(
-                eq(invoiceArchive.tenantId, tenantId),
-                eq(invoiceArchive.source, "smartbill"),
-                eq(invoiceArchive.direction, "in"),
-                eq(invoiceArchive.invoiceNumber, invoiceNumber)
-              )
-            );
-          if (existing) {
-            skipped++;
-            continue;
-          }
-
           const supplierName =
             inv.supplier?.name || inv.supplierName || inv.client?.name || "";
           const supplierCui =
@@ -247,6 +299,28 @@ export async function syncSmartBillInvoices(tenantId: number): Promise<{
             inv.supplierVatCode ||
             inv.client?.vatCode ||
             "";
+          const normalizedSupCui = String(supplierCui)
+            .trim()
+            .toUpperCase()
+            .replace(/^RO/i, "")
+            .replace(/[^A-Z0-9]/g, "");
+
+          // Check duplicate by (invoiceNumber, normalized supplierCUI)
+          const [existing] = await db
+            .select({ id: invoiceArchive.id })
+            .from(invoiceArchive)
+            .where(
+              and(
+                eq(invoiceArchive.tenantId, tenantId),
+                eq(invoiceArchive.direction, "in"),
+                eq(invoiceArchive.invoiceNumber, invoiceNumber),
+                sql`REPLACE(REPLACE(REPLACE(UPPER(TRIM(COALESCE(${invoiceArchive.supplierCUI}, ''))), 'RO', ''), ' ', ''), '-', '') = ${normalizedSupCui}`
+              )
+            );
+          if (existing) {
+            skipped++;
+            continue;
+          }
 
           await createInvoiceArchiveEntry({
             tenantId,

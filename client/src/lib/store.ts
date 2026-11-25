@@ -693,25 +693,25 @@ export const reInvoiceStatusLabels: Record<ReInvoiceStatus, string> = {
 };
 
 export const invoiceStatusColors: Record<InvoiceStatus, string> = {
-  imported: "bg-blue-50 text-blue-600 border-blue-200",
-  "re-invoiced": "bg-emerald-50 text-emerald-600 border-emerald-200",
-  partial: "bg-amber-50 text-amber-600 border-amber-200",
-  pending: "bg-slate-50 text-slate-500 border-slate-200",
-  storno: "bg-rose-50 text-rose-600 border-rose-200",
+  imported: "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/30",
+  "re-invoiced": "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30",
+  partial: "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30",
+  pending: "bg-slate-50 text-slate-600 border-slate-200 dark:bg-white/[0.08] dark:text-slate-300 dark:border-white/[0.12]",
+  storno: "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30",
 };
 
 export const reInvoiceStatusColors: Record<ReInvoiceStatus, string> = {
-  draft: "bg-slate-50 text-slate-500 border-slate-200",
-  sent: "bg-blue-50 text-blue-600 border-blue-200",
-  paid: "bg-emerald-50 text-emerald-600 border-emerald-200",
-  overdue: "bg-rose-50 text-rose-600 border-rose-200",
+  draft: "bg-slate-50 text-slate-600 border-slate-200 dark:bg-white/[0.08] dark:text-slate-300 dark:border-white/[0.12]",
+  sent: "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/30",
+  paid: "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30",
+  overdue: "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30",
 };
 
 export const sourceColors: Record<IntegrationSource, string> = {
-  SmartBill: "bg-blue-50 text-blue-700 border-blue-200",
-  SPV: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  Oblio: "bg-orange-50 text-orange-700 border-orange-200",
-  Manual: "bg-slate-50 text-slate-600 border-slate-200",
+  SmartBill: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/30",
+  SPV: "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/15 dark:text-indigo-300 dark:border-indigo-500/30",
+  Oblio: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:border-orange-500/30",
+  Manual: "bg-slate-50 text-slate-600 border-slate-200 dark:bg-white/[0.08] dark:text-slate-300 dark:border-white/[0.12]",
 };
 
 export const currencies: Currency[] = ["RON", "EUR", "USD", "GBP", "CHF"];

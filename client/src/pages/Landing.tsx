@@ -538,11 +538,11 @@ export default function Landing() {
             © {new Date().getFullYear()} Factura SPV — Construit cu pasiune pentru antreprenori.
           </p>
           <div className="flex gap-8 text-sm font-medium text-slate-500">
-            <a href="#" className="hover:text-blue-600">
+            <a href="/termeni" className="hover:text-blue-600">
               Termeni & Condiții
             </a>
-            <a href="#" className="hover:text-blue-600">
-              Privacy Policy
+            <a href="/gdpr" className="hover:text-blue-600">
+              Politica de Confidențialitate
             </a>
           </div>
         </div>

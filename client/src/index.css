@@ -50,6 +50,7 @@
 }
 
 :root {
+  color-scheme: light;
   /* Dynamic Tenant Primary Theme System */
   --tenant-theme-color: #16a34a;
   --primary: var(--tenant-theme-color, #16a34a);
@@ -90,6 +91,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   /* Dark Mode — Apple HIG Elevated Surfaces & Accessible Contrast */
   --primary: var(--tenant-theme-color, #16a34a);
   --primary-foreground: #ffffff;
@@ -148,6 +150,29 @@ h3,
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+button,
+a,
+input,
+select,
+textarea,
+summary,
+[role="button"],
+[role="tab"] {
+  touch-action: manipulation;
+}
+
+/* iOS Safari Mobile Auto-Zoom Prevention (font-size >= 16px on < 768px) */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+  select,
+  textarea,
+  input.apple-input,
+  textarea.apple-input,
+  input.apple-pill-control {
+    font-size: 16px !important;
+  }
 }
 
 /* Apple macOS Tahoe Window Ambient Canvas — Gives Liquid Glass subtle light & tint to refract */

@@ -3,12 +3,53 @@ import * as crypto from "crypto";
 import { publicProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "./db";
-import { eq, and, desc, inArray, or, isNotNull, ne, isNull } from "drizzle-orm";
+import { eq, and, desc, or, isNotNull, ne, sql } from "drizzle-orm";
 import * as schema from "../drizzle/schema";
 import { getEffectiveJwtSecret } from "./session";
 
 function getPortalHmacSecret(): string {
   return getEffectiveJwtSecret();
+}
+
+function parseTenantSettingsSafe(raw: unknown): Record<string, any> {
+  if (!raw) return {};
+  if (typeof raw === "object") {
+    return !Array.isArray(raw) ? (raw as Record<string, any>) : {};
+  }
+  try {
+    const parsed = JSON.parse(String(raw));
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+export function computeAccountantCredFingerprint(settingsObj: unknown): string {
+  const s = parseTenantSettingsSafe(settingsObj);
+  const portal =
+    s.accountantPortal &&
+    typeof s.accountantPortal === "object" &&
+    !Array.isArray(s.accountantPortal)
+      ? s.accountantPortal
+      : {};
+  const material = `${String(portal.token || "")}|${String(portal.pinHash || "")}|${
+    s.accessPinEnabled ? String(s.accessPinHash || "") : ""
+  }`;
+  return crypto
+    .createHmac("sha256", getPortalHmacSecret())
+    .update(material)
+    .digest("hex")
+    .slice(0, 16);
+}
+
+function safeTimingEqualHex(aStr: string, bStr: unknown): boolean {
+  if (typeof bStr !== "string" || !aStr || !bStr) return false;
+  const a = Buffer.from(aStr, "utf8");
+  const b = Buffer.from(bStr, "utf8");
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
 }
 
 function formatEmittedDisplayNumber(
@@ -53,16 +94,41 @@ function normPartnerDedupKey(cui?: string | null, name?: string | null): string 
 const PIN_SALT = "_accountant_portal_salt_smart_invoice";
 const ACCESS_PIN_SALT = "_pin_salt_smart_invoice";
 
+function hasPortalPin(portal: any, settings: any): boolean {
+  return Boolean(portal?.pinHash || (settings?.accessPinEnabled && settings?.accessPinHash));
+}
+
 const portalPinRateLimit = new Map<string, { count: number; resetAt: number }>();
 const PORTAL_PIN_MAX_ATTEMPTS = 5;
 const PORTAL_PIN_WINDOW_MS = 60_000;
 
+function prunePortalPinRateLimit(now: number) {
+  for (const [k, v] of Array.from(portalPinRateLimit.entries())) {
+    if (now >= v.resetAt) {
+      portalPinRateLimit.delete(k);
+    }
+  }
+}
+
+function recordFailedPinAttempt(key: string, now: number) {
+  const existing = portalPinRateLimit.get(key);
+  const count = existing && now < existing.resetAt ? existing.count + 1 : 1;
+  const resetAt =
+    existing && now < existing.resetAt
+      ? existing.resetAt
+      : now + PORTAL_PIN_WINDOW_MS;
+  portalPinRateLimit.set(key, { count, resetAt });
+}
+
 /**
- * Emite un session token semnat HMAC valabil 7 zile
+ * Emite un session token semnat HMAC valabil 7 zile, legat de amprenta credențialelor curente
  */
-export function createAccountantSessionToken(tenantId: number): string {
+export function createAccountantSessionToken(
+  tenantId: number,
+  credFp: string = computeAccountantCredFingerprint({})
+): string {
   const expiresAt = Date.now() + 7 * 24 * 3600 * 1000;
-  const payload = `${tenantId}:${expiresAt}`;
+  const payload = `${tenantId}:${expiresAt}:${credFp}`;
   const signature = crypto
     .createHmac("sha256", getPortalHmacSecret())
     .update(payload)
@@ -71,90 +137,132 @@ export function createAccountantSessionToken(tenantId: number): string {
 }
 
 /**
- * Validează un session token semnat HMAC și verifică apartenența la tenantId
+ * Validează un session token semnat HMAC, apartenența la tenantId și amprenta credențialelor
  */
-export function verifyAccountantSessionToken(tenantId: number, tokenStr: string): boolean {
+export function verifyAccountantSessionToken(
+  tenantId: number,
+  tokenStr: string,
+  expectedCredFp?: string
+): boolean {
   try {
-    const [payload, signature] = tokenStr.split(".");
+    if (!tokenStr) return false;
+    const dotParts = tokenStr.split(".");
+    if (dotParts.length !== 2) return false;
+    const [payload, signature] = dotParts;
     if (!payload || !signature) return false;
-
-    const [tIdStr, expStr] = payload.split(":");
-    const tokenTenantId = parseInt(tIdStr, 10);
-    const expiresAt = parseInt(expStr, 10);
-
-    if (tokenTenantId !== tenantId) return false;
-    if (Date.now() > expiresAt) return false;
 
     const expected = crypto
       .createHmac("sha256", getPortalHmacSecret())
       .update(payload)
       .digest("hex");
-    if (signature.length !== expected.length) return false;
-    return crypto.timingSafeEqual(Buffer.from(signature, "utf8"), Buffer.from(expected, "utf8"));
+    if (!safeTimingEqualHex(expected, signature)) return false;
+
+    const parts = payload.split(":");
+    if (parts.length !== 3) return false;
+    const [tIdStr, expStr, tokenCredFp] = parts;
+    const tokenTenantId = parseInt(tIdStr, 10);
+    const expiresAt = parseInt(expStr, 10);
+
+    if (tokenTenantId !== tenantId) return false;
+    if (!Number.isFinite(expiresAt) || Date.now() > expiresAt) return false;
+    if (!tokenCredFp || !/^[0-9a-f]{16}$/.test(tokenCredFp)) return false;
+
+    if (expectedCredFp !== undefined && !safeTimingEqualHex(expectedCredFp, tokenCredFp)) {
+      return false;
+    }
+
+    return true;
   } catch {
     return false;
   }
 }
 
 /**
- * Validează un session token contabil și extrage tenantId-ul garantat
+ * Validează un session token contabil și extrage tenantId-ul + credFp garantate de HMAC
  */
-export function verifyAndExtractAccountantSession(tokenStr: string): { tenantId: number } | null {
+export function verifyAndExtractAccountantSession(
+  tokenStr: string
+): { tenantId: number; credFp: string } | null {
   try {
     if (!tokenStr) return null;
-    const [payload, signature] = tokenStr.split(".");
+    const dotParts = tokenStr.split(".");
+    if (dotParts.length !== 2) return null;
+    const [payload, signature] = dotParts;
     if (!payload || !signature) return null;
-
-    const [tIdStr, expStr] = payload.split(":");
-    const tokenTenantId = parseInt(tIdStr, 10);
-    const expiresAt = parseInt(expStr, 10);
-
-    if (isNaN(tokenTenantId) || tokenTenantId <= 0) return null;
-    if (Date.now() > expiresAt) return null;
 
     const expected = crypto
       .createHmac("sha256", getPortalHmacSecret())
       .update(payload)
       .digest("hex");
-    if (
-      signature.length !== expected.length ||
-      !crypto.timingSafeEqual(Buffer.from(signature, "utf8"), Buffer.from(expected, "utf8"))
-    ) {
+    if (!safeTimingEqualHex(expected, signature)) {
       return null;
     }
 
-    return { tenantId: tokenTenantId };
+    const parts = payload.split(":");
+    if (parts.length !== 3) return null;
+    const [tIdStr, expStr, tokenCredFp] = parts;
+    const tokenTenantId = parseInt(tIdStr, 10);
+    const expiresAt = parseInt(expStr, 10);
+
+    if (isNaN(tokenTenantId) || tokenTenantId <= 0) return null;
+    if (!Number.isFinite(expiresAt) || Date.now() > expiresAt) return null;
+    if (!tokenCredFp || !/^[0-9a-f]{16}$/.test(tokenCredFp)) return null;
+
+    return { tenantId: tokenTenantId, credFp: tokenCredFp };
   } catch {
     return null;
   }
 }
 
 /**
- * Găsește un tenant strict după token-ul criptografic sau slug-ul explicit al portalului
+ * Găsește un tenant strict după token-ul criptografic (prioritar pe toate rândurile)
+ * sau slug-ul explicit al portalului.
  */
 async function findTenantByPortalToken(token: string) {
   const db = await getDb();
   if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Baza de date indisponibilă" });
 
-  const allTenants = await db.select().from(schema.tenants);
   const cleanToken = token.trim().toLowerCase();
-  if (!cleanToken) return null;
+  if (!cleanToken || cleanToken.length > 128 || !/^[a-z0-9._-]+$/.test(cleanToken)) {
+    return null;
+  }
 
-  for (const t of allTenants) {
-    let s: any = {};
-    try {
-      s = JSON.parse(t.settings || "{}");
-    } catch {}
+  const escapedLike = cleanToken.replace(/[\\%]/g, "\\$&");
+  const candidateTenants = await db
+    .select({
+      id: schema.tenants.id,
+      name: schema.tenants.name,
+      cui: schema.tenants.cui,
+      address: schema.tenants.address,
+      settings: schema.tenants.settings,
+    })
+    .from(schema.tenants)
+    .where(sql`LOWER(${schema.tenants.settings}) LIKE ${`%${escapedLike}%`}`);
 
-    const portal = s.accountantPortal || {};
-    const portalToken = (portal.token || "").trim().toLowerCase();
-    const portalSlug = (portal.customSlug || "").trim().toLowerCase();
+  const parsedRows = candidateTenants.map((t) => {
+    const s = parseTenantSettingsSafe(t.settings);
+    const portal =
+      s.accountantPortal &&
+      typeof s.accountantPortal === "object" &&
+      !Array.isArray(s.accountantPortal)
+        ? s.accountantPortal
+        : {};
+    const portalToken = String(portal.token || "").trim().toLowerCase();
+    const portalSlug = String(portal.customSlug || "").trim().toLowerCase();
+    return { tenant: t, settings: s, portal, portalToken, portalSlug };
+  });
 
-    if (portalToken && portalToken === cleanToken) {
-      return { tenant: t, settings: s, portal };
+  // 1. Verificăm întâi potrivirea exactă pe portal.token pe toate rândurile
+  for (const row of parsedRows) {
+    if (row.portalToken && row.portalToken === cleanToken) {
+      return { tenant: row.tenant, settings: row.settings, portal: row.portal };
     }
-    if (Boolean(portal.enabled) === true && portalSlug && portalSlug === cleanToken) {
-      return { tenant: t, settings: s, portal };
+  }
+
+  // 2. Doar dacă niciun portal.token nu s-a potrivit, verificăm customSlug
+  for (const row of parsedRows) {
+    if (Boolean(row.portal.enabled) === true && row.portalSlug && row.portalSlug === cleanToken) {
+      return { tenant: row.tenant, settings: row.settings, portal: row.portal };
     }
   }
 
@@ -187,7 +295,8 @@ export const accountantPortalRouter = router({
         };
       }
 
-      const hasPin = Boolean(portal.pinHash);
+      const hasPin = hasPortalPin(portal, settings);
+      const credFp = computeAccountantCredFingerprint(settings);
 
       return {
         found: true,
@@ -202,7 +311,7 @@ export const accountantPortalRouter = router({
         themeColor: settings.themeColor || "#16a34a",
         defaultViewMode: (portal.defaultViewMode === "modern" ? "modern" : "saga") as "modern" | "saga",
         requiresPin: hasPin,
-        autoSessionToken: isEnabled && !hasPin ? createAccountantSessionToken(tenant.id) : undefined,
+        autoSessionToken: isEnabled && !hasPin ? createAccountantSessionToken(tenant.id, credFp) : undefined,
       };
     }),
 
@@ -217,14 +326,17 @@ export const accountantPortalRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const ip =
-        (ctx.req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
-        ctx.req.socket?.remoteAddress ||
-        "unknown";
-      const rateKey = `${input.token.trim().toLowerCase()}:${ip}`;
       const now = Date.now();
-      const existingRate = portalPinRateLimit.get(rateKey);
-      if (existingRate && now < existingRate.resetAt && existingRate.count >= PORTAL_PIN_MAX_ATTEMPTS) {
+      prunePortalPinRateLimit(now);
+
+      const ip = ctx.req?.socket?.remoteAddress || "unknown";
+      const ipRateKey = `ip:${ip}`;
+      const existingIpRate = portalPinRateLimit.get(ipRateKey);
+      if (
+        existingIpRate &&
+        now < existingIpRate.resetAt &&
+        existingIpRate.count >= PORTAL_PIN_MAX_ATTEMPTS
+      ) {
         throw new TRPCError({
           code: "TOO_MANY_REQUESTS",
           message: "Prea multe încercări eșuate. Te rugăm să aștepți un minut.",
@@ -233,10 +345,24 @@ export const accountantPortalRouter = router({
 
       const match = await findTenantByPortalToken(input.token);
       if (!match) {
+        recordFailedPinAttempt(ipRateKey, now);
         throw new TRPCError({ code: "NOT_FOUND", message: "Portalul nu a fost găsit." });
       }
 
       const { tenant, settings, portal } = match;
+      const tenantRateKey = `tenant:${tenant.id}`;
+      const existingTenantRate = portalPinRateLimit.get(tenantRateKey);
+      if (
+        existingTenantRate &&
+        now < existingTenantRate.resetAt &&
+        existingTenantRate.count >= PORTAL_PIN_MAX_ATTEMPTS
+      ) {
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message: "Prea multe încercări eșuate. Te rugăm să aștepți un minut.",
+        });
+      }
+
       if (Boolean(portal.enabled) !== true) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Portalul contabil este dezactivat de administrator." });
       }
@@ -249,32 +375,33 @@ export const accountantPortalRouter = router({
       // 1. PIN-ul dedicat al contabilei (setat în Setări -> Portal Contabilitate)
       if (portal.pinHash) {
         const computed = crypto.createHash("sha256").update(candidatePin + PIN_SALT).digest("hex");
-        if (computed === portal.pinHash) pinOk = true;
+        if (safeTimingEqualHex(computed, portal.pinHash)) pinOk = true;
       }
 
-      // 2. PIN-ul general al firmei (dacă e configurat pe firmă, merge și acesta)
-      if (!pinOk && settings.accessPinHash) {
+      // 2. PIN-ul general al firmei (dacă e activat pe firmă, merge și acesta)
+      if (!pinOk && settings.accessPinEnabled && settings.accessPinHash) {
         const computedGeneral = crypto.createHash("sha256").update(candidatePin + ACCESS_PIN_SALT).digest("hex");
-        if (computedGeneral === settings.accessPinHash) pinOk = true;
+        if (safeTimingEqualHex(computedGeneral, settings.accessPinHash)) pinOk = true;
       }
 
       // 3. Dacă nu este setat niciun PIN pe portal și nici pe firmă, accesul este permis
-      if (!portal.pinHash && !settings.accessPinHash) {
+      if (!hasPortalPin(portal, settings)) {
         pinOk = true;
       }
 
       if (!pinOk) {
-        const count = existingRate && now < existingRate.resetAt ? existingRate.count + 1 : 1;
-        const resetAt = existingRate && now < existingRate.resetAt ? existingRate.resetAt : now + PORTAL_PIN_WINDOW_MS;
-        portalPinRateLimit.set(rateKey, { count, resetAt });
+        recordFailedPinAttempt(tenantRateKey, now);
+        recordFailedPinAttempt(ipRateKey, now);
         throw new TRPCError({
           code: "UNAUTHORIZED",
           message: "Codul PIN introdus este incorect.",
         });
       }
 
-      portalPinRateLimit.delete(rateKey);
-      const sessionToken = createAccountantSessionToken(tenant.id);
+      portalPinRateLimit.delete(tenantRateKey);
+      portalPinRateLimit.delete(ipRateKey);
+      const credFp = computeAccountantCredFingerprint(settings);
+      const sessionToken = createAccountantSessionToken(tenant.id, credFp);
       return {
         success: true,
         sessionToken,
@@ -297,10 +424,11 @@ export const accountantPortalRouter = router({
       const match = await findTenantByPortalToken(input.token);
       if (!match) return { valid: false };
 
-      const { tenant, portal } = match;
+      const { tenant, settings, portal } = match;
       if (Boolean(portal.enabled) !== true) return { valid: false };
 
-      const valid = verifyAccountantSessionToken(tenant.id, input.sessionToken);
+      const credFp = computeAccountantCredFingerprint(settings);
+      const valid = verifyAccountantSessionToken(tenant.id, input.sessionToken, credFp);
       return {
         valid,
         tenantId: tenant.id,
@@ -332,8 +460,12 @@ export const accountantPortalRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "Portalul contabil este dezactivat." });
       }
 
-      const hasPin = Boolean(portal.pinHash);
-      if (hasPin && !verifyAccountantSessionToken(tenant.id, input.sessionToken)) {
+      const hasPin = hasPortalPin(portal, settings);
+      const credFp = computeAccountantCredFingerprint(settings);
+      if (
+        (hasPin || Boolean(input.sessionToken)) &&
+        !verifyAccountantSessionToken(tenant.id, input.sessionToken, credFp)
+      ) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Sesiune expirată sau neautorizată." });
       }
 
@@ -790,12 +922,16 @@ export const accountantPortalRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Portalul nu a fost găsit." });
       }
 
-      const { tenant, portal } = match;
+      const { tenant, settings, portal } = match;
       if (Boolean(portal.enabled) !== true) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Portalul contabil este dezactivat." });
       }
-      const hasPin = Boolean(portal.pinHash);
-      if (hasPin && !verifyAccountantSessionToken(tenant.id, input.sessionToken)) {
+      const hasPin = hasPortalPin(portal, settings);
+      const credFp = computeAccountantCredFingerprint(settings);
+      if (
+        (hasPin || Boolean(input.sessionToken)) &&
+        !verifyAccountantSessionToken(tenant.id, input.sessionToken, credFp)
+      ) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Sesiune neautorizată." });
       }
 
@@ -824,12 +960,16 @@ export const accountantPortalRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Portalul nu a fost găsit." });
       }
 
-      const { tenant, portal } = match;
+      const { tenant, settings, portal } = match;
       if (Boolean(portal.enabled) !== true) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Portalul contabil este dezactivat." });
       }
-      const hasPin = Boolean(portal.pinHash);
-      if (hasPin && !verifyAccountantSessionToken(tenant.id, input.sessionToken)) {
+      const hasPin = hasPortalPin(portal, settings);
+      const credFp = computeAccountantCredFingerprint(settings);
+      if (
+        (hasPin || Boolean(input.sessionToken)) &&
+        !verifyAccountantSessionToken(tenant.id, input.sessionToken, credFp)
+      ) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Sesiune neautorizată." });
       }
 
@@ -856,12 +996,16 @@ export const accountantPortalRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Portalul nu a fost găsit." });
       }
 
-      const { tenant, portal } = match;
+      const { tenant, settings, portal } = match;
       if (Boolean(portal.enabled) !== true) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Portalul contabil este dezactivat." });
       }
-      const hasPin = Boolean(portal.pinHash);
-      if (hasPin && !verifyAccountantSessionToken(tenant.id, input.sessionToken)) {
+      const hasPin = hasPortalPin(portal, settings);
+      const credFp = computeAccountantCredFingerprint(settings);
+      if (
+        (hasPin || Boolean(input.sessionToken)) &&
+        !verifyAccountantSessionToken(tenant.id, input.sessionToken, credFp)
+      ) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Sesiune expirată sau neautorizată." });
       }
 
@@ -899,6 +1043,7 @@ export const accountantPortalRouter = router({
         docType: z.enum(["received", "emitted"]),
         docId: z.number(),
         nirId: z.number().optional().nullable(),
+        source: z.enum(["emitted", "reinvoice", "spv_out", "archive_out"]).optional(),
       })
     )
     .query(async ({ input }) => {
@@ -907,13 +1052,17 @@ export const accountantPortalRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Portalul nu a fost găsit." });
       }
 
-      const { tenant, portal } = match;
+      const { tenant, settings, portal } = match;
       if (Boolean(portal.enabled) !== true) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Portalul contabil este dezactivat." });
       }
 
-      const hasPin = Boolean(portal.pinHash);
-      if (hasPin && !verifyAccountantSessionToken(tenant.id, input.sessionToken)) {
+      const hasPin = hasPortalPin(portal, settings);
+      const credFp = computeAccountantCredFingerprint(settings);
+      if (
+        (hasPin || Boolean(input.sessionToken)) &&
+        !verifyAccountantSessionToken(tenant.id, input.sessionToken, credFp)
+      ) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Sesiune expirată sau neautorizată." });
       }
 
@@ -1022,156 +1171,175 @@ export const accountantPortalRouter = router({
 
         return [];
       } else {
-        // Facturi emise: verificăm apartenența părintelui la tenant.id pe fiecare ramură
-        const [ownEmitted] = await db
-          .select({ id: schema.emittedInvoices.id })
-          .from(schema.emittedInvoices)
-          .where(
-            and(
-              eq(schema.emittedInvoices.id, input.docId),
-              eq(schema.emittedInvoices.tenantId, tenant.id)
-            )
-          )
-          .limit(1);
+        const round2 = (n: number) => Math.round(n * 100) / 100;
 
-        if (ownEmitted) {
+        const queryEmittedTable = async () => {
+          const [ownEmitted] = await db
+            .select({ id: schema.emittedInvoices.id })
+            .from(schema.emittedInvoices)
+            .where(
+              and(
+                eq(schema.emittedInvoices.id, input.docId),
+                eq(schema.emittedInvoices.tenantId, tenant.id)
+              )
+            )
+            .limit(1);
+          if (!ownEmitted) return null;
           const eLines = await db
             .select()
             .from(schema.emittedInvoiceLines)
             .where(eq(schema.emittedInvoiceLines.emittedInvoiceId, ownEmitted.id))
             .orderBy(schema.emittedInvoiceLines.lineOrder, schema.emittedInvoiceLines.id);
+          return eLines.map((l, idx) => {
+            const qty = parseFloat(String(l.quantity || 0));
+            const price = parseFloat(String(l.unitPrice || 0));
+            const vatPct =
+              l.vatRate !== null && l.vatRate !== undefined && String(l.vatRate).trim() !== ""
+                ? parseFloat(String(l.vatRate))
+                : 21;
+            const val = round2(qty * price);
+            const tvaSum = round2(val * (vatPct / 100));
+            const tot = round2(val + tvaSum);
+            return {
+              lineOrder: idx + 1,
+              type: l.devizType === "MANOPERA" ? "Servicii" : "Marfuri",
+              gestiune: "—",
+              description: l.description,
+              code: String(idx + 1).padStart(8, "0"),
+              unit: (l.unit || "buc").toUpperCase(),
+              quantity: qty,
+              unitPrice: price,
+              valoare: val,
+              vatRate: vatPct,
+              total: tot,
+              tva: tvaSum,
+              nedeductibil: 0,
+              account: l.devizType === "MANOPERA" ? "704" : "707",
+              pretVanzare: price,
+              adaosUnitar: 0,
+              adaosProcent: 0,
+              infoSuplimentare: "",
+            };
+          });
+        };
 
-          if (eLines.length > 0) {
-            return eLines.map((l, idx) => {
-              const qty = parseFloat(String(l.quantity || 0));
-              const price = parseFloat(String(l.unitPrice || 0));
-              const tot = parseFloat(String(l.total || (qty * price)));
-              const vat = parseFloat(String(l.vatRate || 21));
-              const val = Math.round(qty * price * 100) / 100;
-              const tvaSum = Math.round((tot - val) * 100) / 100;
-              return {
-                lineOrder: idx + 1,
-                type: l.devizType === "MANOPERA" ? "Servicii" : "Marfuri",
-                gestiune: "—",
-                description: l.description,
-                code: String(idx + 1).padStart(8, "0"),
-                unit: (l.unit || "buc").toUpperCase(),
-                quantity: qty,
-                unitPrice: price,
-                valoare: val,
-                vatRate: vat,
-                total: tot,
-                tva: tvaSum,
-                nedeductibil: 0,
-                account: l.devizType === "MANOPERA" ? "704" : "707",
-                pretVanzare: price,
-                adaosUnitar: 0,
-                adaosProcent: 0,
-                infoSuplimentare: "",
-              };
-            });
-          }
-        }
-
-        // Verificăm în reInvoices cu filtrare pe tenant.id
-        const [ownReInv] = await db
-          .select({ id: schema.reInvoices.id })
-          .from(schema.reInvoices)
-          .where(
-            and(
-              eq(schema.reInvoices.id, input.docId),
-              eq(schema.reInvoices.tenantId, tenant.id)
+        const queryReInvoiceTable = async () => {
+          const [ownReInv] = await db
+            .select({ id: schema.reInvoices.id })
+            .from(schema.reInvoices)
+            .where(
+              and(
+                eq(schema.reInvoices.id, input.docId),
+                eq(schema.reInvoices.tenantId, tenant.id)
+              )
             )
-          )
-          .limit(1);
-
-        if (ownReInv) {
+            .limit(1);
+          if (!ownReInv) return null;
           const rLines = await db
             .select()
             .from(schema.reInvoiceLines)
             .where(eq(schema.reInvoiceLines.reInvoiceId, ownReInv.id));
+          return rLines.map((l, idx) => {
+            const qty = parseFloat(String(l.quantity || 0));
+            const price = parseFloat(String(l.unitPrice || 0));
+            const vatPct =
+              l.vatRate !== null && l.vatRate !== undefined && String(l.vatRate).trim() !== ""
+                ? parseFloat(String(l.vatRate))
+                : 21;
+            const val = round2(qty * price);
+            const tvaSum = round2(val * (vatPct / 100));
+            const tot = round2(val + tvaSum);
+            return {
+              lineOrder: idx + 1,
+              type: "Servicii",
+              gestiune: "—",
+              description: l.description,
+              code: String(idx + 1).padStart(8, "0"),
+              unit: (l.unit || "buc").toUpperCase(),
+              quantity: qty,
+              unitPrice: price,
+              valoare: val,
+              vatRate: vatPct,
+              total: tot,
+              tva: tvaSum,
+              nedeductibil: 0,
+              account: "704",
+              pretVanzare: price,
+              adaosUnitar: 0,
+              adaosProcent: 0,
+              infoSuplimentare: "",
+            };
+          });
+        };
 
-          if (rLines.length > 0) {
-            return rLines.map((l, idx) => {
-              const qty = parseFloat(String(l.quantity || 0));
-              const price = parseFloat(String(l.unitPrice || 0));
-              const tot = parseFloat(String(l.total || (qty * price)));
-              const vat = parseFloat(String(l.vatRate || 21));
-              const val = Math.round(qty * price * 100) / 100;
-              const tvaSum = Math.round((tot - val) * 100) / 100;
-              return {
-                lineOrder: idx + 1,
-                type: "Servicii",
-                gestiune: "—",
-                description: l.description,
-                code: String(idx + 1).padStart(8, "0"),
-                unit: (l.unit || "buc").toUpperCase(),
-                quantity: qty,
-                unitPrice: price,
-                valoare: val,
-                vatRate: vat,
-                total: tot,
-                tva: tvaSum,
-                nedeductibil: 0,
-                account: "704",
-                pretVanzare: price,
-                adaosUnitar: 0,
-                adaosProcent: 0,
-                infoSuplimentare: "",
-              };
-            });
-          }
-        }
-
-        // Verificăm în invoiceArchiveLines (facturi emise descărcate din SPV ANAF) cu filtrare pe tenant.id
-        const [ownOutArchive] = await db
-          .select({ id: schema.invoiceArchive.id })
-          .from(schema.invoiceArchive)
-          .where(
-            and(
-              eq(schema.invoiceArchive.id, input.docId),
-              eq(schema.invoiceArchive.tenantId, tenant.id)
+        const queryArchiveOutTable = async () => {
+          const [ownOutArchive] = await db
+            .select({ id: schema.invoiceArchive.id })
+            .from(schema.invoiceArchive)
+            .where(
+              and(
+                eq(schema.invoiceArchive.id, input.docId),
+                eq(schema.invoiceArchive.tenantId, tenant.id),
+                eq(schema.invoiceArchive.direction, "out")
+              )
             )
-          )
-          .limit(1);
-
-        if (ownOutArchive) {
+            .limit(1);
+          if (!ownOutArchive) return null;
           const aLines = await db
             .select()
             .from(schema.invoiceArchiveLines)
             .where(eq(schema.invoiceArchiveLines.invoiceArchiveId, ownOutArchive.id));
+          return aLines.map((l, idx) => {
+            const qty = parseFloat(String(l.quantity || 0));
+            const price = parseFloat(String(l.unitPrice || 0));
+            const vatPct =
+              l.vatRate !== null && l.vatRate !== undefined && String(l.vatRate).trim() !== ""
+                ? parseFloat(String(l.vatRate))
+                : 21;
+            const val = qty !== 0 && price !== 0 ? round2(qty * price) : round2(parseFloat(String(l.total || 0)));
+            const tvaSum = round2(val * (vatPct / 100));
+            const tot = round2(val + tvaSum);
+            return {
+              lineOrder: idx + 1,
+              type: "Marfuri",
+              gestiune: "—",
+              description: l.description,
+              code: String(idx + 1).padStart(8, "0"),
+              unit: (l.unit || "buc").toUpperCase(),
+              quantity: qty,
+              unitPrice: price,
+              valoare: val,
+              vatRate: vatPct,
+              total: tot,
+              tva: tvaSum,
+              nedeductibil: 0,
+              account: "707",
+              pretVanzare: price,
+              adaosUnitar: 0,
+              adaosProcent: 0,
+              infoSuplimentare: "",
+            };
+          });
+        };
 
-          if (aLines.length > 0) {
-            return aLines.map((l, idx) => {
-              const qty = parseFloat(String(l.quantity || 0));
-              const price = parseFloat(String(l.unitPrice || 0));
-              const tot = parseFloat(String(l.total || (qty * price)));
-              const vat = parseFloat(String(l.vatRate || 21));
-              const val = Math.round(qty * price * 100) / 100;
-              const tvaSum = Math.round((tot - val) * 100) / 100;
-              return {
-                lineOrder: idx + 1,
-                type: "Marfuri",
-                gestiune: "—",
-                description: l.description,
-                code: String(idx + 1).padStart(8, "0"),
-                unit: (l.unit || "buc").toUpperCase(),
-                quantity: qty,
-                unitPrice: price,
-                valoare: val,
-                vatRate: vat,
-                total: tot,
-                tva: tvaSum,
-                nedeductibil: 0,
-                account: "707",
-                pretVanzare: price,
-                adaosUnitar: 0,
-                adaosProcent: 0,
-                infoSuplimentare: "",
-              };
-            });
-          }
+        if (input.source === "emitted") {
+          return (await queryEmittedTable()) ?? [];
         }
+        if (input.source === "reinvoice") {
+          return (await queryReInvoiceTable()) ?? [];
+        }
+        if (input.source === "spv_out" || input.source === "archive_out") {
+          return (await queryArchiveOutTable()) ?? [];
+        }
+
+        const fromEmitted = await queryEmittedTable();
+        if (fromEmitted && fromEmitted.length > 0) return fromEmitted;
+
+        const fromReInvoice = await queryReInvoiceTable();
+        if (fromReInvoice && fromReInvoice.length > 0) return fromReInvoice;
+
+        const fromArchiveOut = await queryArchiveOutTable();
+        if (fromArchiveOut && fromArchiveOut.length > 0) return fromArchiveOut;
 
         return [];
       }

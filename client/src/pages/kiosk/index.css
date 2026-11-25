@@ -3,7 +3,7 @@
    SMART KIOSK — Global Styles
    ═══════════════════════════════════════════════════════════ */
 
-  :root {
+  & {
     --primary: #ee3b24;
     --primary-dark: #cc2a14;
     --primary-light: #ff5540;

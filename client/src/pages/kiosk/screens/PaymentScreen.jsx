@@ -131,7 +131,7 @@ export default function PaymentScreen() {
             tableNumber: tableNumber ? String(tableNumber) : undefined,
             customerName: "Client Kiosk",
             customerPhone: "",
-            type: orderType === "togo" ? "togo" : "dine_in",
+            type: orderType === "takeaway" || orderType === "togo" ? "takeaway" : "dine_in",
           });
           createdOrderRef.current = order;
         }
@@ -140,10 +140,11 @@ export default function PaymentScreen() {
           const item = cartItems[i];
           await addLine.mutateAsync({
             orderId: order.id,
-            menuItemId: Number(item.productId) || undefined, // Kiosk ids might be string promo
-            quantity: item.quantity,
-            unitPrice: String(item.unitPrice),
-            notes: item.selectedModifiers?.map(m => m.name).join(", ") || "",
+            menuItemId: Number(item.productId) || undefined,
+            name: item.name || "Produs Kiosk",
+            quantity: String(item.quantity || 1),
+            unitPrice: String(item.unitPrice || 0),
+            notes: item.selectedModifiers?.map(m => m.optionName || m.name).filter(Boolean).join(", ") || "",
           });
           addedLinesCountRef.current = i + 1;
         }

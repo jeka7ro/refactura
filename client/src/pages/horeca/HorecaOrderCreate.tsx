@@ -228,24 +228,24 @@ export default function HorecaOrderCreate() {
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full max-w-full overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={() => setLocation("/horeca/comenzi")}
-            className="p-2 text-slate-500 hover:text-slate-900 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-sm rounded-lg transition-colors"
+            className="p-2 text-slate-500 hover:text-slate-900 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-sm rounded-lg transition-colors shrink-0"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <div className="p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
+          <div className="p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg shrink-0">
             <ShoppingBag className="w-6 h-6 text-blue-600 dark:text-blue-400" />
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white truncate">
               Comandă Nouă
             </h1>
-            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">
+            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium tabular-nums">
               {cartCount} produse · {formatCurrency(total, "RON")}
             </p>
           </div>
@@ -255,7 +255,7 @@ export default function HorecaOrderCreate() {
             <select
               value={locationId}
               onChange={e => setSelectedLocationId(Number(e.target.value))}
-              className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-3 py-2 rounded-lg text-sm font-medium focus:outline-none focus:border-blue-500 shadow-sm"
+              className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-3 py-2 rounded-lg text-sm font-medium focus:outline-none focus:border-blue-500 shadow-sm max-w-full"
             >
               {locations.map(l => (
                 <option key={l.id} value={l.id}>
@@ -268,7 +268,7 @@ export default function HorecaOrderCreate() {
       </div>
 
       {/* Tip comandă */}
-      <div className="flex gap-2 mb-4 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 p-1.5 rounded-xl w-fit">
+      <div className="flex flex-wrap sm:flex-nowrap gap-1.5 sm:gap-2 mb-4 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 p-1.5 rounded-xl w-fit max-w-full">
         {TYPE_OPTS.map(opt => (
           <button
             key={opt.value}
@@ -276,7 +276,7 @@ export default function HorecaOrderCreate() {
               setOrderType(opt.value as OrderType);
               setSelectedTableNumber("");
             }}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all shadow-sm ${orderType === opt.value ? `${opt.color} text-white` : "bg-transparent text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white"}`}
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all shadow-sm ${orderType === opt.value ? `${opt.color} text-white` : "bg-transparent text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white"}`}
           >
             <opt.icon className="w-4 h-4" />
             {opt.label}
@@ -285,7 +285,7 @@ export default function HorecaOrderCreate() {
       </div>
 
       {/* Layout principal: Meniu stânga, Coș dreapta */}
-      <div className="flex gap-5 flex-1 overflow-hidden">
+      <div className="flex flex-col lg:flex-row gap-5 flex-1 overflow-y-auto lg:overflow-hidden">
         {/* ── MENIU PANEL (stânga) ─────────────────────────────────── */}
         <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-4">
           {/* Categorii */}
@@ -369,7 +369,7 @@ export default function HorecaOrderCreate() {
         </div>
 
         {/* ── COȘ PANEL (dreapta) ──────────────────────────────────── */}
-        <div className="w-96 flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm flex-shrink-0">
+        <div className="w-full lg:w-96 flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm flex-shrink-0">
           {/* Info comandă */}
           <div className="p-4 border-b border-slate-100 dark:border-slate-800 space-y-3 bg-slate-50/50 dark:bg-slate-800/50">
             <h3 className="text-slate-900 dark:text-white font-bold text-sm uppercase tracking-wider">

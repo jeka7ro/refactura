@@ -793,20 +793,21 @@ export default function InvoiceArchive() {
 
       {/* Meta Edit Modal */}
       {showMetaModal && selectedEntry && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] shadow-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto border border-black/[0.08] dark:border-white/[0.12]">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-              <h2 className="text-base font-semibold text-slate-900">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/65 backdrop-blur-sm overscroll-contain">
+          <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] shadow-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto overscroll-contain border border-black/[0.08] dark:border-white/[0.12]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-white/[0.08]">
+              <h2 className="text-base font-semibold text-slate-900 dark:text-white">
                 Editează Metadate
               </h2>
               <button
                 onClick={() => setShowMetaModal(false)}
-                className="w-7 h-7 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 transition-colors"
+                aria-label="Închide fereastra"
+                className="w-7 h-7 rounded-full border border-slate-200 dark:border-white/[0.15] bg-white dark:bg-[#2c2c2e] text-slate-700 dark:text-slate-200 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-[#3a3a3c] transition-colors"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
-            <div className="p-5 space-y-3">
+            <div className="p-5 space-y-3 [&_label]:dark:text-slate-300">
               <div>
                 <label className="text-xs text-slate-600 mb-1 block">
                   Furnizor
@@ -878,7 +879,7 @@ export default function InvoiceArchive() {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-xs text-slate-600 mb-1 block">
-                    Total (fără TVA)
+                    Total (cu TVA)
                   </label>
                   <Input
                     value={metaForm.total}
@@ -956,7 +957,7 @@ export default function InvoiceArchive() {
                   }
                   placeholder="Note interne..."
                   rows={2}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-white/[0.12] bg-white dark:bg-[#2c2c2e] text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 />
               </div>
             </div>

@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useKioskStore } from "./store/kioskStore";
 import { useInactivityTimeout } from "./hooks/useInactivityTimeout";
-import { getBrand } from "./config/brands.js";
+import { getBrand, applyBrandTheme } from "./config/brands.js";
 import { BrandContext, useBrand } from "./context/BrandContext.js";
 import { io } from "socket.io-client";
 
@@ -112,7 +112,6 @@ export default function App() {
         // Set active brand
         if (brands && brands.length > 0) {
           setActiveBrandId(brands[0]);
-          const { applyBrandTheme } = require("./config/brands.js");
           applyBrandTheme(brands[0]);
         }
 
@@ -525,9 +524,9 @@ export default function App() {
                 right: 0,
                 height: `${bBannerVh}vh`,
                 borderRadius: `${bRadTop ? "24px" : "0"} ${bRadTop ? "24px" : "0"} ${bRadBot ? "24px" : "0"} ${bRadBot ? "24px" : "0"}`,
-                background: locationData.bottomBannerContent.startsWith("http")
+                background: String(locationData?.bottomBannerContent || "").startsWith("http")
                   ? "#000"
-                  : locationData.bottomBannerBg || "#1e293b",
+                  : locationData?.bottomBannerBg || "#1e293b",
                 zIndex: 50,
                 overflow: "hidden",
                 boxShadow: "0 -8px 32px rgba(0,0,0,0.15)",

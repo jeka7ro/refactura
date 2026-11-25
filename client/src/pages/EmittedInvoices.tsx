@@ -600,9 +600,9 @@ export default function EmittedInvoices() {
 
       {/* Single-Row Unified Toolbar (Zero Duplicate Filters, Auto-Width Pills) */}
       <div className="apple-surface px-3 py-2.5">
-        <div className="flex items-center gap-2 w-full min-w-0">
+        <div className="flex flex-wrap xl:flex-nowrap items-center gap-1.5 2xl:gap-2 w-full min-w-0">
           {/* Period Segmented Track */}
-          <div className="apple-segmented shrink-0">
+          <div className="apple-segmented flex-wrap sm:flex-nowrap !rounded-2xl sm:!rounded-full max-w-full shrink-0">
             {[
               { id: "all", label: "Toate" },
               { id: "today", label: "Azi" },
@@ -624,7 +624,7 @@ export default function EmittedInvoices() {
                   }
                   setPage(1);
                 }}
-                className="apple-segmented-item px-2.5"
+                className="apple-segmented-item px-2 2xl:px-2.5 shrink-0"
               >
                 {item.label}
               </button>
@@ -632,7 +632,7 @@ export default function EmittedInvoices() {
           </div>
 
           {period === "custom" && (
-            <div className="inline-flex items-center gap-1 px-2.5 h-[34px] rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] text-xs tabular-nums shrink-0">
+            <div className="inline-flex items-center gap-1 px-2.5 h-[34px] rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] text-xs tabular-nums shrink-0 max-w-full overflow-x-auto no-scrollbar">
               <Calendar className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d]" />
               <input
                 type="date"
@@ -657,7 +657,7 @@ export default function EmittedInvoices() {
           )}
 
           {/* Non-Duplicated Quick Chips (Ciornă / Emise — Încasate & Restanțe sunt pe cardurile KPI) */}
-          <div className="apple-segmented shrink-0">
+          <div className="apple-segmented max-w-full overflow-x-auto no-scrollbar shrink-0">
             {[
               { id: "draft", label: "Ciornă", count: counts.draft },
               { id: "sent", label: "Emise", count: counts.sent },
@@ -670,7 +670,7 @@ export default function EmittedInvoices() {
                   setStatusFilter(statusFilter === st.id ? "all" : st.id);
                   setPage(1);
                 }}
-                className="apple-segmented-item px-2.5 tabular-nums"
+                className="apple-segmented-item px-2 2xl:px-2.5 tabular-nums shrink-0"
               >
                 <span>{st.label}</span>
                 <span className="opacity-75">{st.count}</span>
@@ -679,7 +679,7 @@ export default function EmittedInvoices() {
           </div>
 
           {/* Right Side: Auto-Width SPV Filter + Fluid Search + Reset */}
-          <div className="ml-auto flex items-center gap-2 flex-1 justify-end min-w-0">
+          <div className="xl:ml-auto flex flex-wrap sm:flex-nowrap items-center gap-1.5 2xl:gap-2 w-full xl:w-auto xl:flex-1 justify-end min-w-0">
             <Select
               value={spvFilter}
               onValueChange={val => {
@@ -689,7 +689,7 @@ export default function EmittedInvoices() {
             >
               <SelectTrigger
                 data-filtered={spvFilter !== "all"}
-                className="apple-pill-control h-[34px] w-auto shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3"
+                className="apple-pill-control h-[34px] w-auto shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 2xl:px-3"
               >
                 <Send className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
                 <SelectValue placeholder="Toate SPV" />
@@ -704,7 +704,7 @@ export default function EmittedInvoices() {
               </SelectContent>
             </Select>
 
-            <div className="relative flex-1 min-w-[140px] max-w-[240px]">
+            <div className="relative flex-1 min-w-[115px] max-w-full sm:max-w-[240px]">
               <Search className="w-3.5 h-3.5 text-[#8e8e93] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 style={{ paddingLeft: 34, paddingRight: search ? 72 : 14 }}

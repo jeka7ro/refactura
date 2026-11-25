@@ -841,9 +841,9 @@ export default function AccountantPortal() {
 
   // 5. Spațiul de lucru principal MOD MODERN cu SIDEBAR și PREVIZUALIZARE ÎN MODAL
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex font-sans">
-      {/* SIDEBAR DEDICAT PENTRU CONTABIL */}
-      <aside className="w-56 xl:w-60 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0 min-h-screen sticky top-0 h-screen z-20">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col md:flex-row font-sans">
+      {/* SIDEBAR DEDICAT PENTRU CONTABIL (Desktop) */}
+      <aside className="hidden md:flex w-56 xl:w-60 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-col shrink-0 min-h-screen sticky top-0 h-screen z-20">
         {/* Antet Sidebar */}
         <div className="p-4 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
@@ -954,8 +954,42 @@ export default function AccountantPortal() {
 
       {/* ZONA PRINCIPALĂ DE CONȚINUT */}
       <div className="flex-1 flex flex-col min-w-0">
+        {/* Bara Mobilă (sub md:) */}
+        <div className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-3 py-2.5 flex items-center justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="text-xs font-bold text-slate-900 dark:text-white truncate">{publicInfo.companyName}</div>
+            {publicInfo.cui && <div className="text-[10px] text-slate-500 tabular-nums">CUI: {publicInfo.cui}</div>}
+          </div>
+          <div className="apple-segmented shrink-0">
+            <button
+              type="button"
+              data-active={activeTab === "received"}
+              onClick={() => setActiveTab("received")}
+              className="apple-segmented-item px-2.5 text-xs tabular-nums"
+            >
+              Primite ({incomingCount})
+            </button>
+            <button
+              type="button"
+              data-active={activeTab === "emitted"}
+              onClick={() => setActiveTab("emitted")}
+              className="apple-segmented-item px-2.5 text-xs tabular-nums"
+            >
+              Emise ({emittedCount})
+            </button>
+          </div>
+          <button
+            type="button"
+            aria-label="Închide sesiunea"
+            onClick={handleLockPortal}
+            className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 shrink-0"
+          >
+            <Lock className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
         {/* Antet Pagină */}
-        <header className="sticky top-0 z-10 apple-glass bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 flex items-center justify-between">
+        <header className="sticky top-0 z-10 apple-glass bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-3.5 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <h2 className="text-base font-bold text-slate-900 dark:text-white">
               {activeTab === "received" ? "Facturi Primite & NIR-uri" : "Facturi Emise (Vânzări)"}

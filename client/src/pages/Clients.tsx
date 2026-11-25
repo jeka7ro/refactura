@@ -420,7 +420,7 @@ export default function Clients() {
                   <Building2 className="w-3.5 h-3.5 text-primary" />
                   <span className="text-slate-500 text-[11px]">Companie:</span>
                   <select
-                    value={currentTenant?.id || 4}
+                    value={currentTenant?.id || 1}
                     onChange={(e) => switchTenantMutation.mutate({ tenantId: Number(e.target.value) })}
                     className="bg-transparent font-bold text-xs text-slate-900 dark:text-white focus:outline-none cursor-pointer"
                   >
@@ -470,11 +470,9 @@ export default function Clients() {
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pb-1">
             {/* TOTAL */}
             <div
-              className={`bg-white dark:bg-[#1c1c1e] rounded-2xl border px-3.5 py-2.5 flex items-center justify-between shadow-2xs transition-all hover:shadow-sm cursor-pointer ${
-                filterType === "all" && filterRegime === "all"
-                  ? "border-blue-500/60 ring-1 ring-blue-500/20"
-                  : "border-black/[0.06] dark:border-white/[0.09]"
-              }`}
+              role="button"
+              tabIndex={0}
+              className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] px-3.5 py-2.5 flex items-center justify-between shadow-2xs transition-all hover:shadow-sm cursor-pointer outline-none"
               onClick={() => {
                 setFilterType("all");
                 setFilterRegime("all");

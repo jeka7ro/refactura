@@ -126,7 +126,9 @@ export default function EmailLogs() {
     const total = logs.length;
     const trimise = logs.filter((l) => l.status === "trimis").length;
     const erori = logs.filter((l) => l.status === "eroare").length;
-    const uniqueRecipients = new Set(logs.map((l) => l.recipientEmail.toLowerCase())).size;
+    const uniqueRecipients = new Set(
+      logs.map((l) => String(l.recipientEmail || "").toLowerCase()).filter(Boolean)
+    ).size;
     return { total, trimise, erori, uniqueRecipients };
   }, [logs]);
 
@@ -158,7 +160,7 @@ export default function EmailLogs() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-4 gap-1.5 sm:gap-4 pb-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 pb-2 tabular-nums">
         {[
           {
             label: "Total Emailuri",

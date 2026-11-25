@@ -13,7 +13,8 @@ function ensureDir() {
 
 export async function convertXmlToPdf(
   xmlText: string,
-  fileNameBase: string
+  fileNameBase: string,
+  tenantId?: number
 ): Promise<{ key: string; url: string } | null> {
   try {
     const { XMLParser } = await import("fast-xml-parser");
@@ -74,32 +75,50 @@ export async function convertXmlToPdf(
           String(invoice["cbc:InvoiceTypeCode"] || invoice["InvoiceTypeCode"] || "").trim() === "381"
         );
 
+        const firstNode = (v: any) => (Array.isArray(v) ? v[0] : v);
+        const extractPartyCui = (party: any): string => {
+          if (!party || typeof party !== "object") return "";
+          const taxSchemes = party["cac:PartyTaxScheme"] ?? party["PartyTaxScheme"];
+          const taxArr = Array.isArray(taxSchemes) ? taxSchemes : taxSchemes ? [taxSchemes] : [];
+          for (const ts of taxArr) {
+            const cid = getXmlText(ts?.["cbc:CompanyID"] ?? ts?.["CompanyID"]);
+            if (cid) return cid;
+          }
+          const legalEntities = party["cac:PartyLegalEntity"] ?? party["PartyLegalEntity"];
+          const legArr = Array.isArray(legalEntities) ? legalEntities : legalEntities ? [legalEntities] : [];
+          for (const le of legArr) {
+            const cid = getXmlText(le?.["cbc:CompanyID"] ?? le?.["CompanyID"]);
+            if (cid) return cid;
+          }
+          return "";
+        };
+
         // Supplier
         const supParty =
-          invoice["cac:AccountingSupplierParty"]?.["cac:Party"] || {};
+          invoice["cac:AccountingSupplierParty"]?.["cac:Party"] ||
+          invoice["AccountingSupplierParty"]?.["Party"] ||
+          {};
+        const supLegal = firstNode(supParty["cac:PartyLegalEntity"] ?? supParty["PartyLegalEntity"]);
         const supName =
-          getXmlText(supParty["cac:PartyName"]?.["cbc:Name"]) ||
-          getXmlText(supParty["cac:PartyLegalEntity"]?.["cbc:RegistrationName"]) ||
+          getXmlText(firstNode(supParty["cac:PartyName"] ?? supParty["PartyName"])?.["cbc:Name"] ?? firstNode(supParty["cac:PartyName"] ?? supParty["PartyName"])?.["Name"]) ||
+          getXmlText(supLegal?.["cbc:RegistrationName"] ?? supLegal?.["RegistrationName"]) ||
           "";
-        const supCUI =
-          getXmlText(supParty["cac:PartyTaxScheme"]?.["cbc:CompanyID"]) ||
-          getXmlText(supParty["cac:PartyLegalEntity"]?.["cbc:CompanyID"]) ||
-          "";
+        const supCUI = extractPartyCui(supParty);
         const supAddress =
-          getXmlText(supParty["cac:PostalAddress"]?.["cbc:StreetName"]) || "";
-        const supCity = getXmlText(supParty["cac:PostalAddress"]?.["cbc:CityName"]) || "";
+          getXmlText((supParty["cac:PostalAddress"] ?? supParty["PostalAddress"])?.["cbc:StreetName"] ?? (supParty["cac:PostalAddress"] ?? supParty["PostalAddress"])?.["StreetName"]) || "";
+        const supCity = getXmlText((supParty["cac:PostalAddress"] ?? supParty["PostalAddress"])?.["cbc:CityName"] ?? (supParty["cac:PostalAddress"] ?? supParty["PostalAddress"])?.["CityName"]) || "";
 
         // Customer
         const cusParty =
-          invoice["cac:AccountingCustomerParty"]?.["cac:Party"] || {};
+          invoice["cac:AccountingCustomerParty"]?.["cac:Party"] ||
+          invoice["AccountingCustomerParty"]?.["Party"] ||
+          {};
+        const cusLegal = firstNode(cusParty["cac:PartyLegalEntity"] ?? cusParty["PartyLegalEntity"]);
         const cusName =
-          getXmlText(cusParty["cac:PartyName"]?.["cbc:Name"]) ||
-          getXmlText(cusParty["cac:PartyLegalEntity"]?.["cbc:RegistrationName"]) ||
+          getXmlText(firstNode(cusParty["cac:PartyName"] ?? cusParty["PartyName"])?.["cbc:Name"] ?? firstNode(cusParty["cac:PartyName"] ?? cusParty["PartyName"])?.["Name"]) ||
+          getXmlText(cusLegal?.["cbc:RegistrationName"] ?? cusLegal?.["RegistrationName"]) ||
           "";
-        const cusCUI =
-          getXmlText(cusParty["cac:PartyTaxScheme"]?.["cbc:CompanyID"]) ||
-          getXmlText(cusParty["cac:PartyLegalEntity"]?.["cbc:CompanyID"]) ||
-          "";
+        const cusCUI = extractPartyCui(cusParty);
         const cusAddress =
           getXmlText(cusParty["cac:PostalAddress"]?.["cbc:StreetName"]) || "";
         const cusCity = getXmlText(cusParty["cac:PostalAddress"]?.["cbc:CityName"]) || "";
@@ -234,6 +253,7 @@ export async function convertXmlToPdf(
         }
 
         const data: any = {
+          tenantId: tenantId && tenantId > 0 ? tenantId : undefined,
           number: invNumber,
           date: issueDate,
           dueDate: dueDate,
@@ -278,11 +298,17 @@ export async function convertXmlToPdf(
       }
     });
 
+    const cleanBase = fileNameBase.replace(/[^a-zA-Z0-9_-]/g, "_");
+    const scopedFileName =
+      tenantId && tenantId > 0
+        ? `t${tenantId}-${Date.now()}_${cleanBase}.pdf`
+        : `${cleanBase}.pdf`;
+
     // Try Forge storage first
     try {
       const { storagePut } = await import("./storage");
       const result = await storagePut(
-        `invoices/${fileNameBase}.pdf`,
+        `invoices/${scopedFileName}`,
         pdfBuffer,
         "application/pdf"
       );
@@ -294,7 +320,7 @@ export async function convertXmlToPdf(
 
     // Local file storage fallback
     ensureDir();
-    const fileName = `${fileNameBase.replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`;
+    const fileName = scopedFileName;
     const filePath = path.join(UPLOAD_DIR, fileName);
     fs.writeFileSync(filePath, pdfBuffer);
 

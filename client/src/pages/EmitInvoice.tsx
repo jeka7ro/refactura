@@ -239,15 +239,10 @@ export default function EmitInvoice() {
   const [rawQrData, setRawQrData] = useState<any>(null);
 
   const qrTenantsList = useMemo(() => {
-    if (qrTenantsData && Array.isArray(qrTenantsData) && qrTenantsData.length > 0) {
+    if (qrTenantsData && Array.isArray(qrTenantsData)) {
       return qrTenantsData;
     }
-    return [
-      { id: 2, nume: "Unda", subdomain: "unda", active_employees_count: 49 },
-      { id: 1, nume: "Roll Master", subdomain: "rollmaster", active_employees_count: 2 },
-      { id: 3, nume: "Sushi Han", subdomain: "sushihan", active_employees_count: 0 },
-      { id: 4, nume: "GetApp Smart QR", subdomain: "smartqr", active_employees_count: 20 },
-    ];
+    return [];
   }, [qrTenantsData]);
 
   // Lines
@@ -2511,25 +2506,29 @@ export default function EmitInvoice() {
               )}
             </div>
 
-            <span className="hidden sm:inline-block w-px h-4 bg-slate-200 dark:bg-slate-700" />
+            {tenant?.id === 1 && (
+              <>
+                <span className="hidden sm:inline-block w-px h-4 bg-slate-200 dark:bg-slate-700" />
 
-            {/* Toggle Preluare Deviz Smart QR */}
-            <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap">
-              <QrCode className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap flex items-center gap-1.5">
-                Preluare Deviz Smart QR
-                {loadingQrPontaj && <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />}
-              </span>
-              <Switch
-                checked={isQrPontajActive}
-                onCheckedChange={handleToggleQrPontaj}
-                disabled={loadingQrPontaj}
-              />
-            </label>
+                {/* Toggle Preluare Deviz Smart QR — strict Tenant 1 */}
+                <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap">
+                  <QrCode className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap flex items-center gap-1.5">
+                    Preluare Deviz Smart QR
+                    {loadingQrPontaj && <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />}
+                  </span>
+                  <Switch
+                    checked={isQrPontajActive}
+                    onCheckedChange={handleToggleQrPontaj}
+                    disabled={loadingQrPontaj}
+                  />
+                </label>
+              </>
+            )}
           </div>
 
           {/* Sub-bar Parametri Smart QR (Afișat pe rând dedicat când comutatorul este activ) */}
-          {isQrPontajActive && (
+          {tenant?.id === 1 && isQrPontajActive && (
             <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 flex-wrap text-xs">
               <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-blue-100/70 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 font-bold text-[11px] shrink-0">
                 <QrCode className="w-3 h-3 text-blue-600" />

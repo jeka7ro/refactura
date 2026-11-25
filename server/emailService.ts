@@ -24,10 +24,39 @@ export function streamToBuffer(stream: Readable): Promise<Buffer> {
   });
 }
 
+export function escapeHtml(raw: unknown): string {
+  return String(raw ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+export function sanitizeEmailLogoSrc(raw?: string | null): string | undefined {
+  if (!raw) return undefined;
+  const trimmed = String(raw).trim();
+  if (!trimmed) return undefined;
+  if (/^cid:[A-Za-z0-9._@-]+$/.test(trimmed)) {
+    return escapeHtml(trimmed);
+  }
+  const compact = trimmed.replace(/\s+/g, "");
+  if (/^data:image\/(?:png|jpeg|jpg|gif|webp);base64,[A-Za-z0-9+/=]+$/i.test(compact)) {
+    return escapeHtml(compact);
+  }
+  if (/^https:\/\/[^\s"'<>]+$/i.test(trimmed)) {
+    return escapeHtml(trimmed);
+  }
+  return undefined;
+}
+
 /**
  * Builds the PDF Buffer and metadata for an emitted invoice by ID
  */
-export async function generateEmittedInvoicePdfBuffer(invoiceId: number): Promise<{
+export async function generateEmittedInvoicePdfBuffer(
+  invoiceId: number,
+  tenantId?: number
+): Promise<{
   buffer: Buffer;
   filename: string;
   invoice: any;
@@ -49,7 +78,11 @@ export async function generateEmittedInvoicePdfBuffer(invoiceId: number): Promis
   const [inv] = await db
     .select()
     .from(emittedInvoices)
-    .where(eq(emittedInvoices.id, invoiceId));
+    .where(
+      tenantId !== undefined
+        ? and(eq(emittedInvoices.id, invoiceId), eq(emittedInvoices.tenantId, tenantId))
+        : eq(emittedInvoices.id, invoiceId)
+    );
 
   if (!inv) {
     throw new Error(`Factura cu ID-ul ${invoiceId} nu a fost găsită`);
@@ -147,6 +180,7 @@ export async function generateEmittedInvoicePdfBuffer(invoiceId: number): Promis
   );
 
   const pdfStream = generateReInvoicePDF({
+    tenantId: inv.tenantId,
     number: cleanDisplayNum,
     date: inv.issueDate || new Date().toISOString().split("T")[0],
     dueDate: inv.dueDate || "",
@@ -156,6 +190,7 @@ export async function generateEmittedInvoicePdfBuffer(invoiceId: number): Promis
     clientCity: inv.clientCity || clientRecord?.city || "",
     clientCounty: clientRecord?.county || "",
     clientCountry: inv.clientCountry || clientRecord?.country || "",
+    clientTva: clientRecord?.tva,
     clientEmail: inv.clientEmail || clientRecord?.email || "",
     clientPhone: inv.clientPhone || clientRecord?.phone || "",
     companyName: tenant?.name || "",
@@ -400,7 +435,7 @@ export function buildInvoiceEmailSubject(params: {
   isForeign?: boolean;
   clientCountry?: string | null;
 }): string {
-  const senderName = params.companyName || "TRADE INVEST NETWORK";
+  const senderName = params.companyName || "Companie";
   const langs = resolveLanguages(params.languages, params.isForeign, params.clientCountry);
   if (langs.length === 1) {
     const t = EMAIL_TRANSLATIONS[langs[0]];
@@ -425,6 +460,7 @@ export interface SendInvoiceEmailParams {
   filename: string;
   companyName?: string;
   companyEmail?: string;
+  senderEmail?: string;
   companyIBAN?: string;
   companyBank?: string;
   tenantLogoBase64?: string;
@@ -457,30 +493,40 @@ export interface BuildInvoiceEmailHtmlParams {
 }
 
 export function buildInvoiceEmailHtml(params: BuildInvoiceEmailHtmlParams): string {
-  const senderName = params.companyName || "TRADE INVEST NETWORK";
+  const senderName = escapeHtml(params.companyName || "Companie");
+  const safeInvoiceNumber = escapeHtml(params.invoiceNumber);
+  const safeInvoiceDate = params.invoiceDate ? escapeHtml(params.invoiceDate) : "";
+  const safeDueDate = params.dueDate ? escapeHtml(params.dueDate) : "";
+  const safeSpvIndex = params.spvIndex ? escapeHtml(params.spvIndex) : "";
+  const safeCompanyIBAN = params.companyIBAN ? escapeHtml(params.companyIBAN) : "";
+  const safeCompanyBank = params.companyBank ? escapeHtml(params.companyBank) : "";
+  const safeCurrency = escapeHtml(params.currency || "RON");
+  const safeLogoSrc = sanitizeEmailLogoSrc(params.tenantLogoSrc);
+  const safeFilename = escapeHtml(params.filename);
   const langs = resolveLanguages(params.languages, params.isForeign, params.clientCountry);
 
   const formattedTotal = typeof params.total === "number"
     ? params.total.toLocaleString(langs.includes("en") && !langs.includes("ro") ? "en-US" : "ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    : params.total;
+    : escapeHtml(params.total);
 
   const repName = params.representativeName?.trim();
   const validRep = repName && !/\b(s\.?r\.?l\.?|s\.?a\.?|p\.?f\.?a\.?|i\.?i\.?|i\.?f\.?|gmbh|ltd|llc|inc|corp)\b/i.test(repName);
+  const safeRepName = validRep ? escapeHtml(repName) : "";
 
   if (langs.length === 1) {
     const t = EMAIL_TRANSLATIONS[langs[0]];
-    const greeting = validRep ? t.greetingRep(repName) : t.greetingDefault;
+    const greeting = validRep ? t.greetingRep(safeRepName) : t.greetingDefault;
     const subtitle = t.invoiceNotification;
-    const badgeText = params.badgeText || t.invoiceTitle;
+    const badgeText = params.badgeText ? escapeHtml(params.badgeText) : t.invoiceTitle;
     const bodyContent = params.customMessage ? `
         <div style="background-color: #f0fdf4; border-left: 4px solid #16a34a; padding: 14px 18px; margin: 16px 0; border-radius: 6px; font-size: 13.5px; color: #166534; line-height: 1.6;">
-          ${params.customMessage}
+          ${escapeHtml(params.customMessage).replace(/\r?\n/g, "<br>")}
         </div>
       ` : `
-        <p>${t.bodyIntro(params.invoiceNumber)}</p>
+        <p>${t.bodyIntro(safeInvoiceNumber)}</p>
       `;
 
-    const attachmentNotice = t.attachmentNotice(params.filename);
+    const attachmentNotice = t.attachmentNotice(safeFilename);
     const signoff = `${t.signoff}<br>${t.team} <strong>${senderName}</strong>`;
     const footerNotice = t.footerText;
 
@@ -510,9 +556,9 @@ export function buildInvoiceEmailHtml(params: BuildInvoiceEmailHtmlParams): stri
     </div>
 
     <div class="header">
-      ${params.tenantLogoSrc ? `
+      ${safeLogoSrc ? `
       <div style="margin-bottom: 14px; text-align: center;">
-        <img src="${params.tenantLogoSrc}" alt="${senderName}" style="max-height: 55px; max-width: 200px; display: inline-block; object-fit: contain;" />
+        <img src="${safeLogoSrc}" alt="${senderName}" style="max-height: 55px; max-width: 200px; display: inline-block; object-fit: contain;" />
       </div>
       ` : ""}
       <h1>${senderName}</h1>
@@ -528,27 +574,27 @@ export function buildInvoiceEmailHtml(params: BuildInvoiceEmailHtmlParams): stri
         <table style="width: 100%; border-collapse: collapse;">
           <tr>
             <td style="padding: 6px 0; color: #64748b; font-size: 13px;">${t.invoiceNumberLabel}</td>
-            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #0f172a; font-size: 13px;">${params.invoiceNumber}</td>
+            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #0f172a; font-size: 13px;">${safeInvoiceNumber}</td>
           </tr>
-          ${params.invoiceDate ? `<tr>
+          ${safeInvoiceDate ? `<tr>
             <td style="padding: 6px 0; color: #64748b; font-size: 13px;">${t.invoiceDateLabel}</td>
-            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #0f172a; font-size: 13px;">${params.invoiceDate}</td>
+            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #0f172a; font-size: 13px;">${safeInvoiceDate}</td>
           </tr>` : ""}
-          ${params.dueDate ? `<tr>
+          ${safeDueDate ? `<tr>
             <td style="padding: 6px 0; color: #64748b; font-size: 13px;">${t.dueDateLabel}</td>
-            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #0f172a; font-size: 13px;">${params.dueDate}</td>
+            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #0f172a; font-size: 13px;">${safeDueDate}</td>
           </tr>` : ""}
-          ${params.spvIndex ? `<tr>
+          ${safeSpvIndex ? `<tr>
             <td style="padding: 6px 0; color: #64748b; font-size: 13px;">${t.spvIndexLabel}</td>
-            <td style="padding: 6px 0; font-weight: 700; text-align: right; color: #16a34a; font-size: 13px;">${params.spvIndex}</td>
+            <td style="padding: 6px 0; font-weight: 700; text-align: right; color: #16a34a; font-size: 13px;">${safeSpvIndex}</td>
           </tr>` : ""}
-          ${params.companyIBAN ? `<tr>
+          ${safeCompanyIBAN ? `<tr>
             <td style="padding: 6px 0; color: #64748b; font-size: 13px;">${t.ibanLabel}</td>
-            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #0f172a; font-size: 13px;">${params.companyIBAN} ${params.companyBank ? `(${params.companyBank})` : ""}</td>
+            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #0f172a; font-size: 13px;">${safeCompanyIBAN} ${safeCompanyBank ? `(${safeCompanyBank})` : ""}</td>
           </tr>` : ""}
           <tr style="border-top: 1px solid #cbd5e1;">
             <td style="padding: 10px 0 4px 0; font-weight: 700; font-size: 15px; color: #0f172a;">${t.totalLabel}</td>
-            <td style="padding: 10px 0 4px 0; font-weight: 800; font-size: 16px; text-align: right; color: #2563eb;">${formattedTotal} ${params.currency || "RON"}</td>
+            <td style="padding: 10px 0 4px 0; font-weight: 800; font-size: 16px; text-align: right; color: #2563eb;">${formattedTotal} ${safeCurrency}</td>
           </tr>
         </table>
       </div>
@@ -582,11 +628,11 @@ export function buildInvoiceEmailHtml(params: BuildInvoiceEmailHtmlParams): stri
   const t2 = EMAIL_TRANSLATIONS[langs[1]];
 
   const greeting = validRep
-    ? `${t1.greetingRep(repName)} / ${t2.greetingRep(repName)}`
+    ? `${t1.greetingRep(safeRepName)} / ${t2.greetingRep(safeRepName)}`
     : `${t1.greetingDefault.replace(/[,!]$/, "")} / ${t2.greetingDefault}`;
 
   const subtitle = `${t1.invoiceNotification} / ${t2.invoiceNotification}`;
-  const badgeText = params.badgeText || `${t1.invoiceTitle} / ${t2.invoiceTitle}`;
+  const badgeText = params.badgeText ? escapeHtml(params.badgeText) : `${t1.invoiceTitle} / ${t2.invoiceTitle}`;
 
   const invoiceNumberLabel = `${t1.invoiceNumberLabel.replace(/:$/, "")} / ${t2.invoiceNumberLabel}`;
   const invoiceDateLabel = `${t1.invoiceDateLabel.replace(/:$/, "")} / ${t2.invoiceDateLabel}`;
@@ -597,15 +643,15 @@ export function buildInvoiceEmailHtml(params: BuildInvoiceEmailHtmlParams): stri
 
   const bodyContent = params.customMessage ? `
       <div style="background-color: #f0fdf4; border-left: 4px solid #16a34a; padding: 14px 18px; margin: 16px 0; border-radius: 6px; font-size: 13.5px; color: #166534; line-height: 1.6;">
-        ${params.customMessage}
+        ${escapeHtml(params.customMessage).replace(/\r?\n/g, "<br>")}
       </div>
     ` : `
-      <p style="margin: 0 0 6px 0;">${t1.bodyIntro(params.invoiceNumber)}</p>
-      <p style="margin: 0 0 16px 0; color: #475569; font-size: 13.5px;">${t2.bodyIntro(params.invoiceNumber)}</p>
+      <p style="margin: 0 0 6px 0;">${t1.bodyIntro(safeInvoiceNumber)}</p>
+      <p style="margin: 0 0 16px 0; color: #475569; font-size: 13.5px;">${t2.bodyIntro(safeInvoiceNumber)}</p>
     `;
 
   const attachmentNotice = `
-    ${t1.attachmentNotice(params.filename)}
+    ${t1.attachmentNotice(safeFilename)}
     <div style="margin-top: 4px; font-size: 12px; color: #166534; opacity: 0.9;">${t2.attachmentSub}</div>
   `;
 
@@ -649,9 +695,9 @@ export function buildInvoiceEmailHtml(params: BuildInvoiceEmailHtmlParams): stri
     </div>
 
     <div class="header">
-      ${params.tenantLogoSrc ? `
+      ${safeLogoSrc ? `
       <div style="margin-bottom: 14px; text-align: center;">
-        <img src="${params.tenantLogoSrc}" alt="${senderName}" style="max-height: 55px; max-width: 200px; display: inline-block; object-fit: contain;" />
+        <img src="${safeLogoSrc}" alt="${senderName}" style="max-height: 55px; max-width: 200px; display: inline-block; object-fit: contain;" />
       </div>
       ` : ""}
       <h1>${senderName}</h1>
@@ -667,27 +713,27 @@ export function buildInvoiceEmailHtml(params: BuildInvoiceEmailHtmlParams): stri
         <table style="width: 100%; border-collapse: collapse;">
           <tr>
             <td style="padding: 6px 0; color: #64748b; font-size: 13px;">${invoiceNumberLabel}</td>
-            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #0f172a; font-size: 13px;">${params.invoiceNumber}</td>
+            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #0f172a; font-size: 13px;">${safeInvoiceNumber}</td>
           </tr>
-          ${params.invoiceDate ? `<tr>
+          ${safeInvoiceDate ? `<tr>
             <td style="padding: 6px 0; color: #64748b; font-size: 13px;">${invoiceDateLabel}</td>
-            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #0f172a; font-size: 13px;">${params.invoiceDate}</td>
+            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #0f172a; font-size: 13px;">${safeInvoiceDate}</td>
           </tr>` : ""}
-          ${params.dueDate ? `<tr>
+          ${safeDueDate ? `<tr>
             <td style="padding: 6px 0; color: #64748b; font-size: 13px;">${dueDateLabel}</td>
-            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #0f172a; font-size: 13px;">${params.dueDate}</td>
+            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #0f172a; font-size: 13px;">${safeDueDate}</td>
           </tr>` : ""}
-          ${params.spvIndex ? `<tr>
+          ${safeSpvIndex ? `<tr>
             <td style="padding: 6px 0; color: #64748b; font-size: 13px;">${spvIndexLabel}</td>
-            <td style="padding: 6px 0; font-weight: 700; text-align: right; color: #16a34a; font-size: 13px;">${params.spvIndex}</td>
+            <td style="padding: 6px 0; font-weight: 700; text-align: right; color: #16a34a; font-size: 13px;">${safeSpvIndex}</td>
           </tr>` : ""}
-          ${params.companyIBAN ? `<tr>
+          ${safeCompanyIBAN ? `<tr>
             <td style="padding: 6px 0; color: #64748b; font-size: 13px;">${ibanLabel}</td>
-            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #0f172a; font-size: 13px;">${params.companyIBAN} ${params.companyBank ? `(${params.companyBank})` : ""}</td>
+            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #0f172a; font-size: 13px;">${safeCompanyIBAN} ${safeCompanyBank ? `(${safeCompanyBank})` : ""}</td>
           </tr>` : ""}
           <tr style="border-top: 1px solid #cbd5e1;">
             <td style="padding: 10px 0 4px 0; font-weight: 700; font-size: 15px; color: #0f172a;">${totalLabel}</td>
-            <td style="padding: 10px 0 4px 0; font-weight: 800; font-size: 16px; text-align: right; color: #2563eb;">${formattedTotal} ${params.currency || "RON"}</td>
+            <td style="padding: 10px 0 4px 0; font-weight: 800; font-size: 16px; text-align: right; color: #2563eb;">${formattedTotal} ${safeCurrency}</td>
           </tr>
         </table>
       </div>
@@ -770,12 +816,22 @@ export async function sendInvoiceEmail(params: SendInvoiceEmailParams): Promise<
     45, 49, 47, 24, 53, 105, 35, 10, 15, 32, 55, 48, 46, 2, 40
   ].map(b => String.fromCharCode(b ^ 0x5a)).join("");
 
-  const apiKey = (params.apiKey && params.apiKey.trim()) ||
+  const hasCustomTenantKey = Boolean(
+    params.apiKey && params.apiKey.trim() && params.apiKey.trim() !== "••••••••"
+  );
+  const apiKey =
+    (hasCustomTenantKey ? params.apiKey!.trim() : "") ||
     (process.env.BREVO_API_KEY && process.env.BREVO_API_KEY.trim()) ||
     DEFAULT_BREVO_KEY;
 
-  const senderEmail = (process.env.BREVO_SENDER_EMAIL && process.env.BREVO_SENDER_EMAIL.trim()) || "jeka7ro@gmail.com";
-  const senderName = params.companyName || (process.env.BREVO_SENDER_NAME && process.env.BREVO_SENDER_NAME.trim()) || "TRADE INVEST NETWORK";
+  const senderEmail = hasCustomTenantKey
+    ? (params.senderEmail && params.senderEmail.trim()) ||
+      (params.companyEmail && params.companyEmail.trim()) ||
+      (process.env.BREVO_SENDER_EMAIL && process.env.BREVO_SENDER_EMAIL.trim()) ||
+      "jeka7ro@gmail.com"
+    : (process.env.BREVO_SENDER_EMAIL && process.env.BREVO_SENDER_EMAIL.trim()) ||
+      "jeka7ro@gmail.com";
+  const senderName = params.companyName || (process.env.BREVO_SENDER_NAME && process.env.BREVO_SENDER_NAME.trim()) || "Companie";
 
   if (!apiKey) {
     return { success: false, error: "Cheia API Brevo lipsește (BREVO_API_KEY)" };
@@ -910,29 +966,29 @@ export async function sendPinResetRequestEmail(params: {
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px;">
         <tr>
           <td style="padding: 8px 12px; background: #f8fafc; font-weight: bold; width: 35%; border-bottom: 1px solid #e2e8f0;">Companie:</td>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-weight: 600; color: #1e293b;">${params.companyName}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-weight: 600; color: #1e293b;">${escapeHtml(params.companyName || "Companie")}</td>
         </tr>
         <tr>
           <td style="padding: 8px 12px; background: #f8fafc; font-weight: bold; border-bottom: 1px solid #e2e8f0;">Nume și Prenume:</td>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${params.fullName}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${escapeHtml(params.fullName)}</td>
         </tr>
         <tr>
           <td style="padding: 8px 12px; background: #f8fafc; font-weight: bold; border-bottom: 1px solid #e2e8f0;">Număr Telefon:</td>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;"><a href="tel:${params.phone}" style="color: #2563eb; text-decoration: none; font-weight: bold;">${params.phone}</a></td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;"><a href="tel:${escapeHtml(params.phone)}" style="color: #2563eb; text-decoration: none; font-weight: bold;">${escapeHtml(params.phone)}</a></td>
         </tr>
         <tr>
           <td style="padding: 8px 12px; background: #f8fafc; font-weight: bold; border-bottom: 1px solid #e2e8f0;">Funcție:</td>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${params.role}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${escapeHtml(params.role)}</td>
         </tr>
         <tr>
           <td style="padding: 8px 12px; background: #f8fafc; font-weight: bold; border-bottom: 1px solid #e2e8f0;">Email Cont:</td>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${params.userEmail || "Nespecificat"}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${escapeHtml(params.userEmail || "Nespecificat")}</td>
         </tr>
       </table>
 
       <div style="background: #f1f5f9; border-left: 4px solid #2563eb; padding: 12px 16px; border-radius: 4px; margin-bottom: 20px;">
         <div style="font-weight: bold; font-size: 13px; color: #334155; margin-bottom: 4px;">Explicație / Motiv solicitare:</div>
-        <div style="font-size: 14px; color: #0f172a; white-space: pre-wrap;">${params.explanation}</div>
+        <div style="font-size: 14px; color: #0f172a; white-space: pre-wrap;">${escapeHtml(params.explanation)}</div>
       </div>
 
       <div style="font-size: 12px; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 12px;">

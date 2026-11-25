@@ -12,16 +12,101 @@ const ANAF_DOWNLOAD_URL = "https://api.anaf.ro/prod/FCTEL/rest/descarcare";
 
 // Parserul folosește removeNSPrefix, deci cheile sunt fără prefix (cbc:/cac:). Acceptam ambele variante.
 const xmlPick = (o: any, k: string) => o?.[k] ?? o?.["cbc:" + k] ?? o?.["cac:" + k];
+const xmlText = (v: any): string =>
+  (v && typeof v === "object" ? String(v["#text"] ?? "") : String(v ?? "")).trim();
+
+const activeTenantSpvSyncs = new Set<number>();
+
+function normalizeSpvCif(raw: any): string {
+  return String(raw ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/^RO/i, "")
+    .replace(/[^A-Z0-9]/g, "");
+}
+
+function extractUblPartyCifs(partyWrapper: any): string[] {
+  const party = xmlPick(partyWrapper, "Party") ?? partyWrapper;
+  if (!party || typeof party !== "object") return [];
+  const cifs = new Set<string>();
+  const taxSchemes = xmlPick(party, "PartyTaxScheme");
+  const taxArr = Array.isArray(taxSchemes) ? taxSchemes : taxSchemes ? [taxSchemes] : [];
+  for (const ts of taxArr) {
+    const c = normalizeSpvCif(xmlText(xmlPick(ts, "CompanyID")));
+    if (c) cifs.add(c);
+  }
+  const legals = xmlPick(party, "PartyLegalEntity");
+  const legArr = Array.isArray(legals) ? legals : legals ? [legals] : [];
+  for (const le of legArr) {
+    const c = normalizeSpvCif(xmlText(xmlPick(le, "CompanyID")));
+    if (c) cifs.add(c);
+  }
+  return Array.from(cifs);
+}
+
+function extractFirstUblPartyCui(partyWrapper: any): string {
+  const party = xmlPick(partyWrapper, "Party") ?? partyWrapper;
+  if (!party || typeof party !== "object") return "";
+  const taxSchemes = xmlPick(party, "PartyTaxScheme");
+  const taxArr = Array.isArray(taxSchemes) ? taxSchemes : taxSchemes ? [taxSchemes] : [];
+  for (const ts of taxArr) {
+    const c = xmlText(xmlPick(ts, "CompanyID"));
+    if (c) return c;
+  }
+  const legals = xmlPick(party, "PartyLegalEntity");
+  const legArr = Array.isArray(legals) ? legals : legals ? [legals] : [];
+  for (const le of legArr) {
+    const c = xmlText(xmlPick(le, "CompanyID"));
+    if (c) return c;
+  }
+  return "";
+}
+
+function parseStareMesajResponse(sText: string): {
+  stare: string;
+  idDesc: string;
+  inlineError: string | null;
+} {
+  const trimmed = String(sText || "").trim();
+  if (trimmed.startsWith("{")) {
+    try {
+      const j = JSON.parse(trimmed);
+      const stare = String(j?.stare || j?.header?.stare || "").trim().toLowerCase();
+      const idDesc = String(j?.id_descarcare || j?.idDescarcare || "").trim();
+      let inlineError: string | null = null;
+      if (Array.isArray(j?.Errors) && j.Errors.length > 0) {
+        inlineError = j.Errors
+          .map((e: any) => e?.errorMessage || e?.eroare || "")
+          .filter(Boolean)
+          .join("; ");
+      } else if (typeof j?.eroare === "string" && j.eroare.trim()) {
+        inlineError = j.eroare.trim();
+      }
+      return { stare, idDesc, inlineError };
+    } catch {}
+  }
+  const stareMatch =
+    trimmed.match(/stare="([^"]+)"/i) || trimmed.match(/<stare>([^<]+)<\/stare>/i);
+  const stare = (stareMatch ? stareMatch[1] : "").trim().toLowerCase();
+  const idDescMatch =
+    trimmed.match(/id_descarcare="([^"]+)"/i) ||
+    trimmed.match(/<id_descarcare>([^<]+)<\/id_descarcare>/i);
+  const idDesc = idDescMatch ? idDescMatch[1].trim() : "";
+  const errMatch =
+    trimmed.match(/errorMessage="([^"]+)"/i) ||
+    trimmed.match(/<eroare>([^<]+)<\/eroare>/i);
+  const inlineError = errMatch ? errMatch[1].trim() : null;
+  return { stare, idDesc, inlineError };
+}
 
 function parseLineVatPercent(item: any, isZeroVatInvoice = false): number {
   if (isZeroVatInvoice) return 0;
   let cat = xmlPick(item, "ClassifiedTaxCategory");
   if (Array.isArray(cat)) cat = cat[0];
-  const catId = String(xmlPick(cat, "ID") || "").trim().toUpperCase();
+  const catId = xmlText(xmlPick(cat, "ID")).toUpperCase();
   if (["O", "E", "Z", "AE", "K", "G"].includes(catId)) return 0;
   const p = xmlPick(cat, "Percent");
-  const raw = p !== null && typeof p === "object" ? p["#text"] : p;
-  const n = parseFloat(String(raw));
+  const n = parseFloat(xmlText(p));
   return isNaN(n) ? 0 : n;
 }
 
@@ -109,6 +194,14 @@ export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
   const { getValidSpvToken, refreshSpvToken } = await import("./anafApi");
   
   for (const intg of spvIntegrations) {
+    if (activeTenantSpvSyncs.has(intg.tenantId)) {
+      console.log(
+        `[SPV Cron] Sync already in progress for tenant ${intg.tenantId}, skipping overlapping run.`
+      );
+      continue;
+    }
+    activeTenantSpvSyncs.add(intg.tenantId);
+    try {
     const tokenData = await getValidSpvToken(intg.tenantId);
     if (!tokenData?.token) {
       console.warn(`[SPV Cron] No valid SPV token for tenant ${intg.tenantId}`);
@@ -143,13 +236,12 @@ export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
     };
 
     const [tenant] = await db.select({ cui: tenants.cui }).from(tenants).where(eq(tenants.id, intg.tenantId));
-    const rawCif = (tenant?.cui || "").trim();
-    if (!rawCif) {
-      console.warn(`[SPV Cron] Tenant ${intg.tenantId} nu are CUI configurat în setări. Se ignoră sincronizarea SPV.`);
+    const cleanTenantCif = normalizeSpvCif(tenant?.cui);
+    if (!cleanTenantCif) {
+      console.warn(`[SPV Cron] Tenant ${intg.tenantId} nu are CUI configurat în profilul companiei. Se ignoră sincronizarea SPV.`);
       continue;
     }
-    // Remove RO prefix if present for ANAF API
-    const cif = rawCif.toUpperCase().replace(/^RO/, "");
+    const cif = cleanTenantCif;
     
     console.log(
       `[SPV Cron] Syncing for tenant ${intg.tenantId}, CIF ${cif}, zile=${zile}`
@@ -178,10 +270,7 @@ export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
           const sResp = await safeFetchAnaf(statusUrl, { signal: AbortSignal.timeout(10000) });
           if (sResp.ok) {
             const sText = await sResp.text();
-            const stareMatch = sText.match(/stare="([^"]+)"/i);
-            const stare = (stareMatch ? stareMatch[1] : "").toLowerCase();
-            const idDescMatch = sText.match(/id_descarcare="([^"]+)"/i);
-            const idDesc = idDescMatch ? idDescMatch[1] : "";
+            const { stare, idDesc, inlineError } = parseStareMesajResponse(sText);
 
             if (stare === "ok") {
               await db
@@ -194,9 +283,9 @@ export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
                 .where(eq(emittedInvoices.id, inv.id));
               console.log(`[SPV Cron] Emitted invoice ${inv.id} (index ${inv.spvIndex}) validated via stareMesaj`);
             } else if (stare === "nok") {
-              let errText: string | null = null;
+              let errText: string | null = inlineError;
               if (idDesc) {
-                errText = await fetchAnafErrorDetails(idDesc, safeFetchAnaf);
+                errText = (await fetchAnafErrorDetails(idDesc, safeFetchAnaf)) || inlineError;
               }
               await db
                 .update(emittedInvoices)
@@ -231,10 +320,7 @@ export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
           const sResp = await safeFetchAnaf(statusUrl, { signal: AbortSignal.timeout(10000) });
           if (sResp.ok) {
             const sText = await sResp.text();
-            const stareMatch = sText.match(/stare="([^"]+)"/i);
-            const stare = (stareMatch ? stareMatch[1] : "").toLowerCase();
-            const idDescMatch = sText.match(/id_descarcare="([^"]+)"/i);
-            const idDesc = idDescMatch ? idDescMatch[1] : "";
+            const { stare, idDesc, inlineError } = parseStareMesajResponse(sText);
 
             if (stare === "ok") {
               await db
@@ -246,9 +332,9 @@ export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
                 .where(eq(reInvoices.id, inv.id));
               console.log(`[SPV Cron] Re-invoice ${inv.id} (index ${inv.spvIndex}) validated via stareMesaj`);
             } else if (stare === "nok") {
-              let errText: string | null = null;
+              let errText: string | null = inlineError;
               if (idDesc) {
-                errText = await fetchAnafErrorDetails(idDesc, safeFetchAnaf);
+                errText = (await fetchAnafErrorDetails(idDesc, safeFetchAnaf)) || inlineError;
               }
               await db
                 .update(reInvoices)
@@ -346,6 +432,14 @@ export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
         try {
         // Log every message so we can see exactly what ANAF sends
         console.log(`[SPV Cron] MSG tip=${msg.tip} cif=${msg.cif} id=${msg.id} id_descarcare=${msg.id_descarcare} id_solicitare=${msg.id_solicitare} detalii=${msg.detalii || ""}`);
+
+        if (msg.cif && normalizeSpvCif(msg.cif) !== cleanTenantCif) {
+          console.warn(
+            `[SPV Cron] Rejecting message ${msg.id || msg.id_descarcare} with foreign CIF ${msg.cif} (expected ${cleanTenantCif})`
+          );
+          skipped++;
+          continue;
+        }
 
         // Process FACTURA PRIMITA, FACTURA TRIMISA, and ERORI FACTURA
         if (
@@ -554,54 +648,66 @@ export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
           rootKey?.includes("CreditNote") ||
           invoiceObj["cbc:CreditNoteTypeCode"] ||
           invoiceObj["CreditNoteTypeCode"] ||
-          String(invoiceObj["cbc:InvoiceTypeCode"] || invoiceObj["InvoiceTypeCode"] || "").trim() === "381"
+          xmlText(invoiceObj["cbc:InvoiceTypeCode"] ?? invoiceObj["InvoiceTypeCode"]) === "381"
         );
 
         // Extract invoice details
-        const invoiceNumber = invoiceObj["ID"] || `SPV-${downloadId}`;
-        const issueDate = invoiceObj["IssueDate"] || "";
-        const dueDate = invoiceObj["DueDate"] || issueDate;
+        const invoiceNumber = xmlText(invoiceObj["ID"]) || `SPV-${downloadId}`;
+        const issueDate = xmlText(invoiceObj["IssueDate"]);
+        const dueDate = xmlText(invoiceObj["DueDate"]) || issueDate;
 
         let supplierName = "";
         let supplierCUI = "";
 
-        // Determine direction first so we can map parties correctly
+        // Determine direction first so we can verify UBL parties and map counterpart correctly
         const direction = msg.tip?.includes("PRIMITA") ? "in" : "out";
+        const supPartyNode = xmlPick(invoiceObj, "AccountingSupplierParty");
+        const cusPartyNode = xmlPick(invoiceObj, "AccountingCustomerParty");
+        const supCifs = extractUblPartyCifs(supPartyNode);
+        const cusCifs = extractUblPartyCifs(cusPartyNode);
+        const expectedMatch =
+          direction === "in"
+            ? cusCifs.includes(cleanTenantCif)
+            : supCifs.includes(cleanTenantCif);
+        if (!expectedMatch) {
+          console.warn(
+            `[SPV Cron] Rejecting UBL ${downloadId} for direction=${direction}: party CIFs (sup=${supCifs.join(",")}, cus=${cusCifs.join(",")}) do not match tenant CIF ${cleanTenantCif}`
+          );
+          skipped++;
+          continue;
+        }
 
         // For incoming invoices (Primite), the supplier is the sender.
         // For outgoing invoices (Emise), the supplier is US, but the UI/DB expects the CLIENT's details in supplierName/CUI
-        const targetParty =
-          direction === "in"
-            ? invoiceObj["AccountingSupplierParty"]
-            : invoiceObj["AccountingCustomerParty"];
+        const targetParty = direction === "in" ? supPartyNode : cusPartyNode;
 
-        if (targetParty?.["Party"]) {
-          const party = targetParty["Party"];
+        const party = xmlPick(targetParty, "Party") ?? targetParty;
+        if (party && typeof party === "object") {
+          const pName = Array.isArray(xmlPick(party, "PartyName"))
+            ? xmlPick(party, "PartyName")[0]
+            : xmlPick(party, "PartyName");
+          const pLegal = Array.isArray(xmlPick(party, "PartyLegalEntity"))
+            ? xmlPick(party, "PartyLegalEntity")[0]
+            : xmlPick(party, "PartyLegalEntity");
           supplierName =
-            party["PartyName"]?.["Name"] ||
-            party["PartyLegalEntity"]?.["RegistrationName"] ||
+            xmlText(xmlPick(pName, "Name")) ||
+            xmlText(xmlPick(pLegal, "RegistrationName")) ||
             "Client necunoscut";
-          supplierCUI =
-            party["PartyTaxScheme"]?.["CompanyID"] ||
-            party["PartyLegalEntity"]?.["CompanyID"] ||
-            "";
+          supplierCUI = extractFirstUblPartyCui(targetParty);
         }
 
         const legalTotal = invoiceObj["LegalMonetaryTotal"];
         const rawTotal =
-          legalTotal?.["TaxInclusiveAmount"]?.["#text"] ||
-          legalTotal?.["TaxInclusiveAmount"] ||
-          legalTotal?.["PayableAmount"]?.["#text"] ||
-          legalTotal?.["PayableAmount"] ||
+          xmlText(legalTotal?.["TaxInclusiveAmount"]) ||
+          xmlText(legalTotal?.["PayableAmount"]) ||
           "0";
-        let parsedTotal = parseFloat(typeof rawTotal === "object" ? "0" : rawTotal);
+        let parsedTotal = parseFloat(rawTotal);
         if (isNaN(parsedTotal)) parsedTotal = 0;
         if (isCreditNote && parsedTotal > 0) parsedTotal = -parsedTotal;
         const total = parsedTotal;
 
         const currency =
-          invoiceObj["DocumentCurrencyCode"]?.["#text"] ||
-          invoiceObj["DocumentCurrencyCode"] ||
+          xmlText(invoiceObj["DocumentCurrencyCode"]) ||
           "RON";
 
         // Facturile în valută au 2 blocuri TaxTotal (valută + RON): îl alegem pe cel în moneda documentului
@@ -848,7 +954,8 @@ export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
         try {
           const pdfRes = await convertXmlToPdf(
             xmlString,
-            `Factura_${invoiceNumber}_${Date.now()}`
+            `Factura_${invoiceNumber}_${Date.now()}`,
+            intg.tenantId
           );
           if (pdfRes) fileUrl = pdfRes.url;
         } catch (pdfErr: any) {
@@ -954,23 +1061,21 @@ export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
               const item = xmlPick(line, "Item");
               const price = xmlPick(line, "Price");
               const description =
-                xmlPick(item, "Name") || xmlPick(item, "Description") || "Articol";
+                xmlText(xmlPick(item, "Name")) ||
+                xmlText(xmlPick(item, "Description")) ||
+                "Articol";
               const qtyNode = xmlPick(line, "InvoicedQuantity") ?? xmlPick(line, "CreditedQuantity");
-              let qty = parseFloat(
-                String(qtyNode?.["#text"] ?? qtyNode ?? "1")
-              );
+              let qty = parseFloat(xmlText(qtyNode) || "1");
               if (isNaN(qty)) qty = 1;
               if (isCreditNote && qty > 0) qty = -qty;
 
               const priceNode = xmlPick(price, "PriceAmount");
-              let unitPrice = parseFloat(
-                String(priceNode?.["#text"] ?? priceNode ?? "0")
-              );
+              let unitPrice = parseFloat(xmlText(priceNode) || "0");
               if (isNaN(unitPrice)) unitPrice = 0;
               const unit = qtyNode?.["@_unitCode"] || "buc";
               const lineExt = xmlPick(line, "LineExtensionAmount");
               let lineTotal = parseFloat(
-                String(lineExt?.["#text"] ?? lineExt ?? Math.abs(qty) * unitPrice)
+                xmlText(lineExt) || String(Math.abs(qty) * unitPrice)
               );
               if (isNaN(lineTotal)) lineTotal = 0;
               if (isCreditNote && lineTotal > 0) lineTotal = -lineTotal;
@@ -998,19 +1103,29 @@ export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
             if (!Array.isArray(xmlAllowances)) xmlAllowances = [xmlAllowances];
 
             for (const ac of xmlAllowances) {
-              const indicator = String(xmlPick(ac, "ChargeIndicator") ?? "false").toLowerCase();
+              const indicator = (xmlText(xmlPick(ac, "ChargeIndicator")) || "false").toLowerCase();
               const isCharge = indicator === "true";
               const reasonNode = xmlPick(ac, "AllowanceChargeReason");
-              const rawReason = String(
-                reasonNode?.["#text"] ?? reasonNode ?? (isCharge ? "Taxă suplimentară" : "Deducere / Rabat")
-              ).trim();
+              const rawReason =
+                xmlText(reasonNode) || (isCharge ? "Taxă suplimentară" : "Deducere / Rabat");
               const codeNode = xmlPick(ac, "AllowanceChargeReasonCode");
-              const reasonCode = String(codeNode?.["#text"] ?? codeNode ?? "").trim();
+              const reasonCode = xmlText(codeNode);
               const percentNode = xmlPick(ac, "MultiplierFactorNumeric");
-              const percent = percentNode?.["#text"] ?? percentNode;
+              const percent = xmlText(percentNode);
               const amtNode = xmlPick(ac, "Amount") ?? 0;
-              let amount = parseFloat(String(amtNode?.["#text"] ?? amtNode));
+              let amount = parseFloat(xmlText(amtNode));
               if (isNaN(amount)) amount = 0;
+
+              let acVatRate = 0;
+              if (totalVAT !== 0) {
+                let acTaxCat = xmlPick(ac, "TaxCategory") ?? xmlPick(ac, "ClassifiedTaxCategory");
+                if (Array.isArray(acTaxCat)) acTaxCat = acTaxCat[0];
+                const acCatId = xmlText(xmlPick(acTaxCat, "ID")).toUpperCase();
+                if (!["O", "E", "Z", "AE", "K", "G"].includes(acCatId)) {
+                  const pctNum = parseFloat(xmlText(xmlPick(acTaxCat, "Percent")));
+                  if (!isNaN(pctNum)) acVatRate = pctNum;
+                }
+              }
 
               let desc = rawReason;
               if (!isCharge) {
@@ -1027,7 +1142,7 @@ export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
                 quantity: "1",
                 unitPrice: String(signedAmount),
                 unit: isCharge ? "serv" : "buc",
-                vatRate: "0",
+                vatRate: String(acVatRate),
                 total: String(signedAmount),
                 currency,
               });
@@ -1083,6 +1198,9 @@ export async function syncAllSpv(zile: number = 60, targetTenantId?: number) {
         `[SPV Cron] Error syncing for tenant ${intg.tenantId}:`,
         e.message
       );
+    }
+    } finally {
+      activeTenantSpvSyncs.delete(intg.tenantId);
     }
   }
   return { imported: totalImported, limitHit: totalLimitHit, limitDetails: totalLimitDetails };

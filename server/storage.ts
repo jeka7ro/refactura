@@ -2,6 +2,7 @@
 // Uploads via Forge Server presigned URL to S3 (PUT direct).
 // Downloads return /manus-storage/{key} paths served via 307 redirect.
 
+import crypto from "node:crypto";
 import { ENV } from "./_core/env";
 
 function getForgeConfig() {
@@ -18,7 +19,19 @@ function getForgeConfig() {
 }
 
 function normalizeKey(relKey: string): string {
-  return relKey.replace(/^\/+/, "");
+  if (
+    typeof relKey !== "string" ||
+    relKey.includes("..") ||
+    relKey.includes("\\") ||
+    relKey.includes("\0")
+  ) {
+    throw new Error("Invalid storage key");
+  }
+  const cleaned = relKey.replace(/^\/+/, "");
+  if (!cleaned || cleaned.split("/").some((seg) => seg === "..")) {
+    throw new Error("Invalid storage key");
+  }
+  return cleaned;
 }
 
 function appendHashSuffix(relKey: string): string {
@@ -94,6 +107,9 @@ export async function storageGetSignedUrl(relKey: string): Promise<string> {
     throw new Error(`Storage signed URL failed (${resp.status}): ${msg}`);
   }
 
-  const { url } = (await resp.json()) as { url: string };
+  const { url } = (await resp.json()) as { url?: string };
+  if (!url) {
+    throw new Error("Forge returned empty signed URL");
+  }
   return url;
 }

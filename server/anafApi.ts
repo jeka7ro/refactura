@@ -1,6 +1,6 @@
 import { getDb } from "./db";
 import { integrations, reInvoices, tenants } from "../drizzle/schema";
-import { eq, and, or } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { isValidBidirectionalPair } from "./tenant";
 
 const ANAF_UPLOAD_URL =
@@ -39,6 +39,27 @@ export async function refreshSpvToken(intg: any): Promise<string | null> {
     const expiresAt = new Date();
     expiresAt.setSeconds(expiresAt.getSeconds() + (data.expires_in || 7776000));
 
+    const validTenantIds = intg.tenantId ? [Number(intg.tenantId)] : [];
+    if (intg.tenantId) {
+      const [t] = await db
+        .select({ settings: tenants.settings })
+        .from(tenants)
+        .where(eq(tenants.id, Number(intg.tenantId)))
+        .limit(1);
+      let s: any = {};
+      try {
+        s = t?.settings ? JSON.parse(t.settings) : {};
+      } catch {}
+      const pairedId = Number(s?.pairedPfTenantId || s?.pairedPjTenantId || 0);
+      if (
+        pairedId > 0 &&
+        pairedId !== Number(intg.tenantId) &&
+        (await isValidBidirectionalPair(db, Number(intg.tenantId), pairedId))
+      ) {
+        validTenantIds.push(pairedId);
+      }
+    }
+
     await db
       .update(integrations)
       .set({
@@ -49,10 +70,12 @@ export async function refreshSpvToken(intg: any): Promise<string | null> {
         updatedAt: new Date(),
       })
       .where(
-        and(
-          eq(integrations.provider, "spv"),
-          or(eq(integrations.id, intg.id), eq(integrations.apiSecret, intg.apiSecret))
-        )
+        validTenantIds.length > 0
+          ? and(
+              eq(integrations.provider, "spv"),
+              inArray(integrations.tenantId, validTenantIds)
+            )
+          : eq(integrations.id, intg.id)
       );
 
     console.log(`[SPV Auth] Successfully refreshed token for integration ${intg.id}, valid until ${expiresAt.toISOString()}`);

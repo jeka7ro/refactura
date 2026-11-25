@@ -212,6 +212,10 @@ export async function runSagaMigrations(db: MySql2Database<any>) {
       valoare DECIMAL(12,2) DEFAULT 0,
       total DECIMAL(12,2) DEFAULT 0,
       tvaSuma DECIMAL(12,2) DEFAULT 0,
+      nirId INT NULL,
+      nirLineId INT NULL,
+      supplierName VARCHAR(255) NULL,
+      nirNumber VARCHAR(64) NULL,
       lineOrder INT DEFAULT 0,
       INDEX idx_comenzi_consumuri_comanda (comandaId)
     )`);
@@ -276,12 +280,66 @@ export async function runSagaMigrations(db: MySql2Database<any>) {
       sql`ALTER TABLE sagaIntrariLinii ALTER COLUMN tvaPercent SET DEFAULT 21.00`,
       sql`ALTER TABLE sagaComenziLinii ALTER COLUMN tvaPercent SET DEFAULT 21.00`,
       sql`ALTER TABLE sagaComenziConsumuri ALTER COLUMN tvaPercent SET DEFAULT 21.00`,
+      sql`ALTER TABLE sagaComenziConsumuri ADD COLUMN nirId INT NULL`,
+      sql`ALTER TABLE sagaComenziConsumuri ADD COLUMN nirLineId INT NULL`,
+      sql`ALTER TABLE sagaComenziConsumuri ADD COLUMN supplierName VARCHAR(255) NULL`,
+      sql`ALTER TABLE sagaComenziConsumuri ADD COLUMN nirNumber VARCHAR(64) NULL`,
     ];
     for (const q of alterQueries) {
       try {
         await db.execute(q);
       } catch {}
     }
+
+    // Safe deduplication of sagaArticles on (tenantId, code) before adding unique index
+    try {
+      const [dupRows]: any = await db.execute(sql`
+        SELECT tenantId, code, MIN(id) AS keepId, COUNT(*) AS cnt
+        FROM sagaArticles
+        GROUP BY tenantId, code
+        HAVING COUNT(*) > 1
+      `);
+      if (Array.isArray(dupRows) && dupRows.length > 0) {
+        for (const dup of dupRows) {
+          const tId = Number(dup.tenantId);
+          const codeVal = String(dup.code);
+          const keepId = Number(dup.keepId);
+          const [idRows]: any = await db.execute(sql`
+            SELECT id FROM sagaArticles
+            WHERE tenantId = ${tId} AND code = ${codeVal} AND id > ${keepId}
+          `);
+          const extraIds: number[] = Array.isArray(idRows)
+            ? idRows.map((r: any) => Number(r.id)).filter((n: number) => Number.isFinite(n) && n > keepId)
+            : [];
+          if (extraIds.length > 0) {
+            const idListSql = sql.join(extraIds.map((id) => sql`${id}`), sql`, `);
+            try {
+              await db.execute(sql`UPDATE nirLines SET sagaArticleId = ${keepId} WHERE sagaArticleId IN (${idListSql})`);
+            } catch {}
+            try {
+              await db.execute(sql`UPDATE sagaIntrariLinii SET articolId = ${keepId} WHERE articolId IN (${idListSql})`);
+            } catch {}
+            try {
+              await db.execute(sql`UPDATE sagaArticleMappings SET sagaArticleId = ${keepId} WHERE sagaArticleId IN (${idListSql})`);
+            } catch {}
+            try {
+              await db.execute(sql`UPDATE sagaRetete SET articolProdusId = ${keepId} WHERE articolProdusId IN (${idListSql})`);
+            } catch {}
+            try {
+              await db.execute(sql`UPDATE sagaReteteLinii SET articolMaterieId = ${keepId} WHERE articolMaterieId IN (${idListSql})`);
+            } catch {}
+            try {
+              await db.execute(sql`UPDATE sagaComenziLinii SET articolId = ${keepId} WHERE articolId IN (${idListSql})`);
+            } catch {}
+            try {
+              await db.execute(sql`UPDATE sagaComenziConsumuri SET articolId = ${keepId} WHERE articolId IN (${idListSql})`);
+            } catch {}
+            await db.execute(sql`DELETE FROM sagaArticles WHERE id IN (${idListSql})`);
+          }
+        }
+      }
+      await db.execute(sql`CREATE UNIQUE INDEX uq_saga_tenant_code ON sagaArticles (tenantId, code)`);
+    } catch {}
 
     console.log("[SAGA] Migrations complete — 12 tables ready.");
   } catch (err: any) {

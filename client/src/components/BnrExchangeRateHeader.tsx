@@ -223,12 +223,12 @@ export function BnrExchangeRateHeader() {
             </span>
 
             {/* Separator */}
-            <span className="inline-flex items-center text-slate-300 dark:text-slate-600 font-bold leading-none select-none">
+            <span className="hidden xl:inline-flex items-center text-slate-300 dark:text-slate-600 font-bold leading-none select-none">
               ·
             </span>
 
             {/* Date Tag */}
-            <span className="inline-flex items-center text-[11px] font-medium text-[#636366] dark:text-[#98989d] leading-none whitespace-nowrap tabular-nums">
+            <span className="hidden xl:inline-flex items-center text-[11px] font-medium text-[#636366] dark:text-[#98989d] leading-none whitespace-nowrap tabular-nums">
               BNR {dateStr} ({dayLetter})
             </span>
           </div>

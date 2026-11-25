@@ -12,7 +12,56 @@ const APP_TAB_PATTERNS = [
   "https://refactura.up.railway.app/*",
 ];
 
+const ALLOWED_APP_ORIGINS = new Set([
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "https://refactura.up.railway.app",
+]);
+
+function isTrustedAppSender(sender) {
+  if (!sender || sender.id !== chrome.runtime.id) return false;
+  const tabUrl = String(sender?.tab?.url || "");
+  if (!tabUrl) return false;
+  try {
+    const parsed = new URL(tabUrl);
+    return ALLOWED_APP_ORIGINS.has(parsed.origin);
+  } catch {
+    return false;
+  }
+}
+
 let lastAuthenticatedCifs = [];
+
+async function getStoredLastCifs() {
+  try {
+    if (chrome.storage?.session) {
+      const res = await chrome.storage.session.get("lastAuthenticatedCifs");
+      if (Array.isArray(res?.lastAuthenticatedCifs)) {
+        lastAuthenticatedCifs = res.lastAuthenticatedCifs;
+        return lastAuthenticatedCifs;
+      }
+    }
+  } catch {
+    /* fallback to in-memory */
+  }
+  return lastAuthenticatedCifs;
+}
+
+async function setStoredLastCifs(cifs) {
+  const clean = Array.isArray(cifs) ? cifs : [];
+  lastAuthenticatedCifs = clean;
+  try {
+    if (chrome.storage?.session) {
+      await chrome.storage.session.set({ lastAuthenticatedCifs: clean });
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+function escapeRegExp(str) {
+  return String(str || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 function normalizeCif(value) {
   return String(value || "")
@@ -374,12 +423,13 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
   const initialUrl = `https://webserviced.anaf.ro/SPVWS2/rest/listaMesaje?zile=${zileUsed}`;
   const existingSet = new Set((msg.existingIds || []).map(String));
 
+  const prevCifs = await getStoredLastCifs();
   if (!incognitoAllowed) {
     await purgeNormalAnafBrowsingData();
     await clearAnafWebserviceCookies();
   } else if (
-    lastAuthenticatedCifs.length > 0 &&
-    !lastAuthenticatedCifs.includes(targetCif)
+    prevCifs.length > 0 &&
+    !prevCifs.includes(targetCif)
   ) {
     await clearAnafWebserviceCookies();
   }
@@ -560,7 +610,7 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
     if (listData.eroare) {
       const errText = String(listData.eroare);
       if (allowedCifs.includes(targetCif)) {
-        lastAuthenticatedCifs = allowedCifs;
+        await setStoredLastCifs(allowedCifs);
       }
       if (errText.toLowerCase().includes("nu exista mesaje")) {
         return finalizeResult({
@@ -570,13 +620,11 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
           downloaded: 0,
           alreadySaved: 0,
           failed: 0,
-          certCnp: listData.cnp ? String(listData.cnp) : null,
-          certCui: listData.cui ? String(listData.cui) : null,
+          certCui: allowedCifs.includes(targetCif) ? targetCif : null,
           certSerial: listData.serial ? String(listData.serial) : null,
           diagnostics: {
             rawTotal: 0,
             matchedTotal: 0,
-            allowedCifs,
             zileUsed,
           },
         });
@@ -587,13 +635,16 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
         diagnostics: {
           rawTotal: 0,
           matchedTotal: 0,
-          allowedCifs,
           zileUsed,
         },
       });
     }
 
     const allMessages = Array.isArray(listData.mesaje) ? listData.mesaje : [];
+    const targetCifBoundaryRe = new RegExp(
+      `(?:^|\\D)(?:RO)?${escapeRegExp(targetCif)}(?:$|\\D)`,
+      "i"
+    );
     const matched = allMessages.filter((m) => {
       const msgCif = normalizeCif(m?.cif || m?.cnp || m?.cui);
       const detaliiText = String(m?.detalii || "");
@@ -601,7 +652,7 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
         .toUpperCase()
         .trim();
       const matchesTarget =
-        msgCif === targetCif || (!msgCif && detaliiText.includes(targetCif));
+        msgCif === targetCif || (!msgCif && targetCifBoundaryRe.test(detaliiText));
       return matchesTarget && !E_FACTURA_TIPS.has(tipUpper);
     });
 
@@ -613,20 +664,18 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
       return finalizeResult({
         ok: false,
         wrongCertificate: true,
-        allowedCifs,
         certSerial: listData.serial ? String(listData.serial) : null,
-        error: `Chrome pastreaza in memorie certificatul anterior (${allowedCifs.join(", ")}). Deschide o fila noua si scrie chrome://restart pentru a selecta stick-ul USB nou (${targetCif}).`,
+        error: `Certificatul USB selectat în Chrome nu este înrolat în SPV pentru CUI/CNP ${targetCif}. Deschide o filă nouă și scrie chrome://restart pentru a selecta stick-ul USB corespunzător firmei curente (${targetCif}).`,
         diagnostics: {
           rawTotal: allMessages.length,
           matchedTotal: 0,
-          allowedCifs,
           zileUsed,
         },
       });
     }
 
     if (allowedCifs.includes(targetCif) || matched.length > 0) {
-      lastAuthenticatedCifs = allowedCifs;
+      await setStoredLastCifs(allowedCifs);
     }
 
     const toDownload = matched.filter(
@@ -672,13 +721,14 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
       }
 
       if (appTabId) {
+        const actualMsgCif = normalizeCif(m?.cif || m?.cnp || m?.cui) || targetCif;
         const ack = await chrome.tabs
           .sendMessage(appTabId, {
             type: "SPV_CONNECTOR_DOCUMENT",
             requestId: msg.requestId,
             item: {
               anafId: String(m.id),
-              cif: targetCif,
+              cif: actualMsgCif,
               tip: String(m.tip || "DOCUMENT"),
               idSolicitare: m.id_solicitare ? String(m.id_solicitare) : null,
               dataCreare: String(m.data_creare || ""),
@@ -706,13 +756,11 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
       alreadySaved,
       failed,
       lastError,
-      certCnp: listData.cnp ? String(listData.cnp) : null,
-      certCui: listData.cui ? String(listData.cui) : null,
+      certCui: allowedCifs.includes(targetCif) ? targetCif : null,
       certSerial: listData.serial ? String(listData.serial) : null,
       diagnostics: {
         rawTotal: allMessages.length,
         matchedTotal: matched.length,
-        allowedCifs,
         zileUsed,
       },
     });
@@ -724,7 +772,7 @@ async function handleSpvSync(msg, appTabId, appWindowId) {
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (!sender || sender.id !== chrome.runtime.id) return false;
+  if (!isTrustedAppSender(sender)) return false;
   if (message && message.action === "RELOAD_EXTENSION") {
     sendResponse({ ok: true });
     setTimeout(() => chrome.runtime.reload(), 80);

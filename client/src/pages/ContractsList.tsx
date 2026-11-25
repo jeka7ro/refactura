@@ -321,24 +321,24 @@ export default function ContractsList() {
   };
 
   return (
-    <div className="p-3 sm:p-5 max-w-full space-y-6">
+    <div className="p-3 sm:p-5 w-full min-w-0 max-w-full space-y-6 overflow-x-hidden">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
-            <FileSignature className="h-7 w-7 text-primary" />
-            Bibliotecă Documente & Contracte
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 min-w-0">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
+            <FileSignature className="h-6 w-6 sm:h-7 sm:w-7 text-primary shrink-0" />
+            <span className="truncate">Bibliotecă Documente & Contracte</span>
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             Gestiune digitală contracte cadru, acte adiționale și procese verbale cu istoric timestampat și export PDF direct.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 w-full sm:w-auto">
+        <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
           <button
             type="button"
             onClick={() => setShowImportModal(true)}
-            className="h-10 px-5 inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold shadow-xs transition-colors box-border shrink-0"
+            className="h-9 sm:h-10 px-3.5 sm:px-5 inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-semibold shadow-xs transition-colors box-border shrink-0"
           >
             <Upload className="h-4 w-4 text-primary shrink-0" />
             <span>Importă Arhivă / Folder</span>
@@ -346,7 +346,7 @@ export default function ContractsList() {
 
           <Link
             href="/contracte/new"
-            className="h-10 px-5 inline-flex items-center justify-center gap-2 rounded-full border border-transparent bg-primary hover:bg-primary/90 text-white text-sm font-semibold shadow-sm transition-colors box-border shrink-0"
+            className="h-9 sm:h-10 px-3.5 sm:px-5 inline-flex items-center justify-center gap-2 rounded-full border border-transparent bg-primary hover:bg-primary/90 text-white text-xs sm:text-sm font-semibold shadow-sm transition-colors box-border shrink-0"
           >
             <Plus className="h-4 w-4 shrink-0" />
             <span>Contract Nou</span>

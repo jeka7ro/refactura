@@ -27,12 +27,12 @@ export const systemRouter = router({
     .input(
       z
         .object({
-          year: z.number().optional(),
+          year: z.number().int().min(2005).max(2100).optional(),
         })
         .optional()
     )
     .query(async ({ input }) => {
-      const year = input?.year || new Date().getFullYear();
+      const year = input?.year ?? new Date().getFullYear();
       return await getBnrYearRatesMap(year);
     }),
 });

@@ -16,6 +16,35 @@ function generateApiKey(): { raw: string; prefix: string; hash: string } {
   return { raw, prefix, hash };
 }
 
+function parsePositiveInt(raw: unknown): number | null {
+  if (typeof raw !== "string" && typeof raw !== "number") return null;
+  const s = String(raw).trim();
+  if (!/^\d+$/.test(s)) return null;
+  const n = Number(s);
+  return Number.isSafeInteger(n) && n > 0 ? n : null;
+}
+
+function sanitizeLimit(raw: unknown, maxLimit = 1000, defaultLimit = 100): number {
+  if (raw === undefined || raw === null || String(raw).trim() === "") {
+    return Math.min(Math.max(1, defaultLimit), maxLimit);
+  }
+  const n = Number(raw);
+  if (!Number.isFinite(n)) {
+    return Math.min(Math.max(1, defaultLimit), maxLimit);
+  }
+  return Math.min(Math.max(1, Math.trunc(n)), maxLimit);
+}
+
+function queryStr(raw: unknown): string {
+  return typeof raw === "string" ? raw.trim() : "";
+}
+
+function finiteNumber(val: unknown, fallback: number): number {
+  if (val === null || val === undefined || val === "") return fallback;
+  const n = Number(val);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 async function resolveApiKey(
   authHeader: string | undefined
 ): Promise<{ tenantId: number; keyId: number } | null> {
@@ -66,7 +95,8 @@ export function registerPublicApi(app: Express) {
         .where(eq(costCenters.tenantId, auth.tenantId));
       return res.json({ data: centers });
     } catch (e: any) {
-      return res.status(500).json({ error: e.message });
+      console.error("[PUBLIC API] Error GET /api/v1/cost-centers:", e);
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 
@@ -75,8 +105,8 @@ export function registerPublicApi(app: Express) {
     try {
       const auth = await resolveApiKey(req.headers.authorization);
       if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
-      const centerId = parseInt(req.params.id);
-      if (isNaN(centerId)) return res.status(400).json({ error: "Invalid id" });
+      const centerId = parsePositiveInt(req.params.id);
+      if (!centerId) return res.status(400).json({ error: "Invalid id" });
       const db = await getDb();
       if (!db) return res.status(500).json({ error: "Database unavailable" });
       const rows = await db
@@ -87,20 +117,23 @@ export function registerPublicApi(app: Express) {
       if (!rows[0]) return res.status(404).json({ error: "Cost center not found" });
       return res.json({ data: rows[0] });
     } catch (e: any) {
-      return res.status(500).json({ error: e.message });
+      console.error("[PUBLIC API] Error GET /api/v1/cost-centers/:id:", e);
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 
   // ── GET /api/v1/cost-centers/:id/invoices ────────────────
-  // Query params: from, to, supplier, limit (max 500)
+  // Query params: from, to, supplier, limit (1..500, default 100)
   app.get("/api/v1/cost-centers/:id/invoices", async (req: Request, res: Response) => {
     try {
       const auth = await resolveApiKey(req.headers.authorization);
       if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
-      const centerId = parseInt(req.params.id);
-      if (isNaN(centerId)) return res.status(400).json({ error: "Invalid id" });
-      const { from, to, supplier } = req.query as Record<string, string>;
-      const limit = Math.min(parseInt((req.query.limit as string) || "200"), 500);
+      const centerId = parsePositiveInt(req.params.id);
+      if (!centerId) return res.status(400).json({ error: "Invalid id" });
+      const from = queryStr(req.query.from);
+      const to = queryStr(req.query.to);
+      const supplier = queryStr(req.query.supplier);
+      const limit = sanitizeLimit(req.query.limit, 500, 100);
       const db = await getDb();
       if (!db) return res.status(500).json({ error: "Database unavailable" });
       // Verify center belongs to tenant
@@ -155,7 +188,8 @@ export function registerPublicApi(app: Express) {
         },
       });
     } catch (e: any) {
-      return res.status(500).json({ error: e.message });
+      console.error("[PUBLIC API] Error GET /api/v1/cost-centers/:id/invoices:", e);
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 
@@ -164,8 +198,8 @@ export function registerPublicApi(app: Express) {
     try {
       const auth = await resolveApiKey(req.headers.authorization);
       if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
-      const centerId = parseInt(req.params.id);
-      if (isNaN(centerId)) return res.status(400).json({ error: "Invalid id" });
+      const centerId = parsePositiveInt(req.params.id);
+      if (!centerId) return res.status(400).json({ error: "Invalid id" });
       const db = await getDb();
       if (!db) return res.status(500).json({ error: "Database unavailable" });
       const centerRows = await db.select()
@@ -202,7 +236,8 @@ export function registerPublicApi(app: Express) {
         },
       });
     } catch (e: any) {
-      return res.status(500).json({ error: e.message });
+      console.error("[PUBLIC API] Error GET /api/v1/cost-centers/:id/summary:", e);
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 
@@ -216,8 +251,19 @@ export function registerPublicApi(app: Express) {
     try {
       const auth = await resolveApiKey(req.headers.authorization);
       if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
-      const { from, to, supplier, status, costCenterId } = req.query as Record<string, string>;
-      const limit = Math.min(parseInt((req.query.limit as string) || "200"), 1000);
+      const from = queryStr(req.query.from);
+      const to = queryStr(req.query.to);
+      const supplier = queryStr(req.query.supplier);
+      const status = queryStr(req.query.status);
+      const rawCostCenterId = req.query.costCenterId;
+      let parsedCostCenterId: number | null = null;
+      if (rawCostCenterId !== undefined && String(rawCostCenterId).trim() !== "") {
+        parsedCostCenterId = parsePositiveInt(rawCostCenterId);
+        if (!parsedCostCenterId) {
+          return res.status(400).json({ error: "Invalid costCenterId" });
+        }
+      }
+      const limit = sanitizeLimit(req.query.limit, 1000, 100);
       const db = await getDb();
       if (!db) return res.status(500).json({ error: "Database unavailable" });
       const conditions: any[] = [
@@ -227,7 +273,7 @@ export function registerPublicApi(app: Express) {
       if (from) conditions.push(gte(invoiceArchive.issueDate, from));
       if (to)   conditions.push(lte(invoiceArchive.issueDate, to));
       if (status) conditions.push(eq(invoiceArchive.status, status as any));
-      if (costCenterId) conditions.push(eq(invoiceArchive.costCenterId, parseInt(costCenterId)));
+      if (parsedCostCenterId) conditions.push(eq(invoiceArchive.costCenterId, parsedCostCenterId));
       if (supplier) {
         const term = `%${supplier}%`;
         conditions.push(or(like(invoiceArchive.supplierName, term), like(invoiceArchive.supplierCUI, term)));
@@ -260,7 +306,8 @@ export function registerPublicApi(app: Express) {
         meta: { count: rows.length, totalSpend: +total.toFixed(2), totalVAT: +totalVAT.toFixed(2) },
       });
     } catch (e: any) {
-      return res.status(500).json({ error: e.message });
+      console.error("[PUBLIC API] Error GET /api/v1/facturi-primite:", e);
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 
@@ -269,8 +316,8 @@ export function registerPublicApi(app: Express) {
     try {
       const auth = await resolveApiKey(req.headers.authorization);
       if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+      const id = parsePositiveInt(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid id" });
       const db = await getDb();
       if (!db) return res.status(500).json({ error: "Database unavailable" });
       const rows = await db
@@ -287,7 +334,8 @@ export function registerPublicApi(app: Express) {
       if (!rows[0]) return res.status(404).json({ error: "Invoice not found" });
       return res.json({ data: rows[0] });
     } catch (e: any) {
-      return res.status(500).json({ error: e.message });
+      console.error("[PUBLIC API] Error GET /api/v1/facturi-primite/:id:", e);
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 
@@ -301,8 +349,11 @@ export function registerPublicApi(app: Express) {
     try {
       const auth = await resolveApiKey(req.headers.authorization);
       if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
-      const { from, to, client, status } = req.query as Record<string, string>;
-      const limit = Math.min(parseInt((req.query.limit as string) || "200"), 1000);
+      const from = queryStr(req.query.from);
+      const to = queryStr(req.query.to);
+      const client = queryStr(req.query.client);
+      const status = queryStr(req.query.status);
+      const limit = sanitizeLimit(req.query.limit, 1000, 100);
       const db = await getDb();
       if (!db) return res.status(500).json({ error: "Database unavailable" });
       const conditions: any[] = [eq(emittedInvoices.tenantId, auth.tenantId)];
@@ -343,7 +394,8 @@ export function registerPublicApi(app: Express) {
         meta: { count: rows.length, totalRevenue: +totalSpend.toFixed(2), totalVAT: +totalVAT.toFixed(2) },
       });
     } catch (e: any) {
-      return res.status(500).json({ error: e.message });
+      console.error("[PUBLIC API] Error GET /api/v1/facturi-emise:", e);
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 
@@ -352,8 +404,8 @@ export function registerPublicApi(app: Express) {
     try {
       const auth = await resolveApiKey(req.headers.authorization);
       if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+      const id = parsePositiveInt(req.params.id);
+      if (!id) return res.status(400).json({ error: "Invalid id" });
       const db = await getDb();
       if (!db) return res.status(500).json({ error: "Database unavailable" });
       const rows = await db
@@ -364,7 +416,8 @@ export function registerPublicApi(app: Express) {
       if (!rows[0]) return res.status(404).json({ error: "Invoice not found" });
       return res.json({ data: rows[0] });
     } catch (e: any) {
-      return res.status(500).json({ error: e.message });
+      console.error("[PUBLIC API] Error GET /api/v1/facturi-emise/:id:", e);
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 
@@ -376,16 +429,23 @@ export function registerPublicApi(app: Express) {
       if (!auth) return res.status(401).json({ error: "Invalid or missing API key" });
 
       const db = await getDb();
-      if (!db) throw new Error("Database unavailable");
+      if (!db) return res.status(500).json({ error: "Database unavailable" });
 
-      const body = req.body || {};
+      const body = req.body && typeof req.body === "object" && !Array.isArray(req.body) ? req.body : {};
       const tenantId = auth.tenantId;
 
-      // Seria: specificată în body sau implicit "QRP"
-      const series = (body.series || "QRP").trim().toUpperCase();
+      // Seria: specificată în body sau implicit "QRP" (max 20 caractere)
+      const rawSeries =
+        typeof body.series === "string" || typeof body.series === "number"
+          ? String(body.series).trim().toUpperCase()
+          : "";
+      const series = (rawSeries || "QRP").slice(0, 20);
 
       // Numărul facturii: dacă nu este furnizat, calculăm următorul număr pentru această serie
-      let invoiceNumber = body.number ? String(body.number).trim() : "";
+      let invoiceNumber =
+        body.number !== undefined && body.number !== null
+          ? String(body.number).trim().slice(0, 100)
+          : "";
       if (!invoiceNumber) {
         const matches = await db
           .select({ number: emittedInvoices.number })
@@ -409,7 +469,7 @@ export function registerPublicApi(app: Express) {
           }
         }
         const nextNum = maxNum + 1;
-        invoiceNumber = `${series}-${String(nextNum).padStart(4, "0")}`;
+        invoiceNumber = `${series}-${String(nextNum).padStart(4, "0")}`.slice(0, 100);
       }
 
       // Prevenim duplicarea pe același număr și serie pentru această firmă
@@ -431,26 +491,49 @@ export function registerPublicApi(app: Express) {
         });
       }
 
-      // Date client
+      // Date client (coercție sigură + trunchiere la limitele coloanelor)
+      const rawClientName =
+        body.clientName ??
+        body.customerName ??
+        body.client?.name ??
+        body.tenantName ??
+        "";
       const clientName = (
-        body.clientName ||
-        body.customerName ||
-        body.client?.name ||
-        body.tenantName ||
-        "Client QR Pontaj"
-      ).trim();
+        (typeof rawClientName === "string" || typeof rawClientName === "number"
+          ? String(rawClientName).trim()
+          : "") || "Client QR Pontaj"
+      ).slice(0, 255);
 
-      const rawCui = body.clientCUI || body.client?.cui || body.cui || "";
-      const clientCUI = rawCui ? String(rawCui).trim() : null;
-      const clientRegCom = body.clientRegCom || body.client?.regCom || null;
-      const clientAddress = body.clientAddress || body.client?.address || null;
-      const clientCity = body.clientCity || body.client?.city || null;
-      const clientEmail = body.clientEmail || body.client?.email || null;
-      const clientPhone = body.clientPhone || body.client?.phone || null;
+      const rawCui = body.clientCUI ?? body.client?.cui ?? body.cui ?? "";
+      const clientCUI =
+        rawCui !== null && rawCui !== undefined && String(rawCui).trim() !== ""
+          ? String(rawCui).trim().slice(0, 20)
+          : null;
+      const clientRegCom =
+        body.clientRegCom || body.client?.regCom
+          ? String(body.clientRegCom || body.client?.regCom).trim().slice(0, 50)
+          : null;
+      const clientAddress =
+        body.clientAddress || body.client?.address
+          ? String(body.clientAddress || body.client?.address).trim()
+          : null;
+      const clientCity =
+        body.clientCity || body.client?.city
+          ? String(body.clientCity || body.client?.city).trim().slice(0, 100)
+          : null;
+      const clientEmail =
+        body.clientEmail || body.client?.email
+          ? String(body.clientEmail || body.client?.email).trim().slice(0, 320)
+          : null;
+      const clientPhone =
+        body.clientPhone || body.client?.phone
+          ? String(body.clientPhone || body.client?.phone).trim().slice(0, 20)
+          : null;
 
       let clientCountry = "RO";
       if (body.clientCountry) {
-        clientCountry = String(body.clientCountry).trim().slice(0, 2).toUpperCase();
+        const cc = String(body.clientCountry).trim().slice(0, 2).toUpperCase();
+        if (/^[A-Z]{2}$/.test(cc)) clientCountry = cc;
       } else if (clientCUI) {
         const m = clientCUI.match(/^([A-Za-z]{2})/);
         if (m && m[1].toUpperCase() !== "RO") {
@@ -459,7 +542,10 @@ export function registerPublicApi(app: Express) {
       }
 
       // Asociere automată clientId dacă există în tabela clients (cu verificare apartenență tenant)
-      let clientId = body.clientId ? parseInt(String(body.clientId)) : null;
+      let clientId =
+        body.clientId !== undefined && body.clientId !== null && body.clientId !== ""
+          ? parsePositiveInt(body.clientId)
+          : null;
       if (clientId) {
         const [ownClient] = await db
           .select({ id: clients.id })
@@ -470,11 +556,20 @@ export function registerPublicApi(app: Express) {
           clientId = null;
         }
       }
-      if (!clientId && (clientCUI || clientName)) {
+      const normCui = clientCUI
+        ? clientCUI.replace(/\s+/g, "").replace(/^RO/i, "").toUpperCase()
+        : "";
+      if (!clientId && (normCui.length >= 4 || clientName)) {
         const conds: any[] = [eq(clients.tenantId, tenantId)];
-        if (clientCUI) {
-          const normCui = clientCUI.replace(/^RO/i, "").trim();
-          conds.push(or(eq(clients.cui, clientCUI), like(clients.cui, `%${normCui}%`)));
+        if (normCui.length >= 4) {
+          conds.push(
+            or(
+              eq(clients.cui, clientCUI!),
+              eq(clients.cui, normCui),
+              eq(clients.cui, `RO${normCui}`),
+              sql`TRIM(LEADING 'RO' FROM UPPER(REPLACE(COALESCE(${clients.cui}, ''), ' ', ''))) = ${normCui}`
+            )
+          );
         } else {
           conds.push(eq(clients.name, clientName));
         }
@@ -488,9 +583,13 @@ export function registerPublicApi(app: Express) {
 
       // Date factură
       const nowStr = new Date().toISOString().slice(0, 10);
-      const issueDate = body.issueDate ? String(body.issueDate).slice(0, 10) : nowStr;
-      const dueDate = body.dueDate ? String(body.dueDate).slice(0, 10) : null;
-      const currency = (body.currency || "RON").trim().toUpperCase();
+      const issueDate = body.issueDate ? String(body.issueDate).trim().slice(0, 20) || nowStr : nowStr;
+      const dueDate = body.dueDate ? String(body.dueDate).trim().slice(0, 20) || null : null;
+      const rawCurrency =
+        typeof body.currency === "string" || typeof body.currency === "number"
+          ? String(body.currency).trim().toUpperCase()
+          : "";
+      const currency = (rawCurrency || "RON").slice(0, 3);
 
       // Parsare linii factură (suportă body.lines sau body.items)
       const rawLines = Array.isArray(body.lines)
@@ -502,47 +601,54 @@ export function registerPublicApi(app: Express) {
       let calcSubtotal = 0;
       let calcVat = 0;
 
-      const processedLines = rawLines.map((l: any, idx: number) => {
-        const qty = parseFloat(String(l.quantity ?? l.cantitate ?? 1)) || 1;
-        const price = parseFloat(String(l.unitPrice ?? l.pretUnitar ?? l.price ?? 0)) || 0;
-        const rate = parseFloat(String(l.vatRate ?? l.cotaTva ?? body.defaultVatRate ?? 19)) || 0;
-        const lineTotal = l.total !== undefined ? parseFloat(String(l.total)) : Math.round(qty * price * 100) / 100;
+      const processedLines = rawLines.map((rawLine: any, idx: number) => {
+        const l = rawLine && typeof rawLine === "object" ? rawLine : {};
+        const qty = finiteNumber(l.quantity ?? l.cantitate, 1);
+        const price = finiteNumber(l.unitPrice ?? l.pretUnitar ?? l.price, 0);
+        const rate = finiteNumber(l.vatRate ?? l.cotaTva ?? body.defaultVatRate, 19);
+        const lineTotal =
+          l.total != null && Number.isFinite(Number(l.total))
+            ? Number(l.total)
+            : Math.round(qty * price * 100) / 100;
         const lineVat = Math.round(lineTotal * (rate / 100) * 100) / 100;
 
         calcSubtotal += lineTotal;
         calcVat += lineVat;
 
         return {
-          description: String(l.description || l.denumire || `Abonament / Servicii QR Pontaj`).trim(),
-          quantity: String(qty),
-          unitPrice: String(price),
-          unit: String(l.unit || l.um || "buc").trim(),
-          vatRate: String(rate),
-          total: String(lineTotal),
-          devizCode: l.devizCode ? String(l.devizCode) : null,
-          devizType: l.devizType ? String(l.devizType) : null,
+          description: (String(l.description || l.denumire || `Abonament / Servicii QR Pontaj`).trim() || "Servicii").slice(0, 500),
+          quantity: qty.toFixed(2),
+          unitPrice: price.toFixed(2),
+          unit: (String(l.unit || l.um || "buc").trim() || "buc").slice(0, 20),
+          vatRate: rate.toFixed(2),
+          total: lineTotal.toFixed(2),
+          devizCode: l.devizCode ? String(l.devizCode).trim().slice(0, 100) : null,
+          devizType: l.devizType ? String(l.devizType).trim().slice(0, 50) : null,
           lineOrder: idx,
         };
       });
 
-      const finalSubtotal = body.subtotal !== undefined
-        ? parseFloat(String(body.subtotal))
-        : Math.round(calcSubtotal * 100) / 100;
+      const finalSubtotal =
+        body.subtotal != null && Number.isFinite(Number(body.subtotal))
+          ? Number(body.subtotal)
+          : Math.round(calcSubtotal * 100) / 100;
 
-      const finalTotalVAT = body.totalVAT !== undefined
-        ? parseFloat(String(body.totalVAT))
-        : Math.round(calcVat * 100) / 100;
+      const finalTotalVAT =
+        body.totalVAT != null && Number.isFinite(Number(body.totalVAT))
+          ? Number(body.totalVAT)
+          : Math.round(calcVat * 100) / 100;
 
-      const finalTotal = body.total !== undefined
-        ? parseFloat(String(body.total))
-        : Math.round((finalSubtotal + finalTotalVAT) * 100) / 100;
+      const finalTotal =
+        body.total != null && Number.isFinite(Number(body.total))
+          ? Number(body.total)
+          : Math.round((finalSubtotal + finalTotalVAT) * 100) / 100;
 
       const notes = body.notes ? String(body.notes).trim() : "Factură generată automat din Smart QR Pontaj.";
       const status = body.status && ["draft", "sent", "paid", "overdue", "cancelled"].includes(body.status)
         ? body.status
         : "sent";
 
-      // Inserare factură emisă: fără SPV (spvStatus = "extern", spvIndex = null)
+      // Inserare factură emisă: fără SPV (spvStatus = null, spvIndex = null)
       const [insertResult] = await db
         .insert(emittedInvoices)
         .values({
@@ -564,8 +670,8 @@ export function registerPublicApi(app: Express) {
           totalVAT: String(finalTotalVAT.toFixed(2)),
           total: String(finalTotal.toFixed(2)),
           currency,
-          companyIBAN: body.companyIBAN || null,
-          companyBank: body.companyBank || null,
+          companyIBAN: body.companyIBAN ? String(body.companyIBAN).trim().slice(0, 50) : null,
+          companyBank: body.companyBank ? String(body.companyBank).trim().slice(0, 100) : null,
           status,
           notes,
           spvStatus: null, // FĂRĂ SPV (factură internă curată)
@@ -601,13 +707,15 @@ export function registerPublicApi(app: Express) {
       const devizLinesInput = body.customDevizLines || body.devizLines || body.deviz?.lines;
       if (body.createDeviz || (Array.isArray(devizLinesInput) && devizLinesInput.length > 0)) {
         try {
-          const devizNum = `DEV-${invoiceId}`;
-          const devizNotes = body.devizNotes || body.deviz?.notes || "Anexă deviz nominal Smart QR Pontaj";
+          const devizNum = `DEV-${invoiceId}`.slice(0, 50);
+          const devizNotes = body.devizNotes || body.deviz?.notes
+            ? String(body.devizNotes || body.deviz?.notes)
+            : "Anexă deviz nominal Smart QR Pontaj";
 
           const linesArr = Array.isArray(devizLinesInput) ? devizLinesInput : [];
           let dTot = 0;
           for (const dl of linesArr) {
-            dTot += parseFloat(String(dl.total || 0)) || 0;
+            dTot += finiteNumber(dl?.total, 0);
           }
 
           const [dRes] = await db
@@ -627,20 +735,29 @@ export function registerPublicApi(app: Express) {
 
           if (linesArr.length > 0) {
             await db.insert(devizeLines).values(
-              linesArr.map((dl: any, i: number) => ({
-                devizId: dRes.id,
-                type: dl.type || "MANOPERA",
-                code: dl.code || `QRP-${i + 1}`,
-                description: String(dl.description || dl.numeAngajat || "Activitate pontaj"),
-                quantity: String(dl.quantity || dl.ore || 1),
-                unitPrice: String(dl.unitPrice || dl.tarifOrar || dl.total || 0),
-                total: String(dl.total || 0),
-                lineOrder: i,
-              }))
+              linesArr.map((rawDl: any, i: number) => {
+                const dl = rawDl && typeof rawDl === "object" ? rawDl : {};
+                const dlQty = finiteNumber(dl.quantity ?? dl.ore, 1);
+                const dlTotal = finiteNumber(dl.total, 0);
+                const dlPrice = finiteNumber(dl.unitPrice ?? dl.tarifOrar, dlTotal);
+                const validDevizType = ["MATERIAL", "MANOPERA", "UTILAJ", "NORMA"].includes(dl.type)
+                  ? dl.type
+                  : "MANOPERA";
+                return {
+                  devizId: dRes.id,
+                  type: validDevizType,
+                  code: String(dl.code || `QRP-${i + 1}`).slice(0, 100),
+                  description: String(dl.description || dl.numeAngajat || "Activitate pontaj"),
+                  quantity: dlQty.toFixed(2),
+                  unitPrice: dlPrice.toFixed(2),
+                  total: dlTotal.toFixed(2),
+                  lineOrder: i,
+                };
+              })
             );
           }
         } catch (devizErr: any) {
-          console.warn("[PUBLIC API] Warning la crearea devizului anexat:", devizErr.message);
+          console.warn("[PUBLIC API] Warning la crearea devizului anexat:", devizErr?.message);
         }
       }
 
@@ -666,7 +783,7 @@ export function registerPublicApi(app: Express) {
       });
     } catch (e: any) {
       console.error("[PUBLIC API] Error POST /api/v1/facturi-emise:", e);
-      return res.status(500).json({ error: e.message || "Internal server error" });
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 }

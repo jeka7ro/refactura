@@ -901,7 +901,7 @@ export function CompanyPinLockModal({
   const effectiveLogoBg = hasCustomLogoBg ? logoBgColor || "#0f172a" : undefined;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center p-4 transition-all duration-300 overflow-y-auto">
+    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center p-4 transition-all duration-300 overflow-y-auto overscroll-contain">
       {/* Imagini de fundal stil Google Chromecast cu crossfade lin */}
       <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
         {CHROMECAST_WALLPAPERS.map((wp, idx) => {
@@ -1159,7 +1159,7 @@ export function CompanyPinLockModal({
               </button>
             </div>
 
-            {tenantId && tenantId !== 1 && (
+            {isSuperadmin && tenantId && tenantId !== 1 && (
               <div className="pt-2">
                 <button
                   type="button"
@@ -1222,16 +1222,22 @@ export function CompanyPinLockModal({
                 <h2 className="text-lg font-bold text-white">
                   Contactează Administratorul
                 </h2>
-                <p className="text-xs text-slate-200 max-w-xs mx-auto">
+                  <p className="text-xs text-slate-200 max-w-xs mx-auto">
                   Trimiteți o solicitare de resetare a codului PIN pentru firma{" "}
                   <span className="font-semibold text-white">
                     {companyName}
                   </span>
-                  . Mesajul va ajunge direct la{" "}
-                  <span className="font-semibold text-blue-400">
-                    contact@getapp.ro
-                  </span>
-                  .
+                  {tenantId === 1 ? (
+                    <>
+                      . Mesajul va ajunge direct la{" "}
+                      <span className="font-semibold text-blue-400">
+                        contact@getapp.ro
+                      </span>
+                      .
+                    </>
+                  ) : (
+                    ". Mesajul va ajunge direct la administratorul firmei."
+                  )}
                 </p>
               </div>
 
@@ -1245,7 +1251,9 @@ export function CompanyPinLockModal({
                       Solicitare trimisă cu succes!
                     </h3>
                     <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-1">
-                      Cererea a fost expediată la contact@getapp.ro. Administratorul va procesa cererea și vă va contacta.
+                      {tenantId === 1
+                        ? "Cererea a fost expediată la contact@getapp.ro. Administratorul va procesa cererea și vă va contacta."
+                        : "Cererea a fost expediată către administratorul firmei. Veți fi contactat în scurt timp."}
                     </p>
                   </div>
                   <button
@@ -1398,7 +1406,7 @@ export function CompanyPinLockModal({
           ...days.map((d, i) => ({ key: d.date || String(i), name: (d.dayName || "").slice(0, 3), code: d.weatherCode, min: d.tempMin, max: d.tempMax, prob: d.precipProb })),
         ];
         return (
-          <div className="fixed top-6 right-5 sm:top-7 sm:right-7 z-50 w-[232px] select-none animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="hidden lg:block fixed top-6 right-5 sm:top-7 sm:right-7 z-50 w-[232px] select-none animate-in fade-in slide-in-from-top-2 duration-300">
             <style>{`
               @keyframes wxDrift { 0% { transform: translateX(-30%); } 100% { transform: translateX(30%); } }
               @keyframes wxFall { 0% { transform: translateY(-20px); opacity: 0; } 15% { opacity: .8; } 100% { transform: translateY(300px); opacity: 0; } }
@@ -1514,31 +1522,30 @@ export function CompanyPinLockModal({
         );
       })()}
 
-      {/* Branding GetApp jos de tot pe mijloc, la nivelul locatiei pozei */}
-      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-20 select-none animate-in fade-in duration-300">
-        <a
-          href="https://www.getapp.ro"
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={e => {
-            e.stopPropagation();
-            window.open("https://www.getapp.ro", "_blank", "noopener,noreferrer");
-          }}
-          className="cursor-pointer inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-black/50 hover:bg-black/75 backdrop-blur-2xl border border-white/20 hover:border-white/40 text-white shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 group pointer-events-auto"
-        >
-          <img
-            src="/images/logo_getapp_original.png"
-            alt="GetApp"
-            className="h-5 sm:h-5.5 w-auto object-contain"
-            onError={e => {
-              (e.target as HTMLImageElement).src = "https://getapp.ro/logo_getapp_original.png";
-            }}
-          />
-          <div className="flex items-center border-l border-white/25 pl-2.5 text-xs font-semibold tracking-wide text-white/90 group-hover:text-white">
-            <span>www.getapp.ro</span>
-          </div>
-        </a>
-      </div>
+      {/* Branding GetApp jos de tot pe mijloc, izolat strict pe Tenantul 1 */}
+      {tenantId === 1 && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-20 select-none animate-in fade-in duration-300">
+          <a
+            href="https://www.getapp.ro"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={e => e.stopPropagation()}
+            className="cursor-pointer inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-black/50 hover:bg-black/75 backdrop-blur-2xl border border-white/20 hover:border-white/40 text-white shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 group pointer-events-auto"
+          >
+            <img
+              src="/images/logo_getapp_original.png"
+              alt="GetApp"
+              className="h-5 sm:h-5.5 w-auto object-contain"
+              onError={e => {
+                (e.target as HTMLImageElement).src = "https://getapp.ro/logo_getapp_original.png";
+              }}
+            />
+            <div className="flex items-center border-l border-white/25 pl-2.5 text-xs font-semibold tracking-wide text-white/90 group-hover:text-white">
+              <span>www.getapp.ro</span>
+            </div>
+          </a>
+        </div>
+      )}
     </div>
   );
 }

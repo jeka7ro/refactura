@@ -4,9 +4,60 @@
  */
 import { createInvoiceArchiveEntry, getDb } from "./db";
 import { integrations, tenants, costCenterRules, invoiceArchive } from "../drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { XMLParser } from "fast-xml-parser";
 import { convertXmlToPdf } from "./anafPdf";
+
+function normalizeSpvCif(raw: any): string {
+  return String(raw ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/^RO/i, "")
+    .replace(/[^A-Z0-9]/g, "");
+}
+
+function xmlNodeText(v: any): string {
+  if (v === null || v === undefined) return "";
+  if (typeof v === "object") return String(v["#text"] ?? v["_text"] ?? "").trim();
+  return String(v).trim();
+}
+
+function extractPartyCifs(partyWrapper: any): string[] {
+  const party = partyWrapper?.["Party"] ?? partyWrapper?.["cac:Party"] ?? partyWrapper;
+  if (!party || typeof party !== "object") return [];
+  const cifs = new Set<string>();
+  const taxSchemes = party["PartyTaxScheme"] ?? party["cac:PartyTaxScheme"];
+  const taxArr = Array.isArray(taxSchemes) ? taxSchemes : taxSchemes ? [taxSchemes] : [];
+  for (const ts of taxArr) {
+    const c = normalizeSpvCif(xmlNodeText(ts?.["CompanyID"] ?? ts?.["cbc:CompanyID"]));
+    if (c) cifs.add(c);
+  }
+  const legals = party["PartyLegalEntity"] ?? party["cac:PartyLegalEntity"];
+  const legArr = Array.isArray(legals) ? legals : legals ? [legals] : [];
+  for (const le of legArr) {
+    const c = normalizeSpvCif(xmlNodeText(le?.["CompanyID"] ?? le?.["cbc:CompanyID"]));
+    if (c) cifs.add(c);
+  }
+  return Array.from(cifs);
+}
+
+function extractFirstPartyCui(partyWrapper: any): string {
+  const party = partyWrapper?.["Party"] ?? partyWrapper?.["cac:Party"] ?? partyWrapper;
+  if (!party || typeof party !== "object") return "";
+  const taxSchemes = party["PartyTaxScheme"] ?? party["cac:PartyTaxScheme"];
+  const taxArr = Array.isArray(taxSchemes) ? taxSchemes : taxSchemes ? [taxSchemes] : [];
+  for (const ts of taxArr) {
+    const c = xmlNodeText(ts?.["CompanyID"] ?? ts?.["cbc:CompanyID"]);
+    if (c) return c;
+  }
+  const legals = party["PartyLegalEntity"] ?? party["cac:PartyLegalEntity"];
+  const legArr = Array.isArray(legals) ? legals : legals ? [legals] : [];
+  for (const le of legArr) {
+    const c = xmlNodeText(le?.["CompanyID"] ?? le?.["cbc:CompanyID"]);
+    if (c) return c;
+  }
+  return "";
+}
 
 const SPV_OAUTH_URL = "https://logon.anaf.ro/anaf-oauth/oauth/authorize";
 const SPV_TOKEN_URL = "https://logon.anaf.ro/anaf-oauth/oauth/token";
@@ -71,11 +122,14 @@ export async function syncSpvInvoices(
     if (!db) throw new Error("DB unavailable");
 
     const [tenant] = await db
-      .select()
+      .select({ id: tenants.id, cui: tenants.cui })
       .from(tenants)
       .where(eq(tenants.id, tenantId));
     if (!tenant) throw new Error("Tenant not found");
-    const tenantCui = (tenant.cui || "").replace(/[^0-9]/g, "");
+    const cleanTenantCif = normalizeSpvCif(tenant.cui);
+    if (!cleanTenantCif) {
+      throw new Error("CUI-ul firmei nu este configurat în profilul companiei.");
+    }
 
     const rules = await db
       .select()
@@ -102,6 +156,14 @@ export async function syncSpvInvoices(
 
     for (const doc of documents) {
       try {
+        if (doc.cif && normalizeSpvCif(doc.cif) !== cleanTenantCif) {
+          console.warn(
+            `[SPV] Rejecting doc ${doc.id} with foreign CIF ${doc.cif} (expected ${cleanTenantCif})`
+          );
+          skipped++;
+          continue;
+        }
+
         // Download document as XML
         const xmlRes = await fetch(`${SPV_API_URL}/document/${doc.id}`, {
           headers: {
@@ -154,17 +216,36 @@ export async function syncSpvInvoices(
           invoiceObj["DocumentCurrencyCode"] ||
           "RON";
 
+        const supplierParty = invoiceObj["AccountingSupplierParty"];
+        const customerParty = invoiceObj["AccountingCustomerParty"];
+        const supCifs = extractPartyCifs(supplierParty);
+        const cusCifs = extractPartyCifs(customerParty);
+
+        if (!supCifs.includes(cleanTenantCif) && !cusCifs.includes(cleanTenantCif)) {
+          console.warn(
+            `[SPV] Rejecting UBL doc ${doc.id}: neither supplier (${supCifs.join(",")}) nor customer (${cusCifs.join(",")}) matches tenant CIF ${cleanTenantCif}`
+          );
+          skipped++;
+          continue;
+        }
+
+        const direction =
+          supCifs.includes(cleanTenantCif) && !cusCifs.includes(cleanTenantCif)
+            ? "out"
+            : "in";
+        const counterpartWrapper = direction === "in" ? supplierParty : customerParty;
         let supplierName = "";
         let supplierCUI = "";
         let supplierAddress = "";
-        const supplierParty = invoiceObj["AccountingSupplierParty"];
-        if (supplierParty && supplierParty["Party"]) {
-          const party = supplierParty["Party"];
+        if (counterpartWrapper && counterpartWrapper["Party"]) {
+          const party = counterpartWrapper["Party"];
+          const pName = Array.isArray(party["PartyName"]) ? party["PartyName"][0] : party["PartyName"];
+          const pLegal = Array.isArray(party["PartyLegalEntity"]) ? party["PartyLegalEntity"][0] : party["PartyLegalEntity"];
           supplierName =
-            party["PartyName"]?.["Name"] ||
-            party["PartyLegalEntity"]?.["RegistrationName"] ||
+            xmlNodeText(pName?.["Name"]) ||
+            xmlNodeText(pLegal?.["RegistrationName"]) ||
             "Unknown Supplier";
-          supplierCUI = party["PartyTaxScheme"]?.["CompanyID"] || "";
+          supplierCUI = extractFirstPartyCui(counterpartWrapper);
         }
 
         // Extract Delivery Location (Punct de Lucru) — NOT the supplier HQ
@@ -201,15 +282,17 @@ export async function syncSpvInvoices(
           continue;
         }
 
-        // Check if already imported
+        // Check if already imported by (invoiceNumber, normalized supplierCUI, direction)
+        const normalizedSupCui = normalizeSpvCif(supplierCUI);
         const [existing] = await db
           .select({ id: invoiceArchive.id })
           .from(invoiceArchive)
           .where(
             and(
               eq(invoiceArchive.tenantId, tenantId),
-              eq(invoiceArchive.source, "spv_anaf"),
-              eq(invoiceArchive.invoiceNumber, String(invoiceNumber))
+              eq(invoiceArchive.direction, direction),
+              eq(invoiceArchive.invoiceNumber, String(invoiceNumber)),
+              sql`REPLACE(REPLACE(REPLACE(UPPER(TRIM(COALESCE(${invoiceArchive.supplierCUI}, ''))), 'RO', ''), ' ', ''), '-', '') = ${normalizedSupCui}`
             )
           );
 
@@ -218,11 +301,12 @@ export async function syncSpvInvoices(
           continue;
         }
 
-        // Generate PDF using ANAF API
+        // Generate PDF
         let fileUrl = "spv_import";
         const pdfRes = await convertXmlToPdf(
           xmlText,
-          `Factura_${invoiceNumber}_${Date.now()}`
+          `Factura_${invoiceNumber}_${Date.now()}`,
+          tenantId
         );
         if (pdfRes) {
           fileUrl = pdfRes.url;
@@ -246,11 +330,6 @@ export async function syncSpvInvoices(
             break;
           }
         }
-
-        // Determine direction based on CUI matching
-        const cleanSupplierCui = supplierCUI.replace(/[^0-9]/g, "");
-        const direction =
-          cleanSupplierCui === tenantCui && tenantCui !== "" ? "out" : "in";
 
         // Save invoice
         await createInvoiceArchiveEntry({

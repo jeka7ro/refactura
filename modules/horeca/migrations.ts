@@ -280,6 +280,34 @@ export async function runHorecaMigrations(db: MySql2Database<any>) {
       // Ignore if exists
     }
 
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS horecaConsumptionReceipts (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      tenantId INT NOT NULL,
+      locationId INT NOT NULL,
+      documentNumber VARCHAR(50) NOT NULL,
+      date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      status ENUM('draft','validated','exported') DEFAULT 'draft',
+      totalValue DECIMAL(12,2) DEFAULT 0.00,
+      notes TEXT,
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )`);
+
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS horecaConsumptionReceiptItems (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      receiptId INT NOT NULL,
+      tenantId INT NOT NULL,
+      ingredientId INT,
+      productId INT,
+      name VARCHAR(255) NOT NULL,
+      quantity DECIMAL(12,4) NOT NULL,
+      unit VARCHAR(20) NOT NULL,
+      unitCost DECIMAL(12,4) NOT NULL,
+      totalValue DECIMAL(12,4) NOT NULL,
+      accountingAccount VARCHAR(20),
+      createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`);
+
     console.log("[HORECA] All tables ensured");
   } catch (err) {
     console.error("[HORECA] Migration error:", err);

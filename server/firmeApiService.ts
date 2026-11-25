@@ -153,10 +153,11 @@ interface CacheEntry {
 }
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const MAX_CACHE_ENTRIES = 500;
 const cache = new Map<string, CacheEntry>();
 
 function getApiKey(): string {
-  return process.env.FIRME_API_KEY || "aavxuyzk-zd6dalif-pnzngggl-4oza1mof";
+  return (process.env.FIRMEAPI_KEY || process.env.FIRME_API_KEY || "").trim();
 }
 
 export function sanitizeCui(cui: string | number): string {
@@ -172,6 +173,7 @@ async function fetchFromFirmeApi<T>(
   retries = 2
 ): Promise<T | null> {
   const apiKey = getApiKey();
+  if (!apiKey) return null;
   const url = `${FIRME_API_BASE_URL}/${endpoint}/${cuiDigits}`;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -186,6 +188,7 @@ async function fetchFromFirmeApi<T>(
           "x-api-key": apiKey,
           "Accept": "application/json",
         },
+        signal: AbortSignal.timeout(8000),
       });
 
       if (res.status === 404) return null;
@@ -363,6 +366,17 @@ export async function getCompanyFullDossier(
     cachedAt: now,
     rawErrors: Object.keys(errors).length > 0 ? errors : undefined,
   };
+
+  if (cache.size >= MAX_CACHE_ENTRIES && !cache.has(cuiDigits)) {
+    for (const [k, v] of cache.entries()) {
+      if (now - v.timestamp >= CACHE_TTL_MS) cache.delete(k);
+    }
+    while (cache.size >= MAX_CACHE_ENTRIES) {
+      const oldestKey = cache.keys().next().value;
+      if (oldestKey === undefined) break;
+      cache.delete(oldestKey);
+    }
+  }
 
   cache.set(cuiDigits, {
     data: report,

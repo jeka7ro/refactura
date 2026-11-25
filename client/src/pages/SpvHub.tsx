@@ -1095,7 +1095,7 @@ export default function SpvHub() {
               />
             </div>
             <div className="flex flex-col gap-0.5 min-w-0">
-              <h1 className="text-[15px] sm:text-base font-bold tracking-tight leading-tight text-slate-900 dark:text-white whitespace-nowrap">
+              <h1 className="text-[15px] sm:text-base font-bold tracking-tight leading-tight text-slate-900 dark:text-white truncate">
                 Mesaje &amp; Documente SPV ANAF
               </h1>
               {spvIntegration?.apiKey ? (
@@ -1289,10 +1289,7 @@ export default function SpvHub() {
                 setFilterTipDoc("-TOATE-");
                 setPage(1);
               }}
-              className={`rounded-2xl bg-white/95 dark:bg-[#1c1c1e] border px-3.5 py-2.5 flex items-center gap-3 shadow-2xs text-left transition-all cursor-pointer ${readFilter === "all" && portalFilter === "all"
-                ? "border-blue-500 ring-1 ring-blue-500/20"
-                : "border-black/[0.06] dark:border-white/[0.09] hover:border-slate-300 dark:hover:border-slate-700"
-                }`}
+              className="rounded-2xl bg-white/95 dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] hover:border-slate-300 dark:hover:border-slate-700 px-3.5 py-2.5 flex items-center gap-3 shadow-2xs text-left transition-all cursor-pointer outline-none"
             >
               <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
                 <Inbox className="w-4 h-4" />
@@ -1397,10 +1394,7 @@ export default function SpvHub() {
             <button
               type="button"
               onClick={() => setMessageFilter("all")}
-              className={`rounded-2xl bg-white/95 dark:bg-[#1c1c1e] border px-3.5 py-2.5 flex items-center gap-3 shadow-2xs text-left transition-all cursor-pointer ${messageFilter === "all"
-                ? "border-blue-500 ring-1 ring-blue-500/20"
-                : "border-black/[0.06] dark:border-white/[0.09] hover:border-slate-300 dark:hover:border-slate-700"
-                }`}
+              className="rounded-2xl bg-white/95 dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] hover:border-slate-300 dark:hover:border-slate-700 px-3.5 py-2.5 flex items-center gap-3 shadow-2xs text-left transition-all cursor-pointer outline-none"
             >
               <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
                 <Inbox className="w-4 h-4" />

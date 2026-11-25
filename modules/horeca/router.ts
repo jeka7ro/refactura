@@ -20,7 +20,7 @@ import {
   horecaIngredients,
   horecaStockMovements,
 } from "./schema";
-import { bonuriConsum, bonuriConsumLines } from "../../drizzle/schema";
+import { bonuriConsum, bonuriConsumLines, products } from "../../drizzle/schema";
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -227,7 +227,9 @@ export const horecaRouter = router({
             .set({
               name: input.name,
               unit: input.unit,
-              unitCost: input.unitCost?.toString() || "0.00",
+              ...(input.unitCost !== undefined
+                ? { unitCost: input.unitCost.toString() }
+                : {}),
             })
             .where(
               and(
@@ -560,6 +562,54 @@ export const horecaRouter = router({
             message: "Produsul nu a fost găsit sau nu aparține firmei curente.",
           });
         }
+        const ingredientIds = Array.from(
+          new Set(
+            input.lines
+              .map(l => l.ingredientId)
+              .filter((id): id is number => typeof id === "number" && id > 0)
+          )
+        );
+        if (ingredientIds.length > 0) {
+          const ownedIngs = await db
+            .select({ id: horecaIngredients.id })
+            .from(horecaIngredients)
+            .where(
+              and(
+                inArray(horecaIngredients.id, ingredientIds),
+                eq(horecaIngredients.tenantId, tenantId)
+              )
+            );
+          if (ownedIngs.length !== ingredientIds.length) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Unul sau mai multe ingrediente nu aparțin firmei curente.",
+            });
+          }
+        }
+        const productIds = Array.from(
+          new Set(
+            input.lines
+              .map(l => l.productId)
+              .filter((id): id is number => typeof id === "number" && id > 0)
+          )
+        );
+        if (productIds.length > 0) {
+          const ownedProds = await db
+            .select({ id: products.id })
+            .from(products)
+            .where(
+              and(
+                inArray(products.id, productIds),
+                eq(products.tenantId, tenantId)
+              )
+            );
+          if (ownedProds.length !== productIds.length) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Unul sau mai multe produse nu aparțin firmei curente.",
+            });
+          }
+        }
         // Șterge vechile linii și reinserează
         await db
           .delete(horecaRecipeLines)
@@ -571,9 +621,9 @@ export const horecaRouter = router({
           );
         if (input.lines.length > 0) {
           await db.insert(horecaRecipeLines).values(
-            input.lines.map(l => ({
-              ...l,
-              ingredientId: l.ingredientId ?? null,
+            input.lines.map(({ id: _id, ...lineData }) => ({
+              ...lineData,
+              ingredientId: lineData.ingredientId ?? null,
               menuItemId: input.menuItemId,
               tenantId,
             }))
@@ -734,28 +784,25 @@ export const horecaRouter = router({
       .query(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
-        const rows = await db
+        const conditions: any[] = [
+          eq(horecaOrders.tenantId, tenantOf(ctx)),
+          eq(horecaOrders.locationId, input.locationId),
+        ];
+        if (input.status) {
+          conditions.push(eq(horecaOrders.status, input.status as any));
+        }
+        if (input.type) {
+          conditions.push(eq(horecaOrders.type, input.type as any));
+        }
+        if (input.date) {
+          conditions.push(sql`DATE(${horecaOrders.createdAt}) = ${input.date}`);
+        }
+        return db
           .select()
           .from(horecaOrders)
-          .where(
-            and(
-              eq(horecaOrders.tenantId, tenantOf(ctx)),
-              eq(horecaOrders.locationId, input.locationId)
-            )
-          )
+          .where(and(...conditions))
           .orderBy(desc(horecaOrders.createdAt))
           .limit(200);
-        return rows.filter(r => {
-          if (input.status && r.status !== input.status) return false;
-          if (input.type && r.type !== input.type) return false;
-          if (input.date) {
-            const d = r.createdAt
-              ? new Date(r.createdAt).toISOString().slice(0, 10)
-              : "";
-            if (d !== input.date) return false;
-          }
-          return true;
-        });
       }),
 
     getWithLines: protectedProcedure
@@ -855,12 +902,14 @@ export const horecaRouter = router({
           }
         }
 
-        // Generare număr comandă
-        const [cnt] = await db
-          .select({ c: sql<number>`COUNT(*)` })
+        // Generare număr comandă din sufixul numeric maxim
+        const [maxOrd] = await db
+          .select({
+            m: sql<number>`COALESCE(MAX(CAST(SUBSTRING_INDEX(${horecaOrders.orderNumber}, '-', -1) AS UNSIGNED)), 0)`,
+          })
           .from(horecaOrders)
           .where(eq(horecaOrders.tenantId, tenantId));
-        const orderNumber = `CMD-${String((Number(cnt?.c) || 0) + 1).padStart(4, "0")}`;
+        const orderNumber = `CMD-${String((Number(maxOrd?.m) || 0) + 1).padStart(4, "0")}`;
         const finalStatus = reqStatus || "draft";
         const now = new Date();
         const [r] = await db.insert(horecaOrders).values({
@@ -947,7 +996,7 @@ export const horecaRouter = router({
         if (!db) throw new Error("No DB");
         const tenantId = tenantOf(ctx);
         const [ownOrder] = await db
-          .select({ id: horecaOrders.id })
+          .select({ id: horecaOrders.id, discount: horecaOrders.discount })
           .from(horecaOrders)
           .where(and(eq(horecaOrders.id, input.orderId), eq(horecaOrders.tenantId, tenantId)));
         if (!ownOrder) throw new Error("Order not found");
@@ -980,7 +1029,7 @@ export const horecaRouter = router({
           notes: input.notes,
           kitchenSection: input.kitchenSection,
         });
-        // Recalculează totalul comenzii
+        // Recalculează totalul comenzii (scăzând discountul)
         const lines = await db
           .select()
           .from(horecaOrderLines)
@@ -988,17 +1037,19 @@ export const horecaRouter = router({
             and(
               eq(horecaOrderLines.orderId, input.orderId),
               eq(horecaOrderLines.tenantId, tenantId),
-              sql`status != 'cancelled'`
+              sql`${horecaOrderLines.status} != 'cancelled'`
             )
           );
         const subtotal = lines.reduce((s, l) => s + Number(l.total), 0);
         const totalVat = lines.reduce((s, l) => s + Number(l.vatAmount), 0);
+        const discountVal = Number(ownOrder.discount || 0);
+        const finalOrderTotal = Math.max(0, subtotal - discountVal);
         await db
           .update(horecaOrders)
           .set({
             subtotal: subtotal.toFixed(2),
             vatAmount: totalVat.toFixed(2),
-            total: subtotal.toFixed(2),
+            total: finalOrderTotal.toFixed(2),
           })
           .where(and(eq(horecaOrders.id, input.orderId), eq(horecaOrders.tenantId, tenantId)));
         return { success: true };
@@ -1043,8 +1094,17 @@ export const horecaRouter = router({
 
         const update: Record<string, any> = { status };
         if (paymentMethod) update.paymentMethod = paymentMethod;
-        if (tip) update.tip = tip;
-        if (discount) update.discount = discount;
+        if (tip !== undefined) update.tip = tip;
+        if (discount !== undefined) {
+          update.discount = discount;
+          const sub = Number(oldOrder.subtotal || 0);
+          const disc = Number(discount || 0);
+          update.total = Math.max(0, sub - disc).toFixed(2);
+        } else if (Number(oldOrder.discount || 0) > 0) {
+          const sub = Number(oldOrder.subtotal || 0);
+          const disc = Number(oldOrder.discount || 0);
+          update.total = Math.max(0, sub - disc).toFixed(2);
+        }
         if (status === "paid") update.paidAt = new Date();
         if (status === "paid" || status === "cancelled")
           update.closedAt = new Date();
@@ -1074,12 +1134,18 @@ export const horecaRouter = router({
           }
         }
 
-        // Auto-consumption of stock when paid
+        // Auto-consumption of stock when paid (exclude cancelled lines)
         if (status === "paid" && oldOrder.status !== "paid" && !oldOrder.stockDeducted) {
           const lines = await db
             .select()
             .from(horecaOrderLines)
-            .where(and(eq(horecaOrderLines.orderId, id), eq(horecaOrderLines.tenantId, tenantId)));
+            .where(
+              and(
+                eq(horecaOrderLines.orderId, id),
+                eq(horecaOrderLines.tenantId, tenantId),
+                sql`${horecaOrderLines.status} != 'cancelled'`
+              )
+            );
           
           const ingredientsToConsume: any[] = [];
           const horecaStockUpdates: { ingredientId: number; qty: number; unitCost: number }[] = [];
@@ -1113,11 +1179,16 @@ export const horecaRouter = router({
             }
           }
 
+          const rawOrderNum = String(oldOrder.orderNumber || id).trim();
+          const cmdRef = rawOrderNum.toUpperCase().startsWith("CMD-")
+            ? rawOrderNum
+            : `CMD-${rawOrderNum}`;
+
           // 1. Generate Bon de Consum for ERP module (if global inventory is used)
           if (ingredientsToConsume.length > 0) {
             const [bc] = await db.insert(bonuriConsum).values({
               tenantId,
-              number: `BC-CMD-${oldOrder.orderNumber}`,
+              number: `BC-${cmdRef}`,
               date: new Date(),
               gestiune: "Horeca",
               status: "final",
@@ -1143,7 +1214,7 @@ export const horecaRouter = router({
                type: "out",
                quantity: stockUpd.qty.toString(),
                unitCost: stockUpd.unitCost.toString(),
-               reference: `CMD-${oldOrder.orderNumber}`,
+               reference: cmdRef,
              });
           }
 
@@ -1197,19 +1268,19 @@ export const horecaRouter = router({
       .query(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
-        const rows = await db
+        const conditions: any[] = [
+          eq(horecaDeliveryOrders.tenantId, tenantOf(ctx)),
+          eq(horecaDeliveryOrders.locationId, input.locationId),
+        ];
+        if (input.status) {
+          conditions.push(eq(horecaDeliveryOrders.status, input.status as any));
+        }
+        return db
           .select()
           .from(horecaDeliveryOrders)
-          .where(
-            and(
-              eq(horecaDeliveryOrders.tenantId, tenantOf(ctx)),
-              eq(horecaDeliveryOrders.locationId, input.locationId)
-            )
-          )
+          .where(and(...conditions))
           .orderBy(desc(horecaDeliveryOrders.createdAt))
           .limit(200);
-        if (input.status) return rows.filter(r => r.status === input.status);
-        return rows;
       }),
 
     create: protectedProcedure
@@ -1523,12 +1594,14 @@ export const horecaRouter = router({
       .query(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        const tenantId = tenantOf(ctx);
+        await assertLocationOwned(db, input.locationId, tenantId);
         const rows = await db
           .select()
           .from(horecaKioskSettings)
           .where(
             and(
-              eq(horecaKioskSettings.tenantId, tenantOf(ctx)),
+              eq(horecaKioskSettings.tenantId, tenantId),
               eq(horecaKioskSettings.locationId, input.locationId)
             )
           )
@@ -1588,7 +1661,12 @@ export const horecaRouter = router({
               ...input,
               updatedAt: new Date(),
             })
-            .where(eq(horecaKioskSettings.id, existing[0].id));
+            .where(
+              and(
+                eq(horecaKioskSettings.id, existing[0].id),
+                eq(horecaKioskSettings.tenantId, tenantId)
+              )
+            );
           return { success: true };
         } else {
           await db.insert(horecaKioskSettings).values({
@@ -1600,20 +1678,26 @@ export const horecaRouter = router({
       }),
   }),
 
-  // ── KIOSK BRIDGE — Proxy to Smart Kiosk backend (localhost:4000) for testing ──
+  // ── KIOSK BRIDGE — Proxy to Smart Kiosk backend (localhost:4000) ──
   kioskBridge: router({
     // List all locations from the external Smart Kiosk backend
     listLocations: kioskProcedure.query(async () => {
-      const KIOSK_API =
-        process.env.SMART_KIOSK_API_URL || "http://localhost:4000";
-      const API_KEY = process.env.SMART_KIOSK_API_KEY || "sk-live-2024-secure";
+      try {
+        const KIOSK_API =
+          process.env.SMART_KIOSK_API_URL || "http://localhost:4000";
+        const API_KEY = (process.env.SMART_KIOSK_API_KEY || "").trim();
+        if (!API_KEY) return [];
 
-      const resp = await fetch(`${KIOSK_API}/api/locations`, {
-        headers: { "x-api-key": API_KEY },
-      });
-      if (!resp.ok) throw new Error(`Smart Kiosk API error: ${resp.status}`);
-      const data = await resp.json();
-      return data.locations || [];
+        const resp = await fetch(`${KIOSK_API}/api/locations`, {
+          headers: { "x-api-key": API_KEY },
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!resp.ok) return [];
+        const data = await resp.json();
+        return data.locations || [];
+      } catch {
+        return [];
+      }
     }),
 
     // Get a single location's full data
@@ -1622,13 +1706,19 @@ export const horecaRouter = router({
       .query(async ({ input }) => {
         const KIOSK_API =
           process.env.SMART_KIOSK_API_URL || "http://localhost:4000";
-        const API_KEY =
-          process.env.SMART_KIOSK_API_KEY || "sk-live-2024-secure";
+        const API_KEY = (process.env.SMART_KIOSK_API_KEY || "").trim();
+        if (!API_KEY) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: "SMART_KIOSK_API_KEY nu este configurat.",
+          });
+        }
 
         const resp = await fetch(
           `${KIOSK_API}/api/locations/${encodeURIComponent(input.locationId)}`,
           {
             headers: { "x-api-key": API_KEY },
+            signal: AbortSignal.timeout(8000),
           }
         );
         if (!resp.ok) throw new Error(`Location not found: ${resp.status}`);
@@ -1646,17 +1736,24 @@ export const horecaRouter = router({
       .mutation(async ({ input }) => {
         const KIOSK_API =
           process.env.SMART_KIOSK_API_URL || "http://localhost:4000";
-        const API_KEY =
-          process.env.SMART_KIOSK_API_KEY || "sk-live-2024-secure";
+        const adminEmail = (process.env.SMART_KIOSK_ADMIN_EMAIL || "").trim();
+        const adminPassword = process.env.SMART_KIOSK_ADMIN_PASSWORD || "";
+        if (!adminEmail || !adminPassword) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: "Credențialele SMART_KIOSK_ADMIN_EMAIL / SMART_KIOSK_ADMIN_PASSWORD nu sunt configurate.",
+          });
+        }
 
         // First login to get JWT
         const loginResp = await fetch(`${KIOSK_API}/api/auth/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            email: process.env.SMART_KIOSK_ADMIN_EMAIL || "admin@kiosk.ro",
-            password: process.env.SMART_KIOSK_ADMIN_PASSWORD || "admin123",
+            email: adminEmail,
+            password: adminPassword,
           }),
+          signal: AbortSignal.timeout(8000),
         });
         if (!loginResp.ok) throw new Error("Smart Kiosk login failed");
         const { token } = await loginResp.json();
@@ -1670,6 +1767,7 @@ export const horecaRouter = router({
               Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify(input.data),
+            signal: AbortSignal.timeout(8000),
           }
         );
         if (!resp.ok) {
@@ -1681,25 +1779,40 @@ export const horecaRouter = router({
 
     // Get promotions config from Smart Kiosk
     getPromotions: kioskProcedure.query(async () => {
-      const KIOSK_API =
-        process.env.SMART_KIOSK_API_URL || "http://localhost:4000";
-      const API_KEY = process.env.SMART_KIOSK_API_KEY || "sk-live-2024-secure";
+      try {
+        const KIOSK_API =
+          process.env.SMART_KIOSK_API_URL || "http://localhost:4000";
+        const API_KEY = (process.env.SMART_KIOSK_API_KEY || "").trim();
+        if (!API_KEY) return {};
 
-      const resp = await fetch(`${KIOSK_API}/api/promotions`, {
-        headers: { "x-api-key": API_KEY },
-      });
-      if (!resp.ok) return {};
-      return resp.json();
+        const resp = await fetch(`${KIOSK_API}/api/promotions`, {
+          headers: { "x-api-key": API_KEY },
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!resp.ok) return {};
+        return resp.json();
+      } catch {
+        return {};
+      }
     }),
 
     // Get kiosk screensaver configs
     getKioskConfigs: kioskProcedure.query(async () => {
-      const KIOSK_API =
-        process.env.SMART_KIOSK_API_URL || "http://localhost:4000";
+      try {
+        const KIOSK_API =
+          process.env.SMART_KIOSK_API_URL || "http://localhost:4000";
+        const API_KEY = (process.env.SMART_KIOSK_API_KEY || "").trim();
+        if (!API_KEY) return { posters: {} };
 
-      const resp = await fetch(`${KIOSK_API}/api/admin/kiosk-config`);
-      if (!resp.ok) return { posters: {} };
-      return resp.json();
+        const resp = await fetch(`${KIOSK_API}/api/admin/kiosk-config`, {
+          headers: { "x-api-key": API_KEY },
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!resp.ok) return { posters: {} };
+        return resp.json();
+      } catch {
+        return { posters: {} };
+      }
     }),
 
     // ── READ-ONLY: Menu from Syrve via Smart Kiosk ──
@@ -1713,13 +1826,21 @@ export const horecaRouter = router({
       .query(async ({ input }) => {
         const KIOSK_API =
           process.env.SMART_KIOSK_API_URL || "http://localhost:4000";
-        const API_KEY =
-          process.env.SMART_KIOSK_API_KEY || "sk-live-2024-secure";
+        const API_KEY = (process.env.SMART_KIOSK_API_KEY || "").trim();
+        if (!API_KEY) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: "SMART_KIOSK_API_KEY nu este configurat.",
+          });
+        }
 
         let url = `${KIOSK_API}/api/menu?brandId=${encodeURIComponent(input.brandId)}`;
         if (input.locId) url += `&locId=${encodeURIComponent(input.locId)}`;
 
-        const resp = await fetch(url, { headers: { "x-api-key": API_KEY } });
+        const resp = await fetch(url, {
+          headers: { "x-api-key": API_KEY },
+          signal: AbortSignal.timeout(8000),
+        });
         if (!resp.ok) throw new Error(`Menu fetch failed: ${resp.status}`);
         return resp.json();
       }),
@@ -1736,14 +1857,17 @@ export const horecaRouter = router({
       .query(async ({ input }) => {
         const KIOSK_API =
           process.env.SMART_KIOSK_API_URL || "http://localhost:4000";
-        const API_KEY =
-          process.env.SMART_KIOSK_API_KEY || "sk-live-2024-secure";
+        const API_KEY = (process.env.SMART_KIOSK_API_KEY || "").trim();
+        if (!API_KEY) return [];
 
         let url = `${KIOSK_API}/api/orders?limit=${encodeURIComponent(String(input.limit))}`;
         if (input.status) url += `&status=${encodeURIComponent(input.status)}`;
         if (input.brand) url += `&brand=${encodeURIComponent(input.brand)}`;
 
-        const resp = await fetch(url, { headers: { "x-api-key": API_KEY } });
+        const resp = await fetch(url, {
+          headers: { "x-api-key": API_KEY },
+          signal: AbortSignal.timeout(8000),
+        });
         if (!resp.ok) throw new Error(`Orders fetch failed: ${resp.status}`);
         return resp.json();
       }),
@@ -1754,13 +1878,19 @@ export const horecaRouter = router({
       .query(async ({ input }) => {
         const KIOSK_API =
           process.env.SMART_KIOSK_API_URL || "http://localhost:4000";
-        const API_KEY =
-          process.env.SMART_KIOSK_API_KEY || "sk-live-2024-secure";
+        const API_KEY = (process.env.SMART_KIOSK_API_KEY || "").trim();
+        if (!API_KEY) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: "SMART_KIOSK_API_KEY nu este configurat.",
+          });
+        }
 
         const resp = await fetch(
           `${KIOSK_API}/api/orders/${encodeURIComponent(input.orderId)}`,
           {
             headers: { "x-api-key": API_KEY },
+            signal: AbortSignal.timeout(8000),
           }
         );
         if (!resp.ok) throw new Error(`Order not found: ${resp.status}`);
@@ -1769,95 +1899,113 @@ export const horecaRouter = router({
 
     // ── READ-ONLY: Brands list ──
     listBrands: kioskProcedure.query(async () => {
-      const KIOSK_API =
-        process.env.SMART_KIOSK_API_URL || "http://localhost:4000";
-      const API_KEY = process.env.SMART_KIOSK_API_KEY || "sk-live-2024-secure";
+      try {
+        const KIOSK_API =
+          process.env.SMART_KIOSK_API_URL || "http://localhost:4000";
+        const API_KEY = (process.env.SMART_KIOSK_API_KEY || "").trim();
+        if (!API_KEY) return { brands: [] };
 
-      const resp = await fetch(`${KIOSK_API}/api/brands`, {
-        headers: { "x-api-key": API_KEY },
-      });
-      if (!resp.ok) return { brands: [] };
-      return resp.json();
+        const resp = await fetch(`${KIOSK_API}/api/brands`, {
+          headers: { "x-api-key": API_KEY },
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!resp.ok) return { brands: [] };
+        return resp.json();
+      } catch {
+        return { brands: [] };
+      }
     }),
   }),
 
-  // ── AGGREGATOR BRIDGE — Proxy to Aggregator Monitor (Supabase) ──
+  // ── AGGREGATOR BRIDGE — Proxy to Aggregator Monitor ──
   aggregatorBridge: router({
     listPlatformSales: kioskProcedure
       .input(z.object({ organizationId: z.string().optional() }).optional())
       .query(async ({ input }) => {
         if (!input?.organizationId) return [];
 
-        const KEYS = [
-          "3ec9ef9d592440ea9039d6dae3e4a33f",
-          "124d0880f4b44717b69ee21d45fc2656",
-        ];
+        const KEYS = (process.env.SYRVE_API_KEYS || "")
+          .split(",")
+          .map(k => k.trim())
+          .filter(Boolean);
+        if (KEYS.length === 0) return [];
         let validOrders: any[] = [];
 
         for (const apiKey of KEYS) {
-          const tokenRes = await fetch(
-            "https://api-eu.syrve.live/api/1/access_token",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ apiLogin: apiKey }),
-            }
-          );
-          const tokenData = await tokenRes.json();
-          if (!tokenData.token) continue;
+          try {
+            const tokenRes = await fetch(
+              "https://api-eu.syrve.live/api/1/access_token",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ apiLogin: apiKey }),
+                signal: AbortSignal.timeout(8000),
+              }
+            );
+            if (!tokenRes.ok) continue;
+            const tokenData = await tokenRes.json();
+            if (!tokenData?.token) continue;
 
-          const now = new Date();
-          const start = new Date(now);
-          start.setDate(now.getDate() - 3);
-          const dFrom = start.toISOString().replace("T", " ").substring(0, 23);
-          const dTo = now.toISOString().replace("T", " ").substring(0, 23);
+            const now = new Date();
+            const start = new Date(now);
+            start.setDate(now.getDate() - 3);
+            const dFrom = start.toISOString().replace("T", " ").substring(0, 23);
+            const dTo = now.toISOString().replace("T", " ").substring(0, 23);
 
-          const res = await fetch(
-            "https://api-eu.syrve.live/api/1/deliveries/by_delivery_date_and_status",
-            {
-              method: "POST",
-              headers: {
-                Authorization: "Bearer " + tokenData.token,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                organizationIds: [input.organizationId],
-                deliveryDateFrom: dFrom,
-                deliveryDateTo: dTo,
-              }),
+            const res = await fetch(
+              "https://api-eu.syrve.live/api/1/deliveries/by_delivery_date_and_status",
+              {
+                method: "POST",
+                headers: {
+                  Authorization: "Bearer " + tokenData.token,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  organizationIds: [input.organizationId],
+                  deliveryDateFrom: dFrom,
+                  deliveryDateTo: dTo,
+                }),
+                signal: AbortSignal.timeout(8000),
+              }
+            );
+            if (!res.ok) continue;
+            const data = await res.json();
+            const orgOrders = data?.ordersByOrganizations?.[0]?.orders;
+            if (Array.isArray(orgOrders)) {
+              validOrders = orgOrders;
+              break;
             }
-          );
-          const data = await res.json();
-          const orgOrders = data?.ordersByOrganizations?.[0]?.orders;
-          if (orgOrders) {
-            validOrders = orgOrders;
-            break;
+          } catch {
+            continue;
           }
         }
 
-        return validOrders.map((o: any) => {
-          const ord = o.order;
-          let platformName = "manual";
-          const ot = ord.orderType?.name?.toLowerCase() || "";
-          if (ot.includes("glovo")) platformName = "glovo";
-          else if (ot.includes("bolt")) platformName = "bolt_food";
-          else if (ot.includes("tazz")) platformName = "tazz";
-          else if (ot.includes("wolt")) platformName = "wolt";
+        return validOrders
+          .filter((o: any) => Boolean(o?.order?.id))
+          .map((o: any) => {
+            const ord = o.order;
+            const ordIdStr = String(ord.id);
+            let platformName = "manual";
+            const ot = ord.orderType?.name?.toLowerCase() || "";
+            if (ot.includes("glovo")) platformName = "glovo";
+            else if (ot.includes("bolt")) platformName = "bolt_food";
+            else if (ot.includes("tazz")) platformName = "tazz";
+            else if (ot.includes("wolt")) platformName = "wolt";
 
-          return {
-            id: ord.id,
-            platform: platformName,
-            order_id: ord.externalId || ord.id.split("-")[0],
-            restaurant: {
-              name: ord.customer?.name || ord.phone || "Client iiko",
-            },
-            brand: {
-              name: ord.deliveryPoint?.address?.street?.name || "Adresa client",
-            },
-            total_amount: ord.sum,
-            placed_at: o.creationInfo?.date || new Date().toISOString(),
-          };
-        });
+            return {
+              id: ordIdStr,
+              platform: platformName,
+              order_id: ord.externalId || ordIdStr.split("-")[0],
+              restaurant: {
+                name: ord.customer?.name || ord.phone || "Client iiko",
+              },
+              brand: {
+                name: ord.deliveryPoint?.address?.street?.name || "Adresa client",
+              },
+              total_amount: ord.sum,
+              placed_at: o.creationInfo?.date || new Date().toISOString(),
+            };
+          });
       }),
   }),
 });

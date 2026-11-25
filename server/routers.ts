@@ -67,7 +67,7 @@ import {
 import { authenticateAccount, createAccount, getAccountByEmail } from "./auth";
 import { authRouter } from "./auth-routers";
 import { createSessionToken } from "./session";
-import { eq, desc, and, inArray } from "drizzle-orm";
+import { eq, desc, and, or, like, notLike, inArray } from "drizzle-orm";
 import {
   invoiceArchive,
   invoiceArchiveLines,
@@ -113,6 +113,23 @@ import { convertXmlToPdf } from "./anafPdf";
 import { generateApiKey } from "./publicApi";
 import { apiKeys } from "../drizzle/schema";
 
+async function assertTenantWriteAccess(
+  ctx: { user?: { id: number; role?: string | null } | null },
+  tenantId: number
+): Promise<void> {
+  if (!ctx.user) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Neautentificat." });
+  }
+  if (ctx.user.role === "superadmin") return;
+  const memberRole = await getUserRole(ctx.user.id, tenantId);
+  if (memberRole === "viewer") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Contul are rol doar de vizualizare (viewer) și nu poate efectua modificări.",
+    });
+  }
+}
+
 const apiKeysRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {
     if (!ctx.user?.tenantId) return [];
@@ -136,12 +153,13 @@ const apiKeysRouter = router({
   create: protectedProcedure
     .input(z.object({ name: z.string().min(1).max(100) }))
     .mutation(async ({ input, ctx }) => {
-      if (!ctx.user?.tenantId) throw new Error("No tenant");
+      const tenantId = tenantOf(ctx);
+      await assertTenantWriteAccess(ctx, tenantId);
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Baza de date indisponibilă" });
       const { raw, prefix, hash } = generateApiKey();
       await db.insert(apiKeys).values({
-        tenantId: (tenantOf(ctx)),
+        tenantId,
         name: input.name,
         keyHash: hash,
         keyPrefix: prefix,
@@ -153,25 +171,27 @@ const apiKeysRouter = router({
   revoke: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
-      if (!ctx.user?.tenantId) throw new Error("No tenant");
+      const tenantId = tenantOf(ctx);
+      await assertTenantWriteAccess(ctx, tenantId);
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Baza de date indisponibilă" });
       const { eq, and } = await import("drizzle-orm");
       await db.update(apiKeys)
         .set({ isActive: 0 })
-        .where(and(eq(apiKeys.id, input.id), eq(apiKeys.tenantId, (tenantOf(ctx)))));
+        .where(and(eq(apiKeys.id, input.id), eq(apiKeys.tenantId, tenantId)));
       return { success: true };
     }),
 
   delete: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
-      if (!ctx.user?.tenantId) throw new Error("No tenant");
+      const tenantId = tenantOf(ctx);
+      await assertTenantWriteAccess(ctx, tenantId);
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Baza de date indisponibilă" });
       const { eq, and } = await import("drizzle-orm");
       await db.delete(apiKeys)
-        .where(and(eq(apiKeys.id, input.id), eq(apiKeys.tenantId, (tenantOf(ctx)))));
+        .where(and(eq(apiKeys.id, input.id), eq(apiKeys.tenantId, tenantId)));
       return { success: true };
     }),
 });
@@ -180,15 +200,9 @@ const apiKeysRouter = router({
 // QR Pontaj este un serviciu separat (altă bază de date, alte ID-uri de firmă) care nu are
 // legătură cu firmele din Smart Invoice. Accesul e permis doar firmelor autorizate explicit
 // (QR_PONTAJ_TENANT_IDS, implicit 1 și 9) sau superadmin, ca să nu poată fi văzute datele altora.
-const QR_PONTAJ_ALLOWED_TENANTS = new Set(
-  (process.env.QR_PONTAJ_TENANT_IDS || "1,9")
-    .split(",")
-    .map(x => parseInt(x.trim(), 10))
-    .filter(n => Number.isFinite(n))
-);
 const qrPontajProcedure = protectedProcedure.use(({ ctx, next }) => {
-  const tid = ctx.user.tenantId;
-  if (ctx.user.role !== "superadmin" && !(tid && QR_PONTAJ_ALLOWED_TENANTS.has(tid))) {
+  const tid = tenantOf(ctx);
+  if (tid !== 1) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "Această firmă nu are acces la integrarea QR Pontaj.",
@@ -212,9 +226,20 @@ function stripPinFromTenant<T extends { settings?: string | null }>(t: T): T {
   const parsed = parseTenantSettingsSafe(t.settings);
   delete parsed.accessPinHash;
   delete parsed.pinHash;
+  if (parsed.brevoApiKey && String(parsed.brevoApiKey).trim()) {
+    parsed.brevoApiKey = "••••••••";
+  } else {
+    delete parsed.brevoApiKey;
+  }
+  if (parsed.sagaWebToken && String(parsed.sagaWebToken).trim()) {
+    parsed.sagaWebToken = "••••••••";
+  } else {
+    delete parsed.sagaWebToken;
+  }
   if (parsed.accountantPortal && typeof parsed.accountantPortal === "object") {
     parsed.accountantPortal = { ...parsed.accountantPortal };
     delete parsed.accountantPortal.pinHash;
+    delete parsed.accountantPortal.token;
   }
   return { ...t, settings: JSON.stringify(parsed) };
 }
@@ -338,12 +363,12 @@ function isTenantPfRow(t: { cui?: string | null; settings?: string | null }): bo
 
 async function resolveEntityPair(
   db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
-  userId: number,
+  _userId: number,
   activeTenantId: number,
-  userRole?: string
+  _userRole?: string
 ) {
-  const { tenants, userTenants } = await import("../drizzle/schema");
-  const { and, asc, eq } = await import("drizzle-orm");
+  const { tenants } = await import("../drizzle/schema");
+  const { eq } = await import("drizzle-orm");
 
   const [activeT] = await db
     .select()
@@ -360,88 +385,36 @@ async function resolveEntityPair(
 
   if (isPf) {
     pfRow = activeT;
-    if (parsed.pairedPjTenantId) {
+    const candidatePjId = Number(parsed.pairedPjTenantId || 0);
+    if (
+      candidatePjId > 0 &&
+      candidatePjId !== activeT.id &&
+      (await isValidBidirectionalPair(db, activeT.id, candidatePjId))
+    ) {
       const [foundPj] = await db
         .select()
         .from(tenants)
-        .where(eq(tenants.id, Number(parsed.pairedPjTenantId)))
+        .where(eq(tenants.id, candidatePjId))
         .limit(1);
       if (foundPj) {
-        const foundPjSettings = parseTenantSettingsSafe(foundPj.settings);
-        if (Number(foundPjSettings.pairedPfTenantId) === activeT.id) {
-          pjRow = foundPj;
-        }
-      }
-    }
-    if (!pjRow && userId) {
-      const linkedRows = await db
-        .select({ tenant: tenants })
-        .from(tenants)
-        .innerJoin(userTenants, eq(userTenants.tenantId, tenants.id))
-        .where(and(eq(userTenants.userId, userId), eq(userTenants.isActive, 1)))
-        .orderBy(asc(userTenants.id));
-      const matched = linkedRows.find((r) => !isTenantPfRow(r.tenant));
-      if (matched) {
-        pjRow = matched.tenant;
-        const pjSettings = parseTenantSettingsSafe(pjRow.settings);
-        pjSettings.pairedPfTenantId = activeT.id;
-        const pfSettings = parseTenantSettingsSafe(activeT.settings);
-        pfSettings.pairedPjTenantId = pjRow.id;
-        await db
-          .update(tenants)
-          .set({ settings: JSON.stringify(pjSettings) })
-          .where(eq(tenants.id, pjRow.id));
-        await db
-          .update(tenants)
-          .set({ settings: JSON.stringify(pfSettings) })
-          .where(eq(tenants.id, activeT.id));
-        pjRow = { ...pjRow, settings: JSON.stringify(pjSettings) };
-        pfRow = { ...pfRow, settings: JSON.stringify(pfSettings) };
+        pjRow = foundPj;
       }
     }
   } else {
     pjRow = activeT;
-    if (parsed.pairedPfTenantId) {
+    const candidatePfId = Number(parsed.pairedPfTenantId || 0);
+    if (
+      candidatePfId > 0 &&
+      candidatePfId !== activeT.id &&
+      (await isValidBidirectionalPair(db, activeT.id, candidatePfId))
+    ) {
       const [foundPf] = await db
         .select()
         .from(tenants)
-        .where(eq(tenants.id, Number(parsed.pairedPfTenantId)))
+        .where(eq(tenants.id, candidatePfId))
         .limit(1);
       if (foundPf) {
-        const foundPfSettings = parseTenantSettingsSafe(foundPf.settings);
-        if (Number(foundPfSettings.pairedPjTenantId) === activeT.id) {
-          pfRow = foundPf;
-        }
-      }
-    }
-    if (!pfRow && userId && !(userRole === "superadmin" && activeT.id !== 1)) {
-      const linkedRows = await db
-        .select({ tenant: tenants })
-        .from(tenants)
-        .innerJoin(userTenants, eq(userTenants.tenantId, tenants.id))
-        .where(and(eq(userTenants.userId, userId), eq(userTenants.isActive, 1)))
-        .orderBy(asc(userTenants.id));
-      const matched = linkedRows.find((r) => {
-        if (!isTenantPfRow(r.tenant)) return false;
-        const pfSettings = parseTenantSettingsSafe(r.tenant.settings);
-        return !pfSettings.pairedPjTenantId || Number(pfSettings.pairedPjTenantId) === activeT.id;
-      });
-      if (matched) {
-        pfRow = matched.tenant;
-        const pjSettings = parseTenantSettingsSafe(activeT.settings);
-        pjSettings.pairedPfTenantId = pfRow.id;
-        const pfSettings = parseTenantSettingsSafe(pfRow.settings);
-        pfSettings.pairedPjTenantId = activeT.id;
-        await db
-          .update(tenants)
-          .set({ settings: JSON.stringify(pjSettings) })
-          .where(eq(tenants.id, activeT.id));
-        await db
-          .update(tenants)
-          .set({ settings: JSON.stringify(pfSettings) })
-          .where(eq(tenants.id, pfRow.id));
-        pjRow = { ...pjRow, settings: JSON.stringify(pjSettings) };
-        pfRow = { ...pfRow, settings: JSON.stringify(pfSettings) };
+        pfRow = foundPf;
       }
     }
   }
@@ -672,6 +645,7 @@ export const appRouter = router({
         if (!ctx.user) throw new Error("Neautentificat");
         const activeTenantId = ctx.user.tenantId;
         if (!activeTenantId) throw new Error("Nu există profil activ");
+        await assertTenantWriteAccess(ctx, activeTenantId);
         const db = await getDb();
         if (!db) throw new Error("Baza de date indisponibilă");
         const { tenants, userTenants, accounts } = await import("../drizzle/schema");
@@ -690,6 +664,28 @@ export const appRouter = router({
         let pj = resolved.pjRow || undefined;
         let existingPf = resolved.pfRow || undefined;
 
+        if (pj) {
+          if (ctx.user.role === "superadmin" && pj.id !== 1) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Profilul personal nu poate fi asociat unei alte companii din modul superadmin.",
+            });
+          }
+          if (ctx.user.role !== "superadmin") {
+            const pjMemberRole = await getUserRole(ctx.user.id, pj.id);
+            const isVerifiedAdmin =
+              pjMemberRole === "admin" ||
+              pjMemberRole === "superadmin" ||
+              (pjMemberRole === null && ctx.user.role === "admin" && ctx.user.tenantId === pj.id);
+            if (!isVerifiedAdmin) {
+              throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Doar administratorul companiei poate asocia un profil personal.",
+              });
+            }
+          }
+        }
+
         const [duplicate] = await db
           .select()
           .from(tenants)
@@ -697,7 +693,7 @@ export const appRouter = router({
           .limit(1);
         if (duplicate && duplicate.id !== existingPf?.id) {
           const [ownedByUser] = await db
-            .select({ id: userTenants.id })
+            .select({ id: userTenants.id, role: userTenants.role })
             .from(userTenants)
             .where(
               and(
@@ -707,7 +703,7 @@ export const appRouter = router({
               )
             )
             .limit(1);
-          if (ownedByUser && !existingPf) {
+          if (ownedByUser && ownedByUser.role !== "viewer" && !existingPf) {
             existingPf = duplicate;
           } else {
             throw new Error("Există deja un profil înregistrat cu acest CNP.");
@@ -824,6 +820,17 @@ export const appRouter = router({
             .update(tenants)
             .set(updatePayload)
             .where(eq(tenants.id, existingPf.id));
+
+          if (pj && !(ctx.user.role === "superadmin" && pj.id !== 1)) {
+            const pjSettings = parseTenantSettingsSafe(pj.settings);
+            if (!pjSettings.pairedPfTenantId || Number(pjSettings.pairedPfTenantId) === existingPf.id) {
+              pjSettings.pairedPfTenantId = existingPf.id;
+              await db
+                .update(tenants)
+                .set({ settings: JSON.stringify(pjSettings) })
+                .where(eq(tenants.id, pj.id));
+            }
+          }
         }
 
         let token: string | undefined;
@@ -1025,6 +1032,9 @@ export const appRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const tenantId = tenantOf(ctx);
+        await assertTenantWriteAccess(ctx, tenantId);
+        const ip = getClientIp(ctx.req);
+        checkTenantPinRateLimit(tenantId, ip);
         const db = await getDb();
         if (!db) throw new Error("Baza de date indisponibilă");
         const { tenants } = await import("../drizzle/schema");
@@ -1050,9 +1060,11 @@ export const appRouter = router({
             .update(input.currentPin.trim() + "_pin_salt_smart_invoice")
             .digest("hex");
           if (currentComputed !== s.accessPinHash) {
+            recordTenantPinFailure(tenantId, ip);
             throw new Error("Codul PIN actual este incorect.");
           }
         }
+        clearTenantPinFailures(tenantId, ip);
 
         const newHash = crypto
           .createHash("sha256")
@@ -1072,6 +1084,9 @@ export const appRouter = router({
       .input(z.object({ pin: z.string().min(1) }))
       .mutation(async ({ input, ctx }) => {
         const tenantId = tenantOf(ctx);
+        await assertTenantWriteAccess(ctx, tenantId);
+        const ip = getClientIp(ctx.req);
+        checkTenantPinRateLimit(tenantId, ip);
         const db = await getDb();
         if (!db) throw new Error("Baza de date indisponibilă");
         const { tenants } = await import("../drizzle/schema");
@@ -1094,9 +1109,11 @@ export const appRouter = router({
             .update(input.pin.trim() + "_pin_salt_smart_invoice")
             .digest("hex");
           if (currentComputed !== s.accessPinHash) {
+            recordTenantPinFailure(tenantId, ip);
             throw new Error("Codul PIN actual este incorect.");
           }
         }
+        clearTenantPinFailures(tenantId, ip);
 
         s.accessPinEnabled = false;
         delete s.accessPinHash;
@@ -1156,6 +1173,8 @@ export const appRouter = router({
           effectiveTargetId = input.targetTenantId;
         }
 
+        await assertTenantWriteAccess(ctx, effectiveTargetId);
+
         const updateData: any = { ...input };
         delete updateData.targetTenantId;
         if (input.email !== undefined) {
@@ -1169,6 +1188,28 @@ export const appRouter = router({
         if (input.cui !== undefined) {
           const trimmedCui = input.cui.trim();
           updateData.cui = trimmedCui === "" ? null : trimmedCui;
+          if (updateData.cui) {
+            const cleanCuiNorm = String(updateData.cui).toUpperCase().replace(/\s+/g, "");
+            const bareCuiNorm = cleanCuiNorm.replace(/^RO/i, "");
+            if (bareCuiNorm) {
+              const [dupTenant] = await db
+                .select({ id: tenants.id })
+                .from(tenants)
+                .where(
+                  and(
+                    sql`${tenants.id} != ${effectiveTargetId}`,
+                    sql`REPLACE(UPPER(TRIM(COALESCE(${tenants.cui}, ''))), ' ', '') IN (${cleanCuiNorm}, ${bareCuiNorm}, ${`RO${bareCuiNorm}`})`
+                  )
+                )
+                .limit(1);
+              if (dupTenant) {
+                throw new TRPCError({
+                  code: "CONFLICT",
+                  message: "Există deja o altă companie înregistrată cu acest CUI / CNP.",
+                });
+              }
+            }
+          }
         }
         if (input.settings) {
           const [currentT] = await db
@@ -1178,14 +1219,16 @@ export const appRouter = router({
             .limit(1);
           const existingSettings = parseTenantSettingsSafe(currentT?.settings);
           const newSettings = parseTenantSettingsSafe(input.settings);
-          // Prevent users from forging PF/PJ tenant pairings or overwriting PIN hashes via updateSettings
+          // Prevent users from forging PF/PJ tenant pairings or overwriting PIN hashes / companyCui via updateSettings
           delete newSettings.pairedPfTenantId;
           delete newSettings.pairedPjTenantId;
           delete newSettings.accessPinHash;
           delete newSettings.accessPinEnabled;
           delete newSettings.pinHash;
+          delete newSettings.companyCui;
 
           const mergedSettings: any = { ...existingSettings, ...newSettings };
+          delete mergedSettings.companyCui;
           if (existingSettings.accessPinHash) {
             mergedSettings.accessPinHash = existingSettings.accessPinHash;
           }
@@ -1197,6 +1240,53 @@ export const appRouter = router({
           }
           if (existingSettings.pairedPjTenantId !== undefined) {
             mergedSettings.pairedPjTenantId = existingSettings.pairedPjTenantId;
+          }
+          if (
+            newSettings.brevoApiKey === undefined ||
+            newSettings.brevoApiKey === "••••••••"
+          ) {
+            if (existingSettings.brevoApiKey) {
+              mergedSettings.brevoApiKey = existingSettings.brevoApiKey;
+            } else {
+              delete mergedSettings.brevoApiKey;
+            }
+          }
+          if (
+            newSettings.sagaWebToken === undefined ||
+            newSettings.sagaWebToken === "••••••••"
+          ) {
+            if (existingSettings.sagaWebToken) {
+              mergedSettings.sagaWebToken = existingSettings.sagaWebToken;
+            } else {
+              delete mergedSettings.sagaWebToken;
+            }
+          }
+          if (
+            existingSettings.accountantPortal &&
+            typeof existingSettings.accountantPortal === "object"
+          ) {
+            const nextPortal =
+              newSettings.accountantPortal &&
+              typeof newSettings.accountantPortal === "object"
+                ? { ...existingSettings.accountantPortal, ...newSettings.accountantPortal }
+                : { ...existingSettings.accountantPortal };
+            if (
+              !newSettings.accountantPortal?.token ||
+              newSettings.accountantPortal.token === "••••••••"
+            ) {
+              if (existingSettings.accountantPortal.token) {
+                nextPortal.token = existingSettings.accountantPortal.token;
+              }
+            }
+            if (
+              !newSettings.accountantPortal?.pinHash ||
+              newSettings.accountantPortal.pinHash === "••••••••"
+            ) {
+              if (existingSettings.accountantPortal.pinHash) {
+                nextPortal.pinHash = existingSettings.accountantPortal.pinHash;
+              }
+            }
+            mergedSettings.accountantPortal = nextPortal;
           }
           updateData.settings = JSON.stringify(mergedSettings);
         }
@@ -1255,6 +1345,8 @@ export const appRouter = router({
       }),
     getAccountantPortalConfig: protectedProcedure.query(async ({ ctx }) => {
       const tenantId = tenantOf(ctx);
+      const memberRole = ctx.user?.role === "superadmin" ? "superadmin" : await getUserRole(ctx.user.id, tenantId);
+      const isViewer = memberRole === "viewer";
       const db = await getDb();
       if (!db) throw new Error("DB indisponibil");
       const { tenants } = await import("../drizzle/schema");
@@ -1268,7 +1360,7 @@ export const appRouter = router({
       } catch {}
 
       let portal = s.accountantPortal || {};
-      if (!portal.token) {
+      if (!portal.token && !isViewer) {
         const crypto = await import("crypto");
         portal.token = crypto.randomBytes(16).toString("hex");
         portal.enabled = portal.enabled ?? false;
@@ -1278,7 +1370,7 @@ export const appRouter = router({
 
       return {
         enabled: Boolean(portal.enabled),
-        token: portal.token,
+        token: isViewer ? "" : (portal.token || ""),
         hasPin: Boolean(portal.pinHash),
         customSlug: portal.customSlug || "",
         defaultViewMode: (portal.defaultViewMode === "modern" ? "modern" : "saga") as "modern" | "saga",
@@ -1297,6 +1389,7 @@ export const appRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const tenantId = tenantOf(ctx);
+        await assertTenantWriteAccess(ctx, tenantId);
         const db = await getDb();
         if (!db) throw new Error("DB indisponibil");
         const { tenants } = await import("../drizzle/schema");
@@ -1444,11 +1537,46 @@ export const appRouter = router({
         )
       )
       .mutation(async ({ input, ctx }) => {
-        
         const db = await getDb();
         if (!db) throw new Error("DB not connected");
 
-        const tenantId = (tenantOf(ctx));
+        const tenantId = tenantOf(ctx);
+        await assertTenantWriteAccess(ctx, tenantId);
+        const { tenants } = await import("../drizzle/schema");
+        const [tenantRow] = await db
+          .select({ cui: tenants.cui })
+          .from(tenants)
+          .where(eq(tenants.id, tenantId))
+          .limit(1);
+        const cleanTenantCif = String(tenantRow?.cui || "")
+          .trim()
+          .toUpperCase()
+          .replace(/^RO/i, "")
+          .replace(/[^A-Z0-9]/g, "");
+
+        const extractPartyCifsLocal = (partyWrapper: any): string[] => {
+          const party = partyWrapper?.["Party"] ?? partyWrapper?.["cac:Party"] ?? partyWrapper;
+          if (!party || typeof party !== "object") return [];
+          const cifs = new Set<string>();
+          const nodeTxt = (v: any) =>
+            v && typeof v === "object" ? String(v["#text"] ?? v["_text"] ?? "").trim() : String(v ?? "").trim();
+          const norm = (raw: any) =>
+            String(raw || "").trim().toUpperCase().replace(/^RO/i, "").replace(/[^A-Z0-9]/g, "");
+          const taxSchemes = party["PartyTaxScheme"] ?? party["cac:PartyTaxScheme"];
+          const taxArr = Array.isArray(taxSchemes) ? taxSchemes : taxSchemes ? [taxSchemes] : [];
+          for (const ts of taxArr) {
+            const c = norm(nodeTxt(ts?.["CompanyID"] ?? ts?.["cbc:CompanyID"]));
+            if (c) cifs.add(c);
+          }
+          const legals = party["PartyLegalEntity"] ?? party["cac:PartyLegalEntity"];
+          const legArr = Array.isArray(legals) ? legals : legals ? [legals] : [];
+          for (const le of legArr) {
+            const c = norm(nodeTxt(le?.["CompanyID"] ?? le?.["cbc:CompanyID"]));
+            if (c) cifs.add(c);
+          }
+          return Array.from(cifs);
+        };
+
         const insertedIds: number[] = [];
 
         for (const inv of input) {
@@ -1458,10 +1586,48 @@ export const appRouter = router({
             tenantId
           );
 
+          let direction: "in" | "out" = "in";
           if (inv.xmlContent) {
+            if (!cleanTenantCif) {
+              throw new TRPCError({
+                code: "PRECONDITION_FAILED",
+                message: "CUI-ul firmei nu este configurat în profilul companiei.",
+              });
+            }
+            const { XMLParser } = await import("fast-xml-parser");
+            const xmlParser = new XMLParser({
+              numberParseOptions: { leadingZeros: false, hex: false, eNotation: false },
+              ignoreAttributes: false,
+              attributeNamePrefix: "@_",
+              removeNSPrefix: true,
+            });
+            const parsedXml = xmlParser.parse(inv.xmlContent);
+            const rootKey = Object.keys(parsedXml).find(
+              k => k.includes("Invoice") || k.includes("CreditNote")
+            );
+            const invObj = rootKey ? parsedXml[rootKey] : null;
+            if (!invObj) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Fișierul XML e-Factura nu este valid.",
+              });
+            }
+            const supCifs = extractPartyCifsLocal(invObj["AccountingSupplierParty"]);
+            const cusCifs = extractPartyCifsLocal(invObj["AccountingCustomerParty"]);
+            if (!supCifs.includes(cleanTenantCif) && !cusCifs.includes(cleanTenantCif)) {
+              throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Factura XML nu aparține CUI-ului firmei curente.",
+              });
+            }
+            if (supCifs.includes(cleanTenantCif) && !cusCifs.includes(cleanTenantCif)) {
+              direction = "out";
+            }
+
             const pdfRes = await convertXmlToPdf(
               inv.xmlContent,
-              `Factura_${inv.invoiceNumber}_${Date.now()}`
+              `Factura_${inv.invoiceNumber}_${Date.now()}`,
+              tenantId
             );
             if (pdfRes) {
               finalFileUrl = pdfRes.url;
@@ -1483,7 +1649,7 @@ export const appRouter = router({
             totalVAT: inv.totalVAT.toString() as any,
             currency: inv.currency,
             source: "spv_anaf",
-            direction: "in",
+            direction,
             status: "pending",
             rawXml: inv.xmlContent || null,
           });
@@ -1594,10 +1760,13 @@ export const appRouter = router({
           const { invoiceArchive } = await import("../drizzle/schema");
           const { eq, inArray, and } = await import("drizzle-orm");
           if (input.sourceInvoiceId && input.sourceInvoiceId !== "multiplu") {
-            await db
-              .update(invoiceArchive)
-              .set({ status: "refactured" })
-              .where(and(eq(invoiceArchive.id, parseInt(input.sourceInvoiceId)), eq(invoiceArchive.tenantId, tenantOf(ctx))));
+            const parsedSourceId = parseInt(input.sourceInvoiceId, 10);
+            if (Number.isFinite(parsedSourceId) && parsedSourceId > 0) {
+              await db
+                .update(invoiceArchive)
+                .set({ status: "refactured" })
+                .where(and(eq(invoiceArchive.id, parsedSourceId), eq(invoiceArchive.tenantId, tenantOf(ctx))));
+            }
           } else if (
             input.sourceInvoiceIds &&
             input.sourceInvoiceIds.length > 0
@@ -1644,13 +1813,13 @@ export const appRouter = router({
         if (tenantData.length === 0) throw new Error("Tenant not found");
 
         // 3. Generate XML
-        const { generateUblXml } = await import("./anafXmlGenerator");
+        const { generateUblXml, normalizeUblDate } = await import("./anafXmlGenerator");
         let ublRate: number | undefined = undefined;
         const invCur = String((invoiceData as any).currency || "RON").toUpperCase();
         if (invCur !== "RON") {
           const { getBnrRateForDate } = await import("./bnrService");
           const r = await getBnrRateForDate(
-            new Date((invoiceData as any).issueDate).toISOString().split("T")[0],
+            normalizeUblDate((invoiceData as any).issueDate),
             invCur
           );
           ublRate = r?.rate;
@@ -1810,8 +1979,9 @@ export const appRouter = router({
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
-        
-        return deleteReInvoice(input.id, (tenantOf(ctx)));
+        const tenantId = tenantOf(ctx);
+        await assertTenantWriteAccess(ctx, tenantId);
+        return deleteReInvoice(input.id, tenantId);
       }),
     // Download PDF (unchanged)
     downloadPDF: protectedProcedure
@@ -1894,9 +2064,30 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        
+        const tenantId = tenantOf(ctx);
+        if (input.categoryId !== undefined && input.categoryId !== null) {
+          const db = await getDb();
+          if (!db) throw new Error("No DB");
+          const { costCenterCategories } = await import("../drizzle/schema");
+          const [ownCat] = await db
+            .select({ id: costCenterCategories.id })
+            .from(costCenterCategories)
+            .where(
+              and(
+                eq(costCenterCategories.id, input.categoryId),
+                eq(costCenterCategories.tenantId, tenantId)
+              )
+            )
+            .limit(1);
+          if (!ownCat) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Categoria selectată nu aparține firmei curente.",
+            });
+          }
+        }
         return createCostCenter({
-          tenantId: (tenantOf(ctx)),
+          tenantId,
           ...input,
         });
       }),
@@ -1915,9 +2106,30 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        
+        const tenantId = tenantOf(ctx);
+        if (input.categoryId !== undefined && input.categoryId !== null) {
+          const db = await getDb();
+          if (!db) throw new Error("No DB");
+          const { costCenterCategories } = await import("../drizzle/schema");
+          const [ownCat] = await db
+            .select({ id: costCenterCategories.id })
+            .from(costCenterCategories)
+            .where(
+              and(
+                eq(costCenterCategories.id, input.categoryId),
+                eq(costCenterCategories.tenantId, tenantId)
+              )
+            )
+            .limit(1);
+          if (!ownCat) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Categoria selectată nu aparține firmei curente.",
+            });
+          }
+        }
         const { id, ...data } = input;
-        return updateCostCenter(id, (tenantOf(ctx)), data);
+        return updateCostCenter(id, tenantId, data);
       }),
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
@@ -3078,8 +3290,9 @@ export const appRouter = router({
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
-        
-        await deleteInvoiceArchiveEntry(input.id, (tenantOf(ctx)));
+        const tenantId = tenantOf(ctx);
+        await assertTenantWriteAccess(ctx, tenantId);
+        await deleteInvoiceArchiveEntry(input.id, tenantId);
         return { success: true };
       }),
 
@@ -3186,8 +3399,9 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        const { generateSagaExportXML, getTenantCompanyProfile, toSagaXmlBuffer } = await import("./sagaXmlGenerator");
         const tenantId = tenantOf(ctx);
+        await assertTenantWriteAccess(ctx, tenantId);
+        const { generateSagaExportXML, getTenantCompanyProfile, toSagaXmlBuffer } = await import("./sagaXmlGenerator");
         const xml = await generateSagaExportXML(
           tenantId,
           input.month,
@@ -3210,8 +3424,27 @@ export const appRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const tenantId = tenantOf(ctx);
+        await assertTenantWriteAccess(ctx, tenantId);
         const existingList = await getIntegrations(tenantId);
         const existingIntg = existingList.find((i) => i.provider === input.provider);
+
+        if (input.provider === "spv") {
+          if (
+            (input.apiKey !== undefined && input.apiKey !== "" && input.apiKey !== "••••••••") ||
+            (input.apiSecret !== undefined && input.apiSecret !== "" && input.apiSecret !== "••••••••")
+          ) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Token-urile OAuth SPV pot fi obținute exclusiv prin autentificarea oficială ANAF (/api/spv/callback).",
+            });
+          }
+          await upsertIntegration(tenantId, "spv", {
+            apiKey: existingIntg?.apiKey ?? undefined,
+            apiSecret: existingIntg?.apiSecret ?? undefined,
+            status: input.status,
+          });
+          return { success: true };
+        }
 
         let nextApiKey = input.apiKey;
         if (nextApiKey === "••••••••") {
@@ -3249,12 +3482,14 @@ export const appRouter = router({
         return { success: true };
       }),
     syncOblio: protectedProcedure.mutation(async ({ ctx }) => {
-      
+      const tenantId = tenantOf(ctx);
+      await assertTenantWriteAccess(ctx, tenantId);
       const { syncOblioInvoices } = await import("./oblioSync");
-      return syncOblioInvoices((tenantOf(ctx)));
+      return syncOblioInvoices(tenantId);
     }),
     disconnectOblio: protectedProcedure.mutation(async ({ ctx }) => {
-      
+      const tenantId = tenantOf(ctx);
+      await assertTenantWriteAccess(ctx, tenantId);
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       const { integrations } = await import("../drizzle/schema");
@@ -3263,14 +3498,15 @@ export const appRouter = router({
         .delete(integrations)
         .where(
           and(
-            eq(integrations.tenantId, (tenantOf(ctx))),
+            eq(integrations.tenantId, tenantId),
             eq(integrations.provider, "oblio")
           )
         );
       return { success: true };
     }),
     disconnectSpv: protectedProcedure.mutation(async ({ ctx }) => {
-      
+      const tenantId = tenantOf(ctx);
+      await assertTenantWriteAccess(ctx, tenantId);
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       const { integrations } = await import("../drizzle/schema");
@@ -3279,14 +3515,15 @@ export const appRouter = router({
         .delete(integrations)
         .where(
           and(
-            eq(integrations.tenantId, (tenantOf(ctx))),
+            eq(integrations.tenantId, tenantId),
             eq(integrations.provider, "spv")
           )
         );
       return { success: true };
     }),
     syncSpvManual: protectedProcedure.mutation(async ({ ctx }) => {
-      
+      const tenantId = tenantOf(ctx);
+      await assertTenantWriteAccess(ctx, tenantId);
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
       const { integrations } = await import("../drizzle/schema");
@@ -3296,7 +3533,7 @@ export const appRouter = router({
         .from(integrations)
         .where(
           and(
-            eq(integrations.tenantId, (tenantOf(ctx))),
+            eq(integrations.tenantId, tenantId),
             eq(integrations.provider, "spv")
           )
         );
@@ -3307,7 +3544,7 @@ export const appRouter = router({
         );
       }
       const { syncAllSpv } = await import("./spvCron");
-      const result = await syncAllSpv(60, (tenantOf(ctx)));
+      const result = await syncAllSpv(60, tenantId);
       return {
         success: true,
         imported: result?.imported || 0,
@@ -3315,11 +3552,12 @@ export const appRouter = router({
       };
     }),
     testSpvConnection: protectedProcedure.mutation(async ({ ctx }) => {
+      const tenantId = tenantOf(ctx);
+      await assertTenantWriteAccess(ctx, tenantId);
       const { testSpvConnection } = await import("./spvDiagnostic");
-      return await testSpvConnection(tenantOf(ctx));
+      return await testSpvConnection(tenantId);
     }),
     getSpvOAuthUrl: protectedProcedure.query(async ({ ctx }) => {
-      
       const clientId = process.env.SPV_CLIENT_ID;
       const clientSecret = process.env.SPV_CLIENT_SECRET;
       const redirectUri =
@@ -3334,7 +3572,7 @@ export const appRouter = router({
       authUrl.searchParams.append("token_content_type", "jwt");
       const tenantId = tenantOf(ctx);
       authUrl.searchParams.append("state", createSpvOAuthState(tenantId));
-      // Fetch tenant CUI
+      // Fetch tenant CUI strictly from tenants.cui
       const { tenants } = await import("../drizzle/schema");
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Baza de date indisponibilă" });
@@ -3342,15 +3580,8 @@ export const appRouter = router({
         .select({ cui: tenants.cui, settings: tenants.settings })
         .from(tenants)
         .where(eq(tenants.id, tenantId));
-      let parsedSettings: any = {};
-      try {
-        parsedSettings =
-          typeof tenant?.settings === "string"
-            ? JSON.parse(tenant.settings || "{}")
-            : tenant?.settings || {};
-      } catch {}
-      const settingsCui = parsedSettings?.companyCui || "";
-      const cleanCui = String(tenant?.cui || settingsCui || "")
+      const parsedSettings = parseTenantSettingsSafe(tenant?.settings);
+      const cleanCui = String(tenant?.cui || "")
         .replace(/^RO/i, "")
         .trim();
       const entityType: "pj" | "pf" =
@@ -3369,9 +3600,10 @@ export const appRouter = router({
         z.object({ zile: z.number().min(1).max(365).optional() }).optional()
       )
       .mutation(async ({ ctx, input }) => {
-        
+        const tenantId = tenantOf(ctx);
+        await assertTenantWriteAccess(ctx, tenantId);
         const { syncAllSpv } = await import("./spvCron");
-        const result = await syncAllSpv(input?.zile || 60, (tenantOf(ctx)));
+        const result = await syncAllSpv(input?.zile || 60, tenantId);
         return {
           success: true,
           imported: result?.imported || 0,
@@ -3379,13 +3611,15 @@ export const appRouter = router({
         };
       }),
     syncSmartBill: protectedProcedure.mutation(async ({ ctx }) => {
-      
+      const tenantId = tenantOf(ctx);
+      await assertTenantWriteAccess(ctx, tenantId);
       const { syncSmartBillInvoices } = await import("./smartbillSync");
-      return syncSmartBillInvoices((tenantOf(ctx)));
+      return syncSmartBillInvoices(tenantId);
     }),
     // Backfill rawXml for existing SPV invoices
     repopulateXml: protectedProcedure.mutation(async ({ ctx }) => {
-      
+      const tenantId = tenantOf(ctx);
+      await assertTenantWriteAccess(ctx, tenantId);
       const db = await getDb();
       if (!db) throw new Error("DB unavailable");
 
@@ -3399,7 +3633,7 @@ export const appRouter = router({
         .from(invoiceArchive)
         .where(
           and(
-            eq(invoiceArchive.tenantId, (tenantOf(ctx))),
+            eq(invoiceArchive.tenantId, tenantId),
             eq(invoiceArchive.source, "spv_anaf"),
             sql`rawXml IS NULL`
           )
@@ -3913,11 +4147,12 @@ export const appRouter = router({
         }
 
         let assignedClientId = invoiceData.clientId;
+        let ownClient: any = null;
         if (!assignedClientId && invoiceData.clientName) {
           try {
             const { clients } = await import("../drizzle/schema");
             const existing = await db
-              .select({ id: clients.id })
+              .select({ id: clients.id, tva: clients.tva })
               .from(clients)
               .where(
                 and(
@@ -3931,6 +4166,7 @@ export const appRouter = router({
 
             if (existing.length > 0) {
               assignedClientId = existing[0].id;
+              ownClient = existing[0];
               const updateClientData: any = {};
               if (invoiceData.clientAddress) updateClientData.address = invoiceData.clientAddress.trim();
               if (invoiceData.clientCity) updateClientData.city = invoiceData.clientCity.trim();
@@ -3966,7 +4202,7 @@ export const appRouter = router({
             console.error("Failed to auto-save client:", err);
           }
         } else if (assignedClientId) {
-          const ownClient = await getClientById(assignedClientId, tenantId);
+          ownClient = await getClientById(assignedClientId, tenantId);
           if (!ownClient) {
             throw new TRPCError({
               code: "FORBIDDEN",
@@ -3994,7 +4230,12 @@ export const appRouter = router({
 
         let safeClientCui = (invoiceData.clientCUI || "").trim();
         const isRoCountry = !safeCountry || safeCountry.toUpperCase() === "RO";
-        if (isRoCountry && /^\d+$/.test(safeClientCui) && parseFloat(String(invoiceData.totalVAT || 0)) > 0) {
+        if (
+          isRoCountry &&
+          /^\d+$/.test(safeClientCui) &&
+          !/^\d{13}$/.test(safeClientCui) &&
+          ownClient?.tva === 1
+        ) {
           safeClientCui = `RO${safeClientCui}`;
         }
 
@@ -4192,7 +4433,7 @@ export const appRouter = router({
               quantity: 1,
               unitPrice: sumLab,
               unit: "buc",
-              vatRate: labLines[0].vatRate || 21,
+              vatRate: labLines[0].vatRate ?? 21,
               total: sumLab,
               lineOrder: 9999,
               devizType: "GROUPED_LABOR",
@@ -4267,7 +4508,7 @@ export const appRouter = router({
         if (sendEmailToClient && invoiceData.clientEmail) {
           try {
             const { generateEmittedInvoicePdfBuffer, sendInvoiceEmail, extractRepresentativeName } = await import("./emailService");
-            const { buffer, filename, tenant, tenantLogoBase64, tenantBrevoApiKey, isForeign } = await generateEmittedInvoicePdfBuffer(invoiceId);
+            const { buffer, filename, tenant, tenantLogoBase64, tenantBrevoApiKey, isForeign } = await generateEmittedInvoicePdfBuffer(invoiceId, tenantOf(ctx));
             const repName = representativeName?.trim() || extractRepresentativeName(invoiceData.notes);
             const emailRes = await sendInvoiceEmail({
               apiKey: tenantBrevoApiKey,
@@ -4300,7 +4541,7 @@ export const appRouter = router({
                 invoiceNumber: invoiceData.number,
                 recipientEmail: invoiceData.clientEmail,
                 recipientName: invoiceData.clientName,
-                subject: `Factura fiscală ${invoiceData.number} - ${tenant?.name || "TRADE INVEST NETWORK"}`,
+                subject: `Factura fiscală ${invoiceData.number} - ${tenant?.name || (tenantOf(ctx) === 1 ? "TRADE INVEST NETWORK" : "Companie")}`,
                 status: emailRes.success ? "trimis" : "eroare",
                 messageId: emailRes.messageId || null,
                 error: emailRes.error || null,
@@ -4440,24 +4681,32 @@ export const appRouter = router({
         if (data.companyIBAN !== undefined) updateData.companyIBAN = data.companyIBAN;
         if (data.companyBank !== undefined) updateData.companyBank = data.companyBank;
         if (data.notes !== undefined) updateData.notes = data.notes;
-        if (data.number) updateData.number = data.number;
-        if (data.series) updateData.series = data.series;
-        if (updateData.clientCUI) {
-          const isRoCountry = !updateData.clientCountry || updateData.clientCountry === "RO";
-          if (isRoCountry && /^\d+$/.test(updateData.clientCUI.trim()) && parseFloat(String(data.totalVAT || 0)) > 0) {
-            updateData.clientCUI = `RO${updateData.clientCUI.trim()}`;
+        if (data.number && data.number.trim()) {
+          const trimmedNum = data.number.trim();
+          const [dupNum] = await db
+            .select({ id: emittedInvoices.id })
+            .from(emittedInvoices)
+            .where(
+              and(
+                eq(emittedInvoices.tenantId, tenantOf(ctx)),
+                eq(emittedInvoices.number, trimmedNum),
+                sql`${emittedInvoices.id} != ${id}`
+              )
+            )
+            .limit(1);
+          if (dupNum) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: `Există deja o factură emisă cu numărul ${trimmedNum}.`,
+            });
           }
+          updateData.number = trimmedNum;
         }
-        if (updateData.clientCountry && updateData.clientCountry !== "RO") {
-          updateData.spvStatus = "extern";
-          updateData.spvError = null;
-        } else if (updateData.clientCUI && /^[A-Za-z]{2}/.test(updateData.clientCUI) && !updateData.clientCUI.toUpperCase().startsWith("RO")) {
-          updateData.spvStatus = "extern";
-          updateData.spvError = null;
-        }
+        if (data.series) updateData.series = data.series;
+        let ownClient: any = null;
         if (data.clientId !== undefined) {
           if (data.clientId) {
-            const ownClient = await getClientById(data.clientId, tenantOf(ctx));
+            ownClient = await getClientById(data.clientId, tenantOf(ctx));
             if (!ownClient) {
               throw new TRPCError({
                 code: "FORBIDDEN",
@@ -4468,6 +4717,28 @@ export const appRouter = router({
           } else {
             updateData.clientId = null;
           }
+        } else if (existing.clientId) {
+          ownClient = await getClientById(existing.clientId, tenantOf(ctx));
+        }
+        if (updateData.clientCUI) {
+          const safeClientCui = updateData.clientCUI.trim();
+          const effCountry = updateData.clientCountry || existing.clientCountry;
+          const isRoCountry = !effCountry || effCountry.toUpperCase() === "RO";
+          if (
+            isRoCountry &&
+            /^\d+$/.test(safeClientCui) &&
+            !/^\d{13}$/.test(safeClientCui) &&
+            ownClient?.tva === 1
+          ) {
+            updateData.clientCUI = `RO${safeClientCui}`;
+          }
+        }
+        if (updateData.clientCountry && updateData.clientCountry !== "RO") {
+          updateData.spvStatus = "extern";
+          updateData.spvError = null;
+        } else if (updateData.clientCUI && /^[A-Za-z]{2}/.test(updateData.clientCUI) && !updateData.clientCUI.toUpperCase().startsWith("RO")) {
+          updateData.spvStatus = "extern";
+          updateData.spvError = null;
         }
         if (Object.keys(updateData).length > 0) {
           await db
@@ -4508,17 +4779,29 @@ export const appRouter = router({
             .delete(emittedInvoiceLines)
             .where(eq(emittedInvoiceLines.emittedInvoiceId, id));
 
-          // Delete old devize & bonuri for this invoice to regenerate cleanly (strictly tenant-scoped)
+          // Delete old devize & bonuri for this emitted invoice ONLY (never touch DEV-RF-% / BC-RF-% belonging to reInvoices)
           const oldDevize = await db
             .select({ id: devize.id })
             .from(devize)
-            .where(and(eq(devize.invoiceId, id), eq(devize.tenantId, tenantId)));
+            .where(
+              and(
+                eq(devize.invoiceId, id),
+                eq(devize.tenantId, tenantId),
+                notLike(devize.number, "DEV-RF-%")
+              )
+            );
           for (const od of oldDevize) {
             await db.delete(devizeLines).where(eq(devizeLines.devizId, od.id));
             const oldBonuri = await db
               .select({ id: bonuriConsum.id })
               .from(bonuriConsum)
-              .where(and(eq(bonuriConsum.devizId, od.id), eq(bonuriConsum.tenantId, tenantId)));
+              .where(
+                and(
+                  eq(bonuriConsum.devizId, od.id),
+                  eq(bonuriConsum.tenantId, tenantId),
+                  notLike(bonuriConsum.number, "BC-RF-%")
+                )
+              );
             for (const ob of oldBonuri) {
               await db
                 .delete(bonuriConsumLines)
@@ -4526,9 +4809,23 @@ export const appRouter = router({
             }
             await db
               .delete(bonuriConsum)
-              .where(and(eq(bonuriConsum.devizId, od.id), eq(bonuriConsum.tenantId, tenantId)));
+              .where(
+                and(
+                  eq(bonuriConsum.devizId, od.id),
+                  eq(bonuriConsum.tenantId, tenantId),
+                  notLike(bonuriConsum.number, "BC-RF-%")
+                )
+              );
           }
-          await db.delete(devize).where(and(eq(devize.invoiceId, id), eq(devize.tenantId, tenantId)));
+          await db
+            .delete(devize)
+            .where(
+              and(
+                eq(devize.invoiceId, id),
+                eq(devize.tenantId, tenantId),
+                notLike(devize.number, "DEV-RF-%")
+              )
+            );
 
           if (lines.length > 0) {
             let finalInvoiceLines = [...lines];
@@ -4678,7 +4975,7 @@ export const appRouter = router({
                   quantity: 1,
                   unitPrice: sumLab,
                   unit: "buc",
-                  vatRate: labLines[0].vatRate || 21,
+                  vatRate: labLines[0].vatRate ?? 21,
                   total: sumLab,
                   lineOrder: 9999,
                   devizType: "GROUPED_LABOR",
@@ -4714,11 +5011,18 @@ export const appRouter = router({
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
-        if (!ctx.user?.tenantId) throw new Error("No tenant");
+        const tenantId = tenantOf(ctx);
+        await assertTenantWriteAccess(ctx, tenantId);
         const db = await getDb();
         if (!db) throw new Error("No DB");
-        const { emittedInvoices, emittedInvoiceLines } =
-          await import("../drizzle/schema");
+        const {
+          emittedInvoices,
+          emittedInvoiceLines,
+          devize,
+          devizeLines,
+          bonuriConsum,
+          bonuriConsumLines,
+        } = await import("../drizzle/schema");
         const { eq, and } = await import("drizzle-orm");
 
         const [existing] = await db
@@ -4727,7 +5031,7 @@ export const appRouter = router({
           .where(
             and(
               eq(emittedInvoices.id, input.id),
-              eq(emittedInvoices.tenantId, (tenantOf(ctx)))
+              eq(emittedInvoices.tenantId, tenantId)
             )
           );
 
@@ -4739,6 +5043,47 @@ export const appRouter = router({
           );
         }
 
+        const linkedDevize = await db
+          .select({ id: devize.id })
+          .from(devize)
+          .where(
+            and(
+              eq(devize.invoiceId, input.id),
+              eq(devize.tenantId, tenantId),
+              notLike(devize.number, "DEV-RF-%")
+            )
+          );
+        if (linkedDevize.length > 0) {
+          const devIds = linkedDevize.map(d => d.id);
+          const linkedBonuri = await db
+            .select({ id: bonuriConsum.id })
+            .from(bonuriConsum)
+            .where(
+              and(
+                inArray(bonuriConsum.devizId, devIds),
+                eq(bonuriConsum.tenantId, tenantId),
+                notLike(bonuriConsum.number, "BC-RF-%")
+              )
+            );
+          if (linkedBonuri.length > 0) {
+            await db
+              .delete(bonuriConsumLines)
+              .where(inArray(bonuriConsumLines.bonId, linkedBonuri.map(b => b.id)));
+            await db
+              .delete(bonuriConsum)
+              .where(
+                and(
+                  inArray(bonuriConsum.id, linkedBonuri.map(b => b.id)),
+                  eq(bonuriConsum.tenantId, tenantId)
+                )
+              );
+          }
+          await db.delete(devizeLines).where(inArray(devizeLines.devizId, devIds));
+          await db
+            .delete(devize)
+            .where(and(inArray(devize.id, devIds), eq(devize.tenantId, tenantId)));
+        }
+
         await db
           .delete(emittedInvoiceLines)
           .where(eq(emittedInvoiceLines.emittedInvoiceId, input.id));
@@ -4747,7 +5092,7 @@ export const appRouter = router({
           .where(
             and(
               eq(emittedInvoices.id, input.id),
-              eq(emittedInvoices.tenantId, (tenantOf(ctx)))
+              eq(emittedInvoices.tenantId, tenantId)
             )
           );
         return { success: true };
@@ -4830,7 +5175,7 @@ export const appRouter = router({
           .from(tenants)
           .where(eq(tenants.id, (tenantOf(ctx))));
         if (!tenantData) throw new Error("Tenant not found");
-        const { generateUblXml } = await import("./anafXmlGenerator");
+        const { generateUblXml, normalizeUblDate } = await import("./anafXmlGenerator");
         // Map emitted invoice to the same shape generateUblXml expects (ReInvoice-like)
         const invoiceLike: any = { ...inv };
         const linesLike: any[] = lines.map(l => ({
@@ -4843,7 +5188,7 @@ export const appRouter = router({
         if (inv.currency && inv.currency.toUpperCase() !== "RON") {
           const { getBnrRateForDate } = await import("./bnrService");
           const r = await getBnrRateForDate(
-            new Date(inv.issueDate as any).toISOString().split("T")[0],
+            normalizeUblDate(inv.issueDate as any),
             inv.currency
           );
           ublRate = r?.rate;
@@ -5083,7 +5428,7 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         if (!ctx.user?.tenantId) throw new Error("No tenant");
         const { generateEmittedInvoicePdfBuffer, sendInvoiceEmail, extractRepresentativeName } = await import("./emailService");
-        const { buffer, filename, invoice, tenant, tenantLogoBase64, representativeName: repFromInv, tenantBrevoApiKey, isForeign } = await generateEmittedInvoicePdfBuffer(input.invoiceId);
+        const { buffer, filename, invoice, tenant, tenantLogoBase64, representativeName: repFromInv, tenantBrevoApiKey, isForeign } = await generateEmittedInvoicePdfBuffer(input.invoiceId, tenantOf(ctx));
 
         if (invoice.tenantId !== (tenantOf(ctx))) {
           throw new Error("Nu aveți acces la această factură");
@@ -5138,7 +5483,7 @@ export const appRouter = router({
               invoiceNumber: cleanDisplayNum,
               recipientEmail: targetEmail,
               recipientName: invoice.clientName,
-              subject: `Factura fiscală ${cleanDisplayNum} - ${tenant?.name || "TRADE INVEST NETWORK"}`,
+              subject: `Factura fiscală ${cleanDisplayNum} - ${tenant?.name || (tenantOf(ctx) === 1 ? "TRADE INVEST NETWORK" : "Companie")}`,
               status: result.success ? "trimis" : "eroare",
               messageId: result.messageId || null,
               error: result.error || null,
@@ -5296,7 +5641,7 @@ export const appRouter = router({
         }
 
         const { generateEmittedInvoicePdfBuffer, buildInvoiceEmailPreviewHtml, buildInvoiceEmailSubject, extractRepresentativeName } = await import("./emailService");
-        const { invoice, tenant, tenantLogoBase64, representativeName: repFromInv, filename, isForeign, clientCountry } = await generateEmittedInvoicePdfBuffer(targetInvoiceId);
+        const { invoice, tenant, tenantLogoBase64, representativeName: repFromInv, filename, isForeign, clientCountry } = await generateEmittedInvoicePdfBuffer(targetInvoiceId, tenantId);
 
         if (invoice.tenantId !== tenantId) {
           throw new Error("Nu aveți acces la această factură");
@@ -5323,10 +5668,19 @@ export const appRouter = router({
           // Afișează emailul REAL care a fost trimis efectiv către client
           html = savedHtmlContent;
           if (tenantLogoBase64 && html.includes("cid:tenant-logo.png")) {
-            const logoSrc = tenantLogoBase64.startsWith("data:")
-              ? tenantLogoBase64
-              : `data:image/png;base64,${tenantLogoBase64}`;
-            html = html.replace(/cid:tenant-logo\.png/g, logoSrc);
+            const candidateLogo = tenantLogoBase64.startsWith("data:")
+              ? tenantLogoBase64.trim()
+              : `data:image/png;base64,${tenantLogoBase64.trim()}`;
+            if (
+              /^data:image\/(?:png|jpeg|jpg|gif|webp);base64,[A-Za-z0-9+/=\s]+$/i.test(
+                candidateLogo
+              )
+            ) {
+              html = html.replace(
+                /cid:tenant-logo\.png/g,
+                candidateLogo.replace(/\s+/g, "")
+              );
+            }
           }
         } else {
           html = buildInvoiceEmailPreviewHtml({
@@ -5335,7 +5689,7 @@ export const appRouter = router({
             dueDate: invoice.dueDate,
             total: parseFloat(invoice.total || "0"),
             currency: invoice.currency || "RON",
-            companyName: tenant?.name || "TRADE INVEST NETWORK",
+            companyName: tenant?.name || (tenantId === 1 ? "TRADE INVEST NETWORK" : "Companie"),
             companyIBAN: invoice.companyIBAN,
             companyBank: invoice.companyBank,
             filename,
@@ -5349,7 +5703,7 @@ export const appRouter = router({
 
         const defaultSubject = buildInvoiceEmailSubject({
           invoiceNumber: cleanDisplayNum,
-          companyName: tenant?.name || "TRADE INVEST NETWORK",
+          companyName: tenant?.name || (tenantId === 1 ? "TRADE INVEST NETWORK" : "Companie"),
           languages: input.languages as any,
           isForeign,
           clientCountry,
@@ -5409,7 +5763,7 @@ export const appRouter = router({
         }
 
         const { generateEmittedInvoicePdfBuffer, sendInvoiceEmail, extractRepresentativeName } = await import("./emailService");
-        const { buffer, filename, invoice, tenant, tenantLogoBase64, representativeName: repFromInv, tenantBrevoApiKey, isForeign, clientCountry } = await generateEmittedInvoicePdfBuffer(log.invoiceId);
+        const { buffer, filename, invoice, tenant, tenantLogoBase64, representativeName: repFromInv, tenantBrevoApiKey, isForeign, clientCountry } = await generateEmittedInvoicePdfBuffer(log.invoiceId, tenantOf(ctx));
 
         const rawNum = (invoice.number || `FACT-${invoice.id}`).trim();
         const rawSer = (invoice.series || "").trim();
@@ -5448,7 +5802,7 @@ export const appRouter = router({
           invoiceNumber: cleanDisplayNum,
           recipientEmail: targetEmail,
           recipientName: invoice.clientName,
-          subject: `Factura fiscală ${cleanDisplayNum} - ${tenant?.name || "TRADE INVEST NETWORK"}`,
+          subject: `Factura fiscală ${cleanDisplayNum} - ${tenant?.name || (tenantOf(ctx) === 1 ? "TRADE INVEST NETWORK" : "Companie")}`,
           status: result.success ? "trimis" : "eroare",
           messageId: result.messageId || null,
           error: result.error || null,
@@ -5605,11 +5959,9 @@ export const appRouter = router({
           `);
         } catch {}
 
-        // 2. Găsește integrarea SPV activă a tenant-ului
-        const [intg] = await db
-          .select()
-          .from(integrations)
-          .where(and(eq(integrations.tenantId, tenantId), eq(integrations.provider, "spv"), eq(integrations.status, "active")));
+        // 2. Obține token-ul SPV valid al tenant-ului (cu refresh automat / fallback PF-PJ verificat)
+        const { getValidSpvToken } = await import("./anafApi");
+        const tokenData = await getValidSpvToken(tenantId);
 
         // 3. Verifică dacă avem mesaje în DB sau dacă trebuie descărcate de la ANAF
         const [existingCountRow]: any = await db.execute(
@@ -5619,11 +5971,16 @@ export const appRouter = router({
 
         const shouldFetchAnaf = input?.refresh || existingCount === 0;
 
-        if (shouldFetchAnaf && intg?.apiKey) {
-          const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
-          const settings = typeof tenant?.settings === "string" ? JSON.parse(tenant.settings || "{}") : tenant?.settings;
-          const rawCui = settings?.companyCui || tenant?.cui || "";
-          const cleanCif = rawCui.replace(/^RO/i, "").trim();
+        if (shouldFetchAnaf && tokenData?.token) {
+          const [tenant] = await db
+            .select({ cui: tenants.cui })
+            .from(tenants)
+            .where(eq(tenants.id, tenantId));
+          const cleanCif = String(tenant?.cui || "")
+            .trim()
+            .toUpperCase()
+            .replace(/^RO/i, "")
+            .replace(/[^A-Z0-9]/g, "");
 
           if (cleanCif) {
             const zile = input?.zile || 60;
@@ -5631,7 +5988,7 @@ export const appRouter = router({
             try {
               const res = await fetch(url, {
                 headers: {
-                  Authorization: `Bearer ${intg.apiKey}`,
+                  Authorization: `Bearer ${tokenData.token}`,
                   Accept: "application/json",
                 },
               });
@@ -5639,6 +5996,14 @@ export const appRouter = router({
                 const data = await res.json();
                 const rawList = data?.mesaje || [];
                 for (const m of rawList) {
+                  if (m.cif) {
+                    const msgCif = String(m.cif)
+                      .trim()
+                      .toUpperCase()
+                      .replace(/^RO/i, "")
+                      .replace(/[^A-Z0-9]/g, "");
+                    if (msgCif && msgCif !== cleanCif) continue;
+                  }
                   const anafId = String(m.id || "");
                   const solId = m.id_solicitare ? String(m.id_solicitare) : null;
                   const dataRaw = String(m.data_creare || "");
@@ -5691,9 +6056,9 @@ export const appRouter = router({
           if (match) archiveBySpv.set(match[1], a);
         }
 
-        const emittedBySpv = new Map();
-        for (const e of emitted) if (e.spvIndex) emittedBySpv.set(String(e.spvIndex), e);
-        for (const r of reinvs) if (r.spvIndex) emittedBySpv.set(String(r.spvIndex), r);
+        const emittedBySpv = new Map<string, any>();
+        for (const e of emitted) if (e.spvIndex) emittedBySpv.set(String(e.spvIndex), { ...e, _isReInvoice: false });
+        for (const r of reinvs) if (r.spvIndex) emittedBySpv.set(String(r.spvIndex), { ...r, _isReInvoice: true });
 
         return rows.map((r: any) => {
           const solId = String(r.idSolicitare || "");
@@ -5714,7 +6079,13 @@ export const appRouter = router({
             isDownloaded: Boolean(matchArc || matchEmit),
             invoiceNumber: matchArc?.invoiceNumber || matchEmit?.number || null,
             partnerName: matchArc?.supplierName || matchEmit?.clientName || null,
-            pdfUrl: matchArc ? `/api/pdf/archive/${matchArc.id}` : (matchEmit ? `/api/pdf/emitted/${matchEmit.id}` : null),
+            pdfUrl: matchArc
+              ? `/api/pdf/archive/${matchArc.id}`
+              : matchEmit
+                ? matchEmit._isReInvoice
+                  ? `/api/pdf/reinvoice/${matchEmit.id}`
+                  : `/api/pdf/emitted/${matchEmit.id}`
+                : null,
           };
         });
       }),
@@ -5731,10 +6102,15 @@ export const appRouter = router({
       const tokenData = await getValidSpvToken(tenantId);
       if (!tokenData?.token) throw new Error("Nu există token OAuth SPV configurat.");
 
-      const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
-      const settings = typeof tenant?.settings === "string" ? JSON.parse(tenant.settings || "{}") : tenant?.settings;
-      const rawCui = settings?.companyCui || tenant?.cui || "";
-      const cleanCif = rawCui.replace(/^RO/i, "").trim();
+      const [tenant] = await db
+        .select({ cui: tenants.cui })
+        .from(tenants)
+        .where(eq(tenants.id, tenantId));
+      const cleanCif = String(tenant?.cui || "")
+        .trim()
+        .toUpperCase()
+        .replace(/^RO/i, "")
+        .replace(/[^A-Z0-9]/g, "");
       if (!cleanCif) throw new Error("CUI-ul / CNP-ul profilului nu este configurat.");
 
       const url = `https://api.anaf.ro/prod/FCTEL/rest/listaMesajeFactura?zile=60&cif=${cleanCif}`;
@@ -5761,6 +6137,14 @@ export const appRouter = router({
       let imported = 0;
 
       for (const m of rawList) {
+        if (m.cif) {
+          const msgCif = String(m.cif)
+            .trim()
+            .toUpperCase()
+            .replace(/^RO/i, "")
+            .replace(/[^A-Z0-9]/g, "");
+          if (msgCif && msgCif !== cleanCif) continue;
+        }
         const anafId = String(m.id || "");
         const solId = m.id_solicitare ? String(m.id_solicitare) : null;
         const dataRaw = String(m.data_creare || "");
@@ -6322,20 +6706,44 @@ export const appRouter = router({
         const tenantId = tenantOf(ctx);
 
         for (const line of input.lines) {
+          if (!Number.isFinite(line.qty) || line.qty <= 0) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Cantitatea consumată trebuie să fie mai mare decât 0.",
+            });
+          }
           // Doar liniile unui NIR al tenant-ului curent
           const [owned] = await db
-            .select({ id: nirLines.id })
+            .select({
+              id: nirLines.id,
+              cantitateReceptionata: nirLines.cantitateReceptionata,
+              consumedQty: nirLines.consumedQty,
+            })
             .from(nirLines)
             .innerJoin(nir, eq(nir.id, nirLines.nirId))
             .where(and(eq(nirLines.id, line.nirLineId), eq(nir.tenantId, tenantId)));
-          if (!owned) continue;
+          if (!owned) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "Linia NIR nu a fost găsită.",
+            });
+          }
+          const received = parseFloat(String(owned.cantitateReceptionata || "0")) || 0;
+          const alreadyConsumed = parseFloat(String(owned.consumedQty || "0")) || 0;
+          const remaining = Math.max(0, received - alreadyConsumed);
+          if (line.qty > remaining + 0.0001) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Cantitatea consumată (${line.qty}) depășește stocul disponibil (${remaining.toFixed(2)}).`,
+            });
+          }
           // Increment the consumedQty by the amount consumed
           await db
             .update(nirLines)
             .set({
               consumedQty: sql`COALESCE(${nirLines.consumedQty}, 0) + ${line.qty.toFixed(2)}`,
             })
-            .where(eq(nirLines.id, line.nirLineId));
+            .where(eq(nirLines.id, owned.id));
         }
         return { success: true };
       }),
@@ -6429,9 +6837,7 @@ export const appRouter = router({
             articleState,
             { persistToDb: true }
           );
-          if (resolved.sagaArticleId) {
-            l.sagaArticleId = resolved.sagaArticleId;
-          }
+          l.sagaArticleId = resolved.sagaArticleId ?? null;
           if (resolved.articleCode) {
             (l as any).articleCode = resolved.articleCode;
           }
@@ -6784,9 +7190,7 @@ export const appRouter = router({
               articleState,
               { persistToDb: true }
             );
-            if (resolved.sagaArticleId) {
-              l.sagaArticleId = resolved.sagaArticleId;
-            }
+            l.sagaArticleId = resolved.sagaArticleId ?? null;
             if (resolved.articleCode) {
               (l as any).articleCode = resolved.articleCode;
             }
@@ -7022,12 +7426,12 @@ export const appRouter = router({
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
-        
+        const tenantId = tenantOf(ctx);
+        await assertTenantWriteAccess(ctx, tenantId);
         const db = await getDb();
         if (!db) throw new Error("No DB");
         const { nir, nirLines } = await import("../drizzle/schema");
         const { sagaIntrari, sagaIntrariLinii } = await import("../modules/saga/schema");
-        const tenantId = tenantOf(ctx);
         const [own] = await db
           .select({ id: nir.id })
           .from(nir)
@@ -7052,13 +7456,14 @@ export const appRouter = router({
     bulkDelete: protectedProcedure
       .input(z.object({ ids: z.array(z.number()) }))
       .mutation(async ({ input, ctx }) => {
+        const tenantId = tenantOf(ctx);
+        await assertTenantWriteAccess(ctx, tenantId);
         const db = await getDb();
         if (!db) throw new Error("No DB");
         if (input.ids.length === 0) return { count: 0 };
         const { nir, nirLines } = await import("../drizzle/schema");
         const { sagaIntrari, sagaIntrariLinii } = await import("../modules/saga/schema");
         const { inArray, and, eq } = await import("drizzle-orm");
-        const tenantId = tenantOf(ctx);
         // Doar NIR-urile tenant-ului curent
         const owned = await db
           .select({ id: nir.id })
@@ -7097,6 +7502,13 @@ export const appRouter = router({
         const { nir } = await import("../drizzle/schema");
         const { inArray, and, eq } = await import("drizzle-orm");
         const tenantId = tenantOf(ctx);
+        const owned = await db
+          .select({ id: nir.id })
+          .from(nir)
+          .where(and(inArray(nir.id, input.ids), eq(nir.tenantId, tenantId)));
+        const ownedIds = owned.map(o => o.id);
+        if (ownedIds.length === 0) return { count: 0 };
+
         const updateData: Record<string, any> = {};
         if (input.status) updateData.status = input.status;
         if (input.gestiune !== undefined && input.gestiune !== "") updateData.gestiune = input.gestiune;
@@ -7108,44 +7520,37 @@ export const appRouter = router({
             .update(nir)
             .set(updateData)
             .where(
-              and(inArray(nir.id, input.ids), eq(nir.tenantId, tenantId))
+              and(inArray(nir.id, ownedIds), eq(nir.tenantId, tenantId))
             );
 
           // Propagă contul / tipul și pe liniile NIR + liniile din SAGA (exportul XML citește întâi liniile)
           if (updateData.accountingAccount || updateData.accountingType) {
-            const owned = await db
-              .select({ id: nir.id })
-              .from(nir)
-              .where(and(inArray(nir.id, input.ids), eq(nir.tenantId, tenantId)));
-            const ownedIds = owned.map(o => o.id);
-            if (ownedIds.length > 0) {
-              const { nirLines } = await import("../drizzle/schema");
-              const { sagaIntrari, sagaIntrariLinii } = await import("../modules/saga/schema");
-              const lineSet: Record<string, any> = {};
-              const sagaSet: Record<string, any> = {};
-              if (updateData.accountingAccount) {
-                lineSet.accountingAccount = updateData.accountingAccount;
-                sagaSet.cont = updateData.accountingAccount;
-              }
-              if (updateData.accountingType) {
-                lineSet.accountingType = updateData.accountingType;
-                sagaSet.tip = updateData.accountingType;
-              }
-              await db.update(nirLines).set(lineSet).where(inArray(nirLines.nirId, ownedIds));
-              const linked = await db
-                .select({ id: sagaIntrari.id })
-                .from(sagaIntrari)
-                .where(and(inArray(sagaIntrari.nirId, ownedIds), eq(sagaIntrari.tenantId, tenantId)));
-              if (linked.length > 0) {
-                await db
-                  .update(sagaIntrariLinii)
-                  .set(sagaSet)
-                  .where(inArray(sagaIntrariLinii.intrareId, linked.map(l => l.id)));
-              }
+            const { nirLines } = await import("../drizzle/schema");
+            const { sagaIntrari, sagaIntrariLinii } = await import("../modules/saga/schema");
+            const lineSet: Record<string, any> = {};
+            const sagaSet: Record<string, any> = {};
+            if (updateData.accountingAccount) {
+              lineSet.accountingAccount = updateData.accountingAccount;
+              sagaSet.cont = updateData.accountingAccount;
+            }
+            if (updateData.accountingType) {
+              lineSet.accountingType = updateData.accountingType;
+              sagaSet.tip = updateData.accountingType;
+            }
+            await db.update(nirLines).set(lineSet).where(inArray(nirLines.nirId, ownedIds));
+            const linked = await db
+              .select({ id: sagaIntrari.id })
+              .from(sagaIntrari)
+              .where(and(inArray(sagaIntrari.nirId, ownedIds), eq(sagaIntrari.tenantId, tenantId)));
+            if (linked.length > 0) {
+              await db
+                .update(sagaIntrariLinii)
+                .set(sagaSet)
+                .where(inArray(sagaIntrariLinii.intrareId, linked.map(l => l.id)));
             }
           }
         }
-        return { count: input.ids.length };
+        return { count: ownedIds.length };
       }),
   }),
 
@@ -7184,7 +7589,8 @@ export const appRouter = router({
         }
       }),
 
-    getTenants: qrPontajProcedure.query(async () => {
+    getTenants: protectedProcedure.query(async ({ ctx }) => {
+      if (tenantOf(ctx) !== 1) return [];
       try {
         const res = await fetch("http://localhost:5001/api/tenants");
         if (!res.ok) {
@@ -7194,12 +7600,7 @@ export const appRouter = router({
         return Array.isArray(data) ? data : [];
       } catch (err: any) {
         console.error("Eroare preluare tenanți QR Pontaj:", err.message);
-        return [
-          { id: 2, nume: "Unda", subdomain: "unda", active_employees_count: 49 },
-          { id: 1, nume: "Roll Master", subdomain: "rollmaster", active_employees_count: 2 },
-          { id: 3, nume: "Sushi Han", subdomain: "sushihan", active_employees_count: 0 },
-          { id: 4, nume: "GetApp Smart QR", subdomain: "smartqr", active_employees_count: 20 },
-        ];
+        return [];
       }
     }),
   }),
@@ -7328,7 +7729,8 @@ export const appRouter = router({
         .orderBy(desc(devize.id));
 
       const invoiceIds = Array.from(new Set(devizList.map(d => d.invoiceId).filter(Boolean))) as number[];
-      const invoiceMap = new Map<number, any>();
+      const emittedMap = new Map<number, any>();
+      const reInvoiceMap = new Map<number, any>();
 
       if (invoiceIds.length > 0) {
         const emitted = await db
@@ -7347,31 +7749,35 @@ export const appRouter = router({
           .where(and(eq(emittedInvoices.tenantId, tenantId), inArray(emittedInvoices.id, invoiceIds)));
 
         for (const e of emitted) {
-          invoiceMap.set(e.id, { ...e, type: "emitted" });
+          emittedMap.set(e.id, { ...e, type: "emitted" });
         }
 
-        const missingIds = invoiceIds.filter(id => !invoiceMap.has(id));
-        if (missingIds.length > 0) {
-          const reInvs = await db
-            .select({
-              id: reInvoices.id,
-              number: reInvoices.number,
-              clientName: reInvoices.clientName,
-              clientCUI: reInvoices.clientCUI,
-              total: reInvoices.total,
-              currency: reInvoices.currency,
-            })
-            .from(reInvoices)
-            .where(and(eq(reInvoices.tenantId, tenantId), inArray(reInvoices.id, missingIds)));
+        const reInvs = await db
+          .select({
+            id: reInvoices.id,
+            number: reInvoices.number,
+            clientName: reInvoices.clientName,
+            clientCUI: reInvoices.clientCUI,
+            subtotal: reInvoices.subtotal,
+            totalVAT: reInvoices.totalVAT,
+            total: reInvoices.total,
+            currency: reInvoices.currency,
+          })
+          .from(reInvoices)
+          .where(and(eq(reInvoices.tenantId, tenantId), inArray(reInvoices.id, invoiceIds)));
 
-          for (const r of reInvs) {
-            invoiceMap.set(r.id, { ...r, type: "reInvoice" });
-          }
+        for (const r of reInvs) {
+          reInvoiceMap.set(r.id, { ...r, type: "reInvoice" });
         }
       }
 
       return devizList.map(d => {
-        const inv = d.invoiceId ? invoiceMap.get(d.invoiceId) : null;
+        const isRfDeviz = String(d.number || "").startsWith("DEV-RF-");
+        const inv = d.invoiceId
+          ? isRfDeviz
+            ? reInvoiceMap.get(d.invoiceId) ?? emittedMap.get(d.invoiceId)
+            : emittedMap.get(d.invoiceId) ?? reInvoiceMap.get(d.invoiceId)
+          : null;
         const totalNet = Number(d.total) || 0;
         const vatRate = 21;
         const totalVAT = inv?.totalVAT != null ? Number(inv.totalVAT) : Number((totalNet * (vatRate / 100)).toFixed(2));
@@ -7426,19 +7832,36 @@ export const appRouter = router({
 
         let invoice: any = null;
         if (deviz.invoiceId) {
-          const [emitted] = await db
-            .select()
-            .from(emittedInvoices)
-            .where(and(eq(emittedInvoices.id, deviz.invoiceId), eq(emittedInvoices.tenantId, tenantId)));
-          if (emitted) {
-            invoice = emitted;
-          } else {
+          const isRfDeviz = String(deviz.number || "").startsWith("DEV-RF-");
+          if (isRfDeviz) {
             const [reInv] = await db
               .select()
               .from(reInvoices)
               .where(and(eq(reInvoices.id, deviz.invoiceId), eq(reInvoices.tenantId, tenantId)));
             if (reInv) {
               invoice = reInv;
+            } else {
+              const [emitted] = await db
+                .select()
+                .from(emittedInvoices)
+                .where(and(eq(emittedInvoices.id, deviz.invoiceId), eq(emittedInvoices.tenantId, tenantId)));
+              if (emitted) invoice = emitted;
+            }
+          } else {
+            const [emitted] = await db
+              .select()
+              .from(emittedInvoices)
+              .where(and(eq(emittedInvoices.id, deviz.invoiceId), eq(emittedInvoices.tenantId, tenantId)));
+            if (emitted) {
+              invoice = emitted;
+            } else {
+              const [reInv] = await db
+                .select()
+                .from(reInvoices)
+                .where(and(eq(reInvoices.id, deviz.invoiceId), eq(reInvoices.tenantId, tenantId)));
+              if (reInv) {
+                invoice = reInv;
+              }
             }
           }
         }
@@ -7497,9 +7920,8 @@ export const appRouter = router({
       }),
 
     getByInvoiceId: protectedProcedure
-      .input(z.object({ invoiceId: z.number() }))
+      .input(z.object({ invoiceId: z.number(), isReInvoice: z.boolean().optional() }))
       .query(async ({ input, ctx }) => {
-        
         const db = await getDb();
         if (!db) throw new Error("No DB");
         const { devize, devizeLines } = await import("../drizzle/schema");
@@ -7510,7 +7932,10 @@ export const appRouter = router({
           .where(
             and(
               eq(devize.invoiceId, input.invoiceId),
-              eq(devize.tenantId, (tenantOf(ctx)))
+              eq(devize.tenantId, tenantOf(ctx)),
+              input.isReInvoice
+                ? like(devize.number, "DEV-RF-%")
+                : notLike(devize.number, "DEV-RF-%")
             )
           );
         if (!deviz) return null;
@@ -7577,7 +8002,11 @@ export const appRouter = router({
           const lTotal = line.quantity * line.unitPrice;
           total += lTotal;
           if (line.type === "MATERIAL") totalMaterials += lTotal;
-          if (line.type === "MANOPERA" || line.type === "NORMA")
+          if (
+            line.type === "MANOPERA" ||
+            line.type === "NORMA" ||
+            line.type === "UTILAJ"
+          )
             totalLabor += lTotal;
         }
 
@@ -7642,7 +8071,11 @@ export const appRouter = router({
           const lTotal = line.quantity * line.unitPrice;
           total += lTotal;
           if (line.type === "MATERIAL") totalMaterials += lTotal;
-          if (line.type === "MANOPERA" || line.type === "NORMA")
+          if (
+            line.type === "MANOPERA" ||
+            line.type === "NORMA" ||
+            line.type === "UTILAJ"
+          )
             totalLabor += lTotal;
         }
 

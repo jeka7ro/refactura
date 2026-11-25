@@ -6,10 +6,6 @@ export default function DPA() {
         
         <div className="prose prose-slate max-w-none">
           <p className="text-slate-500 mb-8">Ultima actualizare: {new Date().toLocaleDateString('ro-RO')}</p>
-          
-          <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-lg mb-8">
-            <strong>Atenție!</strong> Acesta este documentul prin care tu garantezi în fața clienților tăi B2B că platforma ta este un mediu sigur pentru datele pe care EI le introduc (datele clienților lor). 
-          </div>
 
           <h2>1. Părțile Implicate</h2>
           <p>

@@ -35,7 +35,9 @@ router.get("/", async (req, res) => {
     const exportYear = year ? parseInt(String(year)) : new Date().getFullYear();
 
     const company = await getTenantCompanyProfile(tenantId);
-    const safeCui = (cui ? String(cui).trim() : company.cui.replace(/^RO/i, "")).trim() || "EXPORT";
+    const safeCui =
+      (cui ? String(cui).trim() : company.cui.replace(/^RO/i, ""))
+        .replace(/[^a-zA-Z0-9_-]/g, "") || "EXPORT";
     const dateStr = format(new Date(), "ddMMyyyy");
 
     const parsedNirIds =
@@ -167,13 +169,20 @@ router.get("/", async (req, res) => {
  */
 router.post("/push", async (req, res) => {
   try {
+    if ((req as any).fileAuth?.role === "accountant" || !(req as any).fileAuth?.accountId) {
+      return res.status(403).json({
+        success: false,
+        message: "Acces interzis (sesiune doar pentru citire).",
+      });
+    }
     const { month, year, tenantId = 1, sagaToken: inputToken, sagaCui: inputCui } = req.body;
     const tId = resolveRequestTenant(req, tenantId);
 
     const company = await getTenantCompanyProfile(tId);
 
     // Citim tokenul și cuiul din parametru sau din setările tenantului
-    let sagaToken = inputToken;
+    const usedStoredToken = !inputToken || !String(inputToken).trim() || String(inputToken).trim() === "••••••••";
+    let sagaToken = usedStoredToken ? "" : String(inputToken).trim();
     let sagaCui = inputCui;
 
     if (!sagaToken || !sagaCui) {
@@ -194,6 +203,13 @@ router.post("/push", async (req, res) => {
 
     if (!sagaCui) {
       sagaCui = company.cui.replace(/^RO/i, "").trim();
+    }
+    sagaCui = String(sagaCui || "").replace(/[^a-zA-Z0-9_-]/g, "");
+    if (!sagaCui) {
+      return res.status(400).json({
+        success: false,
+        message: "CUI-ul pentru SAGA Web lipsește sau este invalid.",
+      });
     }
 
     if (!sagaToken) {
@@ -226,9 +242,9 @@ router.post("/push", async (req, res) => {
       timeout: 30000,
     });
 
-    // IMPORTANT: Verificăm headerul X-Saga-Refresh-Token
+    // IMPORTANT: Salvăm noul refresh token DOAR când am folosit token-ul stocat al tenantului
     const newToken = response.headers["x-saga-refresh-token"];
-    if (newToken) {
+    if (newToken && usedStoredToken) {
       console.log("[SAGA WEB API] S-a primit un nou refresh token. Se salvează automat în baza de date...");
       await updateTenantSagaToken(tId, newToken);
     }
@@ -260,12 +276,19 @@ router.post("/push", async (req, res) => {
  */
 router.post("/push-articles", async (req, res) => {
   try {
+    if ((req as any).fileAuth?.role === "accountant" || !(req as any).fileAuth?.accountId) {
+      return res.status(403).json({
+        success: false,
+        message: "Acces interzis (sesiune doar pentru citire).",
+      });
+    }
     const { tenantId = 1, sagaToken: inputToken, sagaCui: inputCui } = req.body;
     const tId = resolveRequestTenant(req, tenantId);
 
     const company = await getTenantCompanyProfile(tId);
-    let sagaToken = inputToken;
-    let sagaCui = inputCui || company.cui.replace(/^RO/i, "").trim();
+    const usedStoredToken = !inputToken || !String(inputToken).trim() || String(inputToken).trim() === "••••••••";
+    let sagaToken = usedStoredToken ? "" : String(inputToken).trim();
+    let sagaCui = String(inputCui || company.cui.replace(/^RO/i, "").trim()).replace(/[^a-zA-Z0-9_-]/g, "");
 
     if (!sagaToken) {
       const db = await getDb();
@@ -275,11 +298,17 @@ router.post("/push-articles", async (req, res) => {
           try {
             const s = JSON.parse(tenant.settings);
             sagaToken = s.sagaWebToken;
+            if (!sagaCui && s.sagaWebCui) {
+              sagaCui = String(s.sagaWebCui).replace(/[^a-zA-Z0-9_-]/g, "");
+            }
           } catch {}
         }
       }
     }
 
+    if (!sagaCui) {
+      return res.status(400).json({ success: false, message: "CUI-ul pentru SAGA Web lipsește sau este invalid." });
+    }
     if (!sagaToken) {
       return res.status(400).json({ success: false, message: "Lipsește token-ul SAGA Web." });
     }
@@ -304,7 +333,7 @@ router.post("/push-articles", async (req, res) => {
     });
 
     const newToken = response.headers["x-saga-refresh-token"];
-    if (newToken) {
+    if (newToken && usedStoredToken) {
       await updateTenantSagaToken(tId, newToken);
     }
 

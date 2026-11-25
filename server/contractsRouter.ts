@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import { router, protectedProcedure } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { tenantOf } from "./tenant";
@@ -10,7 +12,8 @@ import { getAllContractTemplates } from "./contractTemplates";
 async function validateContractFileUrl(
   db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
   tenantId: number,
-  fileUrl?: string | null
+  fileUrl?: string | null,
+  role?: string | null
 ) {
   if (!fileUrl) return;
   const trimmed = fileUrl.trim();
@@ -25,6 +28,12 @@ async function validateContractFileUrl(
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Calea fișierului de contract este invalidă.",
+    });
+  }
+  if (role !== "superadmin" && !trimmed.startsWith(`/uploads/contracts/t${tenantId}-`)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Fișierul de contract nu aparține firmei curente.",
     });
   }
   const [foreignOwner] = await db
@@ -340,7 +349,7 @@ export const contractsRouter = router({
           });
         }
       }
-      await validateContractFileUrl(db, tenantId, input.fileUrl);
+      await validateContractFileUrl(db, tenantId, input.fileUrl, ctx.user?.role);
       if (!resolvedPartnerId && (input.partnerName || input.partnerCui)) {
         const allPartners = await db
           .select({ id: clients.id, name: clients.name, cui: clients.cui })
@@ -654,9 +663,50 @@ export const contractsRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Baza de date indisponibilă");
 
+      const [existing] = await db
+        .select({ id: contracts.id, fileUrl: contracts.fileUrl })
+        .from(contracts)
+        .where(and(eq(contracts.id, input.id), eq(contracts.tenantId, tenantId)))
+        .limit(1);
+
+      if (!existing) {
+        return { success: true };
+      }
+
       await db
         .delete(contracts)
         .where(and(eq(contracts.id, input.id), eq(contracts.tenantId, tenantId)));
+
+      const fileUrl = existing.fileUrl?.trim() || "";
+      if (fileUrl.startsWith("/uploads/contracts/")) {
+        const relName = fileUrl.slice("/uploads/contracts/".length);
+        if (
+          relName &&
+          !relName.includes("/") &&
+          !relName.includes("\\") &&
+          !relName.includes("..") &&
+          !relName.includes("\0")
+        ) {
+          const [stillReferenced] = await db
+            .select({ id: contracts.id })
+            .from(contracts)
+            .where(eq(contracts.fileUrl, fileUrl))
+            .limit(1);
+
+          if (!stillReferenced) {
+            const baseDirs = [
+              path.resolve(process.cwd(), "dist/public/uploads/contracts"),
+              path.resolve(process.cwd(), "client/public/uploads/contracts"),
+            ];
+            for (const baseDir of baseDirs) {
+              const targetPath = path.resolve(baseDir, relName);
+              if (targetPath.startsWith(baseDir + path.sep)) {
+                await fs.promises.unlink(targetPath).catch(() => {});
+              }
+            }
+          }
+        }
+      }
 
       return { success: true };
     }),
@@ -717,7 +767,7 @@ export const contractsRouter = router({
       const results = [];
 
       for (const f of input.files) {
-        await validateContractFileUrl(db, tenantId, f.fileUrl);
+        await validateContractFileUrl(db, tenantId, f.fileUrl, ctx.user?.role);
         let assignedPartnerId: number | null = f.partnerId && partnerIdsSet.has(f.partnerId) ? f.partnerId : null;
 
         // Auto-match dupa CUI daca este detectat
@@ -836,8 +886,8 @@ export const contractsRouter = router({
       const tenantCui = (currentTenant?.cui || "").toUpperCase();
       const tenantName = (currentTenant?.name || "").toUpperCase();
 
-      const isTradeInvest = tenantId === 1 || tenantCui.includes("42322117") || tenantName.includes("TRADE INVEST");
-      const isWoodGlass = tenantId === 4 || tenantCui.includes("28396216") || tenantName.includes("WOOD GLASS");
+      const isTradeInvest = tenantId === 1;
+      const isWoodGlass = tenantId === 4;
       const language = (input?.language as any) || "ro";
 
       return getAllContractTemplates({

@@ -19,7 +19,7 @@ import { registerAnafProxy } from "../anafProxy";
 import { registerViesProxy } from "../viesProxy";
 import { registerPdfRoute } from "../pdfRoute";
 import { registerPublicApi } from "../publicApi";
-import { requireFileAuth, requireUploadAccess } from "../fileAuth";
+import { requireFileAuth, requireUserAuth, requireUploadAccess } from "../fileAuth";
 import { registerSagaSyncRoute } from "../sagaSyncRoute";
 
 async function startServer() {
@@ -37,15 +37,15 @@ async function startServer() {
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   // Rutele de import/export/upload cer autentificare; tenantul vine din sesiune, nu din request.
-  app.use("/api/saga", requireFileAuth);
+  app.use("/api/saga", requireUserAuth);
   app.use("/api/saga-sync", requireFileAuth);
-  app.use("/api/upload-invoice", requireFileAuth);
-  app.use("/api/upload-spv-document", requireFileAuth);
-  app.use("/api/spv/import-real-document", requireFileAuth);
+  app.use("/api/upload-invoice", requireUserAuth);
+  app.use("/api/upload-spv-document", requireUserAuth);
+  app.use("/api/spv/import-real-document", requireUserAuth);
   app.use("/api/spv/bulk-download-pdf", requireFileAuth);
-  app.use("/api/spv/connector-log", requireFileAuth);
+  app.use("/api/spv/connector-log", requireUserAuth);
   app.use("/api/spv-connector.zip", requireFileAuth);
-  app.use("/api/upload-contract", requireFileAuth);
+  app.use("/api/upload-contract", requireUserAuth);
   app.use("/api/anaf", requireFileAuth);
   app.use("/api/vies", requireFileAuth);
   registerUploadRoute(app);
@@ -124,14 +124,24 @@ async function startServer() {
   serveProtectedSubdir("spv_documents");
 
   uploadsRouter.use(requireFileAuth, (req, res) => {
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      res.status(404).json({ error: "Fișierul nu a fost găsit" });
+      return;
+    }
     const rel = req.path.replace(/^\/+/, "");
-    if (!rel) {
+    if (!rel.startsWith("logos/")) {
+      res.status(404).json({ error: "Fișierul nu a fost găsit" });
+      return;
+    }
+    const logoName = rel.slice("logos/".length);
+    if (!logoName || logoName.includes("/") || logoName.includes("\\") || logoName.includes("..")) {
       res.status(404).json({ error: "Fișierul nu a fost găsit" });
       return;
     }
     for (const root of [uploadsDir, clientUploadsDir]) {
-      const candidate = path.resolve(root, rel);
-      if (candidate.startsWith(root + path.sep) && fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+      const logosRoot = path.resolve(root, "logos");
+      const candidate = path.resolve(logosRoot, logoName);
+      if (candidate.startsWith(logosRoot + path.sep) && fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
         res.sendFile(candidate);
         return;
       }

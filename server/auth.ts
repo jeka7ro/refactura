@@ -90,6 +90,10 @@ export async function createGoogleAccount(email: string) {
  * Authenticate a user (login)
  */
 export async function authenticateAccount(email: string, password: string) {
+  if (!password || typeof password !== "string" || password.trim().length === 0) {
+    throw new Error("Invalid email or password");
+  }
+
   const db = await getDb();
   if (!db) {
     throw new Error("Database not available");
@@ -109,6 +113,10 @@ export async function authenticateAccount(email: string, password: string) {
 
   if (!account.isActive) {
     throw new Error("Account is inactive");
+  }
+
+  if (!account.passwordHash) {
+    throw new Error("Invalid email or password");
   }
 
   const isValid = await verifyPassword(password, account.passwordHash);

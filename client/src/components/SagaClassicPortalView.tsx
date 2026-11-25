@@ -2126,7 +2126,7 @@ export default function SagaClassicPortalView({
 
                             {/* Gestiune */}
                             <td className="py-0.5 px-2 border-r border-[#D3D3D3] truncate max-w-[150px]">
-                              {line.gestiune || "ATELIER TAMPLARIE"}
+                              {line.gestiune || "Gestiune"}
                             </td>
 
                             {/* Denumire articol / serviciu */}

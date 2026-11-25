@@ -243,7 +243,7 @@ export default function PartnerCombobox({
         <PopoverPrimitive.Content
           align="start"
           sideOffset={5}
-          className="z-50 w-[var(--radix-popover-trigger-width)] min-w-[340px] max-w-[560px] rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden animate-in fade-in-0 zoom-in-95"
+          className="z-50 w-[var(--radix-popover-trigger-width)] min-w-[min(340px,calc(100vw-24px))] max-w-[min(560px,calc(100vw-24px))] rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden animate-in fade-in-0 zoom-in-95"
         >
           {/* Search Header */}
           <div className="p-2.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/40">
@@ -259,9 +259,9 @@ export default function PartnerCombobox({
                 className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
-            <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1.5 px-1">
+            <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1.5 px-1 tabular-nums">
               <span>{filteredPartners.length} rezultate afișate</span>
-              <span>1853 parteneri în baza de date</span>
+              <span>{partners.length} parteneri în baza de date</span>
             </div>
           </div>
 

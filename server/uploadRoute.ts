@@ -118,7 +118,14 @@ function extractContractTextAndHtml(buf: Buffer, originalName: string): { text: 
       const zip = new AdmZip(buf);
       const entry = zip.getEntry("word/document.xml");
       if (entry) {
-        const xml = entry.getData().toString("utf8");
+        if (entry.header.size < 0 || entry.header.size > 50 * 1024 * 1024) {
+          throw new Error("DOCX entry exceeds maximum allowed uncompressed size (50MB)");
+        }
+        const entryData = entry.getData();
+        if (entryData.length > 50 * 1024 * 1024) {
+          throw new Error("DOCX entry exceeds maximum allowed uncompressed size (50MB)");
+        }
+        const xml = entryData.toString("utf8");
         const paragraphs = xml.match(/<w:p[\s>][\s\S]*?<\/w:p>/g) || [];
         const lines: string[] = [];
         const htmlParts: string[] = [];
@@ -161,12 +168,20 @@ function extractContractTextAndHtml(buf: Buffer, originalName: string): { text: 
         let dec: string | null = null;
         const bytes = Buffer.from(sm[1], "latin1");
         try {
-          dec = zlib.inflateSync(bytes).toString("latin1");
-        } catch {
-          try {
-            dec = zlib.inflateRawSync(bytes).toString("latin1");
-          } catch {
-            dec = sm[1];
+          dec = zlib
+            .inflateSync(bytes, { maxOutputLength: 32 * 1024 * 1024 })
+            .toString("latin1");
+        } catch (inflateErr: any) {
+          if (inflateErr?.code === "ERR_BUFFER_TOO_LARGE") {
+            dec = null;
+          } else {
+            try {
+              dec = zlib
+                .inflateRawSync(bytes, { maxOutputLength: 32 * 1024 * 1024 })
+                .toString("latin1");
+            } catch (rawErr: any) {
+              dec = rawErr?.code === "ERR_BUFFER_TOO_LARGE" ? null : sm[1];
+            }
           }
         }
         if (dec) {
@@ -239,7 +254,11 @@ function extractContractTextAndHtml(buf: Buffer, originalName: string): { text: 
   return { text: "", html: "" };
 }
 
-function parseContractMetadata(text: string, fileName: string) {
+function parseContractMetadata(
+  text: string,
+  fileName: string,
+  tenantCui?: string | null
+) {
   // 1. Contract Number
   let detectedNumber: string | null = null;
   const textNumMatch = text.match(
@@ -296,20 +315,30 @@ function parseContractMetadata(text: string, fileName: string) {
     if (fnPartner.length >= 3) detectedPartnerName = fnPartner;
   }
 
-  // 5. Partner CUI / VAT (excluding supplier CUIs 28396216 and 42322117)
+  // 5. Partner CUI / VAT (excluding uploading tenant's own CUI)
+  const cleanOwnCui = String(tenantCui || "")
+    .replace(/\s+/g, "")
+    .replace(/^RO/i, "")
+    .toUpperCase();
+  const isOwnTenantCui = (rawCandidate: string): boolean => {
+    if (!cleanOwnCui) return false;
+    const normCand = rawCandidate.replace(/\s+/g, "").replace(/^RO/i, "").toUpperCase();
+    return normCand === cleanOwnCui || rawCandidate.toUpperCase().includes(cleanOwnCui);
+  };
+
   let detectedCui: string | null = null;
   const vatRegex = /(?:VAT\s*nr\.?|CUI\/CIF|CUI|CIF)[\s:]*([A-Z]{2}\s*[0-9A-Z]{6,12}|RO\s*[0-9]{6,10}|[0-9]{6,10})/gi;
   let vm: RegExpExecArray | null;
   while ((vm = vatRegex.exec(text)) !== null) {
     const candidate = vm[1].replace(/\s+/g, "").toUpperCase();
-    if (!candidate.includes("28396216") && !candidate.includes("42322117")) {
+    if (!isOwnTenantCui(candidate)) {
       detectedCui = candidate;
       break;
     }
   }
   if (!detectedCui) {
     const fnCuiMatch = fileName.match(/(?:RO|ro)\s*([0-9]{6,10})/);
-    if (fnCuiMatch && !fnCuiMatch[1].includes("28396216")) {
+    if (fnCuiMatch && !isOwnTenantCui(fnCuiMatch[1])) {
       detectedCui = `RO${fnCuiMatch[1]}`;
     }
   }
@@ -451,8 +480,11 @@ export function attachSagaFurnizoriImportRoute(app: Express) {
 
         // Read XLSX
         const workbook = XLSX.read(file.buffer, { type: "buffer" });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
+        const sheetName = workbook.SheetNames?.[0];
+        const sheet = sheetName ? workbook.Sheets?.[sheetName] : undefined;
+        if (!sheetName || !sheet) {
+          return res.status(400).json({ error: "Fișierul Excel nu conține nicio foaie de calcul validă." });
+        }
         const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
         let imported = 0;
@@ -545,8 +577,11 @@ export function attachSagaClientiImportRoute(app: Express) {
         console.log(`[SAGA Import Clienti] Processing file for tenant ${tenantId}`);
 
         const workbook = XLSX.read(file.buffer, { type: "buffer" });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
+        const sheetName = workbook.SheetNames?.[0];
+        const sheet = sheetName ? workbook.Sheets?.[sheetName] : undefined;
+        if (!sheetName || !sheet) {
+          return res.status(400).json({ error: "Fișierul Excel nu conține nicio foaie de calcul validă." });
+        }
         const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
         let imported = 0;
@@ -635,11 +670,12 @@ export function registerUploadRoute(app: Express) {
           return;
         }
 
+        const tenantId = resolveRequestTenant(req);
         const results = [];
         for (const file of files) {
           const ext =
             file.originalname.split(".").pop()?.toLowerCase() || "bin";
-          const key = `${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+          const key = `t${tenantId}-${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
           const uploadDir = path.join(
             process.cwd(),
             "dist",
@@ -701,10 +737,36 @@ export function registerUploadRoute(app: Express) {
         await fs.promises.mkdir(uploadDirDist, { recursive: true }).catch(() => {});
         await fs.promises.mkdir(uploadDirClient, { recursive: true }).catch(() => {});
 
+        const tenantId = resolveRequestTenant(req);
+        let tenantCui = "";
+        try {
+          const { getDb } = await import("./db");
+          const { tenants } = await import("../drizzle/schema");
+          const { eq } = await import("drizzle-orm");
+          const db = await getDb();
+          if (db) {
+            const [tRow] = await db
+              .select({ cui: tenants.cui, settings: tenants.settings })
+              .from(tenants)
+              .where(eq(tenants.id, tenantId))
+              .limit(1);
+            let settingsCui = "";
+            if (tRow?.settings) {
+              try {
+                const parsedS = JSON.parse(tRow.settings);
+                if (parsedS && typeof parsedS === "object" && !Array.isArray(parsedS)) {
+                  settingsCui = String(parsedS.companyCui || parsedS.cui || "");
+                }
+              } catch {}
+            }
+            tenantCui = String(tRow?.cui || settingsCui || "").trim();
+          }
+        } catch {}
+
         const results = [];
         for (const file of files) {
           const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_");
-          const key = `${Date.now()}-${Math.floor(Math.random() * 1000)}-${safeName}`;
+          const key = `t${tenantId}-${Date.now()}-${Math.floor(Math.random() * 1000)}-${safeName}`;
           const filePathDist = path.join(uploadDirDist, key);
           const filePathClient = path.join(uploadDirClient, key);
           await fs.promises.writeFile(filePathDist, file.buffer);
@@ -713,7 +775,7 @@ export function registerUploadRoute(app: Express) {
           const fileUrl = `/uploads/contracts/${key}`;
 
           const { text, html } = extractContractTextAndHtml(file.buffer, file.originalname);
-          const meta = parseContractMetadata(text, file.originalname);
+          const meta = parseContractMetadata(text, file.originalname, tenantCui);
 
           results.push({
             fileKey: key,
@@ -763,8 +825,11 @@ export function registerUploadRoute(app: Express) {
         // Parse XLSX
         const XLSX = await import("xlsx");
         const workbook = XLSX.read(file.buffer, { type: "buffer" });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
+        const sheetName = workbook.SheetNames?.[0];
+        const sheet = sheetName ? workbook.Sheets?.[sheetName] : undefined;
+        if (!sheetName || !sheet) {
+          return res.status(400).json({ error: "Fișierul Excel nu conține nicio foaie de calcul validă." });
+        }
         const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
         if (!rows.length) {
@@ -922,7 +987,17 @@ export function registerUploadRoute(app: Express) {
                 error: `Arhiva ${file.originalname} nu conține niciun fișier PDF original semnat din SPV ANAF.`,
               });
             }
+            if (pdfEntry.header.size < 0 || pdfEntry.header.size > 50 * 1024 * 1024) {
+              return res.status(400).json({
+                error: `Fișierul din arhiva ${file.originalname} depășește limita maximă admisă (50MB).`,
+              });
+            }
             fileBuf = pdfEntry.getData();
+            if (fileBuf.length > 50 * 1024 * 1024) {
+              return res.status(400).json({
+                error: `Fișierul din arhiva ${file.originalname} depășește limita maximă admisă (50MB).`,
+              });
+            }
             actualOriginalName =
               path.basename(pdfEntry.entryName) ||
               `${path.basename(file.originalname, ".zip")}.pdf`;
@@ -939,7 +1014,7 @@ export function registerUploadRoute(app: Express) {
 
           const lowerName = actualOriginalName.toLowerCase();
           const safeName = actualOriginalName.replace(/[^a-zA-Z0-9._-]/g, "_");
-          const key = `${Date.now()}-${Math.floor(Math.random() * 1000)}-${safeName}`;
+          const key = `t${tenantId}-${Date.now()}-${Math.floor(Math.random() * 1000)}-${safeName}`;
           const filePathDist = path.join(uploadDirDist, key);
           const filePathClient = path.join(uploadDirClient, key);
           await fs.promises.writeFile(filePathDist, fileBuf);

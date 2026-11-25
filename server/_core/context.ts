@@ -3,7 +3,8 @@ import type { User } from "../../drizzle/schema";
 import { sdk } from "./sdk";
 import { verifySessionToken, extractTokenFromHeader } from "../session";
 import { getAccountById } from "../auth";
-import { getDefaultTenantForUser } from "../db";
+import { getDb } from "../db";
+import { resolveVerifiedAccountTenant } from "../tenant";
 
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
@@ -27,37 +28,38 @@ export async function createContext(
       const sessionPayload = await verifySessionToken(token);
       if (sessionPayload) {
         const account = await getAccountById(sessionPayload.accountId);
-        if (account) {
-          // Resolve tenantId: prefer direct account.tenantId, fall back to userTenants lookup
-          // userTenants.userId stores accounts.id for email/password users
-          let tenantId: number | undefined = account.tenantId || undefined;
-          if (!tenantId) {
-            try {
-              const fallbackTenantId = await getDefaultTenantForUser(
-                account.id
-              );
-              if (fallbackTenantId) tenantId = fallbackTenantId;
-            } catch (_) {
-              // ignore — tenantId stays undefined
-            }
-          }
-          // Create user object from account
-          user = {
-            id: account.id,
-            openId: `account_${account.id}`,
-            name: account.email,
-            email: account.email,
-            phone: account.phone ?? null,
-            loginMethod: "email",
-            role: account.role as any,
-            createdAt: account.createdAt,
-            updatedAt: account.updatedAt,
-            lastSignedIn: account.lastLoginAt || new Date(),
-            tenantId,
-            accountId: account.id,
-          };
-          return { req: opts.req, res: opts.res, user };
+        if (!account || !account.isActive) {
+          return { req: opts.req, res: opts.res, user: null };
         }
+        // Resolve tenantId read-only against active userTenants (and valid bidirectional pairs)
+        let tenantId: number | undefined;
+        if (account.role === "superadmin") {
+          tenantId = account.tenantId || undefined;
+        } else {
+          try {
+            const db = await getDb();
+            const resolved = await resolveVerifiedAccountTenant(db, account);
+            tenantId = resolved.tenantId;
+          } catch (_) {
+            tenantId = undefined;
+          }
+        }
+        // Create user object from account
+        user = {
+          id: account.id,
+          openId: `account_${account.id}`,
+          name: account.email,
+          email: account.email,
+          phone: account.phone ?? null,
+          loginMethod: "email",
+          role: account.role as any,
+          createdAt: account.createdAt,
+          updatedAt: account.updatedAt,
+          lastSignedIn: account.lastLoginAt || new Date(),
+          tenantId,
+          accountId: account.id,
+        };
+        return { req: opts.req, res: opts.res, user };
       }
     }
   } catch (error) {
@@ -68,12 +70,19 @@ export async function createContext(
   try {
     user = await sdk.authenticateRequest(opts.req);
 
-    // For OAuth users, look up their default tenant
+    // For OAuth users, look up their active tenant read-only
     if (user && (user as any).id) {
       try {
-        const tenantId = await getDefaultTenantForUser((user as any).id);
-        if (tenantId) {
-          (user as any).tenantId = tenantId;
+        const db = await getDb();
+        const resolved = await resolveVerifiedAccountTenant(db, {
+          id: (user as any).id,
+          role: (user as any).role,
+          tenantId: (user as any).tenantId ?? null,
+        });
+        if (resolved.tenantId) {
+          (user as any).tenantId = resolved.tenantId;
+        } else {
+          delete (user as any).tenantId;
         }
       } catch (error) {
         console.error("[Context] Failed to get tenant for OAuth user:", error);

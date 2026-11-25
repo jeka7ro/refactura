@@ -4,7 +4,7 @@
   "description": "Conecteaza certificatul digital USB din Chrome la serviciul webserviced.anaf.ro/SPVWS2 pentru descarcarea automata a documentelor oficiale PDF/ZIP semnate de ANAF.",
   "version": "1.5.1",
   "incognito": "spanning",
-  "permissions": ["tabs", "scripting", "cookies", "browsingData"],
+  "permissions": ["tabs", "scripting", "cookies", "browsingData", "storage"],
   "host_permissions": [
     "https://*.anaf.ro/*",
     "https://webserviced.anaf.ro/*",

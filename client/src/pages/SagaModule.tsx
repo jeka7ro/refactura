@@ -187,14 +187,14 @@ export default function SagaModule() {
   return (
     <div className="flex-1 w-full flex flex-col h-full">
       {/* SAGA Top Bar */}
-      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4">
-        <div className="flex items-center gap-1">
+      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-3 sm:px-4 overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-1 min-w-max py-1">
           {/* SAGA Logo */}
-          <div className="flex items-center gap-2 pr-4 border-r border-slate-200 dark:border-slate-700 mr-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+          <div className="flex items-center gap-2 pr-3 sm:pr-4 border-r border-slate-200 dark:border-slate-700 mr-1 sm:mr-2 shrink-0">
+            <div className="w-8 h-8 shrink-0 bg-primary rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-xs">S</span>
             </div>
-            <span className="text-sm font-bold text-blue-700 dark:text-blue-400 hidden sm:block">SAGA</span>
+            <span className="text-sm font-bold text-primary hidden sm:block">SAGA</span>
           </div>
           {/* Menu Items */}
           {SAGA_MENU.map((menu) => (
@@ -210,22 +210,18 @@ export default function SagaModule() {
           {/* Quick Direct Sync Button */}
           <Link
             href="/saga-sync"
-            className="ml-auto h-9 px-4 text-xs font-bold uppercase tracking-wider rounded-full flex items-center gap-1.5 transition-all shadow-sm bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
+            className="ml-auto shrink-0 whitespace-nowrap h-9 px-3.5 sm:px-4 text-xs font-bold uppercase tracking-wider rounded-full flex items-center gap-1.5 transition-all shadow-sm bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
           >
-            <RefreshCw className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+            <RefreshCw className="w-3.5 h-3.5 text-primary shrink-0" />
             <span>Sincronizare Nomenclator</span>
           </Link>
 
           {/* Quick Direct Export Button */}
           <button
             onClick={() => setActivePage("export")}
-            className={`h-9 px-4 text-xs font-bold uppercase tracking-wider rounded-full flex items-center gap-1.5 transition-all shadow-sm ${
-              activePage === "export"
-                ? "bg-blue-600 text-white shadow-blue-500/20"
-                : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
-            }`}
+            className="apple-btn-prominent shrink-0 whitespace-nowrap h-9 px-3.5 sm:px-4 text-xs font-bold uppercase tracking-wider rounded-full flex items-center gap-1.5 transition-all cursor-pointer"
           >
-            <Download className="w-3.5 h-3.5" />
+            <Download className="w-3.5 h-3.5 shrink-0" />
             <span>Export SAGA (XML / ZIP)</span>
           </button>
         </div>
@@ -1202,7 +1198,7 @@ function ExportTab() {
                 <div>
                   <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <Eye className="w-4 h-4 text-blue-600" />
-                    Ce conține acest export ({MONTHS[month - 1]} {year})
+                    Ce conține acest export ({month === 0 ? "Tot Anul" : MONTHS[month - 1]} {year})
                   </h4>
                   <p className="text-xs text-slate-500">
                     Verifică documentele împachetate în fișierul XML înainte de a-l importa în SAGA.
@@ -1255,7 +1251,7 @@ function ExportTab() {
                     {isLoadingPreview ? (
                       <div className="p-4 text-center text-xs text-slate-400"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></div>
                     ) : (previewData?.invoices.length || 0) === 0 ? (
-                      <div className="p-4 text-center text-xs text-slate-400">Nicio factură emisă în luna {MONTHS[month - 1]}.</div>
+                      <div className="p-4 text-center text-xs text-slate-400">Nicio factură emisă în {month === 0 ? `anul ${year}` : `luna ${MONTHS[month - 1]}`}.</div>
                     ) : (
                       previewData?.invoices.map((inv) => {
                         const isSelected = (selectedInvoiceIds ?? []).includes(inv.id);
@@ -1318,7 +1314,7 @@ function ExportTab() {
                       <div className="p-4 text-center text-xs text-slate-400"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></div>
                     ) : (previewData?.nirs.length || 0) === 0 ? (
                       <div className="p-4 text-center text-xs text-slate-400">
-                        Niciun NIR înregistrat în luna {MONTHS[month - 1]}.
+                        Niciun NIR înregistrat în {month === 0 ? `anul ${year}` : `luna ${MONTHS[month - 1]}`}.
                         {(previewData?.totalAllNirs || 0) > 0 && (
                           <div className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
                             (Există {previewData?.totalAllNirs} NIR-uri în alte luni din sistem)
@@ -1495,7 +1491,7 @@ function ExportTab() {
                     value={cuiInput}
                     onChange={(e) => setCuiInput(e.target.value)}
                     disabled={!isEditingConfig}
-                    placeholder="Ex: 42322117"
+                    placeholder="Ex: 12345678"
                     className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-900 dark:text-white tabular-nums disabled:opacity-75"
                   />
                 </div>
@@ -1541,7 +1537,7 @@ function ExportTab() {
                 ) : (
                   <Upload className="w-4 h-4" />
                 )}
-                Trimite Facturile în SAGA Web ({MONTHS[month - 1]} {year})
+                Trimite Facturile în SAGA Web ({month === 0 ? "Tot Anul" : MONTHS[month - 1]} {year})
               </button>
 
               <p className="text-xs text-slate-500">
@@ -2326,7 +2322,7 @@ function IntrariTab({ mode = "ron" }: { mode?: "ron" | "valuta" }) {
             </tr>
           </thead>
           <tbody>
-            {isLoading && <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>}
+            {isLoading && <tr><td colSpan={mode === "valuta" ? 12 : 10} className="px-4 py-8 text-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>}
             {intrari.map((intr: any) => (
               <Fragment key={intr.id}>
                 <tr
@@ -2366,7 +2362,7 @@ function IntrariTab({ mode = "ron" }: { mode?: "ron" | "valuta" }) {
                 {/* Expandable Details Row */}
                 {selectedIntrareId === intr.id && (
                   <tr className="bg-slate-50/80 dark:bg-slate-800/80 border-b-2 border-slate-200 dark:border-slate-700">
-                    <td colSpan={10} className="p-0">
+                    <td colSpan={mode === "valuta" ? 12 : 10} className="p-0">
                       <div className="p-4 pl-8 border-l-4 border-blue-500 shadow-inner">
                         <div className="flex items-center gap-2 mb-3">
                           <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -2422,7 +2418,7 @@ function IntrariTab({ mode = "ron" }: { mode?: "ron" | "valuta" }) {
               </Fragment>
             ))}
             {!isLoading && intrari.length === 0 && (
-              <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-400">Nicio intrare.</td></tr>
+              <tr><td colSpan={mode === "valuta" ? 12 : 10} className="px-4 py-8 text-center text-slate-400">Nicio intrare.</td></tr>
             )}
           </tbody>
         </table>

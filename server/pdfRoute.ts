@@ -6,9 +6,49 @@
 import { Router, type Request, type Response } from "express";
 import fs from "fs";
 import path from "path";
-import { generateReInvoicePDF } from "./pdf";
+import { generateReInvoicePDF, attachSafeRobotoFonts } from "./pdf";
 import { translateProductDescription } from "./invoiceTranslator";
-import { requirePdfAccess } from "./fileAuth";
+import { requirePdfAccess, resolveRequestTenant } from "./fileAuth";
+
+function safeHeaderFilename(raw: string): string {
+  return String(raw).replace(/["\r\n]/g, "_");
+}
+
+function isExistingRegularFile(candidatePath: string): boolean {
+  try {
+    return fs.existsSync(candidatePath) && fs.statSync(candidatePath).isFile();
+  } catch {
+    return false;
+  }
+}
+
+function streamFileSafely(filePath: string, res: Response): void {
+  const stream = fs.createReadStream(filePath);
+  stream.on("error", (err: any) => {
+    console.error("[PDF File Stream Error]:", err?.message || err);
+    if (!res.headersSent) {
+      res.status(404).json({ error: "Fișierul nu poate fi citit." });
+    } else {
+      try {
+        res.end();
+      } catch {}
+    }
+  });
+  res.on("close", () => {
+    try {
+      stream.destroy();
+    } catch {}
+  });
+  stream.pipe(res);
+}
+
+function normalizeSupplierCui(raw?: string | null): string {
+  return String(raw || "")
+    .trim()
+    .toUpperCase()
+    .replace(/^RO/i, "")
+    .replace(/[^A-Z0-9]/g, "");
+}
 
 function isNonRomanianClient(country?: string | null, cui?: string | null): boolean {
   const c = (country || "").trim().toUpperCase();
@@ -126,7 +166,7 @@ export function registerPdfRoute(app: any) {
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
-        `${isDownload ? "attachment" : "inline"}; filename="${filename}"`
+        `${isDownload ? "attachment" : "inline"}; filename="${safeHeaderFilename(filename)}"`
       );
 
       let logoBase64 = settings.logoBase64 || undefined;
@@ -165,6 +205,7 @@ export function registerPdfRoute(app: any) {
       );
 
       const pdfStream = generateReInvoicePDF({
+        tenantId: ri.tenantId,
         number: ri.number || `RF-${id}`,
         date: ri.issueDate || new Date().toISOString().split("T")[0],
         dueDate: ri.dueDate || "",
@@ -342,6 +383,7 @@ export function registerPdfRoute(app: any) {
       let logoBase64 = "DEFAULT_TEXT_LOGO";
       let logoHasBackground = false;
       let logoBgColor = "#0f172a";
+      let archiveLogoSubtitle: string | undefined = undefined;
       let themeColor = "#2563eb";
       try {
         const { tenants } = await import("../drizzle/schema");
@@ -351,11 +393,19 @@ export function registerPdfRoute(app: any) {
           .where(eq(tenants.id, inv.tenantId));
         if (tenant?.settings) {
           const settings = JSON.parse(tenant.settings);
-          if (settings.logoBase64) logoBase64 = settings.logoBase64;
-          if (settings.logoHasBackground !== undefined) logoHasBackground = Boolean(settings.logoHasBackground);
-          if (settings.logoBgColor) logoBgColor = settings.logoBgColor;
+          if (inv.direction === "out") {
+            if (settings.logoBase64) logoBase64 = settings.logoBase64;
+            if (settings.logoHasBackground !== undefined) logoHasBackground = Boolean(settings.logoHasBackground);
+            if (settings.logoBgColor) logoBgColor = settings.logoBgColor;
+            archiveLogoSubtitle =
+              Number(inv.tenantId) === 1
+                ? settings.logoSubtitle || "www.getapp.ro"
+                : settings.logoSubtitle || undefined;
+          }
           if (settings.themeColor) themeColor = settings.themeColor;
           else if (settings.theme && THEME_MAP[settings.theme]) themeColor = THEME_MAP[settings.theme];
+        } else if (inv.direction === "out" && Number(inv.tenantId) === 1) {
+          archiveLogoSubtitle = "www.getapp.ro";
         }
       } catch (_) {}
 
@@ -369,19 +419,32 @@ export function registerPdfRoute(app: any) {
         invoiceObj["cac:AccountingCustomerParty"]?.["cac:Party"] ||
         invoiceObj["AccountingCustomerParty"]?.["Party"];
 
+      const firstXmlItem = (v: any) => (Array.isArray(v) ? v[0] : v);
+      const extractPartyCuiSafe = (party: any): string => {
+        if (!party || typeof party !== "object") return "";
+        const taxSchemes = party["cac:PartyTaxScheme"] ?? party["PartyTaxScheme"];
+        const taxArr = Array.isArray(taxSchemes) ? taxSchemes : taxSchemes ? [taxSchemes] : [];
+        for (const ts of taxArr) {
+          const cid = getXmlText(ts?.["cac:CompanyID"] ?? ts?.["cbc:CompanyID"] ?? ts?.["CompanyID"]);
+          if (cid) return cid;
+        }
+        const legals = party["cac:PartyLegalEntity"] ?? party["PartyLegalEntity"];
+        const legArr = Array.isArray(legals) ? legals : legals ? [legals] : [];
+        for (const le of legArr) {
+          const cid = getXmlText(le?.["cbc:CompanyID"] ?? le?.["CompanyID"]);
+          if (cid) return cid;
+        }
+        return "";
+      };
+
       const extractPartyDetails = (party: any) => ({
         name:
-          getXmlText(party?.["cac:PartyName"]?.["cbc:Name"]) ||
-          getXmlText(party?.["PartyName"]?.["Name"]) ||
-          getXmlText(party?.["cac:PartyLegalEntity"]?.["cbc:RegistrationName"]) ||
-          getXmlText(party?.["PartyLegalEntity"]?.["RegistrationName"]) ||
+          getXmlText(firstXmlItem(party?.["cac:PartyName"])?.["cbc:Name"]) ||
+          getXmlText(firstXmlItem(party?.["PartyName"])?.["Name"]) ||
+          getXmlText(firstXmlItem(party?.["cac:PartyLegalEntity"])?.["cbc:RegistrationName"]) ||
+          getXmlText(firstXmlItem(party?.["PartyLegalEntity"])?.["RegistrationName"]) ||
           "",
-        cui:
-          getXmlText(party?.["cac:PartyTaxScheme"]?.["cbc:CompanyID"]) ||
-          getXmlText(party?.["PartyTaxScheme"]?.["CompanyID"]) ||
-          getXmlText(party?.["cac:PartyLegalEntity"]?.["cbc:CompanyID"]) ||
-          getXmlText(party?.["PartyLegalEntity"]?.["CompanyID"]) ||
-          "",
+        cui: extractPartyCuiSafe(party),
         address:
           getXmlText(party?.["cac:PostalAddress"]?.["cbc:StreetName"]) ||
           getXmlText(party?.["PostalAddress"]?.["StreetName"]),
@@ -436,14 +499,13 @@ export function registerPdfRoute(app: any) {
         }
       }
 
-      // If no IBAN in XML, check if supplier is a tenant on our platform
-      if (!supplierIban && supplierDetails.cui) {
-        const cleanSupCui = supplierDetails.cui.replace(/^RO/i, "").trim();
+      // If no IBAN in XML and this is an outgoing invoice of our own tenant, fall back to our tenant's IBAN
+      if (!supplierIban && inv.direction === "out") {
         const { tenants } = await import("../drizzle/schema");
         const [supTenant] = await db
           .select()
           .from(tenants)
-          .where(sql`REPLACE(UPPER(${tenants.cui}), 'RO', '') = ${cleanSupCui}`);
+          .where(eq(tenants.id, inv.tenantId));
         if (supTenant?.settings) {
           try {
             const parsedSettings = JSON.parse(supTenant.settings);
@@ -692,6 +754,7 @@ export function registerPdfRoute(app: any) {
       }
 
       const pdfData = {
+        tenantId: inv.tenantId,
         number: getXmlText(invoiceObj["cbc:ID"] || invoiceObj["ID"], inv.invoiceNumber || ""),
         date: getXmlText(invoiceObj["cbc:IssueDate"] || invoiceObj["IssueDate"], inv.issueDate || ""),
         dueDate: getXmlText(
@@ -723,10 +786,7 @@ export function registerPdfRoute(app: any) {
         logoBase64,
         logoHasBackground,
         logoBgColor,
-        logoSubtitle:
-          Number(inv.tenantId) === 1
-            ? "www.getapp.ro"
-            : undefined,
+        logoSubtitle: archiveLogoSubtitle,
         themeColor,
         template: "classic" as any,
         isCreditNote,
@@ -751,7 +811,7 @@ export function registerPdfRoute(app: any) {
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
-        `${isDownload ? "attachment" : "inline"}; filename="${filename}"`
+        `${isDownload ? "attachment" : "inline"}; filename="${safeHeaderFilename(filename)}"`
       );
 
       const pdfStream = generateReInvoicePDF(pdfData);
@@ -832,7 +892,7 @@ export function registerPdfRoute(app: any) {
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
-        `${isDownload ? "attachment" : "inline"}; filename="${filename}"`
+        `${isDownload ? "attachment" : "inline"}; filename="${safeHeaderFilename(filename)}"`
       );
 
       let logoBase64 = settings.logoBase64 || undefined;
@@ -888,6 +948,7 @@ export function registerPdfRoute(app: any) {
       );
 
       const pdfStream = generateReInvoicePDF({
+        tenantId: inv.tenantId,
         number: cleanDisplayNum,
         date: inv.issueDate || new Date().toISOString().split("T")[0],
         dueDate: inv.dueDate || "",
@@ -897,6 +958,7 @@ export function registerPdfRoute(app: any) {
         clientCity: inv.clientCity || clientRecord?.city || "",
         clientCounty: clientRecord?.county || "",
         clientCountry: inv.clientCountry || clientRecord?.country || "",
+        clientTva: clientRecord?.tva,
         clientEmail: inv.clientEmail || clientRecord?.email || "",
         clientPhone: inv.clientPhone || clientRecord?.phone || "",
         companyName: tenant?.name || "",
@@ -914,8 +976,8 @@ export function registerPdfRoute(app: any) {
         logoBgColor,
         logoSubtitle:
           Number(inv.tenantId) === 1
-            ? "www.getapp.ro"
-            : undefined,
+            ? settings.logoSubtitle || "www.getapp.ro"
+            : settings.logoSubtitle || undefined,
         themeColor,
         template: settings.invoiceTemplate === "modern" ? "classic" : (settings.invoiceTemplate || "classic"),
         lines: translatedLines,
@@ -990,7 +1052,7 @@ export function registerPdfRoute(app: any) {
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
-        `${isDownload ? "attachment" : "inline"}; filename="${filename}"`
+        `${isDownload ? "attachment" : "inline"}; filename="${safeHeaderFilename(filename)}"`
       );
 
       // ── Generate NIR PDF with PDFKit ──
@@ -1000,18 +1062,8 @@ export function registerPdfRoute(app: any) {
         margin: 40,
         bufferPages: true,
       });
-      // Inregistrare fonturi cu diacritice (Roboto)
-      const robotoReg = path.resolve(
-        process.cwd(),
-        "server/assets/fonts/Roboto-Regular.ttf"
-      );
-      const robotoBold = path.resolve(
-        process.cwd(),
-        "server/assets/fonts/Roboto-Bold.ttf"
-      );
-      if (fs.existsSync(robotoReg)) doc.registerFont("Roboto", robotoReg);
-      if (fs.existsSync(robotoBold))
-        doc.registerFont("Roboto-Bold", robotoBold);
+      // Inregistrare fonturi cu diacritice (Roboto cu fallback sigur Helvetica)
+      attachSafeRobotoFonts(doc);
 
       // Pipe to response
       doc.pipe(res);
@@ -1094,18 +1146,25 @@ export function registerPdfRoute(app: any) {
             align: "center",
             valign: "center",
           });
-          if (Number(tenant?.id) === 1) {
+          const nirLogoSubtitle =
+            Number(tenant?.id) === 1
+              ? settings.logoSubtitle || "www.getapp.ro"
+              : settings.logoSubtitle || "";
+          if (nirLogoSubtitle) {
+            const subHref = /^https?:\/\//i.test(nirLogoSubtitle)
+              ? nirLogoSubtitle
+              : `https://${nirLogoSubtitle}`;
             doc
               .fontSize(8)
               .font("Roboto-Bold")
               .fillColor(logoBgColor || "#1e3a5f")
-              .text("www.getapp.ro", cardX, cardY + cardH + 3, {
+              .text(nirLogoSubtitle, cardX, cardY + cardH + 3, {
                 width: cardW,
                 align: "center",
                 lineBreak: false,
               });
             try {
-              doc.link(cardX, cardY, cardW, cardH + 14, "https://www.getapp.ro");
+              doc.link(cardX, cardY, cardW, cardH + 14, subHref);
             } catch {}
           }
         } catch {
@@ -1326,7 +1385,7 @@ export function registerPdfRoute(app: any) {
         const cells: Array<{ val: string; align: "left" | "center" | "right" }> = [
           { val: String(idx + 1), align: "left" },
           { val: (line as any).articleCode || "—", align: "left" },
-          { val: line.description, align: "left" },
+          { val: String(line.description || ""), align: "left" },
         ];
         
         if (showAccounting) {
@@ -1619,22 +1678,39 @@ export function registerPdfRoute(app: any) {
 
       const { nir, nirLines } = await import("../drizzle/schema");
       const { eq: eqOp } = await import("drizzle-orm");
+      const tenantId = resolveRequestTenant(req, req.query.tenantId);
 
-      let [nirRow] = await db.select().from(nir).where(eqOp(nir.id, id));
+      let [nirRow] = await db
+        .select()
+        .from(nir)
+        .where(and(eqOp(nir.id, id), eqOp(nir.tenantId, tenantId)));
       if (!nirRow) {
         // Fallback: căutare după invoiceArchiveId dacă clientul a trimis ID-ul arhivei
-        const [byArchive] = await db.select().from(nir).where(eqOp(nir.invoiceArchiveId, id));
+        const [byArchive] = await db
+          .select()
+          .from(nir)
+          .where(and(eqOp(nir.invoiceArchiveId, id), eqOp(nir.tenantId, tenantId)));
         if (byArchive) {
           nirRow = byArchive;
         } else {
-          // Fallback 2: căutare prin invoiceArchive (dacă NIR e legat doar prin invoiceNumber)
+          // Fallback 2: căutare prin invoiceArchive pe (invoiceNumber + normalized supplierCUI)
           const { invoiceArchive } = await import("../drizzle/schema");
           const [invArchive] = await db
-            .select({ invoiceNumber: invoiceArchive.invoiceNumber, tenantId: invoiceArchive.tenantId })
+            .select({
+              invoiceNumber: invoiceArchive.invoiceNumber,
+              supplierCUI: invoiceArchive.supplierCUI,
+              tenantId: invoiceArchive.tenantId,
+            })
             .from(invoiceArchive)
-            .where(eqOp(invoiceArchive.id, id));
+            .where(
+              and(
+                eqOp(invoiceArchive.id, id),
+                eqOp(invoiceArchive.tenantId, tenantId),
+                eqOp(invoiceArchive.direction, "in")
+              )
+            );
           if (invArchive && invArchive.invoiceNumber) {
-            const [byNum] = await db
+            const candidates = await db
               .select()
               .from(nir)
               .where(
@@ -1642,9 +1718,14 @@ export function registerPdfRoute(app: any) {
                   eqOp(nir.tenantId, invArchive.tenantId),
                   eqOp(nir.invoiceNumber, invArchive.invoiceNumber)
                 )
-              )
-              .limit(1);
-            if (byNum) nirRow = byNum;
+              );
+            const targetSupCui = normalizeSupplierCui(invArchive.supplierCUI);
+            const matchedNir = targetSupCui
+              ? candidates.find(c => normalizeSupplierCui(c.supplierCUI) === targetSupCui)
+              : candidates.length === 1
+                ? candidates[0]
+                : undefined;
+            if (matchedNir) nirRow = matchedNir;
           }
         }
       }
@@ -1705,6 +1786,7 @@ export function registerPdfRoute(app: any) {
           }
         }
       }
+      const normNirSupCui = normalizeSupplierCui(nirRow.supplierCUI);
       if (!spvIndex && nirRow.invoiceNumber) {
         const invs = await db
           .select()
@@ -1712,10 +1794,16 @@ export function registerPdfRoute(app: any) {
           .where(
             andOp(
               eqOp(invoiceArchive.tenantId, nirRow.tenantId),
+              eqOp(invoiceArchive.direction, "in"),
               eqOp(invoiceArchive.invoiceNumber, nirRow.invoiceNumber)
             )
           );
-        for (const inv of invs) {
+        const matchingInvs = normNirSupCui
+          ? invs.filter(inv => normalizeSupplierCui(inv.supplierCUI) === normNirSupCui)
+          : invs.length === 1
+            ? invs
+            : [];
+        for (const inv of matchingInvs) {
           if (!linkedInvoice) linkedInvoice = inv;
           if (inv.spvIndex) { spvIndex = inv.spvIndex; break; }
           if (inv.notes) {
@@ -1726,15 +1814,32 @@ export function registerPdfRoute(app: any) {
       }
       if (!spvIndex) {
         const { sagaIntrari } = await import("../modules/saga/schema");
-        const [si] = await db
+        const siCandidates = await db
           .select()
           .from(sagaIntrari)
           .where(
             andOp(
               eqOp(sagaIntrari.tenantId, nirRow.tenantId),
-              nirRow.invoiceNumber ? eqOp(sagaIntrari.nrDoc, nirRow.invoiceNumber) : eqOp(sagaIntrari.nirId, nirRow.id)
+              nirRow.id ? eqOp(sagaIntrari.nirId, nirRow.id) : eqOp(sagaIntrari.nrDoc, nirRow.invoiceNumber || "")
             )
           );
+        let si = siCandidates[0];
+        if (!si && nirRow.invoiceNumber) {
+          const byDoc = await db
+            .select()
+            .from(sagaIntrari)
+            .where(
+              andOp(
+                eqOp(sagaIntrari.tenantId, nirRow.tenantId),
+                eqOp(sagaIntrari.nrDoc, nirRow.invoiceNumber)
+              )
+            );
+          si = normNirSupCui
+            ? byDoc.find(r => normalizeSupplierCui(r.cuiFurnizor) === normNirSupCui)!
+            : byDoc.length === 1
+              ? byDoc[0]
+              : (undefined as any);
+        }
         if (si?.idSPV) spvIndex = si.idSPV;
       }
       if (!spvIndex && nirRow.notes) {
@@ -1892,7 +1997,14 @@ export function registerPdfRoute(app: any) {
         return;
       }
 
-      const { devize, devizeLines, emittedInvoices, reInvoices } = await import("../drizzle/schema");
+      const {
+        devize,
+        devizeLines,
+        emittedInvoices,
+        emittedInvoiceLines,
+        reInvoices,
+        reInvoiceLines,
+      } = await import("../drizzle/schema");
 
       const [deviz] = await db.select().from(devize).where(eq(devize.id, id));
       if (!deviz) {
@@ -1907,13 +2019,23 @@ export function registerPdfRoute(app: any) {
       };
 
       let invoice: any = null;
+      let linkedInvVatRates: number[] = [];
       if (deviz.invoiceId) {
-        const [emitted] = await db
-          .select()
-          .from(emittedInvoices)
-          .where(and(eq(emittedInvoices.id, deviz.invoiceId), eq(emittedInvoices.tenantId, deviz.tenantId)));
-        if (emitted) {
-          invoice = {
+        const isRfDeviz = String(deviz.number || "").startsWith("DEV-RF-");
+        const loadEmitted = async () => {
+          const [emitted] = await db
+            .select()
+            .from(emittedInvoices)
+            .where(and(eq(emittedInvoices.id, deviz.invoiceId!), eq(emittedInvoices.tenantId, deviz.tenantId)));
+          if (!emitted) return null;
+          const eLines = await db
+            .select({ vatRate: emittedInvoiceLines.vatRate })
+            .from(emittedInvoiceLines)
+            .where(eq(emittedInvoiceLines.emittedInvoiceId, emitted.id));
+          linkedInvVatRates = eLines
+            .map(l => parseFloat(String(l.vatRate ?? "")))
+            .filter(n => Number.isFinite(n));
+          return {
             id: emitted.id,
             number: emitted.number,
             series: emitted.series,
@@ -1926,31 +2048,44 @@ export function registerPdfRoute(app: any) {
             companyBank: emitted.companyBank || "",
             intocmitDe: extractNoteField(emitted.notes, /(?:întocmit\s*de|intocmit\s*de|reprezentant)\s*[:\-]\s*([^\n|]+)/i),
             delegat: extractNoteField(emitted.notes, /delegat\s*[:\-]\s*([^\n|]+)/i),
+            subtotal: emitted.subtotal,
             totalVAT: emitted.totalVAT,
             total: emitted.total,
             currency: emitted.currency,
           };
-        } else {
+        };
+        const loadReInv = async () => {
           const [re] = await db
             .select()
             .from(reInvoices)
-            .where(and(eq(reInvoices.id, deviz.invoiceId), eq(reInvoices.tenantId, deviz.tenantId)));
-          if (re) {
-            invoice = {
-              id: re.id,
-              number: re.number,
-              clientName: re.clientName,
-              clientCUI: re.clientCUI,
-              clientAddress: re.clientAddress,
-              clientCity: re.clientCity,
-              intocmitDe: extractNoteField(re.notes, /(?:întocmit\s*de|intocmit\s*de|reprezentant)\s*[:\-]\s*([^\n|]+)/i),
-              delegat: extractNoteField(re.notes, /delegat\s*[:\-]\s*([^\n|]+)/i),
-              totalVAT: re.totalVAT,
-              total: re.total,
-              currency: re.currency,
-            };
-          }
-        }
+            .where(and(eq(reInvoices.id, deviz.invoiceId!), eq(reInvoices.tenantId, deviz.tenantId)));
+          if (!re) return null;
+          const rLines = await db
+            .select({ vatRate: reInvoiceLines.vatRate })
+            .from(reInvoiceLines)
+            .where(eq(reInvoiceLines.reInvoiceId, re.id));
+          linkedInvVatRates = rLines
+            .map(l => parseFloat(String(l.vatRate ?? "")))
+            .filter(n => Number.isFinite(n));
+          return {
+            id: re.id,
+            number: re.number,
+            clientName: re.clientName,
+            clientCUI: re.clientCUI,
+            clientAddress: re.clientAddress,
+            clientCity: re.clientCity,
+            intocmitDe: extractNoteField(re.notes, /(?:întocmit\s*de|intocmit\s*de|reprezentant)\s*[:\-]\s*([^\n|]+)/i),
+            delegat: extractNoteField(re.notes, /delegat\s*[:\-]\s*([^\n|]+)/i),
+            subtotal: re.subtotal,
+            totalVAT: re.totalVAT,
+            total: re.total,
+            currency: re.currency,
+          };
+        };
+
+        invoice = isRfDeviz
+          ? (await loadReInv()) || (await loadEmitted())
+          : (await loadEmitted()) || (await loadReInv());
       }
 
       const lines = await db
@@ -1975,7 +2110,7 @@ export function registerPdfRoute(app: any) {
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
-        `${isDownload ? "attachment" : "inline"}; filename="${filename}"`
+        `${isDownload ? "attachment" : "inline"}; filename="${safeHeaderFilename(filename)}"`
       );
 
       const PDFDocument = (await import("pdfkit")).default;
@@ -1986,20 +2121,10 @@ export function registerPdfRoute(app: any) {
       });
       doc.pipe(res);
 
-      // ESM-safe imports
+      // ESM-safe imports + safe Helvetica fallback
       const { default: fsModule } = await import("fs");
       const { default: pathModule } = await import("path");
-      const robotoReg = pathModule.resolve(
-        process.cwd(),
-        "server/assets/fonts/Roboto-Regular.ttf"
-      );
-      const robotoBold = pathModule.resolve(
-        process.cwd(),
-        "server/assets/fonts/Roboto-Bold.ttf"
-      );
-      if (fsModule.existsSync(robotoReg)) doc.registerFont("Roboto", robotoReg);
-      if (fsModule.existsSync(robotoBold))
-        doc.registerFont("Roboto-Bold", robotoBold);
+      attachSafeRobotoFonts(doc);
 
       const W = doc.page.width - 80;
       const BLUE = "#1e6fbf";
@@ -2079,18 +2204,25 @@ export function registerPdfRoute(app: any) {
             align: "center",
             valign: "center",
           });
-          if (Number(tenant?.id) === 1) {
+          const nirLogoSubtitle =
+            Number(tenant?.id) === 1
+              ? settings.logoSubtitle || "www.getapp.ro"
+              : settings.logoSubtitle || "";
+          if (nirLogoSubtitle) {
+            const subHref = /^https?:\/\//i.test(nirLogoSubtitle)
+              ? nirLogoSubtitle
+              : `https://${nirLogoSubtitle}`;
             doc
               .fontSize(8)
               .font("Roboto-Bold")
               .fillColor(logoBgColor || "#1e3a5f")
-              .text("www.getapp.ro", cardX, cardY + cardH + 3, {
+              .text(nirLogoSubtitle, cardX, cardY + cardH + 3, {
                 width: cardW,
                 align: "center",
                 lineBreak: false,
               });
             try {
-              doc.link(cardX, cardY, cardW, cardH + 14, "https://www.getapp.ro");
+              doc.link(cardX, cardY, cardW, cardH + 14, subHref);
             } catch {}
           }
         } catch {
@@ -2185,6 +2317,21 @@ export function registerPdfRoute(app: any) {
         Number(deviz.totalMaterials || 0) === 0 ||
         Boolean(deviz.notes && (deviz.notes.includes("Smart QR") || deviz.notes.includes("SaaS")));
 
+      const devizCurrency = String(invoice?.currency || "RON").trim().toUpperCase() || "RON";
+      let vatRate = 21;
+      if (invoice) {
+        const invSub = Number(invoice.subtotal ?? 0);
+        const invVat = Number(invoice.totalVAT ?? NaN);
+        const invTot = Number(invoice.total ?? 0);
+        if (Number.isFinite(invVat) && invVat === 0 && (invTot !== 0 || invSub !== 0)) {
+          vatRate = 0;
+        } else if (linkedInvVatRates.length > 0) {
+          vatRate = linkedInvVatRates[0];
+        } else if (Number.isFinite(invVat) && invSub > 0) {
+          vatRate = Math.round((invVat / invSub) * 100);
+        }
+      }
+
       const headerH = 18;
       const drawHeader = (curY: number) => {
         doc.rect(40, curY, W, headerH).fillColor(TEAL).fill();
@@ -2196,7 +2343,7 @@ export function registerPdfRoute(app: any) {
         }
         doc.text("Cantitate", xQty, curY + 5, { width: colQty - 6, align: "right" });
         doc.text("Preț unitar", xPrice, curY + 5, { width: colPrice - 6, align: "right" });
-        doc.text("Valoare RON", xVal, curY + 5, { width: colVal - 6, align: "right" });
+        doc.text(`Valoare ${devizCurrency}`, xVal, curY + 5, { width: colVal - 6, align: "right" });
       };
 
       drawHeader(y);
@@ -2248,10 +2395,9 @@ export function registerPdfRoute(app: any) {
       });
 
       // ── Totaluri cu TVA ──────────────────────────────────────────
-      const totalFaraTVA = Number(deviz.total);
-      const vatRate = 21;
-      const totalTVA = totalFaraTVA * (vatRate / 100);
-      const totalCuTVA = totalFaraTVA + totalTVA;
+      const totalFaraTVA = Number(deviz.total) || 0;
+      const totalTVA = Math.round(totalFaraTVA * (vatRate / 100) * 100) / 100;
+      const totalCuTVA = Math.round((totalFaraTVA + totalTVA) * 100) / 100;
 
       if (y + 110 > doc.page.height - 40) {
         doc.addPage();
@@ -2269,7 +2415,7 @@ export function registerPdfRoute(app: any) {
         doc.rect(40, y, W, 16).strokeColor(BORDER).lineWidth(0.3).stroke();
         doc.fontSize(7.5).font("Roboto-Bold").fillColor(GRAY);
         doc.text("TOTAL MATERIALE:", 45, y + 4.5, { width: totalsLabelW, align: "right" });
-        doc.text(Number(deviz.totalMaterials).toFixed(2) + " RON", totalsValX, y + 4.5, {
+        doc.text(`${Number(deviz.totalMaterials).toFixed(2)} ${devizCurrency}`, totalsValX, y + 4.5, {
           width: totalsValW,
           align: "right",
         });
@@ -2280,7 +2426,7 @@ export function registerPdfRoute(app: any) {
         doc.rect(40, y, W, 16).strokeColor(BORDER).lineWidth(0.3).stroke();
         doc.fontSize(7.5).font("Roboto-Bold").fillColor(GRAY);
         doc.text("TOTAL SERVICII:", 45, y + 4.5, { width: totalsLabelW, align: "right" });
-        doc.text(Number(deviz.totalLabor).toFixed(2) + " RON", totalsValX, y + 4.5, {
+        doc.text(`${Number(deviz.totalLabor).toFixed(2)} ${devizCurrency}`, totalsValX, y + 4.5, {
           width: totalsValW,
           align: "right",
         });
@@ -2292,18 +2438,18 @@ export function registerPdfRoute(app: any) {
       doc.rect(40, y, W, 16).strokeColor(BORDER).lineWidth(0.3).stroke();
       doc.fontSize(8).font("Roboto-Bold").fillColor("#0369a1");
       doc.text("TOTAL FĂRĂ TVA:", 45, y + 4.5, { width: totalsLabelW, align: "right" });
-      doc.text(totalFaraTVA.toFixed(2) + " RON", totalsValX, y + 4.5, {
+      doc.text(`${totalFaraTVA.toFixed(2)} ${devizCurrency}`, totalsValX, y + 4.5, {
         width: totalsValW,
         align: "right",
       });
       y += 16;
 
-      // TVA 21%
+      // TVA dinamic
       doc.rect(40, y, W, 16).fillColor("#e0f2fe").fill();
       doc.rect(40, y, W, 16).strokeColor(BORDER).lineWidth(0.3).stroke();
       doc.fontSize(8).font("Roboto-Bold").fillColor("#0369a1");
       doc.text(`TVA ${vatRate}%:`, 45, y + 4.5, { width: totalsLabelW, align: "right" });
-      doc.text(totalTVA.toFixed(2) + " RON", totalsValX, y + 4.5, {
+      doc.text(`${totalTVA.toFixed(2)} ${devizCurrency}`, totalsValX, y + 4.5, {
         width: totalsValW,
         align: "right",
       });
@@ -2316,7 +2462,7 @@ export function registerPdfRoute(app: any) {
         width: totalsLabelW,
         align: "right",
       });
-      doc.text(totalCuTVA.toFixed(2) + " RON", totalsValX, y + 6, {
+      doc.text(`${totalCuTVA.toFixed(2)} ${devizCurrency}`, totalsValX, y + 6, {
         width: totalsValW,
         align: "right",
       });
@@ -2391,7 +2537,7 @@ export function registerPdfRoute(app: any) {
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
-        `${isDownload ? "attachment" : "inline"}; filename="${filename}"`
+        `${isDownload ? "attachment" : "inline"}; filename="${safeHeaderFilename(filename)}"`
       );
 
       const PDFDocument = (await import("pdfkit")).default;
@@ -2402,19 +2548,7 @@ export function registerPdfRoute(app: any) {
       });
       doc.pipe(res);
 
-      const fs = require("fs");
-      const path = require("path");
-      const robotoReg = path.resolve(
-        process.cwd(),
-        "server/assets/fonts/Roboto-Regular.ttf"
-      );
-      const robotoBold = path.resolve(
-        process.cwd(),
-        "server/assets/fonts/Roboto-Bold.ttf"
-      );
-      if (fs.existsSync(robotoReg)) doc.registerFont("Roboto", robotoReg);
-      if (fs.existsSync(robotoBold))
-        doc.registerFont("Roboto-Bold", robotoBold);
+      attachSafeRobotoFonts(doc);
 
       const W = doc.page.width - 80;
       const BLUE = "#1e6fbf";
@@ -2494,18 +2628,25 @@ export function registerPdfRoute(app: any) {
             align: "center",
             valign: "center",
           });
-          if (Number(tenant?.id) === 1) {
+          const nirLogoSubtitle =
+            Number(tenant?.id) === 1
+              ? settings.logoSubtitle || "www.getapp.ro"
+              : settings.logoSubtitle || "";
+          if (nirLogoSubtitle) {
+            const subHref = /^https?:\/\//i.test(nirLogoSubtitle)
+              ? nirLogoSubtitle
+              : `https://${nirLogoSubtitle}`;
             doc
               .fontSize(8)
               .font("Roboto-Bold")
               .fillColor(logoBgColor || "#1e3a5f")
-              .text("www.getapp.ro", cardX, cardY + cardH + 3, {
+              .text(nirLogoSubtitle, cardX, cardY + cardH + 3, {
                 width: cardW,
                 align: "center",
                 lineBreak: false,
               });
             try {
-              doc.link(cardX, cardY, cardW, cardH + 14, "https://www.getapp.ro");
+              doc.link(cardX, cardY, cardW, cardH + 14, subHref);
             } catch {}
           }
         } catch {
@@ -2623,8 +2764,9 @@ export function registerPdfRoute(app: any) {
       // Linii
       let totalBon = 0;
       lines.forEach((l, i) => {
+        const descText = String(l.description || "");
         doc.fontSize(8).font("Roboto");
-        const descH = doc.heightOfString(l.description, { width: colDesc - 12 });
+        const descH = doc.heightOfString(descText, { width: colDesc - 12 });
         const rowH = Math.max(20, Math.ceil(descH + 10));
 
         if (y + rowH > doc.page.height - 110) {
@@ -2643,7 +2785,7 @@ export function registerPdfRoute(app: any) {
         doc.fontSize(8).font("Roboto").fillColor("#1e293b");
         const cellY = y + 5;
         doc.text(`${i + 1}`, xNr, cellY, { width: colNr, align: "center" });
-        doc.text(l.description, xDesc + 6, cellY, { width: colDesc - 12 });
+        doc.text(descText, xDesc + 6, cellY, { width: colDesc - 12 });
         doc.text(Number(l.quantity).toFixed(2), xQty, cellY, {
           width: colQty - 6,
           align: "right",
@@ -2784,13 +2926,47 @@ export function registerPdfRoute(app: any) {
       const isDownload = req.query.download === "1";
       const isWord = req.query.format === "word" || req.query.docx === "1";
       const safeFilename = `${contract.type.toUpperCase()}_${contract.number.replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`;
+      const isLegacyTradeInvest = Number(contract.tenantId) === 1;
+      const legacyContracteDir = path.resolve(process.cwd(), "contracte");
       const allowedContractDirs = [
         path.resolve(process.cwd(), "dist", "public", "uploads", "contracts"),
         path.resolve(process.cwd(), "client", "public", "uploads", "contracts"),
         path.resolve(process.cwd(), "public", "uploads", "contracts"),
         path.resolve(process.cwd(), "uploads", "contracts"),
-        path.resolve(process.cwd(), "contracte"),
+        ...(isLegacyTradeInvest ? [legacyContracteDir] : []),
       ];
+
+      const isCandidateOwnedByContractTenant = async (candidatePath: string): Promise<boolean> => {
+        if (!isPathWithinAllowedDirs(candidatePath, allowedContractDirs)) return false;
+        if (!isExistingRegularFile(candidatePath)) return false;
+        const resolved = path.resolve(candidatePath);
+        if (resolved.startsWith(legacyContracteDir + path.sep)) {
+          return isLegacyTradeInvest;
+        }
+        const candBase = path.basename(resolved);
+        const tenantPrefix = `t${contract.tenantId}-`;
+        if (candBase.startsWith(tenantPrefix)) {
+          return true;
+        }
+        if (/^t\d+-/.test(candBase)) {
+          return false;
+        }
+        if (!isLegacyTradeInvest) {
+          return false;
+        }
+        const pdfEquiv = candBase.replace(/\.docx$/i, ".pdf");
+        const [foreignOwner] = await db
+          .select({ id: contracts.id })
+          .from(contracts)
+          .where(
+            and(
+              sql`${contracts.tenantId} != ${contract.tenantId}`,
+              sql`(${contracts.fileUrl} LIKE ${`%/${candBase}`} OR ${contracts.fileUrl} LIKE ${`%/${pdfEquiv}`})`
+            )
+          )
+          .limit(1);
+        return !foreignOwner;
+      };
 
       // 0. Daca s-a cerut format Word (.docx)
       if (isWord) {
@@ -2813,7 +2989,7 @@ export function registerPdfRoute(app: any) {
 
         let foundDocx: string | null = null;
         for (const c of docxCandidates) {
-          if (isPathWithinAllowedDirs(c, allowedContractDirs) && fs.existsSync(c)) {
+          if (await isCandidateOwnedByContractTenant(c)) {
             foundDocx = c;
             break;
           }
@@ -2825,7 +3001,7 @@ export function registerPdfRoute(app: any) {
             "Content-Disposition",
             `attachment; filename="${safeDocxFilename}"`
           );
-          fs.createReadStream(foundDocx).pipe(res);
+          streamFileSafely(foundDocx, res);
           return;
         }
       }
@@ -2848,14 +3024,18 @@ export function registerPdfRoute(app: any) {
             path.resolve(process.cwd(), "client", "public", "uploads", "contracts", baseWithUnderscores),
             path.resolve(process.cwd(), "dist", "public", "uploads", "contracts", baseName),
             path.resolve(process.cwd(), "dist", "public", "uploads", "contracts", baseWithUnderscores),
-            path.resolve(process.cwd(), "contracte", baseName),
-            path.resolve(process.cwd(), "contracte", baseWithSpaces),
-            path.resolve(process.cwd(), "contracte", baseWithUnderscores),
+            ...(isLegacyTradeInvest
+              ? [
+                  path.resolve(process.cwd(), "contracte", baseName),
+                  path.resolve(process.cwd(), "contracte", baseWithSpaces),
+                  path.resolve(process.cwd(), "contracte", baseWithUnderscores),
+                ]
+              : []),
           ];
 
           let foundPath: string | null = null;
           for (const p of candidates) {
-            if (isPathWithinAllowedDirs(p, allowedContractDirs) && fs.existsSync(p)) {
+            if (await isCandidateOwnedByContractTenant(p)) {
               foundPath = p;
               break;
             }
@@ -2867,7 +3047,7 @@ export function registerPdfRoute(app: any) {
               "Content-Disposition",
               `${isDownload ? "attachment" : "inline"}; filename="${safeFilename}"`
             );
-            fs.createReadStream(foundPath).pipe(res);
+            streamFileSafely(foundPath, res);
             return;
           }
         }
@@ -3109,7 +3289,16 @@ export function registerPdfRoute(app: any) {
             path.resolve(process.cwd(), "public", relativePath),
           ];
           for (const p of candidates) {
-            if (isPathWithinAllowedDirs(p, allowedSpvDirs) && fs.existsSync(p)) {
+            const pBase = path.basename(p);
+            const prefixOk =
+              !spvDoc.tenantId ||
+              !/^t\d+-/.test(pBase) ||
+              pBase.startsWith(`t${spvDoc.tenantId}-`);
+            if (
+              prefixOk &&
+              isPathWithinAllowedDirs(p, allowedSpvDirs) &&
+              isExistingRegularFile(p)
+            ) {
               const isZipFile = p.toLowerCase().endsWith(".zip");
               res.setHeader(
                 "Content-Type",
@@ -3119,7 +3308,7 @@ export function registerPdfRoute(app: any) {
                 "Content-Disposition",
                 `${isZipFile || isDownload ? "attachment" : "inline"}; filename="${safeFilename}"`
               );
-              fs.createReadStream(p).pipe(res);
+              streamFileSafely(p, res);
               return;
             }
           }

@@ -128,12 +128,16 @@ export const useKioskStore = create((set, get) => ({
         // Deep compare sorted modifiers
         const strA = JSON.stringify(
           [...modsA].sort((a, b) =>
-            (a.modId || "").localeCompare(b.modId || "")
+            String(a.optionId || a.modId || a.optionName || "").localeCompare(
+              String(b.optionId || b.modId || b.optionName || "")
+            )
           )
         );
         const strB = JSON.stringify(
           [...modsB].sort((a, b) =>
-            (a.modId || "").localeCompare(b.modId || "")
+            String(a.optionId || a.modId || a.optionName || "").localeCompare(
+              String(b.optionId || b.modId || b.optionName || "")
+            )
           )
         );
         return strA === strB;

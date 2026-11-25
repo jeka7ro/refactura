@@ -252,7 +252,7 @@ export default function AdminDashboard() {
                       </td>
                       <td className="py-4 px-4">
                         <button
-                          onClick={() => setLocation("/superadmin")}
+                          onClick={() => setLocation("/super-admin")}
                           title="Configurează companie și module"
                           className="w-8 h-8 inline-flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
                         >

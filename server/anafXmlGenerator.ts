@@ -10,15 +10,59 @@ const EU_COUNTRIES = new Set([
  * Generates an ANAF compliant UBL 2.1 e-Factura XML string (CIUS-RO).
  * Supports standard VAT, exemptions, reverse charge (AE), foreign EU/non-EU clients, and foreign currencies (EUR, USD, etc.).
  */
+export function normalizeUblDate(raw?: string | Date | null, fallback?: string): string {
+  if (!raw) return fallback || new Date().toISOString().split("T")[0];
+  if (raw instanceof Date) {
+    return isNaN(raw.getTime()) ? (fallback || new Date().toISOString().split("T")[0]) : raw.toISOString().split("T")[0];
+  }
+  const s = String(raw).trim();
+  const dmy = s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})/);
+  if (dmy) {
+    return `${dmy[3]}-${dmy[2].padStart(2, "0")}-${dmy[1].padStart(2, "0")}`;
+  }
+  const ymd = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (ymd) {
+    return `${ymd[1]}-${ymd[2].padStart(2, "0")}-${ymd[3].padStart(2, "0")}`;
+  }
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? (fallback || new Date().toISOString().split("T")[0]) : d.toISOString().split("T")[0];
+}
+
+function mapToUblUnitCode(rawUnit?: string | null): string {
+  const trimmed = String(rawUnit || "").trim();
+  const u = trimmed
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/\./g, "");
+  if (!u) return "C62";
+  if (["buc", "bucata", "bucati", "pce", "pcs", "h87"].includes(u)) return "H87";
+  if (["ea", "c62", "unit", "serv", "serviciu", "servicii"].includes(u)) return "C62";
+  if (["kg", "kgm", "kilogram", "kilograme"].includes(u)) return "KGM";
+  if (["g", "gr", "grm", "gram", "grame"].includes(u)) return "GRM";
+  if (["t", "to", "tne", "tona", "tone"].includes(u)) return "TNE";
+  if (["mp", "m2", "m²", "mtk"].includes(u)) return "MTK";
+  if (["ml", "m", "mtr", "metru", "metri"].includes(u)) return "MTR";
+  if (["mc", "m3", "m³", "mtq"].includes(u)) return "MTQ";
+  if (["l", "litru", "litri", "ltr"].includes(u)) return "LTR";
+  if (["ore", "ora", "h", "hr", "hur"].includes(u)) return "HUR";
+  if (["zi", "zile", "day"].includes(u)) return "DAY";
+  if (["luna", "luni", "mon"].includes(u)) return "MON";
+  if (["km", "kmt"].includes(u)) return "KMT";
+  if (["set"].includes(u)) return "SET";
+  if (/^[A-Z0-9]{2,3}$/.test(trimmed)) return trimmed;
+  return "C62";
+}
+
 export function generateUblXml(
   invoice: ReInvoice & { clientCountry?: string | null },
   lines: ReInvoiceLine[],
   tenant: Tenant,
   exchangeRate?: number
 ): string {
-  const issueDate = new Date(invoice.issueDate).toISOString().split("T")[0];
+  const issueDate = normalizeUblDate(invoice.issueDate);
   const dueDate = invoice.dueDate
-    ? new Date(invoice.dueDate).toISOString().split("T")[0]
+    ? normalizeUblDate(invoice.dueDate, issueDate)
     : issueDate;
 
   let tenantSettings: any = {};
@@ -31,13 +75,26 @@ export function generateUblXml(
   const tenantCounty = tenantSettings.county || "";
 
   // Seller CUI: In Romania, VAT registered sellers must have RO prefix in BT-31 / CompanyID
+  // Non-VAT sellers (!rawSellerCui.startsWith("RO") and totalVAT === 0 / non-VAT lines) must NOT get a fake RO prefix (BR-RO-040)
   const rawSellerCui = (tenant.cui || "").trim().toUpperCase();
   const cleanSellerDigits = rawSellerCui.replace(/[^0-9]/g, "");
-  const hasVatLines = lines.some(l => parseFloat(String(l.vatRate || "0")) > 0);
+  const isPfSeller =
+    tenantSettings.entityType === "pf" ||
+    (cleanSellerDigits.length === 13 && /^[1-9]\d{12}$/.test(cleanSellerDigits));
+  const invTotalVat = Math.abs(parseFloat(String((invoice as any).totalVAT ?? "0")) || 0);
+  const hasVatLines = lines.some(l => parseFloat(String(l.vatRate ?? "0")) > 0);
+  const explicitVatPayer =
+    tenantSettings.isVatPayer === true || tenantSettings.tva === true
+      ? true
+      : tenantSettings.isVatPayer === false || tenantSettings.tva === false
+      ? false
+      : null;
   const isSellerVatPayer =
-    tenantSettings.isVatPayer !== false &&
-    tenantSettings.tva !== false &&
-    (rawSellerCui.startsWith("RO") || hasVatLines);
+    !isPfSeller &&
+    explicitVatPayer !== false &&
+    (rawSellerCui.startsWith("RO") ||
+      explicitVatPayer === true ||
+      (invTotalVat > 0.005 && hasVatLines));
 
   const supplierVatId = isSellerVatPayer ? `RO${cleanSellerDigits}` : cleanSellerDigits;
 
@@ -131,20 +188,51 @@ export function generateUblXml(
     "vaslui": "RO-VS", "valcea": "RO-VL", "vrancea": "RO-VN",
   };
 
-  const getCountyCode = (text: string): string => {
-    if (!text) return "RO-B";
-    const key = text.toLowerCase()
-      .normalize("NFD").replace(/\p{Diacritic}/gu, "")
-      .trim();
+  const VALID_COUNTY_CODES = new Set(Object.values(COUNTY_MAP));
 
-    // Check Bucharest / Sectoare
-    if (key.includes("bucuresti") || key.includes("bucharest") || key.includes("sector")) {
+  const matchCountyToken = (rawText?: string | null): string | null => {
+    if (!rawText) return null;
+    const key = String(rawText)
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .trim();
+    if (!key) return null;
+
+    const upper = key.toUpperCase();
+    if (upper === "B" || upper === "RO-B") return "RO-B";
+    if (VALID_COUNTY_CODES.has(upper)) return upper;
+    if (/^[A-Z]{2}$/.test(upper) && VALID_COUNTY_CODES.has(`RO-${upper}`)) {
+      return `RO-${upper}`;
+    }
+
+    if (/\b(?:bucuresti|bucharest|sector\s*[1-6]|sectorul\s*[1-6])\b/i.test(key)) {
       return "RO-B";
     }
 
     for (const [k, v] of Object.entries(COUNTY_MAP)) {
-      if (key.includes(k)) return v;
+      if (new RegExp(`\\b${k}\\b`, "i").test(key)) return v;
     }
+    return null;
+  };
+
+  const getCountyCode = (county?: string | null, city?: string | null, address?: string | null): string => {
+    const fromCounty = matchCountyToken(county);
+    if (fromCounty) return fromCounty;
+
+    const fromCity = matchCountyToken(city);
+    if (fromCity) return fromCity;
+
+    if (address) {
+      const strippedAddr = String(address)
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/\p{Diacritic}/gu, "")
+        .replace(/\b(?:strada|str\.|calea|bd\.|bulevardul|sos\.|soseaua)\s+\S+/gi, " ");
+      const fromAddr = matchCountyToken(strippedAddr);
+      if (fromAddr) return fromAddr;
+    }
+
     return "RO-B"; // fallback
   };
 
@@ -156,8 +244,8 @@ export function generateUblXml(
     return "SECTOR1";
   };
 
-  // Inspect county, city AND full address to accurately determine subdivision
-  const sellerSubdivision = getCountyCode(`${tenantCounty} ${tenantCity} ${tenant.address || ""}`);
+  // Match county and city with word boundaries BEFORE checking street-stripped address
+  const sellerSubdivision = getCountyCode(tenantCounty, tenantCity, tenant.address || "");
   const sellerCity = getSectorOrCity(sellerSubdivision, tenant.address || "", tenantCity);
 
   let buyerAddressXml = "";
@@ -165,7 +253,7 @@ export function generateUblXml(
     const clientCounty = (invoice as any).clientCounty || "";
     const clientCity = (invoice as any).clientCity || "";
     const clientAddress = (invoice as any).clientAddress || "";
-    const buyerSubdivision = getCountyCode(`${clientCounty} ${clientCity} ${clientAddress}`);
+    const buyerSubdivision = getCountyCode(clientCounty, clientCity, clientAddress);
     const buyerCity = getSectorOrCity(buyerSubdivision, clientAddress, clientCity);
     buyerAddressXml = `
             <cac:PostalAddress>
@@ -199,17 +287,68 @@ export function generateUblXml(
   // Generate lines
   const xmlLines = lines
     .map((line, idx) => {
-      const rawQty = parseFloat(String(line.quantity || "0"));
-      const rawUnitPrice = parseFloat(String(line.unitPrice || "0"));
-      const lineTotal = Math.round(rawQty * rawUnitPrice * 100) / 100;
-      sumLineExtension += lineTotal;
+      const rawQty = parseFloat(String(line.quantity ?? "0")) || 0;
+      const rawUnitPrice = parseFloat(String(line.unitPrice ?? "0")) || 0;
+      const explicitLineTotal =
+        line.total !== undefined && line.total !== null && String(line.total).trim() !== ""
+          ? parseFloat(String(line.total))
+          : NaN;
+
+      // Prevent double-negative storno sign flip (rawQty < 0 && rawUnitPrice < 0)
+      const isNegativeLine =
+        (Number.isFinite(explicitLineTotal) && explicitLineTotal < 0) ||
+        rawQty < 0 ||
+        rawUnitPrice < 0;
+      const absQty = Math.abs(rawQty);
+      let absUnitPrice = Math.abs(rawUnitPrice);
+
+      // Rule BR-CO-10: format unitPrice with up to 4 decimals when needed so qty * unitPrice matches lineTotal
+      if (Number.isFinite(explicitLineTotal) && absQty > 0) {
+        const targetAbsTotal = Math.round(Math.abs(explicitLineTotal) * 100) / 100;
+        const calc2 = Math.round(absQty * (Math.round(absUnitPrice * 100) / 100) * 100) / 100;
+        const calc4 = Math.round(absQty * (Math.round(absUnitPrice * 10000) / 10000) * 100) / 100;
+        if (calc2 !== targetAbsTotal && calc4 !== targetAbsTotal) {
+          const derived4 = Math.round((targetAbsTotal / absQty) * 10000) / 10000;
+          if (
+            Math.round(absQty * derived4 * 100) / 100 === targetAbsTotal &&
+            Math.abs(derived4 - absUnitPrice) <= 0.05
+          ) {
+            absUnitPrice = derived4;
+          }
+        }
+      }
+
+      const roundedPrice2 = Math.round(absUnitPrice * 100) / 100;
+      const roundedPrice4 = Math.round(absUnitPrice * 10000) / 10000;
+      const needsMoreDecimals =
+        Math.abs(roundedPrice4 - roundedPrice2) > 1e-6 ||
+        (Number.isFinite(explicitLineTotal) &&
+          absQty > 0 &&
+          Math.round(absQty * roundedPrice2 * 100) / 100 !== Math.round(Math.abs(explicitLineTotal) * 100) / 100 &&
+          Math.round(absQty * roundedPrice4 * 100) / 100 === Math.round(Math.abs(explicitLineTotal) * 100) / 100);
+      const unitPriceStr = needsMoreDecimals
+        ? roundedPrice4.toFixed(4).replace(/0+$/, "").replace(/(\.\d)$/, "$10")
+        : roundedPrice2.toFixed(2);
+      const effectiveUnitPrice = parseFloat(unitPriceStr);
 
       // Rule BR-27: Item net price (BT-146) must NOT be negative.
       // Negative signs for storno/discounts belong strictly on the quantity.
-      const unitPrice = Math.abs(rawUnitPrice);
-      const qty = lineTotal < 0 ? -Math.abs(rawQty) : Math.abs(rawQty);
-      const vatRate = isSellerVatPayer ? parseFloat(String(line.vatRate || "0")) : 0;
+      const roundedQty2 = Math.round(absQty * 100) / 100;
+      const roundedQty4 = Math.round(absQty * 10000) / 10000;
+      const signedQty4 = isNegativeLine && absQty > 0 ? -roundedQty4 : roundedQty4;
+      const signedQty2 = isNegativeLine && absQty > 0 ? -roundedQty2 : roundedQty2;
+      const qtyStr =
+        Math.abs(roundedQty4 - roundedQty2) > 1e-6
+          ? signedQty4.toFixed(4).replace(/0+$/, "").replace(/(\.\d)$/, "$10")
+          : signedQty2.toFixed(2);
+      const effectiveQty = parseFloat(qtyStr);
+
+      const lineTotal = Math.round(effectiveQty * effectiveUnitPrice * 100) / 100;
+      sumLineExtension += lineTotal;
+
+      const vatRate = isSellerVatPayer ? parseFloat(String(line.vatRate ?? "0")) : 0;
       const lineVat = Math.round(lineTotal * (vatRate / 100) * 100) / 100;
+      const unitCode = mapToUblUnitCode((line as any).unit);
 
       if (!taxGroups.has(vatRate)) {
         taxGroups.set(vatRate, { taxableAmount: 0, taxAmount: 0 });
@@ -228,7 +367,7 @@ export function generateUblXml(
       return `
     <cac:InvoiceLine>
         <cbc:ID>${idx + 1}</cbc:ID>
-        <cbc:InvoicedQuantity unitCode="EA">${qty.toFixed(2)}</cbc:InvoicedQuantity>
+        <cbc:InvoicedQuantity unitCode="${unitCode}">${qtyStr}</cbc:InvoicedQuantity>
         <cbc:LineExtensionAmount currencyID="${invoice.currency}">${lineTotal.toFixed(2)}</cbc:LineExtensionAmount>
         <cac:Item>
             <cbc:Name>${escapeXml(line.description)}</cbc:Name>
@@ -241,7 +380,7 @@ export function generateUblXml(
             </cac:ClassifiedTaxCategory>
         </cac:Item>
         <cac:Price>
-            <cbc:PriceAmount currencyID="${invoice.currency}">${unitPrice.toFixed(2)}</cbc:PriceAmount>
+            <cbc:PriceAmount currencyID="${invoice.currency}">${unitPriceStr}</cbc:PriceAmount>
         </cac:Price>
     </cac:InvoiceLine>`;
     })

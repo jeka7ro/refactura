@@ -61,6 +61,7 @@ function sanitizeData(obj: any): any {
 export type InvoiceTemplate = "classic" | "modern" | "minimal";
 
 export interface ReInvoiceData {
+  tenantId?: number;
   number: string;
   date: string;
   dueDate: string;
@@ -70,6 +71,7 @@ export interface ReInvoiceData {
   clientCity: string;
   clientCounty: string;
   clientCountry?: string;
+  clientTva?: number | boolean;
   clientEmail: string;
   clientPhone: string;
   companyName: string;
@@ -320,15 +322,16 @@ function drawTableRows(
   let y = startY;
 
   data.lines.forEach((line, idx) => {
+    const descStr = String(line.description || "");
     const trans =
       line.translatedDescription ||
-      (isBilingual ? translateProductDescriptionSync(line.description) : undefined);
+      (isBilingual ? translateProductDescriptionSync(descStr) : undefined);
     const hasTranslation =
       isBilingual &&
       Boolean(
         trans &&
         trans.trim() &&
-        trans.trim().toLowerCase() !== line.description.trim().toLowerCase()
+        trans.trim().toLowerCase() !== descStr.trim().toLowerCase()
       );
     const rowH = hasTranslation ? 38 : 30;
     if (y + rowH > doc.page.height - 60) {
@@ -350,7 +353,7 @@ function drawTableRows(
 
     if (hasTranslation) {
       doc.fillColor("#1e293b").fontSize(8.5).font("Roboto");
-      doc.text(line.description, leftX + 5, y + 5, {
+      doc.text(descStr, leftX + 5, y + 5, {
         width: colWidths.desc - 8,
       });
       doc.fillColor("#64748b").fontSize(7.5).font("Roboto");
@@ -359,7 +362,7 @@ function drawTableRows(
       });
     } else {
       doc.fillColor("#1e293b").fontSize(9).font("Roboto");
-      doc.text(line.description, leftX + 5, y + 9, {
+      doc.text(descStr, leftX + 5, y + 9, {
         width: colWidths.desc - 8,
         height: rowH - 8,
       });
@@ -798,18 +801,19 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     }
 
     curX = leftX;
+    const descStr = String(line.description || "");
     const trans =
       line.translatedDescription ||
-      (isBilingual ? translateProductDescriptionSync(line.description) : undefined);
+      (isBilingual ? translateProductDescriptionSync(descStr) : undefined);
     const hasTranslation =
       isBilingual &&
       Boolean(
         trans &&
         trans.trim() &&
-        trans.trim().toLowerCase() !== line.description.trim().toLowerCase()
+        trans.trim().toLowerCase() !== descStr.trim().toLowerCase()
       );
 
-    const roHeight = doc.heightOfString(line.description, { width: colWidths.desc });
+    const roHeight = doc.heightOfString(descStr, { width: colWidths.desc });
     const enHeight = hasTranslation
       ? doc.heightOfString(trans!, { width: colWidths.desc })
       : 0;
@@ -834,14 +838,14 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
 
     if (hasTranslation) {
       doc.fillColor("#000000").font("Roboto").fontSize(8);
-      doc.text(line.description, curX, y, { width: colWidths.desc });
+      doc.text(descStr, curX, y, { width: colWidths.desc });
       doc.fillColor("#64748b").font("Roboto").fontSize(7.5);
       doc.text(trans!, curX, y + roHeight + 1.5, {
         width: colWidths.desc,
       });
       doc.fillColor("#000000").font("Roboto").fontSize(8);
     } else {
-      doc.text(line.description, curX, y, { width: colWidths.desc });
+      doc.text(descStr, curX, y, { width: colWidths.desc });
     }
     curX += colWidths.desc;
 
@@ -1048,18 +1052,20 @@ function generateClassic(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
     doc.font("Roboto").text(finalNotes, leftX, y + 12, { width: pageWidth });
   }
 
-  const footerY = doc.page.height - 30;
-  const now = new Date();
-  doc
-    .fontSize(7.5)
-    .font("Roboto")
-    .fillColor("#cbd5e1")
-    .text(
-      `Grup și Echipă de Producție Aplicație: GettsApp • www.refactura.ro • ${now.toLocaleDateString("ro-RO")}`,
-      leftX,
-      footerY,
-      { width: pageWidth, align: "center" }
-    );
+  if (Number(data.tenantId) === 1) {
+    const footerY = doc.page.height - 30;
+    const now = new Date();
+    doc
+      .fontSize(7.5)
+      .font("Roboto")
+      .fillColor("#cbd5e1")
+      .text(
+        `Grup și Echipă de Producție Aplicație: GettsApp • www.refactura.ro • ${now.toLocaleDateString("ro-RO")}`,
+        leftX,
+        footerY,
+        { width: pageWidth, align: "center" }
+      );
+  }
 }
 
 // ─── TEMPLATE 2: MODERN ──────────────────────────────────────────────────────
@@ -1295,21 +1301,23 @@ function generateModern(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
       .text(data.notes, leftX, y + 12, { width: pageWidth });
   }
 
-  const footerY = doc.page.height - 35;
-  doc
-    .rect(0, footerY - 8, doc.page.width, 45)
-    .fillColor("#0f172a")
-    .fill();
-  doc
-    .fontSize(7.5)
-    .font("Roboto")
-    .fillColor("#94a3b8")
-    .text(
-      `Grup și Echipă de Producție Aplicație: GettsApp • www.refactura.ro • Generat automat • ${now.toLocaleDateString("ro-RO")} ${now.toLocaleTimeString("ro-RO")}`,
-      0,
-      footerY + 2,
-      { align: "center", width: doc.page.width }
-    );
+  if (Number(data.tenantId) === 1) {
+    const footerY = doc.page.height - 35;
+    doc
+      .rect(0, footerY - 8, doc.page.width, 45)
+      .fillColor("#0f172a")
+      .fill();
+    doc
+      .fontSize(7.5)
+      .font("Roboto")
+      .fillColor("#94a3b8")
+      .text(
+        `Grup și Echipă de Producție Aplicație: GettsApp • www.refactura.ro • Generat automat • ${now.toLocaleDateString("ro-RO")} ${now.toLocaleTimeString("ro-RO")}`,
+        0,
+        footerY + 2,
+        { align: "center", width: doc.page.width }
+      );
+  }
 }
 
 // ─── TEMPLATE 3: MINIMAL ─────────────────────────────────────────────────────
@@ -1464,15 +1472,16 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
   y += 8;
 
   data.lines.forEach((line, idx) => {
+    const descStr = String(line.description || "");
     const trans =
       line.translatedDescription ||
-      (isBilingual ? translateProductDescriptionSync(line.description) : undefined);
+      (isBilingual ? translateProductDescriptionSync(descStr) : undefined);
     const hasTranslation =
       isBilingual &&
       Boolean(
         trans &&
         trans.trim() &&
-        trans.trim().toLowerCase() !== line.description.trim().toLowerCase()
+        trans.trim().toLowerCase() !== descStr.trim().toLowerCase()
       );
     const rowH = hasTranslation ? 36 : 24;
 
@@ -1493,20 +1502,21 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
         Math.abs(data.subtotal - data.total) < 0.02 &&
         data.total !== 0);
 
+    const effectiveVatRate = isZeroVatInvoice ? 0 : (line.vatRate || 0);
     const lineVal = typeof line.total === "number" && !isNaN(line.total)
       ? line.total
       : (line.quantity * line.unitPrice);
-    const lineVat = isZeroVatInvoice ? 0 : (lineVal * (line.vatRate || 0)) / 100;
+    const lineVat = isZeroVatInvoice ? 0 : (lineVal * effectiveVatRate) / 100;
     const lineTotal = lineVal + lineVat;
 
     if (hasTranslation) {
       doc.fontSize(8.5).font("Roboto").fillColor("#1e293b");
-      doc.text(line.description, leftX, y + 2, { width: colWidths.desc - 8 });
+      doc.text(descStr, leftX, y + 2, { width: colWidths.desc - 8 });
       doc.fontSize(7.5).font("Roboto").fillColor("#64748b");
       doc.text(trans!, leftX, y + 16, { width: colWidths.desc - 8 });
     } else {
       doc.fontSize(9).font("Roboto").fillColor("#1e293b");
-      doc.text(line.description, leftX, y + 3, { width: colWidths.desc - 8 });
+      doc.text(descStr, leftX, y + 3, { width: colWidths.desc - 8 });
     }
     doc.fontSize(9).font("Roboto").fillColor("#1e293b");
     doc.text(String(line.quantity), leftX + colWidths.desc, y + 3, {
@@ -1520,7 +1530,7 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
       { width: colWidths.price - 4, align: "right" }
     );
     doc.text(
-      `${line.vatRate}%`,
+      `${effectiveVatRate}%`,
       leftX + colWidths.desc + colWidths.qty + colWidths.price,
       y + 3,
       { width: colWidths.vat - 4, align: "right" }
@@ -1625,25 +1635,29 @@ function generateMinimal(doc: PDFKit.PDFDocument, data: ReInvoiceData) {
       .text(data.notes, leftX, y, { width: pageWidth });
   }
 
-  const footerY = doc.page.height - 30;
-  doc
-    .fontSize(7.5)
-    .font("Roboto")
-    .fillColor("#cbd5e1")
-    .text(
-      `Grup și Echipă de Producție Aplicație: GettsApp • www.refactura.ro • ${now.toLocaleDateString("ro-RO")}`,
-      leftX,
-      footerY,
-      { width: pageWidth, align: "center" }
-    );
+  if (Number(data.tenantId) === 1) {
+    const footerY = doc.page.height - 30;
+    doc
+      .fontSize(7.5)
+      .font("Roboto")
+      .fillColor("#cbd5e1")
+      .text(
+        `Grup și Echipă de Producție Aplicație: GettsApp • www.refactura.ro • ${now.toLocaleDateString("ro-RO")}`,
+        leftX,
+        footerY,
+        { width: pageWidth, align: "center" }
+      );
+  }
 }
 
 // ─── Main export ─────────────────────────────────────────────────────────────
 
-export function generateReInvoicePDF(rawData: ReInvoiceData): Readable {
-  const doc = new PDFDocument({ size: "A4", margin: 0 });
-
-  // Înregistrăm Roboto cu numele exact pentru a suporta diacriticele fără a rescrie toate template-urile
+export function attachSafeRobotoFonts(doc: PDFKit.PDFDocument): {
+  reg: string;
+  bold: string;
+} {
+  let hasReg = false;
+  let hasBold = false;
   try {
     const robotoReg = path.resolve(
       process.cwd(),
@@ -1653,23 +1667,55 @@ export function generateReInvoicePDF(rawData: ReInvoiceData): Readable {
       process.cwd(),
       "server/assets/fonts/Roboto-Bold.ttf"
     );
-    if (fs.existsSync(robotoReg)) doc.registerFont("Roboto", robotoReg);
-    if (fs.existsSync(robotoBold)) doc.registerFont("Roboto-Bold", robotoBold);
+    if (fs.existsSync(robotoReg)) {
+      doc.registerFont("Roboto", robotoReg);
+      hasReg = true;
+    }
+    if (fs.existsSync(robotoBold)) {
+      doc.registerFont("Roboto-Bold", robotoBold);
+      hasBold = true;
+    }
   } catch (err) {
     console.error("[PDF] Could not load Roboto fonts for diacritics", err);
   }
 
-  const data = sanitizeData(rawData);
+  if (!hasReg || !hasBold) {
+    const origFont = doc.font.bind(doc);
+    (doc as any).font = (src: any, ...rest: any[]) => {
+      if (src === "Roboto" && !hasReg) return origFont("Helvetica", ...rest);
+      if (src === "Roboto-Bold" && !hasBold) return origFont("Helvetica-Bold", ...rest);
+      return origFont(src, ...rest);
+    };
+  }
 
-  // Normalizare CIF cu RO pentru clienți din România plătitori de TVA (totalVAT > 0)
+  return {
+    reg: hasReg ? "Roboto" : "Helvetica",
+    bold: hasBold ? "Roboto-Bold" : "Helvetica-Bold",
+  };
+}
+
+export function generateReInvoicePDF(rawData: ReInvoiceData): Readable {
+  const doc = new PDFDocument({ size: "A4", margin: 0 });
+  attachSafeRobotoFonts(doc);
+
+  const data = sanitizeData(rawData);
+  if (Array.isArray(data.lines)) {
+    for (const line of data.lines) {
+      if (line) line.description = String(line.description || "");
+    }
+  }
+
+  // Normalizare CIF cu RO strict pentru clienți din România înregistrați în scopuri de TVA (fără CNP 13 cifre)
   const isRoClient = !data.clientCountry || data.clientCountry.toUpperCase() === "RO";
+  const trimmedClientCui = (data.clientCUI || "").trim();
   if (
     isRoClient &&
-    data.clientCUI &&
-    /^\d+$/.test(data.clientCUI.trim()) &&
-    parseFloat(String(data.totalVAT || 0)) > 0
+    trimmedClientCui &&
+    /^\d+$/.test(trimmedClientCui) &&
+    !/^\d{13}$/.test(trimmedClientCui) &&
+    (data.clientTva === 1 || data.clientTva === true)
   ) {
-    data.clientCUI = `RO${data.clientCUI.trim()}`;
+    data.clientCUI = `RO${trimmedClientCui}`;
   }
 
   const isBilingual = isBilingualInvoice(data);

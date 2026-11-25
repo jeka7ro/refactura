@@ -1,4 +1,4 @@
-import { eq, and, desc, sql, count, isNull, inArray } from "drizzle-orm";
+import { eq, and, or, like, desc, sql, count, isNull, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser,
@@ -416,7 +416,11 @@ export async function getUserRole(userId: number, tenantId: number) {
     .select()
     .from(userTenants)
     .where(
-      and(eq(userTenants.userId, userId), eq(userTenants.tenantId, tenantId))
+      and(
+        eq(userTenants.userId, userId),
+        eq(userTenants.tenantId, tenantId),
+        eq(userTenants.isActive, 1)
+      )
     )
     .limit(1);
 
@@ -435,38 +439,57 @@ export async function getDefaultTenantForUser(userId: number, isAccount = false)
 
   if (result.length > 0) return result[0].tenantId;
 
-  // No tenant found, auto-create one for this user to ensure data isolation
+  // No membership found yet — check accounts properly first (primary auth table)
   let name = `Workspace ${userId}`;
   let email = `user${userId}@smartinvoice.local`;
+  let foundAccount: (typeof accounts.$inferSelect) | null = null;
 
-  // Try to find in users (OAuth)
-  const userRes = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-  if (userRes.length > 0) {
-    name = userRes[0].name || userRes[0].email || name;
-    email = userRes[0].email || email;
-  } else {
-    // Try to find in accounts (Email/Password)
-    const accRes = await db.select().from(accounts).where(eq(accounts.id, userId)).limit(1);
-    if (accRes.length > 0) {
-      name = `Workspace ${accRes[0].email}`;
-      email = accRes[0].email || email;
+  const accRes = await db.select().from(accounts).where(eq(accounts.id, userId)).limit(1);
+  if (accRes.length > 0) {
+    foundAccount = accRes[0];
+    if (foundAccount.tenantId) {
+      const [existingTenant] = await db
+        .select({ id: tenants.id })
+        .from(tenants)
+        .where(eq(tenants.id, foundAccount.tenantId))
+        .limit(1);
+      if (existingTenant) {
+        await db.insert(userTenants).values({
+          userId,
+          tenantId: existingTenant.id,
+          role: foundAccount.role === "superadmin" ? "superadmin" : "admin",
+        });
+        return existingTenant.id;
+      }
+    }
+    name = `Workspace ${foundAccount.email}`;
+    email = foundAccount.email || email;
+  } else if (!isAccount) {
+    // Fallback to OAuth users table when not in accounts
+    const userRes = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (userRes.length > 0) {
+      name = userRes[0].name || userRes[0].email || name;
+      email = userRes[0].email || email;
     } else {
       return null;
     }
+  } else {
+    return null;
   }
-  
+
   const newTenant = await db.insert(tenants).values({ name, email });
   const tenantId = newTenant[0].insertId;
-  
+
   await db.insert(userTenants).values({
     userId: userId,
     tenantId: tenantId,
-    role: "superadmin",
+    role: "admin",
   });
-  
-  // Also update accounts if it exists so it has tenantId natively
-  await db.update(accounts).set({ tenantId }).where(eq(accounts.id, userId));
-  
+
+  if (foundAccount) {
+    await db.update(accounts).set({ tenantId }).where(eq(accounts.id, userId));
+  }
+
   return tenantId;
 }
 
@@ -664,6 +687,8 @@ export async function updateClient(
     isSupplier: number;
   }>
 ) {
+  const { tva: rawTva, ...restData } = data as any;
+  const tvaPatch = rawTva !== undefined ? { tva: rawTva ? 1 : 0 } : {};
   const db = await getDb();
   if (!db) {
     const idx = _memClients.findIndex(
@@ -672,8 +697,8 @@ export async function updateClient(
     if (idx !== -1) {
       _memClients[idx] = {
         ..._memClients[idx],
-        ...data,
-        tva: data.tva ? 1 : 0,
+        ...restData,
+        ...tvaPatch,
         updatedAt: new Date(),
       };
     }
@@ -681,7 +706,7 @@ export async function updateClient(
   }
   return db
     .update(clients)
-    .set({ ...data, tva: (data as any).tva ? 1 : 0, updatedAt: new Date() })
+    .set({ ...restData, ...tvaPatch, updatedAt: new Date() })
     .where(and(eq(clients.id, id), eq(clients.tenantId, tenantId)));
 }
 
@@ -877,10 +902,22 @@ export async function getAllTenants() {
       const s = JSON.parse(row.settings);
       delete s.accessPinHash;
       delete s.pinHash;
-      delete s.sagaWebToken;
-      delete s.brevoApiKey;
+      if (s.sagaWebToken && String(s.sagaWebToken).trim()) {
+        s.sagaWebToken = "••••••••";
+      } else {
+        delete s.sagaWebToken;
+      }
+      if (s.brevoApiKey && String(s.brevoApiKey).trim()) {
+        s.brevoApiKey = "••••••••";
+      } else {
+        delete s.brevoApiKey;
+      }
       if (s.accountantPortal && typeof s.accountantPortal === "object") {
-        const { pinHash: _ignoredPin, ...safePortal } = s.accountantPortal;
+        const {
+          pinHash: _ignoredPin,
+          token: _ignoredToken,
+          ...safePortal
+        } = s.accountantPortal;
         s.accountantPortal = safePortal;
       }
       return { ...row, settings: JSON.stringify(s) };
@@ -1143,12 +1180,27 @@ export async function getNextReInvoiceNumber(
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const year = new Date().getFullYear();
+  const prefix = `RF-${year}-`;
   const rows = await db
-    .select({ id: reInvoices.id })
+    .select({ number: reInvoices.number })
     .from(reInvoices)
-    .where(eq(reInvoices.tenantId, tenantId));
-  const seq = (rows.length + 1).toString().padStart(4, "0");
-  return `RF-${year}-${seq}`;
+    .where(
+      and(
+        eq(reInvoices.tenantId, tenantId),
+        like(reInvoices.number, `${prefix}%`)
+      )
+    );
+  let maxSeq = 0;
+  for (const r of rows) {
+    const suffix = String(r.number || "").slice(prefix.length);
+    const m = suffix.match(/^(\d+)/);
+    if (m) {
+      const num = parseInt(m[1], 10);
+      if (Number.isFinite(num) && num > maxSeq) maxSeq = num;
+    }
+  }
+  const seq = String(maxSeq + 1).padStart(4, "0");
+  return `${prefix}${seq}`;
 }
 
 // ─── In-memory fallback pentru Re-Facturi (local dev fără DB) ───────────────
@@ -1208,11 +1260,13 @@ export async function createReInvoice(data: {
 
   if (catalogLines.length > 0) {
     hasDeviz = true;
-    const baseVat = catalogLines[0]?.vatRate ?? 21;
-    const laborTotal = catalogLines.reduce(
-      (sum: number, l: any) => sum + l.quantity * l.unitPrice,
-      0
-    );
+    const baseVat = catalogLines[0]?.vatPercent ?? catalogLines[0]?.vatRate ?? 21;
+    const laborTotal = Math.round(
+      catalogLines.reduce(
+        (sum: number, l: any) => sum + Number(l.quantity) * Number(l.unitPrice),
+        0
+      ) * 100
+    ) / 100;
 
     normalLines.push({
       description: `Manoperă și materiale conform deviz`,
@@ -1221,26 +1275,31 @@ export async function createReInvoice(data: {
       vatRate: baseVat,
       markupPercent: 0,
       originalUnitPrice: laborTotal,
-      total: laborTotal * (1 + baseVat / 100),
+      total: laborTotal.toFixed(2),
       lineOrder: 9999,
     });
   }
 
   finalLines = normalLines;
 
-  let tTotal = 0;
+  let tSubtotal = 0;
   let tVat = 0;
   finalLines.forEach((l: any) => {
-    const rowTotal = l.quantity * l.unitPrice;
-    tVat += rowTotal * ((l.vatRate ?? 21) / 100);
-    tTotal += rowTotal + rowTotal * ((l.vatRate ?? 21) / 100);
+    const lineVatRate = Number(l.vatPercent ?? l.vatRate ?? 21);
+    const rowTotal = Math.round(Number(l.quantity) * Number(l.unitPrice) * 100) / 100;
+    const rowVat = Math.round(rowTotal * (lineVatRate / 100) * 100) / 100;
+    tSubtotal += rowTotal;
+    tVat += rowVat;
   });
+  tSubtotal = Math.round(tSubtotal * 100) / 100;
+  tVat = Math.round(tVat * 100) / 100;
+  const tTotal = Math.round((tSubtotal + tVat) * 100) / 100;
 
   const [result] = await db.insert(reInvoices).values({
     ...header,
-    subtotal: (tTotal - tVat).toString() as any,
-    totalVAT: tVat.toString() as any,
-    total: tTotal.toString() as any,
+    subtotal: tSubtotal.toFixed(2) as any,
+    totalVAT: tVat.toFixed(2) as any,
+    total: tTotal.toFixed(2) as any,
   });
 
   const reInvoiceId = (result as any).insertId as number;
@@ -1253,7 +1312,7 @@ export async function createReInvoice(data: {
     let tLab = 0;
     let tTot = 0;
     for (const cl of catalogLines) {
-      const lTot = cl.quantity * cl.unitPrice;
+      const lTot = Math.round(Number(cl.quantity) * Number(cl.unitPrice) * 100) / 100;
       tTot += lTot;
       if (cl.devizType === "MATERIAL") tMat += lTot;
       else if (
@@ -1269,9 +1328,9 @@ export async function createReInvoice(data: {
       number: devizNum,
       date: new Date(),
       invoiceId: reInvoiceId,
-      totalMaterials: String(tMat),
-      totalLabor: String(tLab),
-      total: String(tTot),
+      totalMaterials: tMat.toFixed(2),
+      totalLabor: tLab.toFixed(2),
+      total: tTot.toFixed(2),
       status: "final",
     });
 
@@ -1282,8 +1341,8 @@ export async function createReInvoice(data: {
         code: cl.devizCode,
         description: cl.description,
         quantity: String(cl.quantity),
-        unitPrice: String(cl.unitPrice),
-        total: String(cl.quantity * cl.unitPrice),
+        unitPrice: Number(cl.unitPrice).toFixed(2),
+        total: (Math.round(Number(cl.quantity) * Number(cl.unitPrice) * 100) / 100).toFixed(2),
         lineOrder: i,
       }))
     );
@@ -1307,8 +1366,8 @@ export async function createReInvoice(data: {
               materialCode: ml.devizCode,
               description: ml.description,
               quantity: String(ml.quantity),
-              unitPrice: String(ml.unitPrice),
-              total: String(ml.quantity * ml.unitPrice),
+              unitPrice: Number(ml.unitPrice).toFixed(2),
+              total: (Math.round(Number(ml.quantity) * Number(ml.unitPrice) * 100) / 100).toFixed(2),
               lineOrder: i,
             }) as any
         )
@@ -1329,12 +1388,17 @@ export async function createReInvoice(data: {
         reInvoiceId,
         description: l.description,
         quantity: l.quantity.toString() as any,
-        originalUnitPrice: l.originalUnitPrice?.toString() as any,
-        unitPrice: l.unitPrice.toString() as any,
+        originalUnitPrice:
+          l.originalUnitPrice !== undefined
+            ? Number(l.originalUnitPrice).toFixed(2)
+            : (undefined as any),
+        unitPrice: Number(l.unitPrice).toFixed(2) as any,
         unit: l.unit ?? "buc",
-        vatRate: (l.vatRate ?? l.vatPercent ?? 21).toString() as any,
+        vatRate: (l.vatPercent ?? l.vatRate ?? 21).toString() as any,
         markupPercent: l.markupPercent?.toString() as any,
-        total: l.total.toString() as any,
+        total: (
+          Math.round(Number(l.quantity) * Number(l.unitPrice) * 100) / 100
+        ).toFixed(2) as any,
         lineOrder: l.lineOrder ?? i,
       }))
     );
@@ -1461,13 +1525,64 @@ export async function deleteReInvoice(id: number, tenantId: number) {
     );
     return { success: true };
   }
-  const [own] = await db
-    .select({ id: reInvoices.id })
+  const [existing] = await db
+    .select({
+      id: reInvoices.id,
+      spvStatus: reInvoices.spvStatus,
+      spvIndex: reInvoices.spvIndex,
+    })
     .from(reInvoices)
     .where(and(eq(reInvoices.id, id), eq(reInvoices.tenantId, tenantId)))
     .limit(1);
-  if (!own) {
+  if (!existing) {
     return { success: false };
+  }
+  if (existing.spvStatus === "validat" || Boolean(existing.spvIndex)) {
+    throw new Error(
+      "Nu puteți șterge o re-factură deja transmisă și validată în SPV ANAF. Emiteți o factură storno."
+    );
+  }
+  const { devize, devizeLines, bonuriConsum, bonuriConsumLines } =
+    await import("../drizzle/schema");
+  const rfDevize = await db
+    .select({ id: devize.id })
+    .from(devize)
+    .where(
+      and(
+        eq(devize.tenantId, tenantId),
+        eq(devize.invoiceId, id),
+        like(devize.number, "DEV-RF-%")
+      )
+    );
+  if (rfDevize.length > 0) {
+    const devIds = rfDevize.map(d => d.id);
+    const rfBonuri = await db
+      .select({ id: bonuriConsum.id })
+      .from(bonuriConsum)
+      .where(
+        and(
+          eq(bonuriConsum.tenantId, tenantId),
+          inArray(bonuriConsum.devizId, devIds),
+          like(bonuriConsum.number, "BC-RF-%")
+        )
+      );
+    if (rfBonuri.length > 0) {
+      await db
+        .delete(bonuriConsumLines)
+        .where(inArray(bonuriConsumLines.bonId, rfBonuri.map(b => b.id)));
+      await db
+        .delete(bonuriConsum)
+        .where(
+          and(
+            eq(bonuriConsum.tenantId, tenantId),
+            inArray(bonuriConsum.id, rfBonuri.map(b => b.id))
+          )
+        );
+    }
+    await db.delete(devizeLines).where(inArray(devizeLines.devizId, devIds));
+    await db
+      .delete(devize)
+      .where(and(eq(devize.tenantId, tenantId), inArray(devize.id, devIds)));
   }
   await db.delete(reInvoiceLines).where(eq(reInvoiceLines.reInvoiceId, id));
   return db
@@ -1492,14 +1607,30 @@ export async function getInvoiceArchiveList(
   const limit = filters?.limit ?? 5000;
   const offset = filters?.offset ?? 0;
 
-  let query = db
-    .select()
-    .from(invoiceArchive)
-    .where(eq(invoiceArchive.tenantId, tenantId));
+  const conditions: any[] = [eq(invoiceArchive.tenantId, tenantId)];
+  if (filters?.source && filters.source !== "all") {
+    conditions.push(eq(invoiceArchive.source, filters.source as any));
+  }
+  if (filters?.status && filters.status !== "all") {
+    conditions.push(eq(invoiceArchive.status, filters.status as any));
+  }
+  if (filters?.search && filters.search.trim()) {
+    const q = `%${filters.search.trim()}%`;
+    conditions.push(
+      or(
+        like(invoiceArchive.invoiceNumber, q),
+        like(invoiceArchive.supplierName, q),
+        like(invoiceArchive.supplierCUI, q),
+        like(invoiceArchive.fileName, q),
+        like(invoiceArchive.notes, q)
+      )
+    );
+  }
+
   const items = await db
     .select()
     .from(invoiceArchive)
-    .where(eq(invoiceArchive.tenantId, tenantId))
+    .where(and(...conditions))
     .orderBy(desc(invoiceArchive.createdAt))
     .limit(limit)
     .offset(offset);
@@ -1517,7 +1648,7 @@ export async function getInvoiceArchiveList(
     const nirs = await db
       .select({ id: nir.id, invoiceArchiveId: nir.invoiceArchiveId, nirNumber: nir.nirNumber })
       .from(nir)
-      .where(inArray(nir.invoiceArchiveId, itemIds));
+      .where(and(inArray(nir.invoiceArchiveId, itemIds), eq(nir.tenantId, tenantId)));
 
     const nirInfoMap = new Map<number, { id: number; nirNumber: string }>();
     for (const n of nirs) {
@@ -1584,7 +1715,7 @@ export async function getInvoiceArchiveList(
   const [{ total }] = await db
     .select({ total: count() })
     .from(invoiceArchive)
-    .where(eq(invoiceArchive.tenantId, tenantId));
+    .where(and(...conditions));
 
   return { items: itemsWithLines, total };
 }
@@ -1773,6 +1904,7 @@ export async function getInvoiceArchiveById(id: number, tenantId: number) {
 }
 
 export async function getInvoiceArchiveByIds(ids: number[], tenantId: number) {
+  if (!ids || ids.length === 0) return [];
   const db = await getDb();
   if (!db) return [];
   const entries = await db
@@ -1785,10 +1917,11 @@ export async function getInvoiceArchiveByIds(ids: number[], tenantId: number) {
       )
     );
   if (entries.length === 0) return [];
+  const ownedIds = entries.map(e => e.id);
   const lines = await db
     .select()
     .from(invoiceArchiveLines)
-    .where(inArray(invoiceArchiveLines.invoiceArchiveId, ids));
+    .where(inArray(invoiceArchiveLines.invoiceArchiveId, ownedIds));
 
   return entries.map(entry => ({
     ...entry,
@@ -1815,10 +1948,21 @@ export async function updateInvoiceArchiveEntry(
 export async function deleteInvoiceArchiveEntry(id: number, tenantId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  const [owned] = await db
+    .select({ id: invoiceArchive.id })
+    .from(invoiceArchive)
+    .where(
+      and(eq(invoiceArchive.id, id), eq(invoiceArchive.tenantId, tenantId))
+    )
+    .limit(1);
+  if (!owned) return;
+  await db
+    .delete(invoiceArchiveLines)
+    .where(eq(invoiceArchiveLines.invoiceArchiveId, owned.id));
   await db
     .delete(invoiceArchive)
     .where(
-      and(eq(invoiceArchive.id, id), eq(invoiceArchive.tenantId, tenantId))
+      and(eq(invoiceArchive.id, owned.id), eq(invoiceArchive.tenantId, tenantId))
     );
 }
 

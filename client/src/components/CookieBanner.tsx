@@ -27,19 +27,19 @@ export default function CookieBanner() {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-white border-t shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.1)] sm:p-6">
+    <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-white dark:bg-[#1c1c1e] border-t border-slate-200 dark:border-white/[0.10] shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.1)] dark:shadow-[0_-8px_30px_-8px_rgba(0,0,0,0.65)] sm:p-5">
       <div className="max-w-[1400px] mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex gap-4 items-start">
-          <div className="p-2 bg-blue-50 text-blue-600 rounded-full shrink-0">
+        <div className="flex gap-3.5 items-start min-w-0">
+          <div className="p-2 bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 rounded-full shrink-0">
             <Info className="w-5 h-5" />
           </div>
-          <div>
-            <h3 className="font-semibold text-slate-900 text-sm">
+          <div className="min-w-0">
+            <h3 className="font-semibold text-slate-900 dark:text-white text-sm">
               Confidențialitatea ta este importantă pentru noi
             </h3>
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="text-sm text-slate-500 dark:text-slate-300 mt-1">
               Folosim cookie-uri pentru a-ți oferi cea mai bună experiență pe site-ul nostru, pentru a analiza traficul și pentru a personaliza conținutul. Apăsând "Acceptă", ești de acord cu utilizarea cookie-urilor conform{" "}
-              <a href="/gdpr" className="text-blue-600 hover:underline">
+              <a href="/gdpr" className="text-blue-600 dark:text-blue-400 hover:underline">
                 Politicii noastre de Confidențialitate
               </a>
               .

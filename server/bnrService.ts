@@ -224,7 +224,11 @@ export async function getBnrRateForDate(
   dateStr: string,
   currency: string = "EUR"
 ): Promise<{ rate: number; date: string; source: string }> {
-  const cleanDate = dateStr ? dateStr.trim().split("T")[0] : new Date().toISOString().split("T")[0];
+  let cleanDate = dateStr ? dateStr.trim().split("T")[0] : new Date().toISOString().split("T")[0];
+  const dmyMatch = cleanDate.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+  if (dmyMatch) {
+    cleanDate = `${dmyMatch[3]}-${dmyMatch[2].padStart(2, "0")}-${dmyMatch[1].padStart(2, "0")}`;
+  }
   const year = parseInt(cleanDate.split("-")[0], 10) || new Date().getFullYear();
   const curr = currency.toUpperCase();
 
@@ -241,6 +245,19 @@ export async function getBnrRateForDate(
           source: `BNR Oficial (${best.date})`,
         };
       }
+    }
+  }
+
+  // Early-January fallback: check previous year's BNR cubes (e.g. Jan 1–4 before first banking day)
+  const prevCubes = await fetchBnrYearRates(year - 1);
+  if (prevCubes.length > 0) {
+    const prevMatch = prevCubes.filter(c => c.date <= cleanDate);
+    if (prevMatch.length > 0 && prevMatch[0].rates[curr]) {
+      return {
+        rate: prevMatch[0].rates[curr],
+        date: prevMatch[0].date,
+        source: `BNR Oficial (${prevMatch[0].date})`,
+      };
     }
   }
 

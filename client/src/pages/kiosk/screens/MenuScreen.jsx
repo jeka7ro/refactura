@@ -143,6 +143,8 @@ export default function MenuScreen() {
 
   // Fetch location to discover multi-brand capability
   useEffect(() => {
+    const BACKEND =
+      import.meta.env.VITE_BACKEND_URL || "https://smart-kiosk-v7ws.onrender.com";
     const locId =
       new URLSearchParams(window.location.search).get("loc") ||
       localStorage.getItem("kiosk_loc_id");

@@ -136,9 +136,7 @@ export default function ContractCreate() {
 
   // Template selection
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
-  const [contractObject, setContractObject] = useState<string>(
-    "Tâmplărie Lemn Stratificat, esență Pin 68 mm"
-  );
+  const [contractObject, setContractObject] = useState<string>("");
   const [paymentTermDays, setPaymentTermDays] = useState<string>("7");
   const [deliveryDays, setDeliveryDays] = useState<string>("60");
   const [warrantyMonths, setWarrantyMonths] = useState<string>("36");
@@ -1009,7 +1007,7 @@ export default function ContractCreate() {
   };
 
   return (
-    <div className="w-full max-w-full p-2.5 sm:p-4 space-y-3 pb-12">
+    <div className="w-full max-w-full overflow-x-hidden p-2.5 sm:p-4 space-y-3 pb-12">
       {/* 1. Header Compact: Titlu, Mod de lucru & Butoane Salvare (FARA spatiu pierdut) */}
       <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-2">
@@ -1024,27 +1022,27 @@ export default function ContractCreate() {
             </Link>
           </Button>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
             <h1 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-              <FileSignature className="h-4 w-4 text-slate-700 dark:text-slate-300" />
+              <FileSignature className="h-4 w-4 text-slate-700 dark:text-slate-300 shrink-0" />
               Redactare & Semnare Contract
             </h1>
-            <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+            <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 truncate max-w-full">
               {activeTenantName}
             </span>
           </div>
         </div>
 
         {/* Butoane comutare mod & Salvare in coltul din dreapta */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="apple-segmented">
+        <div className="flex items-center gap-2 flex-wrap max-w-full">
+          <div className="apple-segmented flex-wrap sm:flex-nowrap !rounded-2xl sm:!rounded-full max-w-full">
             <button
               type="button"
               data-active={activeMode === "editor"}
               onClick={() => setActiveMode("editor")}
-              className="apple-segmented-item px-3"
+              className="apple-segmented-item px-2.5 sm:px-3"
             >
-              <Edit3 className="h-3.5 w-3.5" />
+              <Edit3 className="h-3.5 w-3.5 shrink-0" />
               <span>Editor & Semnături</span>
             </button>
 
@@ -1052,9 +1050,9 @@ export default function ContractCreate() {
               type="button"
               data-active={activeMode === "upload"}
               onClick={() => setActiveMode("upload")}
-              className="apple-segmented-item px-3"
+              className="apple-segmented-item px-2.5 sm:px-3"
             >
-              <Upload className="h-3.5 w-3.5" />
+              <Upload className="h-3.5 w-3.5 shrink-0" />
               <span>Încarcă PDF Semnat</span>
             </button>
           </div>
@@ -1103,7 +1101,7 @@ export default function ContractCreate() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start [&>div]:min-w-0">
           {/* Col 1: Model Contract / Șablon */}
           <div>
-            <div className="flex items-center justify-between mb-1.5">
+            <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                 <FileText className="h-3.5 w-3.5 text-primary" />
                 Model Contract (Șablon)

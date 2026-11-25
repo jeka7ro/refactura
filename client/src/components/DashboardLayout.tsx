@@ -859,10 +859,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="relative flex h-screen apple-canvas overflow-hidden">
       {/* Top Header — Floating Apple Liquid Glass Functional Bar (content scrolls underneath) */}
-      <header className="fixed top-2.5 sm:top-3.5 left-2.5 sm:left-3.5 right-2.5 sm:right-3.5 h-15 apple-glass rounded-[22px] flex items-center px-4 sm:px-5 gap-3 sm:gap-3.5 z-30">
+      <header className="fixed top-2.5 sm:top-3.5 left-2.5 sm:left-3.5 right-2.5 sm:right-3.5 h-15 apple-glass rounded-[22px] flex items-center px-3 sm:px-5 gap-1.5 sm:gap-3.5 z-30 min-w-0">
         {/* Logo — Apple Liquid Glass Squircle + SF Pro Lockup */}
         <Link href="/">
-          <div className="flex items-center flex-shrink-0 mr-1.5 cursor-pointer hover:opacity-90 transition-opacity">
+          <div className="flex items-center flex-shrink-0 mr-0.5 sm:mr-1.5 cursor-pointer hover:opacity-90 transition-opacity">
             <FacturaSpvLogo iconOnly={collapsed} size="md" />
           </div>
         </Link>
@@ -870,7 +870,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Mobile menu toggle */}
         <button
           aria-label="Deschide meniul"
-          className="md:hidden w-9 h-9 rounded-full apple-btn-glass flex items-center justify-center transition-all"
+          className="md:hidden w-9 h-9 shrink-0 rounded-full apple-btn-glass flex items-center justify-center transition-all"
           onClick={() => setMobileOpen(true)}
         >
           <Menu className="w-4 h-4 text-[#3a3a3c] dark:text-[#ebebf5]" />
@@ -879,16 +879,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Desktop Sidebar collapse toggle */}
         <button
           aria-label={collapsed ? "Extinde bara laterală" : "Restrânge bara laterală"}
-          className="hidden md:flex w-9 h-9 rounded-full apple-btn-glass items-center justify-center transition-all"
+          className="hidden md:flex w-9 h-9 shrink-0 rounded-full apple-btn-glass items-center justify-center transition-all"
           onClick={() => setCollapsed(!collapsed)}
         >
           <Menu className="w-4 h-4 text-[#3a3a3c] dark:text-[#ebebf5]" />
         </button>
 
-        <div className="flex-1" />
+        <div className="flex-1 min-w-0" />
 
         {/* Live BNR Exchange Rate with date & live indicator */}
-        <BnrExchangeRateHeader />
+        <div className="hidden sm:block shrink-0">
+          <BnrExchangeRateHeader />
+        </div>
 
         {/* Multi-currency / country indicator */}
         <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full apple-btn-glass">
@@ -905,7 +907,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               type="button"
               aria-label="Notificări"
               title="Notificări"
-              className="relative w-9 h-9 rounded-full apple-btn-glass flex items-center justify-center transition-all cursor-pointer"
+              className="relative w-9 h-9 shrink-0 rounded-full apple-btn-glass flex items-center justify-center transition-all cursor-pointer"
             >
               <Bell className="w-4 h-4 text-[#3a3a3c] dark:text-[#ebebf5]" />
               {pendingCount > 0 && (
@@ -987,7 +989,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           onClick={toggleTheme}
           aria-label={theme === "dark" ? "Comută la modul luminos" : "Comută la modul întunecat"}
           title={theme === "dark" ? "Mod luminos" : "Mod întunecat"}
-          className="w-9 h-9 rounded-full apple-btn-glass flex items-center justify-center transition-all cursor-pointer"
+          className="w-9 h-9 shrink-0 rounded-full apple-btn-glass flex items-center justify-center transition-all cursor-pointer"
         >
           {theme === "dark" ? (
             <Sun className="w-4 h-4 text-[#ebebf5]" />

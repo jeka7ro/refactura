@@ -5,6 +5,7 @@
  * 2. Format SAGA Excel / XLSX / CSV
  */
 import { XMLParser } from "fast-xml-parser";
+import iconv from "iconv-lite";
 
 /** Deduce cota TVA din bază și TVA (21% standard, 11% redusă; păstrează 19/9/5 pentru documente vechi). */
 function inferVatRate(base: number, vat: number): number {
@@ -87,18 +88,10 @@ function normalizeDate(raw: any): string {
  */
 export function parseSagaXmlInvoices(buffer: Buffer): ParsedSagaInvoice[] {
   // SAGA folosește frecvent Windows-1250 sau UTF-8
-  let xmlString = buffer.toString("utf-8");
-  if (xmlString.includes("encoding=\"Windows-1250\"") || xmlString.includes("encoding='Windows-1250'")) {
-    try {
-      // Încercare decodare latin1 dacă are caractere speciale non-utf8
-      const latin1 = buffer.toString("latin1");
-      if (!latin1.includes("")) {
-        xmlString = latin1;
-      }
-    } catch {
-      // fallback la utf-8
-    }
-  }
+  const head = buffer.subarray(0, 256).toString("latin1");
+  const xmlString = /encoding=["']windows-1250["']/i.test(head)
+    ? iconv.decode(buffer, "win1250")
+    : buffer.toString("utf-8");
 
   const parser = new XMLParser({ numberParseOptions: { leadingZeros: false, hex: false, eNotation: false },
     ignoreAttributes: false,
@@ -246,12 +239,15 @@ export function parseSagaXmlInvoices(buffer: Buffer): ParsedSagaInvoice[] {
     const rawSerie = String(antet.FacturaSerie || antet.Serie || "").trim();
     
     // Extragere serie și număr dacă sunt combinate
-    let series = rawSerie || "EXT";
+    let series = rawSerie || "";
     let number = rawNumber;
     if (!series && rawNumber.match(/^([A-Za-z]+)\s*(\d+)$/)) {
       const m = rawNumber.match(/^([A-Za-z]+)\s*(\d+)$/)!;
       series = m[1];
       number = m[2];
+    }
+    if (!series) {
+      series = "EXT";
     }
 
     const issueDate = normalizeDate(antet.FacturaData || antet.Data);
@@ -308,7 +304,7 @@ export function parseSagaXmlInvoices(buffer: Buffer): ParsedSagaInvoice[] {
         unitPrice: price,
         unit: um,
         vatRate: cota,
-        total: valoare + tva,
+        total: valoare,
         vatAmount: tva,
       });
     }
@@ -340,7 +336,7 @@ export function parseSagaXmlInvoices(buffer: Buffer): ParsedSagaInvoice[] {
         unitPrice: subtotal,
         unit: "buc",
         vatRate: inferVatRate(subtotal, totalVAT),
-        total,
+        total: subtotal,
         vatAmount: totalVAT,
       }],
     });
@@ -354,8 +350,14 @@ export function parseSagaXmlInvoices(buffer: Buffer): ParsedSagaInvoice[] {
  */
 export function parseSagaXlsxInvoices(buffer: Buffer): ParsedSagaInvoice[] {
   const workbook = XLSX.read(buffer, { type: "buffer" });
+  if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+    throw new Error("Fișierul Excel nu conține foi de lucru.");
+  }
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
+  if (!sheet) {
+    throw new Error("Foaia de lucru Excel este goală.");
+  }
   const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
   if (!rows || rows.length === 0) {
@@ -425,7 +427,7 @@ export function parseSagaXlsxInvoices(buffer: Buffer): ParsedSagaInvoice[] {
         unitPrice: subtotal,
         unit: "buc",
         vatRate: inferVatRate(subtotal, tvaValuta),
-        total: totalValuta,
+        total: subtotal,
         vatAmount: tvaValuta,
       }],
     });
@@ -492,13 +494,15 @@ export async function saveSagaInvoicesToDb(tenantId: number, invoices: ParsedSag
       continue;
     }
 
-    // 2. Verificăm dacă factura există deja pentru a evita duplicatele
+    // 2. Verificăm dacă factura există deja pe (series, number) pentru a evita duplicatele
+    const effectiveSeries = inv.series || "EXT";
     const [existing] = await db
       .select({ id: schema.emittedInvoices.id })
       .from(schema.emittedInvoices)
       .where(
         and(
           eq(schema.emittedInvoices.tenantId, tenantId),
+          eq(schema.emittedInvoices.series, effectiveSeries),
           eq(schema.emittedInvoices.number, inv.number)
         )
       );
@@ -531,7 +535,12 @@ export async function saveSagaInvoicesToDb(tenantId: number, invoices: ParsedSag
           await db
             .update(schema.clients)
             .set({ sagaCode: inv.clientCode })
-            .where(eq(schema.clients.id, existingClient.id));
+            .where(
+              and(
+                eq(schema.clients.id, existingClient.id),
+                eq(schema.clients.tenantId, tenantId)
+              )
+            );
         }
       } else {
         const [insertedClient] = await db.insert(schema.clients).values({
@@ -581,6 +590,7 @@ export async function saveSagaInvoicesToDb(tenantId: number, invoices: ParsedSag
     // Inserare linii
     for (let i = 0; i < inv.lines.length; i++) {
       const line = inv.lines[i];
+      const valoreNet = Math.round(line.total * 100) / 100;
       await db.insert(schema.emittedInvoiceLines).values({
         emittedInvoiceId,
         description: line.description,
@@ -588,7 +598,7 @@ export async function saveSagaInvoicesToDb(tenantId: number, invoices: ParsedSag
         unitPrice: String(line.unitPrice.toFixed(2)),
         unit: line.unit || "buc",
         vatRate: String(line.vatRate.toFixed(2)),
-        total: String(line.total.toFixed(2)),
+        total: String(valoreNet.toFixed(2)),
         lineOrder: i,
       });
     }

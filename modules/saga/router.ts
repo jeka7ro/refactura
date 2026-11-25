@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { tenantOf } from "../../server/tenant";
 import { router, protectedProcedure } from "../../server/_core/trpc";
-import { getDb } from "../../server/db";
+import { getDb, getUserRole } from "../../server/db";
 import {
   sagaArticles, sagaArticleMappings, sagaExportHistory,
   sagaGestiuni, sagaFurnizori,
@@ -11,13 +11,55 @@ import {
   sagaRetete, sagaReteteLinii,
   sagaArticoleContabile,
 } from "./schema";
-import { eq, and, desc, like, sql, count, inArray } from "drizzle-orm";
+import { eq, and, or, desc, like, sql, count, inArray } from "drizzle-orm";
 
 // Verifies that a parent row belongs to the caller's tenant (404-style error otherwise).
 async function assertOwned(db: any, table: any, id: number, tenantId: number) {
   const [row] = await db.select({ id: table.id }).from(table)
     .where(and(eq(table.id, id), eq(table.tenantId, tenantId))).limit(1);
   if (!row) throw new Error("Documentul nu a fost găsit");
+}
+
+async function assertSagaArticlesOwned(
+  db: any,
+  rawIds: Array<number | undefined | null>,
+  tenantId: number
+) {
+  const ids = Array.from(
+    new Set(rawIds.filter((id): id is number => typeof id === "number" && id > 0))
+  );
+  if (ids.length === 0) return;
+  const owned = await db
+    .select({ id: sagaArticles.id })
+    .from(sagaArticles)
+    .where(and(inArray(sagaArticles.id, ids), eq(sagaArticles.tenantId, tenantId)));
+  if (owned.length !== ids.length) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Unul sau mai multe articole SAGA nu aparțin firmei curente.",
+    });
+  }
+}
+
+async function assertSagaGestiuniOwned(
+  db: any,
+  rawIds: Array<number | undefined | null>,
+  tenantId: number
+) {
+  const ids = Array.from(
+    new Set(rawIds.filter((id): id is number => typeof id === "number" && id > 0))
+  );
+  if (ids.length === 0) return;
+  const owned = await db
+    .select({ id: sagaGestiuni.id })
+    .from(sagaGestiuni)
+    .where(and(inArray(sagaGestiuni.id, ids), eq(sagaGestiuni.tenantId, tenantId)));
+  if (owned.length !== ids.length) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Una sau mai multe gestiuni SAGA nu aparțin firmei curente.",
+    });
+  }
 }
 
 export const sagaRouter = router({
@@ -474,7 +516,7 @@ export const sagaRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const { generateSagaExportXML, getTenantCompanyProfile } = await import(
+      const { generateSagaExportXML, getTenantCompanyProfile, toSagaXmlBuffer } = await import(
         "../../server/sagaXmlGenerator"
       );
       const tenantId = tenantOf(ctx);
@@ -496,7 +538,7 @@ export const sagaRouter = router({
         });
       }
 
-      return { xml, filename };
+      return { xml, filename, base64: toSagaXmlBuffer(xml).toString("base64") };
     }),
 
   exportNir: protectedProcedure
@@ -511,7 +553,7 @@ export const sagaRouter = router({
         .optional()
     )
     .mutation(async ({ input, ctx }) => {
-      const { generateSagaNirXML, getTenantCompanyProfile } = await import(
+      const { generateSagaNirXML, getTenantCompanyProfile, toSagaXmlBuffer } = await import(
         "../../server/sagaXmlGenerator"
       );
       const tenantId = tenantOf(ctx);
@@ -533,7 +575,7 @@ export const sagaRouter = router({
           ? `F_${safeCui}_NIR_ALL_${input.year}.xml` 
           : `F_${safeCui}_NIR_${input.month}_${input.year}.xml`;
       }
-      return { xml, filename };
+      return { xml, filename, base64: toSagaXmlBuffer(xml).toString("base64") };
     }),
 
   simulateNirImport: protectedProcedure
@@ -602,21 +644,21 @@ export const sagaRouter = router({
     }),
 
   exportArticole: protectedProcedure.mutation(async ({ ctx }) => {
-    const { generateSagaArticlesXML } = await import("../../server/sagaXmlGenerator");
+    const { generateSagaArticlesXML, toSagaXmlBuffer } = await import("../../server/sagaXmlGenerator");
     const { format } = await import("date-fns");
     const tenantId = tenantOf(ctx);
     const xml = await generateSagaArticlesXML(tenantId);
     const filename = `ART_${format(new Date(), "ddMMyyyy")}.xml`;
-    return { xml, filename };
+    return { xml, filename, base64: toSagaXmlBuffer(xml).toString("base64") };
   }),
 
   exportClienti: protectedProcedure.mutation(async ({ ctx }) => {
-    const { generateSagaClientsXML } = await import("../../server/sagaXmlGenerator");
+    const { generateSagaClientsXML, toSagaXmlBuffer } = await import("../../server/sagaXmlGenerator");
     const { format } = await import("date-fns");
     const tenantId = tenantOf(ctx);
     const xml = await generateSagaClientsXML(tenantId);
     const filename = `CLI_${format(new Date(), "ddMMyyyy")}.xml`;
-    return { xml, filename };
+    return { xml, filename, base64: toSagaXmlBuffer(xml).toString("base64") };
   }),
 
   getSagaWebConfig: protectedProcedure.query(async ({ ctx }) => {
@@ -650,6 +692,18 @@ export const sagaRouter = router({
       const db = await getDb();
       const tenantId = tenantOf(ctx);
       if (!db) throw new Error("DB unavailable");
+      const memberRole = await getUserRole(ctx.user.id, tenantId);
+      const isAdmin =
+        ctx.user?.role === "superadmin" ||
+        ctx.user?.role === "admin" ||
+        memberRole === "superadmin" ||
+        memberRole === "admin";
+      if (!isAdmin) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Doar administratorul firmei poate modifica configurația SAGA Web.",
+        });
+      }
       const { tenants } = await import("../../drizzle/schema");
       const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
       let settings: any = {};
@@ -661,7 +715,9 @@ export const sagaRouter = router({
       if (input.sagaWebToken !== undefined && input.sagaWebToken.trim() !== "••••••••") {
         settings.sagaWebToken = input.sagaWebToken.trim();
       }
-      if (input.sagaWebCui !== undefined) settings.sagaWebCui = input.sagaWebCui.trim();
+      if (input.sagaWebCui !== undefined) {
+        settings.sagaWebCui = input.sagaWebCui.trim().replace(/[^a-zA-Z0-9_-]/g, "");
+      }
 
       await db
         .update(tenants)
@@ -686,9 +742,20 @@ export const sagaRouter = router({
       const { generateSagaExportXML, getTenantCompanyProfile, updateTenantSagaToken, toSagaXmlBuffer } =
         await import("../../server/sagaXmlGenerator");
       const tenantId = tenantOf(ctx);
+      if (ctx.user?.role !== "superadmin") {
+        const memberRole = await getUserRole(ctx.user.id, tenantId);
+        if (memberRole === "viewer") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Contul cu rol viewer nu poate transmite date în SAGA Web.",
+          });
+        }
+      }
 
       const db = await getDb();
-      let token = input.sagaToken?.trim();
+      const usedStoredToken =
+        !input.sagaToken?.trim() || input.sagaToken.trim() === "••••••••";
+      let token = usedStoredToken ? "" : input.sagaToken!.trim();
       let cui = input.sagaCui?.trim();
 
       if (!token || !cui) {
@@ -713,6 +780,10 @@ export const sagaRouter = router({
         const company = await getTenantCompanyProfile(tenantId);
         cui = company.cui.replace(/^RO/i, "").trim();
       }
+      cui = String(cui || "").replace(/[^a-zA-Z0-9_-]/g, "");
+      if (!cui) {
+        throw new Error("CUI-ul pentru SAGA Web lipsește sau este invalid.");
+      }
 
       const xmlContent = await generateSagaExportXML(tenantId, input.month, input.year);
       const fileName = `F_${cui}_${input.month}_${input.year}.xml`;
@@ -734,7 +805,7 @@ export const sagaRouter = router({
         });
 
         const newToken = response.headers["x-saga-refresh-token"];
-        if (newToken) {
+        if (newToken && usedStoredToken) {
           await updateTenantSagaToken(tenantId, newToken);
         }
 
@@ -961,11 +1032,35 @@ export const sagaRouter = router({
   // Plan de Conturi — returneaza lista completa de conturi SAGA
   planConturi: protectedProcedure
     .input(z.object({ query: z.string().optional(), stockOnly: z.boolean().optional() }).optional())
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
+      const tenantId = tenantOf(ctx);
       const { SAGA_PLAN_CONTURI, getStockRelevantAccounts, searchAccounts } = await import("./planConturi");
-      if (input?.query) return searchAccounts(input.query);
-      if (input?.stockOnly) return getStockRelevantAccounts();
-      return SAGA_PLAN_CONTURI;
+      let accounts = input?.query
+        ? searchAccounts(input.query)
+        : input?.stockOnly
+          ? getStockRelevantAccounts()
+          : SAGA_PLAN_CONTURI;
+      let allowWoodGlassAnalytics = false;
+      if (tenantId === 4) {
+        const db = await getDb();
+        if (db) {
+          const { tenants } = await import("../../drizzle/schema");
+          const [t] = await db
+            .select({ cui: tenants.cui })
+            .from(tenants)
+            .where(eq(tenants.id, 4))
+            .limit(1);
+          const cleanCui = String(t?.cui || "")
+            .replace(/^RO/i, "")
+            .replace(/\D/g, "")
+            .trim();
+          allowWoodGlassAnalytics = cleanCui === "28396216";
+        }
+      }
+      if (!allowWoodGlassAnalytics) {
+        accounts = accounts.filter((c: any) => !String(c.cod).includes("."));
+      }
+      return accounts;
     }),
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -1040,12 +1135,21 @@ export const sagaRouter = router({
       }),
 
     nextCode: protectedProcedure.query(async ({ ctx }) => {
-      
       const db = await getDb();
       if (!db) return "0001";
-      const result = await db.select({ cnt: count() }).from(sagaGestiuni)
-        .where(eq(sagaGestiuni.tenantId, (tenantOf(ctx))));
-      return String((result[0]?.cnt || 0) + 1).padStart(4, "0");
+      const rows = await db
+        .select({ cod: sagaGestiuni.cod })
+        .from(sagaGestiuni)
+        .where(eq(sagaGestiuni.tenantId, tenantOf(ctx)));
+      let maxNum = 0;
+      for (const r of rows) {
+        const m = String(r.cod || "").match(/(\d+)$/);
+        if (m) {
+          const n = parseInt(m[1], 10);
+          if (Number.isFinite(n) && n > maxNum) maxNum = n;
+        }
+      }
+      return String(maxNum + 1).padStart(4, "0");
     }),
   }),
 
@@ -1123,12 +1227,21 @@ export const sagaRouter = router({
       }),
 
     nextCode: protectedProcedure.query(async ({ ctx }) => {
-      
       const db = await getDb();
       if (!db) return "F001";
-      const result = await db.select({ cnt: count() }).from(sagaFurnizori)
-        .where(eq(sagaFurnizori.tenantId, (tenantOf(ctx))));
-      return "F" + String((result[0]?.cnt || 0) + 1).padStart(3, "0");
+      const rows = await db
+        .select({ cod: sagaFurnizori.cod })
+        .from(sagaFurnizori)
+        .where(eq(sagaFurnizori.tenantId, tenantOf(ctx)));
+      let maxNum = 0;
+      for (const r of rows) {
+        const m = String(r.cod || "").match(/(\d+)$/);
+        if (m) {
+          const n = parseInt(m[1], 10);
+          if (Number.isFinite(n) && n > maxNum) maxNum = n;
+        }
+      }
+      return "F" + String(maxNum + 1).padStart(3, "0");
     }),
   }),
 
@@ -1184,21 +1297,25 @@ export const sagaRouter = router({
         })).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        const tenantId = tenantOf(ctx);
+        const { lines, ...headerData } = input;
+        if (lines?.length) {
+          await assertSagaArticlesOwned(db, lines.map(l => l.articolId), tenantId);
+          await assertSagaGestiuniOwned(db, lines.map(l => l.gestiuneId), tenantId);
+        }
         // Get next nrIntern
         const existing = await db.select({ cnt: sql<number>`COALESCE(MAX(${sagaIntrari.nrIntern}), 0)` }).from(sagaIntrari)
-          .where(eq(sagaIntrari.tenantId, (tenantOf(ctx))));
+          .where(eq(sagaIntrari.tenantId, tenantId));
         const nrIntern = Number(existing[0]?.cnt || 0) + 1;
         
-        const { lines, ...headerData } = input;
         // Calculate totals from lines
         let valoare = 0, tvaTot = 0;
         for (const l of (lines || [])) {
           const cant = parseFloat(l.cantitate || "0");
           const pret = parseFloat(l.pretUnitar || "0");
-          const tvaP = parseFloat(l.tvaPercent || "21");
+          const tvaP = parseFloat(l.tvaPercent ?? "21");
           const val = cant * pret;
           valoare += val;
           tvaTot += val * tvaP / 100;
@@ -1206,7 +1323,7 @@ export const sagaRouter = router({
 
         const [result] = await db.insert(sagaIntrari).values({
           ...headerData,
-          tenantId: (tenantOf(ctx)),
+          tenantId,
           nrIntern,
           valoare: String(valoare.toFixed(2)),
           tva: String(tvaTot.toFixed(2)),
@@ -1261,13 +1378,15 @@ export const sagaRouter = router({
         cont: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        
         const db = await getDb();
         if (!db) throw new Error("No DB");
-        await assertOwned(db, sagaIntrari, input.intrareId, tenantOf(ctx));
+        const tenantId = tenantOf(ctx);
+        await assertOwned(db, sagaIntrari, input.intrareId, tenantId);
+        await assertSagaArticlesOwned(db, [input.articolId], tenantId);
+        await assertSagaGestiuniOwned(db, [input.gestiuneId], tenantId);
         const cant = parseFloat(input.cantitate || "0");
         const pret = parseFloat(input.pretUnitar || "0");
-        const tvaP = parseFloat(input.tvaPercent || "21");
+        const tvaP = parseFloat(input.tvaPercent ?? "21");
         const val = cant * pret;
         const tvaS = val * tvaP / 100;
         await db.insert(sagaIntrariLinii).values({
@@ -1286,7 +1405,7 @@ export const sagaRouter = router({
           tva: String(totTva.toFixed(2)),
           total: String((totVal + totTva).toFixed(2)),
           neachitat: String((totVal + totTva).toFixed(2)),
-        }).where(eq(sagaIntrari.id, input.intrareId));
+        }).where(and(eq(sagaIntrari.id, input.intrareId), eq(sagaIntrari.tenantId, tenantId)));
         return { ok: true };
       }),
 
@@ -1295,7 +1414,8 @@ export const sagaRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
-        await assertOwned(db, sagaIntrari, input.intrareId, tenantOf(ctx));
+        const tenantId = tenantOf(ctx);
+        await assertOwned(db, sagaIntrari, input.intrareId, tenantId);
         await db.delete(sagaIntrariLinii).where(and(eq(sagaIntrariLinii.id, input.id), eq(sagaIntrariLinii.intrareId, input.intrareId)));
         // Recalculate header
         const allLines = await db.select().from(sagaIntrariLinii)
@@ -1306,7 +1426,8 @@ export const sagaRouter = router({
           valoare: String(totVal.toFixed(2)),
           tva: String(totTva.toFixed(2)),
           total: String((totVal + totTva).toFixed(2)),
-        }).where(eq(sagaIntrari.id, input.intrareId));
+          neachitat: String((totVal + totTva).toFixed(2)),
+        }).where(and(eq(sagaIntrari.id, input.intrareId), eq(sagaIntrari.tenantId, tenantId)));
         return { ok: true };
       }),
 
@@ -1416,10 +1537,13 @@ export const sagaRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
-        await assertOwned(db, sagaComenzi, input.comandaId, tenantOf(ctx));
+        const tenantId = tenantOf(ctx);
+        await assertOwned(db, sagaComenzi, input.comandaId, tenantId);
+        await assertSagaArticlesOwned(db, [input.articolId], tenantId);
+        await assertSagaGestiuniOwned(db, [input.gestiuneId], tenantId);
         const cant = parseFloat(input.cantitate || "0");
         const pret = parseFloat(input.pretUnitar || "0");
-        const tvaP = parseFloat(input.tvaPercent || "21");
+        const tvaP = parseFloat(input.tvaPercent ?? "21");
         const val = cant * pret;
         const tvaS = val * tvaP / 100;
         await db.insert(sagaComenziLinii).values({
@@ -1428,6 +1552,24 @@ export const sagaRouter = router({
           tvaSuma: String(tvaS.toFixed(2)),
           total: String((val + tvaS).toFixed(2)),
         });
+        const allLines = await db
+          .select()
+          .from(sagaComenziLinii)
+          .where(eq(sagaComenziLinii.comandaId, input.comandaId));
+        let totVal = 0;
+        let totTva = 0;
+        for (const l of allLines) {
+          totVal += parseFloat(String(l.valoare || "0")) || 0;
+          totTva += parseFloat(String(l.tvaSuma || "0")) || 0;
+        }
+        await db
+          .update(sagaComenzi)
+          .set({
+            valoare: String(totVal.toFixed(2)),
+            tva: String(totTva.toFixed(2)),
+            total: String((totVal + totTva).toFixed(2)),
+          })
+          .where(and(eq(sagaComenzi.id, input.comandaId), eq(sagaComenzi.tenantId, tenantId)));
         return { ok: true };
       }),
 
@@ -1446,10 +1588,13 @@ export const sagaRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await getDb();
         if (!db) throw new Error("No DB");
-        await assertOwned(db, sagaComenzi, input.comandaId, tenantOf(ctx));
+        const tenantId = tenantOf(ctx);
+        await assertOwned(db, sagaComenzi, input.comandaId, tenantId);
+        await assertSagaArticlesOwned(db, [input.articolId], tenantId);
+        await assertSagaGestiuniOwned(db, [input.gestiuneDescarcareId], tenantId);
         const cant = parseFloat(input.cantitate || "0");
         const pret = parseFloat(input.pretUnitar || "0");
-        const tvaP = parseFloat(input.tvaPercent || "21");
+        const tvaP = parseFloat(input.tvaPercent ?? "21");
         const val = cant * pret;
         const tvaS = val * tvaP / 100;
         await db.insert(sagaComenziConsumuri).values({
@@ -1515,11 +1660,16 @@ export const sagaRouter = router({
         })).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        
         const db = await getDb();
         if (!db) throw new Error("No DB");
+        const tenantId = tenantOf(ctx);
+        await assertSagaArticlesOwned(
+          db,
+          [input.articolProdusId, ...(input.linii || []).map(l => l.articolMaterieId)],
+          tenantId
+        );
         const [result] = await db.insert(sagaRetete).values({
-          tenantId: (tenantOf(ctx)),
+          tenantId,
           articolProdusId: input.articolProdusId,
           denumire: input.denumire,
         });
@@ -1559,11 +1709,35 @@ export const sagaRouter = router({
     list: protectedProcedure
       .input(z.object({ month: z.number().optional(), year: z.number().optional() }).optional())
       .query(async ({ ctx, input }) => {
-        
         const db = await getDb();
         if (!db) return [];
-        return db.select().from(sagaArticoleContabile)
-          .where(eq(sagaArticoleContabile.tenantId, (tenantOf(ctx))))
+        const tenantId = tenantOf(ctx);
+        const conditions: any[] = [eq(sagaArticoleContabile.tenantId, tenantId)];
+        if (input?.year && input.year > 0) {
+          const yStr = String(input.year);
+          if (input.month && input.month >= 1 && input.month <= 12) {
+            const mStr = String(input.month).padStart(2, "0");
+            conditions.push(
+              or(
+                like(sagaArticoleContabile.data, `${yStr}-${mStr}-%`),
+                like(sagaArticoleContabile.data, `%.${mStr}.${yStr}`),
+                like(sagaArticoleContabile.data, `%/${mStr}/${yStr}`)
+              )
+            );
+          } else {
+            conditions.push(
+              or(
+                like(sagaArticoleContabile.data, `${yStr}-%`),
+                like(sagaArticoleContabile.data, `%.${yStr}`),
+                like(sagaArticoleContabile.data, `%/${yStr}`)
+              )
+            );
+          }
+        }
+        return db
+          .select()
+          .from(sagaArticoleContabile)
+          .where(and(...conditions))
           .orderBy(desc(sagaArticoleContabile.data))
           .limit(500);
       }),

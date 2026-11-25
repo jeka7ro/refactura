@@ -233,7 +233,7 @@ export default function PrintInvoice() {
         </div>
       </div>
 
-      <table className="w-full text-left mb-8 border-collapse">
+      <table className="w-full text-left mb-8 border-collapse tabular-nums">
         <thead>
           <tr className="border-b-2 border-gray-800 text-sm">
             <th className="py-2">{isForeign ? "Nr. / No." : "Nr."}</th>
@@ -271,7 +271,13 @@ export default function PrintInvoice() {
               </td>
               <td className="py-3 text-right">
                 {formatCurrency(
-                  parseFloat(String(line.totalAmount)),
+                  parseFloat(
+                    String(
+                      line.total ??
+                        line.totalAmount ??
+                        Number(line.quantity || 0) * Number(line.unitPrice || 0)
+                    )
+                  ),
                   invoice.currency as any
                 )}
               </td>

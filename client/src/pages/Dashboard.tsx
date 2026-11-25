@@ -351,7 +351,7 @@ export default function Dashboard() {
         rawTotal: rawTot,
         totalRon: toRon(rawTot, cur, liveEurRate, liveUsdRate),
         totalVATRon: toRon(
-          vat > 0 ? vat : (rawTot * 21) / 121,
+          Number.isFinite(vat) ? vat : 0,
           cur,
           liveEurRate,
           liveUsdRate
@@ -369,6 +369,7 @@ export default function Dashboard() {
 
     // B. Platform Emitted Invoices
     (Array.isArray(emittedInvoices) ? emittedInvoices : []).forEach((e: any) => {
+      if (e.status === "cancelled" || e.status === "draft") return;
       const rawTot = parseFloat(e.total || "0");
       const cur = e.currency || "RON";
       const vat = parseFloat(e.totalVAT || "0");
@@ -385,7 +386,7 @@ export default function Dashboard() {
         rawTotal: rawTot,
         totalRon: toRon(rawTot, cur, liveEurRate, liveUsdRate),
         totalVATRon: toRon(
-          vat > 0 ? vat : (rawTot * 21) / 121,
+          Number.isFinite(vat) ? vat : 0,
           cur,
           liveEurRate,
           liveUsdRate
@@ -408,6 +409,7 @@ export default function Dashboard() {
 
     // C. Re-Invoices
     (Array.isArray(reInvoices) ? reInvoices : []).forEach((r: any) => {
+      if (r.status === "cancelled" || r.status === "draft") return;
       const rawTot = parseFloat(r.total || "0");
       const cur = r.currency || "RON";
       const vat = parseFloat(r.totalVAT || "0");
@@ -423,7 +425,7 @@ export default function Dashboard() {
         rawTotal: rawTot,
         totalRon: toRon(rawTot, cur, liveEurRate, liveUsdRate),
         totalVATRon: toRon(
-          vat > 0 ? vat : (rawTot * 21) / 121,
+          Number.isFinite(vat) ? vat : 0,
           cur,
           liveEurRate,
           liveUsdRate
@@ -760,24 +762,24 @@ export default function Dashboard() {
     currentTenant?.cui || (user as any)?.tenantCUI || "";
 
   return (
-    <div className="p-2.5 sm:p-4 max-w-full space-y-5">
+    <div className="p-2.5 sm:p-4 max-w-full overflow-x-hidden space-y-5">
       {/* ── TOP BAR: Header & Multi-Tenant Executive Switcher ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#1c1c1e] p-4 sm:p-5 rounded-2xl border border-black/[0.06] dark:border-white/[0.09] shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_16px_-4px_rgba(0,0,0,0.04)]">
-        <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-xl bg-primary flex items-center justify-center text-white shadow-sm flex-shrink-0">
+      <div className="flex flex-col min-[1400px]:flex-row min-[1400px]:items-center justify-between gap-3 bg-white dark:bg-[#1c1c1e] p-3.5 sm:p-4 rounded-2xl border border-black/[0.06] dark:border-white/[0.09] shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_16px_-4px_rgba(0,0,0,0.04)]">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-sm flex-shrink-0">
             <Building2 className="w-5 h-5" />
           </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-lg sm:text-[21px] font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em]">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap min-[1400px]:flex-nowrap min-w-0">
+              <h1 className="text-base sm:text-lg font-bold text-[#1d1d1f] dark:text-white tracking-[-0.022em] truncate">
                 {activeCompanyName}
               </h1>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 <span>Live</span>
               </span>
               {activeCompanyCui && (
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5] border border-black/[0.06] dark:border-white/[0.08] tabular-nums">
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5] border border-black/[0.06] dark:border-white/[0.08] tabular-nums shrink-0">
                   {String(activeCompanyCui).toUpperCase().startsWith("RO")
                     ? String(activeCompanyCui).toUpperCase()
                     : `RO${activeCompanyCui}`}
@@ -785,8 +787,8 @@ export default function Dashboard() {
               )}
             </div>
             <p className="text-xs text-[#636366] dark:text-[#98989d] mt-0.5 flex items-center gap-1.5">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span className="text-emerald-700 dark:text-emerald-400 font-medium">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+              <span className="text-emerald-700 dark:text-emerald-400 font-medium truncate">
                 Conectat SPV / e-Factura
               </span>
             </p>
@@ -794,15 +796,16 @@ export default function Dashboard() {
         </div>
 
         {/* Action Controls: Horizon & Refresh */}
-        <div className="flex items-center flex-wrap gap-2 sm:gap-2.5">
+        <div className="flex items-center flex-wrap md:flex-nowrap gap-1.5 sm:gap-2 shrink-0 max-w-full overflow-x-auto no-scrollbar">
           {/* Tenant Switcher dropdown (if superadmin or multi-tenant) */}
           {tenantsList.length > 1 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-black/[0.08] dark:border-white/[0.10] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-xs font-semibold text-[#1d1d1f] dark:text-white hover:bg-black/[0.06] dark:hover:bg-white/[0.12] transition-colors">
-                  <Building2 className="w-3.5 h-3.5 text-primary" />
-                  <span>Schimbă Compania</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-[#636366] dark:text-[#98989d]" />
+                <button className="flex items-center gap-1.5 h-8 px-2.5 rounded-full border border-black/[0.08] dark:border-white/[0.10] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-xs font-semibold text-[#1d1d1f] dark:text-white hover:bg-black/[0.06] dark:hover:bg-white/[0.12] transition-colors shrink-0 whitespace-nowrap">
+                  <Building2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                  <span className="hidden 2xl:inline">Schimbă Compania</span>
+                  <span className="2xl:hidden">Companie</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-[#636366] dark:text-[#98989d] shrink-0" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64">
@@ -836,14 +839,14 @@ export default function Dashboard() {
           )}
 
           {/* Time Horizon Filter Pills — Apple Capsule Segmented Control */}
-          <div className="apple-segmented">
+          <div className="apple-segmented shrink-0 max-w-full overflow-x-auto no-scrollbar">
             {(["7D", "30D", "3M", "6M", "1Y", "ALL"] as TimeHorizon[]).map((hz) => (
               <button
                 key={hz}
                 type="button"
                 data-active={timeHorizon === hz}
                 onClick={() => setTimeHorizon(hz)}
-                className="apple-segmented-item px-3"
+                className="apple-segmented-item px-2.5 whitespace-nowrap shrink-0"
               >
                 {hz === "7D"
                   ? "7 Zile"
@@ -871,10 +874,10 @@ export default function Dashboard() {
             onClick={handleRefresh}
             aria-label="Reîmprospătează datele financiare"
             title="Reîmprospătează datele financiare"
-            className="apple-btn-glass h-9 px-3 rounded-full flex items-center gap-1.5 text-xs font-semibold text-[#1d1d1f] dark:text-[#ebebf5] transition-all cursor-pointer"
+            className="apple-btn-glass h-8 px-2.5 rounded-full flex items-center gap-1.5 text-xs font-semibold text-[#1d1d1f] dark:text-[#ebebf5] transition-all cursor-pointer shrink-0 whitespace-nowrap"
           >
             <RefreshCw
-              className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-primary" : ""}`}
+              className={`w-3.5 h-3.5 shrink-0 ${isRefreshing ? "animate-spin text-primary" : ""}`}
             />
             <span className="hidden sm:inline">Actualizează</span>
           </button>

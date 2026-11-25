@@ -68,6 +68,15 @@ export default function ReInvoicesSent() {
   const reInvoices = dbReInvoices || [];
 
   const deleteReInvoice = trpc.reinvoice.delete.useMutation();
+  const sendToSpvMutation = trpc.reinvoice.sendToSpv.useMutation({
+    onSuccess: () => {
+      utils.reinvoice.list.invalidate();
+      toast.success("Re-factură transmisă cu succes în SPV ANAF!");
+    },
+    onError: (err: any) => {
+      toast.error("Eroare la transmiterea în SPV", { description: err.message });
+    },
+  });
   const utils = trpc.useUtils();
 
   const handleDelete = async () => {
@@ -83,11 +92,13 @@ export default function ReInvoicesSent() {
     }
   };
 
-  const handleSPV = () => {
-    toast.error("Funcționalitate în lucru", {
-      description:
-        "Trimiterea directă din aplicație în SPV necesită generarea formatului standard UBL XML. Momentan se generează doar formatul PDF.",
-    });
+  const handleSPV = (row: any) => {
+    if (!row?.id) return;
+    if (row.spvStatus === "validat" || (row.spvStatus === "in_procesare" && row.spvIndex)) {
+      toast.info("Re-factura este deja transmisă în SPV ANAF.");
+      return;
+    }
+    sendToSpvMutation.mutate({ id: row.id });
   };
 
   const getDateRange = (p: string): [string, string] | null => {
@@ -468,8 +479,8 @@ export default function ReInvoicesSent() {
 
       {/* Single-Row Unified Toolbar */}
       <div className="apple-surface px-3 py-2.5">
-        <div className="flex items-center gap-2 w-full min-w-0">
-          <div className="apple-segmented shrink-0">
+        <div className="flex flex-wrap xl:flex-nowrap items-center gap-2 w-full min-w-0">
+          <div className="apple-segmented flex-wrap sm:flex-nowrap !rounded-2xl sm:!rounded-full max-w-full shrink-0">
             {[
               { id: "all", label: "Toate" },
               { id: "today", label: "Azi" },
@@ -490,14 +501,14 @@ export default function ReInvoicesSent() {
                     setCustomTo(range[1]);
                   }
                 }}
-                className="apple-segmented-item"
+                className="apple-segmented-item px-2 2xl:px-2.5 shrink-0"
               >
                 {item.label}
               </button>
             ))}
           </div>
 
-          <div className="ml-auto flex items-center gap-2 shrink-0">
+          <div className="xl:ml-auto flex flex-wrap sm:flex-nowrap items-center gap-2 w-full xl:w-auto min-w-0">
             {/* Status Select */}
             <Select
               value={statusFilter}
@@ -630,8 +641,9 @@ export default function ReInvoicesSent() {
             </a>
             <button
               type="button"
-              onClick={handleSPV}
-              className="w-8 h-8 rounded-full apple-btn-glass text-[#3a3a3c] dark:text-[#ebebf5] flex items-center justify-center cursor-pointer"
+              onClick={() => handleSPV(row)}
+              disabled={sendToSpvMutation.isPending}
+              className="w-8 h-8 rounded-full apple-btn-glass text-[#3a3a3c] dark:text-[#ebebf5] flex items-center justify-center cursor-pointer disabled:opacity-50"
               title="Trimite în SPV"
             >
               <Send className="w-3.5 h-3.5" />

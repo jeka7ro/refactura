@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
-import { inArray } from "drizzle-orm";
-import { tenants } from "../drizzle/schema";
+import { and, asc, eq, inArray } from "drizzle-orm";
+import { tenants, userTenants } from "../drizzle/schema";
 
 /**
  * Returnează firma (tenant) utilizatorului curent.
@@ -20,11 +20,16 @@ export function tenantOf(ctx: {
   return t;
 }
 
-function parseSettingsJson(raw: unknown): Record<string, any> {
+export function parseSettingsJson(raw: unknown): Record<string, any> {
   if (!raw) return {};
-  if (typeof raw === "object") return raw as Record<string, any>;
+  if (typeof raw === "object") {
+    return !Array.isArray(raw) ? (raw as Record<string, any>) : {};
+  }
   try {
-    return JSON.parse(String(raw));
+    const parsed = JSON.parse(String(raw));
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed
+      : {};
   } catch {
     return {};
   }
@@ -66,6 +71,122 @@ export async function isValidBidirectionalPair(
 }
 
 /**
+ * Rezolvă read-only tenantId-ul verificat al unui cont și lista tuturor firmelor accesibile
+ * (userTenants cu isActive = 1 + perechi bidirecționale PF<->PJ ale acestora).
+ * Nu creează niciodată automat un tenant nou și nu are încredere oarbă în account.tenantId
+ * dacă apartenența din userTenants a fost revocată.
+ */
+export async function resolveVerifiedAccountTenant(
+  db: any,
+  account: { id: number; role?: string | null; tenantId?: number | null }
+): Promise<{ tenantId: number | undefined; allowedTenantIds: number[] }> {
+  if (account.role === "superadmin") {
+    const tid =
+      account.tenantId && Number(account.tenantId) > 0
+        ? Number(account.tenantId)
+        : undefined;
+    return { tenantId: tid, allowedTenantIds: tid ? [tid] : [] };
+  }
+
+  if (!db || !account?.id) {
+    return { tenantId: undefined, allowedTenantIds: [] };
+  }
+
+  const rows = await db
+    .select({ tenantId: userTenants.tenantId })
+    .from(userTenants)
+    .where(
+      and(eq(userTenants.userId, account.id), eq(userTenants.isActive, 1))
+    )
+    .orderBy(asc(userTenants.id));
+
+  const activeIds: number[] = Array.from(
+    new Set(
+      rows
+        .map((r: any) => Number(r.tenantId))
+        .filter((n: number) => Number.isFinite(n) && n > 0)
+    )
+  );
+
+  if (activeIds.length === 0) {
+    return { tenantId: undefined, allowedTenantIds: [] };
+  }
+
+  const allowedSet = new Set<number>(activeIds);
+
+  // Include valid bidirectional PF<->PJ pairs of the user's active tenants
+  const activeTenantRows = await db
+    .select({ id: tenants.id, settings: tenants.settings })
+    .from(tenants)
+    .where(inArray(tenants.id, activeIds));
+
+  const potentialPairIds = new Set<number>();
+  for (const row of activeTenantRows) {
+    const s = parseSettingsJson(row.settings);
+    const pfId = Number(s.pairedPfTenantId);
+    const pjId = Number(s.pairedPjTenantId);
+    if (Number.isFinite(pfId) && pfId > 0 && !allowedSet.has(pfId)) {
+      potentialPairIds.add(pfId);
+    }
+    if (Number.isFinite(pjId) && pjId > 0 && !allowedSet.has(pjId)) {
+      potentialPairIds.add(pjId);
+    }
+  }
+
+  for (const pairCandidateId of Array.from(potentialPairIds)) {
+    for (const activeId of activeIds) {
+      if (await isValidBidirectionalPair(db, activeId, pairCandidateId)) {
+        allowedSet.add(pairCandidateId);
+        break;
+      }
+    }
+  }
+
+  const candidate = account.tenantId ? Number(account.tenantId) : 0;
+  const resolvedTenantId =
+    candidate > 0 && allowedSet.has(candidate) ? candidate : activeIds[0];
+
+  return {
+    tenantId: resolvedTenantId,
+    allowedTenantIds: Array.from(allowedSet),
+  };
+}
+
+function isPrivateOrReservedIpv4(
+  o1: number,
+  o2: number,
+  o3: number,
+  o4: number
+): boolean {
+  if (
+    !Number.isInteger(o1) ||
+    !Number.isInteger(o2) ||
+    !Number.isInteger(o3) ||
+    !Number.isInteger(o4) ||
+    o1 < 0 ||
+    o1 > 255 ||
+    o2 < 0 ||
+    o2 > 255 ||
+    o3 < 0 ||
+    o3 > 255 ||
+    o4 < 0 ||
+    o4 > 255
+  ) {
+    return true;
+  }
+  return (
+    o1 === 0 ||
+    o1 === 10 ||
+    o1 === 127 ||
+    (o1 === 169 && o2 === 254) ||
+    (o1 === 172 && o2 >= 16 && o2 <= 31) ||
+    (o1 === 192 && o2 === 168) ||
+    (o1 === 100 && o2 >= 64 && o2 <= 127) ||
+    o1 >= 224
+  );
+}
+
+/**
  * Blochează URL-uri webhook către localhost, adrese private RFC1918, link-local (169.254.0.0/16) sau IPv6 locale (SSRF).
  */
 export function assertSafeWebhookUrl(rawUrl: string): void {
@@ -98,13 +219,17 @@ export function assertSafeWebhookUrl(rawUrl: string): void {
     host === "0.0.0.0" ||
     host === "::" ||
     host === "::1" ||
+    /^(?:0{1,4}:){7}0{1,4}$/.test(host) ||
+    /^(?:0{1,4}:){7}0*1$/.test(host) ||
+    host.startsWith("::ffff:") ||
+    /^(?:0{1,4}:){5}ffff:/.test(host) ||
+    host.startsWith("::") ||
     host.startsWith("fe80:") ||
+    host.startsWith("fe9") ||
+    host.startsWith("fea") ||
+    host.startsWith("feb") ||
     host.startsWith("fc") ||
-    host.startsWith("fd") ||
-    host.startsWith("::ffff:127.") ||
-    host.startsWith("::ffff:10.") ||
-    host.startsWith("::ffff:192.168.") ||
-    host.startsWith("::ffff:169.254.")
+    host.startsWith("fd")
   ) {
     throw new TRPCError({
       code: "BAD_REQUEST",
@@ -114,19 +239,11 @@ export function assertSafeWebhookUrl(rawUrl: string): void {
 
   const ipv4Match = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
   if (ipv4Match) {
-    const [o1, o2] = [
-      parseInt(ipv4Match[1], 10),
-      parseInt(ipv4Match[2], 10),
-    ];
-    if (
-      o1 === 0 ||
-      o1 === 10 ||
-      o1 === 127 ||
-      (o1 === 169 && o2 === 254) ||
-      (o1 === 172 && o2 >= 16 && o2 <= 31) ||
-      (o1 === 192 && o2 === 168) ||
-      (o1 === 100 && o2 >= 64 && o2 <= 127)
-    ) {
+    const o1 = parseInt(ipv4Match[1], 10);
+    const o2 = parseInt(ipv4Match[2], 10);
+    const o3 = parseInt(ipv4Match[3], 10);
+    const o4 = parseInt(ipv4Match[4], 10);
+    if (isPrivateOrReservedIpv4(o1, o2, o3, o4)) {
       throw new TRPCError({
         code: "BAD_REQUEST",
         message: "URL-ul webhook nu poate indica spre adrese IP private sau link-local.",
