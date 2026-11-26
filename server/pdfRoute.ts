@@ -393,18 +393,16 @@ export function registerPdfRoute(app: any) {
           .where(eq(tenants.id, inv.tenantId));
         if (tenant?.settings) {
           const settings = JSON.parse(tenant.settings);
-          if (inv.direction === "out") {
-            if (settings.logoBase64) logoBase64 = settings.logoBase64;
-            if (settings.logoHasBackground !== undefined) logoHasBackground = Boolean(settings.logoHasBackground);
-            if (settings.logoBgColor) logoBgColor = settings.logoBgColor;
-            archiveLogoSubtitle =
-              Number(inv.tenantId) === 1
-                ? settings.logoSubtitle || "www.getapp.ro"
-                : settings.logoSubtitle || undefined;
-          }
+          if (settings.logoBase64) logoBase64 = settings.logoBase64;
+          if (settings.logoHasBackground !== undefined) logoHasBackground = Boolean(settings.logoHasBackground);
+          if (settings.logoBgColor) logoBgColor = settings.logoBgColor;
+          archiveLogoSubtitle =
+            Number(inv.tenantId) === 1
+              ? settings.logoSubtitle || "www.getapp.ro"
+              : settings.logoSubtitle || undefined;
           if (settings.themeColor) themeColor = settings.themeColor;
           else if (settings.theme && THEME_MAP[settings.theme]) themeColor = THEME_MAP[settings.theme];
-        } else if (inv.direction === "out" && Number(inv.tenantId) === 1) {
+        } else if (Number(inv.tenantId) === 1) {
           archiveLogoSubtitle = "www.getapp.ro";
         }
       } catch (_) {}

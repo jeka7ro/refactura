@@ -1,5 +1,13 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-26 23:08 — Restaurare logo firmă (`GetApp` + `www.getapp.ro` pe Tenantul 1) pe toate PDF-urile facturilor primite din SPV/Arhivă (`server/pdfRoute.ts`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - Eliminat condiția `if (inv.direction === "out")` introdusă greșit în `GET /api/pdf/archive/:id` (`server/pdfRoute.ts`), astfel încât logo-ul tenantului (`logoBase64`, `logoHasBackground`, `logoBgColor`) și `www.getapp.ro` (pe Tenantul 1) se randează din nou pe absolut toate PDF-urile din arhivă/SPV (inclusiv facturile primite `direction === "in"`).
+- **Fișiere:** `server/pdfRoute.ts`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori), `npm run build` (`0` erori) și verificare directă pe PDF-ul real `26BVFCS 44149` (`7086669634`) din SPV (imaginea logo-ului + `www.getapp.ro` prezente în PDF), fără `git push`.
+
 ### 2026-11-26 17:22 — Eliminare completă a exemplelor hardcodate cu numele/CUI-ul altor tenanți din UI (`Settings.tsx`, `Integrations.tsx`, `EmitInvoice.tsx`, `ContractInvoiceToggle.tsx`, `SagaModule.tsx`)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
